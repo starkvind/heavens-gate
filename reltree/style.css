@@ -1,0 +1,132 @@
+
+/* Fuente y estructura base */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f9f7f6;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    max-width: 1100px;
+    margin-inline: auto;
+}
+
+h2, h3, h4 {
+    color: #444;
+    font-weight: 600;
+}
+
+a {
+    color: #4d6bb3;
+    text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+	color: #2a4c95;
+}
+
+/* Formularios */
+select, input, textarea, button {
+    font-size: 15px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
+label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    color: #666;
+}
+
+button {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+button:hover {
+    background: #2b7cb8;
+}
+
+.backlink {
+	margin-top: 30px;
+	display: inline-block;
+	font-size: 14px;
+	color: #888;
+}
+
+/* BioBox */
+.bio-box {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    margin-top: 20px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.bio-box img {
+    width: 125px;
+    height: 125px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+.bio-text {
+    flex-grow: 1;
+}
+.info-line {
+    margin-bottom: 6px;
+    font-size: 15px;
+    color: #555;
+}
+
+/* Relaciones */
+.relaciones, .rel-block {
+    background: #fff;
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.rel-block {
+    margin-top: 10px;
+}
+.rel-block h4 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #333;
+}
+.rel-block ul {
+    list-style: none;
+    padding-left: 0;
+}
+.rel-block li {
+    margin-bottom: 6px;
+    padding-left: 18px;
+    position: relative;
+}
+.rel-block li::before {
+    content: "📎";
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .bio-box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .bio-box img {
+        width: 100%;
+        max-height: 200px;
+    }
+    .relaciones-grid {
+        flex-direction: column;
+    }
+}

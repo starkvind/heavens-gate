@@ -1,0 +1,68 @@
+/* Contenedor principal */
+.main-wrapper {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1em;
+	background: #05014E url("img/hg_background.png") no-repeat bottom right fixed;
+}
+
+/* Cabecera */
+header img {
+	max-width: 100%;
+	height: auto;
+}
+
+/* Menú lateral principal (antes .tmenu o .todou td izquierda) */
+.main-menu {
+	width: 240px;
+	background: url("img/menu.jpg");
+	border: 1px solid #000088;
+	padding: 10px;
+	font: normal 11px verdana;
+}
+
+/* Contenido central (antes .fcentro) */
+.content-body {
+	padding: 15px;
+	width: 100%;
+	min-height: 310px;
+	text-align: justify;
+}
+
+/* Pie de página (antes .piepagina) */
+footer {
+	text-align: center;
+	padding: 10px;
+	font-size: 9px;
+	border: 1px dotted #000088;
+	background: url("img/pie.jpg");
+	color: #ccc;
+	margin-top: 2em;
+}
+
+/* Ocultables genéricos */
+.ocultable {
+	display: none;
+}
+
+/* Para reemplazar .td.sekz, .sekzo, etc. */
+.menu-section {
+	padding: 5px;
+	font-weight: bold;
+	color: #33FFFF;
+	text-align: left;
+}
+.menu-subsection {
+	padding-left: 5px;
+	color: #fff;
+}
+
+/* Nuevos helpers */
+.flex-row {
+	display: flex;
+	gap: 2em;
+}
+.flex-column {
+	display: flex;
+	flex-direction: column;
+}

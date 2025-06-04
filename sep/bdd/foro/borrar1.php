@@ -1,0 +1,75 @@
+<?php
+
+include("../hehe.php");
+
+?>
+
+
+<html>
+
+<head>
+
+<title>Heaven's Gate</title>
+
+
+<link href="../../../../style.css" rel="stylesheet" type="text/css">
+
+</head>
+
+<body>
+
+<? if ($valido=="si")
+{
+?>
+
+<h2> Borrar Mensajes </h2>
+
+<center>
+
+<form action="borrar2.php" method="POST">
+
+<?php
+
+include("../libreria.php");
+
+mysql_select_db("$bdd", $link);
+$consulta ="SELECT id FROM msg ORDER BY id";
+$query = mysql_query ($consulta, $link);
+
+$consulta2 ="SELECT titulo FROM msg ORDER BY id";
+$query2 = mysql_query ($consulta2, $link);
+
+echo "<select name=nombre>";
+
+while ($reg = mysql_fetch_row($query)) {
+
+foreach($reg as $cambia) {
+echo "<option value='$cambia'>",$cambia,"</option>";
+}
+}
+
+echo "</select>";
+
+?>
+
+<br><br>
+
+<input class="boton1" type="submit" value="Borrar"> 
+
+<input class="boton1" type="button" onClick="javascript:history.go(-1)" value="Regresar">
+
+</form>
+
+</center>
+
+<? }
+else { 
+?>
+
+<center>ERROR: ACCESO DENEGADO</center>
+
+<? } ?>
+
+</body>
+
+</html>
