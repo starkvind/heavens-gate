@@ -1,5 +1,4 @@
 <?php
-$numero = isset($numero) ? $numero : 0;
 
 $consulta ="
 SELECT id, name, habilidad 
@@ -8,10 +7,10 @@ WHERE habilidad NOT LIKE ''
 
 ORDER BY bonus ASC";
 
-$IdConsulta = mysqli_query($link, $consulta);
-$NFilas = mysqli_num_rows($IdConsulta);
-for ($i = 0; $i < $NFilas; $i++) {
-    $ResultQuery = mysqli_fetch_assoc($IdConsulta);
+$IdConsulta = mysql_query($consulta, $link);
+$NFilas = mysql_num_rows($IdConsulta);
+for($i=0;$i<$NFilas;$i++) {
+$ResultQuery = mysql_fetch_array($IdConsulta);
 
 $idxx[$numero] = $ResultQuery["id"];
 $nombrexx[$numero] = $ResultQuery["name"];
@@ -44,6 +43,9 @@ switch ($skillxx[$numero]) {
 }
 
 /* HEMOS TERMINADO */
+
+
+$numerito = $numerito+1;
 
 echo "<option value='$idxx[$numero]'>$nombrexx[$numero] ($skillxx[$numero])</option>
 ";
