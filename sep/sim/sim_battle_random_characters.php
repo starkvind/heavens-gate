@@ -2,12 +2,12 @@
 	/* 
 	// CONTAMOS LOS LUCHADORES EN LA TABLA DE CLASIFICACIÓN
 	$consultaPJS = "SELECT * FROM punkte";
-	$IdConsultaPJS = mysql_query($consultaPJS, $link);
-	$filasPJS 	= mysql_num_rows($IdConsultaPJS); // NUMERO DE LUCHADORES EN LA TABLA DE PUNKTUACION
+	$IdConsultaPJS = mysqli_query($consultaPJS, $link);
+	$filasPJS 	= mysqli_num_rows($IdConsultaPJS); // NUMERO DE LUCHADORES EN LA TABLA DE PUNKTUACION
 	// CONTAMOS LOS COMBATES
 	$consulta = "SELECT combates FROM punkte ORDER BY combates DESC LIMIT 1";
-	$IdConsulta = mysql_query($consulta, $link);
-	$resultMaximosCombates = mysql_fetch_array($IdConsulta);
+	$IdConsulta = mysqli_query($consulta, $link);
+	$resultMaximosCombates = mysqli_fetch_assoc($IdConsulta);
 	$combatesTotales = $resultMaximosCombates["combates"];
 		if ($filasPJS > 6) {
 			$queryRandomChara = "SELECT t1.id FROM pjs1 AS t1 INNER JOIN punkte t2 WHERE t2.combates < $combatesTotales AND t1.kes LIKE 'pj' ORDER BY t1.nombre"; // INTENTAMOS PILLAR AL QUE MENOS COMBATES LLEVA
@@ -19,10 +19,10 @@
 	// VAMOS A LO RANDOM	
 	$randomCharaArray = array();
 	$queryRandomChara 	= "SELECT id FROM pjs1 WHERE kes LIKE 'pj' ORDER BY nombre";
-	$idQueryRandomChara 	= mysql_query($queryRandomChara, $link);
-	$filasQueryRandomChara 	= mysql_num_rows($idQueryRandomChara);
+	$idQueryRandomChara 	= mysqli_query($queryRandomChara, $link);
+	$filasQueryRandomChara 	= mysqli_num_rows($idQueryRandomChara);
 	for($i=0;$i<$filasQueryRandomChara;$i++) {
-		$resultQueryRandomchara = mysql_fetch_array($idQueryRandomChara);
+		$resultQueryRandomchara = mysqli_fetch_assoc($idQueryRandomChara);
 		$randomCharaArray[$i] = $resultQueryRandomchara["id"];
 	}
 	$value = $randomCharaArray;

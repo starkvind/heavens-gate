@@ -3,11 +3,11 @@
 	$arrayFormas1 = array();
 
 	$consultaPJ1Forma = "SELECT forma FROM nuevo_formas WHERE raza LIKE '$fera1';";
-	$queryPJ1Forma = mysql_query ($consultaPJ1Forma, $link);
-	$rowsPJ1Forma = mysql_num_rows ($queryPJ1Forma);
+	$queryPJ1Forma = mysqli_query ($consultaPJ1Forma, $link);
+	$rowsPJ1Forma = mysqli_num_rows ($queryPJ1Forma);
 
 	for($iForma1=0;$iForma1<$rowsPJ1Forma;$iForma1++) {
-		$resultadoPJ1Forma = mysql_fetch_array($queryPJ1Forma);
+		$resultadoPJ1Forma = mysqli_fetch_assoc($queryPJ1Forma);
 		$arrayFormas1[$iForma1] = $resultadoPJ1Forma["forma"];
 	}
 
@@ -22,11 +22,11 @@
 	$arrayFormas2 = array();
 
 	$consultaPJ2Forma = "SELECT forma FROM nuevo_formas WHERE raza LIKE '$fera2';";
-	$queryPJ2Forma = mysql_query ($consultaPJ2Forma, $link);
-	$rowsPJ2Forma = mysql_num_rows ($queryPJ2Forma);
+	$queryPJ2Forma = mysqli_query ($consultaPJ2Forma, $link);
+	$rowsPJ2Forma = mysqli_num_rows ($queryPJ2Forma);
 
 	for($iForma2=0;$iForma2<$rowsPJ2Forma;$iForma2++) {
-		$resultadoPJ2Forma = mysql_fetch_array($queryPJ2Forma);
+		$resultadoPJ2Forma = mysqli_fetch_assoc($queryPJ2Forma);
 		$arrayFormas2[$iForma2] = $resultadoPJ2Forma["forma"];
 	}
 
