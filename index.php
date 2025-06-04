@@ -26,7 +26,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Archivo de personajes y narrativa de la campaña Heaven's Gate, Mundo de Tinieblas.">
     <link rel="shortcut icon" href="img/infinidice.ico" type="image/x-icon">
-    <link rel="stylesheet" href="nemesis.css">
+    <link rel="stylesheet" href="nemesis-modern.css">
     <title><?= htmlspecialchars(trim(($pageTitle2 ?? '') . ' - ' . ($pageSect ?? '') . ' - ' . $pageTitle, ' -')) ?></title>
 
     <style>
@@ -34,13 +34,6 @@
             margin: 0;
             padding: 0;
             text-align: center;
-        }
-        .ocultable {
-            display: none;
-        }
-        .main-wrapper {
-            display: inline-block;
-            text-align: left;
         }
     </style>
 
@@ -94,15 +87,11 @@
 <body id="mainBody">
     <div class="main-wrapper">
         <!-- CABECERA -->
-        <table class="todou">
-            <tr>
-                <td style="text-align:center;">
-                    <a href="index.php?p=news">
-                        <img src="img/hg_header.png" alt="Heaven's Gate" />
-                    </a>
-                </td>
-            </tr>
-        </table>
+        <header class="main-header" style="text-align:center;">
+            <a href="index.php?p=news">
+                <img src="img/hg_header.png" alt="Heaven's Gate" />
+            </a>
+        </header>
 
         <!-- MENÚ USUARIO -->
         <div class="userRightMenu">
@@ -110,25 +99,17 @@
         </div>
 
         <!-- CONTENIDO -->
-        <table class="todou">
-            <tr>
-                <td valign="top">
-                    <?php include("sep/main/main_menu.php"); ?>
-                </td>
-                <td class="fcentro" valign="top">
-                    <?= $pageContent ?>
-                </td>
-            </tr>
-        </table>
+        <div class="main-content">
+            <?php include("sep/main/main_menu.php"); ?>
+            <div class="content-body">
+                <?= $pageContent ?>
+            </div>
+        </div>
 
         <!-- PIE DE PÁGINA -->
-        <table class="todou">
-            <tr>
-                <td class="piepagina">
-                    <?php include("sep/main/main_pie.php"); ?>
-                </td>
-            </tr>
-        </table>
+        <footer class="main-footer">
+            <?php include("sep/main/main_pie.php"); ?>
+        </footer>
 
         <!-- TIEMPO DE CARGA -->
         <p style="text-align:center;">
