@@ -128,13 +128,11 @@ input.boton1:hover {
 	margin-left: 10px;
 }
 
-table.todou {
 
 	width: 860px;
 
 }
 
-table.tmenu {
 
 	width: 196px;
 	border: 1px solid #000088;
@@ -143,7 +141,6 @@ table.tmenu {
 
 }
 
-td.upMenu {
 
 	width: 14%;
 	border: 1px solid #000066;
@@ -152,7 +149,6 @@ td.upMenu {
 	
 }
 
-td.upMenu:hover {
 
 	background-color: #000077;
 
@@ -164,7 +160,6 @@ a.enlaceUpMenu:hover {
 
 }
 
-a.titMenu { /* Enlace para el menú */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -173,12 +168,9 @@ a.titMenu { /* Enlace para el menú */
 
 }
 
-img.menuIcon {
 
-	border: 1px solid #000088; /* 006699; */
 }
 
-td.sekz { /* Sección de menú */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -187,7 +179,7 @@ td.sekz { /* Sección de menú */
 
 }
 
-td.sekzo { /* Subsección de menú */
+td.sekzo { /* SubsecciÃ³n de menÃº */
 
 	padding-left: 5px;
 	text-align: left;
@@ -206,7 +198,7 @@ td.sepmenu { /* Separacion entre secciones */
 
 }
 
-td.piepagina { /* Pie de la página web */
+td.piepagina { /* Pie de la pÃ¡gina web */
 	text-align:center;
 	padding:5px;
 	font-size: 9px;

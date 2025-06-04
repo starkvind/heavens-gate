@@ -66,3 +66,20 @@ footer {
 	display: flex;
 	flex-direction: column;
 }
+/* Layout for main content */
+.main-content {
+        display: flex;
+        gap: 1em;
+        align-items: flex-start;
+}
+.content-body {
+        flex: 1;
+}
+@media (max-width: 800px) {
+        .main-content {
+                flex-direction: column;
+        }
+        .main-menu {
+                width: 100%;
+        }
+}
