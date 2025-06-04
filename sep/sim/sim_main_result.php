@@ -49,10 +49,10 @@ if ($pjAleatorio == "yes") {
 }
 
 $Query = "SELECT id, nombre, alias, fera, sistema FROM pjs1 WHERE id LIKE '$nombre1' LIMIT 1;";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $nombre1 = $ResultQuery[alias];
 $nombreCom1 = $ResultQuery[nombre];
@@ -64,10 +64,10 @@ $idPJno1 = $ResultQuery[id];
 }
 
 $Query = "SELECT id, nombre, alias, fera, sistema FROM pjs1 WHERE id LIKE '$nombre2' LIMIT 1;";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $nombre2 = $ResultQuery[alias];
 $nombreCom2 = $ResultQuery[nombre];
@@ -85,10 +85,10 @@ $ip2 = $_SERVER[REMOTE_ADDR]; /* $_SERVER[HTTP_X_FORWARDED_FOR]; */
 /* MIRAMOS LA ULTIMA HORA DE ACCESO */
 
 $Query = "SELECT hora FROM ultimoscombates WHERE ip LIKE '$ip2' ORDER BY id DESC LIMIT 1;";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $horax = $ResultQuery[hora];
 
@@ -128,20 +128,20 @@ if ($armaAleatoria == "yes") {
 }
 // ARMA JUGADOR 1 //
 $Query = "SELECT name FROM nuevo3_objetos WHERE id LIKE '$arma1';";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $arma1 = $ResultQuery[name];
 
 }
 // ARMA JUGADOR 2 //
 $Query = "SELECT name FROM nuevo3_objetos WHERE id LIKE '$arma2';";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $arma2 = $ResultQuery[name];
 
@@ -158,20 +158,20 @@ if ($protAleatoria == "yes") {
 }
 // PROTECCION JUGADOR 1 //
 $Query = "SELECT name FROM nuevo3_objetos WHERE id LIKE '$protec1';";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $protec1 = $ResultQuery[name];
 
 }
 // PROTECCION JUGADOR 2 //
 $Query = "SELECT name FROM nuevo3_objetos WHERE id LIKE '$protec2';";
-$IdConsulta = mysql_query($Query, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$IdConsulta = mysqli_query($Query, $link);
+$NFilas = mysqli_num_rows($IdConsulta);
 for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$ResultQuery = mysqli_fetch_assoc($IdConsulta);
 
 $protec2 = $ResultQuery[name];
 
@@ -211,9 +211,9 @@ $mensajefin = "¡Tiempo! Combate terminado.";
 // PRIMER PJ (ARMA)
 
 $consulta ="SELECT habilidad,bonus,dano,metal FROM nuevo3_objetos WHERE id LIKE '$arma11';";
-$query = mysql_query ($consulta, $link);
+$query = mysqli_query ($consulta, $link);
 
-$yeah = mysql_fetch_array($query);
+$yeah = mysqli_fetch_assoc($query);
 
 $skillCheck4Form1 = $yeah["habilidad"];
 $bonus1 = $yeah["bonus"];
@@ -224,9 +224,9 @@ $plata1 = $yeah["metal"];
 // PRIMER PJ (PROTECTOR)
 
 $consulta ="SELECT bonus, destreza FROM nuevo3_objetos WHERE id LIKE '$protec11';";
-$query = mysql_query ($consulta, $link);
+$query = mysqli_query ($consulta, $link);
 
-$yeah = mysql_fetch_array($query);
+$yeah = mysqli_fetch_assoc($query);
 
 $armor1 = $yeah["bonus"];
 $malusArmor1 = $yeah["destreza"];
@@ -234,9 +234,9 @@ $malusArmor1 = $yeah["destreza"];
 // PRIMER PJ
 
 $consulta ="SELECT * FROM pjs1 WHERE nombre LIKE '$nombreCom1' LIMIT 1;";
-$query = mysql_query ($consulta, $link);
+$query = mysqli_query ($consulta, $link);
 
-$yeah = mysql_fetch_array($query);
+$yeah = mysqli_fetch_assoc($query);
 
 $hid1 = $yeah["id"];
 
@@ -262,9 +262,9 @@ $img1 = $yeah["img"];
 // SEGUNDO PJ (ARMA)
 
 $consulta ="SELECT habilidad,bonus,dano,metal FROM nuevo3_objetos WHERE id LIKE '$arma21';";
-$query = mysql_query ($consulta, $link);
+$query = mysqli_query ($consulta, $link);
 
-$yeah = mysql_fetch_array($query);
+$yeah = mysqli_fetch_assoc($query);
 
 $skillCheck4Form2 = $yeah["habilidad"];
 $bonus2 = $yeah["bonus"];
@@ -274,9 +274,9 @@ $plata2 = $yeah["metal"];
 // SEGUNDO PJ (PROTECTOR)
 
 $consulta ="SELECT bonus, destreza FROM nuevo3_objetos WHERE id LIKE '$protec21';";
-$query = mysql_query ($consulta, $link);
+$query = mysqli_query ($consulta, $link);
 
-$yeah = mysql_fetch_array($query);
+$yeah = mysqli_fetch_assoc($query);
 
 $armor2 = $yeah["bonus"];
 $malusArmor2 = $yeah["destreza"];
@@ -284,9 +284,9 @@ $malusArmor2 = $yeah["destreza"];
 // SEGUNDO PJ
 
 $consulta ="SELECT * FROM pjs1 WHERE nombre LIKE '$nombreCom2' LIMIT 1;";
-$query = mysql_query ($consulta, $link);
+$query = mysqli_query ($consulta, $link);
 
-$yeah = mysql_fetch_array($query);
+$yeah = mysqli_fetch_assoc($query);
 
 $hid2 = $yeah["id"];
 

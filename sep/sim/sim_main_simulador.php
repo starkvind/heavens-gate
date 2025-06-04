@@ -20,13 +20,13 @@ echo "<option value='' selected>- Elegir personaje -</option>
 ";
 
 $query1 = "SELECT id, alias FROM pjs1 WHERE kes LIKE 'pj' ORDER BY alias ASC";
-$result1 = mysql_query($query1);
-while ($rows1 = mysql_fetch_array($result1)){
+$result1 = mysqli_query($link, $query1);
+while ($rows1 = mysqli_fetch_assoc($result1)){
 echo "<option value=\"{$rows1[0]}\"";
 if ($rows["id"] == $rows1[0]) echo " selected";
 echo "\">" .$rows1[1]. "</option>\n";
 }
-mysql_free_result($result1);
+mysqli_free_result($result1);
 
 ?>
 
@@ -46,13 +46,13 @@ echo "<option value='' selected>- Elegir personaje -</option>
 ";
 
 $query1 = "SELECT id, alias FROM pjs1 WHERE kes LIKE 'pj' ORDER BY alias DESC";
-$result1 = mysql_query($query1);
-while ($rows1 = mysql_fetch_array($result1)){
+$result1 = mysqli_query($link, $query1);
+while ($rows1 = mysqli_fetch_assoc($result1)){
 echo "<option value=\"{$rows1[0]}\"";
 if ($rows["id"] == $rows1[0]) echo " selected";
 echo "\">" .$rows1[1]. "</option>\n";
 }
-mysql_free_result($result1);
+mysqli_free_result($result1);
 
 ?>
 

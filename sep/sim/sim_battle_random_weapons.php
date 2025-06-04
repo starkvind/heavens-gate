@@ -3,11 +3,11 @@
 	$randomWeaponArray = array();
 	
 	$queryRandomWeap 		= "SELECT id FROM nuevo3_objetos WHERE habilidad NOT LIKE ''";
-	$idQueryRandomWeap 		= mysql_query($queryRandomWeap, $link);
-	$filasQueryRandomWeap 	= mysql_num_rows($idQueryRandomWeap);
+	$idQueryRandomWeap 		= mysqli_query($queryRandomWeap, $link);
+	$filasQueryRandomWeap 	= mysqli_num_rows($idQueryRandomWeap);
 	
 	for($i=0;$i<$filasQueryRandomWeap;$i++) {
-		$resultQueryRandomWeap = mysql_fetch_array($idQueryRandomWeap);
+		$resultQueryRandomWeap = mysqli_fetch_assoc($idQueryRandomWeap);
 		$randomWeapArray[$i] = $resultQueryRandomWeap["id"];
 	}
 	$value = $randomWeapArray;

@@ -3,10 +3,10 @@
 if ($forma1 != "Homínido") { // SI ES HOMINIDO, PASAMOS DEL TEMA
 // COMPROBAMOS LA FORMA DEL PRIMER JUGADOR Y APLICAMOS LOS ATRIBUTOS
 $consultaFormaPJ1 = "SELECT armas,armasfuego,bonfue,bondes,bonres,regenera,hpregen FROM nuevo_formas WHERE forma LIKE '$forma1';";
-$queryFormaPJ1 = mysql_query ($consultaFormaPJ1, $link);
-$rowsFormaPJ1 = mysql_num_rows ($queryFormaPJ1);
+$queryFormaPJ1 = mysqli_query ($consultaFormaPJ1, $link);
+$rowsFormaPJ1 = mysqli_num_rows ($queryFormaPJ1);
 if ($rowsFormaPJ1 != 0) {
-	$resultadoFormaPJ1 = mysql_fetch_array($queryFormaPJ1);
+	$resultadoFormaPJ1 = mysqli_fetch_assoc($queryFormaPJ1);
 	// USO DE ARMAS POR LA FORMA
 	$usaArmasForma1			= $resultadoFormaPJ1["armas"];
 	$usaArmasFuegoForma1 	= $resultadoFormaPJ1["armasfuego"];
@@ -50,10 +50,10 @@ if ($rowsFormaPJ1 != 0) {
 if ($forma2 != "Homínido") { // SI ES HOMINIDO, PASAMOS DEL TEMA
 // COMPROBAMOS LA FORMA DEL SEGUNDO JUGADOR Y APLICAMOS LOS ATRIBUTOS
 $consultaFormaPJ2 = "SELECT armas,armasfuego,bonfue,bondes,bonres,regenera,hpregen FROM nuevo_formas WHERE forma LIKE '$forma2';";
-$queryFormaPJ2 = mysql_query ($consultaFormaPJ2, $link);
-$rowsFormaPJ2 = mysql_num_rows ($queryFormaPJ2);
+$queryFormaPJ2 = mysqli_query ($consultaFormaPJ2, $link);
+$rowsFormaPJ2 = mysqli_num_rows ($queryFormaPJ2);
 if ($rowsFormaPJ2 != 0) {
-	$resultadoFormaPJ2 = mysql_fetch_array($queryFormaPJ2);
+	$resultadoFormaPJ2 = mysqli_fetch_assoc($queryFormaPJ2);
 	// USO DE ARMAS POR LA FORMA
 	$usaArmasForma2			= $resultadoFormaPJ2["armas"];
 	$usaArmasFuegoForma2 	= $resultadoFormaPJ2["armasfuego"];
