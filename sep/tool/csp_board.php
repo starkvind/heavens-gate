@@ -2,10 +2,8 @@
 <h2>Tablón de Mensajes</h2>
 
 <center>
-    <table class="tablax">
-        <tr><td colspan="6">
-        <br/>
-        </td></tr>
+    <div class="tablax">
+        <div><br/></div>
         <?php
             $pageSect = "Tablón de mensajes"; // PARA CAMBIAR EL TITULO A LA PAGINA
 
@@ -21,28 +19,22 @@
 
                 while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     print("
-                    <tr>
-                    <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["autor"]."</td>
-                    <td class='klax1'>Fecha:</td><td class='klax2'>".$ResultQuery["fecha"]."</td>
-                    </tr><tr><td class='klax1'>T&iacute;tulo:</td>
-                    <td colspan='3' class='klax2'>".$ResultQuery["titulo"]."</td>
-                    </tr>
+                    <div class='klax1'>Autor:</div><div class='klax2'>".$ResultQuery["autor"]."</div>
+                    <div class='klax1'>Fecha:</div><div class='klax2'>".$ResultQuery["fecha"]."</div>
+                    <div class='klax1'>T&iacute;tulo:</div>
+                    <div class='klax2'>".$ResultQuery["titulo"]."</div>
                     ");
 
                     print("
-                    <tr>
-                    <td colspan='6' class='klax2'>
+                    <div class='klax2'>
                     <p>".nl2br($ResultQuery["mensaje"])."</p>\n
-                    </td>
-                    </tr>
+                    </div>
                     ");
 
                     print("
-                    <tr>
-                    <td colspan='6'>&nbsp;</td>
-                    </tr>
+                    <div>&nbsp;</div>
                     ");
                 }
         ?>
-    </table>
+    </div>
 </center>

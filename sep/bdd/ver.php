@@ -14,19 +14,15 @@
 
 <center>
 
-<table>
+<div class="formtable">
 
-<tr>
-
-<td colspan="4"> <h2> Ver </h2> </td>
-
-</tr>
+<div> <h2> Ver </h2> </div>
 
 <form action="bdd2.php" method="get">
 
-<td colspan="2" class="ajustcelda"> Personaje: </td>
+<div class="ajustcelda"> Personaje: </div>
 
-<td colspan="2" class="ajustcelda">
+<div class="ajustcelda">
 
 <select name="pj" onChange="cambio()">
 
@@ -47,23 +43,18 @@ echo "<option value='$cambia'>",$cambia,"</option>";
 
 ?>
 
+
 </select>
 
-</td>
+</div>
 
-</tr>
+<div class="ajustcelda"> <input class="boton1" type="submit" value="Observar"> </div>
 
-<tr> 
-
-<td colspan="2" class="ajustcelda"> <center> <input class="boton1" type="submit" value="Observar"> </center> </td>
-
-<td colspan="2" class="ajustcelda"> <center> <input class="boton1" type="button" onClick="javascript: history.go(-1)" value="Regresar"> </center> </td>
-
-</tr>
+<div class="ajustcelda"> <input class="boton1" type="button" onClick="javascript: history.go(-1)" value="Regresar"> </div>
 
 </form>
 
-</table>
+</div>
 
 <br/>
 <a href=bdd1.php> Volver </a>

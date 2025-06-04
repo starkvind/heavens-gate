@@ -4,20 +4,14 @@
 
 <form action="sep/tool/dice_dados_result.php" method="post"/> 
 
-<table class="datox">
-
-<tr> <td class="klax1"> Nombre: </td>
-
-<td class="klax2"> 
-<input type="text" name="nombre" size="20" maxlength="20"/>
-</td></tr>
-
-<tr>
-
-<td class="klax1"> Dados: </td>
-<td class="klax2"> 
-
-<select name="dados">
+<div class="datox">
+    <div class="klax1"> Nombre: </div>
+    <div class="klax2">
+        <input type="text" name="nombre" size="20" maxlength="20"/>
+    </div>
+    <div class="klax1"> Dados: </div>
+    <div class="klax2">
+        <select name="dados">
 
 <option value="1">1</option>
 <option value="2">2</option>
@@ -36,15 +30,10 @@
 <option value="15">15</option>
 
 </select>
-
-</td> </tr>
-
-<tr>
-
-<td class="klax1"> Dificultad: </td>
-<td class="klax2"> 
-
-<select name="dificultad">
+    </div>
+    <div class="klax1"> Dificultad: </div>
+    <div class="klax2">
+        <select name="dificultad">
 
 <option value="2">2</option>
 <option value="3">3</option>
@@ -57,12 +46,8 @@
 <option value="10">10</option>
 
 </select>
-
-</td>
-
-</tr>
-
-</table>
+    </div>
+</div>
 
 <br/>
 

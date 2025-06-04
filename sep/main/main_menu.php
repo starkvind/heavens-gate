@@ -2,18 +2,18 @@
 	//global $link; // Asegúrate de que $link sea accesible en el ámbito global
 	include("sep/heroes.php"); // Archivo de la base de datos
 ?>
-<table class="tmenu">
+<nav class="tmenu">
     <!-- TEMA -->
-	<tr> <!-- UTILIDADES !-->
-		<td>
+	 <!-- UTILIDADES !-->
+		<div>
 		<br/>
 		<a href="javascript:MostrarOcultar('toolsMenu');" id="menu7" onMouseover="Permut(1,'IMG8');" onMouseout="Permut(0,'IMG8');">
 			<img src="img/menu/tools_icon.png" class="menuIcon" align="left" NAME="IMG8" onLoad="preloadPermut(this,'img/menu/tools_icon_hover.png');">
 		</a>
-		</td>
-	</tr>
-	<tr>
-		<td class="sekzo">
+		</div>
+	
+	
+		<div class="sekzo">
 			<div class="ocultable" id="toolsMenu">
 				<!-- <a href="index.php?p=dados"><div class="renglonMenu">Tira-dados</div></a>-->
 				<!--<a href="index.php?p=simulador"><div class="renglonMenu">Simulador</div></a>-->
@@ -25,19 +25,19 @@
 				<a href="index.php?p=dwn"><div class="renglonMenu">Descargas</div></a>-->
 				<br /><br />
 			</div>
-		</td>
-	</tr> <!-- UTILIDADES !-->
+		</div>
+	 <!-- UTILIDADES !-->
     <!-- ============================================================================ -->
-    <tr> <!-- ARCHIVO -->
-        <td>
+     <!-- ARCHIVO -->
+        <div>
         <br/>
         <a href="javascript:MostrarOcultar('archivoMenu');" id="menu1" onMouseover="Permut(1,'IMG2');" onMouseout="Permut(0,'IMG2');">
             <img src="img/menu/archive_icon.png" class="menuIcon" align="left" name="IMG2" onload="preloadPermut(this,'img/menu/archive_icon_hover.png');">
         </a>
-        </td>
-    </tr>
-    <tr>    
-        <td class='sekzo'>
+        </div>
+    
+        
+        <div class='sekzo'>
             <div class="ocultable" id="archivoMenu">
                 <?php
                     // Conexión a la base de datos usando MySQLi
@@ -66,19 +66,19 @@
                     mysqli_stmt_close($stmt);
                 ?>
             </div>
-        </td>
-    </tr> <!-- ARCHIVO -->
+        </div>
+     <!-- ARCHIVO -->
     <!-- ============================================================================ -->
-    <tr> <!-- HISTORIAS PERSONALES -->
-        <td>
+     <!-- HISTORIAS PERSONALES -->
+        <div>
         <br/>
         <a href="javascript:MostrarOcultar('personalesMenu');" id="menu2" onMouseover="Permut(1,'IMG3');" onMouseout="Permut(0,'IMG3');">
             <img src="img/menu/persona_icon.png" class="menuIcon" align="left" name="IMG3" onload="preloadPermut(this,'img/menu/persona_icon_hover.png');">
         </a>
-        </td>
-    </tr>
-    <tr>
-        <td class='sekzo'>
+        </div>
+    
+    
+        <div class='sekzo'>
             <div class="ocultable" id="personalesMenu">
                 <?php
                     $consulta = "SELECT id, name FROM archivos_temporadas WHERE season LIKE '1' ORDER BY numero";
@@ -95,19 +95,19 @@
                     mysqli_stmt_close($stmt);
                 ?>
             </div>
-        </td>
-    </tr> <!-- HISTORIAS PERSONALES -->
+        </div>
+     <!-- HISTORIAS PERSONALES -->
     <!-- ============================================================================ -->
-    <tr> <!-- BIOGRAFIAS -->
-        <td>
+     <!-- BIOGRAFIAS -->
+        <div>
         <br/>
         <a href="javascript:MostrarOcultar('bioMenu');" id="menu3" onMouseover="Permut(1,'IMG4');" onMouseout="Permut(0,'IMG4');">  
             <img src="img/menu/bio_icon.png" class="menuIcon" align="left" name="IMG4" onload="preloadPermut(this,'img/menu/bio_icon_hover.png');">
         </a>
-        </td>
-    </tr>
-    <tr>
-        <td class='sekzo'>
+        </div>
+    
+    
+        <div class='sekzo'>
         <div class="ocultable" id="bioMenu">
             <?php
                 $consulta = "SELECT * FROM afiliacion ORDER BY orden";
@@ -133,21 +133,21 @@
                 mysqli_stmt_close($stmt);
             ?>
         </div>
-        </td>
-    </tr> <!-- BIOGRAFIAS -->
+        </div>
+     <!-- BIOGRAFIAS -->
 	<!-- ============================================================================ -->
 	 <!-- Sigue con el mismo patrón para el resto de secciones -->
 	 <?php if (1 === 0): ?>
-	<tr> <!-- DOCUMENTACION !-->
-		<td>
+	 <!-- DOCUMENTACION !-->
+		<div>
 		<br/>
 		<a href="javascript:MostrarOcultar('documentMenu');" id="menu4" onMouseover="Permut(1,'IMG5');" onMouseout="Permut(0,'IMG5');">
 			<img src="img/menu/doc_icon.png" class="menuIcon" align="left" NAME="IMG5" onLoad="preloadPermut(this,'img/menu/doc_icon_hover.png');">
 		</a>
-		</td>
-	</tr>
-	<tr>
-		<td class='sekzo'>
+		</div>
+	
+	
+		<div class='sekzo'>
 		<div class="ocultable" id="documentMenu">
 			<?php // DOCUMENTACION
                 // Consulta para obtener la documentación ordenada por 'orden'
@@ -168,20 +168,20 @@
                 mysqli_stmt_close($stmt);
 			?>
 		</div>
-		</td>
-	</tr> <!-- DOCUMENTACION !-->
+		</div>
+	 <!-- DOCUMENTACION !-->
 	<?php endif; ?>
     <!-- ============================================================================ -->
-	<tr> <!-- INVENTARIO !-->
-		<td>
+	 <!-- INVENTARIO !-->
+		<div>
 		<br/>
 		<a href="javascript:MostrarOcultar('inventoryMenu');" id="menu5" onMouseover="Permut(1,'IMG6');" onMouseout="Permut(0,'IMG6');">
 			<img src="img/menu/inventory_icon.png" class="menuIcon" align="left" NAME="IMG6" onLoad="preloadPermut(this,'img/menu/inventory_icon_hover.png');">
 		</a>
-		</td>
-	</tr>
-	<tr>
-		<td class="sekzo">
+		</div>
+	
+	
+		<div class="sekzo">
 			<div class="ocultable" id="inventoryMenu">
 				<?php // INVENTARIO
 					$consulta ="SELECT id, name FROM nuevo3_tipo_objetos ORDER BY orden";
@@ -200,20 +200,20 @@
 					/* Fin sección imágenes */
 				?>
 			</div>
-		</td>
-	</tr> <!-- INVENTARIO !-->
+		</div>
+	 <!-- INVENTARIO !-->
 	<!-- ============================================================================ !-->
 	<?php if (1 === 0): ?>
-	<tr> <!-- SISTEMAS !-->
-		<td>
+	 <!-- SISTEMAS !-->
+		<div>
 		<br/>
 		<a href="javascript:MostrarOcultar('systemMenu');" id="menu6" onMouseover="Permut(1,'IMG7');" onMouseout="Permut(0,'IMG7');">
 			<img src="img/menu/system_icon.png" class="menuIcon" align="left" NAME="IMG7" onLoad="preloadPermut(this,'img/menu/system_icon_hover.png');">
 		</a>
-		</td>
-	</tr>
-	<tr>
-		<td class="sekzo">
+		</div>
+	
+	
+		<div class="sekzo">
 			<div class="ocultable" id="systemMenu">
 				<?php // SISTEMAS
 					$consulta ="SELECT id, name FROM nuevo_sistema ORDER BY orden";
@@ -228,20 +228,20 @@
 						}
 				?>
 			</div>
-		</td>
-	</tr> <!-- SISTEMAS !-->
+		</div>
+	 <!-- SISTEMAS !-->
 	<?php endif; ?>
 	<!-- ============================================================================ !-->
-	<tr> <!-- HABILIDADES !-->
-		<td>
+	 <!-- HABILIDADES !-->
+		<div>
 		<br/>
 		<a href="javascript:MostrarOcultar('skillMenu');" id="menu10" onMouseover="Permut(1,'IMG10');" onMouseout="Permut(0,'IMG10');">
 			<img src="img/menu/skill_icon.png" class="menuIcon" align="left" NAME="IMG10" onLoad="preloadPermut(this,'img/menu/skill_icon_hover.png');">
 		</a>
-		</td>
-	</tr>
-	<tr>
-		<td class="sekzo">
+		</div>
+	
+	
+		<div class="sekzo">
 			<div class="ocultable" id="skillMenu">
 				<?php // HABILIDADES
 					$idLink = 0;
@@ -275,32 +275,32 @@
 				<a href="index.php?p=maneuver"><div class="renglonMenu">Maniobras de pelea</div></a>
 				<a href="index.php?p=arquetip"><div class="renglonMenu">Personalidades</div></a>
 			</div>
-		</td>
-	</tr> <!-- HABILIDADES !-->
+		</div>
+	 <!-- HABILIDADES !-->
 	<!-- ============================================================================ !-->
-	<tr> <!-- PODERES !-->
-		<td>
+	 <!-- PODERES !-->
+		<div>
 		<br/>
 		<a href="javascript:MostrarOcultar('powersMenu');" id="menu11" onMouseover="Permut(1,'IMG11');" onMouseout="Permut(0,'IMG11');">
 			<img src="img/menu/powers_icon.png" class="menuIcon" align="left" NAME="IMG11" onLoad="preloadPermut(this,'img/menu/powers_icon_hover.png');">
 		</a>
-		</td>
-	</tr>
-	<tr>
-		<td class="sekzo">
+		</div>
+	
+	
+		<div class="sekzo">
 			<div class="ocultable" id="powersMenu">
 				<a href="index.php?p=dones"><div class="renglonMenu">Dones</div></a>
 				<a href="index.php?p=rites"><div class="renglonMenu">Rituales</div></a>
 				<a href="index.php?p=totems"><div class="renglonMenu">T&oacute;tems</div></a>
 				<a href="index.php?p=disciplinas"><div class="renglonMenu">Disciplinas</a></div>
 			</div>
-		</td>
-	</tr> <!-- PODERES !-->
+		</div>
+	 <!-- PODERES !-->
 	<!-- ============================================================================ !-->
     <!-- Pie del menú -->
 	<!--
-    <tr>
-        <td align="center">
+    
+        <div align="center">
             <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.5/es/">
                 <img alt="Creative Commons License" style="border-width:0" src="img/cc80x15.png" />
             </a>
@@ -319,8 +319,8 @@
             <a href="http://mysql.com" title="MySQL Database" target="_blank">
                 <img border="0" alt="MySQL Database" title="MySQL Database" src="img/mysql.gif" />
             </a>
-        </td>
-    </tr> -->
+        </div>
+     -->
 	<!-- Pie del menú -->
 	
-</table>
+</nav>

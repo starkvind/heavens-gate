@@ -94,15 +94,11 @@
 <body id="mainBody">
     <div class="main-wrapper">
         <!-- CABECERA -->
-        <table class="todou">
-            <tr>
-                <td style="text-align:center;">
-                    <a href="index.php?p=news">
-                        <img src="img/hg_header.png" alt="Heaven's Gate" />
-                    </a>
-                </td>
-            </tr>
-        </table>
+        <header>
+            <a href="index.php?p=news">
+                <img src="img/hg_header.png" alt="Heaven's Gate" />
+            </a>
+        </header>
 
         <!-- MENÚ USUARIO -->
         <div class="userRightMenu">
@@ -110,25 +106,19 @@
         </div>
 
         <!-- CONTENIDO -->
-        <table class="todou">
-            <tr>
-                <td valign="top">
-                    <?php include("sep/main/main_menu.php"); ?>
-                </td>
-                <td class="fcentro" valign="top">
-                    <?= $pageContent ?>
-                </td>
-            </tr>
-        </table>
+        <div class="layout">
+            <nav>
+                <?php include("sep/main/main_menu.php"); ?>
+            </nav>
+            <main class="fcentro">
+                <?= $pageContent ?>
+            </main>
+        </div>
 
         <!-- PIE DE PÁGINA -->
-        <table class="todou">
-            <tr>
-                <td class="piepagina">
-                    <?php include("sep/main/main_pie.php"); ?>
-                </td>
-            </tr>
-        </table>
+        <footer class="piepagina">
+            <?php include("sep/main/main_pie.php"); ?>
+        </footer>
 
         <!-- TIEMPO DE CARGA -->
         <p style="text-align:center;">
