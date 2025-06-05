@@ -1,0 +1,94 @@
+/* ESTILO PARA LA HOJA DE PJ EN POPUP */
+
+body {
+
+	background-color: #000;
+	color: #FFF;
+}
+
+table {
+
+	padding: 5px;
+	border: 1px solid #333366;
+	width: 750px;
+
+}
+
+td {
+
+	font-family: verdana;
+	font-size: 9px;
+	background-color: #333366;
+	width: 125px;
+	height: 15px;
+
+}
+
+td:hover {
+
+	cursor: default;
+
+}
+
+h1 {
+
+	text-align: center;
+	font-size: 12px;
+	background-color: #999;
+	color: #000;
+	border: 1px solid #eee;
+	margin: 1px;
+
+}
+
+td h1:hover {
+
+	background-color: #888;
+	color: #111;
+	border: 1px solid #eee;
+	cursor: default;
+
+}
+
+h2 {
+
+	text-align: center;
+	font-size: 10px;
+	background-color: #888;
+	color: #111;
+	border: 1px solid #ddd;
+	margin: 1px;
+
+}
+
+td h2:hover {
+
+	background-color: #777;
+	color: #222;
+	border: 1px solid #ddd;
+	cursor: default;
+
+}
+
+h3 {
+
+	text-align: center;
+	font-size: 15px;
+	background-color: #777;
+	color: #222;
+	border: 1px solid #ede;
+	margin: 1px;
+
+}
+
+td h3:hover {
+
+	background-color: #666;
+	color: #333;
+	border: 1px solid #ddd;
+	cursor: default;
+
+}
+
+	
+

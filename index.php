@@ -3,22 +3,20 @@
 
     include("ip.php");
     include("sep/heroes.php");
-
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
+	include("error_reporting.php");
 
     $pageTitle = "Heaven's Gate";
+	$unknownOrigin = "Desconocido";
+	
+	$pageURL = urlencode("https://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+    $linkFacebook = "http://www.facebook.com/sharer.php?u=$pageURL";
+    $linkTwitter = "http://twitter.com/home?status=$pageURL";
+    $linkGoogle = "https://plus.google.com/share?url=$pageURL";
 
     ob_start();
     include("sep/body_work.php");
     $pageContent = ob_get_clean();
-
-    $pageURL = urlencode("https://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
-    $linkFacebook = "http://www.facebook.com/sharer.php?u=$pageURL";
-    $linkTwitter = "http://twitter.com/home?status=$pageURL";
-    $linkGoogle = "https://plus.google.com/share?url=$pageURL";
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -28,32 +26,45 @@
     <meta name="description" content="Archivo de personajes y narrativa de la campaña Heaven's Gate, Mundo de Tinieblas.">
     <link rel="shortcut icon" href="img/infinidice.ico" type="image/x-icon">
     <link rel="stylesheet" href="nemesis.css">
-	<link rel="stylesheet" href="nemesis-modern.css">
-    <script type="text/javascript" src="js_hover.js"></script>
     <title><?= htmlspecialchars(trim(($pageTitle2 ?? '') . ' - ' . ($pageSect ?? '') . ' - ' . $pageTitle, ' -')) ?></title>
+	<!-- Sonidos -->
+	<audio id="clickSound" src="sounds/click.ogg" preload="auto"></audio>
+	<audio id="selectSound" src="sounds/hover.ogg" preload="auto"></audio>
+	<audio id="confirmSound" src="sounds/confirm.ogg" preload="auto"></audio>
+	<!-- Javascript -->
+	<script type="text/javascript" src="pemutloading.js"></script>
 </head>
-<body>
+<body id="mainBody">
     <div class="main-wrapper">
         <!-- CABECERA -->
-        <header>
-            <a href="index.php?p=news">
-                <img src="img/hg_header.png" alt="Heaven's Gate" />
-            </a>
-        </header>
-        <!-- CONTENIDO PRINCIPAL -->
-        <div class="main-content">
-            <aside class="main-menu">
-                <?php include("sep/main/main_menu.php"); ?>
-            </aside>
-            <section class="content-body">
-                <?= $pageContent ?>
-            </section>
+		<header><img src="img/hg_header.png" alt="Heaven's Gate" /></header>
+        <!-- MENÚ USUARIO -->
+        <div class="userRightMenu">
+            <?php include("sep/main/main_usermenu.php"); ?>
         </div>
+        <!-- CONTENIDO -->
+        <table class="todou">
+            <tr>
+                <td valign="top">
+                    <?php include("sep/main/main_menu.php"); ?>
+                </td>
+                <td class="fcentro" valign="top">
+                    <?= $pageContent ?>
+                </td>
+            </tr>
+        </table>
         <!-- PIE DE PÁGINA -->
-        <footer>
-            <?php include("sep/main/main_pie.php"); ?>
-            <p>Página generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.</p>
-        </footer>
+        <table class="todou">
+            <tr>
+                <td class="piepagina">
+                    <?php include("sep/main/main_pie.php"); ?>
+                </td>
+            </tr>
+        </table>
+        <!-- TIEMPO DE CARGA -->
+        <p style="text-align:center;">
+            Página generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.
+        </p>
     </div>
 </body>
 </html>

@@ -92,6 +92,9 @@ switch ($daft) {
     case "list_avatar":
         include("bio/bio_list_noavatar.php");
         break;
+    case "list_table":
+        include("bio/bio_table.php");
+        break;
     // ============================================================== //
     //  SECCION DOCUMENTACION                                         //
     // ============================================================== //

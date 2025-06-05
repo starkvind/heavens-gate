@@ -1,0 +1,582 @@
+body {
+
+	color: #FFFFFF;
+	background: #05014E;
+	background-attachment: fixed;
+	background-repeat: no-repeat;
+	background-position: bottom right;
+	font: normal 11px verdana;
+	margin-left: 5px;
+	margin-right: 20px;
+	margin-top: 20px;
+	margin-bottom: 20px;
+
+	}
+
+img {
+
+	border: 0px;
+
+}
+
+
+h1 {
+
+	color: #BFEFFF;
+	text-align: center;
+	font-family: tahoma, helvetica, times;
+	font-size: 16px;
+	font-weight: bolder;
+	letter-spacing: 3px;
+	
+
+}
+
+h2 { 
+
+	color: #C1CDCD;
+	text-align: center;
+	font-family: arial;
+	font-size: 13px;
+	letter-spacing: 1px;
+
+}
+
+h3 {
+
+	color: #63B8FF;
+	text-align: center;
+	font-family: times;
+	font-size: 15px;
+	font-style: italic;
+	padding-top: 5px;
+
+}
+
+h4 {
+
+	color: #9966FF;
+	text-align: center;
+	font-family: tahoma;
+	font-size: 14px;
+	padding-top: 10px;
+ 
+}
+
+
+
+td {
+
+	font-family: verdana, arial, sans-serif;
+	color:#fff;
+	font-size:9px;
+	font-weight:normal;
+
+}
+
+a {
+
+	color: #FFFFFF;
+	text-decoration: none;
+
+}
+
+a:hover {
+
+	color: #66CCFF;
+	cursor: crosshair;	
+
+}
+
+textarea {
+
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	border: 1px solid #000099;
+	padding: 5px;
+}
+
+input {
+
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	padding: 1px;
+	border: 1px solid #000099;
+
+
+}
+
+select {
+
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	border: 1px solid #000099;
+
+}
+
+.boton1 {
+
+	width: 75px;
+	color: #00FFFF;
+	border: 1px solid #000099;
+
+}
+
+input.boton1:hover {
+
+	color: #00CCFF;
+	cursor: pointer;
+	border: 1px solid #000088;
+
+}
+
+/* General para toda la pagina */
+
+.cuerpo {
+
+	width: 95%;
+	height: 95%;
+	padding-right: 18px;
+	overflow:auto;
+	text-align: justify;
+
+
+}
+
+/* Archivo */
+
+.capititulo {
+
+	color: #99FFFF;
+	font-family: verdana, sans-serif;
+	font-size: 14px;
+	font-weight: bolder;
+
+}
+
+.capitulos {
+
+	font-family: helvetica, arial;
+	font-size: 11px;
+	list-style-type: decimal;
+	
+}
+
+.capitres {
+
+	font-family: tahoma;
+	font-size: 12px;
+	color: #CCFF66;
+	font-style: italic;
+	font-weight: bold;
+	letter-spacing: 1px;
+
+}
+
+/* Biografias */
+
+.celname {
+
+	border: 1px solid #3366CC;
+	padding: 5px;
+	
+}
+
+.celret {
+
+	width: 98px;
+	height: 130px;
+	border: 1px solid #3366CC;
+	padding: 5px;
+	background-color: #000066;
+
+}
+
+.cosnam1 {
+
+	width: 40px;
+	border: 1px solid #3366CC;
+	padding: 5px;
+	background-color: #000066;
+
+}
+
+.cosnam2 {
+
+	width: 162px;
+	border: 1px solid #3366CC;
+	padding: 5px;
+	background-color: #000066;
+
+}
+
+.cosnam3 {
+
+	width: 300px;
+	border: 1px solid #3366CC;
+	padding: 5px;
+	background-color: #000066;
+	text-align: justify;
+
+}
+
+.izquierda {
+
+	position:absolute;
+	left:30%;
+	z-index: 1;
+
+}
+
+.derecha {
+
+	position:absolute;
+	right:35%;
+	z-index: 1;
+
+}
+
+.centro {
+
+	position:absolute;
+	left: 43%;
+	z-index: 2;
+
+}
+
+/* Localizaciones */
+
+.fotoloc {
+
+	width: 100px;
+	height: 50px;
+	padding: 2px;
+	text-align: center;
+	background-color: #000099;
+	border: 1px solid #0000CC;
+
+}
+
+.fotonam {
+
+	font-size: 9px;
+	text-align: center;
+	width: 100px;
+	height: 30px;
+	padding: 1px;
+	background-color: #000099;
+	border: 1px solid #0000CC;
+
+}
+
+
+td.fotonam:hover {
+
+	color: #00FFFF;
+	background-color: #000088;
+	border: 1px solid #0000AA;
+	cursor: default;
+
+}
+
+/* Biografías */
+
+.fotopj {
+
+	width: 100px;
+	height: 50px;
+	padding: 2px;
+	text-align: center;
+	background-color: #336699;
+	border: 1px solid #338899;
+
+}
+
+.pjnam {
+
+	color: #FFFF66;
+	font-size: 11px;
+	font-family: tahoma;
+	text-align: center;
+	width: 100px;
+	height: 30px;
+	padding: 1px;
+	background-color: #336699;
+	border: 1px solid #338899;
+
+}
+
+td.pjnam:hover {
+
+	color: #66FFFF;
+	background-color: #225588;
+	border: 1px solid #227788;
+	cursor: default;
+
+}
+
+/* Base de datos */
+
+.ajustcelda {
+
+	width: 150px;
+	border: 1px solid #0000CC;
+	padding: 5px;
+
+}
+
+.celdacombat {
+
+	border: 1px solid #0000CC;
+	padding: 5px;
+	background-color: #000066;
+
+}
+
+.celdacombat2 {
+
+	border: 1px solid #0000DD;
+	padding: 5px;
+	background-color: #000077;
+
+}
+
+.datox {
+
+	empty-cells: show;
+
+}
+
+.datos1 {
+
+	color: #000;
+	width: 125px;
+	border: 1px solid #fff;
+	padding: 3px;
+	text-align: right;
+	background-color: #3399CC;
+}
+
+.datos2 {
+
+	border: 1px solid #fff;
+	padding: 3px;
+	background-color: #333399;
+}
+
+.datos3 {
+
+	width: 125px;
+	border: 1px solid #fff;
+	padding: 3px;
+	background-color: #3366CC;
+	text-align: center;
+}
+
+td.datos1:hover {
+
+	background-color: #9999FF;
+
+}
+
+td.datos2:hover {
+
+	background-color: #009999;
+
+}
+
+td.datos3:hover {
+	
+
+	background-color: #336666;
+
+}
+
+.bext1 {
+
+	color: #33FFFF;
+	width: 110px;
+	border: 1px solid #fff;
+	padding: 3px;
+	text-align: right;
+	background-color: #003399;
+
+}
+
+.bext2 {
+
+	color: #FFF;
+	width: 180px;
+	border: 1px solid #fff;
+	padding: 3px;
+	text-align: left;
+	background-color: #003366;
+
+}
+
+
+/* Horario */
+
+.cabezadias {
+
+	width: 125px;
+	border: 1px solid #990000;
+	padding: 3px;
+	background-color: #660000;
+	text-align: center;
+
+	font-weight: bolder;
+	font-size: 12px;
+}
+
+.dia1 {
+
+	border: 1px solid #009900;
+	padding: 3px;
+	background-color: #006600;
+}
+
+.dia2 {
+
+	border: 1px solid #000099;
+	padding: 3px;
+	background-color: #000066;
+}
+
+td.cabezadias:hover {
+
+	border: 1px solid #660000;
+	background-color: #990000;
+	cursor: default;
+}
+
+td.dia1:hover {
+
+	border: 1px solid #006600;
+	background-color: #009900;
+	cursor: default;
+}
+
+td.dia2:hover {
+
+	border: 1px solid #000066;
+	background-color: #000099;
+	cursor: default;
+}
+	
+
+/* Documentacion y escritos */
+
+
+.contenedatos {
+
+	width: 150px;
+	height: 20px;
+	padding: 5px;
+	text-align: left;
+	background-color: #003366;
+	border: 1px solid #006699;
+
+}
+
+td.contenedatos:hover {
+
+	background-color: #004477;
+	border: 1px solid #0077AA;
+
+}
+
+/* Noticias o algo */
+
+.tablax {
+
+	empty-cells: show;
+	width: 550px;
+
+}
+
+.arrib {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #000033;
+	border: 1px dotted #FFFFCC;
+
+}
+
+td.arrib:hover {
+
+	cursor: default;
+
+}
+
+.abaj {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #000066;
+	border: 1px dotted #FFFFCC;
+	text-align: justify;
+
+}
+
+td.abaj:hover {
+
+	cursor: default;
+
+}
+
+/* CORREO SINCRONIZADO PUNTEADO */
+
+.nvmsg {
+
+	width: 125px;
+	border: 1px #fff;
+	padding: 3px;
+	background-color: #333399;
+	text-align: center;
+}
+
+td.nvmsg:hover {
+
+	background-color: #330066;
+
+}
+
+.klax1 {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #000066;
+	border: 1px #FFFFCC;
+	color: #66FF99;
+	font-weight: bold;
+
+}
+
+.klax2 {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #333399;
+	border: 1px #FFFFCC;
+	text-align: justify;
+
+}
+
+/* Informacion de dones y eso */
+
+.doncosa {
+
+	padding: 5px;
+	border: 1px dotted #fff;
+	text-align: justify;
+
+}
+

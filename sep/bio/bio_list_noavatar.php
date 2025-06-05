@@ -1,30 +1,41 @@
 <?php
-	$pageSect 	 = "PJS sin Avatar"; 	// Para cambiar el título a la página.
-	$consulta ="SELECT * FROM pjs1 WHERE img LIKE 'img/subidas/avatar-sinfoto.jpg' ORDER BY id ASC";
-	$IdConsulta = mysql_query($consulta, $link);
-	$NFilas = mysql_num_rows($IdConsulta);
-	for($i=0;$i<$NFilas;$i++) {
-		$ResultQuery = mysql_fetch_array($IdConsulta);
-		$numregistros = mysql_num_rows ($IdConsulta);
-		$nombrePJ = $ResultQuery["nombre"];
-		$aliasPJ = $ResultQuery["alias"];
-		$ngarouPJ = $ResultQuery["nombregarou"];
-		if ($ngarouPJ != "") { $comaN = ","; } else { $comaN = ""; }
-		//////////////////////////////////
-		$idPJ = $ResultQuery["id"];
-		$imgPJ = $ResultQuery["img"];
-		  echo "<a href='index.php?p=muestrabio&amp;b=$idPJ' target='_blank' style='color:white;' title='$nombrePJ$comaN $ngarouPJ'>";
+	include("sep/heroes.php");
+	$pageSect = "Personajes sin Avatar - Biografías";  // Título de la página
+	// Consulta moderna con mysqli
+	$consulta = "SELECT id, nombre, alias, nombregarou, img FROM pjs1 WHERE img = 'img/subidas/avatar-sinfoto.jpg' ORDER BY id ASC";
+	$resultado = mysqli_query($link, $consulta);
+	if (!$resultado) {
+		echo "<p>Error en la consulta: " . mysqli_error($link) . "</p>";
+		exit;
+	}
+	// Mostrar resultados
+	while ($row = mysqli_fetch_assoc($resultado)) {
+		$idPJ     = (int) $row["id"];
+		$nombrePJ = htmlspecialchars($row["nombre"]);
+		$aliasPJ  = htmlspecialchars($row["alias"]);
+		$ngarouPJ = htmlspecialchars($row["nombregarou"]);
+		$imgPJ    = htmlspecialchars($row["img"]);
+
+		$comaN = ($ngarouPJ !== "") ? "," : "";
+
+		echo "<a href='index.php?p=muestrabio&amp;b={$idPJ}' target='_blank' style='color:white;' title='{$nombrePJ}{$comaN} {$ngarouPJ}'>";
 			echo "<div class='listIDrenglon'>";
-				echo "<div class='listIDizq'><img src='$imgPJ' style='width:50px;height:50px;border:0.5px solid black;' /></div>";
-				echo "<div class='listIDizq' style='width:26px;height:16px;border:1px solid white;margin-left:10px;background:teal;'>";
-				echo "$idPJ";
+				echo "<div class='listIDizq'>";
+					echo "<img src='{$imgPJ}' style='width:50px;height:50px;border:0.5px solid black;' />";
 				echo "</div>";
+
+				echo "<div class='listIDizq' style='width:26px;height:16px;border:1px solid white;margin-left:10px;background:teal;text-align:center;font-size:10px;'>";
+					echo "{$idPJ}";
+				echo "</div>";
+
 				echo "<div class='listIDizq' style='width:154px;'>";
 					echo $nombrePJ;
-					if ($aliasPJ != "") { echo "<br/>$aliasPJ"; }
-					if ($ngarouPJ != "") { echo "<br/>$ngarouPJ"; }
+					if ($aliasPJ !== "")  echo "<br/>" . $aliasPJ;
+					if ($ngarouPJ !== "") echo "<br/>" . $ngarouPJ;
 				echo "</div>";
 			echo "</div>";
 		echo "</a>";
-		}
+	}
+
+	mysqli_free_result($resultado);
 ?>

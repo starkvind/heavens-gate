@@ -7,7 +7,17 @@ body {
 	background-position: bottom right;
 	margin-top: 20px;
 	margin-bottom: 20px;
-	}
+	text-align: center;
+}
+
+.ocultable {
+	display: none;
+}
+
+.main-wrapper {
+	display: inline-block;
+	text-align: left;
+}
 
 table {
 	font: normal 11px verdana;
@@ -164,7 +174,7 @@ a.enlaceUpMenu:hover {
 
 }
 
-a.titMenu { /* Enlace para el menï¿½ */
+a.titMenu { /* Enlace para el menú */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -178,7 +188,7 @@ img.menuIcon {
 	border: 1px solid #000088; /* 006699; */
 }
 
-td.sekz { /* Secciï¿½n de menï¿½ */
+td.sekz { /* Sección de menú */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -187,7 +197,7 @@ td.sekz { /* Secciï¿½n de menï¿½ */
 
 }
 
-td.sekzo { /* Subsecciï¿½n de menï¿½ */
+td.sekzo { /* Subsección de menú */
 
 	padding-left: 5px;
 	text-align: left;
@@ -206,7 +216,7 @@ td.sepmenu { /* Separacion entre secciones */
 
 }
 
-td.piepagina { /* Pie de la pï¿½gina web */
+td.piepagina { /* Pie de la página web */
 	text-align:center;
 	padding:5px;
 	font-size: 9px;
@@ -868,7 +878,7 @@ div.bioSquarePhoto {
 
 div.bioSquareData {
 	float: right;
-	width: 142px; /* 442 */
+	width: 442px;
 	padding: 10px;
 	margin-top: 6px;
 }
@@ -1478,4 +1488,16 @@ fieldset#campoTurnoComb legend {
 
 #textoUsuario {
 	float: right;
+}
+
+/* Cabecera */
+header {
+	text-align: center;
+	margin-bottom: 1em;
+	margin-top: 1em;
+}
+
+header img {
+	max-width: 100%;
+	height: auto;
 }
