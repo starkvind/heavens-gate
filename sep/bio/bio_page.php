@@ -306,17 +306,21 @@
 		/* =========== */
 		include("sep/main/main_social_menu.php");	// Zona de Impresión y Redes Sociales
 		// ================================================================== //
+	
 	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
 		// ================================================================== //
-		echo "<div class='bioSquarePhoto'>"; // Colocamos la Fotografia del personaje ~~ #SEC02
-			echo "<img class='photobio' src='$bioPhoto' alt='$bioName'/>";
-		echo"</div>"; // Dejamos la Fotografía ya colocada
+		echo "<div class='bioCard'>";
+		echo "<div class='bioTopBody'>";
+			echo "<div class='bioSquarePhoto'>"; // Colocamos la Fotografia del personaje ~~ #SEC02
+				echo "<img class='photobio' src='$bioPhoto' alt='$bioName'/>";
+			echo"</div>"; // Dejamos la Fotografía ya colocada
 		// ================================================================== //
-		echo "<div class='bioSquareData'>"; // Comenzamos a colocar los datos básicos ~~ #SEC03
-			// ----------------------------------------- //
-			include ("bio_page_section_03_details.php"); // Utilizamos "include" para no sobrecargar la página con código
-			// ----------------------------------------- //
-		echo "</div>"; // Finalizamos los datos básicos
+			echo "<div class='bioSquareData'>"; // Comenzamos a colocar los datos básicos ~~ #SEC03
+				// ----------------------------------------- //
+				include ("bio_page_section_03_details.php"); // Utilizamos "include" para no sobrecargar la página con código
+				// ----------------------------------------- //
+			echo "</div>"; // Finalizamos los datos básicos
+		echo "</div>";
 		// ================================================================== //
 		if ($bioText != "") { // Empezamos colocando la información de Texto
 			echo "<div class='bioTextData'>"; 
@@ -324,8 +328,10 @@
 			echo "</div>";
 		} // Finalizamos de poner el Texto
 		// ================================================================== //
+		echo "</div>";
 		if ($bioSheet == "pj") { // Comprobamos si el personaje dispone de Hoja de Personaje
 			// ----
+			echo "<div class='bioRest'>";
 			echo "<div class='bioSheetData'>"; // Parte Superior de la Hoja ~~ #SEC04
 			echo "<fieldset class='bioSeccion'><legend>$titleId</legend>";
 				// ----------------------------------------- //
@@ -442,6 +448,7 @@
 				echo "</fieldset>";
 				echo "</div>"; // Cerramos Objetos y Fetiches ~~
 			}
+			echo "</div>";
 		} // Finalizamos la Hoja de Personaje
 		// ================================================================== //
 		#if ((isset($numberFilasSameBio) && $numberFilasSameBio > 0) OR $bioFamily != "") {

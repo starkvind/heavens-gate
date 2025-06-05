@@ -7,8 +7,12 @@
 //$bdd = "id7111966_hg";
 //$bdd = "u807926597_hg";
 
+$host = "HOST";
+$user = "USER";
+$pass = "PWD";
+$bdd = "BDD";
 
-$link=mysqli_connect("localhost","starko_remote","b4n4n4","u807926597_hg");
+$link = mysqli_connect($host, $user, $pass, $bdd);
 if (mysqli_connect_errno())
   {
   echo "Failed to connect to MariaDB: " . mysqli_connect_error();

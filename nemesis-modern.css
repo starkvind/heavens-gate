@@ -7,18 +7,43 @@
 }
 
 /* Cabecera */
+header {
+	text-align: center;
+	margin-bottom: 1em;
+}
+
 header img {
 	max-width: 100%;
 	height: auto;
 }
 
-/* Menú lateral principal (antes .tmenu o .todou td izquierda) */
+.userRightMenu {
+	text-align: right;
+	margin-bottom: 1em;
+}
+
+.main-content {
+	display: flex;
+	gap: 2em;
+}
+
 .main-menu {
+	flex: 1;
+}
+
+.content-body {
+	flex: 3;
+}
+
+/* Menú lateral principal (antes .tmenu o .todou td izquierda) */
+div.main-menu {
 	width: 240px;
 	background: url("img/menu.jpg");
 	border: 1px solid #000088;
 	padding: 10px;
 	font: normal 11px verdana;
+   	margin-left: auto;   /* <--- importante */
+    margin-right: 0;
 }
 
 /* Contenido central (antes .fcentro) */
@@ -36,7 +61,7 @@ footer {
 	font-size: 9px;
 	border: 1px dotted #000088;
 	background: url("img/pie.jpg");
-	color: #ccc;
+	color: #fff;
 	margin-top: 2em;
 }
 
@@ -47,14 +72,33 @@ footer {
 
 /* Para reemplazar .td.sekz, .sekzo, etc. */
 .menu-section {
-	padding: 5px;
-	font-weight: bold;
-	color: #33FFFF;
-	text-align: left;
+    padding: 5px;
+    font-weight: bold;
+    color: #33FFFF;
+    text-align: left;
+    background-color: transparent; /* o el color que prefieras */
+    margin-bottom: 1px;
+    /* float: right;   <-- elimina esto */
 }
+
 .menu-subsection {
 	padding-left: 5px;
 	color: #fff;
+}
+
+.menu-section {
+    text-align: right !important;
+}
+.menu-section a {
+    display: inline-block;
+}
+
+.menu-subsection {
+    text-align: right !important;
+	margin-right: 2.7em;
+}
+.menu-subsection a {
+    display: inline-block;
 }
 
 /* Nuevos helpers */
@@ -65,4 +109,56 @@ footer {
 .flex-column {
 	display: flex;
 	flex-direction: column;
+}
+
+.bioHeader {
+    text-align: center;
+    border: 1px solid #009;
+    color: #efe;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+}
+
+.bioCard {
+  max-width: 700px;
+  margin: 0 auto 30px auto;
+  background: rgba(0,0,32,0.08);
+  border-radius: 10px;
+  box-shadow: 0 2px 18px #0003;
+  padding: 20px 28px 32px 28px;
+}
+
+.bioTopBody {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.bioSquarePhoto {
+  flex-shrink: 0;
+  text-align: center;
+  border: 1px solid #009;
+  width: 130px;
+  background: #000055;
+  border-radius: 8px;
+}
+.bioSquareData {
+  flex-grow: 1;
+  min-width: 180px;
+  border: 1px solid #009;
+  padding: 14px 20px;
+  border-radius: 8px;
+  color: #eee;
+  background: #01014d;
+}
+.bioRest {
+  margin-top: 8px;
+}
+
+.bioRest table {
+  width: 100%;
+  margin: 12px 0 0 0;
+  border-radius: 8px;
+  overflow: hidden;
 }

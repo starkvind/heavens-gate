@@ -164,7 +164,7 @@ a.enlaceUpMenu:hover {
 
 }
 
-a.titMenu { /* Enlace para el menú */
+a.titMenu { /* Enlace para el menï¿½ */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -178,7 +178,7 @@ img.menuIcon {
 	border: 1px solid #000088; /* 006699; */
 }
 
-td.sekz { /* Sección de menú */
+td.sekz { /* Secciï¿½n de menï¿½ */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -187,7 +187,7 @@ td.sekz { /* Sección de menú */
 
 }
 
-td.sekzo { /* Subsección de menú */
+td.sekzo { /* Subsecciï¿½n de menï¿½ */
 
 	padding-left: 5px;
 	text-align: left;
@@ -206,7 +206,7 @@ td.sepmenu { /* Separacion entre secciones */
 
 }
 
-td.piepagina { /* Pie de la página web */
+td.piepagina { /* Pie de la pï¿½gina web */
 	text-align:center;
 	padding:5px;
 	font-size: 9px;
@@ -868,7 +868,7 @@ div.bioSquarePhoto {
 
 div.bioSquareData {
 	float: right;
-	width: 442px;
+	width: 142px; /* 442 */
 	padding: 10px;
 	margin-top: 6px;
 }

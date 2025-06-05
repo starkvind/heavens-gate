@@ -3,6 +3,8 @@
 // Obtener el parámetro 'b' de manera segura
 $skillId = isset($_GET['b']) ? $_GET['b'] : '';  // ID del contenido
 
+$unknownOrigin = "Desconocido";
+
 // Preparar la consulta para evitar inyecciones SQL
 $query = "SELECT * FROM nuevo_habilidades WHERE id = ?";
 $stmt = $link->prepare($query);
