@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recortador 1:1 (JPG/PNG)</title>
+<style>
+  :root{
+    --bg:#0a0d1a;
+    --panel:#101633;
+    --accent:#33FFFF;
+    --muted:#7aa0b5;
+    --warn:#ff6b6b;
+    --ok:#7cfc00;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0; background:linear-gradient(180deg,#070b18,#0a1030);
+    color:#e8f2ff; font:14px/1.4 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    display:flex; flex-direction:column; align-items:center; padding:22px 12px; gap:16px;
+  }
+  h1{font-size:18px; margin:0 0 8px; letter-spacing:.2px;}
+  .card{
+    width:min(1000px,95vw); background:var(--panel); border:1px solid #000a66;
+    border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .row{display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;}
+  .controls{
+    display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    background:#0d1430; border:1px solid #001055; border-radius:12px; padding:10px 12px;
+  }
+  .controls label{color:#cfe7ff; font-size:13px;}
+  .btn{
+    background:#082b6e; color:#e8f2ff; border:1px solid #1b3f8f;
+    padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s;
+  }
+  .btn:hover{filter:brightness(1.1);}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .btn-ok{background:#0d5d37; border-color:#168f59;}
+  .btn-red{background:#611d1d; border-color:#9b2e2e;}
+  input[type="file"]{display:none;}
+  .file-label{
+    display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:10px;
+    background:#113a98; border:1px solid #2759cc; cursor:pointer;
+  }
+  .hint{color:var(--muted); font-size:12px;}
+  .warn{color:var(--warn);}
+  .ok{color:var(--ok);}
+
+  /* Lienzo y cropping */
+  .stage-wrap{
+    background:#03061a; border:1px solid #001055; border-radius:12px; padding:10px;
+    width:100%; overflow:auto;
+  }
+  .stage{
+    position:relative; display:inline-block; /* se ajusta al tamaño rendereado de la imagen */
+    max-width:100%;
+  }
+  .stage img{
+    display:block; max-width:100%; height:auto; user-select:none; -webkit-user-drag:none;
+  }
+  .overlay-dim{
+    position:absolute; inset:0; pointer-events:none;
+    background:rgba(0,0,0,.35);
+  }
+  .crop{
+    position:absolute; border:2px solid var(--accent);
+    box-shadow:0 0 0 9999px rgba(0,0,0,.45); /* oscurece fuera del recorte */
+    cursor:move; touch-action:none;
+  }
+  .handle{
+    position:absolute; width:16px; height:16px; border:2px solid #fff;
+    background:rgba(51,255,255,.9); border-radius:50%; box-shadow:0 1px 6px rgba(0,0,0,.5);
+  }
+  .handle.nw{left:-10px; top:-10px; cursor:nwse-resize;}
+  .handle.ne{right:-10px; top:-10px; cursor:nesw-resize;}
+  .handle.sw{left:-10px; bottom:-10px; cursor:nesw-resize;}
+  .handle.se{right:-10px; bottom:-10px; cursor:nwse-resize;}
+
+  .out{
+    background:#03061a; border:1px solid #001055; border-radius:12px; padding:10px;
+    flex:1 1 280px; min-width:260px;
+  }
+  .out canvas{max-width:100%; height:auto; display:block; background:#000;}
+  .kv{display:inline-block; background:#07133a; border:1px solid #0b2a77; padding:6px 8px; border-radius:8px; margin-right:8px; color:#d0e7ff;}
+  .spacer{flex:1;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Recortar imagen 1:1 (cuadrado)</h1>
+    <div class="row controls">
+      <label class="file-label" for="file">
+        📁 Elegir imagen (JPG/PNG)
+      </label>
+      <input id="file" type="file" accept="image/jpeg,image/png">
+      <button id="btnCenter" class="btn" disabled>Centra marco</button>
+      <label> Tamaño
+        <input id="sizeRange" type="range" min="50" max="1000" value="300" style="vertical-align:middle;">
+      </label>
+      <span class="hint">Rueda del ratón sobre el marco para cambiar tamaño. Mueve con arrastre o flechas (⇧×10 px).</span>
+      <span id="msg" class="hint"></span>
+      <span class="spacer"></span>
+      <button id="dlPNG" class="btn btn-ok" disabled>⬇ Descargar PNG</button>
+      <button id="dlJPG" class="btn" disabled>⬇ Descargar JPG</button>
+      <button id="reset" class="btn btn-red" disabled>Reiniciar</button>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="stage-wrap">
+        <div id="stage" class="stage" aria-live="polite">
+          <!-- imagen y crop se inyectan aquí -->
+        </div>
+      </div>
+
+      <div class="out">
+        <div style="margin-bottom:8px;">
+          <span id="infoIn" class="kv">Imagen: -</span>
+          <span id="infoSel" class="kv">Selección: -</span>
+          <span id="infoOut" class="kv">Salida: -</span>
+        </div>
+        <canvas id="preview" width="0" height="0"></canvas>
+        <div class="hint" style="margin-top:8px;">
+          La previsualización muestra el recorte exacto. El archivo de salida usa la misma resolución del área seleccionada en la imagen original.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const fileInput = document.getElementById('file');
+  const stage = document.getElementById('stage');
+  const sizeRange = document.getElementById('sizeRange');
+  const btnCenter = document.getElementById('btnCenter');
+  const dlPNG = document.getElementById('dlPNG');
+  const dlJPG = document.getElementById('dlJPG');
+  const resetBtn = document.getElementById('reset');
+  const msg = document.getElementById('msg');
+  const infoIn = document.getElementById('infoIn');
+  const infoSel = document.getElementById('infoSel');
+  const infoOut = document.getElementById('infoOut');
+  const preview = document.getElementById('preview');
+  const pctx = preview.getContext('2d');
+
+  let imgEl = null;
+  let cropEl = null;
+  let handles = {};
+  let objectURL = null;
+
+  // Estado del crop (en coordenadas mostradas, relativo a stage/img ya renderizado)
+  let crop = { x:0, y:0, size:200 };
+
+  // Datos de la imagen original
+  let natural = { w:0, h:0 };
+
+  // Helpers
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+  function clearStage(){
+    stage.innerHTML = '';
+    imgEl = null; cropEl = null; handles = {};
+    crop = { x:0, y:0, size:200 };
+    natural = { w:0, h:0 };
+    preview.width = preview.height = 0;
+    infoIn.textContent = 'Imagen: -';
+    infoSel.textContent = 'Selección: -';
+    infoOut.textContent = 'Salida: -';
+    dlPNG.disabled = dlJPG.disabled = btnCenter.disabled = resetBtn.disabled = true;
+    sizeRange.disabled = true;
+    msg.textContent = '';
+    if (objectURL){ URL.revokeObjectURL(objectURL); objectURL=null; }
+  }
+
+  function enableUI(){
+    dlPNG.disabled = dlJPG.disabled = btnCenter.disabled = resetBtn.disabled = false;
+    sizeRange.disabled = false;
+  }
+
+  function renderUI(){
+    if (!imgEl || !cropEl) return;
+    const rect = imgEl.getBoundingClientRect(); // tamaño mostrado
+    // Ajusta el contenedor stage a igual tamaño que la imagen mostrada
+    stage.style.width = rect.width + 'px';
+    stage.style.height = rect.height + 'px';
+
+    // Enforce límites
+    crop.size = clamp(crop.size, 20, Math.min(rect.width, rect.height));
+    crop.x = clamp(crop.x, 0, rect.width - crop.size);
+    crop.y = clamp(crop.y, 0, rect.height - crop.size);
+
+    // Pinta el marco
+    cropEl.style.left = crop.x + 'px';
+    cropEl.style.top = crop.y + 'px';
+    cropEl.style.width = crop.size + 'px';
+    cropEl.style.height = crop.size + 'px';
+
+    // Actualiza slider en escala "mostrada"
+    sizeRange.min = 20;
+    sizeRange.max = Math.round(Math.min(rect.width, rect.height));
+    sizeRange.value = Math.round(crop.size);
+
+    // Info
+    const scale = natural.w / rect.width; // píxeles reales por píxel mostrado
+    const selPx = Math.round(crop.size * scale);
+    infoIn.textContent  = `Imagen: ${natural.w}×${natural.h}px`;
+    infoSel.textContent = `Selección en original: ${selPx}×${selPx}px`;
+    infoOut.textContent = `Salida: ${selPx}×${selPx}px`;
+
+    // Render preview (recorte real)
+    preview.width = selPx;
+    preview.height = selPx;
+
+    // Extrae desde la imagen original respetando escala
+    const sx = Math.round(crop.x * scale);
+    const sy = Math.round(crop.y * scale);
+    const ssz = selPx;
+
+    // Para evitar taquicardia de memoria, si el recorte es enorme, renderizamos preview reducido
+    const maxPreview = 1024;
+    if (ssz > maxPreview){
+      const r = maxPreview / ssz;
+      preview.width = preview.height = Math.round(ssz * r);
+      // Creamos un canvas temporal del tamaño original del recorte y luego escalamos al preview
+      const temp = document.createElement('canvas');
+      temp.width = temp.height = ssz;
+      const tctx = temp.getContext('2d', { willReadFrequently: true });
+      tctx.drawImage(imgEl, sx, sy, ssz, ssz, 0, 0, ssz, ssz);
+      pctx.imageSmoothingQuality = 'high';
+      pctx.drawImage(temp, 0, 0, preview.width, preview.height);
+    } else {
+      pctx.imageSmoothingQuality = 'high';
+      pctx.drawImage(imgEl, sx, sy, ssz, ssz, 0, 0, ssz, ssz);
+    }
+  }
+
+  function centerCrop(){
+    if (!imgEl) return;
+    const rect = imgEl.getBoundingClientRect();
+    const s = Math.floor(Math.min(rect.width, rect.height) * 0.6);
+    crop.size = s;
+    crop.x = Math.floor((rect.width  - crop.size)/2);
+    crop.y = Math.floor((rect.height - crop.size)/2);
+    renderUI();
+  }
+
+  function loadImage(file){
+    clearStage();
+    if (!file) return;
+    if (!['image/jpeg','image/png'].includes(file.type)){
+      msg.innerHTML = `<span class="warn">Solo JPG o PNG.</span>`;
+      return;
+    }
+    objectURL = URL.createObjectURL(file);
+    imgEl = new Image();
+    imgEl.onload = () => {
+      natural.w = imgEl.naturalWidth;
+      natural.h = imgEl.naturalHeight;
+
+      // Monta escena
+      stage.appendChild(imgEl);
+      const overlayDim = document.createElement('div');
+      overlayDim.className = 'overlay-dim';
+      stage.appendChild(overlayDim);
+
+      cropEl = document.createElement('div');
+      cropEl.className = 'crop';
+      ['nw','ne','sw','se'].forEach(k=>{
+        const h = document.createElement('div');
+        h.className = 'handle '+k;
+        cropEl.appendChild(h);
+        handles[k] = h;
+      })
+      stage.appendChild(cropEl);
+
+      enableUI();
+      // Ajusta a tamaño mostrado real
+      requestAnimationFrame(()=>{
+        // Inicial: marco centrado
+        centerCrop();
+        attachInteractions();
+        msg.innerHTML = `<span class="ok">Imagen cargada.</span>`;
+      });
+    };
+    imgEl.onerror = () => { msg.innerHTML = `<span class="warn">No se pudo cargar la imagen.</span>`; clearStage(); };
+    imgEl.src = objectURL;
+  }
+
+  // Interacciones: arrastre y redimensionar con ratio 1:1
+  let drag = { active:false, mode:'move', startX:0, startY:0, baseX:0, baseY:0, baseSize:0, corner:'' };
+
+  function onPointerDown(e){
+    if (!cropEl) return;
+    const target = e.target;
+    drag.active = true;
+    drag.startX = e.clientX;
+    drag.startY = e.clientY;
+    drag.baseX = crop.x;
+    drag.baseY = crop.y;
+    drag.baseSize = crop.size;
+
+    if (target.classList.contains('handle')){
+      drag.mode = 'resize';
+      drag.corner = [...target.classList].includes('nw')?'nw':
+                    [...target.classList].includes('ne')?'ne':
+                    [...target.classList].includes('sw')?'sw':'se';
+      cropEl.setPointerCapture(e.pointerId);
+    } else {
+      drag.mode = 'move';
+      cropEl.setPointerCapture(e.pointerId);
+    }
+    e.preventDefault();
+  }
+
+  function onPointerMove(e){
+    if (!drag.active || !imgEl) return;
+    const rect = imgEl.getBoundingClientRect();
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+
+    if (drag.mode === 'move'){
+      crop.x = clamp(drag.baseX + dx, 0, rect.width - crop.size);
+      crop.y = clamp(drag.baseY + dy, 0, rect.height - crop.size);
+    } else {
+      // Resize con 1:1 tomando como referencia esquina opuesta
+      let s = drag.baseSize;
+      if (drag.corner === 'nw') s = clamp(drag.baseSize - Math.max(dx,dy), 20, Math.min(rect.width, rect.height));
+      if (drag.corner === 'ne') s = clamp(drag.baseSize + Math.max(dx,-dy), 20, Math.min(rect.width, rect.height));
+      if (drag.corner === 'sw') s = clamp(drag.baseSize + Math.max(-dx,dy), 20, Math.min(rect.width, rect.height));
+      if (drag.corner === 'se') s = clamp(drag.baseSize + Math.max(dx,dy), 20, Math.min(rect.width, rect.height));
+
+      // Re-posiciona para que la esquina “fija” se mantenga
+      const delta = s - drag.baseSize;
+      let nx = drag.baseX, ny = drag.baseY;
+      if (drag.corner === 'nw'){ nx = drag.baseX - delta; ny = drag.baseY - delta; }
+      if (drag.corner === 'ne'){ ny = drag.baseY - delta; }
+      if (drag.corner === 'sw'){ nx = drag.baseX - delta; }
+      crop.size = s;
+      // Limita dentro
+      crop.x = clamp(nx, 0, rect.width - crop.size);
+      crop.y = clamp(ny, 0, rect.height - crop.size);
+    }
+    renderUI();
+    e.preventDefault();
+  }
+
+  function onPointerUp(e){
+    if (!drag.active) return;
+    drag.active = false;
+    try{ cropEl.releasePointerCapture(e.pointerId); }catch(_){}
+  }
+
+  function onWheelResize(e){
+    if (!cropEl) return;
+    if (!e.ctrlKey){ // sin Ctrl: ajusta tamaño
+      const delta = -Math.sign(e.deltaY) * 12; // paso
+      crop.size += delta;
+      renderUI();
+      e.preventDefault();
+    }
+  }
+
+  function onKey(e){
+    if (!imgEl) return;
+    const step = e.shiftKey ? 10 : 1;
+    const rect = imgEl.getBoundingClientRect();
+    if (e.key === 'ArrowLeft')  crop.x = clamp(crop.x - step, 0, rect.width - crop.size);
+    if (e.key === 'ArrowRight') crop.x = clamp(crop.x + step, 0, rect.width - crop.size);
+    if (e.key === 'ArrowUp')    crop.y = clamp(crop.y - step, 0, rect.height - crop.size);
+    if (e.key === 'ArrowDown')  crop.y = clamp(crop.y + step, 0, rect.height - crop.size);
+    renderUI();
+  }
+
+  function attachInteractions(){
+    // Pointer events en crop
+    cropEl.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    // Rueda para tamaño
+    cropEl.addEventListener('wheel', onWheelResize, { passive:false });
+    // Slider
+    sizeRange.addEventListener('input', ()=>{ crop.size = parseInt(sizeRange.value,10)||crop.size; renderUI(); });
+    // Teclado
+    window.addEventListener('keydown', onKey);
+    // Resize ventana -> re-render (por si cambia ancho mostrado)
+    window.addEventListener('resize', renderUI);
+  }
+
+  function download(type){ // 'image/png' o 'image/jpeg'
+    if (!imgEl) return;
+    // Calcula recorte en píxeles reales
+    const rect = imgEl.getBoundingClientRect();
+    const scale = natural.w / rect.width;
+    const ssz = Math.round(crop.size * scale);
+    const sx  = Math.round(crop.x * scale);
+    const sy  = Math.round(crop.y * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = ssz;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(imgEl, sx, sy, ssz, ssz, 0, 0, ssz, ssz);
+
+    const q = (type==='image/jpeg') ? 0.92 : 1.0;
+    canvas.toBlob(blob=>{
+      const a = document.createElement('a');
+      const ext = (type==='image/jpeg')?'.jpg':'.png';
+      a.download = 'recorte_1x1' + ext;
+      a.href = URL.createObjectURL(blob);
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, type, q);
+  }
+
+  // Listeners UI
+  fileInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    loadImage(f);
+  });
+  btnCenter.addEventListener('click', ()=>centerCrop());
+  dlPNG.addEventListener('click', ()=>download('image/png'));
+  dlJPG.addEventListener('click', ()=>download('image/jpeg'));
+  resetBtn.addEventListener('click', ()=>{
+    if (!imgEl) return;
+    // vuelve a cargar para olvidar recortes
+    const f = fileInput.files && fileInput.files[0];
+    loadImage(f);
+  });
+
+})();
+</script>
+</body>
+</html>

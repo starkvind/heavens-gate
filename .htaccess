@@ -1,0 +1,341 @@
+php_value error_reporting 0
+php_flag display_errors On
+
+Options -Indexes
+# Block access to .git
+RewriteRule (^|/)\.git/ - [F,L]
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# Legacy query redirects (only on the original request to avoid loops)
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=muestrabio&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /characters/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=muestrabio&b=([0-9]+)\s [NC]
+RewriteRule ^$ /characters/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seegroup&t=2&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /organizations/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=seegroup&t=2&b=([0-9]+)\s [NC]
+RewriteRule ^$ /organizations/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seegroup&t=1&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /groups/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=seegroup&t=1&b=([0-9]+)\s [NC]
+RewriteRule ^$ /groups/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seeplayer&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /players/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=seeplayer&b=([0-9]+)\s [NC]
+RewriteRule ^$ /players/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=biogroup&t=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /characters/type/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=biogroup&t=([0-9]+)\s [NC]
+RewriteRule ^$ /characters/type/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=nebula_clan\s [NC]
+RewriteRule ^index\.php$ /relationship-map/organizations? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=nebula_clan\s [NC]
+RewriteRule ^$ /relationship-map/organizations? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=nebula_character\s [NC]
+RewriteRule ^index\.php$ /relationship-map/characters? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=nebula_character\s [NC]
+RewriteRule ^$ /relationship-map/characters? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=nebula_groups\s [NC]
+RewriteRule ^$ /relationship-map/groups? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seechapter&t=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /chapters/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=seechapter&t=([0-9]+)\s [NC]
+RewriteRule ^$ /chapters/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=temp&t=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /seasons/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=temp&t=([0-9]+)\s [NC]
+RewriteRule ^$ /seasons/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=verdoc&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /documents/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=verdoc&b=([0-9]+)\s [NC]
+RewriteRule ^$ /documents/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=verobj&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /inventory/items/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=verobj&b=([0-9]+)\s [NC]
+RewriteRule ^$ /inventory/items/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seeitem&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /inventory/item/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=seeitem&b=([0-9]+)\s [NC]
+RewriteRule ^$ /inventory/item/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=inv&t=([^&\s]+)\s [NC]
+RewriteRule ^index\.php$ /inventory/type/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=inv&t=([^&\s]+)\s [NC]
+RewriteRule ^$ /inventory/type/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=sistemas&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /systems/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=sistemas&b=([0-9]+)\s [NC]
+RewriteRule ^$ /systems/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=verforma&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /systems/form/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=verforma&b=([0-9]+)\s [NC]
+RewriteRule ^$ /systems/form/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=versistdetalle&tc=([0-9]+)&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /systems/detail/%1/%2? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=versistdetalle&tc=([0-9]+)&b=([0-9]+)\s [NC]
+RewriteRule ^$ /systems/detail/%1/%2? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=verrasgo&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /rules/traits/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=verrasgo&b=([0-9]+)\s [NC]
+RewriteRule ^$ /rules/traits/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=vermyd&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /rules/merits-flaws/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=vermyd&b=([0-9]+)\s [NC]
+RewriteRule ^$ /rules/merits-flaws/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=vermaneu&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /rules/maneuvers/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=vermaneu&b=([0-9]+)\s [NC]
+RewriteRule ^$ /rules/maneuvers/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=verarch&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /rules/archetypes/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=verarch&b=([0-9]+)\s [NC]
+RewriteRule ^$ /rules/archetypes/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=muestradon&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/gift/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=muestradon&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/gift/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=tipodon&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/gift/type/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=tipodon&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/gift/type/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seerite&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/rite/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=seerite&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/rite/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=tiporite&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/rite/type/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=tiporite&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/rite/type/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=muestratotem&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/totem/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=muestratotem&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/totem/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=tipototm&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/totem/type/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=tipototm&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/totem/type/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=muestradisc&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/discipline/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=muestradisc&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/discipline/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=tipodisc&b=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /powers/discipline/type/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=tipodisc&b=([0-9]+)\s [NC]
+RewriteRule ^$ /powers/discipline/type/%1? [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php\?p=maps_detail&id=([0-9]+)\s [NC]
+RewriteRule ^index\.php$ /maps/poi/%1? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=maps_detail&id=([0-9]+)\s [NC]
+RewriteRule ^$ /maps/poi/%1? [R=301,L]
+
+# Legacy list pages (no params)
+RewriteCond %{THE_REQUEST} \s+/\?p=news\s [NC]
+RewriteRule ^$ /news? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=status\s [NC]
+RewriteRule ^$ /status? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=about\s [NC]
+RewriteRule ^$ /about? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=biblio\s [NC]
+RewriteRule ^$ /bibliography? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=busq\s [NC]
+RewriteRule ^$ /search? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=busk\s [NC]
+RewriteRule ^$ /search/results? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=busk[&\s] [NC]
+RewriteRule ^$ /search/results?%{QUERY_STRING} [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/index\.php\?p=busk[&\s] [NC]
+RewriteRule ^index\.php$ /search/results?%{QUERY_STRING} [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=timeline\s [NC]
+RewriteRule ^$ /timeline? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=temp_analisis\s [NC]
+RewriteRule ^$ /seasons/analysis? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=temp\s [NC]
+RewriteRule ^$ /seasons? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=party\s [NC]
+RewriteRule ^$ /parties? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=bios\s [NC]
+RewriteRule ^$ /characters/types? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=list_table\s [NC]
+RewriteRule ^$ /characters? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listgroups\s [NC]
+RewriteRule ^$ /organizations? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=players\s [NC]
+RewriteRule ^$ /players? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listadocs\s [NC]
+RewriteRule ^$ /documents? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=inv\s [NC]
+RewriteRule ^$ /inventory? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listaobj\s [NC]
+RewriteRule ^$ /inventory/items? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listasistemas\s [NC]
+RewriteRule ^$ /systems? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=rules\s [NC]
+RewriteRule ^$ /rules? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listarasgos\s [NC]
+RewriteRule ^$ /rules/traits? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listamyd\s [NC]
+RewriteRule ^$ /rules/merits-flaws? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=maneuver\s [NC]
+RewriteRule ^$ /rules/maneuvers? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=arquetip\s [NC]
+RewriteRule ^$ /rules/archetypes? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=dones\s [NC]
+RewriteRule ^$ /powers/gifts? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listadones\s [NC]
+RewriteRule ^$ /powers/gifts? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=ritelist\s [NC]
+RewriteRule ^$ /powers/rites? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=listatotems\s [NC]
+RewriteRule ^$ /powers/totems? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=disciplinas\s [NC]
+RewriteRule ^$ /powers/disciplines? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=dados\s [NC]
+RewriteRule ^$ /tools/dice? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=csp\s [NC]
+RewriteRule ^$ /tools/csp? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=garou_name_gen\s [NC]
+RewriteRule ^$ /tools/garou-name-generator? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=ost\s [NC]
+RewriteRule ^$ /music? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=gallery\s [NC]
+RewriteRule ^$ /gallery? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=maps\s [NC]
+RewriteRule ^$ /maps? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=talim\s [NC]
+RewriteRule ^$ /talim? [R=301,L]
+RewriteCond %{THE_REQUEST} \s+/\?p=talim&s=([^&\s]+)\s [NC]
+RewriteRule ^$ /talim?s=%1 [R=301,L]
+
+# Legacy forum snippet endpoints
+RewriteRule ^sep/snippet_forum_hg\.php$ /forum/message [R=301,L,QSA]
+RewriteRule ^sep/snippet_forum_hg_dice\.php$ /forum/diceroll [R=301,L,QSA]
+RewriteRule ^generador_claves\.php$ /tools/keygen [R=301,L,QSA]
+RewriteRule ^crop\.html$ /tools/crop [R=301,L,QSA]
+
+# Do not rewrite existing files or folders
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Serve legacy /img and /sounds from /public
+RewriteRule ^img/(.*)$ public/img/$1 [L]
+RewriteRule ^sounds/(.*)$ public/sounds/$1 [L]
+
+# Pretty URLs
+RewriteRule ^news/?$ index.php?p=news [L,QSA]
+RewriteRule ^status/?$ index.php?p=status [L,QSA]
+RewriteRule ^about/?$ index.php?p=about [L,QSA]
+RewriteRule ^bibliography/?$ index.php?p=biblio [L,QSA]
+RewriteRule ^search/?$ index.php?p=busq [L,QSA]
+RewriteRule ^search/results/?$ index.php?p=busk [L,QSA]
+RewriteRule ^timeline/?$ index.php?p=timeline [L,QSA]
+
+RewriteRule ^seasons/analysis/?$ index.php?p=temp_analisis [L,QSA]
+RewriteRule ^seasons/([^/]+)/?$ index.php?p=temp&t=$1 [L,QSA]
+RewriteRule ^seasons/?$ index.php?p=temp [L,QSA]
+RewriteRule ^chapters/([^/]+)/?$ index.php?p=seechapter&t=$1 [L,QSA]
+
+RewriteRule ^parties/?$ index.php?p=party [L,QSA]
+
+RewriteRule ^characters/type/([^/]+)/?$ index.php?p=biogroup&t=$1 [L,QSA]
+RewriteRule ^characters/types/?$ index.php?p=bios [L,QSA]
+RewriteRule ^characters/([^/]+)/?$ index.php?p=muestrabio&b=$1 [L,QSA]
+RewriteRule ^characters/?$ index.php?p=list_table [L,QSA]
+
+RewriteRule ^organizations/([^/]+)/?$ index.php?p=seegroup&t=2&b=$1 [L,QSA]
+RewriteRule ^organizations/?$ index.php?p=listgroups [L,QSA]
+RewriteRule ^groups/([^/]+)/?$ index.php?p=seegroup&t=1&b=$1 [L,QSA]
+
+RewriteRule ^relationship-map/organizations/?$ index.php?p=nebula_clan [L,QSA]
+RewriteRule ^relationship-map/characters/?$ index.php?p=nebula_character [L,QSA]
+RewriteRule ^relationship-map/groups/?$ index.php?p=nebula_groups [L,QSA]
+
+RewriteRule ^players/([^/]+)/?$ index.php?p=seeplayer&b=$1 [L,QSA]
+RewriteRule ^players/?$ index.php?p=players [L,QSA]
+
+RewriteRule ^documents/([^/]+)/?$ index.php?p=verdoc&b=$1 [L,QSA]
+RewriteRule ^documents/?$ index.php?p=listadocs [L,QSA]
+
+RewriteRule ^inventory/type/([^/]+)/?$ index.php?p=inv&t=$1 [L,QSA]
+RewriteRule ^inventory/items/([^/]+)/?$ index.php?p=verobj&b=$1 [L,QSA]
+RewriteRule ^inventory/items/?$ index.php?p=listaobj [L,QSA]
+RewriteRule ^inventory/item/([^/]+)/?$ index.php?p=seeitem&b=$1 [L,QSA]
+RewriteRule ^inventory/?$ index.php?p=inv [L,QSA]
+
+RewriteRule ^systems/detail/([0-9]+)/([^/]+)/?$ index.php?p=versistdetalle&tc=$1&b=$2 [L,QSA]
+RewriteRule ^systems/form/([^/]+)/?$ index.php?p=verforma&b=$1 [L,QSA]
+RewriteRule ^systems/([^/]+)/?$ index.php?p=sistemas&b=$1 [L,QSA]
+RewriteRule ^systems/?$ index.php?p=listasistemas [L,QSA]
+
+RewriteRule ^rules/?$ index.php?p=rules [L,QSA]
+RewriteRule ^rules/traits/([^/]+)/?$ index.php?p=verrasgo&b=$1 [L,QSA]
+RewriteRule ^rules/traits/?$ index.php?p=listarasgos [L,QSA]
+RewriteRule ^rules/merits-flaws/([^/]+)/?$ index.php?p=vermyd&b=$1 [L,QSA]
+RewriteRule ^rules/merits-flaws/?$ index.php?p=listamyd [L,QSA]
+RewriteRule ^rules/maneuvers/([^/]+)/?$ index.php?p=vermaneu&b=$1 [L,QSA]
+RewriteRule ^rules/maneuvers/?$ index.php?p=maneuver [L,QSA]
+RewriteRule ^rules/archetypes/([^/]+)/?$ index.php?p=verarch&b=$1 [L,QSA]
+RewriteRule ^rules/archetypes/?$ index.php?p=arquetip [L,QSA]
+
+RewriteRule ^powers/gift/type/([^/]+)/?$ index.php?p=tipodon&b=$1 [L,QSA]
+RewriteRule ^powers/gift/([^/]+)/?$ index.php?p=muestradon&b=$1 [L,QSA]
+RewriteRule ^powers/gifts/?$ index.php?p=listadones [L,QSA]
+RewriteRule ^powers/rite/type/([^/]+)/?$ index.php?p=tiporite&b=$1 [L,QSA]
+RewriteRule ^powers/rite/([^/]+)/?$ index.php?p=seerite&b=$1 [L,QSA]
+RewriteRule ^powers/rites/?$ index.php?p=ritelist [L,QSA]
+RewriteRule ^powers/totem/type/([^/]+)/?$ index.php?p=tipototm&b=$1 [L,QSA]
+RewriteRule ^powers/totem/([^/]+)/?$ index.php?p=muestratotem&b=$1 [L,QSA]
+RewriteRule ^powers/totems/?$ index.php?p=listatotems [L,QSA]
+RewriteRule ^powers/discipline/type/([^/]+)/?$ index.php?p=tipodisc&b=$1 [L,QSA]
+RewriteRule ^powers/discipline/([^/]+)/?$ index.php?p=muestradisc&b=$1 [L,QSA]
+RewriteRule ^powers/disciplines/?$ index.php?p=disciplinas [L,QSA]
+RewriteRule ^powers/?$ index.php?p=powers [L,QSA]
+
+# Forum embed snippets
+RewriteRule ^forum/message/?$ index.php?p=forum_message [L,QSA]
+RewriteRule ^forum/diceroll/?$ index.php?p=forum_diceroll [L,QSA]
+
+RewriteRule ^tools/keygen/?$ index.php?p=keygen [L,QSA]
+RewriteRule ^tools/crop/?$ index.php?p=crop [L,QSA]
+
+RewriteRule ^tools/dice/?$ index.php?p=dados [L,QSA]
+RewriteRule ^tools/csp/?$ index.php?p=csp [L,QSA]
+RewriteRule ^tools/garou-name-generator/?$ index.php?p=garou_name_gen [L,QSA]
+RewriteRule ^ajax/tooltip/?$ index.php?p=tooltip [L,QSA]
+
+RewriteRule ^music/?$ index.php?p=ost [L,QSA]
+RewriteRule ^gallery/?$ index.php?p=gallery [L,QSA]
+RewriteRule ^maps/poi/([^/]+)/?$ index.php?p=maps_detail&id=$1 [L,QSA]
+RewriteRule ^maps/?$ index.php?p=maps [L,QSA]
+
+RewriteRule ^talim/?$ index.php?p=talim [L,QSA]
+</IfModule>

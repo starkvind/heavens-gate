@@ -1,0 +1,1570 @@
+body {
+	color: #FFFFFF;
+	font: normal 11px verdana;
+	background: #05014E url("../../img/ui/backgrounds/hg_background.png");
+	background-attachment: fixed;
+	background-repeat: no-repeat;
+	background-position: bottom right;
+	margin-top: 20px;
+	margin-bottom: 20px;
+	text-align: center;
+}
+
+.ocultable {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+	padding: 0;
+}
+
+.ocultable.open {
+	max-height: 600px; /* puedes ajustar si necesitas m�s */
+	padding: 4px 0;
+}
+
+.main-wrapper {
+	display: inline-block;
+	text-align: left;
+}
+
+table {
+	font: normal 11px verdana;
+}
+
+img {
+	border: 0px;
+}
+
+h1 {
+	margin-top: 0px;
+	margin-bottom: 2px;
+}
+
+h2 {
+	margin-top: 0px;
+	margin-bottom: 6px;
+	margin-right: 8px;
+	font-size: 16px;
+	text-align: right;
+	color: #33CCCC;
+	padding: 2px;
+}
+
+h3 {
+	margin-top: 0px;
+	color: #99FFFF;
+	font-family: verdana, sans-serif;
+	font-size: 14px;
+	font-weight: bolder;
+}
+
+a {
+	color: #44AAEE;
+	text-decoration: none;
+}
+
+a:hover {
+
+	color: #66CCFF;
+	cursor: pointer;
+	/* text-decoration: underline; */
+
+}
+
+.infoLink {
+	color: #FFF;
+	text-decoration: none;
+}
+
+.infoLink:hover {
+	color: #FED;
+	text-decoration: underline;
+	cursor: question;
+}
+
+textarea {
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	border: 1px solid #000099;
+	padding: 5px;
+}
+
+input {
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	padding: 1px;
+	border: 1px solid #000099;
+}
+
+select {
+
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	border: 1px solid #000099;
+
+}
+
+.boton1 {
+
+	width: 75px;
+	color: #00FFFF;
+	border: 1px solid #000099;
+
+}
+
+input.boton1:hover {
+
+	color: #00CCFF;
+	cursor: pointer;
+	border: 1px solid #000088;
+
+}
+
+.boton2 {
+	font-family: verdana;
+	font-size: 10px;
+	background-color: #000066;
+	color: #fff;
+	padding: 0.5em;
+	border: 1px solid #000099;
+}
+
+.boton2:hover {
+	color: #00CCFF;
+	cursor: pointer;
+	border: 1px solid #000088;
+}
+
+#mainBody {
+	margin-right: 10px;
+	margin-left: 10px;
+}
+
+table.todou {
+
+	width: 860px;
+
+}
+
+table.tmenu {
+
+	width: 196px;
+	border: 1px solid #000088;
+	padding: 5px;
+	background: url("../../img/ui/backgrounds/menu.jpg");
+
+}
+
+td.upMenu {
+
+	width: 14%;
+	border: 1px solid #000066;
+	text-align: center;
+	height: 24px;
+	
+}
+
+td.upMenu:hover {
+
+	background-color: #000077;
+
+}
+
+a.enlaceUpMenu:hover {
+
+	font-weight: bold;
+
+}
+
+a.titMenu { /* Enlace para el men� */
+
+	padding: 5px;
+	font-weight: bolder;
+	color: #33FFFF;
+	text-align: left;
+
+}
+
+img.menuIcon {
+
+	border: 1px solid #000088; /* 006699; */
+}
+
+td.sekz { /* Secci�n de men� */
+
+	padding: 5px;
+	font-weight: bolder;
+	color: #33FFFF;
+	text-align: left;
+
+}
+
+td.sekzo { /* Subsecci�n de men� */
+
+	padding-left: 5px;
+	text-align: left;
+
+}
+
+img.valign {
+	vertical-align: middle;
+	padding-bottom: 4px;
+
+}
+
+td.sepmenu { /* Separacion entre secciones */
+
+	border-bottom: 1px dotted #006699;
+
+}
+
+td.piepagina { /* Pie de la p�gina web */
+	text-align:center;
+	padding:5px;
+	font-size: 9px;
+	background: url("../../img/ui/backgrounds/pie.jpg");
+	border: 1px dotted #000088;
+}
+
+td.fcentro {
+	padding: 15px 10px 15px 15px;
+	text-align: justify;
+	width: 660px;
+	min-height: 310px;
+}
+
+table.notix {
+	width: 100%;
+}
+
+table.menu_sect {
+	width: 165px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	padding-right: 2px;
+
+}
+
+fieldset.systemDonList {
+	border: 0px;
+	padding: 2px;
+}
+
+fieldset.notf {
+	border: 1px solid #000066;
+	text-align: justify;
+	background-color: #000055;
+
+}
+
+legend.notf {
+	border: 1px solid #000066;
+	background-color: #000055;
+	padding: 5px;
+	font-weight: bolder;
+	color: #33FFFF;
+	font-variant: small-caps;
+}
+
+.capitulos {
+	font-family: helvetica, arial;
+	font-size: 11px;
+	list-style-type: decimal;
+	margin-top: 0px;
+	
+}
+
+.capitres {
+	font-family: tahoma;
+	font-size: 12px;
+	color: #CCFF66;
+	font-style: italic;
+	font-weight: bold;
+	letter-spacing: 1px;
+}
+
+.biotitle {
+	text-align:center;
+	border: 1px solid #009;
+	color: #efe;
+
+}
+
+td.bext1 {
+	width: 100px;
+	color: #33FFFF;
+	border: 1px solid #009;/* dotted #bbb;*/
+	padding: 2px;
+	text-align: right;
+	background-color: #000066;
+	font-size:9px;
+	height: 18px;
+
+}
+
+td.bext2 {
+	width: 100px;
+	color: #FFF;
+	border: 1px solid #009;/* dotted #bbb;*/
+	padding: 2px;
+	text-align: left;
+	background-color: #000055;
+	font-size:9px;
+	empty-cells: show;
+	height: 18px;
+	
+}
+
+td.texti {
+	border: 1px solid #009;/* dotted #bbb;*/
+	background-color: #000055;
+	padding: 10px;
+
+}
+
+td.chapter_text {
+	border: 1px solid #009;/* dotted #bbb;*/
+	background-color: #000055;
+	padding: 8px;
+	text-align: left;
+}
+
+table.inventoryMerits {
+	padding-left: 16px;
+	padding-top: 8px;
+}
+
+td.invMeDeZone {
+	width: 50%;
+	color: #FFF;
+	border: 1px solid #009;
+	padding: 2px;
+	text-align: left;
+	background-color: #000055;
+	font-size:9px;
+	empty-cells: hide;
+	
+}
+
+img.infoPic {
+
+	border: 1px solid #009;/* dotted #bbb;*/
+	
+}
+td.imgInfoPic {
+
+	font-size:9px;
+	width: 270px;
+	height: 180px;
+	color: #FFF;
+	border: 1px solid #009;/* dotted #bbb;*/
+	padding: 2px;
+	background-color: #000055;
+
+}
+
+ul.systemInfoList {
+
+	padding-left: 25px;
+	padding-right: 10px;
+
+}
+
+table.tableSystemInfo {
+
+	width: 50%;
+	border: 1px dotted #fff;
+	text-align: center;
+
+}
+
+.klax1 {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #000066;
+	border: 1px #FFFFCC;
+	color: #66FF99;
+	font-weight: bold;
+
+}
+
+.klax2 {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #111177;
+	border: 1px #FFFFCC;
+	text-align: justify;
+
+}
+
+.ajustcelda {
+
+	width: 150px;
+	border: 1px solid #000099;
+	padding: 5px;
+	text-align: center;
+
+}
+
+.ajustceld {
+
+	width: 150px;
+	border: 1px solid #000099;
+	padding: 5px;
+	text-align: left;
+
+}
+
+.lefay {
+
+	border-bottom: 1px dotted #000099;
+	padding-bottom: 5px;
+
+}
+
+.navegacion_secciones {
+
+	font: normal 9px verdana;
+	padding-bottom: 0px;
+
+}
+
+.doncosa {
+
+	padding: 5px;
+	border: 1px dotted #fff;
+	text-align: justify;
+
+}
+/* Estilo de la Galeria de Imagenes */
+table.galerytable {
+	padding-left: 30px;
+	/* border: 1px dotted #000099; */
+}
+img.ph_gallery {
+	border:1px solid #EEE;
+	width: 105px;
+	height: 70px;
+}
+img.sysInfo {
+	width: 260px;
+	height: 180px;
+}
+
+.contenedorfoto {
+	float:left;
+	width:105px;
+	height:90px;
+	margin:10px;
+	padding:5px;
+	background-color:#f5f7f9;
+	border-right: #a5a7aa solid 1px;
+	border-bottom: #a5a7aa solid 1px;
+	text-align:center;
+}
+
+.contenedorfoto a {
+	text-decoration: none;
+}
+
+.contenedorfoto span {
+	color:#515151;
+	font-family: Trebuchet MS;
+	font-size: 7pt;
+}
+/* Estilo de la Galeria de Imagenes */ 
+
+img.photobio  {
+	margin-top: 4px;
+	padding: 4px;
+
+}
+
+img.photochapter  {
+	width:65px;
+	height:65px;
+	margin:4px;
+	padding:3px;
+	background-color:#005;
+	border: #008 solid 1px;
+	text-align: center;
+}
+
+.photochapter:hover {
+	border: 1px solid #009;
+	background-color:#006;
+
+
+}
+
+/* CORREO SINCRONIZADO PUNTEADO */
+
+.nvmsg {
+	width: 125px;
+	border: 1px #fff;
+	padding: 3px;
+	background-color: #333399;
+	text-align: center;
+}
+
+td.nvmsg:hover {
+
+	background-color: #330066;
+
+}
+
+.klax1 {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #000066;
+	color: #66FF99;
+	font-weight: bold;
+	border: 1px solid #009;
+
+}
+
+.klax2 {
+
+	padding: 5px;
+	text-align: left;
+	background-color: #000066;
+	border: 1px solid #009;
+
+}
+
+table.inventario {
+
+	width: 100%;
+
+}
+
+td.fotoit {
+
+	width: 100px;
+	height: 100px;
+	border: 1px solid #007;
+
+
+}
+
+img.imginvent {
+
+	width: 100px;
+	height: 100px;
+
+}
+
+td.itname {
+
+	width: 90px;
+	color: #0ff;
+	border: 1px solid #007;
+	padding-left: 5px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+
+}
+
+td.itnam2 {
+
+	border: 1px solid #007;
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+
+}
+
+fieldset.dans {
+
+	border: 1px solid #007;
+	padding: 10px;
+	background: #05014E;
+
+}
+
+legend.dens {
+
+	border: 1px solid #007;
+	padding: 2px;
+	background: #05014E;
+	
+}
+
+td.inav {
+
+	width: 150px;
+
+}
+
+/* USER MENU */
+
+div.userRightMenu {
+	position: fixed;
+	top: 4px;
+	right: 4px;
+	line-height: 12px; 
+	z-index: 4; 
+	text-align: right;
+	padding: 2px;
+	padding-top: 1px;
+	/* -- */
+	background: #000066;	
+	font-size: 10px;
+}
+
+div.renglonMenu {
+	float: left;
+	margin-bottom: 4px;
+	margin-left: 10%;
+	width: 130px;
+	height: 18px;
+	padding-top: 3px;
+	text-align: center;
+	border: 1px solid #000088;
+	background-color: #05014E;
+}
+
+div.renglonMenu:hover {
+	border: 1px solid #000099;
+	background: #000066;
+}
+
+.menuSeparator {
+	border: 0!important; 
+	background-color: transparent!important; 
+	margin-top:-1em;
+}
+
+/* Estado */
+div.renglonStatusIz {
+	float: left;
+	border: 1px solid #000077;
+	background: #000066;
+	color: cyan;
+	padding: 4px;
+	margin-bottom: 4px;
+	width: 48%;
+	text-align: right;
+}
+
+div.renglonStatusDe {
+	float: right;
+	border: 1px solid #000077;
+	padding: 4px;
+	margin-bottom: 4px;
+	width: 48%;
+	text-align: left;
+}
+
+/* Bibliografia */
+
+div.renglonBiblio {
+	float: left;
+	border: 1px solid #000088;
+	padding: 4px;
+	margin: 4px;
+	width: 520px;
+}
+
+div.renglonBiblio:hover {
+	border: 1px solid #0000AA;
+	background: #000066;
+	cursor: pointer;
+}
+
+/* ==================================== */
+
+fieldset.grupoSelBioList {
+	border: 0px solid white;
+	margin-left: 12px;
+}
+
+div.renglonSelBioList {
+	font-size: 9px;
+	float: left;
+	border: 1px solid #000088;
+	padding-top: 2px;
+	margin-right: 4px;
+	margin-bottom: 4px;
+	width: 130px;
+	height: 16px;
+	text-align: center;
+	background: #000066;
+}
+
+div.renglonSelBioList:hover {
+	border: 1px solid #0000AA;
+	background: #000099;
+}
+
+/* ==================================== */
+
+fieldset.grupoHabilidad {
+	border: 0px solid white;
+	padding-left: 30px;
+}
+
+fieldset.grupoBioClan {
+	border: 0px solid white;
+	padding-left: 46px;
+}
+
+div.renglon3col {
+	float: left;
+	padding: 4px;
+	margin: 4px;
+	width: 160px;
+	height: 16px;
+	text-align: center;
+	border: 1px solid #000088;
+	background-color: #05014E;
+}
+
+div.renglon3col:hover {
+	border: 1px solid #000099;
+	background: #000066;
+	/*border: 1px solid #0000AA;background-image: url("img/bars/barra-sel2.png"); background-image: url("img/bars/barra-sk.png"); background-image: url("img/bars/barra-don.png"); background-image: url("img/bars/barra-sel.png");*/
+}
+
+fieldset.descripcionGrupo {
+
+	border: 1px solid #000088;
+	margin-bottom: 30px;
+}
+
+div.renglon2col {
+	float: left;
+	padding: 4px;
+	margin: 4px;
+	width: 240px;
+	height: 16px;
+	border: 1px solid #000088;
+	background-color: #05014E;
+}
+
+div.renglon2col:hover {
+	border: 1px solid #000099;
+	background: #000066;
+}
+
+div.renglon2colIz {
+	float: left;
+}
+
+div.renglon2colDe {
+	float: right;
+	font-size: 9px;
+}
+
+/* NUEVO ASPECTO DE LOS MENUS SISTEMAS GAROU, ETC */
+
+div.renglonImagenSistema {
+	float: left;
+	border: 0px solid white;
+	width: 100%;
+	margin-bottom: 8px;
+	text-align: center;
+}
+
+img.imagenSistema {
+	border: 1px solid #000099;
+	vertical-align: middle;
+}
+
+div.renglonDatosSistema {
+	float: left;
+	border: 1px solid #000099;
+	width: 60%;
+	padding: 8px;
+}
+
+div.renglonContenidoSistema {
+	float: right;
+	border: 0px solid white;
+	width: 35%;
+}
+
+fieldset.renglonContenidoSist {
+	border: 0px;
+	margin-left: 16px;
+}
+
+div.renglonSistema {
+	float: left;
+	border: 1px solid #000077;
+	padding: 2px;
+	margin: 2px;
+	width: 160px;
+	text-align: center;
+}
+
+div.renglonSistema:hover {
+	border: 1px solid #000099;
+	background-color: #000066;
+}
+
+/* NUEVO ASPECTO DE LA BIOGRAFIA */
+
+#clanTitle {
+	font-weight: bold;
+	background: #001166;
+	margin-top: -1px;
+	margin-bottom: -1px;
+	padding: 2px;
+	border: 1px solid #007;
+}
+
+ul.listaManadas {
+	list-style-type: none;
+	width: 90%;
+	margin-bottom: 10px;
+	overflow: hidden;
+}
+
+li.listaManadas {
+	height: 18px;
+	width: 50%;
+	line-height: 1.5em;
+	float: left;
+	display: inline;
+}
+
+div.bioBody {
+	width: 100%;
+}
+
+div.bioHeader {
+	text-align:center;
+	border: 1px solid #009;
+	color: #efe;
+	text-transform: uppercase;
+}
+
+div.bioSquarePhoto {
+	float: left;
+	text-align: center;
+	border: 1px solid #009;
+	width: 130px;
+	padding-right: 3px;
+	padding-bottom: 4px;
+	margin-top: 16px;
+	margin-left: 30px;
+}
+
+div.bioSquareData {
+	float: right;
+	width: 442px;
+	padding: 10px;
+	margin-top: 6px;
+}
+
+fieldset.bioSeccion  {
+	border: 1px solid #009;
+}
+
+fieldset.bioSeccion legend{
+	border: 1px solid #009;
+	font-weight: bold;
+	padding: 2px;
+}
+
+div.bioRenglonData {
+	width: 100%;
+	float: left;
+	margin-bottom: 4px;
+}
+
+div.bioDataName {
+	float: left;
+	border: 1px solid #009;
+	background: #000066;
+	color: cyan;
+	font-size: 9px;
+	padding: 2px;
+	width: 22%;
+	height: 14px;
+	text-align: right;
+}
+
+div.bioDataText {
+	float: right;
+	border: 1px solid #009;
+	background-color: #000055;
+	color: #FFF;
+	font-size: 9px;
+	padding: 2px;
+	width: 74.5%;
+	height: 14px;
+}
+
+div.bioTextData {
+	float: left;
+	width: 610px;
+	padding: 10px;
+	margin: 2px 0px 0px 0px;
+}
+
+div.bioSheetData {
+	float: left;
+	width: 610px;
+	padding: 10px;
+	margin: 2px 0px 0px 0px;
+}
+
+div.bioSheetBackgrounds {
+	float: left;
+	width: 293px;
+	padding: 10px;
+	margin: 2px 0px 0px 0px;
+}
+
+div.bioSheetMeritFlaws {
+	float: left;
+	width: 295px;
+	padding: 10px;
+	margin: 2px 0px 0px 0px;
+}
+
+div.bioSheetSociaWhole {
+	float: left;
+}
+
+div.bioSheetSocialPower {
+	float: left;
+	width: 293px;
+	padding: 10px;
+	margin: 2px 2px 0px 0px;
+}
+
+div.bioSheetPowers {
+	float: left;
+	width: 610px;
+	padding: 10px;
+	margin: 2px 0px 2px 0px;
+}
+
+div.bioCommentUpperForm {
+	float: left;
+	padding: 10px;
+	margin: 2px 0px 0px 0px;
+	width: 96%;
+}
+
+div.bioCommentBottomForm {
+	float: left;
+	padding: 10px;
+	margin: 0px 0px 2px 0px;
+	width: 96%;
+}
+
+div.bioSheetSectionLeft {
+	float: left;
+	border: 1px solid #009;
+	width: 18%;
+	height: 14px;
+	padding: 2px;
+	text-align: right;
+	color: cyan;
+	background-color: #000066;
+	font-size: 9px;
+	margin-left: 2px;
+	margin-bottom: 2px;
+}
+
+div.bioSheetSectionRight {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	width: 29%;
+	height: 14px;
+	padding: 2px;
+	font-size: 9px;
+	margin-left: 2px;
+	margin-bottom: 2px;
+}
+
+div.bioSheetAttrLeft {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000066;
+	width: 15.5%;
+	height: 14px;
+	padding: 2px;
+	text-align: right;
+	color: cyan;
+	font-size: 9px;
+	margin-right: 2px;
+	margin-bottom: 2px;
+}
+
+div.bioSheetAttrRight {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	width: 15%;
+	height: 14px;
+	padding: 2px;
+	font-size: 9px;
+	margin-right: 2px;
+	margin-bottom: 2px;
+	text-align: center;
+}
+
+div.bioSheetBackgroundLeft {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000066;
+	width: 50%;
+	height: 14px;
+	padding: 2px;
+	text-align: right;
+	color: cyan;
+	font-size: 9px;
+	margin-right: 2px;
+	margin-bottom: 2px;
+}
+
+div.bioSheetBackgroundRight {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	width: 40%;
+	height: 14px;
+	padding: 2px;
+	font-size: 9px;
+	margin-right: 2px;
+	margin-bottom: 2px;
+	text-align: center;
+}
+
+div.bioSheetMeritFlaw{
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	font-size: 9px;
+	width: 97%;
+	padding: 4px;
+	height: 14px;
+	margin: 2px;
+}
+
+div.bioSheetMeritFlaw:hover {
+	background-color: #000066;
+	font-weight: bold;
+}
+
+div.bioSheetSocialPowerLeft {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000066;
+	color: cyan;
+	font-size: 9px;
+	text-align: right;
+	width: 122px;
+	height: 14px;
+	padding: 2px;
+	margin-bottom: 2px;
+}
+
+div.bioSheetSocialPowerRight {
+	float: right;
+	border: 1px solid #009;
+	background-color: #000055;
+	color: #FFF;
+	font-size:9px;
+	text-align: center;
+	width: 136px;
+	height: 14px;
+	padding: 2px;
+	margin-bottom: 2px;
+}
+
+div.bioSheetPower{
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	font-size:9px;
+	width: 47.5%;
+	padding: 4px;
+	height: 14px;
+	margin: 2px;
+}
+
+div.bioSheetPower:hover {
+	background-color: #000066;
+	font-weight: bold;
+}
+
+fieldset.bioCommentText {
+
+	border: 0px;
+	border-bottom: 1px solid #009;
+	margin: 0px 0px 8px 0px;
+}
+
+fieldset.bioCommentText legend {
+	background-color: #000066;
+	font-size: 9px;
+	color: cyan;
+	padding: 2px;
+	border: 0px;
+}
+
+img.bioAttCircle {
+	vertical-align: middle;
+	padding: 2px;
+}
+
+div.renglonSkillIzq {
+	float: left;
+	border: 1px solid #009;
+	width: 116px;
+	color: cyan;
+	padding: 2px;
+	text-align: right;
+	background-color: #000066;
+	font-size: 9px;
+	height: 13px;
+	margin-bottom: 2px;
+	margin-right: 2px;
+}
+
+div.renglonSkillDer {
+	float: right;
+	color: #FFF;
+	border: 1px solid #009;
+	background-color: #000055;
+	font-size:9px;
+	width: 130px;
+	padding: 2px;
+	text-align: center;
+	height: 13px;
+	margin-bottom: 2px;
+	margin-right: 2px;
+}
+
+div.renglonDonDiscBio {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	font-size:9px;
+	width: 47%;
+	padding: 4px;
+	height: 14px;
+	margin: 2px;
+}
+
+div.renglonDonDiscBio:hover {
+	background-color: #000066;
+}
+
+/* NUEVO ASPECTO DEL INVENTARIO */
+
+div.itemSquarePhoto {
+	float: left;
+	text-align: center;
+	border: 1px solid #009;
+	width: 130px;
+	padding-right: 4px;
+	padding-bottom: 4px;
+	margin-top: 16px;
+	margin-left: 12px;
+	margin-bottom: 12px;
+}
+
+/* NUEVO ASPECTO DE LOS DONES, HABILIDADES, ETC */
+
+fieldset.renglonPaginaDon {
+	border: 1px solid #000077;
+	padding: 5px;
+}
+
+fieldset.renglonPaginaDon legend {
+	border: 1px solid #000077;
+	padding: 5px;
+	font-weight: bold;
+}
+
+div.renglonDonIz {
+	float: left;
+	border: 1px solid #000077;
+	background: #000066;
+	color: cyan;
+	padding: 4px;
+	margin-bottom: 4px;
+	min-width: 15%;
+	max-width: 15%;
+	text-align: right;
+}
+
+div.renglonDonDe {
+	float: right;
+	padding: 5px;
+	margin-bottom: 4px;
+	min-width: 80%;
+	max-width: 80%;
+	text-align: left;
+}
+
+div.renglonDonData {
+	float: left;
+	padding: 4px;
+	width: 98.3%;
+	text-align: justify;
+}
+
+/* -------------------------------- */
+
+div.marcoFotoBio {
+	float: left;
+	position: relative; 
+	height: 96px; 
+	width: 96px;
+	margin: 2px;
+	margin-bottom: 8px;
+	/* -- */
+	border: 1px solid #000099;
+}
+
+div.marcoFotoBio:hover {
+	border: 1px solid #0000BB;
+	cursor: pointer;
+}
+
+div.textoDentroFotoBio {
+	position: absolute;
+	top: 81px; 
+	right: 0px;
+	overflow: hidden; 
+	line-height: 12px; 
+	z-index: 4; 
+	text-align: right;
+	padding: 2px;
+	padding-top: 1px;
+	/* -- */
+	background: #000066;	
+	font-size: 9px;
+}
+
+/* ------------------------------------ */
+
+div.marcoFotoBioNoSheet {
+	float: left;
+	position: relative; 
+	height: 96px; 
+	width: 96px;
+	margin: 2px;
+	margin-bottom: 8px;
+	/* -- */
+	border: 1px solid #990000;
+	background: #660000;
+}
+
+div.marcoFotoBioNoSheet:hover {
+	border: 1px solid #BB0000;
+	cursor: pointer;
+}
+
+div.textoDentroFotoBioNoSheet {
+	position: absolute;
+	top: 81px; 
+	right: 0px;
+	overflow: hidden; 
+	line-height: 12px; 
+	z-index: 4; 
+	text-align: right;
+	padding: 2px;
+	padding-top: 1px;
+	/* -- */
+	background: #660000;	
+	font-size: 9px;
+}
+
+div.dentroFotoBio {
+	position: absolute; 
+	top: 0px; 
+	left: 0px; 
+	z-index: 2;
+}
+
+img.fotoBioList {
+	width: 90px;
+	height: 90px;
+	vertical-align: middle;
+	padding-left: 3px;
+	padding-top: 3px;
+}
+
+div.listIDrenglon {
+	width: 40%;
+	float: left;
+	border: 1px solid lime;
+	padding: 10px;
+	height: 50px;
+	margin: 2px;
+	background: navy;
+}
+
+div.listIDrenglon:hover {
+	background: black;
+	border: 1px solid yellow;
+	cursor: pointer;
+}
+
+div.listIDizq {
+	float: left;
+	text-align:center;
+}
+
+/* MENU SUPERIOR */
+
+#cuerpoMenuSuperior {
+	width:180px;
+	float:left;
+	padding: 4px 4px 4px 8px;
+	margin-left: 6px;
+}
+
+#iconoSeccion {
+	float:left;
+	margin-right:6px;
+}
+
+/* NUEVO ASPECTO DEL SIMULADOR DE COMBATE */ 
+
+
+
+fieldset#campoTurnoComb {
+	border: 1px solid #000099;
+	padding: 5px;
+	margin-bottom: 6px;
+}
+
+fieldset#campoTurnoComb legend {
+	border: 1px solid #000099;
+	padding: 5px;
+	font-weight: bold;
+}	
+
+#celdaAtaqueJ1 {
+	width: 98.6%;
+	text-align: left;
+	padding: 4px;
+	background-color: #000066;
+	margin-bottom: 2px;
+}
+
+#celdaAtaqueJ2 {
+	width: 98.6%;
+	text-align: right;
+	padding: 4px;
+	background-color: #000066;
+	margin-bottom: 2px;
+}
+
+#fraseFinalCombate {
+	text-align: center;
+	padding: 4px;
+	border: 1px solid #000099;
+	font-weight: bold;
+	font-size: 11px;
+}
+
+#celdaFinCombateIz {
+	float: left;
+	padding: 2px;
+	width: 48.5%;
+	border: 1px solid #000099;
+	height: 55px;
+}
+
+#celdaFinCombateDe {
+	float: right;
+	padding: 2px;
+	width: 48.5%;
+	border: 1px solid #000099;
+	height: 55px;
+}
+
+#paIniCom {
+	text-align: center;
+	margin-left: 40px;
+}	
+
+#imagenFinComb {
+	opacity: 0.4;
+	height: 50px;
+	border: 1px solid #009;
+	margin-top: 3.5px;
+}
+
+#renglonImgFin {
+	position: relative;
+	bottom: 50px;
+	left: 2px;
+}
+
+/* Nuevo Archivos */
+
+#archivosLegend {
+	border: 1px solid #009;
+	font-weight: bold;
+	padding: 4px;
+}
+
+#renglonArchivosTop {
+	margin-top: 17px;
+	margin-left: 2px;
+	margin-right: 2px;
+	border: 1px solid #009;
+	padding: 8px;
+	background-color: #005;
+}
+
+#renglonArchivos {
+	margin-top: 10px;
+	margin-left: 2px;
+	margin-right: 2px;
+	border: 1px solid #009;
+	padding: 8px;
+	background-color: #005;
+}
+
+/* Seccion de Usuarios */ 
+
+#zonaUsuario {
+	position: fixed;
+	right: 8px;
+	width: 18%;
+	padding: 2px;
+}
+
+#zonaUsuario img {
+	width: 20px;
+	height: 20px;
+	vertical-align: center;
+	margin-left: 6px;
+	margin-top: 4px;
+	margin-bottom: 2px;
+}
+
+#zonaUsuario fieldset {
+	padding: 4px;
+	background-color: #000066;
+	border: 1px solid #000088;
+}
+
+#zonaUsuario legend {
+	font-size: 10px;
+	font-weight: bold;
+	font-variant: small-caps;
+	padding: 2px;
+	background-color: #000066;
+	border: 1px solid #000088;
+}
+
+#textoUsuario {
+	float: right;
+}
+
+/* Cabecera */
+header {
+	text-align: center;
+	margin-bottom: 1em;
+	margin-top: 1em;
+}
+
+header img {
+	max-width: 100%;
+	height: auto;
+}
+
+/* Separador de poderes */
+
+.characterPowerSection {
+	width: 100%;
+	margin: auto;
+}
+
+
+/* DataTables */
+
+	.dataTables_wrapper {
+		color: #eee;
+	}
+
+	table.dataTable {
+		background-color: transparent;
+		color: #eee;
+		border-collapse: collapse;
+		width: 100%;
+		font-size: 0.9em;
+		border: 1px solid #000099;
+	}
+
+	table.dataTable td {
+		text-align: left;
+		border-bottom: 1px solid #000099;
+		border-top: 1px solid #000099;
+	}
+
+	.dataTables_info, .dataTables_paginate {
+		margin-top: 1em;
+	}
+
+	table.dataTable th {
+		background-color: #000066;
+		color: #fff;
+	}
+
+	table.dataTable tbody tr:hover {
+		background-color: #111177;
+		cursor: pointer;
+	}
+
+	.dataTables_info,
+	.dataTables_paginate {
+		margin-top: 1em;
+	}
+
+	.dataTables_filter input,
+	.dataTables_length select {
+		font-family: verdana;
+		font-size: 10px;
+		background-color: #000066;
+		color: #fff;
+		padding: 0.5em;
+		border: 1px solid #000099!important;
+		margin-bottom: 1em;
+	}
+
+	.dataTables_length option {
+		background-color: #000099!important;
+	}
+
+	.dataTables_paginate .paginate_button {
+		color: #fff !important;
+		background: #000066 !important;
+		border: 1px solid #000099 !important;
+		margin: 2px;
+	}
+
+	.dataTables_paginate .paginate_button:hover {
+		color: #00CCFF !important;
+		cursor: pointer;
+		border: 1px solid #000088 !important;
+	}
+
+	.dataTables_paginate .paginate_button.current {
+		background: #000044 !important;
+	}
