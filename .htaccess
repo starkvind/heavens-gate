@@ -4,6 +4,8 @@ php_flag display_errors On
 Options -Indexes
 # Block access to .git
 RewriteRule (^|/)\.git/ - [F,L]
+RewriteRule (^|/)\.gitattributes$ - [F,L]
+RewriteRule (^|/)\.gitignore$ - [F,L]
 
 <IfModule mod_rewrite.c>
 RewriteEngine On

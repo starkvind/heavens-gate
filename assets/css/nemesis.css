@@ -1568,3 +1568,164 @@ header img {
 	.dataTables_paginate .paginate_button.current {
 		background: #000044 !important;
 	}
+/* === Power Card (RPG-style) === */
+.power-card{
+	width: 96%;
+	max-width: 860px;
+	margin: 6px auto 16px auto;
+	border: 1px solid #000088;
+	background: linear-gradient(180deg, #0a0a4a 0%, #05014e 100%);
+	box-shadow: 0 0 0 1px #000033 inset, 0 10px 30px rgba(0,0,0,0.35);
+	padding: 10px 12px 12px 12px;
+}
+
+.power-card__banner{
+	border: 1px solid #000099;
+	background: linear-gradient(90deg, #001a66, #003a99);
+	padding: 6px 10px;
+	margin-bottom: 10px;
+	text-align: right;
+}
+
+.power-card__title{
+	font-family: verdana, sans-serif;
+	font-size: 16px;
+	font-weight: bold;
+	color: #33CCCC;
+	letter-spacing: 0.4px;
+}
+
+.power-card__body{
+	display: grid;
+	grid-template-columns: 120px 1fr;
+	gap: 12px;
+	align-items: start;
+}
+
+.power-card__media{
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 4px;
+}
+
+.power-card__img{
+	width: 110px;
+	height: 110px;
+	border-radius: 50%;
+	/*border: 2px solid #000088;*/
+	/*box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5);*/
+	object-fit: cover;
+}
+
+.power-card--item .power-card__img{
+	width: 88px;
+	height: 88px;
+	padding: 6px;
+	border-radius: 0;
+}
+
+.power-card__stats{
+	display: flex;
+	text-align: left;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.power-stat{
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	gap: 6px;
+	align-items: center;
+	background: #070760;
+	border: 1px solid #000088;
+	padding: 4px 6px;
+}
+
+.power-stat__label{
+	color: #66CCFF;
+	font-weight: bold;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+}
+
+.power-stat__value{
+	color: #FFFFFF;
+	font-size: 11px;
+}
+
+.power-card__desc{
+	margin-top: 10px;
+	/*border: 1px solid #000088;*/
+	border: 0;
+	background: #04044d;
+	padding: 8px 10px 10px 10px;
+}
+
+.power-card__desc-title{
+	color: #99FFFF;
+	font-weight: bold;
+	margin-bottom: 6px;
+}
+
+.power-card__desc-body{
+	color: #FFFFFF;
+	line-height: 1.4;
+}
+
+
+/* Breadcrumb / Tabs - Pill */
+.nav-breadcrumb{
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	border-radius: 999px;
+	/*background: linear-gradient(90deg, #00124d, #002a77);
+	border: 1px solid #0000aa;
+	box-shadow: 0 0 0 1px #000044 inset;*/
+	color: #aef;
+	font-size: 10px;
+	letter-spacing: 0.3px;
+}
+
+.nav-breadcrumb a{
+	color: #66ccff;
+	text-decoration: none;
+	font-weight: bold;
+	padding: 1px 4px;
+	border-radius: 8px;
+}
+
+.nav-breadcrumb a:hover{
+	background: #001a66;
+	color: #cfefff;
+}
+
+.nav-breadcrumb .crumb-sep{
+	color: #66ccff;
+	opacity: 0.7;
+}
+
+.power-card--item .power-card__img-wrap{
+	width: 88px;
+	height: 88px;
+	padding: 6px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5);
+}
+
+.power-card--item .power-card__img{
+	/*width: 100%;
+	height: 100%;*/
+	width: 100px;
+	height: 100px;
+	border-radius: 0;
+	object-fit: contain;
+	/* box-shadow: 0 0 0 1px #111111, 0 0 8px rgba(0,0,0,0.5);*/
+}

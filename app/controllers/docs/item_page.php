@@ -112,116 +112,71 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     // ================================================================== //
     /* MODERNO NUEVO */
     include("app/partials/main_nav_bar.php"); // Barra Navegación
-    echo "<h2>$itemName</h2>"; // Encabezado de página
+    //echo "<h2>$itemName</h2>"; // Encabezado de página
 
     ob_start();
 
-    // ================================================================== //
-    echo "<fieldset class='renglonPaginaDon'>"; // Cuerpo principal de la Ficha del Objeto
+    echo "<div class='power-card power-card--item'>";
+    echo "  <div class='power-card__banner'>";
+    echo "    <span class='power-card__title'>" . $itemName . "</span>";
+    echo "  </div>";
 
-    // ================================================================== //
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>"; // Colocamos la Fotografia del Objeto
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$itemName'/>";
-    echo "</div>"; // Dejamos la Fotografía ya colocada
+    echo "  <div class='power-card__body'>";
+    echo "    <div class='power-card__media'>";
+    echo "      <div class='power-card__img-wrap'>";
+    echo "        <img class='power-card__img' src='$itemImg' alt='$itemName'/>";
+    echo "      </div>";
+    echo "    </div>";
 
-    // ================================================================== //
-    echo "<div class='bioSquareData'>"; //
+    echo "    <div class='power-card__stats'>";
 
-    // ================================================================== //
-    // Tipo de Objeto
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Tipo:</div>";
-    echo "<div class='bioDataText'>$nameTypeItem</div>"; 
-    echo "</div>";
+    echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nameTypeItem</div></div>";
 
-    // ================================================================== //
-    // Habilidad del Objeto
     if (!empty($itemSkill)) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Habilidad:</div>";
-        echo "<div class='bioDataText'>$itemSkill</div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Habilidad</div><div class='power-stat__value'>$itemSkill</div></div>";
     }
 
-    // ================================================================== //
-    // Daño del Objeto
     if (!empty($itemDamage)) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Daño:</div>";
-        echo "<div class='bioDataText'>$damageText, $itemDamage$metalText</div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Da&ntilde;o</div><div class='power-stat__value'>$damageText, $itemDamage$metalText</div></div>";
     }
 
-    // ================================================================== //
-    // Bonus de Defensa del Objeto
     if ($itemBonus != 0 && empty($itemSkill)) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Bonificación:</div>";
-        echo "<div class='bioDataText'>+$itemBonus de absorción</div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Bonificaci&oacute;n</div><div class='power-stat__value'>+$itemBonus de absorci&oacute;n</div></div>";
     }
 
-    // ================================================================== //
-    // Comprobación si es Fetiche 
     if ($itemLevel != 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Nivel:</div>";
-        echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemLevel.png'/></div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemLevel.png'/></div></div>";
         if ($itemGnosis != 0) {
-            echo "<div class='bioRenglonData'>";
-            echo "<div class='bioDataName'>Gnosis:</div>";
-            echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.png'/></div>"; 
-            echo "</div>";
+            echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.png'/></div></div>";
         }
     }
 
-    // ================================================================== //
-    // Gnosis del Objeto (Solo amuletos)
     if ($itemGnosis != 0 && $itemLevel == 0 && $itemType == 5) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Gnosis:</div>";
-        echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.png'/></div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.png'/></div></div>";
     }
 
-    // ================================================================== //
-    // Requiere Fuerza el Objeto?
     if ($itemSTR != 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Requiere:</div>";
-        echo "<div class='bioDataText'>Fuerza $itemSTR mínimo</div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Requiere</div><div class='power-stat__value'>Fuerza $itemSTR m&iacute;nimo</div></div>";
     }
 
-    // ================================================================== //
-    // Penalizador de Destreza
     if ($itemDEX != 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Penalización:</div>";
-        echo "<div class='bioDataText'>Destreza -$itemDEX</div>"; 
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Penalizaci&oacute;n</div><div class='power-stat__value'>Destreza -$itemDEX</div></div>";
     }
 
-    // ================================================================== //
-    // Orígenes del Objeto 
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Origen:</div>";
-    echo "<div class='bioDataText'>$itemOriginName</div>";
-    echo "</div>";
+    echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$itemOriginName</div></div>";
 
-    // ================================================================== //
-    echo "</div>";
+    echo "    </div>";
+    echo "  </div>";
 
-    // ================================================================== //
-    // Descripción del Objeto
     if (!empty($itemInfo)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripci&oacute;n:</b><p>$itemInfo</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$itemInfo</div>";
+        echo "  </div>";
     }
 
-    echo "</fieldset>";
+    echo "</div>";
+
     $infoHtml = ob_get_clean();
 
     // ================================================================== //
@@ -266,7 +221,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 
     if ($hasOwners) {
         echo "<style>
-            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
+            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
             .hg-tab-panel{ display:none; }
             .hg-tab-panel.active{ display:block; }
             .hgTabBtn{ border:1px solid #003399; }

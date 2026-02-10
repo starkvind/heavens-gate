@@ -17,6 +17,7 @@ $EXCLUDE_TABLES = [
 // Ejemplo: ['fact_characters', 'fact_gifts']
 $ONLY_TABLES = [
     //'black_horse_for_you'
+    'fact_combat_maneuvers'
     //'dim_systems',
     //'dim_forms'
     // 'dim_seasons',
@@ -44,12 +45,12 @@ $ONLY_TABLES = [
     // 'bridge_characters_organizations',
     // 'bridge_characters_groups',
     // 'bridge_organizations_groups'
-    'dim_systems',
-    'dim_forms',
-    'dim_breeds',
-    'dim_auspices',
-    'dim_tribes',
-    'fact_misc_systems'
+    // 'dim_systems',
+    // 'dim_forms',
+    // 'dim_breeds',
+    // 'dim_auspices',
+    // 'dim_tribes',
+    // 'fact_misc_systems'
 ];
 
 if (!isset($link) || !$link) {

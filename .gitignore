@@ -1,9 +1,29 @@
-# Images to keep out of repo
-public/img/characters/
-public/img/gallery/
-public/img/player/
-public/img/subidas/
-public/img/poi/
+# Images to keep out of repo (but keep .gitkeep placeholders)
+public/img/characters/**/*.jpg
+public/img/characters/**/*.jpeg
+public/img/characters/**/*.png
+public/img/gallery/**/*.jpg
+public/img/gallery/**/*.jpeg
+public/img/gallery/**/*.png
+public/img/player/**/*.jpg
+public/img/player/**/*.jpeg
+public/img/player/**/*.png
+public/img/subidas/**/*.jpg
+public/img/subidas/**/*.jpeg
+public/img/subidas/**/*.png
+public/img/subidas/**/*.gif
+public/img/poi/**/*.jpg
+public/img/poi/**/*.jpeg
+public/img/poi/**/*.png
+public/img/maneuvers/**/*.jpg
+public/img/maneuvers/**/*.jpeg
+public/img/maneuvers/**/*.png
+!public/img/poi/.gitkeep
+!public/img/characters/.gitkeep
+!public/img/gallery/.gitkeep
+!public/img/player/.gitkeep
+!public/img/subidas/.gitkeep
+!public/img/maneuvers/.gitkeep
 
 # Common sensitive/runtime files
 .env
