@@ -1,0 +1,16 @@
+# Images to keep out of repo
+public/img/characters/
+public/img/gallery/
+public/img/player/
+public/img/subidas/
+public/img/poi/
+
+# Common sensitive/runtime files
+.env
+config.env
+*.log
+*.sql
+*.dump
+*.bak
+cache/
+tmp/
