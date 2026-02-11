@@ -264,7 +264,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
     echo "<meta property=\"og:title\" content=\"{$title}\">\n";
     echo "<meta property=\"og:description\" content=\"{$description}\">\n";
     echo "<meta property=\"og:type\" content=\"{$type}\">\n";
-//    echo "<meta property=\"og:url\" content=\"https://heavensgate.zapto.org{$_SERVER['REQUEST_URI']}\">\n";
+
 	echo '<meta property="og:url" content="' . htmlspecialchars($pageURL) . '">';
     echo "<meta property=\"og:image\" content=\"{$image}\">\n";
     echo "<meta name=\"twitter:card\" content=\"summary_large_image\">\n";
@@ -301,11 +301,7 @@ $routes = [
 	'muestrabio'   => ['app/controllers/bio/bio_page2.php', 'Biografía'],
 	'listgroups'   => ['app/controllers/bio/bio_pack_list.php', null],
 	'seegroup'     => ['app/controllers/bio/bio_pack_page.php', null],
-	/*
-	'list_by_order'=> ['app/controllers/bio/bio_list_by_order.php', null],
-	'list_by_id'   => ['app/controllers/bio/bio_list_id.php', null],
-	'list_avatar'  => ['app/controllers/bio/bio_list_noavatar.php', null],
-	*/
+
 	'list_table'   => ['app/controllers/bio/bio_table.php', null],
 	'nebula_clan'  => ['app/controllers/bio/bio_reltree_clans.php', 'Nebulosa de relaciones'],
 	'nebula_character' => ['app/controllers/bio/bio_reltree_characters.php', 'Nebulosa de relaciones'],
@@ -391,7 +387,6 @@ $routes = [
 	'seeplayer' => ['app/controllers/playr/playr_page.php', 'Jugador'],
 
 	// Test
-
 	'snippet_forum_a' => ['app/partials/snippet_forum_hg.php', null],
 	'forum_message'   => ['app/partials/snippet_forum_hg.php', null],
 	'forum_diceroll'  => ['app/partials/snippet_forum_hg_dice.php', null],

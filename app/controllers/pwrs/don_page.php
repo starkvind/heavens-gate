@@ -25,6 +25,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $donSystem = ($resultQueryDon["sistema"]);
     $donBreed  = htmlspecialchars($resultQueryDon["ferasistema"]);
     $donOrigin = htmlspecialchars($resultQueryDon["origen"]);
+    $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
 
     // Obtener el nombre del origen del Don
     $donOriginName = "-"; // Valor por defecto
@@ -92,73 +93,68 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     include("app/partials/main_nav_bar.php");
 
     // Título de la página
-    echo "<h2>$donName</h2>";
+    //echo "<h2>$donName</h2>";
 
     ob_start();
 
     // Imagen del Don
     $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
-
-    echo "<fieldset class='renglonPaginaDon'>";
-
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>";
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$donName'/>";
-    echo "</div>";
-
-    // Datos generales del Don
-    echo "<div class='bioSquareData'>";
-
-    // Rango del Don
-    if ($donRank > 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Rango:</div>";
-        echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div>";
-        echo "</div>";
+    if ($donImgRaw !== "") {
+        if (strpos($donImgRaw, "/") !== false) {
+            $itemImg = $donImgRaw;
+        } else {
+            $itemImg = "img/gifts/" . $donImgRaw;
+        }
     }
 
-    // Grupo del Don
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Grupo:</div>";
-    echo "<div class='bioDataText'>$donGroup</div>";
-    echo "</div>";
+    echo "<div class='power-card power-card--don'>";
+    echo "  <div class='power-card__banner'>";
+    echo "    <span class='power-card__title'>$donName</span>";
+    echo "  </div>";
 
-    // Tirada del Don
+    echo "  <div class='power-card__body'>";
+    echo "    <div class='power-card__media'>";
+    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='$itemImg' alt='$donName'/>";
+    echo "    </div>";
+
+    echo "    <div class='power-card__stats'>";
+    if ($donRank > 0) {
+        echo "<div class='power-stat'><div class='power-stat__label'>Rango</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div></div>";
+    }
+    if ($donGroup !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Grupo</div><div class='power-stat__value'>$donGroup</div></div>";
+    }
     if (!empty($donAttr) || !empty($donSkill)) {
         $tiradaDon2 = !empty($donSkill) ? "$donAttr + $donSkill" : $donAttr;
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Tirada:</div>";
-        echo "<div class='bioDataText'>$tiradaDon2</div>";
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Tirada</div><div class='power-stat__value'>$tiradaDon2</div></div>";
     }
+    if ($donOriginName !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
+    }
+    echo "    </div>"; // stats
+    echo "  </div>"; // body
 
-    // Orígenes del Don
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Origen:</div>";
-    echo "<div class='bioDataText'>$donOriginName</div>";
-    echo "</div>";
-
-    echo "</div>";
-
-    // Descripción del Don
     if (!empty($donDesc)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripción:</b><p>$donDesc</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$donDesc</div>";
+        echo "  </div>";
     }
 
-    // Sistema del Don
     if (!empty($donSystem)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Sistema:</b><p>$donSystem</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Sistema</div>";
+        echo "    <div class='power-card__desc-body'>$donSystem</div>";
+        echo "  </div>";
     }
 
-    echo "</fieldset>";
+    echo "</div>"; // power-card
+
     $infoHtml = ob_get_clean();
 
     if ($useTabs) {
         echo "<style>
-            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
+            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
             .hg-tab-panel{ display:none; }
             .hg-tab-panel.active{ display:block; }
             .hgTabBtn{ border:1px solid #003399; }

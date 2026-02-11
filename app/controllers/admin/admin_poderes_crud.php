@@ -21,6 +21,42 @@
 if (!isset($link) || !$link) { die("Sin conexión BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
+// Subidas de imagen (Dones)
+$DOCROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
+$DON_IMG_UPLOAD_DIR = $DOCROOT . '/public/img/gifts';
+$DON_IMG_URL_BASE   = '/img/gifts';
+if (!is_dir($DON_IMG_UPLOAD_DIR)) { @mkdir($DON_IMG_UPLOAD_DIR, 0775, true); }
+
+function save_power_image(array $file, string $uploadDir, string $urlBase, string $prefix = 'gift'): array {
+    if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
+    if ($file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Error de subida (#'.$file['error'].')'];
+    if ($file['size'] > 5*1024*1024) return ['ok'=>false,'msg'=>'El archivo supera 5 MB'];
+    $tmp = $file['tmp_name'];
+    if (!is_uploaded_file($tmp)) return ['ok'=>false,'msg'=>'Subida no v?lida'];
+
+    $mime = '';
+    if (function_exists('finfo_open')) { $fi = finfo_open(FILEINFO_MIME_TYPE); if ($fi) { $mime = finfo_file($fi, $tmp); finfo_close($fi); } }
+    if (!$mime) { $gi = @getimagesize($tmp); $mime = $gi['mime'] ?? ''; }
+
+    $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'];
+    if (!isset($allowed[$mime])) return ['ok'=>false,'msg'=>'Formato no permitido (JPG/PNG/GIF/WebP)'];
+
+    $ext  = $allowed[$mime];
+    $name = $prefix . '-' . date('YmdHis') . '-' . substr(md5(uniqid('', true)), 0, 6) . '.' . $ext;
+    $dst  = rtrim($uploadDir,'/').'/'.$name;
+
+    if (!@move_uploaded_file($tmp, $dst)) return ['ok'=>false,'msg'=>'No se pudo mover el archivo subido'];
+    @chmod($dst, 0644);
+    return ['ok'=>true,'url'=>rtrim($urlBase,'/').'/'.$name, 'path'=>$dst];
+}
+function safe_unlink_power_image(string $relUrl, string $uploadDir): void {
+    if ($relUrl === '') return;
+    $abs = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/').'/'.ltrim($relUrl,'/');
+    $base = realpath($uploadDir);
+    $absr = @realpath($abs);
+    if ($absr && $base && strpos($absr, $base) === 0 && is_file($absr)) { @unlink($absr); }
+}
+
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function str_has($hay, $needle){ return $needle !== '' && mb_stripos((string)$hay, (string)$needle) !== false; }
 
@@ -99,6 +135,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 // FIX: ahora puede ir vacío
                 ['k'=>'sistema',     'label'=>'Sistema',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'ferasistema', 'label'=>'Fera-sistema', 'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>100],
+                ['k'=>'img',         'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'origen',      'label'=>'Origen',       'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
             ],
             'list_cols' => [
@@ -224,7 +261,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
         }
 
-        // normalizaciones
+                // Subida de imagen (solo Dones)
+        if ($postTab === 'dones') {
+            $currentImg = trim((string)($_POST['current_img'] ?? ''));
+            $upload = save_power_image($_FILES['img_file'] ?? [], $DON_IMG_UPLOAD_DIR, $DON_IMG_URL_BASE, 'gift');
+            if (($upload['ok'] ?? false) === true) {
+                if ($currentImg !== '') safe_unlink_power_image($currentImg, $DON_IMG_UPLOAD_DIR);
+                $vals['img'] = $upload['url'];
+            } else {
+                if (($vals['img'] ?? '') === '' && $currentImg !== '') $vals['img'] = $currentImg;
+            }
+        }
+
+// normalizaciones
         foreach ($M['fields'] as $f) {
             $k = $f['k'];
             if (($f['db'] ?? 's') === 's') {
@@ -449,6 +498,7 @@ function ui_short(string $s, int $n=120): string {
 .grid label{ font-size:12px; color:#cfe; display:block; text-align: left; }
 .grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
 textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
+.img-preview{ max-width:120px; max-height:120px; border:1px solid #000088; border-radius:8px; background:#000033; display:block; }
 .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
 @media (max-width:1100px){ .grid{ grid-template-columns:repeat(2, minmax(240px,1fr)); } }
 @media (max-width:750px){ .grid{ grid-template-columns:1fr; } }
@@ -560,11 +610,12 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle">Nuevo</h3>
 
-    <form method="post" id="formCrud" style="margin:0;">
+    <form method="post" id="formCrud" style="margin:0;" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="crud_tab" id="crud_tab" value="<?= h($tab) ?>">
       <input type="hidden" name="crud_action" id="crud_action" value="create">
       <input type="hidden" name="id" id="f_id" value="0">
+      <input type="hidden" name="current_img" id="f_current_img" value="">
 
       <div class="grid" id="formGrid"></div>
 
@@ -670,6 +721,20 @@ function pickOptsForField(fieldKey){
       wrap.appendChild(label);
       return wrap;
 
+    } else if (ui === 'image_upload') {
+      var box3 = el('div');
+      var txt3 = el('input', {type:'text', name:k, id:'f_'+k, class:'inp', placeholder:'img/gifts/archivo.jpg o URL'});
+      txt3.style.marginBottom = '6px';
+      var file3 = el('input', {type:'file', name:'img_file', id:'f_'+k+'_file', class:'inp', accept:'image/*'});
+      file3.style.marginBottom = '6px';
+      var prev = el('img', {id:'f_'+k+'_preview', class:'img-preview'});
+      box3.appendChild(txt3);
+      box3.appendChild(file3);
+      box3.appendChild(prev);
+      label.appendChild(box3);
+      wrap.appendChild(label);
+      return wrap;
+
     } else if (ui === 'select_int_or_text') {
       var box2 = el('div');
 
@@ -700,18 +765,39 @@ function pickOptsForField(fieldKey){
     (META.fields||[]).forEach(function(f){ grid.appendChild(buildField(f)); });
   }
 
+  function wireImageUpload(){
+    var file = document.getElementById('f_img_file');
+    var prev = document.getElementById('f_img_preview');
+    if (file && prev) {
+      file.addEventListener('change', function(){
+        var f = this.files && this.files[0];
+        if (!f) return;
+        var url = URL.createObjectURL(f);
+        prev.src = url;
+      });
+    }
+  }
+
   function openCreate(){
     document.getElementById('modalTitle').textContent = 'Nuevo — '+(META.title||'');
     document.getElementById('crud_action').value = 'create';
     document.getElementById('f_id').value = '0';
 
     renderForm();
+    wireImageUpload();
 
     (META.fields||[]).forEach(function(f){
       var k = f.k;
       var ui = f.ui || 'text';
 
-      if (ui === 'select_or_text' || ui === 'select_int_or_text') {
+      if (ui === 'image_upload') {
+        var t3 = document.getElementById('f_'+k);
+        var p3 = document.getElementById('f_'+k+'_preview');
+        var c3 = document.getElementById('f_current_img');
+        if (t3) t3.value = '';
+        if (p3) p3.src = '';
+        if (c3) c3.value = '';
+      } else if (ui === 'select_or_text' || ui === 'select_int_or_text') {
         var t = document.getElementById('f_'+k);
         var s = document.getElementById('f_'+k+'_sel');
         if (s) s.value = '';
@@ -741,13 +827,21 @@ function pickOptsForField(fieldKey){
     document.getElementById('f_id').value = String(id);
 
     renderForm();
+    wireImageUpload();
 
     (META.fields||[]).forEach(function(f){
       var k = f.k;
       var ui = f.ui || 'text';
       var v = row[k];
 
-      if (ui === 'select_or_text' || ui === 'select_int_or_text') {
+      if (ui === 'image_upload') {
+        var t4 = document.getElementById('f_'+k);
+        var p4 = document.getElementById('f_'+k+'_preview');
+        var c4 = document.getElementById('f_current_img');
+        if (t4) t4.value = (v===null || v===undefined) ? '' : String(v);
+        if (p4) p4.src = (v===null || v===undefined) ? '' : String(v);
+        if (c4) c4.value = (v===null || v===undefined) ? '' : String(v);
+      } else if (ui === 'select_or_text' || ui === 'select_int_or_text') {
         var t = document.getElementById('f_'+k);
         var s = document.getElementById('f_'+k+'_sel');
         if (t) t.value = (v===null || v===undefined) ? '' : String(v);

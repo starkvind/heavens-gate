@@ -17,7 +17,8 @@ $EXCLUDE_TABLES = [
 // Ejemplo: ['fact_characters', 'fact_gifts']
 $ONLY_TABLES = [
     //'black_horse_for_you'
-    'fact_combat_maneuvers'
+    'fact_combat_maneuvers',
+    'fact_gifts'
     //'dim_systems',
     //'dim_forms'
     // 'dim_seasons',
