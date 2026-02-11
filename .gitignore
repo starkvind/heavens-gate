@@ -18,12 +18,18 @@ public/img/poi/**/*.png
 public/img/maneuvers/**/*.jpg
 public/img/maneuvers/**/*.jpeg
 public/img/maneuvers/**/*.png
+public/img/inv/uploads/**/*.jpg
+public/img/inv/uploads/**/*.jpeg
+public/img/inv/uploads/**/*.png
+public/img/inv/uploads/**/*.gif
+public/img/inv/uploads/**/*.webp
 !public/img/poi/.gitkeep
 !public/img/characters/.gitkeep
 !public/img/gallery/.gitkeep
 !public/img/player/.gitkeep
 !public/img/subidas/.gitkeep
 !public/img/maneuvers/.gitkeep
+!public/img/inv/uploads/.gitkeep
 
 # Common sensitive/runtime files
 .env
@@ -32,5 +38,6 @@ config.env
 *.sql
 *.dump
 *.bak
+*.csv
 cache/
 tmp/
