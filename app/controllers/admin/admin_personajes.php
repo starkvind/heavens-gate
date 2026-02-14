@@ -17,6 +17,7 @@ if (!is_dir($FS_UPLOAD_DIR)) {
 // === Seguridad / conexión (igual que el resto del panel) ===
 if (!isset($link) || !$link) {
     die("Error de conexión a la base de datos.");
+include_once(__DIR__ . '/../../helpers/pretty.php');
 }
 
 // Polyfill para PHP < 8
@@ -52,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_pj'])) {
         if ($stmt) {
             $stmt->bind_param("ssi", $nombre, $colortexto, $id);
             $stmt->execute();
+			hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
             $stmt->close();
             $flash[] = ["type" => "info", "msg" => "✏ Nombre/Color actualizados."];
         } else {

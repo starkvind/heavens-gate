@@ -14,6 +14,7 @@
  */
 
 if (!isset($link) || !$link) die("Sin conexión BD");
+include_once(__DIR__ . '/../../helpers/pretty.php');
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -95,6 +96,7 @@ if ($action === 'save_plot') {
         $st->bind_param("ssii", $name, $desc, $act, $ord);
         if ($st->execute()) {
             $newId = (int)$st->insert_id;
+            hg_update_pretty_id_if_exists($link, 'dim_parties', $newId, $name);
             flash_add('ok', '✅ Trama creada (#'.$newId.').');
             $st->close();
             header("Location: ".build_redirect_url(['open_plot'=>null, 'focus_plot'=>$newId])); exit;
@@ -112,6 +114,7 @@ if ($action === 'save_plot') {
         if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
         $st->bind_param("ssiii", $name, $desc, $act, $ord, $id);
         if ($st->execute()) {
+            hg_update_pretty_id_if_exists($link, 'dim_parties', $id, $name);
             flash_add('ok', '✏ Trama actualizada (#'.$id.').');
         } else {
             flash_add('error', '❌ Error al actualizar: '.$st->error);

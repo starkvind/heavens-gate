@@ -57,3 +57,34 @@ function ensure_trailing_query(string $url, string $query): string {
     if (str_contains($url, '?')) return $url . '&' . $query;
     return $url . '?' . $query;
 }
+
+function hg_table_has_column(mysqli $link, string $table, string $column): bool {
+    static $cache = [];
+    $key = $table . ':' . $column;
+    if (isset($cache[$key])) return $cache[$key];
+
+    $ok = false;
+    if ($st = $link->prepare("SHOW COLUMNS FROM `$table` LIKE ?")) {
+        $st->bind_param('s', $column);
+        $st->execute();
+        $res = $st->get_result();
+        $ok = $res && $res->num_rows > 0;
+        $st->close();
+    }
+
+    $cache[$key] = $ok;
+    return $ok;
+}
+
+function hg_update_pretty_id_if_exists(mysqli $link, string $table, int $id, string $source): void {
+    if ($id <= 0) return;
+    if (!hg_table_has_column($link, $table, 'pretty_id')) return;
+    $slug = slugify_pretty_id($source);
+    if ($slug === '') $slug = (string)$id;
+
+    if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
+        $st->bind_param('si', $slug, $id);
+        $st->execute();
+        $st->close();
+    }
+}

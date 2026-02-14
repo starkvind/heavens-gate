@@ -5,6 +5,7 @@
 if (!isset($link) || !$link) {
     die("Error de conexión a la base de datos.");
 }
+include_once(__DIR__ . '/../../helpers/pretty.php');
 
 // Helper: fallo con info útil
 function db_fail(mysqli $link, string $msg) {
@@ -34,6 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_temporada'])) {
     // Tipos correctos: name(s), numero(i), season(i), desc(s), opening(s), protagonistas(s)
     $stmt->bind_param("siisss", $name, $numero, $season, $desc, $opening, $protas);
     if (!$stmt->execute()) db_fail($link, "Execute INSERT falló");
+    $newId = (int)$link->insert_id;
+    hg_update_pretty_id_if_exists($link, 'dim_seasons', $newId, $name);
     $stmt->close();
 
     echo "<p style='color:green;'>✔ Nueva temporada añadida.</p>";
@@ -63,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
     // Tipos correctos: name(s), numero(i), season(i), desc(s), id(i)
     $stmt->bind_param("siisi", $name, $numero, $season, $desc, $id);
     if (!$stmt->execute()) db_fail($link, "Execute UPDATE falló");
+    hg_update_pretty_id_if_exists($link, 'dim_seasons', $id, $name);
     $stmt->close();
 
     echo "<p style='color:deepskyblue;'>✏ Temporada actualizada.</p>";

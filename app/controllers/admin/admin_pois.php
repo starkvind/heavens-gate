@@ -11,6 +11,7 @@ if (!headers_sent()) { @ob_start(); }
 
 if (!$link) { die("Error de conexión a la base de datos: " . mysqli_connect_error()); }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+include_once(__DIR__ . '/../../helpers/pretty.php');
 
 /* ---------------------------
    Helpers PHP
@@ -144,6 +145,7 @@ if (isset($_GET['ajax'])) {
         $bsw_lat, $bsw_lng, $bne_lat, $bne_lng, $default_tile, $id
       );
       $st->execute(); $st->close();
+      hg_update_pretty_id_if_exists($link, 'dim_maps', $id, $name);
     } else {
       // INSERT
       $st = $link->prepare("INSERT INTO dim_maps
@@ -156,6 +158,7 @@ if (isset($_GET['ajax'])) {
         $bsw_lat, $bsw_lng, $bne_lat, $bne_lng, $default_tile
       );
       $st->execute(); $id = $st->insert_id; $st->close();
+      hg_update_pretty_id_if_exists($link, 'dim_maps', $id, $name);
     }
     ok(['id'=>$id]);
   }
@@ -185,10 +188,12 @@ if (isset($_GET['ajax'])) {
       $st = $link->prepare("UPDATE dim_map_categories SET name=?, slug=?, color_hex=?, icon=?, sort_order=? WHERE id=?");
       $st->bind_param('ssssii', $name,$slug,$color_hex,$icon,$sort_order,$id);
       $st->execute(); $st->close();
+      hg_update_pretty_id_if_exists($link, 'dim_map_categories', $id, $name);
     } else {
       $st = $link->prepare("INSERT INTO dim_map_categories (name,slug,color_hex,icon,sort_order) VALUES (?,?,?,?,?)");
       $st->bind_param('ssssi', $name,$slug,$color_hex,$icon,$sort_order);
       $st->execute(); $id = $st->insert_id; $st->close();
+      hg_update_pretty_id_if_exists($link, 'dim_map_categories', $id, $name);
     }
     ok(['id'=>$id]);
   }
@@ -239,12 +244,14 @@ if (isset($_GET['ajax'])) {
                             WHERE id=?");
       $st->bind_param('siissddi', $name,$map_id,$category_id,$description,$thumbnail,$latitude,$longitude,$id);
       $st->execute(); $st->close();
+      hg_update_pretty_id_if_exists($link, 'fact_map_pois', $id, $name);
     } else {
       $st = $link->prepare("INSERT INTO fact_map_pois
                             (name,map_id,category_id,description,thumbnail,latitude,longitude)
                             VALUES (?,?,?,?,?,?,?)");
       $st->bind_param('siissdd', $name,$map_id,$category_id,$description,$thumbnail,$latitude,$longitude);
       $st->execute(); $id = $st->insert_id; $st->close();
+      hg_update_pretty_id_if_exists($link, 'fact_map_pois', $id, $name);
     }
     ok(['id'=>$id]);
   }
@@ -312,12 +319,14 @@ if (isset($_GET['ajax'])) {
                             WHERE id=?");
       $st->bind_param('sisssi', $name,$map_id,$description,$color_hex,$geometry_final,$id);
       $st->execute(); $st->close();
+      hg_update_pretty_id_if_exists($link, 'fact_map_areas', $id, $name);
     } else {
       $st = $link->prepare("INSERT INTO fact_map_areas
                             (name,map_id,description,color_hex,geometry)
                             VALUES (?,?,?,?,?)");
       $st->bind_param('sisss', $name,$map_id,$description,$color_hex,$geometry_final);
       $st->execute(); $id = $st->insert_id; $st->close();
+      hg_update_pretty_id_if_exists($link, 'fact_map_areas', $id, $name);
     }
     ok(['id'=>$id]);
   }

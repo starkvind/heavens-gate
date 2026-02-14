@@ -3,6 +3,7 @@
 if (!$link) {
     die("Error de conexión a la base de datos.");
 }
+include_once(__DIR__ . '/../../helpers/pretty.php');
 
 // Procesar envío de formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_tema'])) {
@@ -14,6 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_tema'])) {
     $stmt = $link->prepare("INSERT INTO dim_soundtracks (titulo, artista, youtube, titulo_hg) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("ssss", $titulo, $artista, $youtube, $titulo_hg);
     $stmt->execute();
+    $newId = (int)$link->insert_id;
+    hg_update_pretty_id_if_exists($link, 'dim_soundtracks', $newId, $titulo);
     echo "<p style='color:green;'>✅ Tema añadido correctamente.</p>";
 }
 

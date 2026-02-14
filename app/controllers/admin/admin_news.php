@@ -5,6 +5,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
 $actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
 	. '<button class="btn btn-green" type="button" onclick="openNewsModal()">+ Nueva noticia</button>'
 	. '<label style="text-align:left;">Filtro r&aacute;pido '
@@ -40,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 			if ($st) {
 				$st->bind_param("sssi", $autor, $titulo, $mensaje, $id);
 				$st->execute();
+			hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $id, $titulo);
 				$st->close();
 				$flash[] = ['type'=>'ok','msg'=>'Noticia actualizada.'];
 			}
@@ -48,6 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 			if ($st) {
 				$st->bind_param("sss", $autor, $titulo, $mensaje);
 				$st->execute();
+			$newId = (int)$link->insert_id;
+			hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $newId, $titulo);
 				$st->close();
 				$flash[] = ['type'=>'ok','msg'=>'Noticia creada.'];
 			}

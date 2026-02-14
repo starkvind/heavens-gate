@@ -3,6 +3,7 @@
 
 	// Errores claros (quítalo en producción si molesta)
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+	include_once(__DIR__ . '/../../helpers/pretty.php');
 
 	// Helper: normalizar fechas ('' -> NULL)
 	function norm_date($v) {
@@ -48,6 +49,7 @@
 		);
 
 		$stmt->execute();
+		hg_update_pretty_id_if_exists($link, 'dim_chapters', $id, $name);
 		$stmt->close();
 
 		$filtroTemp = $_POST['filtro_temporada'] ?? '';
@@ -82,6 +84,8 @@
 		);
 
 		$stmt->execute();
+		$newId = (int)$link->insert_id;
+		hg_update_pretty_id_if_exists($link, 'dim_chapters', $newId, $name);
 		$stmt->close();
 
 		$filtroTemp = $_POST['filtro_temporada'] ?? '';

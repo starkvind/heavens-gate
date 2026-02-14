@@ -14,6 +14,7 @@
 if (!isset($link) || !$link) { die("Sin conexión BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function str_has($hay, $needle){ return $needle !== '' && mb_stripos((string)$hay, (string)$needle) !== false; }
@@ -244,8 +245,14 @@ $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDE
                     $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar INSERT: '.$link->error];
                 } else {
                     $st->bind_param($types, ...$bind);
-                    if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'✅ '.$M['title'].' creado correctamente.'];
-                    else $flash[] = ['type'=>'error','msg'=>'❌ Error al crear: '.$st->error];
+                    if ($st->execute()) {
+                        $flash[] = ['type'=>'ok','msg'=>'OK '.$M['title'].' creado correctamente.'];
+                        $newId = (int)$link->insert_id;
+                        $src = (string)($vals[$M['name_col']] ?? '');
+                        hg_update_pretty_id_if_exists($link, $table, $newId, $src);
+                    } else {
+                        $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
+                    }
                     $st->close();
                 }
             }
@@ -277,8 +284,13 @@ $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDE
                         $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar UPDATE: '.$link->error];
                     } else {
                         $st->bind_param($types, ...$bind);
-                        if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'✏ '.$M['title'].' actualizado.'];
-                        else $flash[] = ['type'=>'error','msg'=>'❌ Error al actualizar: '.$st->error];
+                        if ($st->execute()) {
+                            $flash[] = ['type'=>'ok','msg'=>'OK '.$M['title'].' actualizado.'];
+                            $src = (string)($vals[$M['name_col']] ?? '');
+                            hg_update_pretty_id_if_exists($link, $table, $id, $src);
+                        } else {
+                            $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
+                        }
                         $st->close();
                     }
                 }

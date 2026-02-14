@@ -39,6 +39,8 @@ if (method_exists($link, 'set_charset')) {
     mysqli_set_charset($link, 'utf8mb4');
 }
 
+include_once(__DIR__ . '/../../helpers/pretty.php');
+
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 /* -------------------------------------------------
@@ -591,6 +593,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 );
                 if ($stmt->execute()) {
                     $newId = $stmt->insert_id;
+                    hg_update_pretty_id_if_exists($link, 'fact_characters', (int)$newId, $nombre);
 
                     // Bridges manada/clan
                     sync_character_bridges($link, (int)$newId, (int)$manada, (int)$clan);
@@ -662,6 +665,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
               );
 
               if ($stmt->execute()) {
+                  hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
 
                   // Avatar
                   if ($rm_avatar && $current_img) {

@@ -4,6 +4,7 @@
 // Requiere: $link (mysqli) ya inicializado
 
 if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/pretty.php');
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 /* -------- Helpers -------- */
@@ -48,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['detalle_action'] ?? '') ==
     if ($st = $link->prepare($sql)) {
       $st->bind_param("ssssssi", $nombre, $estado, $causamuerte, $cumple, $rango, $infotext, $id);
       if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'✅ Detalles actualizados.'];
+      hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
       else                $flash[] = ['type'=>'error','msg'=>'❌ Error al actualizar: '.$st->error];
       $st->close();
     } else {

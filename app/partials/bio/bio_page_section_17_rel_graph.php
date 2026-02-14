@@ -1,236 +1,184 @@
-﻿<?php
+<?php
 /* app/partials/bio/bio_page_section_17_rel_graph.php
-   Mini grafo de relaciones para la página de biografía */
+   Mini grafo de relaciones para la pagina de biografia */
 
-/* RelGraph */ 
-	$characterId = $_GET['b'] ? null;
+if (!isset($characterId) || !$characterId || !isset($relaciones) || !is_array($relaciones)) {
+    echo "<div style='padding:1em;'>Error: datos insuficientes para mostrar la grafica.</div>";
+    return;
+}
 
-	if (!$characterId || !$link) {
-		echo "<div style='padding:1em;'>Error: Datos insuficientes para mostrar la gráfica.</div>";
-		return;
-	}
+$mainName = isset($bioName) ? (string)$bioName : '';
+$mainPhoto = isset($bioPhoto) && $bioPhoto !== '' ? (string)$bioPhoto : '/img/ui/icons/default.jpg';
 
-	// Obtener datos del personaje principal
-	$stmtChar = $link->prepare("SELECT id, nombre, img, estado FROM fact_characters WHERE id = ? LIMIT 1");
-	$stmtChar->bind_param('s', $characterId);
-	$stmtChar->execute();
-	$mainChar = $stmtChar->get_result()->fetch_assoc();
-	$stmtChar->close();
+// Normalizar relaciones
+$nodes = [];
+$edges = [];
+$nodes[$characterId] = [
+    'id' => (int)$characterId,
+    'label' => $mainName,
+    'image' => $mainPhoto,
+    'size' => 24,
+    'fontSize' => 16,
+];
 
-	$id = intval($_GET['b'] ? 0);
+foreach ($relaciones as $r) {
+    $relatedId = ($r['direction'] === 'outgoing') ? (int)$r['target_id'] : (int)$r['source_id'];
+    if ($relatedId <= 0) { continue; }
 
-	// Obtener datos del personaje
-	$queryPJ = "SELECT id, nombre, img, estado FROM fact_characters WHERE id = ?";
-	$stmt = $link->prepare($queryPJ);
-	$stmt->bind_param('i', $id);
-	$stmt->execute();
-	$pjResult = $stmt->get_result();
-	$pj = $pjResult->fetch_assoc();
-	$stmt->close();
+    if (!isset($nodes[$relatedId])) {
+        $nodes[$relatedId] = [
+            'id' => $relatedId,
+            'label' => (string)($r['nombre'] ?? ''),
+            'image' => (string)($r['img'] ?? '/img/ui/icons/default.jpg'),
+            'size' => 20,
+            'fontSize' => 12,
+        ];
+    }
 
-	if (!$pj) {
-		echo "<div style='color:red;'>Personaje no encontrado.</div>";
-		return;
-	}
+    $from = ($r['direction'] === 'outgoing') ? (int)$characterId : (int)$r['source_id'];
+    $to   = ($r['direction'] === 'outgoing') ? (int)$r['target_id'] : (int)$characterId;
 
-	// Obtener relaciones
-	$queryRel = "SELECT * FROM bridge_characters_relations WHERE source_id = ? OR target_id = ?";
-	$stmt = $link->prepare($queryRel);
-	$stmt->bind_param('ii', $id, $id);
-	$stmt->execute();
-	$relResult = $stmt->get_result();
-	$rels = $relResult->fetch_all(MYSQLI_ASSOC);
-	$stmt->close();
+    $tag = strtolower((string)($r['tag'] ?? ''));
+    $color = '#bdc3c7';
+    if ($tag === 'conflicto') $color = '#e74c3c';
+    elseif ($tag === 'amistad') $color = '#2ecc71';
+    elseif ($tag === 'alianza') $color = '#3498db';
+    elseif ($tag === 'familia') $color = '#f1c40f';
 
-	// Recolectar todos los IDs relacionados
-	$relatedIds = [$id];
-	foreach ($rels as $r) {
-		$relatedIds[] = $r['source_id'];
-		$relatedIds[] = $r['target_id'];
-	}
-	$relatedIds = array_unique($relatedIds);
-
-	// Consulta para obtener datos de todos los implicados
-	$placeholders = implode(',', array_fill(0, count($relatedIds), '?'));
-	$types = str_repeat('i', count($relatedIds));
-	$stmt = $link->prepare("SELECT id, nombre, img, estado FROM fact_characters WHERE id IN ($placeholders)");
-	$stmt->bind_param($types, ...$relatedIds);
-	$stmt->execute();
-	$charResult = $stmt->get_result();
-	$characters = [];
-	while ($row = $charResult->fetch_assoc()) {
-		$characters[$row['id']] = $row;
-	}
-	$stmt->close();
+    $edges[] = [
+        'from' => $from,
+        'to' => $to,
+        'arrows' => (string)($r['arrows'] ?? ''),
+        'label' => (string)($r['relation_type'] ?? ''),
+        'color' => $color,
+    ];
+}
 ?>
 
 <div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
     <div id="mini-network" style="width:100%; height:100%;"></div>
 </div>
 
-<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script src="/assets/vendor/vis/vis-network.min.10.0.2.js"></script>
 <script>
-	const nodes = new vis.DataSet([
-		{
-			id: <?= json_encode($characterId) ?>,
-			label: <?= json_encode($bioName) ?>,
-			shape: 'circularImage',
-			image: <?= json_encode($bioPhoto) ?>,
-			size: 24,
-			font: { color: "#fff", size: 16 }
-		},
-		<?php
-		$addedNodes = [$characterId];
-		foreach ($relaciones as $r):
-			$relatedId = $r['direction'] === 'outgoing' ? $r['target_id'] : $r['source_id'];
-			if (in_array($relatedId, $addedNodes)) continue;
-			$addedNodes[] = $relatedId;
-			$nombre = $r['nombre'];
-			$img = $r['img'] ?: 'img/ui/icons/default.jpg';
-		?>
-		{
-			id: <?= json_encode($relatedId) ?>,
-			label: <?= json_encode($nombre) ?>,
-			shape: 'circularImage',
-			image: <?= json_encode($img) ?>,
-			size: 20,
-			font: { color: "#fff", size: 12 }
-		},
-		<?php endforeach; ?>
-	]);
+(function(){
+    var container = document.getElementById('mini-network');
+    if (!container || typeof vis === 'undefined') return;
 
-	const edges = new vis.DataSet([
-		<?php foreach ($relaciones as $r):
-			$from = $r['direction'] === 'outgoing' ? $characterId : $r['source_id'];
-			$to   = $r['direction'] === 'outgoing' ? $r['target_id'] : $characterId;
+    var nodes = new vis.DataSet([
+        <?php foreach ($nodes as $n): ?>
+        {
+            id: <?= json_encode((int)$n['id']) ?>,
+            label: <?= json_encode((string)$n['label']) ?>,
+            shape: 'circularImage',
+            image: <?= json_encode((string)$n['image']) ?>,
+            size: <?= (int)$n['size'] ?>,
+            font: { color: '#fff', size: <?= (int)$n['fontSize'] ?>, strokeWidth: 3, strokeColor: '#000' }
+        },
+        <?php endforeach; ?>
+    ]);
 
-			$color = '#bdc3c7';
-			switch (strtolower($r['tag'])) {
-				case 'conflicto': $color = '#e74c3c'; break;
-				case 'amistad':   $color = '#2ecc71'; break;
-				case 'alianza':   $color = '#3498db'; break;
-				case 'familia':   $color = '#f1c40f'; break;
-			}
-		?>
-		{
-			from: <?= json_encode($from) ?>,
-			to: <?= json_encode($to) ?>,
-			arrows: <?= json_encode($r['arrows']) ?>,
-			label: <?= json_encode($r['relation_type']) ?>,
-			color: { color: "<?= $color ?>" },
-			font: {
-			  align: 'middle',
-			  color: "#fff",
-			  size: 10,
-			  strokeWidth: 3,
-			  strokeColor: "#000"
-			}
+    var edges = new vis.DataSet([
+        <?php foreach ($edges as $e): ?>
+        {
+            from: <?= json_encode((int)$e['from']) ?>,
+            to: <?= json_encode((int)$e['to']) ?>,
+            arrows: <?= json_encode((string)$e['arrows']) ?>,
+            label: <?= json_encode((string)$e['label']) ?>,
+            color: { color: <?= json_encode((string)$e['color']) ?> },
+            font: { align: 'middle', color: '#fff', size: 10, strokeWidth: 3, strokeColor: '#000' }
+        },
+        <?php endforeach; ?>
+    ]);
 
-		},
-		<?php endforeach; ?>
-	]);
+    var data = { nodes: nodes, edges: edges };
+    var options = {
+        layout: { improvedLayout: true },
+        interaction: {
+            dragNodes: true,
+            dragView: true,
+            zoomView: true,
+            hover: true
+        },
+        nodes: {
+            borderWidth: 2,
+            shadow: true,
+            shape: 'circularImage',
+            size: 20,
+            font: { color: '#fff', size: 12, strokeWidth: 3, strokeColor: '#000' },
+            widthConstraint: { minimum: 60 },
+            scaling: { label: { enabled: true, min: 12, max: 12 } }
+        },
+        edges: {
+            smooth: { type: 'dynamic', roundness: 0.3 },
+            arrowStrikethrough: false
+        },
+        physics: {
+            enabled: true,
+            solver: 'forceAtlas2Based',
+            forceAtlas2Based: {
+                gravitationalConstant: -50,
+                springLength: 120,
+                springConstant: 0.02
+            },
+            minVelocity: 0.5,
+            stabilization: { iterations: 600, fit: true }
+        }
+    };
 
-	const container = document.getElementById("mini-network");
-	const data = { nodes, edges };
-	const options = {
-		layout: { improvedLayout: true },
-		nodes: {
-			borderWidth: 2,
-			shadow: true,
-			shape: 'circularImage',
-			size: 20,
-			font: {
-				color: '#fff',
-				size: 12,
-				strokeWidth: 3,
-				strokeColor: '#000'
-			},
-			widthConstraint: {
-				minimum: 60
-			},
-			scaling: {
-				label: {
-					enabled: true,
-					min: 12,
-					max: 12
-				}
-			}
-		},
-		edges: {
-			smooth: {
-				type: "dynamic",
-				roundness: 0.3
-			},
-			arrowStrikethrough: false
-		},
-		physics: {
-			enabled: true,
-			solver: "forceAtlas2Based",
-			forceAtlas2Based: {
-				gravitationalConstant: -50,
-				springLength: 120,
-				springConstant: 0.02
-			},
-			minVelocity: 0.5
-		}
-	};
+    var network = new vis.Network(container, data, options);
+    window.__bioRelNetwork = network;
 
-	const network = new vis.Network(container, data, options);
-	window.__bioRelNetwork = network;
+    function refreshRelGraph(forcePhysics){
+        if (!container) return;
+        var w = container.clientWidth || 0;
+        var h = container.clientHeight || 0;
+        if (!w || !h) {
+            setTimeout(function(){ refreshRelGraph(forcePhysics); }, 120);
+            return;
+        }
+        try {
+            if (forcePhysics) {
+                network.setOptions({ physics: { enabled: true } });
+            }
+            network.redraw();
+            network.fit({ animation: { duration: 220, easingFunction: 'easeInOutQuad' } });
+            if (forcePhysics) {
+                network.stabilize();
+            }
+        } catch (e) {}
+    }
 
-	let relStopTimer = null;
-	function refreshRelGraph(forcePhysics = false){
-		if (!container) return;
-		const w = container.clientWidth || 0;
-		const h = container.clientHeight || 0;
-		if (!w || !h) {
-			setTimeout(() => refreshRelGraph(forcePhysics), 120);
-			return;
-		}
-		try {
-			if (forcePhysics) {
-				network.setOptions({ physics: { enabled: true } });
-			}
-			network.redraw();
-			network.fit({ animation: { duration: 220, easingFunction: 'easeInOutQuad' } });
-			if (forcePhysics) {
-				network.stabilize();
-			}
-		} catch (e) {}
-	}
+    // Inicial
+    refreshRelGraph(true);
+    network.once('stabilized', function(){
+        try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
+        refreshRelGraph(false);
+    });
+    setTimeout(function(){
+        try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
+        refreshRelGraph(false);
+    }, 1800);
 
-	// Ajuste inicial: deja que se estabilice, pero corta física si se queda colgado
-	refreshRelGraph(true);
-	network.once("stabilized", function(){
-		try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
-		refreshRelGraph(false);
-	});
-	relStopTimer = setTimeout(() => {
-		try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
-		refreshRelGraph(false);
-	}, 1800);
+    window.__bioRelNetworkRefresh = function(){
+        refreshRelGraph(false);
+    };
 
-	// Exponer helper para refresco al cambiar de pestaña/vista
-	window.__bioRelNetworkRefresh = function(){
-		refreshRelGraph(false);
-	};
+    network.on('dragStart', function(){
+        try { network.setOptions({ physics: { enabled: true } }); } catch (e) {}
+    });
+    network.on('dragEnd', function(){
+        try { network.storePositions(); } catch (e) {}
+        try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
+    });
 
-	// Al mover nodos, guardamos posiciones sin reactivar física (evita temblores)
-	network.on("dragEnd", function(){
-		try { network.storePositions(); } catch (e) {}
-	});
-
-	// Abrir biografía con doble clic si no es el nodo principal
-	network.on("doubleClick", function (params) {
-		if (params.nodes.length === 1) {
-			const nodeId = params.nodes[0];
-			if (String(nodeId) !== <?= json_encode((string)$characterId) ?>) {
-				window.open("/characters/" + nodeId, "_blank");
-			}
-		}
-	});
-
+    network.on('doubleClick', function(params){
+        if (params.nodes.length === 1) {
+            var nodeId = String(params.nodes[0]);
+            if (nodeId !== <?= json_encode((string)$characterId) ?>) {
+                window.open('/characters/' + nodeId, '_blank');
+            }
+        }
+    });
+})();
 </script>
-
-
-

@@ -13,6 +13,7 @@
 if (!isset($link) || !$link) {
   echo "<div style='color:#f88'>Error: conexión DB no disponible.</div>";
   return;
+include_once(__DIR__ . '/../../helpers/pretty.php');
 }
 
 /* ----------------------- helpers ----------------------- */
@@ -322,6 +323,7 @@ if(!empty($_POST['action'])){
     $id=(int)($_POST['clan_id']??0);
     $name=trim((string)($_POST['name']??''));
     if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=? WHERE id=?",'si',[$name,$id]); }
+    hg_update_pretty_id_if_exists($link, 'dim_organizations', $id, $name);
     render_clan_modal($link,$id); exit;
   }
 
@@ -331,6 +333,7 @@ if(!empty($_POST['action'])){
     if($name===''){ render_clan_create_form(); echo "<div class='err'>Indica un nombre.</div>"; exit; }
     // Insert básico: si tu tabla exige más campos NOT NULL sin default, añade aquí columnas con valores por defecto.
     [$ok,$err,$rs,$newId] = q($link,"INSERT INTO dim_organizations (name) VALUES (?)",'s',[$name]);
+    hg_update_pretty_id_if_exists($link, 'dim_organizations', $newId, $name);
     if(!$ok){ render_clan_create_form(); echo "<div class='err'>".e($err)."</div>"; exit; }
     render_clan_modal($link,$newId); exit;
   }
@@ -343,6 +346,7 @@ if(!empty($_POST['action'])){
     $cronica = (int)($_POST['cronica']??1); if($cronica<1){ $cronica=1; }
     if($id>0 && $name!==''){
       q($link,"UPDATE dim_groups SET name=?, activa=?, cronica=? WHERE id=?",'siii',[$name,$activa,$cronica,$id]);
+      hg_update_pretty_id_if_exists($link, 'dim_groups', $id, $name);
     }
     render_group_modal($link,$id); exit;
   }
@@ -358,6 +362,7 @@ if(!empty($_POST['action'])){
     // dim_groups requiere varias columnas NOT NULL; ponemos defaults seguros
     [$ok,$err,$rs,$newId] = q($link,
       "INSERT INTO dim_groups (name, cronica, clan, totem, activa, `desc`)
+    hg_update_pretty_id_if_exists($link, 'dim_groups', $newId, $name);
        VALUES (?,?,?,?,?,?)",
       'sisiss', [$name, $cronica, /*clan(texto)*/'', /*totem*/0, $activa, /*desc*/'']);
     if(!$ok){ render_group_create_form($link,$clan_id); echo "<div class='err'>".e($err)."</div>"; exit; }

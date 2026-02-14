@@ -1,6 +1,7 @@
 <?php
 if (!$link) {
     die("Error de conexión a la base de datos.");
+include_once(__DIR__ . '/../../helpers/pretty.php');
 }
 
 // INSERCIÓN
@@ -15,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['titulo'])) {
     $stmt = $link->prepare("INSERT INTO fact_timeline_events (fecha, titulo, descripcion, tipo, ubicacion, fuente) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("ssssss", $fecha, $titulo, $descripcion, $tipo, $ubicacion, $fuente);
     $stmt->execute();
+    hg_update_pretty_id_if_exists($link, 'fact_timeline_events', (int)$evento_id, $titulo);
     $evento_id = $stmt->insert_id;
     $stmt->close();
 
