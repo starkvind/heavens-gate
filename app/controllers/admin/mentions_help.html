@@ -1,0 +1,69 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Mentions - Guía rápida</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/nemesis.css">
+  <style>
+    body { background:#050b36; color:#cfe; font-family: Verdana, Arial, sans-serif; }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 16px 20px; background:#020824; border:1px solid #001199; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.45); }
+    h1, h2 { color:#33ffff; }
+    code { color:#9ff; background:#001133; padding:2px 4px; border-radius:4px; }
+    .note { color:#9bb; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Mentions: Guía rápida</h1>
+    <p>
+      Las <strong>mentions</strong> permiten insertar referencias a elementos del mundo (personajes, dones, objetos, etc.)
+      dentro del texto de edición. Al escribir un prefijo con <code>@</code>, aparece un desplegable y puedes seleccionar
+      el elemento deseado.
+    </p>
+
+    <h2>Uso básico</h2>
+    <ul>
+      <li>Escribe <code>@tipo</code> y luego el texto a buscar. Ejemplo: <code>@character Ampw</code>.</li>
+      <li>Selecciona con el ratón o con <code>↑</code>/<code>↓</code> y confirma con <code>Enter</code>.</li>
+      <li>En Quill se inserta un enlace directo.</li>
+      <li>En campos de texto plano se inserta un token con el formato <code>[@tipo:id]</code>.</li>
+      <li>Al guardar, los tokens se convierten en enlaces con <code>pretty_id</code>.</li>
+    </ul>
+    <p class="note">En personajes se muestra también la Crónica en el desplegable.</p>
+
+    <h2>Tipos disponibles</h2>
+    <ul>
+      <li><code>@character</code> Personajes</li>
+      <li><code>@season</code> Temporadas</li>
+      <li><code>@episode</code> Episodios/Capítulos</li>
+      <li><code>@organization</code> Organizaciones</li>
+      <li><code>@group</code> Grupos</li>
+      <li><code>@gift</code> Dones</li>
+      <li><code>@rite</code> Ritos</li>
+      <li><code>@totem</code> Tótems</li>
+      <li><code>@discipline</code> Disciplinas</li>
+      <li><code>@item</code> Objetos</li>
+      <li><code>@trait</code> Rasgos</li>
+      <li><code>@background</code> Trasfondos</li>
+      <li><code>@merit</code> Méritos</li>
+      <li><code>@flaw</code> Defectos</li>
+      <li><code>@merydef</code> Méritos y Defectos</li>
+      <li><code>@doc</code> Documentos</li>
+    </ul>
+
+    <h2>Ejemplos</h2>
+    <ul>
+      <li><code>@character Pedro</code> → Inserta un enlace a Pedro Alba.</li>
+      <li><code>@gift Persuasión</code> → Inserta el don correspondiente.</li>
+      <li><code>@item lanza</code> → Inserta un objeto del inventario.</li>
+    </ul>
+
+    <h2>Notas</h2>
+    <ul>
+      <li>Si no aparecen resultados, revisa que el término exista en la base de datos.</li>
+      <li>El desplegable se cierra con <code>Esc</code> o al perder el foco.</li>
+    </ul>
+  </div>
+</body>
+</html>

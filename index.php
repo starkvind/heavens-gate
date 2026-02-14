@@ -20,6 +20,10 @@
     $pageContent = ob_get_clean();
 
 	if (!empty($isBarePage)) {
+		// Strip UTF-8 BOM if present (breaks JSON parsing for AJAX endpoints)
+		if (substr($pageContent, 0, 3) === "\xEF\xBB\xBF") {
+			$pageContent = substr($pageContent, 3);
+		}
 		echo $pageContent;
 		exit;
 	}

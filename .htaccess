@@ -335,6 +335,7 @@ RewriteRule ^tools/dice/?$ index.php?p=dados [L,QSA]
 RewriteRule ^tools/csp/?$ index.php?p=csp [L,QSA]
 RewriteRule ^tools/garou-name-generator/?$ index.php?p=garou_name_gen [L,QSA]
 RewriteRule ^ajax/tooltip/?$ index.php?p=tooltip [L,QSA]
+RewriteRule ^ajax/mentions/?$ index.php?p=mentions [L,QSA]
 
 RewriteRule ^music/?$ index.php?p=ost [L,QSA]
 RewriteRule ^gallery/?$ index.php?p=gallery [L,QSA]

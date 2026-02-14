@@ -6,6 +6,7 @@ if (!isset($link) || !$link) {
     die("Error de conexión a la base de datos.");
 }
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/mentions.php');
 
 // Helper: fallo con info útil
 function db_fail(mysqli $link, string $msg) {
@@ -20,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_temporada'])) {
     $numero = (int)($_POST['numero'] ?? 0);
     $season = isset($_POST['season']) ? 1 : 0;
     $desc   = trim($_POST['desc'] ?? '');
+    $desc   = hg_mentions_convert($link, $desc);
 
     // Campos NOT NULL en tu tabla que NO estabas rellenando:
     // opening (varchar NOT NULL), protagonistas (mediumtext NOT NULL)
@@ -49,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
     $numero = (int)($_POST['numero'] ?? 0);
     $season = isset($_POST['season']) ? 1 : 0;
     $desc   = trim($_POST['desc'] ?? '');
+    $desc   = hg_mentions_convert($link, $desc);
 
     // Igual: si no lo editas desde aquí, lo mantenemos como está (mejor que vaciarlo sin querer)
     // Pero como tu form actual no envía opening/protagonistas, NO los tocamos en UPDATE.
@@ -110,7 +113,7 @@ while ($row = $result->fetch_assoc()) {
         <label>Historia personal:</label>
         <input type="checkbox" name="season" <?= !empty($temp['season']) ? 'checked' : '' ?>>
 
-        <textarea name="desc" rows="6" cols="80" style="margin-top: 1em;"><?= htmlspecialchars($temp['desc'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+        <textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="desc" rows="6" cols="80" style="margin-top: 1em;"><?= htmlspecialchars($temp['desc'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
         <br /><br />
     </div>
 
@@ -134,7 +137,7 @@ while ($row = $result->fetch_assoc()) {
         <input type="checkbox" name="season">
         <br />
 
-        <textarea name="desc" rows="6" cols="80" style="margin-top: 1em;"></textarea>
+        <textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="desc" rows="6" cols="80" style="margin-top: 1em;"></textarea>
 
         <!--
         Estos dos NO estaban en tu form original, pero tu tabla los exige NOT NULL.
@@ -149,3 +152,5 @@ while ($row = $result->fetch_assoc()) {
 
     <button class="boton2" type="submit">Añadir Temporada</button>
 </form>
+
+<script>if (window.hgMentions) { window.hgMentions.attachAuto(); }</script>

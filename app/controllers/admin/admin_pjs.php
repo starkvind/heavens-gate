@@ -2,6 +2,8 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
+
 <style>
 /* Ajustes Select2 para tu tema oscuro */
 .select2-container{ width:100% !important; font-size:12px; }
@@ -38,6 +40,8 @@ if (method_exists($link, 'set_charset')) {
 } else {
     mysqli_set_charset($link, 'utf8mb4');
 }
+
+include_once(__DIR__ . '/../../helpers/mentions.php');
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
@@ -529,6 +533,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $cumple      = trim($_POST['cumple'] ?? '');
     $rango       = trim($_POST['rango'] ?? '');
     $infotext    = trim($_POST['infotext'] ?? '');
+    $infotext    = hg_mentions_convert($link, $infotext);
 
     $notas       = '';
 
@@ -1309,7 +1314,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 
         <div style="grid-column:1/-1;">
           <label style="text-align:left;">Información sobre el personaje
-            <textarea class="ta" name="infotext" id="f_infotext" rows="6" placeholder="Texto largo…"></textarea>
+            <textarea class="ta hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="infotext" id="f_infotext" rows="6" placeholder="Texto largo…"></textarea>
           </label>
         </div>
 
@@ -1371,6 +1376,7 @@ function initSelect2Modal(){
   var $parent = jQuery('#mb');
   // Sólo selects del modal
   $parent.find('select').each(function(){
+  if (window.hgMentions) { window.hgMentions.attachAuto(); }
     var $s = jQuery(this);
     if ($s.data('select2')) $s.select2('destroy');
 

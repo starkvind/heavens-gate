@@ -5,6 +5,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../helpers/mentions.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_pretty(string $text): string {
@@ -72,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
     $img = trim((string)($_POST['img'] ?? ''));
     $formas = (int)($_POST['formas'] ?? 0);
     $desc = sanitize_utf8_text((string)($_POST['descripcion'] ?? ''));
+    $desc = hg_mentions_convert($link, $desc);
     $origen = (int)($_POST['origen'] ?? 0);
 
     if ($name === '') {
@@ -264,6 +266,7 @@ if ($rs = $link->query($sql)) {
 
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <script>
 const systemsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 let sysEditor = null;
@@ -271,6 +274,7 @@ let sysEditor = null;
 function ensureSysEditor(){
     if (!sysEditor && window.Quill) {
         sysEditor = new Quill('#system_editor', { theme:'snow', modules:{ toolbar:'#system_toolbar' } });
+        if (window.hgMentions) { window.hgMentions.attachQuill(sysEditor, { types: ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'] }); }
     }
 }
 

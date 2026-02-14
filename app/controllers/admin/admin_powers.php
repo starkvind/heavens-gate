@@ -662,6 +662,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 </div>
 
 <script>
+var HG_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -732,7 +733,7 @@ function pickOptsForField(fieldKey){
     var ui = f.ui || 'text';
 
     if (ui === 'textarea') {
-      input = el('textarea', {name:k, id:'f_'+k, class:'inp'});
+      input = el('textarea', {name:k, id:'f_'+k, class:'inp hg-mention-input', 'data-mentions': HG_MENTION_TYPES.join(',')});
     } else if (ui === 'number') {
       input = el('input', {type:'number', name:k, id:'f_'+k, class:'inp'});
       if (f.min !== undefined) input.setAttribute('min', String(f.min));
@@ -797,6 +798,7 @@ function pickOptsForField(fieldKey){
   function renderForm(){
     grid.innerHTML = '';
     (META.fields||[]).forEach(function(f){ grid.appendChild(buildField(f)); });
+    if (window.hgMentions) { window.hgMentions.attachAuto(); }
   }
 
   function wireImageUpload(){

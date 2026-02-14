@@ -5,6 +5,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../helpers/mentions.php');
 $actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
 	. '<button class="btn btn-green" type="button" onclick="openItemModal()">+ Nuevo objeto</button>'
 	. '<label style="text-align:left;">Filtro r&aacute;pido '
@@ -122,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	$destreza  = (int)($_POST['destreza'] ?? 0);
 	$img       = trim((string)($_POST['img'] ?? ''));
 	$descri    = sanitize_utf8_text((string)($_POST['descri'] ?? ''));
+	$descri    = hg_mentions_convert($link, $descri);
 	$origen    = (int)($_POST['origen'] ?? 0);
 	$currentImg = trim((string)($_POST['current_img'] ?? ''));
 
@@ -400,6 +402,7 @@ function origin_name($origins, $id){
 
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <script>
 const itemsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 let itemEditor = null;
@@ -410,6 +413,7 @@ function ensureItemEditor(){
 			theme: 'snow',
 			modules: { toolbar: '#item_toolbar' }
 		});
+		if (window.hgMentions) { window.hgMentions.attachQuill(itemEditor, { types: ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'] }); }
 	}
 }
 

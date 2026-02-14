@@ -1,0 +1,30 @@
+.hg-mention-box {
+  position: absolute;
+  z-index: 20050;
+  background: #050b36;
+  border: 1px solid #000088;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  padding: 6px;
+  font-family: Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #cfe;
+}
+.hg-mention-list {
+  max-height: 240px;
+  overflow: auto;
+}
+.hg-mention-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.hg-mention-item:hover,
+.hg-mention-item.active {
+  background: #001199;
+  color: #33ffff;
+}
+.hg-mention-empty {
+  padding: 6px 8px;
+  color: #9bb;
+}

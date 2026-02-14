@@ -4,6 +4,7 @@
 	// Errores claros (quítalo en producción si molesta)
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 	include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/mentions.php');
 
 	// Helper: normalizar fechas ('' -> NULL)
 	function norm_date($v) {
@@ -30,6 +31,7 @@
 		$fecha       = norm_date($_POST['fecha'] ?? '');
 		$fechaIngame = norm_date($_POST['fecha_ingame'] ?? '');
 		$sinopsis    = trim($_POST['sinopsis'] ?? '');
+		$sinopsis    = hg_mentions_convert($link, $sinopsis);
 
 		$stmt = $link->prepare("
 			UPDATE dim_chapters 
@@ -66,6 +68,7 @@
 		$fecha       = norm_date($_POST['fecha'] ?? '');
 		$fechaIngame = norm_date($_POST['fecha_ingame'] ?? '');
 		$sinopsis    = trim($_POST['sinopsis'] ?? '');
+		$sinopsis    = hg_mentions_convert($link, $sinopsis);
 
 		// Nota: created_at es NOT NULL; usamos NOW() para evitar depender de DEFAULT.
 		$stmt = $link->prepare("
@@ -188,7 +191,7 @@
 		<input type="date" name="fecha_ingame" id="edit_fecha_ingame">
 
 		<label>Sinopsis</label>
-		<textarea name="sinopsis" id="edit_sinopsis" rows="10"></textarea>
+		<textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="sinopsis" id="edit_sinopsis" rows="10"></textarea>
 
 		<div style="margin-top:1em;">
 			<h4>🎭 Participantes</h4>
@@ -238,7 +241,7 @@
 		<input type="date" name="fecha_ingame" id="new_fecha_ingame">
 
 		<label>Sinopsis</label>
-		<textarea name="sinopsis" id="new_sinopsis" rows="10"></textarea>
+		<textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="sinopsis" id="new_sinopsis" rows="10"></textarea>
 
 		<br />
 		<button class="boton2" type="submit">Crear episodio</button>
@@ -480,6 +483,7 @@
 	});
 
 	// Esc para cerrar popups
+	if (window.hgMentions) { window.hgMentions.attachAuto(); }
 	document.addEventListener('keydown', function(e) {
 		if (e.key === 'Escape') {
 			cerrarPopupEditar();
@@ -487,6 +491,8 @@
 		}
 	});
 </script>
+
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
 <style>
 	/* Popups (comparten clase) */

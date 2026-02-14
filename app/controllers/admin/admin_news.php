@@ -5,6 +5,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 $actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
 	. '<button class="btn btn-green" type="button" onclick="openNewsModal()">+ Nueva noticia</button>'
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 	$autor = trim((string)($_POST['autor'] ?? ''));
 	$titulo = trim((string)($_POST['titulo'] ?? ''));
 	$mensaje = (string)($_POST['mensaje'] ?? '');
+	$mensaje = hg_mentions_convert($link, $mensaje);
 
 	if ($autor === '' || $titulo === '' || $mensaje === '') {
 		$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
@@ -192,6 +194,7 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <script>
 const newsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 let newsEditor = null;
@@ -202,6 +205,7 @@ function ensureEditor(){
 			theme: 'snow',
 			modules: { toolbar: '#news_toolbar' }
 		});
+		if (window.hgMentions) { window.hgMentions.attachQuill(newsEditor, { types: ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'] }); }
 	}
 }
 

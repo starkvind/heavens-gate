@@ -14,6 +14,7 @@
 if (!isset($link) || !$link) { die("Sin conexión BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -152,6 +153,10 @@ $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDE
             }
 
         // normalizaciones
+        if ($postTab === 'docs' && isset($vals['texto'])) {
+            $vals['texto'] = hg_mentions_convert($link, $vals['texto']);
+        }
+
         foreach ($M['fields'] as $f) {
             $k = $f['k'];
             if (($f['db'] ?? 's') === 's') {
@@ -623,10 +628,12 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 <!-- Quill (CDN, sin API key, sin carpetas) -->
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
 <script>
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var HG_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
 var QUILL_TOOLBAR_INNER = <?= json_encode($quillToolbarInner, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
@@ -670,6 +677,10 @@ function initEditors(){
         clipboard: { matchVisual: false }
       }
     });
+
+    if (window.hgMentions && HG_MENTION_TYPES) {
+      window.hgMentions.attachQuill(q, { types: HG_MENTION_TYPES });
+    }
 
     // Cargar HTML inicial desde textarea
     var html = textarea.value || '';
