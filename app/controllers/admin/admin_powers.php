@@ -1,6 +1,6 @@
-<?php
+﻿<?php
 /**
- * admin_poderes_crud.php — CRUD autocontenido (Dones / Rituales / Tótems / Disciplinas)
+ * admin_powers.php — CRUD autocontenido (Dones / Rituales / Tótems / Disciplinas)
  * Requisitos:
  *   - Debe existir $link (mysqli) ya conectado.
  *   - Tablas: fact_gifts, fact_rites, dim_totems, fact_discipline_powers
@@ -11,7 +11,7 @@
  *       dim_totem_types(id,name)
  *       dim_discipline_types(id,name)
  * FIXES (2026-01-10):
- *  - El <select> de campos select_int (incl. Origen) ahora tiene id="f_<campo>" → se carga bien al editar.
+ *  - El <select> de campos select_int (incl. Origen) ahora tiene id="f_<campo>" => se carga bien al editar.
  *  - Campos que pueden ir vacíos marcados como NO obligatorios:
  *      * Dones: atributo, sistema
  *      * Tótems: rasgos, prohib
@@ -21,11 +21,18 @@
 if (!isset($link) || !$link) { die("Sin conexión BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
+header('Content-Type: text/html; charset=utf-8');
+if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 // Subidas de imagen (Dones)
 $DOCROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
 $DON_IMG_UPLOAD_DIR = $DOCROOT . '/public/img/gifts';
 $DON_IMG_URL_BASE   = '/img/gifts';
 if (!is_dir($DON_IMG_UPLOAD_DIR)) { @mkdir($DON_IMG_UPLOAD_DIR, 0775, true); }
+
+// Subidas de imagen (Totems)
+$TOTEM_IMG_UPLOAD_DIR = $DOCROOT . '/public/img/totems';
+$TOTEM_IMG_URL_BASE   = '/img/totems';
+if (!is_dir($TOTEM_IMG_UPLOAD_DIR)) { @mkdir($TOTEM_IMG_UPLOAD_DIR, 0775, true); }
 
 function save_power_image(array $file, string $uploadDir, string $urlBase, string $prefix = 'gift'): array {
     if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
@@ -209,7 +216,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 // FIX: ahora pueden ir vacíos
                 ['k'=>'rasgos', 'label'=>'Rasgos',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'prohib', 'label'=>'Prohibición', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
-                ['k'=>'img',    'label'=>'IMG (URL o ruta)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+                ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'origen', 'label'=>'Origen',      'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
@@ -239,7 +246,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
             // FIX: ahora puede ir vacío
             ['k'=>'atributo',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
             ['k'=>'habilidad',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
-            ['k'=>'img',        'label'=>'IMG (URL o ruta)', 'ui'=>'text','db'=>'s', 'req'=>false],
+            ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
             ['k'=>'origen',     'label'=>'Origen',      'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
         ],
         'list_cols' => [
@@ -260,9 +267,9 @@ $META = meta_for($tab, $opts_origen, $opts_tipo_dones, $opts_tipo_rit, $opts_tip
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && isset($_POST['crud_tab'])) {
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
-        $flash[] = ['type'=>'error','msg'=>'❌ Pestaña inválida.'];
+        $flash[] = ['type'=>'error','msg'=>'? Pestaña inválida.'];
     } elseif (!csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'❌ CSRF inválido. Recarga la página.'];
+        $flash[] = ['type'=>'error','msg'=>'? CSRF inválido. Recarga la página.'];
     } else {
         $M = meta_for($postTab, $opts_origen, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
         $action = (string)$_POST['crud_action'];
@@ -281,18 +288,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
         }
 
-                // Subida de imagen (solo Dones)
-        if ($postTab === 'dones') {
+                        // Subida de imagen (Dones y Totems)
+        if ($postTab === 'dones' || $postTab === 'totems') {
             $currentImg = trim((string)($_POST['current_img'] ?? ''));
-            $upload = save_power_image($_FILES['img_file'] ?? [], $DON_IMG_UPLOAD_DIR, $DON_IMG_URL_BASE, 'gift');
+            $uploadDir = ($postTab === 'dones') ? $DON_IMG_UPLOAD_DIR : $TOTEM_IMG_UPLOAD_DIR;
+            $urlBase   = ($postTab === 'dones') ? $DON_IMG_URL_BASE   : $TOTEM_IMG_URL_BASE;
+            $prefix    = ($postTab === 'dones') ? 'gift' : 'totem';
+            $upload = save_power_image($_FILES['img_file'] ?? [], $uploadDir, $urlBase, $prefix);
             if (($upload['ok'] ?? false) === true) {
-                if ($currentImg !== '') safe_unlink_power_image($currentImg, $DON_IMG_UPLOAD_DIR);
+                if ($currentImg !== '') safe_unlink_power_image($currentImg, $uploadDir);
                 $vals['img'] = $upload['url'];
             } else {
                 if (($vals['img'] ?? '') === '' && $currentImg !== '') $vals['img'] = $currentImg;
             }
         }
-
 // normalizaciones
         foreach ($M['fields'] as $f) {
             $k = $f['k'];
@@ -306,9 +315,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             if (!empty($f['req'])) {
                 $k = $f['k'];
                 if (($f['db'] ?? 's') === 'i') {
-                    if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'⚠ '.$f['label'].' inválido.'];
+                    if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' inválido.'];
                 } else {
-                    if (trim((string)$vals[$k]) === '') $flash[] = ['type'=>'error','msg'=>'⚠ '.$f['label'].' es obligatorio.'];
+                    if (trim((string)$vals[$k]) === '') $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' es obligatorio.'];
                 }
             }
         }
@@ -342,22 +351,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                 $st = $link->prepare($sql);
                 if (!$st) {
-                    $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar INSERT: '.$link->error];
+                    $flash[] = ['type'=>'error','msg'=>'? Error al preparar INSERT: '.$link->error];
                 } else {
                     $st->bind_param($types, ...$bind);
                     if ($st->execute()) {
                         $newId = (int)$link->insert_id;
                         $src = (string)($vals[$M['name_col']] ?? '');
                         update_pretty_id($link, $table, $newId, $src);
-                        $flash[] = ['type'=>'ok','msg'=>'✅ '.$M['title'].' creado correctamente.'];
+                        $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' creado correctamente.'];
                     } else {
-                        $flash[] = ['type'=>'error','msg'=>'❌ Error al crear: '.$st->error];
+                        $flash[] = ['type'=>'error','msg'=>'? Error al crear: '.$st->error];
                     }
                     $st->close();
                 }
             } elseif ($action === 'update') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'⚠ Falta ID para actualizar.'];
+                    $flash[] = ['type'=>'error','msg'=>'? Falta ID para actualizar.'];
                 } else {
                     $sets = [];
                     $types= '';
@@ -380,21 +389,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                     $st = $link->prepare($sql);
                     if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar UPDATE: '.$link->error];
+                        $flash[] = ['type'=>'error','msg'=>'? Error al preparar UPDATE: '.$link->error];
                     } else {
                         $st->bind_param($types, ...$bind);
                         if ($st->execute()) {
                             $src = (string)($vals[$M['name_col']] ?? '');
                             update_pretty_id($link, $table, $id, $src);
-                            $flash[] = ['type'=>'ok','msg'=>'✏ '.$M['title'].' actualizado.'];
+                            $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' actualizado.'];
                         } else {
-                            $flash[] = ['type'=>'error','msg'=>'❌ Error al actualizar: '.$st->error];
+                            $flash[] = ['type'=>'error','msg'=>'? Error al actualizar: '.$st->error];
                         }
                         $st->close();
                     }
                 }
             } else {
-                $flash[] = ['type'=>'error','msg'=>'❌ Acción inválida.'];
+                $flash[] = ['type'=>'error','msg'=>'? Acción inválida.'];
             }
 
             // Mantener tab actual tras POST
@@ -531,11 +540,11 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 
 <div class="panel-wrap">
   <div class="hdr">
-    <h2>🧩 CRUD — <?= h(ui_title($tab)) ?></h2>
+    <h2>&#x1F9E9; CRUD &#8212; <?= h(ui_title($tab)) ?></h2>
 
     <div class="tabs">
       <?php
-        $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_poderes_crud');
+        $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_powers');
         $baseTabs .= "&pp=".$perPage."&q=".urlencode($q);
       ?>
       <a class="tablnk <?= $tab==='dones'?'active':'' ?>" href="<?= $baseTabs ?>&tab=dones">Dones</a>
@@ -544,11 +553,11 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
       <a class="tablnk <?= $tab==='disciplinas'?'active':'' ?>" href="<?= $baseTabs ?>&tab=disciplinas">Disciplinas</a>
     </div>
 
-    <button class="btn btn-green" id="btnNew">➕ Nuevo</button>
+    <button class="btn btn-green" id="btnNew">&#x2795; Nuevo</button>
 
     <form method="get" style="display:flex; gap:8px; align-items:center; margin-left:auto;">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
-      <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_poderes_crud') ?>">
+      <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_powers') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
         <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="Nombre…">
@@ -601,7 +610,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
             </td>
           <?php endforeach; ?>
           <td>
-            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">✏ Editar</button>
+            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">&#x270F; Editar</button>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -613,7 +622,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 
   <div class="pager">
     <?php
-      $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_poderes_crud');
+      $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_powers');
       $base .= "&tab=".urlencode($tab)."&pp=".$perPage."&q=".urlencode($q);
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
@@ -653,15 +662,15 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 </div>
 
 <script>
-var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 
-var OPTS_ORIGEN = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_origen), array_values($opts_origen)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var OPTS_TIPO_DONES = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_dones), array_values($opts_tipo_dones)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var OPTS_TIPO_RIT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_rit), array_values($opts_tipo_rit)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var OPTS_TIPO_TOT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_tot), array_values($opts_tipo_tot)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var OPTS_TIPO_DISC  = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_disc), array_values($opts_tipo_disc)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var OPTS_ORIGEN = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_origen), array_values($opts_origen)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var OPTS_TIPO_DONES = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_dones), array_values($opts_tipo_dones)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var OPTS_TIPO_RIT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_rit), array_values($opts_tipo_rit)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var OPTS_TIPO_TOT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_tot), array_values($opts_tipo_tot)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var OPTS_TIPO_DISC  = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_disc), array_values($opts_tipo_disc)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 
 function pickOptsForField(fieldKey){
   if (TAB==='dones' && fieldKey==='tipo') return OPTS_TIPO_DONES;
@@ -924,3 +933,11 @@ function pickOptsForField(fieldKey){
 
 })();
 </script>
+
+
+
+
+
+
+
+

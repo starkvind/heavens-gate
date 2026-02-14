@@ -34,6 +34,10 @@ public/img/inv/uploads/**/*.png
 public/img/inv/uploads/**/*.gif
 public/img/inv/uploads/**/*.webp
 
+public/img/totems/**/*.jpg
+public/img/totems/**/*.jpeg
+public/img/totems/**/*.png
+
 !public/img/poi/.gitkeep
 !public/img/characters/.gitkeep
 !public/img/gallery/.gitkeep
@@ -42,6 +46,7 @@ public/img/inv/uploads/**/*.webp
 !public/img/maneuvers/.gitkeep
 !public/img/gifts/.gitkeep
 !public/img/inv/uploads/.gitkeep
+!public/img/totems/.gitkeep
 
 # Common sensitive/runtime files
 .env

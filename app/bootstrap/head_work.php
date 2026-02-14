@@ -1,8 +1,8 @@
 <?php
-// Título y descripción dinámicos (puedes definirlos antes de llamar a head.php)
-$metaDescription = $metaDescription ?? "Heaven's Gate es una campaña de rol ambientada en un Mundo de Tinieblas completamente nuevo. Descubre biografías, clanes, poderes, temporadas y una nebulosa de relaciones entre personajes.";
-$metaImage = $metaImage ?? null; // Deja que setMetaTags use su imagen por defecto
-$metaURL = "https://heavensgate.zapto.org" . $_SERVER['REQUEST_URI'];
+	// Título y descripción dinámicos (puedes definirlos antes de llamar a head.php)
+	$metaDescription = $metaDescription ?? "Heaven's Gate es una campaña de rol ambientada en un Mundo de Tinieblas completamente nuevo. Descubre biografías, clanes, poderes, temporadas y una nebulosa de relaciones entre personajes.";
+	$metaImage = $metaImage ?? null; // Deja que setMetaTags use su imagen por defecto
+	$metaURL = "https:naufragio-heavensgate.duckdns.org" . $_SERVER['REQUEST_URI'];
 ?>
 <head>
     <meta charset="UTF-8">

@@ -57,7 +57,7 @@
 					include("admin_plots_crud.php");
 					break;
 				case 'admin_powers':
-					include("admin_poderes_crud.php");
+					include("admin_powers.php");
 					break;
 				case 'admin_docs':
 					include("admin_docs.php");
@@ -240,3 +240,4 @@
 		}
 	}
 ?>
+
