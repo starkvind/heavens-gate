@@ -53,7 +53,7 @@ function ensure_utf8($value) {
 
 $dones = ensure_utf8($dones);
 
-$pageSect = "Lista de dones";
+$pageSect = "Lista de Dones";
 ?>
 
 <link rel="stylesheet" href="assets/vendor/datatables/jquery.dataTables.min.css">

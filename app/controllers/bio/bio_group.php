@@ -35,7 +35,7 @@
 	// Helper escape
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 	function sanitize_int_csv($csv){
 		$csv = (string)$csv;
 		if (trim($csv) === '') return '';
@@ -63,7 +63,7 @@
 	$howMuch = 0;
 
 	// ======================================== //
-	// EXCLUSIONES DE CRÃ“NICAS (lista de ints, segura)
+	// EXCLUSIONES DE CRÓNICAS (lista de ints, segura)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
 
@@ -80,7 +80,7 @@
 	if ($rowType = mysqli_fetch_assoc($resultTypeQuery)) {
 
 		$nombreTipo = h($rowType["tipo"]);
-		$pageSect   = "$nombreTipo | BiografÃ­as";
+		$pageSect   = "$nombreTipo | Biografías";
 
 		include("app/partials/main_nav_bar.php");
 		echo "<h2>$nombreTipo</h2>";
@@ -237,3 +237,4 @@
 		}
 	});
 </script>
+

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // ===================== //
 // ✨ Validación de entradas
 // ===================== //
@@ -430,7 +430,8 @@ if (isset($routes[$routeKey])) {
 	include("app/controllers/main/main_news.php");
 }
 
-// Fallback de metatags desde tÃ­tulos de pÃ¡gina si no se han definido
+// Fallback de metatags desde títulos de página si no se han definido
 if (empty($metaTitle)) {
-	$metaTitle = trim(($pageTitle2 ?? '') . ' | ' . ($pageSect ?? '') . ' | ' . $pageTitle, ' |');
+$metaTitle = trim(($pageTitle2 ?? '') . ' | ' . ($pageSect ?? '') . ' | ' . $pageTitle, ' |');
 }
+

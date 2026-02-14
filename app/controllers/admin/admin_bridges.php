@@ -42,7 +42,7 @@ function fetchPairs(mysqli $link, string $sql): array {
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL   = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
 
-$tab = $_GET['tab'] ?? 'chars'; // chars | clans
+$tab = $_GET['tab'] ? 'chars'; // chars | clans
 $pageTitle2 = "Bridges — Relaciones";
 
 // IMPORTANTE: si tu tabla es hg_character_clan_bridge (singular), cambia aquí:
@@ -196,9 +196,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 
   try {
     if ($action === 'save_char_links') {
-      $charId  = max(0, (int)($_POST['character_id'] ?? 0));
-      $groupId = max(0, (int)($_POST['group_id'] ?? 0)); // manada
-      $clanId  = max(0, (int)($_POST['clan_id'] ?? 0));
+      $charId  = max(0, (int)($_POST['character_id'] ? 0));
+      $groupId = max(0, (int)($_POST['group_id'] ? 0)); // manada
+      $clanId  = max(0, (int)($_POST['clan_id'] ? 0));
 
       // Si eliges manada, opcionalmente forzamos clan al clan "dueño" de esa manada (bridge clan-group)
       $autoClan = 0;
@@ -219,8 +219,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     }
 
     if ($action === 'save_clan_group') {
-      $clanId  = max(0,(int)($_POST['clan_id'] ?? 0));
-      $groupId = max(0,(int)($_POST['group_id'] ?? 0));
+      $clanId  = max(0,(int)($_POST['clan_id'] ? 0));
+      $groupId = max(0,(int)($_POST['group_id'] ? 0));
       $isAct   = isset($_POST['is_active']) ? (int)($_POST['is_active']) : 1;
 
       // Si quieres permitir que una manada esté activa en MÁS de un clan, pon esto a false:
@@ -233,8 +233,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     }
 
     if ($action === 'deactivate_row') {
-      $table = (string)($_POST['table'] ?? '');
-      $id    = max(0,(int)($_POST['id'] ?? 0));
+      $table = (string)($_POST['table'] ? '');
+      $id    = max(0,(int)($_POST['id'] ? 0));
       $allowed = [$T_CHAR_GROUP, $T_CHAR_CLAN, $T_CLAN_GROUP];
       if ($id>0 && in_array($table,$allowed,true)) {
         if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE id=?")) {
@@ -247,8 +247,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     // Si quieres borrado duro (NO recomendado si quieres histórico), descomenta el botón y este handler:
     /*
     if ($action === 'delete_row') {
-      $table = (string)($_POST['table'] ?? '');
-      $id    = max(0,(int)($_POST['id'] ?? 0));
+      $table = (string)($_POST['table'] ? '');
+      $id    = max(0,(int)($_POST['id'] ? 0));
       $allowed = [$T_CHAR_GROUP, $T_CHAR_CLAN, $T_CLAN_GROUP];
       if ($id>0 && in_array($table,$allowed,true)) {
         if ($st = $link->prepare("DELETE FROM {$table} WHERE id=?")) {
@@ -334,9 +334,9 @@ if ($rs = $link->query($sqlCG)) {
 // Render
 //include("sep/main/main_nav_bar.php");
 ?>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 
 <style>
 .panel-wrap { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
@@ -457,13 +457,13 @@ if ($rs = $link->query($sqlCG)) {
       <tbody>
         <?php foreach($chars as $c):
           $cid = (int)$c['id'];
-          $nm  = (string)($c['nombre'] ?? '');
-          $img = (string)($c['img'] ?? '');
-          $est = (string)($c['estado'] ?? '');
-          $cln = (string)($c['active_clan_name'] ?? '');
-          $grp = (string)($c['active_group_name'] ?? '');
-          $clanId = (int)($c['active_clan_id'] ?? 0);
-          $groupId= (int)($c['active_group_id'] ?? 0);
+          $nm  = (string)($c['nombre'] ? '');
+          $img = (string)($c['img'] ? '');
+          $est = (string)($c['estado'] ? '');
+          $cln = (string)($c['active_clan_name'] ? '');
+          $grp = (string)($c['active_group_name'] ? '');
+          $clanId = (int)($c['active_clan_id'] ? 0);
+          $groupId= (int)($c['active_group_id'] ? 0);
         ?>
         <tr data-nombre="<?= strtolower(h($nm)) ?>">
           <td><strong style="color:#33FFFF;"><?= $cid ?></strong></td>
@@ -521,11 +521,11 @@ if ($rs = $link->query($sqlCG)) {
       <tbody>
         <?php foreach($clanGroups as $r):
           $rid = (int)$r['id'];
-          $cln = (string)($r['clan_name'] ?? '');
-          $grp = (string)($r['group_name'] ?? '');
-          $cid = (int)($r['clan_id'] ?? 0);
-          $gid = (int)($r['group_id'] ?? 0);
-          $act = (int)($r['is_active'] ?? 0);
+          $cln = (string)($r['clan_name'] ? '');
+          $grp = (string)($r['group_name'] ? '');
+          $cid = (int)($r['clan_id'] ? 0);
+          $gid = (int)($r['group_id'] ? 0);
+          $act = (int)($r['is_active'] ? 0);
         ?>
         <tr data-text="<?= strtolower(h($cln.' '.$grp)) ?>">
           <td><strong style="color:#33FFFF;"><?= $rid ?></strong></td>

@@ -1,9 +1,9 @@
-<?php
+﻿<?php
 /* app/partials/bio/bio_page_section_17_rel_graph.php
    Mini grafo de relaciones para la página de biografía */
 
 /* RelGraph */ 
-	$characterId = $_GET['b'] ?? null;
+	$characterId = $_GET['b'] ? null;
 
 	if (!$characterId || !$link) {
 		echo "<div style='padding:1em;'>Error: Datos insuficientes para mostrar la gráfica.</div>";
@@ -17,7 +17,7 @@
 	$mainChar = $stmtChar->get_result()->fetch_assoc();
 	$stmtChar->close();
 
-	$id = intval($_GET['b'] ?? 0);
+	$id = intval($_GET['b'] ? 0);
 
 	// Obtener datos del personaje
 	$queryPJ = "SELECT id, nombre, img, estado FROM fact_characters WHERE id = ?";
@@ -199,7 +199,7 @@
 		} catch (e) {}
 	}
 
-	// Ajuste inicial: deja que se estabilice, pero corta fÃ­sica si se queda colgado
+	// Ajuste inicial: deja que se estabilice, pero corta física si se queda colgado
 	refreshRelGraph(true);
 	network.once("stabilized", function(){
 		try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
@@ -210,12 +210,12 @@
 		refreshRelGraph(false);
 	}, 1800);
 
-	// Exponer helper para refresco al cambiar de pestaÃ±a/vista
+	// Exponer helper para refresco al cambiar de pestaña/vista
 	window.__bioRelNetworkRefresh = function(){
 		refreshRelGraph(false);
 	};
 
-	// Al mover nodos, guardamos posiciones sin reactivar fÃ­sica (evita temblores)
+	// Al mover nodos, guardamos posiciones sin reactivar física (evita temblores)
 	network.on("dragEnd", function(){
 		try { network.storePositions(); } catch (e) {}
 	});
@@ -231,4 +231,6 @@
 	});
 
 </script>
+
+
 
