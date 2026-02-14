@@ -1,4 +1,4 @@
-﻿<?php setMetaFromPage("Biografias por grupo | Heaven's Gate", "Listado de biografias agrupadas por clan o tipo.", null, 'website'); ?>
+﻿<?php setMetaFromPage("Biografías por grupo | Heaven's Gate", "Listado de biografías agrupadas por Tipo y Organización.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;
@@ -29,7 +29,7 @@
 
 <?php
 	if (!$link) {
-		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+		die("Error de conexión a la base de datos: " . mysqli_connect_error());
 	}
 
 	// Helper escape
@@ -52,7 +52,7 @@
 	$idTipo = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 	if ($idTipo <= 0) {
 		include("app/partials/main_nav_bar.php");
-		echo "<h2>Error</h2><p class='texti'>Tipo invÃ¡lido.</p>";
+		echo "<h2>Error</h2><p class='texti'>Tipo inválido.</p>";
 		exit;
 	}
 
@@ -160,7 +160,7 @@
 					$fieldsetId = 'clan_' . ($clanId > 0 ? $clanId : 'none');
 
 					echo "<h3 class='toggleAfiliacion' data-target='" . h($fieldsetId) . "'>" . h($clanName) . "</h3>";
-					echo "<fieldset class='grupoBioClan' style='padding:0 1em;'>";
+					echo "<fieldset class='grupoBioClan'>";
 					echo "<div id='" . h($fieldsetId) . "' class='contenidoAfiliacion'>";
 
 					foreach ($grp['items'] as $rowPJ) {
@@ -181,9 +181,9 @@
 						}
 
 						$mapEstado = [
-							"AÃºn por aparecer"     => "(&#64;)",
+							"Aún por aparecer"     => "(&#64;)",
 							"Paradero desconocido" => "(&#63;)",
-							"CadÃ¡ver"              => "(&#8224;)"
+							"Cadáver"              => "(&#8224;)"
 						];
 						$simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
@@ -214,13 +214,13 @@
 
 	} else {
 		include("app/partials/main_nav_bar.php");
-		echo "<h2>Tipo</h2><p class='texti' style='text-align:center;'>No se encontrÃ³ el tipo especificado.</p>";
+		echo "<h2>Tipo</h2><p class='texti' style='text-align:center;'>No se encuentra el tipo especificado.</p>";
 	}
 
 	mysqli_free_result($resultTypeQuery);
 	mysqli_stmt_close($stmtType);
 
-	// OJO: yo NO cerrarÃ­a $link aquÃ­ si lo reutilizas en la misma request con includes.
+	// OJO: yo NO cerrarí­a $link aquí­ si lo reutilizas en la misma request con includes.
 	// mysqli_close($link);
 ?>
 

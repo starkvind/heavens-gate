@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_pretty(string $text): string {
@@ -175,6 +176,8 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
 }
 
 $META = meta_for($tab, $opts_origins, $opts_systems);
+
+$quillToolbarInner = admin_quill_toolbar_inner();
 
 // Guardado
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && isset($_POST['crud_tab'])) {
@@ -462,6 +465,13 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
 .ql-snow .ql-stroke{ stroke:#cfe !important; }
 .ql-snow .ql-fill{ fill:#cfe !important; }
 .ql-snow .ql-picker{ color:#cfe !important; }
+.ql-snow .ql-picker-options{
+  background:#050b36 !important;
+  border:1px solid #000088 !important;
+}
+.ql-snow .ql-picker-item{
+  color:#cfe !important;
+}
 </style>
 
 <div class="tabs" style="margin:6px 0 10px;">
@@ -571,12 +581,14 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
   </div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 
 <script>
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var QUILL_TOOLBAR_INNER = <?= json_encode($quillToolbarInner, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var OPTS_ORIGINS = <?= json_encode(array_map(fn($r)=>['id'=>(int)$r['id'], 'name'=>$r['name']], $opts_origins), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var OPTS_SYSTEMS = <?= json_encode(array_values($opts_systems), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
@@ -717,20 +729,7 @@ function syncEditorsToTextarea(){
       });
       wysWrap.className = 'wys-wrap';
 
-      var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, `
-        <span class="ql-formats">
-          <button class="ql-bold"></button>
-          <button class="ql-italic"></button>
-          <button class="ql-underline"></button>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-list" value="ordered"></button>
-          <button class="ql-list" value="bullet"></button>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-link"></button>
-        </span>
-      `);
+      var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, QUILL_TOOLBAR_INNER);
       var ed = el('div', {id:editorId, class:'ql-container ql-snow'});
       wysWrap.appendChild(tb);
       wysWrap.appendChild(ed);

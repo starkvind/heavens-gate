@@ -3,6 +3,170 @@
 	include("app/helpers/heroes.php"); // Archivo de la base de datos
 ?>
 
+
+<?php
+	if (!function_exists('h')) {
+		function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+	}
+
+	function hg_current_path(): string {
+		$uri = $_SERVER['REQUEST_URI'] ?? '/';
+		$path = strtok($uri, '?');
+		if ($path === false || $path === '') return '/';
+
+		// // Si hay rutas legacy (?p=...), usa esa info para mapear aunque el path no sea '/'
+		// if (isset($_GET['p'])) {
+		// 	$p = (string)$_GET['p'];
+		// 	if ($p === 'temp_analisis') return '/seasons/analysis';
+		// 	if ($p === 'temp') {
+		// 		if (isset($_GET['t']) && $_GET['t'] !== '') return '/seasons/' . (string)$_GET['t'];
+		// 		return '/seasons';
+		// 	}
+		// 	if ($p === 'seechapter') {
+		// 		if (isset($_GET['t']) && $_GET['t'] !== '') return '/chapters/' . (string)$_GET['t'];
+		// 		return '/chapters';
+		// 	}
+		// }
+
+		return $path;
+	}
+
+	function hg_normalize_path(string $path): string {
+		$path = strtolower($path);
+		if ($path !== '/' && substr($path, -1) === '/') {
+			$path = rtrim($path, '/');
+		}
+		return $path === '' ? '/' : $path;
+	}
+
+	function hg_starts_with(string $haystack, string $needle): bool {
+		return $needle !== '' && strncmp($haystack, $needle, strlen($needle)) === 0;
+	}
+
+	function hg_menu_open_id_static(string $path, $link): ?string {
+		$path = hg_normalize_path($path);
+
+		if (hg_starts_with($path, '/news') || hg_starts_with($path, '/search') || hg_starts_with($path, '/status') || hg_starts_with($path, '/about')) {
+			return 'startMenu';
+		}
+		if (hg_starts_with($path, '/characters') || hg_starts_with($path, '/organizations') || hg_starts_with($path, '/relationship-map')) {
+			return 'bioMenu';
+		}
+		if (hg_starts_with($path, '/parties')) {
+			return 'archivoMenu';
+		}
+		if (hg_starts_with($path, '/seasons/analysis')) {
+			return 'toolsMenu';
+		}
+		if (hg_starts_with($path, '/documents') || hg_starts_with($path, '/timeline') || hg_starts_with($path, '/maps') || hg_starts_with($path, '/music') || hg_starts_with($path, '/gallery')) {
+			return 'loreMenu';
+		}
+		if (hg_starts_with($path, '/systems') || hg_starts_with($path, '/rules') || hg_starts_with($path, '/inventory')) {
+			return 'systemMenu';
+		}
+		if (hg_starts_with($path, '/powers')) {
+			return 'powersMenu';
+		}
+		if (hg_starts_with($path, '/tools')) {
+			return 'toolsMenu';
+		}
+		return null;
+	}
+
+	function hg_menu_open_id_db($link, string $path): ?string {
+		if (!$link) return null;
+		$path = hg_normalize_path($path);
+
+		// Resolver temporadas/cap?tulos a su men? v?a dynamic_source (seasons_0 / seasons_1)
+		$seasonFlag = null;
+		if (preg_match('#^/seasons/([^/]+)#', $path, $m)) {
+			$seasonRaw = (string)$m[1];
+			$seasonId = 0;
+			if (ctype_digit($seasonRaw)) {
+				$seasonId = (int)$seasonRaw;
+			} elseif (function_exists('resolve_pretty_id')) {
+				$seasonId = (int)(resolve_pretty_id($link, 'dim_seasons', $seasonRaw) ?? 0);
+			}
+			if ($seasonId > 0 && ($stmt = mysqli_prepare($link, "SELECT season FROM dim_seasons WHERE id = ? LIMIT 1"))) {
+				mysqli_stmt_bind_param($stmt, 'i', $seasonId);
+				mysqli_stmt_execute($stmt);
+				$res = mysqli_stmt_get_result($stmt);
+				if ($row = mysqli_fetch_assoc($res)) {
+					$seasonFlag = (string)($row['season'] ?? '');
+				}
+				mysqli_stmt_close($stmt);
+			}
+		} elseif (preg_match('#^/chapters/([^/]+)#', $path, $m)) {
+			$chapterRaw = (string)$m[1];
+			$chapterId = 0;
+			if (ctype_digit($chapterRaw)) {
+				$chapterId = (int)$chapterRaw;
+			} elseif (function_exists('resolve_pretty_id')) {
+				$chapterId = (int)(resolve_pretty_id($link, 'dim_chapters', $chapterRaw) ?? 0);
+			}
+			if ($chapterId > 0 && ($stmt = mysqli_prepare($link, "SELECT s.season AS season_flag FROM dim_chapters c JOIN dim_seasons s ON s.numero = c.temporada WHERE c.id = ? LIMIT 1"))) {
+				mysqli_stmt_bind_param($stmt, 'i', $chapterId);
+				mysqli_stmt_execute($stmt);
+				$res = mysqli_stmt_get_result($stmt);
+				if ($row = mysqli_fetch_assoc($res)) {
+					$seasonFlag = (string)($row['season_flag'] ?? '');
+				}
+				mysqli_stmt_close($stmt);
+			}
+		}
+
+		if ($seasonFlag === '0' || $seasonFlag === '1') {
+			$dyn = 'seasons_' . $seasonFlag;
+			if ($stmt = mysqli_prepare($link, "SELECT p.menu_key FROM dim_menu_items c JOIN dim_menu_items p ON c.parent_id = p.id WHERE c.enabled = 1 AND p.enabled = 1 AND c.dynamic_source = ? LIMIT 1")) {
+				mysqli_stmt_bind_param($stmt, 's', $dyn);
+				mysqli_stmt_execute($stmt);
+				$res = mysqli_stmt_get_result($stmt);
+				if ($row = mysqli_fetch_assoc($res)) {
+					$menuKey = (string)($row['menu_key'] ?? '');
+					mysqli_stmt_close($stmt);
+					if ($menuKey !== '') return $menuKey;
+				}
+				mysqli_stmt_close($stmt);
+			}
+		}
+		$bestMenuKey = null;
+		$bestLen = -1;
+
+		$sql = "SELECT p.menu_key, c.href, c.item_type, c.dynamic_source
+			FROM dim_menu_items c
+			JOIN dim_menu_items p ON c.parent_id = p.id
+			WHERE c.enabled = 1 AND p.enabled = 1";
+		if ($res = $link->query($sql)) {
+			while ($row = $res->fetch_assoc()) {
+				$menuKey = (string)($row['menu_key'] ?? '');
+				$href = (string)($row['href'] ?? '');
+				$type = (string)($row['item_type'] ?? '');
+				$dyn = (string)($row['dynamic_source'] ?? '');
+
+				$hrefPath = $href ? parse_url($href, PHP_URL_PATH) : '';
+				$hrefPath = $hrefPath ? hg_normalize_path($hrefPath) : '';
+
+				if ($hrefPath !== '' && $hrefPath !== '#' && hg_starts_with($path, $hrefPath)) {
+					$len = strlen($hrefPath);
+					if ($len > $bestLen && $menuKey !== '') {
+						$bestLen = $len;
+						$bestMenuKey = $menuKey;
+					}
+				}
+
+				if ($bestMenuKey === null && $dyn && hg_starts_with($path, '/seasons') && strpos($dyn, 'seasons_') === 0) {
+					if ($menuKey !== '') {
+						$bestMenuKey = $menuKey;
+					}
+				}
+			}
+			$res->free();
+		}
+
+		return $bestMenuKey;
+	}
+?>
+
 <?php
 	// =========================
 	// Menú desde base de datos (dim_menu_items)
@@ -15,11 +179,14 @@
 		}
 	}
 
-	if ($useDbMenu) {
-		if (!function_exists('h')) {
-			function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-		}
+	
 
+	$hgCurrentPath = hg_current_path();
+	$menuOpenId = $useDbMenu ? hg_menu_open_id_db($link, $hgCurrentPath) : hg_menu_open_id_static($hgCurrentPath, $link ?? null);
+
+
+
+	if ($useDbMenu) {
 		function render_seasons(mysqli $link, string $seasonFlag): void {
 			$consulta = "SELECT id, name, numero, finished FROM dim_seasons WHERE season LIKE ? ORDER BY order_n";
 			if ($stmt = mysqli_prepare($link, $consulta)) {
@@ -111,7 +278,8 @@
 			$res->free();
 		}
 
-		echo "<table class='tmenu'>";
+		$menuOpenAttr = $menuOpenId ? " data-menu-open='" . h($menuOpenId) . "'" : "";
+		echo "<table class='tmenu'{$menuOpenAttr}>";
 		$idx = 0;
 		foreach ($menuItems as $m) {
 			$idx++;
@@ -126,7 +294,8 @@
 			echo "</a></td></tr>";
 
 			echo "<tr><td class='sekzo'>";
-			echo "<div class='ocultable' id='{$menuId}'>";
+			$openClass = ($menuOpenId === $menuId) ? ' open' : '';
+			echo "<div class='ocultable{$openClass}' id='{$menuId}'>";
 			render_menu_children($link, (int)$m['id']);
 			echo "</div></td></tr>";
 		}
@@ -135,7 +304,8 @@
 	}
 ?>
 
-<table class="tmenu">
+<?php $menuOpenAttr = $menuOpenId ? " data-menu-open='" . h($menuOpenId) . "'" : ""; ?>
+<table class="tmenu"<?= $menuOpenAttr ?>>
     <!-- TEMA -->
 	<tr> <!-- INICIO !-->
 		<td>
@@ -147,7 +317,7 @@
 	</tr>
 	<tr>
 		<td class="sekzo">
-			<div class="ocultable" id="startMenu">
+			<div class="ocultable<?= ($menuOpenId === 'startMenu') ? ' open' : '' ?>" id="startMenu">
 				<a href="/news"><div class="renglonMenu">Noticias</div></a>
 				<a href="/search"><div class="renglonMenu">Buscar</div></a>
 				<a href="/status"><div class="renglonMenu">Estado</div></a>
@@ -167,7 +337,7 @@
     </tr>
     <tr>
         <td class='sekzo'>
-        <div class="ocultable" id="bioMenu">
+        <div class="ocultable<?= ($menuOpenId === 'bioMenu') ? ' open' : '' ?>" id="bioMenu">
             <?php
 				echo "<a href='/characters'><div class='renglonMenu'>Lista de personajes</div></a>";
 				echo "<a href='/characters/types'><div class='renglonMenu'>Biografías por tipo</div></a>";
@@ -191,7 +361,7 @@
     </tr>
     <tr>    
         <td class='sekzo'>
-            <div class="ocultable" id="archivoMenu">
+            <div class="ocultable<?= ($menuOpenId === 'archivoMenu') ? ' open' : '' ?>" id="archivoMenu">
 				<a href="/parties"><div class="renglonMenu">Tramas en curso</div></a>
 				<div class='renglonMenu menuSeparator'>&nbsp;</div>
                 <?php
@@ -256,7 +426,7 @@
     </tr>
     <tr>
         <td class='sekzo'>
-            <div class="ocultable" id="personalesMenu">
+            <div class="ocultable<?= ($menuOpenId === 'personalesMenu') ? ' open' : '' ?>" id="personalesMenu">
                 <?php
                     $consulta = "SELECT id, name, finished FROM dim_seasons WHERE season LIKE '1' ORDER BY order_n";
                     $stmt = mysqli_prepare($link, $consulta);
@@ -299,7 +469,7 @@
 	</tr>
 	<tr>
 		<td class="sekzo">
-			<div class="ocultable" id="loreMenu">
+			<div class="ocultable<?= ($menuOpenId === 'loreMenu') ? ' open' : '' ?>" id="loreMenu">
 				<a href="/documents"><div class="renglonMenu">Lista de Documentos</div></a>
 				<a href="/timeline"><div class="renglonMenu">Línea Temporal</div></a>
 				<a href="/maps"><div class="renglonMenu">Mapas</div></a>
@@ -320,11 +490,11 @@
 	</tr>
 	<tr>
 		<td class='sekzo'>
-		<div class="ocultable" id="systemMenu">
+		<div class="ocultable<?= ($menuOpenId === 'systemMenu') ? ' open' : '' ?>" id="systemMenu">
 			<a href="/systems"><div class="renglonMenu">Seres sobrenaturales</div></a>
 			<a href="/rules/traits"><div class="renglonMenu">Lista de Rasgos</div></a>
 			<a href="/rules/merits-flaws"><div class="renglonMenu">Méritos y Defectos</div></a>
-			<a href="/inventory/items"><div class="renglonMenu">Inventario</div></a>
+			<a href="/inventory"><div class="renglonMenu">Inventario</div></a>
 			<a href="/rules/archetypes"><div class="renglonMenu">Personalidades</div></a>
 			<a href="/rules/maneuvers"><div class="renglonMenu">Maniobras de pelea</div></a>
 		</div>
@@ -341,7 +511,7 @@
 	</tr>
 	<tr>
 		<td class="sekzo">
-			<div class="ocultable" id="powersMenu">
+			<div class="ocultable<?= ($menuOpenId === 'powersMenu') ? ' open' : '' ?>" id="powersMenu">
 				<a href="/powers/gifts"><div class="renglonMenu">Dones</div></a>
 				<a href="/powers/rites"><div class="renglonMenu">Rituales</div></a>
 				<a href="/powers/totems"><div class="renglonMenu">T&oacute;tems</div></a>
@@ -359,7 +529,7 @@
 	</tr>
 	<tr>
 		<td class="sekzo">
-			<div class="ocultable" id="toolsMenu">
+			<div class="ocultable<?= ($menuOpenId === 'toolsMenu') ? ' open' : '' ?>" id="toolsMenu">
 				<a href="/tools/dice"><div class="renglonMenu">Tiradados</div></a>
 				<a href="/tools/csp"><div class="renglonMenu">Tablón de Mensajes</div></a>
 				<a href="/seasons/analysis"><div class="renglonMenu ">Análisis temporadas</div></a>

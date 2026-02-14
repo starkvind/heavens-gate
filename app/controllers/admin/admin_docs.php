@@ -13,6 +13,7 @@
 
 if (!isset($link) || !$link) { die("Sin conexión BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function str_has($hay, $needle){ return $needle !== '' && mb_stripos((string)$hay, (string)$needle) !== false; }
@@ -112,6 +113,8 @@ function meta_for(string $tab, array $opts_sections, array $opts_origins): array
 }
 
 $META = meta_for($tab, $opts_sections, $opts_origins);
+
+$quillToolbarInner = admin_quill_toolbar_inner();
 
 /* -----------------------------
    Guardado (POST)
@@ -422,6 +425,15 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .ql-snow .ql-fill{ fill:#cfe !important; }
 .ql-snow .ql-picker{ color:#cfe !important; }
 
+.ql-snow .ql-picker-options{
+  background:#050b36 !important;
+  border:1px solid #000088 !important;
+}
+.ql-snow .ql-picker-item{
+  color:#cfe !important;
+}
+
+
 /* ✅ Toolbar útil: scroll dentro del editor (no dependemos del scroll del modal) */
 .wys-wrap { width:100%; }
 .wys-wrap .ql-toolbar.ql-snow{
@@ -597,12 +609,14 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 </div>
 
 <!-- Quill (CDN, sin API key, sin carpetas) -->
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 
 <script>
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var QUILL_TOOLBAR_INNER = <?= json_encode($quillToolbarInner, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
 var OPTS_SECTIONS = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_sections), array_values($opts_sections)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
@@ -748,39 +762,7 @@ function syncEditorsToTextarea(){
       wysWrap.className = 'wys-wrap'; // ✅ para aplicar estilos de scroll interno
 
       // Toolbar “sencilla” y estable
-      var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, `
-        <span class="ql-formats">
-          <select class="ql-header">
-            <option value="1"></option>
-            <option value="2"></option>
-            <option selected></option>
-          </select>
-          <select class="ql-size"></select>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-bold"></button>
-          <button class="ql-italic"></button>
-          <button class="ql-underline"></button>
-          <button class="ql-strike"></button>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-blockquote"></button>
-          <button class="ql-code-block"></button>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-list" value="ordered"></button>
-          <button class="ql-list" value="bullet"></button>
-          <button class="ql-indent" value="-1"></button>
-          <button class="ql-indent" value="+1"></button>
-        </span>
-        <span class="ql-formats">
-          <select class="ql-align"></select>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-link"></button>
-          <button class="ql-clean"></button>
-        </span>
-      `);
+      var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, QUILL_TOOLBAR_INNER);
 
       var ed = el('div', {id:editorId, class:'ql-container ql-snow'}, '');
 

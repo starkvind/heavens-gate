@@ -28,6 +28,26 @@ function MostrarOcultar(id) {
 	});
 }
 
+function AbrirMenu(id) {
+	const all = document.querySelectorAll('.ocultable');
+	const target = document.getElementById(id);
+	if (!target) return;
+
+	// Cierra todos y abre el deseado sin toggle ni sonido
+	all.forEach(div => div.classList.remove('open'));
+	requestAnimationFrame(() => {
+		target.classList.add('open');
+	});
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+	const el = document.querySelector('[data-menu-open]');
+	if (!el) return;
+	const id = el.getAttribute('data-menu-open');
+	if (id) AbrirMenu(id);
+});
+
+
 function recargar(tiempo) {
 	if (typeof tiempo === 'undefined') {
 		location.reload();

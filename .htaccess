@@ -65,9 +65,9 @@ RewriteCond %{THE_REQUEST} \s+/\?p=verdoc&b=([0-9]+)\s [NC]
 RewriteRule ^$ /documents/%1? [R=301,L]
 
 RewriteCond %{THE_REQUEST} \s/+index\.php\?p=verobj&b=([0-9]+)\s [NC]
-RewriteRule ^index\.php$ /inventory/items/%1? [R=301,L]
+RewriteRule ^index\.php$ /inventory/%1? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/\?p=verobj&b=([0-9]+)\s [NC]
-RewriteRule ^$ /inventory/items/%1? [R=301,L]
+RewriteRule ^$ /inventory/%1? [R=301,L]
 
 RewriteCond %{THE_REQUEST} \s/+index\.php\?p=seeitem&b=([0-9]+)\s [NC]
 RewriteRule ^index\.php$ /inventory/item/%1? [R=301,L]
@@ -75,9 +75,9 @@ RewriteCond %{THE_REQUEST} \s+/\?p=seeitem&b=([0-9]+)\s [NC]
 RewriteRule ^$ /inventory/item/%1? [R=301,L]
 
 RewriteCond %{THE_REQUEST} \s/+index\.php\?p=inv&t=([^&\s]+)\s [NC]
-RewriteRule ^index\.php$ /inventory/type/%1? [R=301,L]
+RewriteRule ^index\.php$ /inventory/%1? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/\?p=inv&t=([^&\s]+)\s [NC]
-RewriteRule ^$ /inventory/type/%1? [R=301,L]
+RewriteRule ^$ /inventory/%1? [R=301,L]
 
 RewriteCond %{THE_REQUEST} \s/+index\.php\?p=sistemas&b=([0-9]+)\s [NC]
 RewriteRule ^index\.php$ /systems/%1? [R=301,L]
@@ -197,7 +197,7 @@ RewriteRule ^$ /documents? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/\?p=inv\s [NC]
 RewriteRule ^$ /inventory? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/\?p=listaobj\s [NC]
-RewriteRule ^$ /inventory/items? [R=301,L]
+RewriteRule ^$ /inventory? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/\?p=listasistemas\s [NC]
 RewriteRule ^$ /systems? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/\?p=rules\s [NC]
@@ -287,10 +287,12 @@ RewriteRule ^players/?$ index.php?p=players [L,QSA]
 RewriteRule ^documents/([^/]+)/?$ index.php?p=verdoc&b=$1 [L,QSA]
 RewriteRule ^documents/?$ index.php?p=listadocs [L,QSA]
 
-RewriteRule ^inventory/type/([^/]+)/?$ index.php?p=inv&t=$1 [L,QSA]
+RewriteRule ^inventory/type/([^/]+)/?$ index.php?p=inv_type&t=$1 [L,QSA]
+RewriteRule ^inventory/([^/]+)/([^/]+)/?$ index.php?p=verobj&b=$2&t=$1 [L,QSA]
 RewriteRule ^inventory/items/([^/]+)/?$ index.php?p=verobj&b=$1 [L,QSA]
-RewriteRule ^inventory/items/?$ index.php?p=listaobj [L,QSA]
+RewriteRule ^inventory/items/?$ index.php?p=inv [L,QSA]
 RewriteRule ^inventory/item/([^/]+)/?$ index.php?p=seeitem&b=$1 [L,QSA]
+RewriteRule ^inventory/([^/]+)/?$ index.php?p=inv_type&t=$1 [L,QSA]
 RewriteRule ^inventory/?$ index.php?p=inv [L,QSA]
 
 RewriteRule ^systems/detail/([0-9]+)/([^/]+)/?$ index.php?p=versistdetalle&tc=$1&b=$2 [L,QSA]
@@ -340,4 +342,9 @@ RewriteRule ^maps/poi/([^/]+)/?$ index.php?p=maps_detail&id=$1 [L,QSA]
 RewriteRule ^maps/?$ index.php?p=maps [L,QSA]
 
 RewriteRule ^talim/?$ index.php?p=talim [L,QSA]
+# Fallback 404 personalizado
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php?p=error404 [L,QSA]
+
 </IfModule>

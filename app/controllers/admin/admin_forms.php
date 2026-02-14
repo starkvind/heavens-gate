@@ -4,6 +4,7 @@ if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_pretty(string $text): string {
@@ -199,6 +200,13 @@ if ($sys !== '') {
 .ql-snow .ql-stroke{ stroke:#cfe !important; }
 .ql-snow .ql-fill{ fill:#cfe !important; }
 .ql-snow .ql-picker{ color:#cfe !important; }
+.ql-snow .ql-picker-options{
+  background:#050b36 !important;
+  border:1px solid #000088 !important;
+}
+.ql-snow .ql-picker-item{
+  color:#cfe !important;
+}
 </style>
 
 <div class="modal-back" id="formModal">
@@ -262,18 +270,7 @@ if ($sys !== '') {
                     <label>Descripcion</label>
                     <div>
                         <div id="form_toolbar" class="ql-toolbar ql-snow">
-                            <span class="ql-formats">
-                                <button class="ql-bold"></button>
-                                <button class="ql-italic"></button>
-                                <button class="ql-underline"></button>
-                            </span>
-                            <span class="ql-formats">
-                                <button class="ql-list" value="ordered"></button>
-                                <button class="ql-list" value="bullet"></button>
-                            </span>
-                            <span class="ql-formats">
-                                <button class="ql-link"></button>
-                            </span>
+                            <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="form_editor" class="ql-container ql-snow"></div>
                         <textarea class="ta" name="desc" id="form_desc" rows="8" style="display:none;"></textarea>
@@ -324,8 +321,8 @@ if ($sys !== '') {
     </tbody>
 </table>
 
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <script>
 const formsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 let formEditor = null;

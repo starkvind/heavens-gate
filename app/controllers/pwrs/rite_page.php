@@ -22,7 +22,9 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $riteDesc   = $resultQueryRite["desc"]; // NO usar htmlspecialchars() para conservar el HTML
     $riteSystem = $resultQueryRite["syst"];
     $riteSistema = $resultQueryRite["sistema"];
+    if (trim((string)$riteSystem) === '' && trim((string)$riteSistema) !== '') { $riteSystem = $riteSistema; }
     $riteOrigin = htmlspecialchars($resultQueryRite["origen"]);
+    $riteImgRaw = trim((string)($resultQueryRite["img"] ?? ""));
 
     // Obtener el nombre del origen del ritual
     $riteOriginName = "-"; // Valor por defecto
@@ -90,64 +92,66 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     include("app/partials/main_nav_bar.php");
 
     // Título de la página
-    echo "<h2>$riteName</h2>";
-
     ob_start();
 
-    // Imagen del Rito
+    // Imagen del Ritual
     $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
+    if ($riteImgRaw !== "") {
+        if (strpos($riteImgRaw, "/") !== false) {
+            $itemImg = $riteImgRaw;
+        } else {
+            $itemImg = "img/rites/" . $riteImgRaw;
+        }
+    }
 
-    echo "<fieldset class='renglonPaginaDon'>";
+    echo "<div class='power-card power-card--rite'>";
+    echo "  <div class='power-card__banner'>";
+    echo "    <span class='power-card__title'>$riteName</span>";
+    echo "  </div>";
 
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>";
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$riteName'/>";
-    echo "</div>";
+    echo "  <div class='power-card__body'>";
+    echo "    <div class='power-card__media'>";
+    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='$itemImg' alt='$riteName'/>";
+    echo "    </div>";
 
-    // Datos generales del Rito
-    echo "<div class='bioSquareData'>";
-
-    // Nivel del Ritual
+    echo "    <div class='power-card__stats'>";
     if ($riteLevel > 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Nivel:</div>";
-        echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$riteLevel.png'/></div>";
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$riteLevel.png'/></div></div>";
     }
+    if ($nombreTipo !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";
+    }
+    if (!empty($riteBreed)) {
+        echo "<div class='power-stat'><div class='power-stat__label'>Raza</div><div class='power-stat__value'>$riteBreed</div></div>";
+    }
+    if ($riteOriginName !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$riteOriginName</div></div>";
+    }
+    echo "    </div>"; // stats
+    echo "  </div>"; // body
 
-    // Clasificación del Ritual
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Tipo:</div>";
-    echo "<div class='bioDataText'>$nombreTipo</div>";
-    echo "</div>";
-
-    // Origen del Ritual
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Origen:</div>";
-    echo "<div class='bioDataText'>$riteOriginName</div>";
-    echo "</div>";
-
-    echo "</div>";
-
-    // Descripción del Ritual (permitiendo etiquetas HTML)
     if (!empty($riteDesc)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripción:</b><p>$riteDesc</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$riteDesc</div>";
+        echo "  </div>";
     }
 
-    // Sistema del Ritual
     if (!empty($riteSystem)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Sistema:</b><p>$riteSystem</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Sistema</div>";
+        echo "    <div class='power-card__desc-body'>$riteSystem</div>";
+        echo "  </div>";
     }
 
-    echo "</fieldset>";
+    echo "</div>"; // power-card
+
     $infoHtml = ob_get_clean();
+
 
     if ($useTabs) {
         echo "<style>
-            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
+            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
             .hg-tab-panel{ display:none; }
             .hg-tab-panel.active{ display:block; }
             .hgTabBtn{ border:1px solid #003399; }

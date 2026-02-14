@@ -46,7 +46,25 @@ function build_pretty_search_url(string $rutu, string $id): string {
             case 'verdoc':
                 return pretty_url($link, 'fact_docs', '/documents', $idInt);
             case 'seeitem':
-                return pretty_url($link, 'fact_items', '/inventory/items', $idInt);
+                // Inventario: /inventory/{type}/{item}
+                $itemId = $idInt;
+                $typeSlug = '';
+                $itemSlug = '';
+                if ($stmt = $link->prepare("SELECT i.pretty_id AS item_pretty, t.pretty_id AS type_pretty, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.tipo WHERE i.id = ? LIMIT 1")) {
+                    $stmt->bind_param('i', $itemId);
+                    $stmt->execute();
+                    $rs = $stmt->get_result();
+                    if ($rs && ($row = $rs->fetch_assoc())) {
+                        $itemSlug = (string)($row['item_pretty'] ?? '');
+                        $typeSlug = (string)($row['type_pretty'] ?? '');
+                        if ($typeSlug === '' && isset($row['type_id'])) $typeSlug = (string)$row['type_id'];
+                    }
+                    $stmt->close();
+                }
+                if ($itemSlug === '') $itemSlug = (string)$itemId;
+                if ($typeSlug === '') $typeSlug = 'tipo';
+                return "/inventory/" . rawurlencode($typeSlug) . "/" . rawurlencode($itemSlug);
+
             case 'muestradon':
                 return pretty_url($link, 'fact_gifts', '/powers/gift', $idInt);
             case 'verrasgo':

@@ -138,12 +138,17 @@
 			// Inventario
 			// ========================================== //
 			case "verobj":
-				echo "<a href='/inventory/items' title='Inventario'>Inventario</a> $pillSeparator $itemName";
+				$typeHref = pretty_url($link, 'dim_item_types', '/inventory', (int)$itemType);
+				echo "<a href='/inventory' title='Inventario'>Inventario</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
 				break;
 			case "seeitem":	// Ver Objeto
-				echo "<a href='/inventory/type/$itemType' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
+							$typeHref = pretty_url($link, 'dim_item_types', '/inventory', (int)$itemType);
+			echo "<a href='" . htmlspecialchars($typeHref) . "' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
 				break;
-			// ========================================== //
+			case "inv_type":
+				echo "<a href='/inventory' title='Inventario'>Inventario</a> $pillSeparator $nameTypeBack";
+				break;
+						// ========================================== //
 			// Sistemas
 			// ========================================== //
 			case "sistemas":

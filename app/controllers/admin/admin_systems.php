@@ -4,6 +4,7 @@ if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_pretty(string $text): string {
@@ -165,6 +166,15 @@ if ($rs = $link->query($sql)) {
 .ql-snow .ql-stroke{ stroke:#cfe !important; }
 .ql-snow .ql-fill{ fill:#cfe !important; }
 .ql-snow .ql-picker{ color:#cfe !important; }
+
+.ql-snow .ql-picker-options{
+  background:#050b36 !important;
+  border:1px solid #000088 !important;
+}
+.ql-snow .ql-picker-item{
+  color:#cfe !important;
+}
+
 </style>
 
 <div class="modal-back" id="systemModal">
@@ -201,18 +211,7 @@ if ($rs = $link->query($sql)) {
                     <label>Descripcion</label>
                     <div>
                         <div id="system_toolbar" class="ql-toolbar ql-snow">
-                            <span class="ql-formats">
-                                <button class="ql-bold"></button>
-                                <button class="ql-italic"></button>
-                                <button class="ql-underline"></button>
-                            </span>
-                            <span class="ql-formats">
-                                <button class="ql-list" value="ordered"></button>
-                                <button class="ql-list" value="bullet"></button>
-                            </span>
-                            <span class="ql-formats">
-                                <button class="ql-link"></button>
-                            </span>
+                            <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="system_editor" class="ql-container ql-snow"></div>
                         <textarea class="ta" name="descripcion" id="system_desc" rows="8" style="display:none;"></textarea>
@@ -263,8 +262,8 @@ if ($rs = $link->query($sql)) {
     </tbody>
 </table>
 
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <script>
 const systemsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 let sysEditor = null;

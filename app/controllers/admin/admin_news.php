@@ -4,6 +4,7 @@ if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 $actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
 	. '<button class="btn btn-green" type="button" onclick="openNewsModal()">+ Nueva noticia</button>'
 	. '<label style="text-align:left;">Filtro r&aacute;pido '
@@ -112,6 +113,13 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 .ql-snow .ql-stroke{ stroke:#cfe !important; }
 .ql-snow .ql-fill{ fill:#cfe !important; }
 .ql-snow .ql-picker{ color:#cfe !important; }
+.ql-snow .ql-picker-options{
+  background:#050b36 !important;
+  border:1px solid #000088 !important;
+}
+.ql-snow .ql-picker-item{
+  color:#cfe !important;
+}
 </style>
 
 <div class="modal-back" id="newsModal">
@@ -129,19 +137,8 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 					<label>Mensaje</label>
 					<div>
 						<div id="news_toolbar" class="ql-toolbar ql-snow">
-							<span class="ql-formats">
-								<button class="ql-bold"></button>
-								<button class="ql-italic"></button>
-								<button class="ql-underline"></button>
-							</span>
-							<span class="ql-formats">
-								<button class="ql-list" value="ordered"></button>
-								<button class="ql-list" value="bullet"></button>
-							</span>
-							<span class="ql-formats">
-								<button class="ql-link"></button>
-							</span>
-						</div>
+                            <?= admin_quill_toolbar_inner(); ?>
+                        </div>
 						<div id="news_editor" class="ql-container ql-snow"></div>
 						<textarea class="ta" name="mensaje" id="news_mensaje" rows="10" required style="display:none;"></textarea>
 					</div>
@@ -189,8 +186,8 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 	</tbody>
 </table>
 
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <script>
 const newsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 let newsEditor = null;

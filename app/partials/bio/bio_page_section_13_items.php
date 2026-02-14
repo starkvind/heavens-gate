@@ -7,9 +7,10 @@
         SELECT
             o.id,
             o.name,
-            o.tipo
+            o.tipo, t.pretty_id AS tipo_pretty
         FROM bridge_characters_items b
         JOIN fact_items o ON o.id = b.objeto_id
+        LEFT JOIN dim_item_types t ON t.id = o.tipo
         WHERE b.personaje_id = ?
         ORDER BY o.tipo, o.name
     ";
@@ -53,7 +54,7 @@
             // ================================================= //
 
             echo "
-                <a href='" . htmlspecialchars(pretty_url($link, 'fact_items', '/inventory/items', (int)$itemIdSelect)) . "' target='_blank' class='hg-tooltip' data-tip='item' data-id='{$itemIdSelect}'>
+                <a href='" . htmlspecialchars(('/inventory/' . ($row['tipo_pretty'] ?? $tipoItemSelect) . '/' . (get_pretty_id($link, 'fact_items', (int)$itemIdSelect) ?: $itemIdSelect))) . "' target='_blank' class='hg-tooltip' data-tip='item' data-id='{$itemIdSelect}'>
                     <div class='bioSheetPower'>
                         <img class='valign' style='width:13px; height:13px;' src='{$iconoItemSelect}'>
                         {$nombreItemSelect}

@@ -21,6 +21,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $totemAttr  = $resultQueryTotem["rasgos"];
     $totemBan   = $resultQueryTotem["prohib"];
     $totemOrigin = htmlspecialchars($resultQueryTotem["origen"]);
+    $totemImgRaw = trim((string)($resultQueryTotem["img"] ?? ""));
 
     // Obtener el nombre del origen del tótem
     $totemOriginName = "-"; // Valor por defecto
@@ -109,71 +110,70 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     include("app/partials/main_nav_bar.php");
 
     // Título de la página
-    echo "<h2>$totemName</h2>";
-
     ob_start();
 
-    // Imagen del Tótem
+    // Imagen del Totem
     $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
+    if ($totemImgRaw !== "") {
+        if (strpos($totemImgRaw, "/") !== false) {
+            $itemImg = $totemImgRaw;
+        } else {
+            $itemImg = "img/totems/" . $totemImgRaw;
+        }
+    }
 
-    echo "<fieldset class='renglonPaginaDon'>";
+    echo "<div class='power-card power-card--totem'>";
+    echo "  <div class='power-card__banner'>";
+    echo "    <span class='power-card__title'>$totemName</span>";
+    echo "  </div>";
 
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>";
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$totemName'/>";
-    echo "</div>";
+    echo "  <div class='power-card__body'>";
+    echo "    <div class='power-card__media'>";
+    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='$itemImg' alt='$totemName'/>";
+    echo "    </div>";
 
-    // Datos generales del Tótem
-    echo "<div class='bioSquareData'>";
-
-    // Coste del Tótem
+    echo "    <div class='power-card__stats'>";
     if ($totemCost > 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Coste:</div>";
-        echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$totemCost.png'/></div>";
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$totemCost.png'/></div></div>";
     }
+    if ($nombreTipo !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";
+    }
+    if ($totemOriginName !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$totemOriginName</div></div>";
+    }
+    echo "    </div>"; // stats
+    echo "  </div>"; // body
 
-    // Clasificación del Tótem
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Tipo:</div>";
-    echo "<div class='bioDataText'>$nombreTipo</div>";
-    echo "</div>";
-
-    // Origen del Tótem
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Origen:</div>";
-    echo "<div class='bioDataText'>$totemOriginName</div>";
-    echo "</div>";
-
-    echo "</div>";
-
-    // Descripción del Tótem (permitiendo etiquetas HTML)
     if (!empty($totemDesc)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripción:</b><p>$totemDesc</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$totemDesc</div>";
+        echo "  </div>";
     }
 
-    // Rasgos del Tótem
     if (!empty($totemAttr)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Rasgos:</b><p>$totemAttr</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Rasgos</div>";
+        echo "    <div class='power-card__desc-body'>$totemAttr</div>";
+        echo "  </div>";
     }
 
-    // Prohibiciones del Tótem
     if (!empty($totemBan)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Prohibición:</b><p>$totemBan</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Prohibici&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$totemBan</div>";
+        echo "  </div>";
     }
 
-    echo "</fieldset>";
+    echo "</div>"; // power-card
+
     $infoHtml = ob_get_clean();
+
 
     if ($useTabs) {
         echo "<style>
-            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
+            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
             .hg-tab-panel{ display:none; }
             .hg-tab-panel.active{ display:block; }
             .hgTabBtn{ border:1px solid #003399; }

@@ -1660,7 +1660,7 @@ header img {
 	/*border: 1px solid #000088;*/
 	border: 0;
 	background: #04044d;
-	padding: 8px 10px 10px 10px;
+	padding: 8px 10px 0px 10px;
 }
 
 .power-card__desc-title{

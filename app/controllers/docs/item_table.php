@@ -12,6 +12,8 @@ $query = "
 		no2.name as item_name,
 		no2.img as item_img,
 		nto.name as item_category,
+		nto.pretty_id as item_type_pretty,
+		nto.id as item_type_id,
 		COALESCE(nb.name, '') as item_origin
 	FROM fact_items no2
 		left join dim_item_types nto on no2.tipo = nto.id 
@@ -54,9 +56,9 @@ $items = ensure_utf8($items);
 $pageSect = "Inventario";
 ?>
 
-<link rel="stylesheet" href="assets/vendor/datatables/jquery.dataTables.min.css">
-<script src="assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="assets/vendor/datatables/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="/assets/vendor/datatables/jquery.dataTables.min.css">
+<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
 
 <style>
 /* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
@@ -198,7 +200,7 @@ $pageSect = "Inventario";
 			<thead>
 				<tr>
 					<th>Objeto</th>
-					<th>Categoría</th>
+					<th>Categor&iacute;a</th>
 					<th>Origen</th>
 				</tr>
 			</thead>
@@ -214,7 +216,8 @@ $(document).ready(function () {
 
 	items.forEach(i => {
 		const itemSlug = i.item_pretty_id || i.item_id;
-		const nombre = `<a href="/inventory/items/${escapeHtml(itemSlug)}">${escapeHtml(i.item_name)}</a>`;
+		const typeSlug = i.item_type_pretty || i.item_type_id || 'tipo';
+		const nombre = `<a href="/inventory/${escapeHtml(typeSlug)}/${escapeHtml(itemSlug)}">${escapeHtml(i.item_name)}</a>`;
 		const imgSrc = i.item_img ? i.item_img : '/img/inv/no-photo.gif';
 		const img = `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(i.item_name)}" class="item-thumb">`;
 		const categoria = i.item_category ? escapeHtml(i.item_category) : '-';
@@ -233,16 +236,16 @@ $(document).ready(function () {
 		lengthMenu: [10, 25, 50, 100],
 		order: [[0, "asc"]],
 		language: {
-			search: "🔍 Buscar:&nbsp;",
+			search: "&#128269; Buscar:&nbsp;",
 			lengthMenu: "Mostrar _MENU_ objetos",
 			info: "Mostrando _START_ a _END_ de _TOTAL_ objetos",
 			infoEmpty: "No hay objetos disponibles",
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Último",
-				next: "▶",
-				previous: "◀"
+				last: "&Uacute;ltimo",
+				next: "&#9654;",
+				previous: "&#9664;"
 			}
 		},
 		initComplete: function(){

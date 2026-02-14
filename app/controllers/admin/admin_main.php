@@ -113,9 +113,19 @@
 							Gestionar Grupos
 						</div>
 					</a>
+					<a href='/talim?s=admin_bridges'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Editar Bridges
+						</div>
+					</a>
 					<a href='/talim?s=admin_relations'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Editar Relaciones
+						</div>
+					</a>
+					<a href='/talim?s=admin_plots'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Gestionar Grupos en activo
 						</div>
 					</a>
 					";
@@ -124,6 +134,11 @@
 				// CONTENIDO
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Contenido&nbsp;</legend>";
 				echo "
+					<a href='/talim?s=admin_news'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Gestionar Noticias
+						</div>
+					</a>
 					<a href='/talim?s=admin_temp'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Temporadas
@@ -134,24 +149,9 @@
 							Gestionar Episodios
 						</div>
 					</a>
-					<a href='/talim?s=admin_plots'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Gestionar Tramas en curso
-						</div>
-					</a>
 					<a href='/talim?s=admin_docs'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Documentaci&oacute;n
-						</div>
-					</a>
-					<a href='/talim?s=admin_news'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Gestionar Noticias
-						</div>
-					</a>
-					<a href='/talim?s=admin_items'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Gestionar Objetos
 						</div>
 					</a>
 					";
@@ -184,8 +184,13 @@
 				echo "</fieldset>";
 					echo "<br />";
 				// PODERES
-				echo "<fieldset class='bioSeccion'><legend>&nbsp;Poderes&nbsp;</legend>";
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Objetos y Poderes&nbsp;</legend>";
 				echo "
+					<a href='/talim?s=admin_items'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Gestionar Objetos
+						</div>
+					</a>
 					<a href='/talim?s=admin_powers'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Poderes
@@ -221,11 +226,6 @@
 					<a href='/talim?s=admin_menu'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Editar Men&uacute;
-						</div>
-					</a>
-					<a href='/talim?s=admin_bridges'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Administrar bridges
 						</div>
 					</a>
 					<a href='/talim?s=logout'>

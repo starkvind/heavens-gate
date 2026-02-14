@@ -51,31 +51,48 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
     // ================================================================== //
-    // Preparar Tipo
-    switch ($itemType) {
-        case 1:
-            $nameTypeItem = "Arma";
-            $nameTypeBack = "Armamento";
-            break;
-        case 2:
-            $nameTypeItem = "Protector";
-            $nameTypeBack = "Protectores";
-            break;
-        case 3:
-            $nameTypeItem = "Objeto mágico";
-            $nameTypeBack = "Objetos mágicos";
-            break;
-        case 5:
-            $nameTypeItem = "Amuleto";
-            $nameTypeBack = "Amuletos";
-            break;
-        default:
-            $nameTypeItem = "Objeto";
-            $nameTypeBack = "Objetos";
-            break;
+    // Preparar Tipo (preferir dim_item_types)
+    $nameTypeItem = "";
+    $nameTypeBack = "";
+    if ($itemType > 0) {
+        $stType = $link->prepare("SELECT name FROM dim_item_types WHERE id = ? LIMIT 1");
+        if ($stType) {
+            $stType->bind_param('i', $itemType);
+            $stType->execute();
+            $rsType = $stType->get_result();
+            if ($rsType && ($rowType = $rsType->fetch_assoc())) {
+                $nameTypeItem = (string)$rowType['name'];
+                $nameTypeBack = (string)$rowType['name'];
+            }
+            $stType->close();
+        }
+    }
+    if ($nameTypeItem === "") {
+        switch ($itemType) {
+            case 1:
+                $nameTypeItem = "Arma";
+                $nameTypeBack = "Armamento";
+                break;
+            case 2:
+                $nameTypeItem = "Protector";
+                $nameTypeBack = "Protectores";
+                break;
+            case 3:
+                $nameTypeItem = "Objeto m?gico";
+                $nameTypeBack = "Objetos m?gicos";
+                break;
+            case 5:
+                $nameTypeItem = "Amuleto";
+                $nameTypeBack = "Amuletos";
+                break;
+            default:
+                $nameTypeItem = "Objeto";
+                $nameTypeBack = "Objetos";
+                break;
+        }
     }
 
-    // ================================================================== //
+// ================================================================== //
     // Preparar Daño
     switch ($itemMetal) {
         case 1:

@@ -59,6 +59,26 @@ function safe_unlink_power_image(string $relUrl, string $uploadDir): void {
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function str_has($hay, $needle){ return $needle !== '' && mb_stripos((string)$hay, (string)$needle) !== false; }
+function slugify_pretty(string $text): string {
+    $text = trim((string)$text);
+    if ($text === '') return '';
+    if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
+    $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
+    $text = trim($text, '-');
+    $text = strtolower($text);
+    $text = preg_replace('~[^-a-z0-9]+~', '', $text);
+    return $text;
+}
+function update_pretty_id(mysqli $link, string $table, int $id, string $source): void {
+    if ($id <= 0) return;
+    $slug = slugify_pretty($source);
+    if ($slug === '') $slug = (string)$id;
+    if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
+        $st->bind_param("si", $slug, $id);
+        $st->execute();
+        $st->close();
+    }
+}
 
 function fetchPairs(mysqli $link, string $sql): array {
     $out = [];
@@ -326,6 +346,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 } else {
                     $st->bind_param($types, ...$bind);
                     if ($st->execute()) {
+                        $newId = (int)$link->insert_id;
+                        $src = (string)($vals[$M['name_col']] ?? '');
+                        update_pretty_id($link, $table, $newId, $src);
                         $flash[] = ['type'=>'ok','msg'=>'✅ '.$M['title'].' creado correctamente.'];
                     } else {
                         $flash[] = ['type'=>'error','msg'=>'❌ Error al crear: '.$st->error];
@@ -361,6 +384,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     } else {
                         $st->bind_param($types, ...$bind);
                         if ($st->execute()) {
+                            $src = (string)($vals[$M['name_col']] ?? '');
+                            update_pretty_id($link, $table, $id, $src);
                             $flash[] = ['type'=>'ok','msg'=>'✏ '.$M['title'].' actualizado.'];
                         } else {
                             $flash[] = ['type'=>'error','msg'=>'❌ Error al actualizar: '.$st->error];

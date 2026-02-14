@@ -38,6 +38,7 @@ $tables = [
     ['table' => 'dim_chapters', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'dim_seasons', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'fact_docs', 'id' => 'id', 'expr' => 'titulo'],
+    ['table' => 'dim_item_types', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'fact_items', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'fact_map_pois', 'id' => 'id', 'expr' => 'name'],
 ];

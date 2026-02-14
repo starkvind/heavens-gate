@@ -21,7 +21,8 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         'seegroup'     => ['b', null, null],
         'seeplayer'    => ['b', 'dim_players', '/players'],
         'verdoc'       => ['b', 'fact_docs', '/documents'],
-        'verobj'       => ['b', 'fact_items', '/inventory/items'],
+        'verobj'       => ['b', 'fact_items', '/inventory'],
+        'inv_type'     => ['t', 'dim_item_types', '/inventory'],
         'seeitem'      => ['b', 'fact_items', '/inventory/item'],
         'muestradon'   => ['b', 'fact_gifts', '/powers/gift'],
         'tipodon'      => ['b', 'dim_gift_types', '/powers/gift/type'],
@@ -78,6 +79,25 @@ function normalize_pretty_request(mysqli $link, string $route): void {
     if (preg_match('/^\d+$/', $raw)) {
         $pretty = get_pretty_id($link, $table, (int)$raw);
         if ($pretty) {
+            if ($route === 'verobj') {
+                // Inventario: redirigir a /inventory/{type}/{item}
+                $typePretty = null;
+                if ($stmt2 = $link->prepare("SELECT t.pretty_id, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.tipo WHERE i.id = ? LIMIT 1")) {
+                    $idInt = (int)$raw;
+                    $stmt2->bind_param('i', $idInt);
+                    $stmt2->execute();
+                    $rs2 = $stmt2->get_result();
+                    if ($rs2 && ($row2 = $rs2->fetch_assoc())) {
+                        $typePretty = (string)($row2['pretty_id'] ?? '');
+                        if ($typePretty === '' && isset($row2['type_id'])) $typePretty = (string)$row2['type_id'];
+                    }
+                    $stmt2->close();
+                }
+                if ($typePretty === null || $typePretty === '') $typePretty = 'tipo';
+                $target = '/inventory/' . rawurlencode($typePretty) . '/' . rawurlencode($pretty);
+                header("Location: $target", true, 301);
+                exit;
+            }
             $target = rtrim($base, '/') . '/' . rawurlencode($pretty);
             if ($route === 'seegroup') {
                 $target = rtrim($base, '/') . '/' . rawurlencode($pretty);
@@ -285,7 +305,7 @@ $routes = [
 	'busq'       => ['app/controllers/main/main_search_form.php', 'Búsqueda'],
 	'busk'       => ['app/controllers/main/main_search_result.php', 'Resultado de la búsqueda'],
 	'talim'      => ['app/controllers/admin/admin_main.php', 'Administración'],
-	'error404'   => ['app/controllers/error404.php', 'Error'],
+	'error404'   => ['app/controllers/main/error404.php', 'Error'],
 
 	// 🗃️ Temporadas
 	'temp'            => ['app/controllers/chapt/chapt_archivo.php', 'Temporadas'],
@@ -314,6 +334,7 @@ $routes = [
 
 	// 🎒 Inventario
 	'inv'     => ['app/controllers/docs/item_table.php', null],
+	'inv_type' => ['app/controllers/docs/item_list.php', null],
 	'seeitem' => ['app/controllers/docs/item_page.php', null],
 	'imgz'    => ['app/controllers/tool/img_board.php', null],
 	'listaobj'=> ['app/controllers/docs/item_table.php', null],

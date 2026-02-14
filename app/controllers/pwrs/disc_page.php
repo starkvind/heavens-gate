@@ -23,11 +23,20 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     $donSystem  = $resultQueryDon["sistema"];
     $donOrigin  = htmlspecialchars($resultQueryDon["origen"]);
 
-    // Verificar si 'icono' existe en la base de datos
-    $donImg = isset($resultQueryDon["icono"]) ? htmlspecialchars($resultQueryDon["icono"]) : "inv/no-photo.gif";
+    $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
+    $donIcono = isset($resultQueryDon["icono"]) ? htmlspecialchars($resultQueryDon["icono"]) : "";
 
-    // Ruta completa de la imagen del Don
-    $itemImg = "img/$donImg";
+    // Ruta completa de la imagen de la Disciplina
+    $itemImg = "img/inv/no-photo.gif";
+    if ($donImgRaw !== "") {
+        if (strpos($donImgRaw, "/") !== false) {
+            $itemImg = $donImgRaw;
+        } else {
+            $itemImg = "img/disciplines/" . $donImgRaw;
+        }
+    } elseif ($donIcono !== "") {
+        $itemImg = (strpos($donIcono, "/") !== false) ? $donIcono : ("img/" . $donIcono);
+    }
 
     // Obtener el nombre del origen de la disciplina
     $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
@@ -64,65 +73,53 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     include("app/partials/main_nav_bar.php");
 
     // Título de la página
-    echo "<h2>$donName</h2>";
+    ob_start();
 
-    echo "<fieldset class='renglonPaginaDon'>";
+    echo "<div class='power-card power-card--disc'>";
+    echo "  <div class='power-card__banner'>";
+    echo "    <span class='power-card__title'>$donName</span>";
+    echo "  </div>";
 
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>";
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$donName'/>";
-    echo "</div>";
+    echo "  <div class='power-card__body'>";
+    echo "    <div class='power-card__media'>";
+    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='$itemImg' alt='$donName'/>";
+    echo "    </div>";
 
-    // Datos generales del Don
-    echo "<div class='bioSquareData'>";
-
-    // Nivel de la Disciplina
+    echo "    <div class='power-card__stats'>";
     if ($donRank > 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Nivel:</div>";
-        echo "<div class='bioDataText'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div>";
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div></div>";
     }
-
-    // Nombre de la Disciplina
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Disciplina:</div>";
-    echo "<div class='bioDataText'>$nombreTipo</div>";
-    echo "</div>";
-
-    // Tirada de la Disciplina
-    if (!empty($donAttr)) {
+    if ($nombreTipo !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Disciplina</div><div class='power-stat__value'>$nombreTipo</div></div>";
+    }
+    if (!empty($donAttr) || !empty($donSkill)) {
         $tiradaDon2 = !empty($donSkill) ? "$donAttr + $donSkill" : $donAttr;
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Tirada:</div>";
-        echo "<div class='bioDataText'>$tiradaDon2</div>";
-        echo "</div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Tirada</div><div class='power-stat__value'>$tiradaDon2</div></div>";
     }
-
-    // Origen de la Disciplina
-    if (!empty($donOriginName)) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Origen:</div>";
-        echo "<div class='bioDataText'>$donOriginName</div>";
-        echo "</div>";
+    if ($donOriginName !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
     }
+    echo "    </div>"; // stats
+    echo "  </div>"; // body
 
-    echo "</div>";
-
-    // Descripción de la Disciplina (permitiendo etiquetas HTML)
     if (!empty($donDesc)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripción:</b><p>$donDesc</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$donDesc</div>";
+        echo "  </div>";
     }
 
-    // Sistema de la Disciplina
     if (!empty($donSystem)) {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Sistema:</b><p>$donSystem</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Sistema</div>";
+        echo "    <div class='power-card__desc-body'>$donSystem</div>";
+        echo "  </div>";
     }
 
-    echo "</fieldset>";
+    echo "</div>"; // power-card
+
+    echo ob_get_clean();
+
 
 } else {
     echo "<p>Error: Disciplina no encontrada.</p>";

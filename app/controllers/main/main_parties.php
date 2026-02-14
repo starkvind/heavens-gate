@@ -104,7 +104,7 @@ mysqli_free_result($resChanges);
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-<h2 style="text-align:right;">Tramas en curso</h2>
+<h2 style="text-align:right;">Grupos en activo</h2>
 
 <?php foreach ($plots as $plot): ?>
 <div class="plot-box">
