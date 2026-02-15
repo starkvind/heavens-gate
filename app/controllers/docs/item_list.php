@@ -1,5 +1,4 @@
 <?php
-setMetaFromPage("Inventario | Heaven's Gate", "Listado de objetos por tipo.", null, 'website');
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 
@@ -40,6 +39,7 @@ $nameTypeBack = $typeName;
 $itemType = $typeId;
 $typeSlug = $typePretty !== '' ? $typePretty : (string)$typeId;
 
+setMetaFromPage($typeName . " | Inventario | Heaven's Gate", "Listado de objetos por tipo.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
 $pageSect = "Inventario";

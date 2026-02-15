@@ -146,7 +146,7 @@
 				$hrefPath = $href ? parse_url($href, PHP_URL_PATH) : '';
 				$hrefPath = $hrefPath ? hg_normalize_path($hrefPath) : '';
 
-				if ($hrefPath !== '' && $hrefPath !== '#' && hg_starts_with($path, $hrefPath)) {
+				if ($hrefPath !== '' && $hrefPath !== '#' && $hrefPath !== '/' && hg_starts_with($path, $hrefPath)) {
 					$len = strlen($hrefPath);
 					if ($len > $bestLen && $menuKey !== '') {
 						$bestLen = $len;
@@ -183,6 +183,9 @@
 
 	$hgCurrentPath = hg_current_path();
 	$menuOpenId = $useDbMenu ? hg_menu_open_id_db($link, $hgCurrentPath) : hg_menu_open_id_static($hgCurrentPath, $link ?? null);
+	if ($menuOpenId === null) {
+		$menuOpenId = hg_menu_open_id_static($hgCurrentPath, $link ?? null);
+	}
 
 
 

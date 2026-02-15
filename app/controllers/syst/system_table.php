@@ -28,7 +28,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 mysqli_free_result($result);
 
-$pageSect   = "Sistema";
+$pageSect   = null;
 $pageTitle2 = "Sistemas";
 ?>
 

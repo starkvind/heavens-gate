@@ -29,6 +29,18 @@ function q($link,$sql,$types='',$params=[]){
   return [true,null,$res ?? null,$id];
 }
 
+function get_totems($link): array {
+  $out = [0 => '— Sin tótem —'];
+  $sql = "SELECT id, name FROM dim_totems ORDER BY name ASC";
+  [$ok,$err,$rs] = q($link,$sql);
+  if($ok && $rs){
+    while($r = mysqli_fetch_assoc($rs)){
+      $out[(int)$r['id']] = (string)$r['name'];
+    }
+  }
+  return $out;
+}
+
 /* ----------------------- Renders (HTML) ----------------------- */
 function render_clans_table($link){
   $sql = "SELECT c.id, c.name,
@@ -198,10 +210,12 @@ function render_group_detail($link,$group_id){
 /* --- MODALES --- */
 function render_clan_modal($link,$clan_id){
   $clan_id = (int)$clan_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name FROM dim_organizations WHERE id=? LIMIT 1",'i',[$clan_id]);
+  [$ok,$err,$rs] = q($link,"SELECT id,name,totem FROM dim_organizations WHERE id=? LIMIT 1",'i',[$clan_id]);
   if(!$ok || !$rs || !($clan=mysqli_fetch_assoc($rs))){
     echo "<div class='err'>Clan no encontrado.</div>"; return;
   }
+  $totems = get_totems($link);
+  $totemSel = (int)($clan['totem'] ?? 0);
   echo "<div class='modal-header'>
           <h3>Editar clan</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
@@ -211,7 +225,12 @@ function render_clan_modal($link,$clan_id){
             <h4>Nombre del clan</h4>
             <div class='toolbar'>
               <input id='clanName' type='text' value='".e($clan['name'])."'>
-              <button class='btn btn-ok' id='btnClanRename' data-id='".e($clan['id'])."'>Guardar nombre</button>
+              <select id='clanTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+  foreach($totems as $tid=>$tname){
+    echo "<option value='".e($tid)."' ".($tid===$totemSel?'selected':'').">".e($tname)."</option>";
+  }
+  echo      "</select>
+              <button class='btn btn-ok' id='btnClanSave' data-id='".e($clan['id'])."'>Guardar</button>
               <button class='btn' id='btnOpenGroupCreate' data-clan='".e($clan['id'])."'>Nueva manada</button>
             </div>
           </div>
@@ -224,10 +243,12 @@ function render_clan_modal($link,$clan_id){
 
 function render_group_modal($link,$group_id){
   $group_id = (int)$group_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,activa,IFNULL(cronica,1) AS cronica FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
+  [$ok,$err,$rs] = q($link,"SELECT id,name,activa,IFNULL(cronica,1) AS cronica, totem FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
   if(!$ok || !$rs || !($g=mysqli_fetch_assoc($rs))){
     echo "<div class='err'>Manada no encontrada.</div>"; return;
   }
+  $totems = get_totems($link);
+  $totemSel = (int)($g['totem'] ?? 0);
   echo "<div class='modal-header'>
           <h3>Editar manada</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
@@ -238,6 +259,11 @@ function render_group_modal($link,$group_id){
             <div class='toolbar'>
               <input id='groupName' type='text' value='".e($g['name'])."' placeholder='Nombre'>
               <input id='groupCronica' type='number' min='1' step='1' value='".e($g['cronica'])."' style='max-width:120px' title='Crónica'>
+              <select id='groupTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+  foreach($totems as $tid=>$tname){
+    echo "<option value='".e($tid)."' ".($tid===$totemSel?'selected':'').">".e($tname)."</option>";
+  }
+  echo      "</select>
               <label style='display:flex;align-items:center;gap:6px'>
                 <input id='groupActiva' type='checkbox' ".((int)$g['activa']===1?'checked':'')."> Activa
               </label>
@@ -270,6 +296,7 @@ function render_clan_create_form(){
 function render_group_create_form($link,$prefill_clan_id=0){
   $prefill_clan_id=(int)$prefill_clan_id;
   [$ok,$err,$rs] = q($link,"SELECT id,name FROM dim_organizations ORDER BY name ASC");
+  $totems = get_totems($link);
   echo "<div class='modal-header'>
           <h3>Nueva manada</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
@@ -281,6 +308,11 @@ function render_group_create_form($link,$prefill_clan_id=0){
               <div class='toolbar'>
                 <input id='newGroupName' type='text' placeholder='Nombre de la manada'>
                 <input id='newGroupCronica' type='number' min='1' step='1' value='1' style='max-width:120px' title='Crónica'>
+                <select id='newGroupTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+  foreach($totems as $tid=>$tname){
+    echo "<option value='".e($tid)."'>".e($tname)."</option>";
+  }
+  echo      "</select>
                 <label style='display:flex;align-items:center;gap:6px'>
                   <input id='newGroupActiva' type='checkbox' checked> Activa
                 </label>
@@ -318,11 +350,12 @@ if(!empty($_POST['action'])){
   if($act==='clan_create_form'){ render_clan_create_form(); exit; }
   if($act==='group_create_form'){ $cid=(int)($_POST['clan_id']??0); render_group_create_form($link,$cid); exit; }
 
-  // clan rename
-  if($act==='clan_rename'){
+  // clan update basic (name + totem)
+  if($act==='clan_update_basic'){
     $id=(int)($_POST['clan_id']??0);
     $name=trim((string)($_POST['name']??''));
-    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=? WHERE id=?",'si',[$name,$id]); }
+    $totem=(int)($_POST['totem']??0);
+    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=?, totem=? WHERE id=?",'sii',[$name,$totem,$id]); }
     hg_update_pretty_id_if_exists($link, 'dim_organizations', $id, $name);
     render_clan_modal($link,$id); exit;
   }
@@ -344,8 +377,9 @@ if(!empty($_POST['action'])){
     $name=trim((string)($_POST['name']??''));
     $activa = (int)($_POST['activa']??0)===1?1:0;
     $cronica = (int)($_POST['cronica']??1); if($cronica<1){ $cronica=1; }
+    $totem = (int)($_POST['totem']??0);
     if($id>0 && $name!==''){
-      q($link,"UPDATE dim_groups SET name=?, activa=?, cronica=? WHERE id=?",'siii',[$name,$activa,$cronica,$id]);
+      q($link,"UPDATE dim_groups SET name=?, activa=?, cronica=?, totem=? WHERE id=?",'siiii',[$name,$activa,$cronica,$totem,$id]);
       hg_update_pretty_id_if_exists($link, 'dim_groups', $id, $name);
     }
     render_group_modal($link,$id); exit;
@@ -357,14 +391,14 @@ if(!empty($_POST['action'])){
     $cronica=(int)($_POST['cronica']??1); if($cronica<1){ $cronica=1; }
     $activa=(int)($_POST['activa']??1)===1?1:0;
     $clan_id=(int)($_POST['clan_id']??0);
+    $totem=(int)($_POST['totem']??0);
     if($name===''){ render_group_create_form($link,$clan_id); echo "<div class='err'>Indica un nombre.</div>"; exit; }
 
     // dim_groups requiere varias columnas NOT NULL; ponemos defaults seguros
     [$ok,$err,$rs,$newId] = q($link,
-      "INSERT INTO dim_groups (name, cronica, clan, totem, activa, `desc`)
+      "INSERT INTO dim_groups (name, cronica, clan, totem, activa, `desc`) VALUES (?,?,?,?,?,?)",
+      'sisiis', [$name, $cronica, /*clan(texto)*/'', $totem, $activa, /*desc*/'']);
     hg_update_pretty_id_if_exists($link, 'dim_groups', $newId, $name);
-       VALUES (?,?,?,?,?,?)",
-      'sisiss', [$name, $cronica, /*clan(texto)*/'', /*totem*/0, $activa, /*desc*/'']);
     if(!$ok){ render_group_create_form($link,$clan_id); echo "<div class='err'>".e($err)."</div>"; exit; }
 
     // Bridge (opcional) si seleccionó clan_id
@@ -637,19 +671,21 @@ function bindModalInside(){
       const cronica = ($('#newGroupCronica', root).value||'1').trim();
       const activa = $('#newGroupActiva', root).checked ? 1 : 0;
       const clan_id = ($('#newGroupClan', root).value||'0').trim();
-      openModal(await htmlPost('group_create',{name,cronica,activa,clan_id}));
+      const totem = ($('#newGroupTotem', root).value||'0').trim();
+      openModal(await htmlPost('group_create',{name,cronica,activa,clan_id,totem}));
       reloadGroups();
       reloadClans(); // por si asignó al clan
     };
   }
 
   // — Desde modal de clan: guardar nombre, abrir crear manada, gestionar packs
-  const btnClanRename = $('#btnClanRename', root);
-  if(btnClanRename){
-    btnClanRename.onclick = async ()=>{
-      const clan_id = btnClanRename.dataset.id;
+  const btnClanSave = $('#btnClanSave', root);
+  if(btnClanSave){
+    btnClanSave.onclick = async ()=>{
+      const clan_id = btnClanSave.dataset.id;
       const name = ($('#clanName', root).value||'').trim();
-      openModal(await htmlPost('clan_rename',{clan_id,name}));
+      const totem = ($('#clanTotem', root).value||'0').trim();
+      openModal(await htmlPost('clan_update_basic',{clan_id,name,totem}));
       reloadClans();
     };
   }
@@ -707,7 +743,8 @@ function bindModalInside(){
       const name = ($('#groupName', root).value||'').trim();
       const activa = $('#groupActiva', root).checked ? 1 : 0;
       const cronica = ($('#groupCronica', root).value||'1').trim();
-      openModal(await htmlPost('group_update_basic',{group_id,name,activa,cronica}));
+      const totem = ($('#groupTotem', root).value||'0').trim();
+      openModal(await htmlPost('group_update_basic',{group_id,name,activa,cronica,totem}));
       reloadGroups();
     };
   }

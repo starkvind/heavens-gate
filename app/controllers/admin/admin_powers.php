@@ -23,6 +23,8 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+$quillToolbarInner = admin_quill_toolbar_inner();
 // Subidas de imagen (Dones)
 $DOCROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
 $DON_IMG_UPLOAD_DIR = $DOCROOT . '/public/img/gifts';
@@ -528,10 +530,14 @@ function ui_short(string $s, int $n=120): string {
 .modal-back { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:9999; }
 .modal { width:min(1100px,96vw); max-height:92vh; overflow:auto; background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
 .modal h3{ margin:0 0 8px; color:#33FFFF; }
-.grid { display:grid; grid-template-columns:repeat(3, minmax(240px,1fr)); gap:10px 12px; }
+.grid { display:grid; grid-template-columns:1fr; gap:10px 12px; }
 .grid label{ font-size:12px; color:#cfe; display:block; text-align: left; }
 .grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
 textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
+.wys-wrap .ql-toolbar.ql-snow { background:#001144; border:1px solid #333; border-radius:6px 6px 0 0; }
+.wys-wrap .ql-container.ql-snow { background:#000033; border:1px solid #333; border-top:0; border-radius:0 0 6px 6px; }
+.wys-wrap .ql-editor { min-height:140px; color:#fff; }
+.wys-wrap .ql-editor a { color:#33ffff; }
 .img-preview{ max-width:120px; max-height:120px; border:1px solid #000088; border-radius:8px; background:#000033; display:block; }
 .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
 @media (max-width:1100px){ .grid{ grid-template-columns:repeat(2, minmax(240px,1fr)); } }
@@ -661,8 +667,14 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
   </div>
 </div>
 
+<!-- Quill (CDN, sin API key, sin carpetas) -->
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
+
 <script>
-var HG_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
+var HG_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc','system','breed','auspice','tribe'];
+var QUILL_TOOLBAR_INNER = <?= json_encode($quillToolbarInner, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -680,6 +692,55 @@ function pickOptsForField(fieldKey){
   if (TAB==='disciplinas' && fieldKey==='disc') return OPTS_TIPO_DISC;
   if (fieldKey==='origen') return OPTS_ORIGEN;
   return [];
+}
+
+// ---- Quill helpers ----
+var QUILL_MAP = {}; // textareaId -> quill instance
+
+function destroyEditors(){
+  QUILL_MAP = {};
+}
+
+function initEditors(){
+  if (typeof Quill === 'undefined') return;
+  document.querySelectorAll('[data-wys=\"1\"]').forEach(function(wrap){
+    var taId = wrap.getAttribute('data-ta');
+    var toolbarId = wrap.getAttribute('data-toolbar');
+    var editorId  = wrap.getAttribute('data-editor');
+    if (!taId || QUILL_MAP[taId]) return;
+
+    var textarea = document.getElementById(taId);
+    var toolbar  = document.getElementById(toolbarId);
+    var editor   = document.getElementById(editorId);
+    if (!textarea || !toolbar || !editor) return;
+
+    var q = new Quill(editor, {
+      theme: 'snow',
+      modules: {
+        toolbar: toolbar,
+        clipboard: { matchVisual: false }
+      }
+    });
+
+    if (window.hgMentions && HG_MENTION_TYPES) {
+      window.hgMentions.attachQuill(q, { types: HG_MENTION_TYPES });
+    }
+
+    var html = textarea.value || '';
+    q.root.innerHTML = html;
+    QUILL_MAP[taId] = q;
+  });
+}
+
+function syncEditorsToTextarea(){
+  Object.keys(QUILL_MAP).forEach(function(taId){
+    var q = QUILL_MAP[taId];
+    var textarea = document.getElementById(taId);
+    if (!q || !textarea) return;
+    var html = q.root.innerHTML || '';
+    var plain = (q.getText() || '').replace(/\s+/g,' ').trim();
+    textarea.value = plain ? html : '';
+  });
 }
 
 (function(){
@@ -733,7 +794,30 @@ function pickOptsForField(fieldKey){
     var ui = f.ui || 'text';
 
     if (ui === 'textarea') {
-      input = el('textarea', {name:k, id:'f_'+k, class:'inp hg-mention-input', 'data-mentions': HG_MENTION_TYPES.join(',')});
+      var taId = 'f_'+k;
+      var toolbarId = 'qt_'+k;
+      var editorId  = 'qe_'+k;
+
+      input = el('textarea', {name:k, id:taId, class:'inp', style:'display:none;'});
+
+      var wysWrap = el('div', {
+        'data-wys':'1',
+        'data-ta': taId,
+        'data-toolbar': toolbarId,
+        'data-editor': editorId
+      });
+      wysWrap.className = 'wys-wrap';
+
+      var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, QUILL_TOOLBAR_INNER);
+      var ed = el('div', {id:editorId, class:'ql-container ql-snow'}, '');
+
+      wysWrap.appendChild(tb);
+      wysWrap.appendChild(ed);
+
+      label.appendChild(input);
+      label.appendChild(wysWrap);
+      wrap.appendChild(label);
+      return wrap;
     } else if (ui === 'number') {
       input = el('input', {type:'number', name:k, id:'f_'+k, class:'inp'});
       if (f.min !== undefined) input.setAttribute('min', String(f.min));
@@ -796,9 +880,9 @@ function pickOptsForField(fieldKey){
   }
 
   function renderForm(){
+    destroyEditors();
     grid.innerHTML = '';
     (META.fields||[]).forEach(function(f){ grid.appendChild(buildField(f)); });
-    if (window.hgMentions) { window.hgMentions.attachAuto(); }
   }
 
   function wireImageUpload(){
@@ -847,6 +931,7 @@ function pickOptsForField(fieldKey){
       }
     });
 
+    initEditors();
     mb.style.display = 'flex';
     setTimeout(function(){
       var first = grid.querySelector('input,textarea,select');
@@ -890,6 +975,7 @@ function pickOptsForField(fieldKey){
       }
     });
 
+    initEditors();
     mb.style.display = 'flex';
     setTimeout(function(){
       var first = grid.querySelector('input,textarea,select');
@@ -909,6 +995,7 @@ function pickOptsForField(fieldKey){
   });
 
   document.getElementById('formCrud').addEventListener('submit', function(ev){
+    syncEditorsToTextarea();
     var errs = [];
     (META.fields||[]).forEach(function(f){
       if (!f.req) return;

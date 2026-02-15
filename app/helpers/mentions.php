@@ -106,6 +106,30 @@ function hg_mentions_config(): array {
             'pretty' => 'pretty_id',
             'url' => '/documents',
         ],
+        'system' => [
+            'table' => 'dim_systems',
+            'label' => 'name',
+            'pretty' => 'pretty_id',
+            'url' => '/systems',
+        ],
+        'breed' => [
+            'table' => 'dim_breeds',
+            'label' => 'name',
+            'pretty' => 'pretty_id',
+            'url' => '/systems/breeds',
+        ],
+        'auspice' => [
+            'table' => 'dim_auspices',
+            'label' => 'name',
+            'pretty' => 'pretty_id',
+            'url' => '/systems/auspices',
+        ],
+        'tribe' => [
+            'table' => 'dim_tribes',
+            'label' => 'name',
+            'pretty' => 'pretty_id',
+            'url' => '/systems/tribes',
+        ],
     ];
 }
 

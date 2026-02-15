@@ -1,41 +1,78 @@
-<?php
+﻿<?php
 
 // Obtener parámetros de manera segura
-$systemIdDocument = isset($_GET['b']) ? $_GET['b'] : '';  // ID del contenido
-$systemTypeDocument = isset($_GET['tc']) ? $_GET['tc'] : '';  // Tipo de contenido
+$systemIdDocument = isset($_GET['b']) ? (string)$_GET['b'] : '';  // ID o pretty_id
+$systemTypeDocument = isset($_GET['tc']) ? (int)$_GET['tc'] : 0;  // Tipo de contenido
+
+include_once(__DIR__ . '/../../helpers/pretty.php');
+
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+function sanitize_int_csv($csv){
+    $csv = (string)$csv;
+    if (trim($csv) === '') return '';
+    $parts = preg_split('/\s*,\s*/', trim($csv));
+    $ints = [];
+    foreach ($parts as $p) {
+        if ($p === '') continue;
+        if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
+    }
+    $ints = array_values(array_unique($ints));
+    return implode(',', $ints);
+}
+
+// EXCLUSIONES (si existe la variable global, la usamos; si no, mantenemos 2,7)
+$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
+$whereChron = ($excludeChronicles !== '') ? "p.cronica NOT IN ($excludeChronicles)" : "1=1";
 
 // Preparar Queries
-
 switch ($systemTypeDocument) {
 	case 1:
-		$query = "SELECT * FROM dim_breeds WHERE id LIKE '$systemIdDocument' LIMIT 1;";
+		$table = "dim_breeds";
 		$energy = "Gnosis";
 		break;
 	case 2:
-		$query = "SELECT * FROM dim_auspices WHERE id LIKE '$systemIdDocument' LIMIT 1;";
+		$table = "dim_auspices";
 		$energy = "Rabia";
 		break;
 	case 3:
-		$query = "SELECT * FROM dim_tribes WHERE id LIKE '$systemIdDocument' LIMIT 1;";
+		$table = "dim_tribes";
 		$energy = "Fuerza de voluntad";
 		break;
 	case 4:
-		$query = "SELECT * FROM fact_misc_systems WHERE id LIKE '$systemIdDocument' LIMIT 1;";
+		$table = "fact_misc_systems";
 		break;
 	default:
-		$query = "Nada";
+		$table = "";
 		break;
 }
 
-if ($query != "Nada") {
+if ($table !== "") {
 
     $infoDataCheck = 0;
 
+    $resolvedId = 0;
+    if ($systemIdDocument !== '') {
+        if (preg_match('/^\d+$/', $systemIdDocument)) {
+            $resolvedId = (int)$systemIdDocument;
+        } else {
+            $resolvedId = (int)resolve_pretty_id($link, $table, $systemIdDocument);
+        }
+    }
+
+    if ($resolvedId <= 0) {
+        $pageSect = "Sistema";
+        $pageTitle2 = "Elemento no encontrado";
+        include("app/partials/main_nav_bar.php");
+        echo "<h2>Elemento no encontrado</h2>";
+        echo "<div class='renglonDatosSistema'>El contenido solicitado no existe.</div>";
+        return;
+    }
+
     // Ejecutar la consulta utilizando mysqli y sentencias preparadas
-    $stmt = $link->prepare($query);
+    $stmt = $link->prepare("SELECT * FROM `$table` WHERE id = ? LIMIT 1");
+    $stmt->bind_param('i', $resolvedId);
     $stmt->execute();
     $result = $stmt->get_result();
-    $NFilas = $result->num_rows;
 
     while ($ResultQuery = $result->fetch_assoc()) {
         // Datos del Sistema
@@ -55,19 +92,6 @@ if ($query != "Nada") {
         
         include("app/helpers/system_category_helper.php");
         include("app/partials/main_nav_bar.php"); // Barra Navegación
-        echo "<h2>$nameSyst</h2>";
-        echo "<table class='notix'>";
-
-        echo "
-            <tr>
-            <td class='imgInfoPic'>
-                <center>
-                    <img class='infoPic' src='$imageSyst' title ='$nameSyst' alt='$nameSyst'/>
-                </center>
-            </td>
-            <td class='imgInfoPic'>
-                <fieldset class='systemDonList'>
-        ";
 
         // Comprobar si los datos tienen energía para mostrarla
         if (isset($ResultQuery["energia"])) {
@@ -76,13 +100,37 @@ if ($query != "Nada") {
 			$checkEnergy = 0;
 		}
 
-        if ($returnType == "Mokolé" && $systemTypeDocument == 2) {
+        if ($returnType == "Ícaros") {
             $energy = "Fuerza de Voluntad";
         }
 
+        if ($returnType == "Mokolé" && $systemTypeDocument == 2) {
+            $energy = "Fuerza de Voluntad";
+        }
+?>
+<style>
+.syst-detail { display:grid; gap:12px; }
+.syst-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
+.syst-banner::before { content:''; display:block; padding-top:28%; }
+.syst-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
+.syst-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
+.syst-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
+.syst-box h3 { margin-top:0; color:#33FFFF; }
+.syst-meta { color:#cfe; }
+</style>
+<div class="syst-detail">
+  <div class="syst-banner">
+    <?php if ($imageSyst !== ''): ?>
+      <img src="<?= htmlspecialchars($imageSyst) ?>" alt="<?= htmlspecialchars($nameSyst) ?>">
+    <?php endif; ?>
+    <h2 class="syst-banner-title"><?= $nameSyst ?></h2>
+  </div>
+
+<?php
+        $metaHtml = '';
         if ($checkEnergy != 0) {
             $infoDataCheck++;
-            echo "<p><b>$energy:</b> $checkEnergy</p>";
+            $metaHtml .= "<p><b>$energy inicial:</b> $checkEnergy</p>";
 
         } elseif ($systemTypeDocument == 4) {
             $miscInfoData = ($ResultQuery["miscinfo"]);
@@ -90,16 +138,27 @@ if ($query != "Nada") {
             $miscValuEnergy = htmlspecialchars($ResultQuery["energiavalor"]);
 
             if ($miscInfoData != "") { 
-                echo "<p>$miscInfoData</p>"; 
+                $metaHtml .= "<p>$miscInfoData</p>"; 
                 $infoDataCheck++;
             }
 
             if ($miscNameEnergy != "") { 
-                echo "<p><b>$miscNameEnergy:</b> $miscValuEnergy</p>"; 
+                $metaHtml .= "<p><b>$miscNameEnergy:</b> $miscValuEnergy</p>"; 
                 $infoDataCheck++;
             }
         }
 
+        if ($metaHtml !== '') {
+            echo "<div class=\"syst-box syst-meta\">$metaHtml</div>";
+        }
+?>
+
+  <div class="syst-box">
+    <h3>Descripción</h3>
+    <div><?= $infoDesc ?></div>
+  </div>
+
+<?php
         // Don Query para obtener dones basados en el sistema
         $donGroup = $nameSyst;
         $donQuery = "SELECT id, nombre, rango FROM fact_gifts WHERE grupo = ? AND ferasistema = ? ORDER BY rango;";
@@ -111,61 +170,118 @@ if ($query != "Nada") {
 
         if ($filasDon > 0) {
             $infoDataCheck++;
-            echo "
-                <p><b>Dones disponibles:</b></p>
-                <ul style='list-style-type:circle;'>";
-            
+            echo "<div class=\"syst-box\">";
+            echo "<h3>Dones disponibles</h3>";
+            echo "<fieldset class='grupoHabilidad'>";
             while ($resultDonQuery = $resultDon->fetch_assoc()) {
                 echo "
-                    <li>
-                        <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$resultDonQuery['id'])) . "' title='" . htmlspecialchars($resultDonQuery['rango']) . "' target='_blank'>
-                            " . htmlspecialchars($resultDonQuery['nombre']) . "
-                        </a>
-                    </li>
+                    <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$resultDonQuery['id'])) . "' 
+                        title='" . htmlspecialchars($resultDonQuery['nombre']) . ", Rango " . htmlspecialchars($resultDonQuery['rango']) . "' target='_blank'>
+                        <div class='renglon2col'>
+                            <div class='renglon2colIz'>
+                                <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($resultDonQuery['nombre']) . "
+                            </div>
+                            <div class='renglon2colDe'>" . htmlspecialchars($resultDonQuery['rango']) . "</div>
+                        </div>
+                    </a>
                 ";
             }
-
-            echo "</ul>";
+            echo "</fieldset>";
+            echo "</div>";
         }
-
-        if ($infoDataCheck == 0) {
-            echo "<p align='center'>No hay datos disponibles.</p>";
-        } 
 
         $stmtDon->close();
+?>
 
-        echo "</fieldset></td></tr>";
-        print("<tr><td colspan='2' class='texti'>$infoDesc</td></tr>");
+<?php
+        // Mostrar personajes asociados (raza / auspicio / tribu)
+        $charField = '';
+        if ($systemTypeDocument === 1) $charField = 'raza';
+        elseif ($systemTypeDocument === 2) $charField = 'auspicio';
+        elseif ($systemTypeDocument === 3) $charField = 'tribu';
 
-        // Mostrar personajes que están en el clan pero que no tienen manada aún
-        $charsWithoutPackQuery = "SELECT id, nombre FROM fact_characters WHERE tribu = ? ORDER BY nombre;";
-        $stmtChars = $link->prepare($charsWithoutPackQuery);
-        $stmtChars->bind_param('s', $systemIdDocument);
-        $stmtChars->execute();
-        $resultChars = $stmtChars->get_result();
-        $charsWithoutPackFilas = $resultChars->num_rows;
-
-        if ($charsWithoutPackFilas > 0 && $systemTypeDocument == 3) {
-            $pjCount = 0;
-            print("<tr><td colspan='2' class='texti'>");
-            print("<fieldset class='grupoBioClan'><legend><b>Miembros</b>:</legend>");
-            while ($charsWithoutPackResult = $resultChars->fetch_assoc()) { 
-                $charWithoutPackId = htmlspecialchars($charsWithoutPackResult["id"]);
-                $charWithoutPackName = htmlspecialchars($charsWithoutPackResult["nombre"]);
-                $charHref = pretty_url($link, 'fact_characters', '/characters', (int)$charWithoutPackId);
-                echo "<a href='" . htmlspecialchars($charHref) . "' target='_blank'><div class='renglon2col' style='text-align: center;'>$charWithoutPackName</div></a>";
-                $pjCount++;
-            }
-            print("</fieldset>");
-            echo "<p style='text-align:right;'>$nameSyst: $pjCount</p>";
-            print("</td></tr>");
+        if ($charField !== '') {
+            $charsWithoutPackQuery = "
+                SELECT 
+                    p.id,
+                    p.nombre,
+                    GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS grupos,
+                    GROUP_CONCAT(DISTINCT o.name ORDER BY o.name SEPARATOR ', ') AS organizaciones
+                FROM fact_characters p
+                LEFT JOIN bridge_characters_groups bcg ON bcg.character_id = p.id
+                LEFT JOIN dim_groups g ON g.id = bcg.group_id
+                LEFT JOIN bridge_characters_organizations bco ON bco.character_id = p.id
+                LEFT JOIN dim_organizations o ON o.id = bco.clan_id
+                WHERE p.`$charField` = ?
+                  AND $whereChron
+                GROUP BY p.id
+                ORDER BY p.nombre
+            ";
+            $stmtChars = $link->prepare($charsWithoutPackQuery);
+            $stmtChars->bind_param('i', $resolvedId);
+            $stmtChars->execute();
+            $resultChars = $stmtChars->get_result();
+            $charsWithoutPackFilas = $resultChars->num_rows;
+        } else {
+            $charsWithoutPackFilas = 0;
         }
 
-        $stmtChars->close();
+        if ($charsWithoutPackFilas > 0 && $charField !== '') {
+            $members = [];
+            while ($charsWithoutPackResult = $resultChars->fetch_assoc()) { 
+                $members[] = [
+                    'id' => (int)$charsWithoutPackResult["id"],
+                    'nombre' => (string)$charsWithoutPackResult["nombre"],
+                    'grupos' => (string)($charsWithoutPackResult["grupos"] ?? ''),
+                    'organizaciones' => (string)($charsWithoutPackResult["organizaciones"] ?? ''),
+                ];
+            }
 
-        echo "</table>";
+            $pjCount = count($members);
+            echo "<div class='syst-box'>";
+            echo "<h3>Miembros</h3>";
+            echo "<table id='tabla-miembros' class='display' style='width:100%'>";
+            echo "<thead><tr><th>Nombre</th><th>Grupo</th><th>Organización</th></tr></thead><tbody>";
+            foreach ($members as $m) {
+                $charHref = pretty_url($link, 'fact_characters', '/characters', (int)$m['id']);
+                $charName = htmlspecialchars($m['nombre']);
+                $charGroup = htmlspecialchars($m['grupos'] !== '' ? $m['grupos'] : '-');
+                $charOrg = htmlspecialchars($m['organizaciones'] !== '' ? $m['organizaciones'] : '-');
+                echo "<tr><td><a href='" . htmlspecialchars($charHref) . "' target='_blank'>$charName</a></td><td>$charGroup</td><td>$charOrg</td></tr>";
+            }
+            echo "</tbody></table>";
+            echo "<p style='text-align:right;'>$nameSyst: $pjCount</p>";
+            echo "</div>";
+
+            echo "<link rel='stylesheet' href='/assets/vendor/datatables/jquery.dataTables.min.css'>";
+            echo "<script src='/assets/vendor/jquery/jquery-3.7.1.min.js'></script>";
+            echo "<script src='/assets/vendor/datatables/jquery.dataTables.min.js'></script>";
+            echo "<script>
+            (function(){
+              if (typeof jQuery === 'undefined' || !jQuery.fn || !jQuery.fn.DataTable) return;
+              jQuery(function($){
+                $('#tabla-miembros').DataTable({
+                  pageLength: 10,
+                  lengthMenu: [10, 20, 50, 100],
+                  order: [[0, 'asc']],
+                  language: {
+                    search: 'Buscar:&nbsp; ',
+                    lengthMenu: 'Mostrar _MENU_ personajes',
+                    info: 'Mostrando _START_ a _END_ de _TOTAL_ personajes',
+                    infoEmpty: 'No hay personajes disponibles',
+                    emptyTable: 'No hay datos en la tabla',
+                    paginate: { first: 'Primero', last: 'Último', next: '▶', previous: '◀' }
+                  }
+                });
+              });
+            })();
+            </script>";
+        }
+
+        if (isset($stmtChars) && $stmtChars) $stmtChars->close();
+?>
+</div>
+<?php
     }
-
- //   $stmt->close();
 }
 ?>

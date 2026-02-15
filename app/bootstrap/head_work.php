@@ -16,7 +16,14 @@
 
 	<?= setMetaTags($_GET['p'] ?? '', $pageURL); ?>
 	
-    <title><?= htmlspecialchars(trim(($pageTitle2 ?? '') . ' | ' . ($pageSect ?? '') . ' | ' . $pageTitle, ' |')) ?></title>
+    <?php
+        $titleParts = [];
+        if (!empty($pageTitle2)) $titleParts[] = $pageTitle2;
+        if (!empty($pageSect)) $titleParts[] = $pageSect;
+        if (!empty($pageTitle)) $titleParts[] = $pageTitle;
+        $fullTitle = implode(' | ', $titleParts);
+    ?>
+    <title><?= htmlspecialchars($fullTitle) ?></title>
 
     <!-- Favicon y estilos -->
 	<link rel="shortcut icon" href="img/ui/branding/infinidice.ico" type="image/x-icon">
