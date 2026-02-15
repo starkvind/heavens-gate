@@ -115,9 +115,10 @@ if ($result->num_rows > 0) {
     // Maniobras de combate para esta forma
     $formNameRaw = $ResultQuery["forma"];
     $likeForm = '%' . $formNameRaw . '%';
-    $sqlMan = "SELECT id, pretty_id, name, img FROM fact_combat_maneuvers WHERE sistema = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC";
+    $formSystemId = (int)($ResultQuery['system_id'] ?? 0);
+    $sqlMan = "SELECT id, pretty_id, name, img FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC";
     $stmtMan = $link->prepare($sqlMan);
-    $stmtMan->bind_param('ss', $returnType, $likeForm);
+    $stmtMan->bind_param('is', $formSystemId, $likeForm);
     $stmtMan->execute();
     $rsMan = $stmtMan->get_result();
     if ($rsMan && $rsMan->num_rows > 0) {

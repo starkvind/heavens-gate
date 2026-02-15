@@ -392,7 +392,7 @@ $flash   = [];
 $opts_cronicas = fetchPairs($link, "SELECT id, name FROM dim_chronicles ORDER BY name");
 $opts_clanes   = fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER BY name");
 $opts_jug      = fetchPairs($link, "SELECT id, name FROM dim_players ORDER BY name");
-$opts_sist     = fetchPairs($link, "SELECT name FROM dim_systems ORDER BY name");
+$opts_sist     = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
 $opts_afili    = fetchPairs($link, "SELECT id, tipo AS name FROM dim_character_types ORDER BY tipo");
 $opts_manadas_flat = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
 
@@ -436,11 +436,11 @@ if ($st = $link->prepare("SELECT id, name, tipo FROM fact_items ORDER BY name"))
 // RAZAS
 $opts_razas = [];
 $razas_by_sys = []; $raza_id_to_sys = [];
-if ($st = $link->prepare("SELECT id, name, sistema FROM dim_breeds ORDER BY sistema, name")) {
+if ($st = $link->prepare("SELECT id, name, system_id FROM dim_breeds ORDER BY system_id, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
-        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (string)($r['sistema'] ?? '');
-        $opts_razas[$id] = $nm . ($sys!=='' ? ' ('.$sys.')' : '');
+        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
+        $opts_razas[$id] = $nm . ($sys>0 && isset($opts_sist[$sys]) ? ' ('.$opts_sist[$sys].')' : '');
         $raza_id_to_sys[$id] = $sys;
         $razas_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
     }
@@ -448,10 +448,10 @@ if ($st = $link->prepare("SELECT id, name, sistema FROM dim_breeds ORDER BY sist
 }
 // AUSPICIOS
 $opts_ausp = []; $ausp_by_sys = []; $ausp_id_to_sys = [];
-if ($st = $link->prepare("SELECT id, name, sistema FROM dim_auspices ORDER BY sistema, name")) {
+if ($st = $link->prepare("SELECT id, name, system_id FROM dim_auspices ORDER BY system_id, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
-        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (string)($r['sistema'] ?? '');
+        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
         $opts_ausp[$id] = $nm;
         $ausp_id_to_sys[$id] = $sys;
         $ausp_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
@@ -462,10 +462,10 @@ if ($st = $link->prepare("SELECT id, name, sistema FROM dim_auspices ORDER BY si
 }
 // TRIBUS
 $opts_tribus = []; $tribus_by_sys = []; $tribu_id_to_sys = [];
-if ($st = $link->prepare("SELECT id, name, sistema FROM dim_tribes ORDER BY sistema, name")) {
+if ($st = $link->prepare("SELECT id, name, system_id FROM dim_tribes ORDER BY system_id, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
-        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (string)($r['sistema'] ?? '');
+        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
         $opts_tribus[$id] = $nm;
         $tribu_id_to_sys[$id] = $sys;
         $tribus_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
@@ -524,7 +524,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $tribu       = max(0, intval($_POST['tribu'] ?? 0));
     $manada      = max(0, intval($_POST['manada'] ?? 0));
     $clan        = max(0, intval($_POST['clan'] ?? 0));
-    $sistema     = trim($_POST['sistema'] ?? '');
+    $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
+    $sistema_legacy = trim($_POST['sistema_legacy'] ?? '');
     $rm_avatar   = isset($_POST['avatar_remove']) && $_POST['avatar_remove'] ? true : false;
 
     // Campos complejos
@@ -562,10 +563,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             $flash[] = ['type'=>'error','msg'=>'⚠ La Manada seleccionada no pertenece al Clan elegido.'];
         }
     }
-    if ($sistema !== '') {
-        if ($raza     > 0 && isset($raza_id_to_sys[$raza])     && $raza_id_to_sys[$raza]     !== $sistema) $flash[]=['type'=>'error','msg'=>'⚠ La Raza no pertenece al Sistema elegido.'];
-        if ($auspicio > 0 && isset($ausp_id_to_sys[$auspicio]) && $ausp_id_to_sys[$auspicio] !== $sistema) $flash[]=['type'=>'error','msg'=>'⚠ El Auspicio no pertenece al Sistema elegido.'];
-        if ($tribu    > 0 && isset($tribu_id_to_sys[$tribu])   && $tribu_id_to_sys[$tribu]   !== $sistema) $flash[]=['type'=>'error','msg'=>'⚠ La Tribu no pertenece al Sistema elegido.'];
+    if ($system_id > 0) {
+        if ($raza     > 0 && isset($raza_id_to_sys[$raza])     && (int)$raza_id_to_sys[$raza]     !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'⚠ La Raza no pertenece al Sistema elegido.'];
+        if ($auspicio > 0 && isset($ausp_id_to_sys[$auspicio]) && (int)$ausp_id_to_sys[$auspicio] !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'⚠ El Auspicio no pertenece al Sistema elegido.'];
+        if ($tribu    > 0 && isset($tribu_id_to_sys[$tribu])   && (int)$tribu_id_to_sys[$tribu]   !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'⚠ La Tribu no pertenece al Sistema elegido.'];
+    }
+
+    if ($system_id > 0 && isset($opts_sist[$system_id])) {
+        $sistema_legacy = (string)$opts_sist[$system_id];
+    }
+    if ($sistema_legacy === '') {
+        $sistema_legacy = 'Otros';
     }
 
     // Avatar actual (para update)
@@ -582,16 +590,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'⚠ El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
-                (nombre, alias, nombregarou, genero_pj, concepto, cronica, jugador, tipo, img, notas, colortexto, kes, sistema,
+                (nombre, alias, nombregarou, genero_pj, concepto, cronica, jugador, tipo, img, notas, colortexto, kes, sistema, system_id,
                  fera, totem, estado, causamuerte, cumple, rango, infotext, raza, auspicio, tribu)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img=''; $kes='pnj'; $fera=''; $totem='';
                 $stmt->bind_param(
-                    "sssssiiissssssisssssiii",
+                    "sssssiiisssssisssssssiii",
                     $nombre, $alias, $nombregarou, $genero_pj, $concepto,
                     $cronica, $jugador, $afili,
-                    $img, $notas, $colortexto, $kes, $sistema, $fera,
+                    $img, $notas, $colortexto, $kes, $sistema_legacy, $system_id, $fera,
                     $totem,
                     $estado, $causamuerte, $cumple, $rango, $infotext,
                     $raza, $auspicio, $tribu
@@ -652,7 +660,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
           // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
                   nombre=?, alias=?, nombregarou=?, genero_pj=?, concepto=?,
-                  cronica=?, jugador=?, tipo=?, sistema=?, colortexto=?,
+                  cronica=?, jugador=?, tipo=?, sistema=?, system_id=?, colortexto=?,
                   raza=?, auspicio=?, tribu=?,
                   estado=?, causamuerte=?, cumple=?, rango=?, infotext=?
                   WHERE id=?";
@@ -661,9 +669,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiissiiisssssi",
+                  "sssssiiisisiiisssssi",
                   $nombre, $alias, $nombregarou, $genero_pj, $concepto,
-                  $cronica, $jugador, $afili, $sistema, $colortexto,
+                  $cronica, $jugador, $afili, $sistema_legacy, $system_id, $colortexto,
                   $raza, $auspicio, $tribu,
                   $estado, $causamuerte, $cumple, $rango, $infotext,
                   $id
@@ -773,7 +781,7 @@ $offset= ($page - 1) * $perPage;
 $sql = "
 SELECT
   p.id, p.nombre, p.alias, p.nombregarou, p.genero_pj, p.concepto,
-  p.cronica, p.jugador, p.sistema, p.colortexto,
+  p.cronica, p.jugador, p.system_id, p.sistema, p.colortexto,
   p.raza, p.auspicio, p.tribu,
   -- ✅ IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
@@ -785,6 +793,7 @@ SELECT
   nr.name AS raza_n,
   na.name AS auspicio_n,
   nt.name AS tribu_n,
+  ds.name AS sistema_n,
 
   nm.name AS manada_n,
   nc2.name AS clan_n,
@@ -808,6 +817,7 @@ LEFT JOIN (
 
 LEFT JOIN dim_players  nj ON p.jugador = nj.id
 LEFT JOIN dim_chronicles  nc ON p.cronica = nc.id
+LEFT JOIN dim_systems     ds ON p.system_id = ds.id
 LEFT JOIN dim_breeds      nr ON p.raza    = nr.id
 LEFT JOIN dim_auspices  na ON p.auspicio= na.id
 LEFT JOIN dim_tribes     nt ON p.tribu   = nt.id
@@ -1091,7 +1101,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <td><?= h($r['nombre']) ?></td>
           <td><?= h($r['jugador_'] ?? $r['jugador']) ?></td>
           <td><?= h($r['cronica_'] ?? $r['cronica']) ?></td>
-          <td><?= h($r['sistema']) ?></td>
+          <td><?= h($r['sistema_n'] ?? $r['sistema']) ?></td>
           <td>
             <button class="btn btn-small" data-edit='1'
               data-id="<?= (int)$r['id'] ?>"
@@ -1102,7 +1112,8 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-concepto="<?= h($r['concepto']) ?>"
               data-cronica="<?= (int)$r['cronica'] ?>"
               data-jugador="<?= (int)$r['jugador'] ?>"
-              data-sistema="<?= h($r['sistema']) ?>"
+              data-system_id="<?= (int)($r['system_id'] ?? 0) ?>"
+              data-sistema_legacy="<?= h($r['sistema']) ?>"
               data-colortexto="<?= h($r['colortexto']) ?>"
               data-raza="<?= (int)$r['raza'] ?>"
               data-auspicio="<?= (int)$r['auspicio'] ?>"
@@ -1231,12 +1242,13 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 
         <div>
           <label>Sistema
-            <select class="select" name="sistema" id="f_sistema">
-              <option value="">—</option>
-              <?php foreach($opts_sist as $name=>$name2): ?>
-                <option value="<?= h($name) ?>"><?= h($name2) ?></option>
+            <select class="select" name="system_id" id="f_system_id">
+              <option value="0">—</option>
+              <?php foreach($opts_sist as $id=>$name): ?>
+                <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
+            <input type="hidden" name="sistema_legacy" id="f_sistema_legacy" value="">
             <span class="small-note">Filtra Raza, Auspicio y Tribu</span>
           </label>
         </div>
@@ -1463,7 +1475,7 @@ var CHAR_DETAILS     = <?= json_encode(
   var btnNew = document.getElementById('btnNew');
   var btnCancel = document.getElementById('btnCancel');
 
-  var selSistema = document.getElementById('f_sistema');
+  var selSistema = document.getElementById('f_system_id');
   var selRaza    = document.getElementById('f_raza');
   var selAusp    = document.getElementById('f_auspicio');
   var selTribu   = document.getElementById('f_tribu');
@@ -1695,9 +1707,11 @@ var CHAR_DETAILS     = <?= json_encode(
     ['nombre','alias','nombregarou','genero_pj','concepto','colortexto','cumple','rango'].forEach(function(k){
       var el=document.getElementById('f_'+k); if(el) el.value='';
     });
-    ['cronica','jugador','sistema'].forEach(function(k){
-      var el=document.getElementById('f_'+k); if(el) el.value=(k==='sistema'?'':'0');
+    ['cronica','jugador','system_id'].forEach(function(k){
+      var el=document.getElementById('f_'+k); if(el) el.value='0';
     });
+    var sistLegacy = document.getElementById('f_sistema_legacy');
+    if (sistLegacy) sistLegacy.value = '';
     selAfili.value = '0';
 
     ensureEstadoOption('En activo');
@@ -1752,17 +1766,16 @@ var CHAR_DETAILS     = <?= json_encode(
     document.getElementById('f_jugador').value     = btn.getAttribute('data-jugador') || '0';
     document.getElementById('f_afiliacion').value  = btn.getAttribute('data-afiliacion') || '0';
 
-    var sist = btn.getAttribute('data-sistema') || '';
-    var selS = document.getElementById('f_sistema');
-    if (sist && selS && !Array.prototype.some.call(selS.options, function(o){return o.value===sist;})) {
-      var opt=document.createElement('option'); opt.value=sist; opt.textContent=sist; selS.appendChild(opt);
-    }
-    if (selS) selS.value = sist;
+    var sistId = parseInt(btn.getAttribute('data-system_id')||'0',10)||0;
+    var selS = document.getElementById('f_system_id');
+    if (selS) selS.value = String(sistId||0);
+    var sistLegacy = document.getElementById('f_sistema_legacy');
+    if (sistLegacy) sistLegacy.value = btn.getAttribute('data-sistema_legacy') || '';
 
     var razaId = parseInt(btn.getAttribute('data-raza')||'0',10)||0;
     var ausId  = parseInt(btn.getAttribute('data-auspicio')||'0',10)||0;
     var triId  = parseInt(btn.getAttribute('data-tribu')||'0',10)||0;
-    updateSistemaSets(sist, razaId, ausId, triId);
+    updateSistemaSets(sistId, razaId, ausId, triId);
 
     var clanId   = parseInt(btn.getAttribute('data-clan') || '0',10) || 0;
     var manadaId = parseInt(btn.getAttribute('data-manada') || '0',10) || 0;
@@ -1828,7 +1841,7 @@ var CHAR_DETAILS     = <?= json_encode(
 
   // Sistema change
   onSelectChange(selSistema, function(){
-    var sys = selSistema.value || '';
+    var sys = parseInt(selSistema.value,10)||0;
     updateSistemaSets(sys, 0,0,0);
   });
 
@@ -1872,14 +1885,14 @@ var CHAR_DETAILS     = <?= json_encode(
       alert('La Manada seleccionada no pertenece al Clan elegido.');
       ev.preventDefault(); return;
     }
-    var sys = selSistema.value || '';
+    var sys = parseInt(selSistema.value,10)||0;
     var rz = parseInt(selRaza.value,10)||0;
     var au = parseInt(selAusp.value,10)||0;
     var tr = parseInt(selTribu.value,10)||0;
     if (sys){
-      if (rz && RAZA_ID_TO_SYS[String(rz)]   && RAZA_ID_TO_SYS[String(rz)]   !== sys){ alert('La Raza no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
-      if (au && AUSP_ID_TO_SYS[String(au)]   && AUSP_ID_TO_SYS[String(au)]   !== sys){ alert('El Auspicio no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
-      if (tr && TRIBU_ID_TO_SYS[String(tr)]  && TRIBU_ID_TO_SYS[String(tr)]  !== sys){ alert('La Tribu no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
+      if (rz && RAZA_ID_TO_SYS[String(rz)]   && parseInt(RAZA_ID_TO_SYS[String(rz)],10)   !== sys){ alert('La Raza no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
+      if (au && AUSP_ID_TO_SYS[String(au)]   && parseInt(AUSP_ID_TO_SYS[String(au)],10)   !== sys){ alert('El Auspicio no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
+      if (tr && TRIBU_ID_TO_SYS[String(tr)]  && parseInt(TRIBU_ID_TO_SYS[String(tr)],10)  !== sys){ alert('La Tribu no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
     }
     if (!fEstado.value) { alert('Debes seleccionar un Estado.'); ev.preventDefault(); return; }
   });

@@ -38,11 +38,13 @@ select
     d.habilidad as gift_roll_skill,
     d.descripcion as gift_description,
     d.sistema as gift_roll_description,
-    d.ferasistema as gift_fera_system,
+    s.name as gift_fera_system,
+    d.system_id as gift_system_id,
     nb.name as gift_origin
 from fact_gifts d
     left join dim_gift_types ntd on d.tipo = ntd.id
     left join dim_bibliographies nb on d.bibliography_id = nb.id
+    left join dim_systems s on d.system_id = s.id
 order by d.bibliography_id, d.rango
 ";
 

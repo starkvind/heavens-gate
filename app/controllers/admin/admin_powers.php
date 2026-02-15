@@ -132,6 +132,7 @@ $flash = [];
    Opciones de referencia
 ------------------------------ */
 $opts_origen = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name");
+$opts_systems = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
 
 $opts_tipo_dones = fetchPairs($link, "SELECT id, name FROM dim_gift_types ORDER BY id");
 $opts_tipo_rit   = fetchPairs($link, "SELECT id, CONCAT(name, IFNULL(CONCAT(' ', determinante),'')) AS name FROM dim_rite_types ORDER BY id");
@@ -144,7 +145,7 @@ $opts_tipo_disc  = fetchPairs($link, "SELECT id, name FROM dim_discipline_types 
 /* -----------------------------
    Metadatos CRUD
 ------------------------------ */
-function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array $opts_tipo_rit, array $opts_tipo_tot, array $opts_tipo_disc): array {
+function meta_for(string $tab, array $opts_origen, array $opts_systems, array $opts_tipo_dones, array $opts_tipo_rit, array $opts_tipo_tot, array $opts_tipo_disc): array {
     if ($tab === 'dones') {
         return [
             'title' => 'Dones',
@@ -162,8 +163,9 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 ['k'=>'habilidad',   'label'=>'Habilidad',    'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
                 ['k'=>'descripcion', 'label'=>'Descripción',  'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 // FIX: ahora puede ir vacío
-                ['k'=>'sistema',     'label'=>'Sistema',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
-                ['k'=>'ferasistema', 'label'=>'Fera-sistema', 'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>100],
+                ['k'=>'sistema',     'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+                ['k'=>'system_id',   'label'=>'Sistema',     'ui'=>'select_int','db'=>'i','req'=>true, 'opts'=>$opts_systems],
+                ['k'=>'ferasistema', 'label'=>'Fera-sistema (legacy)', 'ui'=>'text',     'db'=>'s', 'req'=>false,  'max'=>100],
                 ['k'=>'img',         'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen',   'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
             ],
@@ -172,7 +174,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 ['k'=>'nombre','label'=>'Nombre','w'=>260],
                 ['k'=>'grupo','label'=>'Grupo','w'=>140],
                 ['k'=>'rango','label'=>'Rango','w'=>90],
-                ['k'=>'ferasistema','label'=>'Sistema','w'=>120],
+                ['k'=>'system_name','label'=>'Sistema','w'=>140],
                 ['k'=>'origen_name','label'=>'Origen','w'=>180],
             ],
         ];
@@ -191,14 +193,15 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 ['k'=>'raza',   'label'=>'Raza',        'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
                 ['k'=>'desc',   'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 ['k'=>'syst',   'label'=>'Sistema (texto largo)', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
-                ['k'=>'sistema','label'=>'Sistema',     'ui'=>'text',     'db'=>'s', 'req'=>true,'max'=>100],
+                ['k'=>'system_id','label'=>'Sistema',     'ui'=>'select_int','db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
+                ['k'=>'sistema','label'=>'Sistema (legacy)',     'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
                 ['k'=>'name','label'=>'Nombre','w'=>320],
                 ['k'=>'nivel','label'=>'Nivel','w'=>70],
-                ['k'=>'sistema','label'=>'Sistema','w'=>140],
+                ['k'=>'system_name','label'=>'Sistema','w'=>140],
                 ['k'=>'origen_name','label'=>'Origen','w'=>180],
             ],
         ];
@@ -261,7 +264,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
     ];
 }
 
-$META = meta_for($tab, $opts_origen, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+$META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
 
 /* -----------------------------
    Guardado (POST)
@@ -273,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     } elseif (!csrf_ok()) {
         $flash[] = ['type'=>'error','msg'=>'? CSRF inválido. Recarga la página.'];
     } else {
-        $M = meta_for($postTab, $opts_origen, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+        $M = meta_for($postTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
         $action = (string)$_POST['crud_action'];
         $id = (int)($_POST['id'] ?? 0);
 
@@ -309,6 +312,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $k = $f['k'];
             if (($f['db'] ?? 's') === 's') {
                 if (!isset($vals[$k]) || $vals[$k] === null) $vals[$k] = '';
+            }
+        }
+
+        // Relleno legacy desde system_id (si aplica)
+        if (isset($vals['system_id']) && (int)$vals['system_id'] > 0) {
+            $sysName = $opts_systems[(int)$vals['system_id']] ?? '';
+            if ($sysName !== '') {
+                if (array_key_exists('ferasistema', $vals) && trim((string)$vals['ferasistema']) === '') {
+                    $vals['ferasistema'] = $sysName;
+                }
+                if (array_key_exists('sistema', $vals) && trim((string)$vals['sistema']) === '') {
+                    $vals['sistema'] = $sysName;
+                }
             }
         }
 
@@ -411,7 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
             // Mantener tab actual tras POST
             $tab = $postTab;
-            $META = meta_for($tab, $opts_origen, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+            $META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
         }
     }
 }
@@ -468,6 +484,9 @@ while ($r = $rsL->fetch_assoc()) {
     $idv = (int)$r[$pk];
 
     $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
+    if (isset($r['system_id'])) {
+        $r['system_name'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
+    }
 
     if ($tab === 'dones') {
         $t = (int)($r['tipo'] ?? 0);
@@ -681,6 +700,7 @@ var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 
 var OPTS_ORIGEN = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_origen), array_values($opts_origen)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+var OPTS_SYSTEMS = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_systems), array_values($opts_systems)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var OPTS_TIPO_DONES = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_dones), array_values($opts_tipo_dones)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var OPTS_TIPO_RIT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_rit), array_values($opts_tipo_rit)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 var OPTS_TIPO_TOT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_tot), array_values($opts_tipo_tot)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -691,6 +711,7 @@ function pickOptsForField(fieldKey){
   if (TAB==='rituales' && fieldKey==='tipo') return OPTS_TIPO_RIT;
   if (TAB==='totems' && fieldKey==='tipo') return OPTS_TIPO_TOT;
   if (TAB==='disciplinas' && fieldKey==='disc') return OPTS_TIPO_DISC;
+  if (fieldKey==='system_id') return OPTS_SYSTEMS;
   if (fieldKey==='bibliography_id') return OPTS_ORIGEN;
   return [];
 }

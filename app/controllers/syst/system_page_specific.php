@@ -80,6 +80,7 @@ if ($table !== "") {
         $typeOfSystem = $returnType;
         $nameSyst = htmlspecialchars($ResultQuery["name"]);
         $infoDesc = ($ResultQuery["desc"]);
+        $systemId = (int)($ResultQuery["system_id"] ?? 0);
         if (isset($ResultQuery["imagen"])) {
 			$imageSyst = htmlspecialchars($ResultQuery["imagen"]);
 		} else {
@@ -161,9 +162,9 @@ if ($table !== "") {
 <?php
         // Don Query para obtener dones basados en el sistema
         $donGroup = $nameSyst;
-        $donQuery = "SELECT id, nombre, rango FROM fact_gifts WHERE grupo = ? AND ferasistema = ? ORDER BY rango;";
+        $donQuery = "SELECT id, nombre, rango FROM fact_gifts WHERE grupo = ? AND system_id = ? ORDER BY rango;";
         $stmtDon = $link->prepare($donQuery);
-        $stmtDon->bind_param('ss', $donGroup, $typeOfSystem);
+        $stmtDon->bind_param('si', $donGroup, $systemId);
         $stmtDon->execute();
         $resultDon = $stmtDon->get_result();
         $filasDon = $resultDon->num_rows;

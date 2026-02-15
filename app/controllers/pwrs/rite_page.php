@@ -3,7 +3,12 @@
 $ritePageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
 // Consulta segura para obtener los datos del ritual
-$queryRite = "SELECT * FROM fact_rites WHERE id = ? LIMIT 1";
+$queryRite = "
+    SELECT r.*, s.name AS system_name
+    FROM fact_rites r
+    LEFT JOIN dim_systems s ON r.system_id = s.id
+    WHERE r.id = ? LIMIT 1
+";
 $stmt = $link->prepare($queryRite);
 $stmt->bind_param('s', $ritePageID);
 $stmt->execute();
@@ -20,9 +25,10 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $riteLevel  = htmlspecialchars($resultQueryRite["nivel"]);
     $riteBreed  = htmlspecialchars($resultQueryRite["raza"]);
     $riteDesc   = $resultQueryRite["desc"]; // NO usar htmlspecialchars() para conservar el HTML
-    $riteSystem = $resultQueryRite["syst"];
-    $riteSistema = $resultQueryRite["sistema"];
-    if (trim((string)$riteSystem) === '' && trim((string)$riteSistema) !== '') { $riteSystem = $riteSistema; }
+    $riteSystemRules = $resultQueryRite["syst"];
+    $riteSystemName  = htmlspecialchars($resultQueryRite["system_name"] ?? "");
+    $riteSistemaLegacy = trim((string)($resultQueryRite["sistema"] ?? ""));
+    if (trim((string)$riteSystemRules) === '' && $riteSistemaLegacy !== '') { $riteSystemRules = $riteSistemaLegacy; }
     $riteOrigin = htmlspecialchars($resultQueryRite["bibliography_id"]);
     $riteImgRaw = trim((string)($resultQueryRite["img"] ?? ""));
 
@@ -137,10 +143,15 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         echo "  </div>";
     }
 
-    if (!empty($riteSystem)) {
+    if ($riteSystemName !== "" || !empty($riteSystemRules)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
-        echo "    <div class='power-card__desc-body'>$riteSystem</div>";
+        if ($riteSystemName !== "") {
+            echo "    <div class='power-card__desc-body'><strong>$riteSystemName</strong></div>";
+        }
+        if (!empty($riteSystemRules)) {
+            echo "    <div class='power-card__desc-body'>$riteSystemRules</div>";
+        }
         echo "  </div>";
     }
 

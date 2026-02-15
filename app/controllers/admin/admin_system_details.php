@@ -67,12 +67,12 @@ if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name AS
 }
 
 $opts_systems = [];
-if ($rs = $link->query("SELECT name FROM dim_systems ORDER BY orden ASC, name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $opts_systems[] = (string)$r['name']; }
+if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY orden ASC, name ASC")) {
+    while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
     $rs->close();
 }
 
-$sys = trim((string)($_GET['sys'] ?? ''));
+$sys = isset($_GET['sys']) ? (int)$_GET['sys'] : 0;
 
 function meta_for(string $tab, array $opts_origins, array $opts_systems): array {
     if ($tab === 'breeds') {
@@ -81,10 +81,10 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'table' => 'dim_breeds',
             'pk' => 'id',
             'name_col' => 'name',
-            'order_by' => 'sistema ASC, name ASC',
+            'order_by' => 'system_name ASC, t.name ASC',
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
-                ['k'=>'sistema', 'label'=>'Sistema', 'ui'=>'select_text', 'db'=>'s', 'req'=>true, 'opts'=>$opts_systems],
+                ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'formas', 'label'=>'Formas', 'ui'=>'text', 'db'=>'s', 'req'=>false],
                 ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
@@ -94,7 +94,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
-                ['k'=>'sistema','label'=>'Sistema','w'=>160],
+                ['k'=>'system_name','label'=>'Sistema','w'=>160],
                 ['k'=>'energia','label'=>'Energia','w'=>80],
             ],
             'has_timestamps' => true,
@@ -106,10 +106,10 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'table' => 'dim_auspices',
             'pk' => 'id',
             'name_col' => 'name',
-            'order_by' => 'sistema ASC, name ASC',
+            'order_by' => 'system_name ASC, t.name ASC',
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
-                ['k'=>'sistema', 'label'=>'Sistema', 'ui'=>'select_text', 'db'=>'s', 'req'=>true, 'opts'=>$opts_systems],
+                ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
@@ -118,7 +118,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
-                ['k'=>'sistema','label'=>'Sistema','w'=>160],
+                ['k'=>'system_name','label'=>'Sistema','w'=>160],
                 ['k'=>'energia','label'=>'Energia','w'=>80],
             ],
             'has_timestamps' => true,
@@ -130,10 +130,10 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'table' => 'dim_tribes',
             'pk' => 'id',
             'name_col' => 'name',
-            'order_by' => 'sistema ASC, name ASC',
+            'order_by' => 'system_name ASC, t.name ASC',
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
-                ['k'=>'sistema', 'label'=>'Sistema', 'ui'=>'select_text', 'db'=>'s', 'req'=>true, 'opts'=>$opts_systems],
+                ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'afiliacion', 'label'=>'Afiliacion', 'ui'=>'text', 'db'=>'s', 'req'=>false],
                 ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
@@ -144,7 +144,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
-                ['k'=>'sistema','label'=>'Sistema','w'=>160],
+                ['k'=>'system_name','label'=>'Sistema','w'=>160],
                 ['k'=>'energia','label'=>'Energia','w'=>80],
             ],
             'has_timestamps' => true,
@@ -156,11 +156,11 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
         'table' => 'fact_misc_systems',
         'pk' => 'id',
         'name_col' => 'name',
-        'order_by' => 'sistema ASC, name ASC',
+        'order_by' => 'system_name ASC, t.name ASC',
         'fields' => [
             ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
             ['k'=>'type', 'label'=>'Tipo', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-            ['k'=>'sistema', 'label'=>'Sistema', 'ui'=>'select_text', 'db'=>'s', 'req'=>true, 'opts'=>$opts_systems],
+            ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
             ['k'=>'energianombre', 'label'=>'Energia (nombre)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
             ['k'=>'energiavalor', 'label'=>'Energia (valor)', 'ui'=>'number', 'db'=>'i', 'req'=>false],
             ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
@@ -169,7 +169,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>60],
             ['k'=>'name','label'=>'Nombre','w'=>220],
-            ['k'=>'sistema','label'=>'Sistema','w'=>160],
+            ['k'=>'system_name','label'=>'Sistema','w'=>160],
             ['k'=>'type','label'=>'Tipo','w'=>120],
         ],
         'has_timestamps' => false,
@@ -194,8 +194,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $rs->close();
         }
         $opts_systems = [];
-        if ($rs = $link->query("SELECT name FROM dim_systems ORDER BY orden ASC, name ASC")) {
-            while ($r = $rs->fetch_assoc()) { $opts_systems[] = (string)$r['name']; }
+        if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY orden ASC, name ASC")) {
+            while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
             $rs->close();
         }
         $M = meta_for($postTab, $opts_origins, $opts_systems);
@@ -369,13 +369,14 @@ if ($q !== '') {
     $types .= 's';
     $params[] = "%".$q."%";
 }
-if ($sys !== '') {
-    $where .= " AND `sistema` = ?";
-    $types .= 's';
+$from = "`$table` t LEFT JOIN dim_systems s ON s.id = t.system_id";
+if ($sys > 0) {
+    $where .= " AND t.`system_id` = ?";
+    $types .= 'i';
     $params[] = $sys;
 }
 
-$sqlCnt = "SELECT COUNT(*) AS c FROM `$table` $where";
+$sqlCnt = "SELECT COUNT(*) AS c FROM $from $where";
 $stC = $link->prepare($sqlCnt);
 if ($types) $stC->bind_param($types, ...$params);
 $stC->execute();
@@ -387,11 +388,12 @@ $pages = max(1, (int)ceil($total / $perPage));
 $page = min($page, $pages);
 $offset = ($page-1)*$perPage;
 
-$colsAll = array_map(fn($f)=>"`".$f['k']."`", $META['fields']);
-$colsAll[] = "`$pk`";
+$colsAll = array_map(fn($f)=>"t.`".$f['k']."`", $META['fields']);
+$colsAll[] = "t.`$pk`";
+$colsAll[] = "s.name AS system_name";
 $colsAll = array_values(array_unique($colsAll));
 
-$sqlList = "SELECT ".implode(',', $colsAll)." FROM `$table` $where ORDER BY ".$META['order_by']." LIMIT ?, ?";
+$sqlList = "SELECT ".implode(',', $colsAll)." FROM $from $where ORDER BY ".$META['order_by']." LIMIT ?, ?";
 $types2 = $types.'ii';
 $params2 = $params; $params2[] = $offset; $params2[] = $perPage;
 $stL = $link->prepare($sqlList);
@@ -423,9 +425,10 @@ function ui_short(string $s, int $n=120): string {
 }
 
 $sysOptions = '<option value="">-- Todos --</option>';
-foreach ($opts_systems as $sname) {
-    $sel = ($sname === $sys) ? ' selected' : '';
-    $sysOptions .= '<option value="'.h($sname).'"'.$sel.'>'.h($sname).'</option>';
+foreach ($opts_systems as $srow) {
+    $sid = (int)$srow['id']; $sname = (string)$srow['name'];
+    $sel = ($sid === $sys) ? ' selected' : '';
+    $sysOptions .= '<option value="'.$sid.'"'.$sel.'>'.h($sname).'</option>';
 }
 $actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
     . '<label style="text-align:left;">Sistema '
@@ -607,7 +610,7 @@ var OPTS_SYSTEMS = <?= json_encode(array_values($opts_systems), JSON_HEX_TAG|JSO
 
 function pickOptsForField(fieldKey){
   if (TAB !== 'misc' && fieldKey === 'bibliography_id') return OPTS_ORIGINS;
-  if (fieldKey === 'sistema') return OPTS_SYSTEMS;
+  if (fieldKey === 'system_id') return OPTS_SYSTEMS;
   return [];
 }
 

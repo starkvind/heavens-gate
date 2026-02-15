@@ -69,5 +69,8 @@ app/tools/migrations/migration_plan.txt
 app/tools/check_bibliography_fk.php
 app/tools/drop_origin_columns.php
 app/tools/verify_bibliography_refactor.php
+app/tools/check_system_relations.php
+app/tools/migrate_system_id.php
 app/tools/migrations/migration_plan.txt
 app/tools/verify_bibliography_refactor.php
+app/tools/migrations/database_analysis.txt

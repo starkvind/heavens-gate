@@ -34,13 +34,6 @@ if (!$ordenQueryResult) {
     $systemDesc = ($ordenQueryResult["descripcion"]);
     $systemForm = (int)$ordenQueryResult["formas"];
     $systemNameRaw = (string)$ordenQueryResult["name"];
-    $systemNameAlt = $systemNameRaw;
-    if (function_exists('iconv')) {
-        $alt = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $systemNameRaw);
-        if ($alt !== false && $alt !== '' && $alt !== $systemNameRaw) {
-            $systemNameAlt = $alt;
-        }
-    }
 
     // CAMBIAR EL TITULO A LA PAGINA
     if (!empty($systemName)) { 
@@ -137,9 +130,9 @@ if (!$ordenQueryResult) {
 
     // CUADRO DE FORMAS
     if ($systemForm === 1) {
-        $queryForms = "SELECT * FROM dim_forms WHERE afiliacion = ? OR afiliacion = ?";
+        $queryForms = "SELECT * FROM dim_forms WHERE system_id = ?";
         $stmtForms = $link->prepare($queryForms);
-        $stmtForms->bind_param('ss', $systemNameRaw, $systemNameAlt);
+        $stmtForms->bind_param('i', $systemCategoryId);
         $stmtForms->execute();
         $resultForms = $stmtForms->get_result();
         $nRowsQueryForms = $resultForms->num_rows;
@@ -199,9 +192,9 @@ if (!$ordenQueryResult) {
     }
 
     // CUADRO DE RAZAS
-    $queryRaces = "SELECT * FROM dim_breeds WHERE sistema = ? OR sistema = ? ORDER BY id";
+    $queryRaces = "SELECT * FROM dim_breeds WHERE system_id = ? ORDER BY id";
     $stmtRaces = $link->prepare($queryRaces);
-    $stmtRaces->bind_param('ss', $systemNameRaw, $systemNameAlt);
+    $stmtRaces->bind_param('i', $systemCategoryId);
     $stmtRaces->execute();
     $resultRaces = $stmtRaces->get_result();
     $nRowsQueryRaces = $resultRaces->num_rows;
@@ -224,9 +217,9 @@ if (!$ordenQueryResult) {
     $stmtRaces->close();
 
     // CUADRO DE AUSPICIOS
-    $queryAuspices = "SELECT * FROM dim_auspices WHERE sistema = ? OR sistema = ? ORDER BY id";
+    $queryAuspices = "SELECT * FROM dim_auspices WHERE system_id = ? ORDER BY id";
     $stmtAuspices = $link->prepare($queryAuspices);
-    $stmtAuspices->bind_param('ss', $systemNameRaw, $systemNameAlt);
+    $stmtAuspices->bind_param('i', $systemCategoryId);
     $stmtAuspices->execute();
     $resultAuspices = $stmtAuspices->get_result();
     $nRowsQueryAuspices = $resultAuspices->num_rows;
@@ -249,9 +242,9 @@ if (!$ordenQueryResult) {
     $stmtAuspices->close();
 
     // CUADRO DE TRIBUS
-    $queryTribes = "SELECT * FROM dim_tribes WHERE sistema = ? OR sistema = ? ORDER BY id";
+    $queryTribes = "SELECT * FROM dim_tribes WHERE system_id = ? ORDER BY id";
     $stmtTribes = $link->prepare($queryTribes);
-    $stmtTribes->bind_param('ss', $systemNameRaw, $systemNameAlt);
+    $stmtTribes->bind_param('i', $systemCategoryId);
     $stmtTribes->execute();
     $resultTribes = $stmtTribes->get_result();
     $nRowsQueryTribes = $resultTribes->num_rows;

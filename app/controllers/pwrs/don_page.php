@@ -3,7 +3,12 @@
 $donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
 // Consulta para obtener información del Don
-$queryDon = "SELECT * FROM fact_gifts WHERE id = ? LIMIT 1;";
+$queryDon = "
+    SELECT g.*, s.name AS system_name
+    FROM fact_gifts g
+    LEFT JOIN dim_systems s ON g.system_id = s.id
+    WHERE g.id = ? LIMIT 1;
+";
 $stmt = $link->prepare($queryDon);
 $stmt->bind_param('s', $donPageID);
 $stmt->execute();
@@ -22,8 +27,10 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $donAttr   = htmlspecialchars($resultQueryDon["atributo"]);
     $donSkill  = htmlspecialchars($resultQueryDon["habilidad"]);
     $donDesc   = ($resultQueryDon["descripcion"]);
-    $donSystem = ($resultQueryDon["sistema"]);
-    $donBreed  = htmlspecialchars($resultQueryDon["ferasistema"]);
+    $donRules  = ($resultQueryDon["sistema"]); // texto de reglas
+    $donSystemName = htmlspecialchars($resultQueryDon["system_name"] ?? "");
+    $donBreedLegacy  = trim((string)($resultQueryDon["ferasistema"] ?? ""));
+    $donSystemLabel = $donSystemName !== "" ? $donSystemName : htmlspecialchars($donBreedLegacy);
     $donOrigin = htmlspecialchars($resultQueryDon["bibliography_id"]);
     $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
 
@@ -141,10 +148,15 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         echo "  </div>";
     }
 
-    if (!empty($donSystem)) {
+    if ($donSystemLabel !== "" || !empty($donRules)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
-        echo "    <div class='power-card__desc-body'>$donSystem</div>";
+        if ($donSystemLabel !== "") {
+            echo "    <div class='power-card__desc-body'><strong>$donSystemLabel</strong></div>";
+        }
+        if (!empty($donRules)) {
+            echo "    <div class='power-card__desc-body'>$donRules</div>";
+        }
         echo "  </div>";
     }
 
