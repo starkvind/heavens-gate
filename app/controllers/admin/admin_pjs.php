@@ -393,6 +393,7 @@ $opts_cronicas = fetchPairs($link, "SELECT id, name FROM dim_chronicles ORDER BY
 $opts_clanes   = fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER BY name");
 $opts_jug      = fetchPairs($link, "SELECT id, name FROM dim_players ORDER BY name");
 $opts_sist     = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
+$opts_totems   = fetchPairs($link, "SELECT id, name FROM dim_totems ORDER BY name");
 $opts_afili    = fetchPairs($link, "SELECT id, tipo AS name FROM dim_character_types ORDER BY tipo");
 $opts_manadas_flat = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
 
@@ -526,6 +527,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
     $sistema_legacy = trim($_POST['sistema_legacy'] ?? '');
+    $totem_id = isset($_POST['totem_id']) ? (int)$_POST['totem_id'] : 0;
     $rm_avatar   = isset($_POST['avatar_remove']) && $_POST['avatar_remove'] ? true : false;
 
     // Campos complejos
@@ -576,6 +578,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $sistema_legacy = 'Otros';
     }
 
+    // Totem: si no elige, hereda de manada o clan
+    if ($totem_id <= 0) {
+        $totem_from_group = 0;
+        if ($manada > 0) {
+            if ($st = $link->prepare("SELECT totem FROM dim_groups WHERE id=? LIMIT 1")) {
+                $st->bind_param("i", $manada);
+                $st->execute();
+                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_group = (int)($row['totem'] ?? 0); } }
+                $st->close();
+            }
+        }
+        $totem_from_clan = 0;
+        if ($totem_from_group <= 0 && $clan > 0) {
+            if ($st = $link->prepare("SELECT totem FROM dim_organizations WHERE id=? LIMIT 1")) {
+                $st->bind_param("i", $clan);
+                $st->execute();
+                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_clan = (int)($row['totem'] ?? 0); } }
+                $st->close();
+            }
+        }
+        $totem_id = $totem_from_group > 0 ? $totem_from_group : $totem_from_clan;
+    }
+    $totem_legacy = '';
+    if ($totem_id > 0 && isset($opts_totems[$totem_id])) {
+        $totem_legacy = (string)$opts_totems[$totem_id];
+    } else {
+        $totem_id = null; // NULL para evitar FK con 0
+    }
+
     // Avatar actual (para update)
     $current_img = '';
     if ($action === 'update' && $id > 0) {
@@ -591,16 +622,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (nombre, alias, nombregarou, genero_pj, concepto, cronica, jugador, tipo, img, notas, colortexto, kes, sistema, system_id,
-                 fera, totem, estado, causamuerte, cumple, rango, infotext, raza, auspicio, tribu)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 fera, totem, totem_id, estado, causamuerte, cumple, rango, infotext, raza, auspicio, tribu)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img=''; $kes='pnj'; $fera=''; $totem='';
                 $stmt->bind_param(
-                    "sssssiiisssssisssssssiii",
+                    "sssssiiisssssississsssiii",
                     $nombre, $alias, $nombregarou, $genero_pj, $concepto,
                     $cronica, $jugador, $afili,
                     $img, $notas, $colortexto, $kes, $sistema_legacy, $system_id, $fera,
-                    $totem,
+                    $totem_legacy, $totem_id,
                     $estado, $causamuerte, $cumple, $rango, $infotext,
                     $raza, $auspicio, $tribu
                 );
@@ -662,6 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                   nombre=?, alias=?, nombregarou=?, genero_pj=?, concepto=?,
                   cronica=?, jugador=?, tipo=?, sistema=?, system_id=?, colortexto=?,
                   raza=?, auspicio=?, tribu=?,
+                  totem=?, totem_id=?,
                   estado=?, causamuerte=?, cumple=?, rango=?, infotext=?
                   WHERE id=?";
 
@@ -669,10 +701,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiisisiiisssssi",
+                  "sssssiiisisiiisisssssi",
                   $nombre, $alias, $nombregarou, $genero_pj, $concepto,
                   $cronica, $jugador, $afili, $sistema_legacy, $system_id, $colortexto,
                   $raza, $auspicio, $tribu,
+                  $totem_legacy, $totem_id,
                   $estado, $causamuerte, $cumple, $rango, $infotext,
                   $id
               );
@@ -786,7 +819,7 @@ SELECT
   -- ✅ IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.clan_id, 0)  AS clan,
-  p.img, p.tipo,
+  p.img, p.tipo, p.totem_id, p.totem,
 
   nj.name AS jugador_,
   nc.name AS cronica_,
@@ -794,6 +827,7 @@ SELECT
   na.name AS auspicio_n,
   nt.name AS tribu_n,
   ds.name AS sistema_n,
+  dt.name AS totem_n,
 
   nm.name AS manada_n,
   nc2.name AS clan_n,
@@ -818,6 +852,7 @@ LEFT JOIN (
 LEFT JOIN dim_players  nj ON p.jugador = nj.id
 LEFT JOIN dim_chronicles  nc ON p.cronica = nc.id
 LEFT JOIN dim_systems     ds ON p.system_id = ds.id
+LEFT JOIN dim_totems      dt ON p.totem_id = dt.id
 LEFT JOIN dim_breeds      nr ON p.raza    = nr.id
 LEFT JOIN dim_auspices  na ON p.auspicio= na.id
 LEFT JOIN dim_tribes     nt ON p.tribu   = nt.id
@@ -1114,6 +1149,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-jugador="<?= (int)$r['jugador'] ?>"
               data-system_id="<?= (int)($r['system_id'] ?? 0) ?>"
               data-sistema_legacy="<?= h($r['sistema']) ?>"
+              data-totem_id="<?= (int)($r['totem_id'] ?? 0) ?>"
               data-colortexto="<?= h($r['colortexto']) ?>"
               data-raza="<?= (int)$r['raza'] ?>"
               data-auspicio="<?= (int)$r['auspicio'] ?>"
@@ -1293,6 +1329,18 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               <?php endforeach; ?>
             </select>
             <span class="small-note">Un PJ debe tener Clan</span>
+          </label>
+        </div>
+
+        <div>
+          <label>Tótem (opcional)
+            <select class="select" name="totem_id" id="f_totem_id">
+              <option value="0">— Sin tótem —</option>
+              <?php foreach($opts_totems as $id=>$name): ?>
+                <option value="<?= (int)$id ?>"><?= h($name) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <span class="small-note">Si no eliges, se usa el tótem de la Manada o del Clan</span>
           </label>
         </div>
 
@@ -1482,6 +1530,7 @@ var CHAR_DETAILS     = <?= json_encode(
 
   var selClan    = document.getElementById('f_clan');
   var selManada  = document.getElementById('f_manada');
+  var selTotem   = document.getElementById('f_totem_id');
 
   var selAfili   = document.getElementById('f_afiliacion');
 
@@ -1712,6 +1761,7 @@ var CHAR_DETAILS     = <?= json_encode(
     });
     var sistLegacy = document.getElementById('f_sistema_legacy');
     if (sistLegacy) sistLegacy.value = '';
+    if (selTotem) selTotem.value = '0';
     selAfili.value = '0';
 
     ensureEstadoOption('En activo');
@@ -1771,6 +1821,11 @@ var CHAR_DETAILS     = <?= json_encode(
     if (selS) selS.value = String(sistId||0);
     var sistLegacy = document.getElementById('f_sistema_legacy');
     if (sistLegacy) sistLegacy.value = btn.getAttribute('data-sistema_legacy') || '';
+
+    if (selTotem) {
+      var tId = parseInt(btn.getAttribute('data-totem_id')||'0',10)||0;
+      selTotem.value = String(tId||0);
+    }
 
     var razaId = parseInt(btn.getAttribute('data-raza')||'0',10)||0;
     var ausId  = parseInt(btn.getAttribute('data-auspicio')||'0',10)||0;

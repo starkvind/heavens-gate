@@ -74,3 +74,7 @@ app/tools/migrate_system_id.php
 app/tools/migrations/migration_plan.txt
 app/tools/verify_bibliography_refactor.php
 app/tools/migrations/database_analysis.txt
+app/tools/migrate_totem_id.php
+app/tools/create_missing_totems.php
+app/tools/check_bio_systems.php
+app/tools/check_totem_id.php

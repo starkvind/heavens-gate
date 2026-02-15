@@ -45,7 +45,7 @@ $query = "
         nc_from_pack.name AS clan_from_pack_name,
 
         a.id AS type_id, a.pretty_id AS type_pretty_id, a.tipo AS type_name,
-        p.sistema, p.estado
+        s.name AS system_name, p.sistema AS system_legacy, p.estado
     FROM fact_characters p
 
         -- Bridge: personaje -> manada
@@ -70,6 +70,7 @@ $query = "
             ON nc_from_pack.id = hcg2.clan_id
 
         LEFT JOIN dim_character_types a ON a.id = p.tipo
+        LEFT JOIN dim_systems s ON s.id = p.system_id
 
     WHERE $whereChron
     ORDER BY p.nombre ASC
@@ -393,7 +394,7 @@ $(document).ready(function () {
 			nombre,
 			manada,
 			clan,
-			escapeHtml(p.sistema || ''),
+			escapeHtml(p.system_name || p.system_legacy || ''),
 			tipo,
 			escapeHtml(p.estado || '')
 		];
@@ -479,7 +480,7 @@ $(document).ready(function () {
 	personajes.forEach(p => {
 		packsSet.add((p.pack_name && String(p.pack_name).trim() !== '') ? String(p.pack_name).trim() : '-');
 		clansSet.add((p.clan_name && String(p.clan_name).trim() !== '') ? String(p.clan_name).trim() : '-');
-		systemsSet.add((p.sistema && String(p.sistema).trim() !== '') ? String(p.sistema).trim() : '-');
+		systemsSet.add((p.system_name && String(p.system_name).trim() !== '') ? String(p.system_name).trim() : ((p.system_legacy && String(p.system_legacy).trim() !== '') ? String(p.system_legacy).trim() : '-'));
 		typesSet.add((p.type_name && String(p.type_name).trim() !== '') ? String(p.type_name).trim() : '-');
 		statusSet.add((p.estado && String(p.estado).trim() !== '') ? String(p.estado).trim() : '-');
 	});

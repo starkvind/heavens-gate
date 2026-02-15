@@ -13,8 +13,8 @@
 if (!isset($link) || !$link) {
   echo "<div style='color:#f88'>Error: conexión DB no disponible.</div>";
   return;
-include_once(__DIR__ . '/../../helpers/pretty.php');
 }
+include_once(__DIR__ . '/../../helpers/pretty.php');
 
 /* ----------------------- helpers ----------------------- */
 function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }

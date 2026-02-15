@@ -113,7 +113,7 @@ if (!$ordenQueryResult) {
             $nameTribe = "Oleadas";
             $nameMisc = "Varnas";
             break;
-        case "Changelling":
+        case "Changeling":
             $nameAuspice = "Aspectos";
             $nameTribe = "Linajes";
             $nameMisc = "Legados";
