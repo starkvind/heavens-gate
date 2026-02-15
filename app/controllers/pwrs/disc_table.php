@@ -15,8 +15,8 @@ $query = "
 		nb.name as disc_origin
 	from fact_discipline_powers d
 		left join dim_discipline_types ddt on d.disc = ddt.id
-		left join dim_bibliographies nb on d.origen = nb.id
-	order by d.origen, d.disc, d.nivel, d.name
+		left join dim_bibliographies nb on d.bibliography_id = nb.id
+	order by d.bibliography_id, d.disc, d.nivel, d.name
 ";
 $result = mysqli_query($link, $query);
 

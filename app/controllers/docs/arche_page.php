@@ -18,7 +18,7 @@ if ($rowsQueryArche > 0) {
     $archeName = htmlspecialchars($resultQueryArche["name"]);
     $archeDesc = $resultQueryArche["desc"]; // keep HTML from DB
     $archeWill = $resultQueryArche["fv"];
-    $archeOrig = htmlspecialchars($resultQueryArche["origen"]);
+    $archeOrig = htmlspecialchars($resultQueryArche["bibliography_id"]);
 
     // Seleccionar origen
     $archeOrigName = "-"; // Valor predeterminado si no hay origen

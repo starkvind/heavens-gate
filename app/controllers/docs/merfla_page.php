@@ -26,7 +26,7 @@ if ($rowsQueryMaf > 0) {
     $mafCoste = htmlspecialchars($resultQueryMaf["coste"]);
     $mafDesc = $resultQueryMaf["descripcion"];
     $mafSystem = htmlspecialchars($resultQueryMaf["sistema"]);
-    $mafOrigin = htmlspecialchars($resultQueryMaf["origen"]);
+    $mafOrigin = htmlspecialchars($resultQueryMaf["bibliography_id"]);
 
 	$meritsAndFlawsQuery = "SELECT DISTINCT afiliacion FROM dim_merits_flaws ORDER BY afiliacion ASC";
 

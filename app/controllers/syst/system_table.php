@@ -17,7 +17,7 @@ $query = "
 		s.formas AS system_forms,
 		COALESCE(nb.name, '') AS system_origin
 	FROM dim_systems s
-		LEFT JOIN dim_bibliographies nb ON s.origen = nb.id
+		LEFT JOIN dim_bibliographies nb ON s.bibliography_id = nb.id
 	ORDER BY s.orden, s.name
 ";
 $result = mysqli_query($link, $query);

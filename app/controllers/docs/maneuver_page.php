@@ -22,7 +22,7 @@ if ($rowsQueryManeuver > 0) {
     $maneDamg = htmlspecialchars($resultQueryManeuver["damage"]);
     $maneActi = htmlspecialchars($resultQueryManeuver["actions"]);
     $maneSist = htmlspecialchars($resultQueryManeuver["sistema"]);
-    $maneOrig = htmlspecialchars($resultQueryManeuver["origen"]);
+    $maneOrig = htmlspecialchars($resultQueryManeuver["bibliography_id"]);
     // Seleccionar origen
     $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
     $stmtOrigen = $link->prepare($queryOrigen);

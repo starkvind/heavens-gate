@@ -25,8 +25,8 @@ $query = "
 		nb.name as ritual_origin
 	from fact_rites nr
 		left join dim_rite_types ntr on nr.tipo = ntr.id
-		left join dim_bibliographies nb on nr.origen = nb.id
-	order by nr.origen, nr.nivel
+		left join dim_bibliographies nb on nr.bibliography_id = nb.id
+	order by nr.bibliography_id, nr.nivel
 ";
 $result = mysqli_query($link, $query);
 

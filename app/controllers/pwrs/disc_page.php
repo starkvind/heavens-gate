@@ -21,7 +21,7 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     $donSkill   = htmlspecialchars($resultQueryDon["habilidad"]);
     $donDesc    = $resultQueryDon["descripcion"]; // NO usar htmlspecialchars() para mantener el formato HTML
     $donSystem  = $resultQueryDon["sistema"];
-    $donOrigin  = htmlspecialchars($resultQueryDon["origen"]);
+    $donOrigin  = htmlspecialchars($resultQueryDon["bibliography_id"]);
 
     $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
     $donIcono = isset($resultQueryDon["icono"]) ? htmlspecialchars($resultQueryDon["icono"]) : "";

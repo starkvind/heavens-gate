@@ -74,15 +74,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
     $formas = (int)($_POST['formas'] ?? 0);
     $desc = sanitize_utf8_text((string)($_POST['descripcion'] ?? ''));
     $desc = hg_mentions_convert($link, $desc);
-    $origen = (int)($_POST['origen'] ?? 0);
+    $bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 
     if ($name === '') {
         $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
     } else {
         if ($id > 0) {
-            $sql = "UPDATE dim_systems SET orden=?, name=?, img=?, formas=?, descripcion=?, origen=? WHERE id=?";
+            $sql = "UPDATE dim_systems SET orden=?, name=?, img=?, formas=?, descripcion=?, bibliography_id=? WHERE id=?";
             if ($st = $link->prepare($sql)) {
-                $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $origen, $id);
+                $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $bibliographyId, $id);
                 if ($st->execute()) {
                     update_pretty_id($link, 'dim_systems', $id, $name);
                     $flash[] = ['type'=>'ok','msg'=>'Sistema actualizado.'];
@@ -94,9 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                 $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
             }
         } else {
-            $sql = "INSERT INTO dim_systems (orden, name, img, formas, descripcion, origen, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
+            $sql = "INSERT INTO dim_systems (orden, name, img, formas, descripcion, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
             if ($st = $link->prepare($sql)) {
-                $st->bind_param('issisi', $orden, $name, $img, $formas, $desc, $origen);
+                $st->bind_param('issisi', $orden, $name, $img, $formas, $desc, $bibliographyId);
                 if ($st->execute()) {
                     $newId = (int)$st->insert_id;
                     update_pretty_id($link, 'dim_systems', $newId, $name);
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
 // Listado
 $rows = [];
 $rowsFull = [];
-$sql = "SELECT s.id, s.orden, s.name, s.img, s.formas, s.descripcion, s.origen, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.origen=b.id ORDER BY s.orden, s.name";
+$sql = "SELECT s.id, s.orden, s.name, s.img, s.formas, s.descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.orden, s.name";
 if ($rs = $link->query($sql)) {
     while ($r = $rs->fetch_assoc()) { $rows[] = $r; $rowsFull[] = $r; }
     $rs->close();
@@ -203,7 +203,7 @@ if ($rs = $link->query($sql)) {
                     </select>
 
                     <label>Origen</label>
-                    <select class="select" name="origen" id="system_origen">
+                    <select class="select" name="bibliography_id" id="system_bibliography_id">
                         <option value="0">--</option>
                         <?php foreach ($origins as $o): ?>
                             <option value="<?= (int)$o['id'] ?>"><?= h($o['name']) ?></option>
@@ -286,7 +286,7 @@ function openSystemModal(id = null){
     document.getElementById('system_name').value = '';
     document.getElementById('system_img').value = '';
     document.getElementById('system_formas').value = '0';
-    document.getElementById('system_origen').value = '0';
+    document.getElementById('system_bibliography_id').value = '0';
     document.getElementById('system_desc').value = '';
     if (sysEditor) sysEditor.root.innerHTML = '';
 
@@ -299,7 +299,7 @@ function openSystemModal(id = null){
             document.getElementById('system_name').value = row.name || '';
             document.getElementById('system_img').value = row.img || '';
             document.getElementById('system_formas').value = row.formas || 0;
-            document.getElementById('system_origen').value = row.origen || 0;
+            document.getElementById('system_bibliography_id').value = row.bibliography_id || 0;
             const desc = row.descripcion || '';
             document.getElementById('system_desc').value = desc;
             if (sysEditor) sysEditor.root.innerHTML = desc;

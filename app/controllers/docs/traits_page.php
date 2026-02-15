@@ -21,7 +21,7 @@ if ($result->num_rows > 0) {
         $levlSkill      = ($ResultQuery["levels"]);
         $whoHaveSkill   = htmlspecialchars($ResultQuery["posse"]);
         $specSkill      = ($ResultQuery["special"]);
-        $origSkill      = htmlspecialchars($ResultQuery["origen"]);
+        $origSkill      = htmlspecialchars($ResultQuery["bibliography_id"]);
         $typeSkill      = htmlspecialchars($ResultQuery["tipo"]); // Para regresar
         
         $titleSkill = substr($typeSkill, 0, -1);

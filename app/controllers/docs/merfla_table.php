@@ -16,7 +16,7 @@ $query = "
 		nmyd.coste as merit_cost,
 		COALESCE(nb.name, '') as merit_origin
 	from dim_merits_flaws nmyd
-		left join dim_bibliographies nb on nmyd.origen = nb.id
+		left join dim_bibliographies nb on nmyd.bibliography_id = nb.id
 	order by
 		CASE
 			when nmyd.tipo = 'Méritos' then 0

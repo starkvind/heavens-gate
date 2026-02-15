@@ -93,15 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
     $bonres = trim((string)($_POST['bonres'] ?? ''));
     $regenera = (int)($_POST['regenera'] ?? 0);
     $hpregen = (int)($_POST['hpregen'] ?? 0);
-    $origen = (int)($_POST['origen'] ?? 0);
+    $bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 
     if ($afiliacion === '' || $raza === '' || $forma === '') {
         $flash[] = ['type'=>'error','msg'=>'Afiliacion, raza y forma son obligatorias.'];
     } else {
         if ($id > 0) {
-            $sql = "UPDATE dim_forms SET afiliacion=?, raza=?, forma=?, `desc`=?, imagen=?, armas=?, armasfuego=?, bonfue=?, bondes=?, bonres=?, regenera=?, hpregen=?, origen=?, updated_at=NOW() WHERE id=?";
+            $sql = "UPDATE dim_forms SET afiliacion=?, raza=?, forma=?, `desc`=?, imagen=?, armas=?, armasfuego=?, bonfue=?, bondes=?, bonres=?, regenera=?, hpregen=?, bibliography_id=?, updated_at=NOW() WHERE id=?";
             if ($st = $link->prepare($sql)) {
-                $st->bind_param('sssssiisssiiii', $afiliacion, $raza, $forma, $desc, $imagen, $armas, $armasfuego, $bonfue, $bondes, $bonres, $regenera, $hpregen, $origen, $id);
+                $st->bind_param('sssssiisssiiii', $afiliacion, $raza, $forma, $desc, $imagen, $armas, $armasfuego, $bonfue, $bondes, $bonres, $regenera, $hpregen, $bibliographyId, $id);
                 if ($st->execute()) {
                     $src = trim($afiliacion.' '.$raza.' '.$forma);
                     update_pretty_id($link, 'dim_forms', $id, $src);
@@ -114,9 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
                 $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
             }
         } else {
-            $sql = "INSERT INTO dim_forms (afiliacion, raza, forma, `desc`, imagen, armas, armasfuego, bonfue, bondes, bonres, regenera, hpregen, origen, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
+            $sql = "INSERT INTO dim_forms (afiliacion, raza, forma, `desc`, imagen, armas, armasfuego, bonfue, bondes, bonres, regenera, hpregen, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
             if ($st = $link->prepare($sql)) {
-                $st->bind_param('sssssiisssiii', $afiliacion, $raza, $forma, $desc, $imagen, $armas, $armasfuego, $bonfue, $bondes, $bonres, $regenera, $hpregen, $origen);
+                $st->bind_param('sssssiisssiii', $afiliacion, $raza, $forma, $desc, $imagen, $armas, $armasfuego, $bonfue, $bondes, $bonres, $regenera, $hpregen, $bibliographyId);
                 if ($st->execute()) {
                     $newId = (int)$st->insert_id;
                     $src = trim($afiliacion.' '.$raza.' '.$forma);
@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
 
 $rows = [];
 $rowsFull = [];
-$sql = "SELECT f.*, COALESCE(b.name,'') AS origen_name FROM dim_forms f LEFT JOIN dim_bibliographies b ON f.origen=b.id";
+$sql = "SELECT f.*, COALESCE(b.name,'') AS origen_name FROM dim_forms f LEFT JOIN dim_bibliographies b ON f.bibliography_id=b.id";
 if ($sys !== '') {
     $sql .= " WHERE f.afiliacion = ?";
 }
@@ -262,7 +262,7 @@ if ($sys !== '') {
                     <input class="inp" type="number" name="hpregen" id="form_hpregen">
 
                     <label>Origen</label>
-                    <select class="select" name="origen" id="form_origen">
+                    <select class="select" name="bibliography_id" id="form_bibliography_id">
                         <option value="0">--</option>
                         <?php foreach ($origins as $o): ?>
                             <option value="<?= (int)$o['id'] ?>"><?= h($o['name']) ?></option>
@@ -353,7 +353,7 @@ function openFormModal(id = null){
     document.getElementById('form_bonres').value = '';
     document.getElementById('form_regenera').value = '0';
     document.getElementById('form_hpregen').value = '0';
-    document.getElementById('form_origen').value = '0';
+    document.getElementById('form_bibliography_id').value = '0';
     if (formEditor) formEditor.root.innerHTML = '';
 
     if (id) {
@@ -372,7 +372,7 @@ function openFormModal(id = null){
             document.getElementById('form_bonres').value = row.bonres || '';
             document.getElementById('form_regenera').value = row.regenera || 0;
             document.getElementById('form_hpregen').value = row.hpregen || 0;
-            document.getElementById('form_origen').value = row.origen || 0;
+            document.getElementById('form_bibliography_id').value = row.bibliography_id || 0;
             const desc = row.desc || '';
             document.getElementById('form_desc').value = desc;
             if (formEditor) formEditor.root.innerHTML = desc;

@@ -24,7 +24,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $donDesc   = ($resultQueryDon["descripcion"]);
     $donSystem = ($resultQueryDon["sistema"]);
     $donBreed  = htmlspecialchars($resultQueryDon["ferasistema"]);
-    $donOrigin = htmlspecialchars($resultQueryDon["origen"]);
+    $donOrigin = htmlspecialchars($resultQueryDon["bibliography_id"]);
     $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
 
     // Obtener el nombre del origen del Don

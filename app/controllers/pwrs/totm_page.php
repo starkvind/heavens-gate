@@ -20,7 +20,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $totemDesc  = $resultQueryTotem["desc"]; // NO usar htmlspecialchars() para mantener el formato HTML
     $totemAttr  = $resultQueryTotem["rasgos"];
     $totemBan   = $resultQueryTotem["prohib"];
-    $totemOrigin = htmlspecialchars($resultQueryTotem["origen"]);
+    $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["img"] ?? ""));
 
     // Obtener el nombre del origen del tótem

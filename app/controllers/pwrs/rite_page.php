@@ -23,7 +23,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $riteSystem = $resultQueryRite["syst"];
     $riteSistema = $resultQueryRite["sistema"];
     if (trim((string)$riteSystem) === '' && trim((string)$riteSistema) !== '') { $riteSystem = $riteSistema; }
-    $riteOrigin = htmlspecialchars($resultQueryRite["origen"]);
+    $riteOrigin = htmlspecialchars($resultQueryRite["bibliography_id"]);
     $riteImgRaw = trim((string)($resultQueryRite["img"] ?? ""));
 
     // Obtener el nombre del origen del ritual

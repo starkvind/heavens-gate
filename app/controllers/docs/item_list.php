@@ -53,7 +53,7 @@ $sql = "
         i.img AS item_img,
         COALESCE(b.name, '') AS item_origin
     FROM fact_items i
-    LEFT JOIN dim_bibliographies b ON i.origen = b.id
+    LEFT JOIN dim_bibliographies b ON i.bibliography_id = b.id
     WHERE i.tipo = ?
     ORDER BY b.name ASC, i.name ASC
 ";

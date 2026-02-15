@@ -13,8 +13,8 @@ $query = "
 		nb.name as totem_origin
 	from dim_totems nt
 		left join dim_totem_types ntt on ntt.id = nt.tipo
-		left join dim_bibliographies nb on nt.origen = nb.id
-	order by nt.origen, nt.coste
+		left join dim_bibliographies nb on nt.bibliography_id = nb.id
+	order by nt.bibliography_id, nt.coste
 ";
 $result = mysqli_query($link, $query);
 

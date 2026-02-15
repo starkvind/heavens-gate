@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	$img       = trim((string)($_POST['img'] ?? ''));
 	$descri    = sanitize_utf8_text((string)($_POST['descri'] ?? ''));
 	$descri    = hg_mentions_convert($link, $descri);
-	$origen    = (int)($_POST['origen'] ?? 0);
+	$bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 	$currentImg = trim((string)($_POST['current_img'] ?? ''));
 
 	// Subida opcional
@@ -141,13 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	} else {
 		if ($id > 0) {
 			$st = $link->prepare("UPDATE fact_items
-				SET name=?, tipo=?, habilidad=?, nivel=?, gnosis=?, valor=?, bonus=?, dano=?, metal=?, fuerza=?, destreza=?, img=?, descri=?, origen=?
+				SET name=?, tipo=?, habilidad=?, nivel=?, gnosis=?, valor=?, bonus=?, dano=?, metal=?, fuerza=?, destreza=?, img=?, descri=?, bibliography_id=?
 				WHERE id=?");
 			if ($st) {
 				$st->bind_param(
 					"sisiisisiiissii",
 					$name, $tipo, $habilidad, $nivel, $gnosis, $valor, $bonus, $dano, $metal,
-					$fuerza, $destreza, $img, $descri, $origen, $id
+					$fuerza, $destreza, $img, $descri, $bibliographyId, $id
 				);
 				$ok = $st->execute();
 				$stErr = $st->error;
@@ -168,13 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 				$flash[] = ['type'=>'error','msg'=>'ID inválido. No se pudo actualizar el objeto.'];
 			} else {
 			$st = $link->prepare("INSERT INTO fact_items
-				(name, tipo, habilidad, nivel, gnosis, valor, bonus, dano, metal, fuerza, destreza, img, descri, origen)
+				(name, tipo, habilidad, nivel, gnosis, valor, bonus, dano, metal, fuerza, destreza, img, descri, bibliography_id)
 				VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 			if ($st) {
 				$st->bind_param(
 					"sisiisisiiissi",
 					$name, $tipo, $habilidad, $nivel, $gnosis, $valor, $bonus, $dano, $metal,
-					$fuerza, $destreza, $img, $descri, $origen
+					$fuerza, $destreza, $img, $descri, $bibliographyId
 				);
 				$ok = $st->execute();
 				$stErr = $st->error;
@@ -210,7 +210,7 @@ if (isset($_GET['edit'])) {
 
 // Listado
 $rows = [];
-$rs = $link->query("SELECT id, name, tipo, origen FROM fact_items ORDER BY name ASC");
+$rs = $link->query("SELECT id, name, tipo, bibliography_id FROM fact_items ORDER BY name ASC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $rows[] = $r; } $rs->close(); }
 
 // Datos completos para edición en modal
@@ -305,7 +305,7 @@ function origin_name($origins, $id){
 					</select>
 
 					<label>Origen</label>
-					<select class="select" name="origen" id="item_origen">
+					<select class="select" name="bibliography_id" id="item_bibliography_id">
 						<option value="0">--</option>
 						<?php foreach ($origins as $o): ?>
 							<option value="<?= (int)$o['id'] ?>"><?= h($o['name']) ?></option>
@@ -379,7 +379,7 @@ function origin_name($origins, $id){
 	<tbody>
 	<?php foreach ($rows as $r): ?>
 		<?php
-			$search = trim((string)($r['name'] ?? '') . ' ' . (string)type_name($types, $r['tipo']) . ' ' . (string)origin_name($origins, $r['origen']));
+			$search = trim((string)($r['name'] ?? '') . ' ' . (string)type_name($types, $r['tipo']) . ' ' . (string)origin_name($origins, $r['bibliography_id'] ?? 0));
 			if (function_exists('mb_strtolower')) { $search = mb_strtolower($search, 'UTF-8'); }
 			else { $search = strtolower($search); }
 		?>
@@ -387,7 +387,7 @@ function origin_name($origins, $id){
 			<td><?= (int)$r['id'] ?></td>
 			<td><?= h($r['name']) ?></td>
 			<td><?= h(type_name($types, $r['tipo'])) ?></td>
-			<td><?= h(origin_name($origins, $r['origen'])) ?></td>
+			<td><?= h(origin_name($origins, $r['bibliography_id'] ?? 0)) ?></td>
 			<td>
 				<button class="btn" type="button" onclick="openItemModal(<?= (int)$r['id'] ?>)">Editar</button>
 				<a class="btn btn-red" href="/talim?s=admin_items&delete=<?= (int)$r['id'] ?>" onclick="return confirm('¿Eliminar objeto?');">Borrar</a>
@@ -423,7 +423,7 @@ function openItemModal(id = null){
 	document.getElementById('item_id').value = '';
 	document.getElementById('item_name').value = '';
 	document.getElementById('item_tipo').value = 0;
-	document.getElementById('item_origen').value = 0;
+	document.getElementById('item_bibliography_id').value = 0;
 	document.getElementById('item_habilidad').value = '';
 	document.getElementById('item_nivel').value = 0;
 	document.getElementById('item_gnosis').value = 0;
@@ -447,7 +447,7 @@ function openItemModal(id = null){
 			document.getElementById('item_id').value = row.id;
 			document.getElementById('item_name').value = row.name || '';
 			document.getElementById('item_tipo').value = row.tipo || 0;
-			document.getElementById('item_origen').value = row.origen || 0;
+			document.getElementById('item_bibliography_id').value = row.bibliography_id || 0;
 			document.getElementById('item_habilidad').value = row.habilidad || '';
 			document.getElementById('item_nivel').value = row.nivel || 0;
 			document.getElementById('item_gnosis').value = row.gnosis || 0;

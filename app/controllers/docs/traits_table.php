@@ -14,7 +14,7 @@ $query = "
 		SUBSTRING(nh.clasificacion, 5) as trait_subcategory,
 		COALESCE(nb.name, '') as trait_origin
 	from dim_traits nh 
-		left join dim_bibliographies nb on nh.origen = nb.id
+		left join dim_bibliographies nb on nh.bibliography_id = nb.id
 	order by
 		CASE
 			when nh.tipo = 'Atributos' then 0

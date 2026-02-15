@@ -58,3 +58,16 @@ config.env
 *.csv
 cache/
 tmp/
+
+# Migration files
+app/tools/migrations/20260215_rename_origin_to_bibliography_id.sql
+app/tools/migrations/20260215b_fix_bibliography_id_mariadb.sql
+app/tools/migrations/20260215c_clean_bibliography_fk.sql
+app/tools/migrations/migration_plan.txt
+
+# Migration helper tools
+app/tools/check_bibliography_fk.php
+app/tools/drop_origin_columns.php
+app/tools/verify_bibliography_refactor.php
+app/tools/migrations/migration_plan.txt
+app/tools/verify_bibliography_refactor.php

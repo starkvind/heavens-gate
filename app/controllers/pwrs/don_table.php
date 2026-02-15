@@ -19,8 +19,8 @@ $query = "
 		nb.name as gift_origin
 	from fact_gifts d
 		left join dim_gift_types ntd on d.tipo = ntd.id
-		left join dim_bibliographies nb on d.origen = nb.id
-	order by d.origen, d.rango
+		left join dim_bibliographies nb on d.bibliography_id = nb.id
+	order by d.bibliography_id, d.rango
 ";
 $result = mysqli_query($link, $query);
 

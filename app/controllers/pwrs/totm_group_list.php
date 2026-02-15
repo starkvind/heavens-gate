@@ -39,7 +39,7 @@ $consulta = "
 		t.img,
 		COALESCE(b.name, '') AS origen
 	FROM dim_totems t
-	LEFT JOIN dim_bibliographies b ON t.origen = b.id
+	LEFT JOIN dim_bibliographies b ON t.bibliography_id = b.id
 	WHERE t.tipo = ?
 	ORDER BY b.name ASC, t.name ASC
 ";

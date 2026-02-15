@@ -88,7 +88,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
                 ['k'=>'formas', 'label'=>'Formas', 'ui'=>'text', 'db'=>'s', 'req'=>false],
                 ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
-                ['k'=>'origen', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
+                ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
                 ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
@@ -112,7 +112,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
                 ['k'=>'sistema', 'label'=>'Sistema', 'ui'=>'select_text', 'db'=>'s', 'req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
-                ['k'=>'origen', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
+                ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
                 ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
@@ -137,7 +137,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
                 ['k'=>'afiliacion', 'label'=>'Afiliacion', 'ui'=>'text', 'db'=>'s', 'req'=>false],
                 ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
-                ['k'=>'origen', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
+                ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
                 ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
                 ['k'=>'poderes', 'label'=>'Poderes', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             ],
@@ -217,6 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 }
             }
         }
+        // bibliography_id ya viene del formulario
 
         foreach ($M['fields'] as $f) {
             $k = $f['k'];
@@ -605,7 +606,7 @@ var OPTS_ORIGINS = <?= json_encode(array_map(fn($r)=>['id'=>(int)$r['id'], 'name
 var OPTS_SYSTEMS = <?= json_encode(array_values($opts_systems), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
 function pickOptsForField(fieldKey){
-  if (TAB !== 'misc' && fieldKey === 'origen') return OPTS_ORIGINS;
+  if (TAB !== 'misc' && fieldKey === 'bibliography_id') return OPTS_ORIGINS;
   if (fieldKey === 'sistema') return OPTS_SYSTEMS;
   return [];
 }

@@ -32,7 +32,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $itemDEX    = (int)$resultQueryItem["destreza"];
     $itemImg    = htmlspecialchars($resultQueryItem["img"]);
     $itemInfo   = ($resultQueryItem["descri"]);
-    $itemOrig   = (int)$resultQueryItem["origen"];
+    $itemOrig   = (int)$resultQueryItem["bibliography_id"];
     
     // ================================================================== //
     // SELECCIONAR ORIGEN

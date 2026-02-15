@@ -5,7 +5,7 @@
  *
  * Tablas:
  *  - dim_doc_categories: secciones/categorías (id, tipo, orden, created_at, updated_at)
- *  - fact_docs: documentos (id, seccion, titulo, texto, source, origin, created_at, updated_at)
+ *  - fact_docs: documentos (id, seccion, titulo, texto, source, bibliography_id, created_at, updated_at)
  *
  * Requisitos:
  *  - Debe existir $link (mysqli) ya conectado.
@@ -102,7 +102,7 @@ function meta_for(string $tab, array $opts_sections, array $opts_origins): array
             ['k'=>'titulo', 'label'=>'Título',  'ui'=>'text',       'db'=>'s','req'=>true,'max'=>150],
             ['k'=>'texto',  'label'=>'Texto',   'ui'=>'wysiwyg',    'db'=>'s','req'=>true],   // Quill
             ['k'=>'source', 'label'=>'Fuente',  'ui'=>'textarea',   'db'=>'s','req'=>false],
-            ['k'=>'origin', 'label'=>'Origen',  'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_origins],
+            ['k'=>'bibliography_id', 'label'=>'Origen',  'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_origins],
         ],
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>70],
@@ -151,6 +151,7 @@ $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDE
                     }
                 }
             }
+        // bibliography_id ya viene del formulario
 
         // normalizaciones
         if ($postTab === 'docs' && isset($vals['texto'])) {
@@ -362,7 +363,7 @@ while ($r = $rsL->fetch_assoc()) {
     $idv = (int)$r[$pk];
     if ($tab === 'docs') {
         $r['seccion_name'] = ($opts_sections[(int)($r['seccion'] ?? 0)] ?? '');
-        $r['origin_name'] = ($opts_origins[(int)($r['origin'] ?? 0)] ?? '');
+        $r['origin_name'] = ($opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '');
     }
     $rows[] = $r;
     $rowMap[$idv] = $r;
@@ -643,7 +644,7 @@ var OPTS_ORIGINS = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$
 
 function pickOptsForField(fieldKey){
   if (TAB==='docs' && fieldKey==='seccion') return OPTS_SECTIONS;
-  if (TAB==='docs' && fieldKey==='origin') return OPTS_ORIGINS;
+  if (TAB==='docs' && fieldKey==='bibliography_id') return OPTS_ORIGINS;
   return [];
 }
 

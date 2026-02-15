@@ -165,7 +165,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 ['k'=>'sistema',     'label'=>'Sistema',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'ferasistema', 'label'=>'Fera-sistema', 'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>100],
                 ['k'=>'img',         'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
-                ['k'=>'origen',      'label'=>'Origen',       'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
+                ['k'=>'bibliography_id', 'label'=>'Origen',   'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
@@ -192,7 +192,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 ['k'=>'desc',   'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 ['k'=>'syst',   'label'=>'Sistema (texto largo)', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 ['k'=>'sistema','label'=>'Sistema',     'ui'=>'text',     'db'=>'s', 'req'=>true,'max'=>100],
-                ['k'=>'origen', 'label'=>'Origen',      'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
+                ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
@@ -219,7 +219,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
                 ['k'=>'rasgos', 'label'=>'Rasgos',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'prohib', 'label'=>'Prohibición', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
-                ['k'=>'origen', 'label'=>'Origen',      'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
+                ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
@@ -249,7 +249,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_tipo_dones, array
             ['k'=>'atributo',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
             ['k'=>'habilidad',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
             ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
-            ['k'=>'origen',     'label'=>'Origen',      'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
+            ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
         ],
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>70],
@@ -279,11 +279,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
         // recoger valores
         $vals = [];
-        foreach ($M['fields'] as $f) {
-            $k = $f['k'];
-            if (($f['db'] ?? 's') === 'i') {
-                $raw = $_POST[$k] ?? 0;
-                $vals[$k] = (int)$raw;
+            foreach ($M['fields'] as $f) {
+                $k = $f['k'];
+                if (($f['db'] ?? 's') === 'i') {
+                    $raw = $_POST[$k] ?? 0;
+                    $vals[$k] = (int)$raw;
             } else {
                 $vals[$k] = (string)($_POST[$k] ?? '');
                 if (($f['ui'] ?? '') !== 'textarea') $vals[$k] = trim($vals[$k]);
@@ -320,9 +320,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' inválido.'];
                 } else {
                     if (trim((string)$vals[$k]) === '') $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' es obligatorio.'];
+                    }
                 }
             }
-        }
+        // bibliography_id ya viene del formulario
 
         $hasErr = false;
         foreach ($flash as $m) if (($m['type'] ?? '') === 'error') { $hasErr = true; break; }
@@ -466,7 +467,7 @@ $rowMap = [];
 while ($r = $rsL->fetch_assoc()) {
     $idv = (int)$r[$pk];
 
-    $r['origen_name'] = ($opts_origen[(int)($r['origen'] ?? 0)] ?? '');
+    $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
 
     if ($tab === 'dones') {
         $t = (int)($r['tipo'] ?? 0);
@@ -690,7 +691,7 @@ function pickOptsForField(fieldKey){
   if (TAB==='rituales' && fieldKey==='tipo') return OPTS_TIPO_RIT;
   if (TAB==='totems' && fieldKey==='tipo') return OPTS_TIPO_TOT;
   if (TAB==='disciplinas' && fieldKey==='disc') return OPTS_TIPO_DISC;
-  if (fieldKey==='origen') return OPTS_ORIGEN;
+  if (fieldKey==='bibliography_id') return OPTS_ORIGEN;
   return [];
 }
 
