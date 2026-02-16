@@ -1,36 +1,67 @@
 <?php
-setMetaFromPage("Meritos y fallos | Heaven's Gate", "Listado de meritos y fallos.", null, 'website');
+setMetaFromPage("Méritos y defectos | Heaven's Gate", "Listado de Méritos y defectos.", null, 'website');
 include("app/partials/main_nav_bar.php");
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
+if (!function_exists('h')) {
+	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
 
-// Cargar méritos y defectos con la query indicada
+// Cargar Méritos y defectos con la query indicada
 $query = "
 	select
 		nmyd.id as merit_id,
 		nmyd.pretty_id as merit_pretty_id,
 		nmyd.name as merit_name,
-		nmyd.sistema as merit_system,
-		nmyd.tipo as merit_type,
-		nmyd.afiliacion as merit_category,
-		nmyd.coste as merit_cost,
+		nmyd.system_name as merit_system,
+		nmyd.kind as merit_type,
+		nmyd.affiliation as merit_category,
+		nmyd.cost as merit_cost,
 		COALESCE(nb.name, '') as merit_origin
 	from dim_merits_flaws nmyd
 		left join dim_bibliographies nb on nmyd.bibliography_id = nb.id
 	order by
 		CASE
-			when nmyd.tipo = 'Méritos' then 0
+			when nmyd.kind = 'Méritos' then 0
 			else 9999
 		END asc,
-		nmyd.sistema ASC
+		nmyd.system_name ASC
 ";
 $result = mysqli_query($link, $query);
+if (!$result) {
+  $err = mysqli_error($link);
+  if (stripos($err, "Unknown column 'nmyd.kind'") !== false || stripos($err, "Unknown column `nmyd`.`kind`") !== false) {
+    $query = str_replace("nmyd.kind", "nmyd.tipo", $query);
+    $result = mysqli_query($link, $query);
+  }
+}
+if (!$result) {
+  $err = mysqli_error($link);
+  if (stripos($err, "Unknown column 'nmyd.system_name'") !== false || stripos($err, "Unknown column `nmyd`.`system_name`") !== false) {
+    $query = str_replace("nmyd.system_name", "nmyd.sistema", $query);
+  }
+  if (stripos($err, "Unknown column 'nmyd.affiliation'") !== false || stripos($err, "Unknown column `nmyd`.`affiliation`") !== false) {
+    $query = str_replace("nmyd.affiliation", "nmyd.afiliacion", $query);
+  }
+  if (stripos($err, "Unknown column 'nmyd.cost'") !== false || stripos($err, "Unknown column `nmyd`.`cost`") !== false) {
+    $query = str_replace("nmyd.cost", "nmyd.coste", $query);
+  }
+  if ($query !== '' && $query !== null) {
+    $result = mysqli_query($link, $query);
+  }
+}
 
 $meritos = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$meritos[] = $row;
+$isResult = ($result instanceof mysqli_result);
+if ($result && $isResult) {
+  while ($row = mysqli_fetch_assoc($result)) {
+    $meritos[] = $row;
+  }
+  mysqli_free_result($result);
+} else {
+  $err = mysqli_error($link);
+  echo "<p class=\'texti\'>Error en consulta: " . h($err) . "</p>";
 }
-mysqli_free_result($result);
 
 function ensure_utf8($value) {
     if (is_string($value)) {
@@ -268,9 +299,9 @@ $(document).ready(function () {
 		order: [[0, "asc"]],
 		language: {
 			search: "🔍 Buscar:&nbsp;",
-			lengthMenu: "Mostrar _MENU_ méritos y defectos",
+			lengthMenu: "Mostrar _MENU_ Méritos y defectos",
 			info: "Mostrando _START_ a _END_ de _TOTAL_ entradas",
-			infoEmpty: "No hay méritos ni defectos disponibles",
+			infoEmpty: "No hay Méritos ni defectos disponibles",
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
@@ -428,3 +459,8 @@ function sortValues(values){
 	});
 }
 </script>
+
+
+
+
+

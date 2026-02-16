@@ -67,7 +67,7 @@ if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name AS
 }
 
 $opts_systems = [];
-if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY orden ASC, name ASC")) {
+if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
     while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
     $rs->close();
 }
@@ -85,17 +85,17 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'formas', 'label'=>'Formas', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-                ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
-                ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
+                ['k'=>'forms', 'label'=>'Formas', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+                ['k'=>'energy', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+                ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
-                ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+                ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
                 ['k'=>'system_name','label'=>'Sistema','w'=>160],
-                ['k'=>'energia','label'=>'Energia','w'=>80],
+                ['k'=>'energy','label'=>'Energia','w'=>80],
             ],
             'has_timestamps' => true,
         ];
@@ -110,16 +110,16 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
-                ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
+                ['k'=>'energy', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+                ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
-                ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+                ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
                 ['k'=>'system_name','label'=>'Sistema','w'=>160],
-                ['k'=>'energia','label'=>'Energia','w'=>80],
+                ['k'=>'energy','label'=>'Energia','w'=>80],
             ],
             'has_timestamps' => true,
         ];
@@ -134,18 +134,18 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'afiliacion', 'label'=>'Afiliacion', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-                ['k'=>'energia', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
-                ['k'=>'imagen', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
+                ['k'=>'affiliation', 'label'=>'Afiliacion', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+                ['k'=>'energy', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+                ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
-                ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
-                ['k'=>'poderes', 'label'=>'Poderes', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+                ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+                ['k'=>'powers', 'label'=>'Poderes', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
                 ['k'=>'system_name','label'=>'Sistema','w'=>160],
-                ['k'=>'energia','label'=>'Energia','w'=>80],
+                ['k'=>'energy','label'=>'Energia','w'=>80],
             ],
             'has_timestamps' => true,
         ];
@@ -159,18 +159,18 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
         'order_by' => 'system_name ASC, t.name ASC',
         'fields' => [
             ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
-            ['k'=>'type', 'label'=>'Tipo', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+            ['k'=>'kind', 'label'=>'Tipo', 'ui'=>'text', 'db'=>'s', 'req'=>false],
             ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-            ['k'=>'energianombre', 'label'=>'Energia (nombre)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-            ['k'=>'energiavalor', 'label'=>'Energia (valor)', 'ui'=>'number', 'db'=>'i', 'req'=>false],
-            ['k'=>'desc', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+            ['k'=>'energy_name', 'label'=>'Energia (nombre)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+            ['k'=>'energy_value', 'label'=>'Energia (valor)', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+            ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ['k'=>'miscinfo', 'label'=>'Info extra', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
         ],
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>60],
             ['k'=>'name','label'=>'Nombre','w'=>220],
             ['k'=>'system_name','label'=>'Sistema','w'=>160],
-            ['k'=>'type','label'=>'Tipo','w'=>120],
+            ['k'=>'kind','label'=>'Tipo','w'=>120],
         ],
         'has_timestamps' => false,
     ];
@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $rs->close();
         }
         $opts_systems = [];
-        if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY orden ASC, name ASC")) {
+        if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
             while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
             $rs->close();
         }
@@ -247,16 +247,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $table = $M['table'];
             $pk = $M['pk'];
             $hasImage = false;
-            foreach ($M['fields'] as $f) { if (($f['k'] ?? '') === 'imagen') { $hasImage = true; break; } }
+            foreach ($M['fields'] as $f) { if (($f['k'] ?? '') === 'image_url') { $hasImage = true; break; } }
 
             if ($hasImage) {
-                $removeFlag = isset($_POST['remove_imagen']) && (string)$_POST['remove_imagen'] === '1';
+                $removeFlag = isset($_POST['remove_image_url']) && (string)$_POST['remove_image_url'] === '1';
                 if ($removeFlag) {
-                    $vals['imagen'] = '';
+                    $vals['image_url'] = '';
                 }
-                if (isset($_FILES['file_imagen']) && is_array($_FILES['file_imagen']) && $_FILES['file_imagen']['error'] === UPLOAD_ERR_OK) {
-                    $tmp = $_FILES['file_imagen']['tmp_name'];
-                    $orig = $_FILES['file_imagen']['name'] ?? 'img';
+                if (isset($_FILES['file_image_url']) && is_array($_FILES['file_image_url']) && $_FILES['file_image_url']['error'] === UPLOAD_ERR_OK) {
+                    $tmp = $_FILES['file_image_url']['tmp_name'];
+                    $orig = $_FILES['file_image_url']['name'] ?? 'img';
                     $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
                     if ($ext === '') $ext = 'jpg';
                     $base = slugify_pretty(pathinfo($orig, PATHINFO_FILENAME));
@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     if (!is_dir($destDir)) @mkdir($destDir, 0775, true);
                     $dest = $destDir . '/' . $name;
                     if (@move_uploaded_file($tmp, $dest)) {
-                        $vals['imagen'] = 'img/system/' . $name;
+                        $vals['image_url'] = 'img/system/' . $name;
                     } else {
                         $flash[] = ['type'=>'error','msg'=>'Error al subir la imagen.'];
                         $hasErr = true;

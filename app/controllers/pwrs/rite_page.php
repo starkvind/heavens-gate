@@ -4,7 +4,7 @@ $ritePageID = isset($_GET['b']) ? $_GET['b'] : '';
 
 // Consulta segura para obtener los datos del ritual
 $queryRite = "
-    SELECT r.*, s.name AS system_name
+    SELECT r.*, s.name AS system_name, r.kind AS tipo, r.level AS nivel, r.race AS raza, r.system_name AS sistema
     FROM fact_rites r
     LEFT JOIN dim_systems s ON r.system_id = s.id
     WHERE r.id = ? LIMIT 1
@@ -24,7 +24,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $riteType   = htmlspecialchars($resultQueryRite["tipo"]);
     $riteLevel  = htmlspecialchars($resultQueryRite["nivel"]);
     $riteBreed  = htmlspecialchars($resultQueryRite["raza"]);
-    $riteDesc   = $resultQueryRite["desc"]; // NO usar htmlspecialchars() para conservar el HTML
+    $riteDesc   = $resultQueryRite["description"] ?? $resultQueryRite["desc"] ?? ''; // NO usar htmlspecialchars() para conservar el HTML
     $riteSystemRules = $resultQueryRite["syst"];
     $riteSystemName  = htmlspecialchars($resultQueryRite["system_name"] ?? "");
     $riteSistemaLegacy = trim((string)($resultQueryRite["sistema"] ?? ""));
@@ -78,9 +78,9 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         }
     }
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.cronica NOT IN ($excludeChronicles) " : "";
+    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $riteOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.nombre, c.alias, c.img, c.estado FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.personaje_id WHERE b.tipo_poder='rituales' AND b.poder_id = ? $cronicaNotInSQL ORDER BY c.nombre")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.img, c.estado FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $ritePageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();

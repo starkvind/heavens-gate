@@ -74,7 +74,7 @@ $mensaje_error = '';
 $resultado_html = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre_jugador = trim($_POST['nombre'] ?? '');
+    $nombre_jugador = trim($_POST['name'] ?? '');
     $tirada_nombre = trim($_POST['tirada_nombre'] ?? '');
     $dados = (int)($_POST['dados'] ?? 0);
     $dificultad = (int)($_POST['dificultad'] ?? 0);
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($mensaje_error === '') {
-        $query = "SELECT COUNT(*) as total FROM fact_dice_rolls WHERE tirada_nombre = ?";
+        $query = "SELECT COUNT(*) as total FROM fact_dice_rolls WHERE roll_name = ?";
         $stmt = mysqli_prepare($link, $query);
         mysqli_stmt_bind_param($stmt, "s", $tirada_nombre);
         mysqli_stmt_execute($stmt);
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pifia_valor = $pifia ? 1 : 0;
         $str_resultados = implode(",", $resultados);
 
-        $query = "INSERT INTO fact_dice_rolls (nombre, tirada_nombre, dados, dificultad, resultados, exitos, pifia, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $query = "INSERT INTO fact_dice_rolls (name, roll_name, dados, dificultad, resultados, exitos, pifia, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = mysqli_prepare($link, $query);
         mysqli_stmt_bind_param($stmt, "ssiisiss", $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia_valor, $ip);
         mysqli_stmt_execute($stmt);
@@ -146,8 +146,8 @@ function mostrar_tirada($tirada, $id_ver) {
     $resultados = explode(",", $tirada['resultados']);
     $dificultad = $tirada['dificultad'];
 	$html = "<div class='form-box'>";
-    $html .= "<h3 style='text-align: center;'>{$tirada['tirada_nombre']}</h3>";
-    $html .= "<p><strong>{$tirada['nombre']}</strong> lanzó <strong>{$tirada['dados']}d10</strong> a dificultad <strong>{$dificultad}</strong>.</p><br />";
+    $html .= "<h3 style='text-align: center;'>{$tirada['roll_name']}</h3>";
+    $html .= "<p><strong>{$tirada['name']}</strong> lanzó <strong>{$tirada['dados']}d10</strong> a dificultad <strong>{$dificultad}</strong>.</p><br />";
     $html .= "<div style='display: flex; gap: 6px; flex-wrap: wrap;'>";
 
 	foreach ($resultados as $dado) {
@@ -213,14 +213,14 @@ if (!isset($_GET['see']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 </div>
 <?php
 	/* --------------------------------------------------------------- */
-	$query = "SELECT id, tirada_nombre, nombre, timestamp FROM fact_dice_rolls ORDER BY timestamp DESC LIMIT 10";
+	$query = "SELECT id, roll_name, name, timestamp FROM fact_dice_rolls ORDER BY timestamp DESC LIMIT 10";
 	$res = mysqli_query($link, $query);
 
 	if ($res && mysqli_num_rows($res) > 0) {
 		echo "<div class='form-box' style='margin-top:3em;'><h3>Últimas tiradas</h3><ul style='padding-left: 1em;'>";
 		while ($row = mysqli_fetch_assoc($res)) {
-			$nombre = htmlspecialchars($row['nombre']);
-			$titulo = htmlspecialchars($row['tirada_nombre']);
+			$nombre = htmlspecialchars($row['name']);
+			$titulo = htmlspecialchars($row['roll_name']);
 			echo "<li><a href='/tools/dice?see={$row['id']}'>$titulo</a> por $nombre</li>";
 		}
 		echo "</ul></div>";
@@ -228,3 +228,5 @@ if (!isset($_GET['see']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 	/* --------------------------------------------------------------- */
 }
 ?>
+
+

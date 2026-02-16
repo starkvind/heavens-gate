@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vincular_tema'])) {
     $tipo     = $_POST['tipo'];
     $id_obj   = intval($_POST['id_objeto']);
 
-    $stmt = $link->prepare("INSERT INTO bridge_soundtrack_links (id_bso, tipo_objeto, id_objeto) VALUES (?, ?, ?)");
+    $stmt = $link->prepare("INSERT INTO bridge_soundtrack_links (soundtrack_id, object_type, object_id) VALUES (?, ?, ?)");
 
 	if (!$stmt) {
 		die("Error al preparar la consulta: " . $link->error);
@@ -20,10 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vincular_tema'])) {
 }
 
 // Obtener listas necesarias
-$temas = $link->query("SELECT id, titulo_hg FROM dim_soundtracks ORDER BY fecha_add DESC");
-$personajes = $link->query("SELECT id, nombre FROM fact_characters WHERE cronica NOT IN (2, 7) ORDER BY nombre");
-$temporadas = $link->query("SELECT id, name FROM dim_seasons ORDER BY numero");
-$episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY fecha DESC");
+$temas = $link->query("SELECT id, title_hg FROM dim_soundtracks ORDER BY added_at DESC");
+$personajes = $link->query("SELECT id, name FROM fact_characters WHERE chronicle_id NOT IN (2, 7) ORDER BY name");
+$temporadas = $link->query("SELECT id, name FROM dim_seasons ORDER BY season_number");
+$episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY played_date DESC");
 ?>
 
 <h2>🔗 Asociar tema musical</h2>
@@ -48,7 +48,7 @@ $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY fecha DESC
         <select name="id_bso" required style="width:100%;">
             <option value="">Seleccionar tema</option>
             <?php while ($row = $temas->fetch_assoc()): ?>
-                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['titulo_hg']) ?></option>
+                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['title_hg']) ?></option>
             <?php endwhile; ?>
         </select><br><br>
 
@@ -64,7 +64,7 @@ $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY fecha DESC
             <label>Personaje:</label><br>
             <select id="select_personaje" style="width:100%;"> <!-- sin name -->
                 <?php while ($row = $personajes->fetch_assoc()): ?>
-                    <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['nombre']) ?></option>
+                    <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
                 <?php endwhile; ?>
             </select><br><br>
         </div>
@@ -126,3 +126,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+
+
+

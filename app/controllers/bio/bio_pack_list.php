@@ -19,7 +19,7 @@ include("app/partials/main_nav_bar.php");
 echo "<h2>" . htmlspecialchars($nameTypePack, ENT_QUOTES, 'UTF-8') . "</h2>";
 
 // 1) Sacar clanes (dim)
-$consulta = "SELECT id, name FROM dim_organizations ORDER BY orden";
+$consulta = "SELECT id, name FROM dim_organizations ORDER BY sort_order";
 $result = mysqli_query($link, $consulta);
 
 if (!$result) {
@@ -41,7 +41,7 @@ $numeroDeGruposHallados = 0;
 
 // 2) Preparar stmt para obtener manadas por bridge (más eficiente)
 $sqlGrupoBase = "
-    SELECT m.id, m.name, m.activa
+    SELECT m.id, m.name, m.is_active
     FROM bridge_organizations_groups b
     INNER JOIN dim_groups m ON m.id = b.group_id
     WHERE b.clan_id = ?
@@ -50,7 +50,7 @@ $sqlGrupoBase = "
 
 if ($excludeChronicles !== '') {
     // OJO: asume que $excludeChronicles es una lista de enteros separada por comas (ej: "2,3")
-    $sqlGrupoBase .= " AND m.cronica NOT IN ($excludeChronicles) ";
+    $sqlGrupoBase .= " AND m.chronicle_id NOT IN ($excludeChronicles) ";
 }
 
 $sqlGrupoBase .= " ORDER BY m.name ";
@@ -84,7 +84,7 @@ foreach ($clanes as $clan) {
         print("<ul class='listaManadas'>");
 
         while ($rowGrupo = mysqli_fetch_assoc($resultGrupo)) {
-            $enActivo = (int)$rowGrupo["activa"];
+            $enActivo = (int)$rowGrupo["is_active"];
             $iconManada = ($enActivo === 0) ? $iconSept : $iconPack;
 
             $gid = (int)$rowGrupo["id"];

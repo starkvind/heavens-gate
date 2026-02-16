@@ -4,7 +4,7 @@ require_once("../heroes.php");
 
 header('Content-Type: application/json');
 if (!$link || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['ok' => false, 'error' => 'Conexión o método inválido']);
+    echo json_encode(['ok' => false, 'error' => 'Conexi?n o m?todo inv?lido']);
     exit;
 }
 
@@ -12,8 +12,8 @@ $action = $_POST['action'] ?? '';
 
 switch ($action) {
     case 'get_relations':
-        $capId = intval($_POST['capitulo_id'] ?? 0);
-        $stmt = $link->prepare("SELECT acp.id, acp.id_personaje, p.nombre FROM bridge_chapters_characters acp JOIN fact_characters p ON acp.id_personaje = p.id WHERE acp.id_capitulo = ?");
+        $capId = intval($_POST['chapter_id'] ?? ($_POST['capitulo_id'] ?? 0));
+        $stmt = $link->prepare("SELECT acp.id, acp.character_id, p.name FROM bridge_chapters_characters acp JOIN fact_characters p ON acp.character_id = p.id WHERE acp.chapter_id = ?");
         $stmt->bind_param("i", $capId);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -23,9 +23,9 @@ switch ($action) {
         exit;
 
     case 'add_relation':
-        $capId = intval($_POST['capitulo_id'] ?? 0);
-        $pjId = intval($_POST['personaje_id'] ?? 0);
-        $stmt = $link->prepare("INSERT IGNORE INTO bridge_chapters_characters (id_capitulo, id_personaje) VALUES (?, ?)");
+        $capId = intval($_POST['chapter_id'] ?? ($_POST['capitulo_id'] ?? 0));
+        $pjId = intval($_POST['character_id'] ?? 0);
+        $stmt = $link->prepare("INSERT IGNORE INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)");
         $stmt->bind_param("ii", $capId, $pjId);
         $stmt->execute();
         echo json_encode(['ok' => true]);
@@ -40,6 +40,6 @@ switch ($action) {
         exit;
 
     default:
-        echo json_encode(['ok' => false, 'error' => 'Acción no válida']);
+        echo json_encode(['ok' => false, 'error' => 'Acci?n no v?lida']);
         exit;
 }

@@ -21,13 +21,13 @@ function sanitize_int_csv($csv){
 
 // Excluir crónicas (si existe la variable global, la usamos; si no, no excluimos nada)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 // Personajes con manada activa (bridge)
 $charsSql = "
     SELECT
         p.id,
-        p.nombre,
+        p.name,
         p.img,
         p.estado,
         gbc.group_id
@@ -36,7 +36,7 @@ $charsSql = "
             ON gbc.character_id = p.id
            AND (gbc.is_active = 1 OR gbc.is_active IS NULL)
     WHERE 1=1
-        $cronicaNotInSQL
+        $chronicle_idNotInSQL
 ";
 $characters = $link->query($charsSql)->fetch_all(MYSQLI_ASSOC);
 
@@ -185,3 +185,4 @@ const options = {
 
 new vis.Network(container, data, options);
 </script>
+

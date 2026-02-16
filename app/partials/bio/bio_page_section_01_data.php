@@ -29,10 +29,10 @@ if ($idJugador != "PNJ") {
 
 // CRONICA
 $idCronica = $bioChronic;
-$resultCronica = getSingleRecord($link, 'dim_chronicles', $idCronica, ['name', 'descripcion']);
+$resultCronica = getSingleRecord($link, 'dim_chronicles', $idCronica, ['name', 'description']);
 if ($resultCronica) {
     $nameCronica = ($resultCronica['name']);
-    $descCronica = htmlspecialchars($resultCronica['descripcion']);
+    $descCronica = htmlspecialchars($resultCronica['description']);
     $nameCronicaFinal = $nameCronica; #createLink('#', $nameCronica, '', $descCronica);
 } else {
     $nameCronicaFinal = htmlspecialchars($bioChronic);
@@ -195,8 +195,8 @@ if ($resultClan) {
 
 // TIPO
 $idTipo = $bioType;
-$resultTipo = getSingleRecord($link, 'dim_character_types', $idTipo, ['tipo']);
-$nameTipo = $resultTipo ? htmlspecialchars($resultTipo['tipo']) : '';
+$resultTipo = getSingleRecord($link, 'dim_character_types', $idTipo, ['kind']);
+$nameTipo = $resultTipo ? htmlspecialchars($resultTipo['kind']) : '';
 
 // NATURALEZA
 $idNature = $bioNature;
@@ -219,33 +219,35 @@ if ($resultDemeanor) {
 }
 
 // BIOGRAFIAS SIMILARES
-$stmt = $link->prepare("SELECT id, nombre FROM fact_characters WHERE nombre LIKE ? AND id != ? LIMIT 10");
+$stmt = $link->prepare("SELECT id, name FROM fact_characters WHERE name LIKE ? AND id != ? LIMIT 10");
 $stmt->bind_param('ss', $bioName, $characterId);
 $stmt->execute();
 $resultSameBio = $stmt->get_result();
 while ($row = $resultSameBio->fetch_assoc()) {
     $sameBioId[] = htmlspecialchars($row['id']);
-    $sameBioName[] = htmlspecialchars($row['nombre']);
+    $sameBioName[] = htmlspecialchars($row['name']);
 }
 
 // ASESINATOS
-$stmt = $link->prepare("SELECT id, nombre FROM fact_characters WHERE causamuerte LIKE ?");
+$stmt = $link->prepare("SELECT id, name FROM fact_characters WHERE cause_of_death LIKE ?");
 $stmt->bind_param('s', $bioName);
 $stmt->execute();
 $resultKills = $stmt->get_result();
 while ($row = $resultKills->fetch_assoc()) {
     $killsId[] = htmlspecialchars($row['id']);
-    $killsName[] = htmlspecialchars($row['nombre']);
+    $killsName[] = htmlspecialchars($row['name']);
 }
 
 // Cálculo de círculos de habilidad, atributos, etc.
-function createSkillCircle($array, $prefix) {
-    $result = [];
-    foreach ($array as $value) {
-        $baseDir = ($prefix === 'gem-pwr') ? 'img/ui/gems/pwr' : 'img/ui/gems/attr';
-        $result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0$value.png'/>";
+if (!function_exists('createSkillCircle')) {
+    function createSkillCircle($array, $prefix) {
+        $result = [];
+        foreach ($array as $value) {
+            $baseDir = ($prefix === 'gem-pwr') ? 'img/ui/gems/pwr' : 'img/ui/gems/attr';
+            $result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0$value.png'/>";
+        }
+        return $result;
     }
-    return $result;
 }
 
 if (isset($bioArrayPow)) $bioPowrImg = createSkillCircle($bioArrayPow, 'gem-pwr');

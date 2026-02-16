@@ -9,7 +9,7 @@ $dificultad = (int)($_POST['dificultad'] ?? 0);
 $ip = $_SERVER['REMOTE_ADDR'];
 
 // Validación básica
-if ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > 15 || $dificultad < 2 || $dificultad > 10 || $id_personaje <= 0) {
+if ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > 15 || $dificultad < 2 || $dificultad > 10) {
     die("Parámetros inválidos.");
 }
 
@@ -25,8 +25,8 @@ if ($row = mysqli_fetch_assoc($res)) {
     }
 }
 
-// Comprobar que la tirada_nombre sea única
-$query = "SELECT COUNT(*) as total FROM fact_dice_rolls WHERE tirada_nombre = ?";
+// Comprobar que la roll_name sea única
+$query = "SELECT COUNT(*) as total FROM fact_dice_rolls WHERE roll_name = ?";
 $stmt = mysqli_prepare($link, $query);
 mysqli_stmt_bind_param($stmt, "s", $tirada_nombre);
 mysqli_stmt_execute($stmt);
@@ -58,7 +58,7 @@ $str_resultados = implode(",", $resultados);
 
 // Insertar la tirada
 $query = "INSERT INTO fact_dice_rolls 
-(nombre_jugador, tirada_nombre, dados, dificultad, resultados, exitos, pifia, ip) 
+(name, roll_name, dados, dificultad, resultados, exitos, pifia, ip) 
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt = mysqli_prepare($link, $query);
 mysqli_stmt_bind_param($stmt, "isiiisis", $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia, $ip);
@@ -74,3 +74,7 @@ echo "<p>Éxitos netos: <strong>$exitos</strong></p>";
 if ($pifia) echo "<p style='color:red;'>¡PIFIA!</p>";
 echo "<p>Enlace para foro: <code>[roll]$link_roll[/roll]</code></p>";
 ?>
+
+
+
+

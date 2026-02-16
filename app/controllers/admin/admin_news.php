@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 		$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
 	} else {
 		if ($id > 0) {
-			$st = $link->prepare("UPDATE fact_admin_posts SET autor=?, titulo=?, mensaje=?, fecha=NOW() WHERE id=?");
+			$st = $link->prepare("UPDATE fact_admin_posts SET autor=?, title=?, mensaje=?, posted_at=NOW() WHERE id=?");
 			if ($st) {
 				$st->bind_param("sssi", $autor, $titulo, $mensaje, $id);
 				$st->execute();
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 				$flash[] = ['type'=>'ok','msg'=>'Noticia actualizada.'];
 			}
 		} else {
-			$st = $link->prepare("INSERT INTO fact_admin_posts (autor, titulo, mensaje, fecha) VALUES (?,?,?,NOW())");
+			$st = $link->prepare("INSERT INTO fact_admin_posts (autor, title, mensaje, posted_at) VALUES (?,?,?,NOW())");
 			if ($st) {
 				$st->bind_param("sss", $autor, $titulo, $mensaje);
 				$st->execute();
@@ -64,12 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 // Prefill edición
 // Listado
 $rows = [];
-$rs = $link->query("SELECT id, autor, titulo, fecha FROM fact_admin_posts ORDER BY id DESC");
+$rs = $link->query("SELECT id, autor, title, posted_at FROM fact_admin_posts ORDER BY id DESC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $rows[] = $r; } $rs->close(); }
 
 // Datos completos para edición en modal
 $rowsFull = [];
-$rs = $link->query("SELECT id, autor, titulo, mensaje FROM fact_admin_posts ORDER BY id DESC");
+$rs = $link->query("SELECT id, autor, title, mensaje FROM fact_admin_posts ORDER BY id DESC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 ?>
 
@@ -171,15 +171,15 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 	<tbody>
 	<?php foreach ($rows as $r): ?>
 		<?php
-			$search = trim((string)($r['titulo'] ?? '') . ' ' . (string)($r['autor'] ?? '') . ' ' . (string)($r['fecha'] ?? ''));
+			$search = trim((string)($r['title'] ?? '') . ' ' . (string)($r['autor'] ?? '') . ' ' . (string)($r['posted_at'] ?? ''));
 			if (function_exists('mb_strtolower')) { $search = mb_strtolower($search, 'UTF-8'); }
 			else { $search = strtolower($search); }
 		?>
 		<tr data-search="<?= h($search) ?>">
 			<td><?= (int)$r['id'] ?></td>
-			<td><?= h($r['titulo']) ?></td>
+			<td><?= h($r['title']) ?></td>
 			<td><?= h($r['autor']) ?></td>
-			<td><?= h($r['fecha']) ?></td>
+			<td><?= h($r['posted_at']) ?></td>
 			<td>
 				<button class="btn" type="button" onclick="openNewsModal(<?= (int)$r['id'] ?>)">Editar</button>
 				<a class="btn btn-red" href="/talim?s=admin_news&delete=<?= (int)$r['id'] ?>" onclick="return confirm('¿Eliminar noticia?');">Borrar</a>
@@ -224,7 +224,7 @@ function openNewsModal(id = null){
 			document.getElementById('newsModalTitle').textContent = 'Editar noticia';
 			document.getElementById('news_id').value = row.id;
 			document.getElementById('news_autor').value = row.autor || '';
-			document.getElementById('news_titulo').value = row.titulo || '';
+			document.getElementById('news_titulo').value = row.title || '';
 			const msg = row.mensaje || '';
 			document.getElementById('news_mensaje').value = msg;
 			if (newsEditor) newsEditor.root.innerHTML = msg;

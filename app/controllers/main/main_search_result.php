@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Resultados de busqueda | Heaven's Gate", "Resultados de la busqueda en la campana.", null, 'website'); ?>
+<?php setMetaFromPage("Resultados de b?squeda | Heaven's Gate", "Resultados de la b?squeda en la campa?a.", null, 'website'); ?>
 <?php
 
 // Verificar la conexión a la base de datos
@@ -50,7 +50,7 @@ function build_pretty_search_url(string $rutu, string $id): string {
                 $itemId = $idInt;
                 $typeSlug = '';
                 $itemSlug = '';
-                if ($stmt = $link->prepare("SELECT i.pretty_id AS item_pretty, t.pretty_id AS type_pretty, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.tipo WHERE i.id = ? LIMIT 1")) {
+                if ($stmt = $link->prepare("SELECT i.pretty_id AS item_pretty, t.pretty_id AS type_pretty, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.item_type_id WHERE i.id = ? LIMIT 1")) {
                     $stmt->bind_param('i', $itemId);
                     $stmt->execute();
                     $rs = $stmt->get_result();
@@ -82,49 +82,49 @@ function build_pretty_search_url(string $rutu, string $id): string {
     switch ($skz) {
         case 'biografias':
             $tabla = 'fact_characters';
-            $campos = 'nombre, infotext';
-            $searchField = 'nombre';
+            $campos = 'name, info_text';
+            $searchField = 'name';
             $rutu = 'muestrabio';
             break;
 
         case 'escritos':
             $tabla = 'fact_docs';
-            $campos = 'titulo, texto';
-            $searchField = 'titulo';
+            $campos = 'title, texto';
+            $searchField = 'title';
             $rutu = 'verdoc';
             break;
 
         case 'objetos':
             $tabla = 'fact_items';
-            $campos = 'name, descri';
+            $campos = 'name, description';
             $searchField = 'name';
             $rutu = 'seeitem';
             break;
 
         case 'dones':
             $tabla = 'fact_gifts';
-            $campos = 'nombre, descripcion, sistema';
-            $searchField = 'nombre';
+            $campos = 'name, description, system_name';
+            $searchField = 'name';
             $rutu = 'muestradon';
             break;
 
         case 'habilidades':
             $tabla = 'dim_traits';
-            $campos = 'name, descripcion';
+            $campos = 'name, description';
             $searchField = 'name';
             $rutu = 'verrasgo';
             break;
 
         case 'sistemas':
             $tabla = 'dim_systems';
-            $campos = 'name, descripcion';
+            $campos = 'name, description';
             $searchField = 'name';
             $rutu = 'sistemas';
             break;
 
         case 'merydef':
             $tabla = 'dim_merits_flaws';
-            $campos = 'name, descripcion';
+            $campos = 'name, description';
             $searchField = 'name';
             $rutu = 'vermyd';
             break;
@@ -207,3 +207,4 @@ function build_pretty_search_url(string $rutu, string $id): string {
 echo "<br/><center><input class='boton1' type='button' onclick='history.go(-1)' value='Volver'/></center>";
 
 ?>
+

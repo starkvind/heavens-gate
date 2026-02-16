@@ -7,7 +7,7 @@ $pageSect = "Rituales"; // PARA CAMBIAR EL TÍTULO DE LA PÁGINA
 $sustantivo = "Ritos";
 
 // Consulta segura usando MySQLi
-$consulta = "SELECT id, name, determinante FROM dim_rite_types ORDER BY orden";
+$consulta = "SELECT id, name, determinant FROM dim_rite_types ORDER BY sort_order";
 $stmt = $link->prepare($consulta);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -16,12 +16,12 @@ $NFilas = $result->num_rows;
 while ($ResultQuery = $result->fetch_assoc()) {
     $typeId = (int)$ResultQuery["id"];
     $typeName = htmlspecialchars($ResultQuery["name"]);
-    $determinante = htmlspecialchars($ResultQuery["determinante"]);
+    $determinant = htmlspecialchars($ResultQuery["determinant"]);
 
     print("
         <a href='" . htmlspecialchars(pretty_url($link, 'dim_rite_types', '/powers/rite/type', $typeId)) . "' title='$typeName'>
             <div class='renglon3col'>
-                $sustantivo $determinante $typeName
+                $sustantivo $determinant $typeName
             </div>
         </a>
     ");

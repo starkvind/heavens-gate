@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Bibliografia | Heaven's Gate", "Bibliografia y referencias de la campana.", null, 'website'); ?>
+<?php setMetaFromPage("Bibliograf?a | Heaven's Gate", "Bibliograf?a y referencias de la campa?a.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegación ?>
 <h2>Bibliograf&iacute;a</h2>
 <fieldset class="grupoHabilidad">
@@ -9,7 +9,7 @@
     }
 
     // Consulta para obtener la bibliografía ordenada por 'orden'
-    $consulta = "SELECT id, name, fecha, descripcion FROM dim_bibliographies ORDER BY orden";
+    $consulta = "SELECT id, name, year, description FROM dim_bibliographies ORDER BY sort_order";
     $IdConsulta = mysqli_query($link, $consulta);
 
     if (!$IdConsulta) {
@@ -23,8 +23,8 @@
     while ($ResultQuery = mysqli_fetch_assoc($IdConsulta)) {
         $idBook = htmlspecialchars($ResultQuery["id"]);
         $nameBook = htmlspecialchars($ResultQuery["name"]);
-        $yearBook = htmlspecialchars($ResultQuery["fecha"]);
-        $descBook = htmlspecialchars($ResultQuery["descripcion"]);
+        $yearBook = htmlspecialchars($ResultQuery["year"]);
+        $descBook = htmlspecialchars($ResultQuery["description"]);
         $goodYearBook = $yearBook != 0 ? $yearBook : "";
 
         echo "<div class='renglonBiblio' style='text-align: left;' title='$descBook'>$nameBook <div style='float:right;'>$goodYearBook</div></div>";
@@ -34,3 +34,4 @@
     mysqli_free_result($IdConsulta);
     ?>
 </fieldset>
+

@@ -11,24 +11,24 @@ $query = "
 		CONCAT(
 			'Rito', 
 			CASE
-				WHEN ntr.determinante <> '' THEN CONCAT(' ', ntr.determinante)
+				WHEN ntr.determinant <> '' THEN CONCAT(' ', ntr.determinant)
 				ELSE ''
 			END, 
 			' ', 
 			ntr.name
 		) as ritual_type,
-		nr.nivel as ritual_level,
-		nr.raza as ritual_species,
-		nr.desc as ritual_description,
+		nr.level as ritual_level,
+		nr.race as ritual_species,
+		nr.description as ritual_description,
 		nr.syst as ritual_roll_description,
 		s.name as ritual_fera_system,
         nr.system_id as ritual_system_id,
 		nb.name as ritual_origin
 	from fact_rites nr
-		left join dim_rite_types ntr on nr.tipo = ntr.id
+		left join dim_rite_types ntr on nr.kind = ntr.id
 		left join dim_bibliographies nb on nr.bibliography_id = nb.id
         left join dim_systems s on nr.system_id = s.id
-	order by nr.bibliography_id, nr.nivel
+	order by nr.bibliography_id, nr.level
 ";
 $result = mysqli_query($link, $query);
 

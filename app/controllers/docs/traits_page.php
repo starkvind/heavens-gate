@@ -17,12 +17,12 @@ if ($result->num_rows > 0) {
     while ($ResultQuery = $result->fetch_assoc()) {
         // Datos de la habilidad
         $nameSkill      = htmlspecialchars($ResultQuery["name"]);
-        $infoSkill      = ($ResultQuery["descripcion"]);
+        $infoSkill      = ($ResultQuery["description"]);
         $levlSkill      = ($ResultQuery["levels"]);
         $whoHaveSkill   = htmlspecialchars($ResultQuery["posse"]);
         $specSkill      = ($ResultQuery["special"]);
         $origSkill      = htmlspecialchars($ResultQuery["bibliography_id"]);
-        $typeSkill      = htmlspecialchars($ResultQuery["tipo"]); // Para regresar
+        $typeSkill      = htmlspecialchars($ResultQuery["kind"]); // Para regresar
         
         $titleSkill = substr($typeSkill, 0, -1);
         $pageSect = $titleSkill; // PARA CAMBIAR EL TITULO A LA PAGINA

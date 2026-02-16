@@ -9,14 +9,14 @@ $query = "
 		d.pretty_id as disc_pretty_id,
 		d.name as disc_name,
 		ddt.name as disc_type,
-		d.nivel as disc_level,
+		d.level as disc_level,
 		d.atributo as disc_roll_attribute,
 		d.habilidad as disc_roll_skill,
 		nb.name as disc_origin
 	from fact_discipline_powers d
 		left join dim_discipline_types ddt on d.disc = ddt.id
 		left join dim_bibliographies nb on d.bibliography_id = nb.id
-	order by d.bibliography_id, d.disc, d.nivel, d.name
+	order by d.bibliography_id, d.disc, d.level, d.name
 ";
 $result = mysqli_query($link, $query);
 
@@ -476,3 +476,4 @@ function sortValues(values){
 	.ms-wrap{ width: 100%; }
 }
 </style>
+

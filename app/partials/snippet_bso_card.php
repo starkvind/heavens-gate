@@ -3,11 +3,11 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	if (!in_array($tipo, ['personaje', 'temporada', 'episodio'])) return;
 
 	$queryBso = "
-		SELECT bs.titulo_hg, bs.titulo AS titulo_real, bs.artista, bs.youtube AS enlace 
+		SELECT bs.title_hg, bs.title AS titulo_real, bs.artist, bs.youtube AS enlace 
 		FROM bridge_soundtrack_links br
-		JOIN dim_soundtracks bs ON bs.id = br.id_bso
-		WHERE br.tipo_objeto = ? AND br.id_objeto = ?
-		ORDER BY bs.fecha_add DESC
+		JOIN dim_soundtracks bs ON bs.id = br.soundtrack_id
+		WHERE br.object_type = ? AND br.object_id = ?
+		ORDER BY bs.added_at DESC
 	";
 
 	$stmt = $link->prepare($queryBso);
@@ -31,11 +31,11 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 			if ($youtubeID) {
 				echo "<div class='bioTextData'>"; 
 					echo "<fieldset class='bso-card bioSeccion'>";
-					echo "<legend>&nbsp;🎵 {$tema['titulo_hg']}&nbsp;</legend>";
+					echo "<legend>&nbsp;🎵 {$tema['title_hg']}&nbsp;</legend>";
 					echo "<div class='video-wrapper'>";
 					echo "<iframe width='550' height='315' style='clear:both;' src='https://www.youtube-nocookie.com/embed/{$youtubeID}' frameborder='0' allowfullscreen></iframe>";
 					echo "</div>";
-					echo "<p style='text-align:center;'><strong>{$tema['titulo_real']}</strong> — {$tema['artista']}</p>";
+					echo "<p style='text-align:center;'><strong>{$tema['titulo_real']}</strong> — {$tema['artist']}</p>";
 					echo "</fieldset>";
 				echo "</div>";
 			}
@@ -43,3 +43,4 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	}
 }
 ?>
+

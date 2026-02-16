@@ -11,14 +11,14 @@ if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 $query = "
 	SELECT
 		s.id AS system_id,
-		s.orden AS system_order,
+		s.sort_order AS system_order,
 		s.name AS system_name,
 		s.img AS system_img,
-		s.formas AS system_forms,
+		s.forms AS system_forms,
 		COALESCE(nb.name, '') AS system_origin
 	FROM dim_systems s
 		LEFT JOIN dim_bibliographies nb ON s.bibliography_id = nb.id
-	ORDER BY s.orden, s.name
+	ORDER BY s.sort_order, s.name
 ";
 $result = mysqli_query($link, $query);
 

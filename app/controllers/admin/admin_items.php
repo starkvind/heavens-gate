@@ -111,9 +111,9 @@ if (isset($_GET['delete'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	$id        = (int)($_POST['id'] ?? ($_POST['item_id'] ?? 0));
 	$name      = trim((string)($_POST['name'] ?? ''));
-	$tipo      = (int)($_POST['tipo'] ?? 0);
+	$itemTypeId = (int)($_POST['item_type_id'] ?? ($_POST['tipo'] ?? 0));
 	$habilidad = trim((string)($_POST['habilidad'] ?? ''));
-	$nivel     = (int)($_POST['nivel'] ?? 0);
+	$level     = (int)($_POST['level'] ?? ($_POST['nivel'] ?? 0));
 	$gnosis    = (int)($_POST['gnosis'] ?? 0);
 	$valor     = trim((string)($_POST['valor'] ?? ''));
 	$bonus     = (int)($_POST['bonus'] ?? 0);
@@ -122,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	$fuerza    = (int)($_POST['fuerza'] ?? 0);
 	$destreza  = (int)($_POST['destreza'] ?? 0);
 	$img       = trim((string)($_POST['img'] ?? ''));
-	$descri    = sanitize_utf8_text((string)($_POST['descri'] ?? ''));
-	$descri    = hg_mentions_convert($link, $descri);
+	$description = sanitize_utf8_text((string)($_POST['description'] ?? ($_POST['descri'] ?? '')));
+	$description = hg_mentions_convert($link, $description);
 	$bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 	$currentImg = trim((string)($_POST['current_img'] ?? ''));
 
@@ -141,13 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	} else {
 		if ($id > 0) {
 			$st = $link->prepare("UPDATE fact_items
-				SET name=?, tipo=?, habilidad=?, nivel=?, gnosis=?, valor=?, bonus=?, dano=?, metal=?, fuerza=?, destreza=?, img=?, descri=?, bibliography_id=?
+				SET name=?, item_type_id=?, habilidad=?, level=?, gnosis=?, valor=?, bonus=?, dano=?, metal=?, fuerza=?, destreza=?, img=?, description=?, bibliography_id=?
 				WHERE id=?");
 			if ($st) {
 				$st->bind_param(
 					"sisiisisiiissii",
-					$name, $tipo, $habilidad, $nivel, $gnosis, $valor, $bonus, $dano, $metal,
-					$fuerza, $destreza, $img, $descri, $bibliographyId, $id
+					$name, $itemTypeId, $habilidad, $level, $gnosis, $valor, $bonus, $dano, $metal,
+					$fuerza, $destreza, $img, $description, $bibliographyId, $id
 				);
 				$ok = $st->execute();
 				$stErr = $st->error;
@@ -168,13 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 				$flash[] = ['type'=>'error','msg'=>'ID inválido. No se pudo actualizar el objeto.'];
 			} else {
 			$st = $link->prepare("INSERT INTO fact_items
-				(name, tipo, habilidad, nivel, gnosis, valor, bonus, dano, metal, fuerza, destreza, img, descri, bibliography_id)
+				(name, item_type_id, habilidad, level, gnosis, valor, bonus, dano, metal, fuerza, destreza, img, description, bibliography_id)
 				VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 			if ($st) {
 				$st->bind_param(
 					"sisiisisiiissi",
-					$name, $tipo, $habilidad, $nivel, $gnosis, $valor, $bonus, $dano, $metal,
-					$fuerza, $destreza, $img, $descri, $bibliographyId
+					$name, $itemTypeId, $habilidad, $level, $gnosis, $valor, $bonus, $dano, $metal,
+					$fuerza, $destreza, $img, $description, $bibliographyId
 				);
 				$ok = $st->execute();
 				$stErr = $st->error;
@@ -210,7 +210,7 @@ if (isset($_GET['edit'])) {
 
 // Listado
 $rows = [];
-$rs = $link->query("SELECT id, name, tipo, bibliography_id FROM fact_items ORDER BY name ASC");
+$rs = $link->query("SELECT id, name, item_type_id, bibliography_id FROM fact_items ORDER BY name ASC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $rows[] = $r; } $rs->close(); }
 
 // Datos completos para edición en modal
@@ -297,7 +297,7 @@ function origin_name($origins, $id){
 					<input class="inp" type="text" name="name" id="item_name" required>
 
 					<label>Tipo</label>
-					<select class="select" name="tipo" id="item_tipo">
+					<select class="select" name="item_type_id" id="item_type_id">
 						<option value="0">--</option>
 						<?php foreach ($types as $t): ?>
 							<option value="<?= (int)$t['id'] ?>"><?= h($t['name']) ?></option>
@@ -316,7 +316,7 @@ function origin_name($origins, $id){
 					<input class="inp" type="text" name="habilidad" id="item_habilidad">
 
 					<label>Nivel</label>
-					<input class="inp" type="number" name="nivel" id="item_nivel">
+					<input class="inp" type="number" name="level" id="item_level">
 
 					<label>Gnosis</label>
 					<input class="inp" type="number" name="gnosis" id="item_gnosis">
@@ -354,7 +354,7 @@ function origin_name($origins, $id){
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
 						<div id="item_editor" class="ql-container ql-snow"></div>
-						<textarea class="ta" name="descri" id="item_descri" rows="8" style="display:none;"></textarea>
+						<textarea class="ta" name="description" id="item_description" rows="8" style="display:none;"></textarea>
 					</div>
 				</div>
 			</div>
@@ -379,14 +379,14 @@ function origin_name($origins, $id){
 	<tbody>
 	<?php foreach ($rows as $r): ?>
 		<?php
-			$search = trim((string)($r['name'] ?? '') . ' ' . (string)type_name($types, $r['tipo']) . ' ' . (string)origin_name($origins, $r['bibliography_id'] ?? 0));
+			$search = trim((string)($r['name'] ?? '') . ' ' . (string)type_name($types, $r['item_type_id'] ?? 0) . ' ' . (string)origin_name($origins, $r['bibliography_id'] ?? 0));
 			if (function_exists('mb_strtolower')) { $search = mb_strtolower($search, 'UTF-8'); }
 			else { $search = strtolower($search); }
 		?>
 		<tr data-search="<?= h($search) ?>">
 			<td><?= (int)$r['id'] ?></td>
 			<td><?= h($r['name']) ?></td>
-			<td><?= h(type_name($types, $r['tipo'])) ?></td>
+			<td><?= h(type_name($types, $r['item_type_id'] ?? 0)) ?></td>
 			<td><?= h(origin_name($origins, $r['bibliography_id'] ?? 0)) ?></td>
 			<td>
 				<button class="btn" type="button" onclick="openItemModal(<?= (int)$r['id'] ?>)">Editar</button>
@@ -422,10 +422,10 @@ function openItemModal(id = null){
 	const modal = document.getElementById('itemModal');
 	document.getElementById('item_id').value = '';
 	document.getElementById('item_name').value = '';
-	document.getElementById('item_tipo').value = 0;
+	document.getElementById('item_type_id').value = 0;
 	document.getElementById('item_bibliography_id').value = 0;
 	document.getElementById('item_habilidad').value = '';
-	document.getElementById('item_nivel').value = 0;
+	document.getElementById('item_level').value = 0;
 	document.getElementById('item_gnosis').value = 0;
 	document.getElementById('item_valor').value = '';
 	document.getElementById('item_bonus').value = 0;
@@ -438,7 +438,7 @@ function openItemModal(id = null){
 	document.getElementById('item_img_file').value = '';
 	document.getElementById('item_img_preview').src = '';
 	if (itemEditor) itemEditor.root.innerHTML = '';
-	document.getElementById('item_descri').value = '';
+	document.getElementById('item_description').value = '';
 
 	if (id) {
 		const row = itemsData.find(r => parseInt(r.id,10) === parseInt(id,10));
@@ -446,10 +446,10 @@ function openItemModal(id = null){
 			document.getElementById('itemModalTitle').textContent = 'Editar objeto';
 			document.getElementById('item_id').value = row.id;
 			document.getElementById('item_name').value = row.name || '';
-			document.getElementById('item_tipo').value = row.tipo || 0;
+			document.getElementById('item_type_id').value = row.item_type_id || 0;
 			document.getElementById('item_bibliography_id').value = row.bibliography_id || 0;
 			document.getElementById('item_habilidad').value = row.habilidad || '';
-			document.getElementById('item_nivel').value = row.nivel || 0;
+			document.getElementById('item_level').value = row.level || 0;
 			document.getElementById('item_gnosis').value = row.gnosis || 0;
 			document.getElementById('item_valor').value = row.valor || '';
 			document.getElementById('item_bonus').value = row.bonus || 0;
@@ -460,8 +460,8 @@ function openItemModal(id = null){
 			document.getElementById('item_img').value = row.img || '';
 			document.getElementById('item_current_img').value = row.img || '';
 			if (row.img) document.getElementById('item_img_preview').src = row.img;
-			const descri = row.descri || '';
-			document.getElementById('item_descri').value = descri;
+			const descri = row.description || '';
+			document.getElementById('item_description').value = descri;
 			if (itemEditor) itemEditor.root.innerHTML = descri;
 		}
 	} else {
@@ -485,7 +485,7 @@ document.getElementById('itemForm').addEventListener('submit', function(){
 	if (itemEditor) {
 		const html = itemEditor.root.innerHTML || '';
 		const plain = (itemEditor.getText() || '').replace(/\\s+/g,' ').trim();
-		document.getElementById('item_descri').value = plain ? html : '';
+		document.getElementById('item_description').value = plain ? html : '';
 	}
 });
 

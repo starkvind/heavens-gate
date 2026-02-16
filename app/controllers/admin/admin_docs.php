@@ -4,8 +4,8 @@
  * WYSIWYG SIN CKEDITOR: Quill (CDN) — sin API key, sin carpetas de plugins.
  *
  * Tablas:
- *  - dim_doc_categories: secciones/categorías (id, tipo, orden, created_at, updated_at)
- *  - fact_docs: documentos (id, seccion, titulo, texto, source, bibliography_id, created_at, updated_at)
+ *  - dim_doc_categories: secciones/categorías (id, kind, sort_order, created_at, updated_at)
+ *  - fact_docs: documentos (id, seccion, title, texto, source, bibliography_id, created_at, updated_at)
  *
  * Requisitos:
  *  - Debe existir $link (mysqli) ya conectado.
@@ -26,7 +26,7 @@ function fetchPairs(mysqli $link, string $sql): array {
     if (!$q) return $out;
     while ($r = $q->fetch_assoc()) {
         $id = isset($r['id']) ? (int)$r['id'] : (int)($r['value'] ?? 0);
-        $nm = (string)($r['name'] ?? $r['tipo'] ?? '');
+        $nm = (string)($r['name'] ?? $r['kind'] ?? $r['tipo'] ?? '');
         $out[$id] = $nm;
     }
     $q->close();
@@ -62,7 +62,7 @@ $flash = [];
 /* -----------------------------
    Opciones de referencia
 ------------------------------ */
-$opts_sections = fetchPairs($link, "SELECT id, tipo FROM dim_doc_categories ORDER BY orden ASC, tipo ASC");
+$opts_sections = fetchPairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
 $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
 
 /* -----------------------------
@@ -75,16 +75,16 @@ function meta_for(string $tab, array $opts_sections, array $opts_origins): array
             'title' => 'Secciones',
             'table' => 'dim_doc_categories',
             'pk'    => 'id',
-            'name_col' => 'tipo',
-            'order_by' => 'orden ASC, tipo ASC',
+            'name_col' => 'kind',
+            'order_by' => 'sort_order ASC, kind ASC',
             'fields' => [
-                ['k'=>'tipo',  'label'=>'Nombre', 'ui'=>'text',   'db'=>'s', 'req'=>true, 'max'=>100],
-                ['k'=>'orden', 'label'=>'Orden',  'ui'=>'number', 'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>999],
+                ['k'=>'kind',  'label'=>'Nombre', 'ui'=>'text',   'db'=>'s', 'req'=>true, 'max'=>100],
+                ['k'=>'sort_order', 'label'=>'Orden',  'ui'=>'number', 'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>999],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
-                ['k'=>'tipo','label'=>'Sección','w'=>320],
-                ['k'=>'orden','label'=>'Orden','w'=>90],
+                ['k'=>'kind','label'=>'Sección','w'=>320],
+                ['k'=>'sort_order','label'=>'Orden','w'=>90],
             ],
             'has_timestamps' => true,
         ];
@@ -95,18 +95,18 @@ function meta_for(string $tab, array $opts_sections, array $opts_origins): array
         'title' => 'Documentos',
         'table' => 'fact_docs',
         'pk'    => 'id',
-        'name_col' => 'titulo',
+        'name_col' => 'title',
         'order_by' => 'id DESC',
         'fields' => [
             ['k'=>'seccion','label'=>'Sección', 'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_sections],
-            ['k'=>'titulo', 'label'=>'Título',  'ui'=>'text',       'db'=>'s','req'=>true,'max'=>150],
+            ['k'=>'title',  'label'=>'Título',  'ui'=>'text',       'db'=>'s','req'=>true,'max'=>150],
             ['k'=>'texto',  'label'=>'Texto',   'ui'=>'wysiwyg',    'db'=>'s','req'=>true],   // Quill
             ['k'=>'source', 'label'=>'Fuente',  'ui'=>'textarea',   'db'=>'s','req'=>false],
             ['k'=>'bibliography_id', 'label'=>'Origen',  'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_origins],
         ],
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>70],
-            ['k'=>'titulo','label'=>'Título','w'=>420],
+            ['k'=>'title','label'=>'Título','w'=>420],
             ['k'=>'seccion_name','label'=>'Sección','w'=>220],
             ['k'=>'origin_name','label'=>'Origen','w'=>160],
         ],
@@ -129,8 +129,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         $flash[] = ['type'=>'error','msg'=>'❌ CSRF inválido. Recarga la página.'];
     } else {
         // refrescar secciones por si se editaron
-        $opts_sections = fetchPairs($link, "SELECT id, tipo FROM dim_doc_categories ORDER BY orden ASC, tipo ASC");
-$opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
+        $opts_sections = fetchPairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
+        $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
 
         $M = meta_for($postTab, $opts_sections, $opts_origins);
         $action = (string)$_POST['crud_action'];
@@ -138,19 +138,19 @@ $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDE
 
         // recoger valores
         $vals = [];
-            foreach ($M['fields'] as $f) {
-                $k = $f['k'];
-                if (($f['db'] ?? 's') === 'i') {
-                    $raw = $_POST[$k] ?? 0;
-                    $vals[$k] = (int)$raw;
-                } else {
-                    // NO trim para textarea/wysiwyg (respetar HTML)
-                    $vals[$k] = (string)($_POST[$k] ?? '');
-                    if (($f['ui'] ?? '') !== 'textarea' && ($f['ui'] ?? '') !== 'wysiwyg') {
-                        $vals[$k] = trim($vals[$k]);
-                    }
+        foreach ($M['fields'] as $f) {
+            $k = $f['k'];
+            if (($f['db'] ?? 's') === 'i') {
+                $raw = $_POST[$k] ?? 0;
+                $vals[$k] = (int)$raw;
+            } else {
+                // NO trim para textarea/wysiwyg (respetar HTML)
+                $vals[$k] = (string)($_POST[$k] ?? '');
+                if (($f['ui'] ?? '') !== 'textarea' && ($f['ui'] ?? '') !== 'wysiwyg') {
+                    $vals[$k] = trim($vals[$k]);
                 }
             }
+        }
         // bibliography_id ya viene del formulario
 
         // normalizaciones
@@ -492,8 +492,8 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
       <label class="small">Búsqueda
         <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título…':'Sección…' ?>">
       </label>
-      <label class="small" style="margin-left:auto; text-align:left;">Filtro r&aacute;pido
-        <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta p&aacute;gina...">
+      <label class="small" style="margin-left:auto; text-align:left;">Filtro r?pido
+        <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta p?gina...">
       </label>
       <label class="small">Por p&aacute;g
         <select class="select" name="pp" onchange="this.form.submit()">
@@ -519,7 +519,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
-          <th style="width:<?= (int)($c['w'] ?? 120) ?>px;"><?= h($c['label']) ?></th>
+          <th style="width:<?= (int)($c['w'] ? 120) ?>px;"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
         <th style="width:190px;">Acciones</th>
       </tr>
@@ -967,3 +967,14 @@ function syncEditorsToTextarea(){
   });
 })();
 </script>
+
+
+
+
+
+
+
+
+
+
+

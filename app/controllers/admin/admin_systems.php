@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
         $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
     } else {
         if ($id > 0) {
-            $sql = "UPDATE dim_systems SET orden=?, name=?, img=?, formas=?, descripcion=?, bibliography_id=? WHERE id=?";
+            $sql = "UPDATE dim_systems SET sort_order=?, name=?, img=?, forms=?, description=?, bibliography_id=? WHERE id=?";
             if ($st = $link->prepare($sql)) {
                 $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $bibliographyId, $id);
                 if ($st->execute()) {
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                 $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
             }
         } else {
-            $sql = "INSERT INTO dim_systems (orden, name, img, formas, descripcion, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
+            $sql = "INSERT INTO dim_systems (sort_order, name, img, forms, description, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
             if ($st = $link->prepare($sql)) {
                 $st->bind_param('issisi', $orden, $name, $img, $formas, $desc, $bibliographyId);
                 if ($st->execute()) {
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
 // Listado
 $rows = [];
 $rowsFull = [];
-$sql = "SELECT s.id, s.orden, s.name, s.img, s.formas, s.descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.orden, s.name";
+$sql = "SELECT s.id, s.sort_order AS orden, s.name, s.img, s.forms AS formas, s.description AS descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.sort_order, s.name";
 if ($rs = $link->query($sql)) {
     while ($r = $rs->fetch_assoc()) { $rows[] = $r; $rowsFull[] = $r; }
     $rs->close();

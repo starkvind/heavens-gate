@@ -54,7 +54,7 @@ $sql = "
         COALESCE(b.name, '') AS item_origin
     FROM fact_items i
     LEFT JOIN dim_bibliographies b ON i.bibliography_id = b.id
-    WHERE i.tipo = ?
+    WHERE i.item_type_id = ?
     ORDER BY b.name ASC, i.name ASC
 ";
 $st = $link->prepare($sql);
@@ -163,3 +163,4 @@ usort($origins, function($a, $b){
 		}
 	});
 </script>
+

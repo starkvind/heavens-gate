@@ -45,7 +45,7 @@ if ($result) {
 mysqli_free_result($result);
 
 // Consulta para Personajes con ficha
-$consulta = "SELECT COUNT(*) as total FROM fact_characters WHERE kes = 'pj'";
+$consulta = "SELECT COUNT(*) as total FROM fact_characters WHERE character_kind = 'pj'";
 $result = mysqli_query($link, $consulta);
 if ($result) {
     $row = mysqli_fetch_assoc($result);
@@ -85,7 +85,7 @@ if ($result) {
 mysqli_free_result($result);
 
 // Consulta para Luchadores para el Simulador
-$consulta = "SELECT COUNT(*) as total FROM fact_characters WHERE kes = 'pj' AND jugador != 0";
+$consulta = "SELECT COUNT(*) as total FROM fact_characters WHERE character_kind = 'pj' AND player_id != 0";
 $result = mysqli_query($link, $consulta);
 if ($result) {
     $row = mysqli_fetch_assoc($result);
@@ -140,7 +140,7 @@ echo "<fieldset class='renglonPaginaDon'>";
 echo "<legend>Valores y reglas</legend>";
 
 // Consulta para Categorías de Habilidades
-$consulta = "SELECT COUNT(DISTINCT tipo) as total FROM dim_traits";
+$consulta = "SELECT COUNT(DISTINCT kind) as total FROM dim_traits";
 $result = mysqli_query($link, $consulta);
 if ($result) {
     $row = mysqli_fetch_assoc($result);
@@ -255,7 +255,7 @@ echo "<fieldset class='renglonPaginaDon'>";
 echo "<legend>Poderes</legend>";
 
 // Consulta para Categorías de Dones
-$consulta = "SELECT COUNT(DISTINCT tipo) as total FROM fact_gifts";
+$consulta = "SELECT COUNT(DISTINCT kind) as total FROM fact_gifts";
 $result = mysqli_query($link, $consulta);
 if ($result) {
     $row = mysqli_fetch_assoc($result);
@@ -295,7 +295,7 @@ if ($result) {
 mysqli_free_result($result);
 
 // Consulta para Categorías de Tótems
-$consulta = "SELECT COUNT(DISTINCT tipo) as total FROM dim_totems";
+$consulta = "SELECT COUNT(DISTINCT totem_type_id) as total FROM dim_totems";
 $result = mysqli_query($link, $consulta);
 if ($result) {
     $row = mysqli_fetch_assoc($result);

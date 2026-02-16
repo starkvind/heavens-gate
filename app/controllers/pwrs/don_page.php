@@ -4,7 +4,7 @@ $donPageID = isset($_GET['b']) ? $_GET['b'] : '';
 
 // Consulta para obtener información del Don
 $queryDon = "
-    SELECT g.*, s.name AS system_name
+    SELECT g.*, s.name AS system_name, g.name AS nombre, g.kind AS tipo, g.rank AS rango, g.description AS descripcion, g.system_name AS sistema, g.shifter_system_name AS ferasistema
     FROM fact_gifts g
     LEFT JOIN dim_systems s ON g.system_id = s.id
     WHERE g.id = ? LIMIT 1;
@@ -30,7 +30,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $donRules  = ($resultQueryDon["sistema"]); // texto de reglas
     $donSystemName = htmlspecialchars($resultQueryDon["system_name"] ?? "");
     $donBreedLegacy  = trim((string)($resultQueryDon["ferasistema"] ?? ""));
-    $donSystemLabel = $donSystemName !== "" ? $donSystemName : htmlspecialchars($donBreedLegacy);
+    $donSystemLabel = $donSystemName;
     $donOrigin = htmlspecialchars($resultQueryDon["bibliography_id"]);
     $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
 
@@ -80,9 +80,9 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         }
     }
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.cronica NOT IN ($excludeChronicles) " : "";
+    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $donOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.nombre, c.alias, c.img, c.estado FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.personaje_id WHERE b.tipo_poder='dones' AND b.poder_id = ? $cronicaNotInSQL ORDER BY c.nombre")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.img, c.estado FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $donPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -135,30 +135,33 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         $tiradaDon2 = !empty($donSkill) ? "$donAttr + $donSkill" : $donAttr;
         echo "<div class='power-stat'><div class='power-stat__label'>Tirada</div><div class='power-stat__value'>$tiradaDon2</div></div>";
     }
-    if ($donOriginName !== "") {
+      if ($donBreedLegacy !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Fera-sistema</div><div class='power-stat__value'>" . htmlspecialchars($donBreedLegacy) . "</div></div>";
+      }
+      if ($donOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
-    }
+      }
     echo "    </div>"; // stats
     echo "  </div>"; // body
 
-    if (!empty($donDesc)) {
+      if (!empty($donDesc)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
         echo "    <div class='power-card__desc-body'>$donDesc</div>";
         echo "  </div>";
-    }
+      }
 
-    if ($donSystemLabel !== "" || !empty($donRules)) {
+      if ($donSystemLabel !== "" || !empty($donRules)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
         if ($donSystemLabel !== "") {
-            echo "    <div class='power-card__desc-body'><strong>$donSystemLabel</strong></div>";
+          echo "    <div class='power-card__desc-body'><strong>$donSystemLabel</strong></div>";
         }
         if (!empty($donRules)) {
-            echo "    <div class='power-card__desc-body'>$donRules</div>";
+          echo "    <div class='power-card__desc-body'>$donRules</div>";
         }
         echo "  </div>";
-    }
+      }
 
     echo "</div>"; // power-card
 

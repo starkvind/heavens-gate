@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_tema'])) {
     $youtube     = trim($_POST['youtube']);
     $titulo_hg   = trim($_POST['titulo_hg']);
 
-    $stmt = $link->prepare("INSERT INTO dim_soundtracks (titulo, artista, youtube, titulo_hg) VALUES (?, ?, ?, ?)");
+    $stmt = $link->prepare("INSERT INTO dim_soundtracks (title, artist, youtube, title_hg) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("ssss", $titulo, $artista, $youtube, $titulo_hg);
     $stmt->execute();
     $newId = (int)$link->insert_id;
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_tema'])) {
 }
 
 // Obtener lista de temas existentes
-$temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY fecha_add DESC");
+$temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY added_at DESC");
 ?>
 
 <style>
@@ -87,9 +87,9 @@ $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY fecha_add DESC");
     <?php while ($row = $temas->fetch_assoc()): ?>
     <tr>
         <td><?= $row['id'] ?></td>
-        <td><?= htmlspecialchars($row['titulo']) ?></td>
-        <td><?= htmlspecialchars($row['artista']) ?></td>
-        <td><?= htmlspecialchars($row['titulo_hg']) ?></td>
+        <td><?= htmlspecialchars($row['title']) ?></td>
+        <td><?= htmlspecialchars($row['artist']) ?></td>
+        <td><?= htmlspecialchars($row['title_hg']) ?></td>
         <td>
             <?php 
                 if (strpos($row['youtube'], 'http') === 0) {
@@ -99,7 +99,9 @@ $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY fecha_add DESC");
                 }
             ?>
         </td>
-        <td><?= $row['fecha_add'] ?></td>
+        <td><?= $row['added_at'] ?></td>
     </tr>
     <?php endwhile; ?>
 </table>
+
+

@@ -7,7 +7,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Categorias de dones.", null, 'website'
     $donTypePhrase = "Dones";
 
     // Consulta segura usando MySQLi
-    $consulta = "SELECT id, name, determinante FROM dim_gift_types ORDER BY orden";
+    $consulta = "SELECT id, name, determinant FROM dim_gift_types ORDER BY sort_order";
     $stmt = $link->prepare($consulta);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -16,11 +16,11 @@ setMetaFromPage("Dones | Heaven's Gate", "Categorias de dones.", null, 'website'
     while ($ResultQuery = $result->fetch_assoc()) {
         $typeId = (int)$ResultQuery["id"];
         $typeName = htmlspecialchars($ResultQuery["name"]);
-        $determinante = htmlspecialchars($ResultQuery["determinante"]);
+        $determinant = htmlspecialchars($ResultQuery["determinant"]);
         print("
             <a href='" . htmlspecialchars(pretty_url($link, 'dim_gift_types', '/powers/gift/type', $typeId)) . "' title='$typeName'>
                 <div class='renglon3col'>
-                    $donTypePhrase $determinante $typeName
+                    $donTypePhrase $determinant $typeName
                 </div>
             </a>
         ");
@@ -30,3 +30,4 @@ setMetaFromPage("Dones | Heaven's Gate", "Categorias de dones.", null, 'website'
 ?>
 </fieldset>
 <?php print ("<p align='right'>Categorías: $numregistros</p>"); ?>
+

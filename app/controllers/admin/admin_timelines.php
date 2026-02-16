@@ -7,14 +7,14 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 // INSERCIÓN
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['titulo'])) {
     $titulo      = $_POST['titulo'];
-    $descripcion = $_POST['descripcion'] ?? '';
-    $fecha       = $_POST['fecha'] ?? null;
+$descripcion = $_POST['descripcion'] ?? '';
+$fecha       = $_POST['fecha'] ?? null;
     $tipo        = $_POST['tipo'] ?? 'evento';
     $ubicacion   = $_POST['ubicacion'] ?? '';
     $fuente      = $_POST['fuente'] ?? '';
 
-    $stmt = $link->prepare("INSERT INTO fact_timeline_events (fecha, titulo, descripcion, tipo, ubicacion, fuente) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssss", $fecha, $titulo, $descripcion, $tipo, $ubicacion, $fuente);
+$stmt = $link->prepare("INSERT INTO fact_timeline_events (event_date, title, description, kind, location, source) VALUES (?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("ssssss", $fecha, $titulo, $descripcion, $tipo, $ubicacion, $fuente);
     $stmt->execute();
     hg_update_pretty_id_if_exists($link, 'fact_timeline_events', (int)$evento_id, $titulo);
     $evento_id = $stmt->insert_id;
@@ -23,15 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['titulo'])) {
     // VINCULACIÓN
     if (!empty($_POST['capitulo_id'])) {
         $ref_id = intval($_POST['capitulo_id']);
-        $stmt = $link->prepare("INSERT INTO bridge_timeline_links (evento_id, tipo_relacion, ref_id) VALUES (?, 'capitulo', ?)");
+        $stmt = $link->prepare("INSERT INTO bridge_timeline_links (event_id, relation_type, ref_id) VALUES (?, 'capitulo', ?)");
         $stmt->bind_param("ii", $evento_id, $ref_id);
         $stmt->execute();
         $stmt->close();
     }
 
-    if (!empty($_POST['personaje_id'])) {
-        $ref_id = intval($_POST['personaje_id']);
-        $stmt = $link->prepare("INSERT INTO bridge_timeline_links (evento_id, tipo_relacion, ref_id) VALUES (?, 'personaje', ?)");
+    if (!empty($_POST['character_id'])) {
+        $ref_id = intval($_POST['character_id']);
+        $stmt = $link->prepare("INSERT INTO bridge_timeline_links (event_id, relation_type, ref_id) VALUES (?, 'personaje', ?)");
         $stmt->bind_param("ii", $evento_id, $ref_id);
         $stmt->execute();
         $stmt->close();
@@ -126,9 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['titulo'])) {
 <h3>📜 Últimos eventos registrados</h3>
 <ul>
 <?php
-$res = $link->query("SELECT id, fecha, titulo FROM fact_timeline_events ORDER BY fecha DESC LIMIT 20");
+$res = $link->query("SELECT id, event_date, title FROM fact_timeline_events ORDER BY event_date DESC LIMIT 20");
 while ($row = $res->fetch_assoc()) {
-    echo "<li><strong>{$row['fecha']}</strong> — {$row['titulo']}</li>";
+    echo "<li><strong>{$row['event_date']}</strong> — {$row['title']}</li>";
 }
 ?>
 </ul>

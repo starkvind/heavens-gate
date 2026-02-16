@@ -7,10 +7,10 @@ function hg_mentions_config(): array {
     return [
         'character' => [
             'table' => 'fact_characters',
-            'label' => 'nombre',
+            'label' => 'name',
             'pretty' => 'pretty_id',
             'url' => '/characters',
-            'search' => ['nombre', 'alias', 'nombregarou'],
+            'search' => ['name', 'alias', 'garou_name'],
         ],
         'season' => [
             'table' => 'dim_seasons',
@@ -38,7 +38,7 @@ function hg_mentions_config(): array {
         ],
         'gift' => [
             'table' => 'fact_gifts',
-            'label' => 'nombre',
+            'label' => 'name',
             'pretty' => 'pretty_id',
             'url' => '/powers/gift',
         ],
@@ -78,21 +78,21 @@ function hg_mentions_config(): array {
             'label' => 'name',
             'pretty' => 'pretty_id',
             'url' => '/rules/traits',
-            'where' => "tipo='Trasfondos'",
+            'where' => "kind='Trasfondos'",
         ],
         'merit' => [
             'table' => 'dim_merits_flaws',
             'label' => 'name',
             'pretty' => 'pretty_id',
             'url' => '/rules/merits-flaws',
-            'where' => "tipo='Méritos'",
+            'where' => "kind='Méritos'",
         ],
         'flaw' => [
             'table' => 'dim_merits_flaws',
             'label' => 'name',
             'pretty' => 'pretty_id',
             'url' => '/rules/merits-flaws',
-            'where' => "tipo='Defectos'",
+            'where' => "kind='Defectos'",
         ],
         'merydef' => [
             'table' => 'dim_merits_flaws',
@@ -102,7 +102,7 @@ function hg_mentions_config(): array {
         ],
         'doc' => [
             'table' => 'fact_docs',
-            'label' => 'titulo',
+            'label' => 'title',
             'pretty' => 'pretty_id',
             'url' => '/documents',
         ],
@@ -138,7 +138,7 @@ function hg_mentions_item_url(mysqli $link, int $id, ?string $pretty = null): st
     if (!$itemPretty) $itemPretty = (string)$id;
 
     $typePretty = '';
-    if ($st = $link->prepare("SELECT t.pretty_id, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.tipo WHERE i.id = ? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT t.pretty_id, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.item_type_id WHERE i.id = ? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -148,7 +148,7 @@ function hg_mentions_item_url(mysqli $link, int $id, ?string $pretty = null): st
         }
         $st->close();
     }
-    if ($typePretty === '') $typePretty = 'tipo';
+    if ($typePretty === '') $typePretty = 'type';
     return '/inventory/' . rawurlencode($typePretty) . '/' . rawurlencode($itemPretty);
 }
 
@@ -170,7 +170,7 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
     $join = '';
     $extraSelect = '';
     if ($type === 'character') {
-        $join = " LEFT JOIN dim_chronicles dc ON dc.id = t.cronica";
+        $join = " LEFT JOIN dim_chronicles dc ON dc.id = t.chronicle_id";
         $extraSelect = ", dc.name AS chronicle_name";
     }
     $tableAlias = ($type === 'character') ? 't' : $table;

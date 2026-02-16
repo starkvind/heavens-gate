@@ -1,10 +1,10 @@
 <?php
-	if (!$link) die("Error de conexión.");
+	if (!$link) die("Error de conexi?n.");
 
-	// Errores claros (quítalo en producción si molesta)
+	// Errores claros (qu?talo en producci?n si molesta)
 	mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 	include_once(__DIR__ . '/../../helpers/pretty.php');
-include_once(__DIR__ . '/../../helpers/mentions.php');
+	include_once(__DIR__ . '/../../helpers/mentions.php');
 
 	// Helper: normalizar fechas ('' -> NULL)
 	function norm_date($v) {
@@ -23,30 +23,30 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 	}
 
 	// EDICIÓN EPISODIO
-	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && empty($_POST['add_capitulo'])) {
-		$id          = (int)($_POST['edit_id'] ?? 0);
-		$name        = trim($_POST['name'] ?? '');
-		$capitulo    = (int)($_POST['capitulo'] ?? 0);
-		$temporada   = (int)($_POST['temporada'] ?? 0);
-		$fecha       = norm_date($_POST['fecha'] ?? '');
-		$fechaIngame = norm_date($_POST['fecha_ingame'] ?? '');
-		$sinopsis    = trim($_POST['sinopsis'] ?? '');
-		$sinopsis    = hg_mentions_convert($link, $sinopsis);
+	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && empty($_POST['add_chapter_number'])) {
+		$id             = (int)($_POST['edit_id'] ?? 0);
+		$name           = trim((string)($_POST['name'] ?? ''));
+		$chapter_number = (int)($_POST['chapter_number'] ?? 0);
+		$season_number  = (int)($_POST['season_number'] ?? 0);
+		$played_date    = norm_date($_POST['played_date'] ?? '');
+		$in_game_date   = norm_date($_POST['in_game_date'] ?? '');
+		$synopsis       = trim((string)($_POST['synopsis'] ?? ''));
+		$synopsis       = hg_mentions_convert($link, $synopsis);
 
 		$stmt = $link->prepare("
 			UPDATE dim_chapters 
-			SET name = ?, capitulo = ?, temporada = ?, fecha = ?, fecha_ingame = ?, sinopsis = ?, updated_at = NOW()
+			SET name = ?, chapter_number = ?, season_number = ?, played_date = ?, in_game_date = ?, synopsis = ?, updated_at = NOW()
 			WHERE id = ?
 		");
 
 		$stmt->bind_param(
 			"siisssi",
 			$name,
-			$capitulo,
-			$temporada,
-			$fecha,
-			$fechaIngame,
-			$sinopsis,
+			$chapter_number,
+			$season_number,
+			$played_date,
+			$in_game_date,
+			$synopsis,
 			$id
 		);
 
@@ -54,36 +54,37 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 		hg_update_pretty_id_if_exists($link, 'dim_chapters', $id, $name);
 		$stmt->close();
 
-		$filtroTemp = $_POST['filtro_temporada'] ?? '';
-		$pagina     = $_POST['pagina_actual'] ?? 1;
+		$filtroTemp = (string)($_POST['filtro_season_number'] ?? '');
+		$pagina     = (int)($_POST['pagina_actual'] ?? 1);
+		if ($pagina < 1) $pagina = 1;
 		header("Location: /talim?s=admin_epis&updated=1&ft=".urlencode($filtroTemp)."&pg=".urlencode($pagina));
 		exit;
 	}
 
 	// AÑADIR EPISODIO (NUEVO)
-	if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['add_capitulo'])) {
-		$name        = trim($_POST['name'] ?? '');
-		$capitulo    = (int)($_POST['capitulo'] ?? 0);
-		$temporada   = (int)($_POST['temporada'] ?? 0);
-		$fecha       = norm_date($_POST['fecha'] ?? '');
-		$fechaIngame = norm_date($_POST['fecha_ingame'] ?? '');
-		$sinopsis    = trim($_POST['sinopsis'] ?? '');
-		$sinopsis    = hg_mentions_convert($link, $sinopsis);
+	if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['add_chapter_number'])) {
+		$name           = trim((string)($_POST['name'] ?? ''));
+		$chapter_number = (int)($_POST['chapter_number'] ?? 0);
+		$season_number  = (int)($_POST['season_number'] ?? 0);
+		$played_date    = norm_date($_POST['played_date'] ?? '');
+		$in_game_date   = norm_date($_POST['in_game_date'] ?? '');
+		$synopsis       = trim((string)($_POST['synopsis'] ?? ''));
+		$synopsis       = hg_mentions_convert($link, $synopsis);
 
 		// Nota: created_at es NOT NULL; usamos NOW() para evitar depender de DEFAULT.
 		$stmt = $link->prepare("
-			INSERT INTO dim_chapters (name, capitulo, temporada, fecha, fecha_ingame, sinopsis, created_at)
+			INSERT INTO dim_chapters (name, chapter_number, season_number, played_date, in_game_date, synopsis, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, NOW())
 		");
 
 		$stmt->bind_param(
 			"siisss",
 			$name,
-			$capitulo,
-			$temporada,
-			$fecha,
-			$fechaIngame,
-			$sinopsis
+			$chapter_number,
+			$season_number,
+			$played_date,
+			$in_game_date,
+			$synopsis
 		);
 
 		$stmt->execute();
@@ -91,20 +92,21 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 		hg_update_pretty_id_if_exists($link, 'dim_chapters', $newId, $name);
 		$stmt->close();
 
-		$filtroTemp = $_POST['filtro_temporada'] ?? '';
-		$pagina     = $_POST['pagina_actual'] ?? 1;
+		$filtroTemp = (string)($_POST['filtro_season_number'] ?? '');
+		$pagina     = (int)($_POST['pagina_actual'] ?? 1);
+		if ($pagina < 1) $pagina = 1;
 		header("Location: /talim?s=admin_epis&added=1&ft=".urlencode($filtroTemp)."&pg=".urlencode($pagina));
 		exit;
 	}
 
 	// Obtener personajes
 	$personajes = [];
-	$resPJ = $link->query("SELECT id, nombre FROM fact_characters WHERE cronica NOT IN (2, 7) ORDER BY nombre ASC");
+	$resPJ = $link->query("SELECT id, name FROM fact_characters WHERE chronicle_id NOT IN (2, 7) ORDER BY name ASC");
 	while ($pj = $resPJ->fetch_assoc()) $personajes[] = $pj;
 
 	// Obtener temporadas (para selects)
 	$temporadasCatalogo = [];
-	$resTemp = $link->query("SELECT numero, name FROM dim_seasons ORDER BY numero ASC");
+	$resTemp = $link->query("SELECT season_number, name FROM dim_seasons ORDER BY season_number ASC");
 	while ($t = $resTemp->fetch_assoc()) {
 		$temporadasCatalogo[] = $t;
 	}
@@ -113,21 +115,21 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 	if (isset($_GET['added']))   echo "<p style='color:green;'>✔ Episodio creado correctamente.</p>";
 
 	// OBTENER CAPÍTULOS
-	$capitulos = [];
+	$chapter_numbers = [];
 	$result = $link->query("
 		SELECT ac.*, at.name AS temporada_name
 		FROM dim_chapters ac
-		LEFT JOIN dim_seasons at ON ac.temporada = at.numero
-		ORDER BY ac.temporada ASC, ac.capitulo ASC
+		LEFT JOIN dim_seasons at ON ac.season_number = at.season_number
+		ORDER BY ac.season_number ASC, ac.chapter_number ASC
 	");
-	while ($row = $result->fetch_assoc()) $capitulos[] = $row;
+	while ($row = $result->fetch_assoc()) $chapter_numbers[] = $row;
 
 	// Obtener relaciones de personajes (para render inicial; luego se refresca por AJAX)
 	$relaciones = [];
 	$resRel = $link->query("
-		SELECT acp.id, acp.id_capitulo, acp.id_personaje, p.nombre
+		SELECT acp.id, acp.chapter_id, acp.character_id, p.name
 		FROM bridge_chapters_characters acp
-		JOIN fact_characters p ON acp.id_personaje = p.id
+		JOIN fact_characters p ON acp.character_id = p.id
 	");
 	while ($r = $resRel->fetch_assoc()) $relaciones[] = $r;
 
@@ -141,7 +143,7 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 	<select id="filtroTemporada" style="font-size:12px;padding:4px;max-width:220px;">
 		<option value="">Todas las temporadas</option>
 		<?php foreach ($temporadasCatalogo as $t): ?>
-			<option value="<?= (int)$t['numero'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+			<option value="<?= (int)$t['season_number'] ?>"><?= htmlspecialchars($t['name']) ?></option>
 		<?php endforeach; ?>
 	</select>
 
@@ -151,10 +153,10 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 <table id="tabla-episodios" class="tabla-pj">
   <thead>
     <tr class="pj-row-head">
-      <th onclick="ordenar('temporada')">Temporada</th>
-      <th onclick="ordenar('capitulo')">#</th>
+      <th onclick="ordenar('season_number')">Temporada</th>
+      <th onclick="ordenar('chapter_number')">#</th>
       <th onclick="ordenar('name')">Nombre</th>
-      <th onclick="ordenar('fecha')">Fecha</th>
+      <th onclick="ordenar('played_date')">Fecha</th>
       <th>Acciones</th>
     </tr>
   </thead>
@@ -165,33 +167,33 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 <!-- POPUP EDITAR -->
 <div id="popupEditar" class="popup-edit" style="display:none;">
 	<form method="post" action="/talim?s=admin_epis" style="text-align:left;">
-		<input type="hidden" id="add_relation_capitulo">
+		<input type="hidden" id="add_relation_chapter_number">
 		<input type="hidden" name="edit_id" id="edit_id">
 
-		<input type="hidden" name="filtro_temporada" id="form_filtro_temporada">
+		<input type="hidden" name="filtro_season_number" id="form_filtro_season_number">
 		<input type="hidden" name="pagina_actual" id="form_pagina_actual">
 
 		<label>Nombre</label>
 		<input type="text" name="name" id="edit_name" required>
 
 		<label>Capítulo</label>
-		<input type="number" name="capitulo" id="edit_capitulo" required>
+		<input type="number" name="chapter_number" id="edit_chapter_number" required>
 
 		<label>Temporada</label>
-		<select name="temporada" id="edit_temporada" required>
+		<select name="season_number" id="edit_season_number" required>
 			<?php foreach ($temporadasCatalogo as $t): ?>
-				<option value="<?= (int)$t['numero'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+				<option value="<?= (int)$t['season_number'] ?>"><?= htmlspecialchars($t['name']) ?></option>
 			<?php endforeach; ?>
 		</select>
 
 		<label>Fecha</label>
-		<input type="date" name="fecha" id="edit_fecha">
+		<input type="date" name="played_date" id="edit_played_date">
 
 		<label>Fecha Ingame</label>
-		<input type="date" name="fecha_ingame" id="edit_fecha_ingame">
+		<input type="date" name="in_game_date" id="edit_in_game_date">
 
 		<label>Sinopsis</label>
-		<textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="sinopsis" id="edit_sinopsis" rows="10"></textarea>
+		<textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="synopsis" id="edit_synopsis" rows="10"></textarea>
 
 		<div style="margin-top:1em;">
 			<h4>🎭 Participantes</h4>
@@ -200,7 +202,7 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 				<select id="personaje_select" style="flex:1;">
 					<option value="">-- Seleccionar personaje --</option>
 					<?php foreach ($personajes as $pj): ?>
-						<option value="<?= (int)$pj['id'] ?>"><?= htmlspecialchars($pj['nombre']) ?></option>
+						<option value="<?= (int)$pj['id'] ?>"><?= htmlspecialchars($pj['name']) ?></option>
 					<?php endforeach; ?>
 				</select>
 				<button class="boton2" type="button" onclick="agregarRelacion()">➕</button>
@@ -216,32 +218,32 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 <!-- POPUP NUEVO -->
 <div id="popupNuevo" class="popup-edit" style="display:none;">
 	<form method="post" action="/talim?s=admin_epis" style="text-align:left;">
-		<input type="hidden" name="add_capitulo" value="1">
+		<input type="hidden" name="add_chapter_number" value="1">
 
-		<input type="hidden" name="filtro_temporada" id="form_filtro_temporada_new">
+		<input type="hidden" name="filtro_season_number" id="form_filtro_season_number_new">
 		<input type="hidden" name="pagina_actual" id="form_pagina_actual_new">
 
 		<label>Nombre</label>
 		<input type="text" name="name" id="new_name" required>
 
 		<label>Capítulo</label>
-		<input type="number" name="capitulo" id="new_capitulo" required>
+		<input type="number" name="chapter_number" id="new_chapter_number" required>
 
 		<label>Temporada</label>
-		<select name="temporada" id="new_temporada" required>
+		<select name="season_number" id="new_season_number" required>
 			<?php foreach ($temporadasCatalogo as $t): ?>
-				<option value="<?= (int)$t['numero'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+				<option value="<?= (int)$t['season_number'] ?>"><?= htmlspecialchars($t['name']) ?></option>
 			<?php endforeach; ?>
 		</select>
 
 		<label>Fecha</label>
-		<input type="date" name="fecha" id="new_fecha">
+		<input type="date" name="played_date" id="new_played_date">
 
 		<label>Fecha Ingame</label>
-		<input type="date" name="fecha_ingame" id="new_fecha_ingame">
+		<input type="date" name="in_game_date" id="new_in_game_date">
 
 		<label>Sinopsis</label>
-		<textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="sinopsis" id="new_sinopsis" rows="10"></textarea>
+		<textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="synopsis" id="new_synopsis" rows="10"></textarea>
 
 		<br />
 		<button class="boton2" type="submit">Crear episodio</button>
@@ -250,21 +252,21 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 </div>
 
 <script>
-	const capitulos = <?= json_encode($capitulos, JSON_UNESCAPED_UNICODE); ?>;
+	const chapter_numbers = <?= json_encode($chapter_numbers, JSON_UNESCAPED_UNICODE); ?>;
 	const relaciones = <?= json_encode($relaciones, JSON_UNESCAPED_UNICODE); ?>;
 
 	let paginaActual = 1;
 	let resultadosPorPagina = 15;
-	let orden = { campo: 'temporada', asc: true };
+	let orden = { campo: 'season_number', asc: true };
 
 	// Mantener filtros/paginación al enviar forms
 	document.querySelector("#popupEditar form").addEventListener("submit", function() {
-		document.getElementById('form_filtro_temporada').value = document.getElementById('filtroTemporada').value;
+		document.getElementById('form_filtro_season_number').value = document.getElementById('filtroTemporada').value;
 		document.getElementById('form_pagina_actual').value = paginaActual;
 	});
 
 	document.querySelector("#popupNuevo form").addEventListener("submit", function() {
-		document.getElementById('form_filtro_temporada_new').value = document.getElementById('filtroTemporada').value;
+		document.getElementById('form_filtro_season_number_new').value = document.getElementById('filtroTemporada').value;
 		document.getElementById('form_pagina_actual_new').value = paginaActual;
 	});
 
@@ -283,16 +285,16 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 		const filtro = document.getElementById('filtro').value.toLowerCase();
 		const filtroTemporada = document.getElementById('filtroTemporada').value;
 
-		let filtrados = capitulos.filter(c =>
+		let filtrados = chapter_numbers.filter(c =>
 			(c.name || '').toLowerCase().includes(filtro) &&
-			(filtroTemporada === '' || c.temporada == filtroTemporada)
+			(filtroTemporada === '' || c.season_number == filtroTemporada)
 		);
 
 		filtrados.sort((a, b) => {
 			let A = (a[orden.campo] ?? '').toString().toLowerCase();
 			let B = (b[orden.campo] ?? '').toString().toLowerCase();
-			if (orden.campo === 'capitulo') return orden.asc ? (a.capitulo - b.capitulo) : (b.capitulo - a.capitulo);
-			if (orden.campo === 'temporada') return orden.asc ? (a.temporada - b.temporada) : (b.temporada - a.temporada);
+			if (orden.campo === 'chapter_number') return orden.asc ? (a.chapter_number - b.chapter_number) : (b.chapter_number - a.chapter_number);
+			if (orden.campo === 'season_number') return orden.asc ? (a.season_number - b.season_number) : (b.season_number - a.season_number);
 			return orden.asc ? A.localeCompare(B) : B.localeCompare(A);
 		});
 
@@ -304,21 +306,21 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 
 		for (let i = inicio; i < fin; i++) {
 			const c = filtrados[i];
-			const fecha = c.fecha ? c.fecha : '';
+			const played_date = c.played_date ? c.played_date : '';
 			let row = `<tr class="pj-row">
-			  <td>${c.temporada_name || ('Temporada ' + c.temporada)}</td>
-			  <td>${c.capitulo}</td>
+			  <td>${c.temporada_name || ('Temporada ' + c.season_number)}</td>
+			  <td>${c.chapter_number}</td>
 			  <td>${c.name}</td>
-			  <td>${fecha}</td>
+			  <td>${played_date}</td>
 			  <td>
 				<button class='boton2' onclick='editar(this)'
 				  data-id='${c.id}'
 				  data-name='${escapeQuotes(c.name)}'
-				  data-capitulo='${c.capitulo}'
-				  data-temporada='${c.temporada}'
-				  data-fecha='${c.fecha || ""}'
-				  data-fecha-ingame='${c.fecha_ingame || ""}'
-				  data-sinopsis='${escapeQuotes(c.sinopsis)}'
+				  data-chapter_number='${c.chapter_number}'
+				  data-season_number='${c.season_number}'
+				  data-played_date='${c.played_date || ""}'
+				  data-in_game_date='${c.in_game_date || ""}'
+				  data-synopsis='${escapeQuotes(c.synopsis)}'
 				>Editar</button>
 				<a class='boton2' style='background:red;color:white;' href='/talim?s=admin_epis&delete=${c.id}' onclick='return confirm("¿Eliminar este capítulo?")'>Borrar</a>
 			  </td>
@@ -364,12 +366,12 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 	function editar(btn) {
 		document.getElementById('edit_id').value = btn.dataset.id;
 		document.getElementById('edit_name').value = btn.dataset.name;
-		document.getElementById('edit_capitulo').value = btn.dataset.capitulo;
-		document.getElementById('edit_temporada').value = btn.dataset.temporada;
-		document.getElementById('edit_fecha').value = btn.dataset.fecha;
-		document.getElementById('edit_fecha_ingame').value = btn.dataset.fechaIngame;
-		document.getElementById('edit_sinopsis').value = btn.dataset.sinopsis;
-		document.getElementById('add_relation_capitulo').value = btn.dataset.id;
+		document.getElementById('edit_chapter_number').value = btn.dataset.chapter_number;
+		document.getElementById('edit_season_number').value = btn.dataset.season_number;
+		document.getElementById('edit_played_date').value = btn.dataset.played_date;
+		document.getElementById('edit_in_game_date').value = btn.dataset.in_game_date;
+		document.getElementById('edit_synopsis').value = btn.dataset.synopsis;
+		document.getElementById('add_relation_chapter_number').value = btn.dataset.id;
 
 		actualizarRelaciones(btn.dataset.id);
 		document.getElementById('popupEditar').style.display = 'block';
@@ -377,21 +379,21 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 
 	// NUEVO
 	function abrirPopupNuevo() {
-		// Valores sugeridos: temporada actual filtrada o la primera disponible
+		// Valores sugeridos: season_number actual filtrada o la primera disponible
 		const ft = document.getElementById('filtroTemporada').value;
-		if (ft) document.getElementById('new_temporada').value = ft;
+		if (ft) document.getElementById('new_season_number').value = ft;
 
-		// Autonumero de capítulo por temporada (pequeño mimo)
-		const t = document.getElementById('new_temporada').value;
-		const maxCap = capitulos
-			.filter(c => c.temporada == t)
-			.reduce((m, c) => Math.max(m, parseInt(c.capitulo || 0)), 0);
-		document.getElementById('new_capitulo').value = maxCap + 1;
+		// Auton?mero de capítulo por season_number (pequeño mimo)
+		const t = document.getElementById('new_season_number').value;
+		const maxCap = chapter_numbers
+			.filter(c => c.season_number == t)
+			.reduce((m, c) => Math.max(m, parseInt(c.chapter_number || 0)), 0);
+		document.getElementById('new_chapter_number').value = maxCap + 1;
 
 		document.getElementById('new_name').value = '';
-		document.getElementById('new_fecha').value = '';
-		document.getElementById('new_fecha_ingame').value = '';
-		document.getElementById('new_sinopsis').value = '';
+		document.getElementById('new_played_date').value = '';
+		document.getElementById('new_in_game_date').value = '';
+		document.getElementById('new_synopsis').value = '';
 
 		document.getElementById('popupNuevo').style.display = 'block';
 	}
@@ -406,24 +408,24 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 
 	// Relaciones (AJAX)
 	function agregarRelacion() {
-		const capituloId = document.getElementById("add_relation_capitulo").value;
+		const chapter_numberId = document.getElementById("add_relation_chapter_number").value;
 		const personajeId = document.getElementById("personaje_select").value;
-		if (!personajeId || !capituloId) return;
+		if (!personajeId || !chapter_numberId) return;
 
 		fetch('sep/talim/talim_epis_ajax.php', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams({
 				action: 'add_relation',
-				capitulo_id: capituloId,
-				personaje_id: personajeId
+				chapter_id: chapter_numberId,
+				character_id: personajeId
 			})
 		})
 		.then(res => res.json())
 		.then(data => {
 			if (data.ok) {
 				document.getElementById("personaje_select").value = '';
-				actualizarRelaciones(capituloId);
+				actualizarRelaciones(chapter_numberId);
 			}
 		});
 	}
@@ -432,7 +434,7 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 		fetch('sep/talim/talim_epis_ajax.php', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({ action: 'get_relations', capitulo_id: idCapitulo })
+			body: new URLSearchParams({ action: 'get_relations', chapter_id: idCapitulo })
 		})
 		.then(res => res.json())
 		.then(data => {
@@ -440,7 +442,7 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 			const container = document.getElementById("relacionesContainer");
 			let html = '<ul style="padding-left: 1em;">';
 			data.data.forEach(rel => {
-				html += `<li>${rel.nombre}
+				html += `<li>${rel.name}
 					<button type="button" onclick="eliminarRelacion(${rel.id}, ${idCapitulo})" style="color:red;font-size:10px;margin-left:5px;">[Eliminar]</button>
 				</li>`;
 			});
@@ -449,7 +451,7 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 		});
 	}
 
-	function eliminarRelacion(relId, capituloId) {
+	function eliminarRelacion(relId, chapter_numberId) {
 		fetch('sep/talim/talim_epis_ajax.php', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -457,7 +459,7 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 		})
 		.then(res => res.json())
 		.then(data => {
-			if (data.ok) actualizarRelaciones(capituloId);
+			if (data.ok) actualizarRelaciones(chapter_numberId);
 		});
 	}
 
@@ -578,3 +580,9 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 
 	#paginacion-personajes { margin-bottom: 2em; }
 </style>
+
+
+
+
+
+

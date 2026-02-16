@@ -30,22 +30,22 @@ function anchor_id_gift($id) {
 $consulta = "
 select
     d.id as gift_id,
-    d.nombre as gift_name,
+    d.name as gift_name,
     ntd.name as gift_type,
     d.grupo as gift_category,
-    d.rango as gift_level,
+    d.rank as gift_level,
     d.atributo as gift_roll_attribute,
     d.habilidad as gift_roll_skill,
-    d.descripcion as gift_description,
-    d.sistema as gift_roll_description,
+    d.description as gift_description,
+    d.system_name as gift_roll_description,
     s.name as gift_fera_system,
     d.system_id as gift_system_id,
     nb.name as gift_origin
 from fact_gifts d
-    left join dim_gift_types ntd on d.tipo = ntd.id
+    left join dim_gift_types ntd on d.kind = ntd.id
     left join dim_bibliographies nb on d.bibliography_id = nb.id
     left join dim_systems s on d.system_id = s.id
-order by d.bibliography_id, d.rango
+order by d.bibliography_id, d.rank
 ";
 
 $stmt = $link->prepare($consulta);

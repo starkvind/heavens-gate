@@ -11,7 +11,7 @@ $iconos = [
 ];
 
 // Consulta los poderes desde el bridge
-$stmt = $link->prepare("SELECT tipo_poder, poder_id, poder_lvl FROM bridge_characters_powers WHERE personaje_id = ? ORDER BY tipo_poder, poder_lvl ASC");
+$stmt = $link->prepare("SELECT power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id = ? ORDER BY power_kind, power_level ASC");
 $stmt->bind_param('i', $characterId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -19,10 +19,10 @@ $result = $stmt->get_result();
 $listaPoderes = [];
 
 while ($row = $result->fetch_assoc()) {
-    $tipo = $row['tipo_poder'];
-    $poderId = $row['poder_id'];
-	$poderLvl = $row['poder_lvl'];
-    $listaPoderes[$tipo][] = ['id' => $poderId, 'nivel' => $poderLvl];
+    $tipo = $row['power_kind'];
+    $poderId = $row['power_id'];
+	$poderLvl = $row['power_level'];
+    $listaPoderes[$tipo][] = ['id' => $poderId, 'level' => $poderLvl];
 }
 
 $stmt->close();
@@ -53,13 +53,13 @@ if (count($listaPoderes) > 0) {
 		switch ($tipo) {
 			case 'dones':
 				$tabla = "fact_gifts";
-				$campos = "id, nombre, rango";
+				$campos = "id, name, rank";
 				$linkBase = "muestradon";
 				break;
 			/*
 			case 'disciplinas':
 				$tabla = "fact_discipline_powers";
-				$campos = "id, name, nivel, disc";
+				$campos = "id, name, level, disc";
 				$linkBase = "disciplina";
 				break;
 			*/
@@ -70,7 +70,7 @@ if (count($listaPoderes) > 0) {
 				break;
 			case 'rituales':
 				$tabla = "fact_rites";
-				$campos = "id, name, nivel";
+				$campos = "id, name, level";
 				$linkBase = "seerite";
 				break;
 			default:
@@ -81,7 +81,7 @@ if (count($listaPoderes) > 0) {
 
 		foreach ($poderes as $poderData) {
 			$idPoder = $poderData['id'];
-			$nivelBridge = $poderData['nivel'];
+			$levelBridge = $poderData['level'];
 			$query = "SELECT $campos FROM $tabla WHERE id = ? LIMIT 1";
 			$stmt = $link->prepare($query);
 			$stmt->bind_param('i', $idPoder);
@@ -91,22 +91,22 @@ if (count($listaPoderes) > 0) {
 			if ($result->num_rows > 0) {
 				$data = $result->fetch_assoc();
 				// Nombre del poder según tipo
-				$nombre = isset($data['nombre']) ? $data['nombre'] : (isset($data['name']) ? $data['name'] : '???');
-				$nivel = isset($data['nivel']) ? $data['nivel'] : null;
+				$nombre = isset($data['name']) ? $data['name'] : (isset($data['name']) ? $data['name'] : '???');
+				$level = isset($data['level']) ? $data['level'] : null;
 				$rango = isset($data['rango']) ? $data['rango'] : null;
 				
 				if ($tipo == "disciplinas") {
-					if ($nivelBridge !== null && $nivelBridge >= 0) {
-						$nivelFinal = intval($nivelBridge);
-					} elseif (isset($data['nivel'])) {
-						$nivelFinal = intval($data['nivel']);
+					if ($levelBridge !== null && $levelBridge >= 0) {
+						$levelFinal = intval($levelBridge);
+					} elseif (isset($data['level'])) {
+						$levelFinal = intval($data['level']);
 					} else {
-						$nivelFinal = null;
+						$levelFinal = null;
 					}
 				} elseif ($tipo == "rituales") {
-					$nivelFinal = $nivel;
+					$levelFinal = $level;
 				} else {
-					$nivelFinal = (int)$rango;
+					$levelFinal = (int)$rango;
 				}
 
 				// Enlace e icono
@@ -123,13 +123,13 @@ if (count($listaPoderes) > 0) {
 							" . htmlspecialchars($nombre);
 
 					if ($tipo == "disciplinas" or $tipo == "rituales") {
-						if ($nivelFinal !== null) {
+						if ($levelFinal !== null) {
 							echo "<div style='float:right'>
-									<img src='img/ui/gems/attr/gem-attr-0" . $nivelFinal . ".png' style='padding-top: 2px;' />
+									<img src='img/ui/gems/attr/gem-attr-0" . $levelFinal . ".png' style='padding-top: 2px;' />
 								  </div>";
 						}
 					} else {
-						echo "<div style='float:right;font-size: 8px;padding-top: 2px;'>{$nivelFinal}</div>";
+						echo "<div style='float:right;font-size: 8px;padding-top: 2px;'>{$levelFinal}</div>";
 					}
 				echo "  </div>
 					  </a>";
@@ -142,3 +142,5 @@ if (count($listaPoderes) > 0) {
 	echo "</div>"; // Cerramos Poderes ~~
 }
 ?>
+
+

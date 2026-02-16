@@ -17,11 +17,11 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $totemName  = htmlspecialchars($resultQueryTotem["name"]);
     $totemNameRaw = (string)($resultQueryTotem["name"] ?? "");
     $totemPrettyRaw = (string)($resultQueryTotem["pretty_id"] ?? "");
-    $totemType  = htmlspecialchars($resultQueryTotem["tipo"]);
-    $totemCost  = htmlspecialchars($resultQueryTotem["coste"]);
-    $totemDesc  = $resultQueryTotem["desc"]; // NO usar htmlspecialchars() para mantener el formato HTML
-    $totemAttr  = $resultQueryTotem["rasgos"];
-    $totemBan   = $resultQueryTotem["prohib"];
+    $totemType  = htmlspecialchars($resultQueryTotem["totem_type_id"] ?? $resultQueryTotem["tipo"] ?? '');
+    $totemCost  = htmlspecialchars($resultQueryTotem["cost"]);
+    $totemDesc  = $resultQueryTotem["description"] ?? $resultQueryTotem["desc"] ?? ''; // NO usar htmlspecialchars() para mantener el formato HTML
+    $totemAttr  = $resultQueryTotem["traits"];
+    $totemBan   = $resultQueryTotem["prohibited"];
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["img"] ?? ""));
 
@@ -71,9 +71,9 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         }
     }
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
     $totemCharOwners = [];
-    if ($stOwners = $link->prepare("SELECT p.id, p.nombre, p.alias, p.img, p.estado FROM fact_characters p WHERE (p.totem_id = ? OR p.totem = ? OR p.totem = ?) $cronicaNotInSQL ORDER BY p.nombre")) {
+    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.img, p.estado FROM fact_characters p WHERE (p.totem_id = ? OR p.totem_name = ? OR p.totem_name = ?) $cronicaNotInSQL ORDER BY p.name")) {
         $stOwners->bind_param('iss', $totemPageID, $totemNameRaw, $totemPrettyRaw);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -82,7 +82,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     }
 
     $totemGroups = [];
-    if ($stGroups = $link->prepare("SELECT id, name FROM dim_groups WHERE totem = ? ORDER BY name")) {
+    if ($stGroups = $link->prepare("SELECT id, name FROM dim_groups WHERE totem_id = ? ORDER BY name")) {
         $stGroups->bind_param('i', $totemPageID);
         $stGroups->execute();
         $rsGroups = $stGroups->get_result();
@@ -91,7 +91,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     }
 
     $totemOrgs = [];
-    if ($stOrgs = $link->prepare("SELECT id, name FROM dim_organizations WHERE totem = ? ORDER BY name")) {
+    if ($stOrgs = $link->prepare("SELECT id, name FROM dim_organizations WHERE totem_id = ? ORDER BY name")) {
         $stOrgs->bind_param('i', $totemPageID);
         $stOrgs->execute();
         $rsOrgs = $stOrgs->get_result();

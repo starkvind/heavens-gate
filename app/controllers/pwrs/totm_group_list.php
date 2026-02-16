@@ -13,7 +13,7 @@ $routeParam = isset($_GET['b']) ? $_GET['b'] : '';
 $typeId = is_numeric($routeParam) ? (int)$routeParam : 0;
 
 // Consulta segura para obtener la informacion del tipo de totem
-$consulta = "SELECT name, determinante FROM dim_totem_types WHERE id = ? LIMIT 1";
+$consulta = "SELECT name, determinant AS determinante FROM dim_totem_types WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($consulta);
 $stmt->bind_param('i', $typeId);
 $stmt->execute();
@@ -35,12 +35,12 @@ $consulta = "
 		t.id,
 		t.pretty_id,
 		t.name,
-		t.coste,
+		t.cost,
 		t.img,
 		COALESCE(b.name, '') AS origen
 	FROM dim_totems t
 	LEFT JOIN dim_bibliographies b ON t.bibliography_id = b.id
-	WHERE t.tipo = ?
+	WHERE t.totem_type_id = ?
 	ORDER BY b.name ASC, t.name ASC
 ";
 $stmt = $link->prepare($consulta);
@@ -123,7 +123,7 @@ usort($origins, function($a, $b){
 						<div class="renglon2colIz">
 							<span class="item-cell"><span class="item-icon"><img class="item-thumb" src="<?= h($img) ?>" alt="<?= h($name) ?>"></span><?= h($name) ?></span>
 						</div>
-						<div class="renglon2colDe"><?= h($row["coste"]) ?></div>
+						<div class="renglon2colDe"><?= h($row["cost"]) ?></div>
 					</div>
 				</a>
 			<?php endforeach; ?>

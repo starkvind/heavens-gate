@@ -89,7 +89,7 @@ if ($action === 'save_plot') {
 
     if ($id === 0) {
         $st = $link->prepare("
-            INSERT INTO dim_parties (name, description, active, `order`, created_at, updated_at)
+            INSERT INTO dim_parties (name, description, active, sort_order, created_at, updated_at)
             VALUES (?, ?, ?, ?, NOW(), NOW())
         ");
         if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
@@ -108,7 +108,7 @@ if ($action === 'save_plot') {
     } else {
         $st = $link->prepare("
             UPDATE dim_parties
-            SET name=?, description=?, active=?, `order`=?, updated_at=NOW()
+               SET name=?, description=?, active=?, sort_order=?, updated_at=NOW()
             WHERE id=?
         ");
         if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
@@ -231,12 +231,12 @@ if ($action === 'add_change') {
 
 // Plots
 $plots = [];
-$q = $link->query("SELECT * FROM dim_parties ORDER BY `order` DESC, created_at DESC");
+$q = $link->query("SELECT * FROM dim_parties ORDER BY sort_order DESC, created_at DESC");
 if ($q) { while ($r = $q->fetch_assoc()) $plots[] = $r; $q->close(); }
 
 // Personajes base (fact_characters)
 $baseChars = [];
-$q = $link->query("SELECT id, nombre, alias FROM fact_characters ORDER BY nombre ASC");
+$q = $link->query("SELECT id, name AS nombre, alias FROM fact_characters ORDER BY name ASC");
 if ($q) { while ($r = $q->fetch_assoc()) $baseChars[] = $r; $q->close(); }
 
 // Plot characters (bridge)
@@ -246,12 +246,12 @@ $q = $link->query("
     SELECT pc.*,
            p.name AS plot_name,
            p.`order` AS plot_order,
-           b.nombre AS base_nombre,
+           b.name AS base_nombre,
            b.alias  AS base_alias
     FROM fact_party_members pc
     JOIN dim_parties p ON p.id = pc.plot_id
     LEFT JOIN fact_characters b ON b.id = pc.base_char_id
-    ORDER BY p.`order` DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.nombre) ASC
+    ORDER BY p.`order` DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
 ");
 $plotCharIds = [];
 if ($q) {

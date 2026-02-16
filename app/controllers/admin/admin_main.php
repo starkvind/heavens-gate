@@ -86,6 +86,9 @@
 				case 'admin_system_details':
 					include("admin_system_details.php");
 					break;
+				case 'admin_trait_sets':
+					include("admin_trait_sets.php");
+					break;
 				case 'admin_mentions_help':
 					include("mentions_help.html");
 					break;
@@ -213,6 +216,11 @@
 					<a href='/talim?s=admin_system_details'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Detalles de Sistemas
+						</div>
+					</a>
+					<a href='/talim?s=admin_trait_sets'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Traits por Sistema
 						</div>
 					</a>
 					<a href='/talim?s=admin_forms'>

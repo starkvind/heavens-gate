@@ -3,10 +3,10 @@
 
 // 1. Obtener todos los capítulos válidos con nombre y número de temporada
 $query = "SELECT 
-				ac.id, ac.temporada AS num_temporada, at.name AS nombre_temporada, ac.fecha 
+				ac.id, ac.season_number AS num_temporada, at.name AS nombre_temporada, ac.played_date 
 			FROM dim_chapters ac 
-			LEFT JOIN dim_seasons at ON ac.temporada = at.numero
-			WHERE ac.fecha != '0000-00-00'";
+			LEFT JOIN dim_seasons at ON ac.season_number = at.season_number
+			WHERE ac.played_date != '0000-00-00'";
 $result = $link->query($query);
 $capitulos = [];
 $capitulos_por_temporada = [];
@@ -20,13 +20,13 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // 2. Obtener participaciones
-$query = "SELECT id_personaje, id_capitulo FROM bridge_chapters_characters";
+$query = "SELECT character_id, chapter_id FROM bridge_chapters_characters";
 $result = $link->query($query);
 $apariciones = [];
 
 while ($row = $result->fetch_assoc()) {
-    $pj = $row['id_personaje'];
-    $cap = $row['id_capitulo'];
+    $pj = $row['character_id'];
+    $cap = $row['chapter_id'];
 
     if (!isset($capitulos[$cap])) continue;
     $temporada = $capitulos[$cap]['num_temporada'];
@@ -34,11 +34,11 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // 3. Obtener nombres de personajes y orden fijo
-$query = "SELECT p.id, p.nombre
+$query = "SELECT p.id, p.name
   FROM fact_characters p 
-  JOIN bridge_chapters_characters acp ON p.id = acp.id_personaje 
-  WHERE p.kes = 'pj' AND p.jugador > 0
-  GROUP BY p.id, p.nombre
+  JOIN bridge_chapters_characters acp ON p.id = acp.character_id 
+  WHERE p.character_kind = 'pj' AND p.player_id > 0
+  GROUP BY p.id, p.name
   ORDER BY COUNT(acp.id) DESC";
 
 $result = $link->query($query);
@@ -47,7 +47,7 @@ $pj_order = [];   // lista de IDs en orden fijo
 
 while ($row = $result->fetch_assoc()) {
     $id = $row['id'];
-    $labels[$id] = $row['nombre'];
+    $labels[$id] = $row['name'];
     $pj_order[] = $id;
 }
 

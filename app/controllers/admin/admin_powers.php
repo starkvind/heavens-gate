@@ -7,7 +7,7 @@
  *   - (Opcional pero recomendado) Tablas de tipos y bibliografía:
  *       dim_bibliographies(id,name)
  *       dim_gift_types(id,name)
- *       dim_rite_types(id,name,determinante?)  (si no existe, igual tirará con name)
+ *       dim_rite_types(id,name,determinant?)  (si no existe, igual tirará con name)
  *       dim_totem_types(id,name)
  *       dim_discipline_types(id,name)
  * FIXES (2026-01-10):
@@ -135,8 +135,8 @@ $opts_origen = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER 
 $opts_systems = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
 
 $opts_tipo_dones = fetchPairs($link, "SELECT id, name FROM dim_gift_types ORDER BY id");
-$opts_tipo_rit   = fetchPairs($link, "SELECT id, CONCAT(name, IFNULL(CONCAT(' ', determinante),'')) AS name FROM dim_rite_types ORDER BY id");
-if (!$opts_tipo_rit) { // por si no existe determinante
+$opts_tipo_rit   = fetchPairs($link, "SELECT id, CONCAT(name, IFNULL(CONCAT(' ', determinant),'')) AS name FROM dim_rite_types ORDER BY id");
+if (!$opts_tipo_rit) { // por si no existe determinant
     $opts_tipo_rit = fetchPairs($link, "SELECT id, name FROM dim_rite_types ORDER BY id");
 }
 $opts_tipo_tot   = fetchPairs($link, "SELECT id, name FROM dim_totem_types ORDER BY id");
@@ -151,30 +151,30 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             'title' => 'Dones',
             'table' => 'fact_gifts',
             'pk'    => 'id',
-            'name_col' => 'nombre',
+            'name_col' => 'name',
             'order_by' => 'id DESC',
             'fields' => [
-                ['k'=>'nombre',      'label'=>'Nombre',       'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>100],
-                ['k'=>'tipo',        'label'=>'Tipo',         'ui'=>'select_or_text', 'db'=>'s', 'req'=>true,  'opts'=>$opts_tipo_dones, 'placeholder'=>'(ID tipo)'],
+                ['k'=>'name',        'label'=>'Nombre',       'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>100],
+                ['k'=>'kind',        'label'=>'Tipo',         'ui'=>'select_or_text', 'db'=>'s', 'req'=>true,  'opts'=>$opts_tipo_dones, 'placeholder'=>'(ID tipo)'],
                 ['k'=>'grupo',       'label'=>'Grupo',        'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>55],
-                ['k'=>'rango',       'label'=>'Rango',        'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>25],
+                ['k'=>'rank',        'label'=>'Rango',        'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>25],
                 // FIX: ahora pueden ir vacíos
                 ['k'=>'atributo',    'label'=>'Atributo',     'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
                 ['k'=>'habilidad',   'label'=>'Habilidad',    'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
-                ['k'=>'descripcion', 'label'=>'Descripción',  'ui'=>'textarea', 'db'=>'s', 'req'=>true],
+                ['k'=>'description', 'label'=>'Descripción',  'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 // FIX: ahora puede ir vacío
-                ['k'=>'sistema',     'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+                ['k'=>'system_name', 'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'system_id',   'label'=>'Sistema',     'ui'=>'select_int','db'=>'i','req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'ferasistema', 'label'=>'Fera-sistema (legacy)', 'ui'=>'text',     'db'=>'s', 'req'=>false,  'max'=>100],
+                ['k'=>'shifter_system_name', 'label'=>'Fera-sistema (legacy)', 'ui'=>'text',     'db'=>'s', 'req'=>false,  'max'=>100],
                 ['k'=>'img',         'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen',   'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
-                ['k'=>'nombre','label'=>'Nombre','w'=>260],
+                ['k'=>'name','label'=>'Nombre','w'=>260],
                 ['k'=>'grupo','label'=>'Grupo','w'=>140],
-                ['k'=>'rango','label'=>'Rango','w'=>90],
-                ['k'=>'system_name','label'=>'Sistema','w'=>140],
+                ['k'=>'rank','label'=>'Rango','w'=>90],
+                ['k'=>'system_label','label'=>'Sistema','w'=>140],
                 ['k'=>'origen_name','label'=>'Origen','w'=>180],
             ],
         ];
@@ -188,20 +188,20 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             'order_by' => 'id DESC',
             'fields' => [
                 ['k'=>'name',   'label'=>'Nombre',      'ui'=>'text',     'db'=>'s', 'req'=>true, 'max'=>100],
-                ['k'=>'tipo',   'label'=>'Tipo',        'ui'=>'select_or_text', 'db'=>'s','req'=>true,'opts'=>$opts_tipo_rit,'placeholder'=>'(ID tipo)'],
-                ['k'=>'nivel',  'label'=>'Nivel',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>20],
-                ['k'=>'raza',   'label'=>'Raza',        'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
-                ['k'=>'desc',   'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
+                ['k'=>'kind',   'label'=>'Tipo',        'ui'=>'select_or_text', 'db'=>'s','req'=>true,'opts'=>$opts_tipo_rit,'placeholder'=>'(ID tipo)'],
+                ['k'=>'level',  'label'=>'Nivel',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>20],
+                ['k'=>'race',   'label'=>'Raza',        'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+                ['k'=>'description', 'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 ['k'=>'syst',   'label'=>'Sistema (texto largo)', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id','label'=>'Sistema',     'ui'=>'select_int','db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'sistema','label'=>'Sistema (legacy)',     'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+                ['k'=>'system_name','label'=>'Sistema (legacy)',     'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
                 ['k'=>'name','label'=>'Nombre','w'=>320],
-                ['k'=>'nivel','label'=>'Nivel','w'=>70],
-                ['k'=>'system_name','label'=>'Sistema','w'=>140],
+                ['k'=>'level','label'=>'Nivel','w'=>70],
+                ['k'=>'system_label','label'=>'Sistema','w'=>140],
                 ['k'=>'origen_name','label'=>'Origen','w'=>180],
             ],
         ];
@@ -215,19 +215,19 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             'order_by' => 'id DESC',
             'fields' => [
                 ['k'=>'name',   'label'=>'Nombre',      'ui'=>'text',     'db'=>'s', 'req'=>true, 'max'=>100],
-                ['k'=>'tipo',   'label'=>'Tipo',        'ui'=>'select_int_or_text','db'=>'i','req'=>true,'opts'=>$opts_tipo_tot,'placeholder'=>'(ID tipo)'],
-                ['k'=>'coste',  'label'=>'Coste',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>30],
-                ['k'=>'desc',   'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
+                ['k'=>'totem_type_id',   'label'=>'Tipo',        'ui'=>'select_int_or_text','db'=>'i','req'=>true,'opts'=>$opts_tipo_tot,'placeholder'=>'(ID tipo)'],
+                ['k'=>'cost',  'label'=>'Coste',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>30],
+                ['k'=>'description', 'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 // FIX: ahora pueden ir vacíos
-                ['k'=>'rasgos', 'label'=>'Rasgos',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
-                ['k'=>'prohib', 'label'=>'Prohibición', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+                ['k'=>'traits', 'label'=>'Rasgos',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+                ['k'=>'prohibited', 'label'=>'Prohibición', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
                 ['k'=>'name','label'=>'Nombre','w'=>260],
-                ['k'=>'coste','label'=>'Coste','w'=>70],
+                ['k'=>'cost','label'=>'Coste','w'=>70],
                 ['k'=>'tipo_name','label'=>'Tipo','w'=>180],
                 ['k'=>'origen_name','label'=>'Origen','w'=>180],
             ],
@@ -244,10 +244,10 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
         'fields' => [
             ['k'=>'name',       'label'=>'Nombre',      'ui'=>'text',     'db'=>'s', 'req'=>true, 'max'=>100],
             ['k'=>'disc',       'label'=>'Disciplina',  'ui'=>'select_or_text', 'db'=>'s','req'=>true,'opts'=>$opts_tipo_disc,'placeholder'=>'(ID disciplina)'],
-            ['k'=>'nivel',      'label'=>'Nivel',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>20],
-            ['k'=>'descripcion','label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
+            ['k'=>'level',      'label'=>'Nivel',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>20],
+            ['k'=>'description','label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
             // FIX: ahora puede ir vacío
-            ['k'=>'sistema',    'label'=>'Sistema',     'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+            ['k'=>'system_name',    'label'=>'Sistema',     'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             // FIX: ahora puede ir vacío
             ['k'=>'atributo',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
             ['k'=>'habilidad',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
@@ -257,7 +257,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>70],
             ['k'=>'name','label'=>'Nombre','w'=>320],
-            ['k'=>'nivel','label'=>'Nivel','w'=>70],
+            ['k'=>'level','label'=>'Nivel','w'=>70],
             ['k'=>'disc_name','label'=>'Disciplina','w'=>180],
             ['k'=>'origen_name','label'=>'Origen','w'=>180],
         ],
@@ -319,11 +319,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         if (isset($vals['system_id']) && (int)$vals['system_id'] > 0) {
             $sysName = $opts_systems[(int)$vals['system_id']] ?? '';
             if ($sysName !== '') {
-                if (array_key_exists('ferasistema', $vals) && trim((string)$vals['ferasistema']) === '') {
-                    $vals['ferasistema'] = $sysName;
+                if (array_key_exists('shifter_system_name', $vals) && trim((string)$vals['shifter_system_name']) === '') {
+                    $vals['shifter_system_name'] = $sysName;
                 }
-                if (array_key_exists('sistema', $vals) && trim((string)$vals['sistema']) === '') {
-                    $vals['sistema'] = $sysName;
+                if (array_key_exists('system_name', $vals) && trim((string)$vals['system_name']) === '') {
+                    $vals['system_name'] = $sysName;
                 }
             }
         }
@@ -485,17 +485,17 @@ while ($r = $rsL->fetch_assoc()) {
 
     $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
     if (isset($r['system_id'])) {
-        $r['system_name'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
+        $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
     }
 
     if ($tab === 'dones') {
-        $t = (int)($r['tipo'] ?? 0);
+        $t = (int)($r['kind'] ?? 0);
         $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
     } elseif ($tab === 'rituales') {
-        $t = (int)($r['tipo'] ?? 0);
+        $t = (int)($r['kind'] ?? 0);
         $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
     } elseif ($tab === 'totems') {
-        $t = (int)($r['tipo'] ?? 0);
+        $t = (int)($r['totem_type_id'] ?? 0);
         $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
     } else {
         $t = (int)($r['disc'] ?? 0);
@@ -707,9 +707,10 @@ var OPTS_TIPO_TOT   = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'
 var OPTS_TIPO_DISC  = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_tipo_disc), array_values($opts_tipo_disc)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 
 function pickOptsForField(fieldKey){
-  if (TAB==='dones' && fieldKey==='tipo') return OPTS_TIPO_DONES;
-  if (TAB==='rituales' && fieldKey==='tipo') return OPTS_TIPO_RIT;
-  if (TAB==='totems' && fieldKey==='tipo') return OPTS_TIPO_TOT;
+  if (TAB==='dones' && fieldKey==='kind') return OPTS_TIPO_DONES;
+  if (TAB==='rituales' && fieldKey==='kind') return OPTS_TIPO_RIT;
+  if (TAB==='totems' && fieldKey==='totem_type_id') return OPTS_TIPO_TOT;
+  if (TAB==='disciplinas' && fieldKey==='disc') return OPTS_TIPO_DISC;
   if (TAB==='disciplinas' && fieldKey==='disc') return OPTS_TIPO_DISC;
   if (fieldKey==='system_id') return OPTS_SYSTEMS;
   if (fieldKey==='bibliography_id') return OPTS_ORIGEN;

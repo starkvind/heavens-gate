@@ -22,7 +22,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 
 	// Excluir crónicas (si existe la variable global, la usamos; si no, no excluimos nada)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-	$cronicaNotInSQL = ($excludeChronicles !== '') ? " WHERE p.cronica NOT IN ($excludeChronicles) " : "";
+	$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " WHERE p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 	// ============================================================
 	// ✅ BRIDGES
@@ -36,7 +36,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 	$sqlPjs = "
 		SELECT
 			p.id,
-			p.nombre,
+			p.name,
 			p.img,
 			cbc.clan_id,
 			gbc.group_id AS manada_id
@@ -53,7 +53,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 				WHERE (is_active = 1 OR is_active IS NULL)
 				GROUP BY character_id
 			) gbc ON gbc.character_id = p.id
-		$cronicaNotInSQL
+		$chronicle_idNotInSQL
 	";
 	$result = $link->query($sqlPjs);
 	if ($result) {
@@ -192,7 +192,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 		<?php foreach ($personajes as $p): ?>
 		{
 			id: "pj_<?= (int)$p['id'] ?>",
-			label: <?= json_encode($p['nombre'], JSON_UNESCAPED_UNICODE) ?>,
+			label: <?= json_encode($p['name'], JSON_UNESCAPED_UNICODE) ?>,
 			shape: <?= !empty($p['img']) ? "'circularImage'" : "'dot'" ?>,
 			image: <?= !empty($p['img']) ? json_encode("../" . $p['img'], JSON_UNESCAPED_UNICODE) : 'null' ?>,
 			size: 25,
@@ -296,3 +296,4 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
      background-color:#fff; border:1px solid #ccc; border-radius:6px; padding:8px 14px; font-family:sans-serif;
      font-size:14px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); z-index:2000;">
 </div>
+

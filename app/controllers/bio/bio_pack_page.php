@@ -49,7 +49,7 @@ switch($typePack) {
 
 // Excluir crónicas (si existe la variable)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 // Ejecutar la consulta principal
 $stmtMain = mysqli_prepare($link, $query);
@@ -78,7 +78,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
     // Datos base
     $namePack = $ResultQuery["name"] ?? '';
-    $infoPack = $ResultQuery["desc"] ?? '';
+    $infoPack = $ResultQuery["description"] ?? $ResultQuery["desc"] ?? '';
 
     $pageSect   = $nameTypeForTitle;
     $pageTitle2 = $namePack;
@@ -122,7 +122,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     // Tótem (igual que lo tenías)
     // ------------------------------------------------------------
     $totemLink = "";
-    $totemPack  = isset($ResultQuery["totem"]) ? (int)$ResultQuery["totem"] : 0;
+    $totemPack  = isset($ResultQuery["totem_id"]) ? (int)$ResultQuery["totem_id"] : 0;
 
     if ($totemPack > 0) {
         $totemQuery = "SELECT id, name FROM dim_totems WHERE id = ? LIMIT 1";
@@ -173,7 +173,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     if ($typePack == 1) {
 
         $packsOfSeptQuery = "
-            SELECT p.id, p.nombre, p.alias, p.img, p.estado
+            SELECT p.id, p.name, p.alias, p.img, p.estado
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             WHERE bg.group_id = ?
@@ -186,7 +186,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     WHEN 'Aún por aparecer' THEN 9999
                     ELSE 0
                 END,
-                p.nombre
+                p.name
         ";
 
         $stmtSept = mysqli_prepare($link, $packsOfSeptQuery);
@@ -200,7 +200,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                 echo "<div style='padding-left:30px;'>";
                 while ($packRow = mysqli_fetch_assoc($packsOfSeptResult)) {
                     $packDataId     = (int)$packRow["id"];
-                    $packDataName   = (string)$packRow["nombre"];
+                    $packDataName   = (string)$packRow["name"];
                     $packDataAlias  = ($packRow["alias"] !== '' && $packRow["alias"] !== null) ? (string)$packRow["alias"] : $packDataName;
                     $packDataImg    = (string)$packRow["img"];
                     $packDataStatus = (string)$packRow["estado"];
@@ -245,8 +245,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             INNER JOIN dim_groups m ON m.id = b.group_id
             WHERE b.clan_id = ?
               AND (b.is_active = 1 OR b.is_active IS NULL)
-              AND m.activa = 1
-              " . (($excludeChronicles !== '') ? " AND m.cronica NOT IN ($excludeChronicles) " : "") . "
+              AND m.is_active = 1
+              " . (($excludeChronicles !== '') ? " AND m.chronicle_id NOT IN ($excludeChronicles) " : "") . "
             ORDER BY m.name
         ";
 
@@ -256,8 +256,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             INNER JOIN dim_groups m ON m.id = b.group_id
             WHERE b.clan_id = ?
               AND (b.is_active = 1 OR b.is_active IS NULL)
-              AND m.activa = 0
-              " . (($excludeChronicles !== '') ? " AND m.cronica NOT IN ($excludeChronicles) " : "") . "
+              AND m.is_active = 0
+              " . (($excludeChronicles !== '') ? " AND m.chronicle_id NOT IN ($excludeChronicles) " : "") . "
             ORDER BY m.name
         ";
 
@@ -318,7 +318,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         //  - Clan: bridge_characters_organizations
         //  - Sin manada: NO existe enlace activo en bridge_characters_groups
         $charsWithoutPackQuery = "
-            SELECT p.id, p.nombre, p.alias, p.img, p.estado
+            SELECT p.id, p.name, p.alias, p.img, p.estado
             FROM bridge_characters_organizations bc
             INNER JOIN fact_characters p ON p.id = bc.character_id
             LEFT JOIN bridge_characters_groups bg
@@ -335,7 +335,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     WHEN 'Aún por aparecer' THEN 9999
                     ELSE 0
                 END,
-                p.nombre
+                p.name
         ";
 
         $charsWithoutPackStmt = mysqli_prepare($link, $charsWithoutPackQuery);
@@ -349,7 +349,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                 echo "<div style='padding-left:30px;'>";
                 while ($charRow = mysqli_fetch_assoc($charsWithoutPackResult)) {
                     $cid   = (int)$charRow["id"];
-                    $cname = (string)$charRow["nombre"];
+                    $cname = (string)$charRow["name"];
                     $calias = ($charRow["alias"] !== '' && $charRow["alias"] !== null) ? (string)$charRow["alias"] : $cname;
                     $cimg  = (string)$charRow["img"];
                     $cst   = (string)$charRow["estado"];

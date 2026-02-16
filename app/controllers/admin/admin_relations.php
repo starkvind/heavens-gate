@@ -19,10 +19,10 @@ $arrows = ["to" => "➡️ Origen → Destino","from" => "⬅️ Destino → Ori
 
 // Datos
 $personajes = [];
-$rs = $link->query("SELECT id, nombre FROM fact_characters WHERE cronica NOT IN (2, 7) ORDER BY nombre ASC");
+$rs = $link->query("SELECT id, name FROM fact_characters WHERE chronicle_id NOT IN (2, 7) ORDER BY name ASC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $personajes[] = $r; } $rs->close(); }
 $personajesById = [];
-foreach ($personajes as $p) { $personajesById[(int)$p['id']] = (string)$p['nombre']; }
+foreach ($personajes as $p) { $personajesById[(int)$p['id']] = (string)$p['name']; }
 
 $flash = [];
 

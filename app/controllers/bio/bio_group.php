@@ -56,7 +56,7 @@
 		exit;
 	}
 
-	$valuePJ = "p.id, p.nombre, p.alias, p.estado, p.img, p.kes, p.tipo,
+$valuePJ = "p.id, p.name, p.alias, p.estado, p.img, p.character_kind, p.character_type_id,
 					COALESCE(nc2.id, nc_from_pack.id, 0) AS clan_id,
 					COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
 					COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name";
@@ -65,11 +65,11 @@
 	// ======================================== //
 	// EXCLUSIONES DE CRÓNICAS (lista de ints, segura)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 	// ======================================== //
 	// Nombre del Tipo
-	$typeQuery = "SELECT tipo FROM dim_character_types WHERE id = ? LIMIT 1";
+	$typeQuery = "SELECT kind FROM dim_character_types WHERE id = ? LIMIT 1";
 	$stmtType = mysqli_prepare($link, $typeQuery);
 	if (!$stmtType) die("Error preparando typeQuery: " . mysqli_error($link));
 
@@ -79,7 +79,7 @@
 
 	if ($rowType = mysqli_fetch_assoc($resultTypeQuery)) {
 
-		$nombreTipo = h($rowType["tipo"]);
+		$nombreTipo = h($rowType["kind"]);
 		$pageSect   = "$nombreTipo | Biografías";
 
 		include("app/partials/main_nav_bar.php");
@@ -88,7 +88,10 @@
 		// ============================================================
 		// Personajes por tipo + clan
 		// ============================================================
-		$queryPJ = "
+		// ============================================================
+		// Personajes por tipo + clan
+		// ============================================================
+		$queryPJBase = "
 			SELECT $valuePJ
 			FROM fact_characters p
 
@@ -113,17 +116,30 @@
 				LEFT JOIN dim_organizations nc_from_pack
 					ON nc_from_pack.id = hcg2.clan_id
 
-			WHERE p.tipo = ?
+			WHERE p.__TYPE_COL__ = ?
 			  $cronicaNotInSQL
-			ORDER BY clan_id ASC, p.nombre ASC
+			ORDER BY clan_id ASC, p.name ASC
 		";
 
-		$stmtPJ = mysqli_prepare($link, $queryPJ);
-		if ($stmtPJ) {
+		$runQuery = function($typeCol) use ($link, $queryPJBase, $idTipo){
+			$queryPJ = str_replace('__TYPE_COL__', $typeCol, $queryPJBase);
+			$stmtPJ = mysqli_prepare($link, $queryPJ);
+			if (!$stmtPJ) return [null, null];
 			mysqli_stmt_bind_param($stmtPJ, 'i', $idTipo);
 			mysqli_stmt_execute($stmtPJ);
 			$resultPJ = mysqli_stmt_get_result($stmtPJ);
+			return [$stmtPJ, $resultPJ];
+		};
 
+		list($stmtPJ, $resultPJ) = $runQuery('character_type_id');
+		if (!$stmtPJ) {
+			list($stmtPJ, $resultPJ) = $runQuery('kind');
+		}
+		if (!$stmtPJ) {
+			list($stmtPJ, $resultPJ) = $runQuery('tipo');
+		}
+
+		if ($stmtPJ) {
 			if ($resultPJ && mysqli_num_rows($resultPJ) > 0) {
 				$howMuch = mysqli_num_rows($resultPJ);
 
@@ -165,10 +181,10 @@
 
 					foreach ($grp['items'] as $rowPJ) {
 						$idPJ     = (int)$rowPJ["id"];
-						$nombrePJ = h($rowPJ["nombre"] ?? '');
+						$nombrePJ = h($rowPJ["name"] ?? '');
 						$aliasPJ  = h($rowPJ["alias"] ?? '');
 						$imgPJ    = h($rowPJ["img"] ?? '');
-						$clasePJ  = h($rowPJ["kes"] ?? '');
+						$clasePJ  = h($rowPJ["character_kind"] ?? '');
 						$estadoPJ = h($rowPJ["estado"] ?? '');
 
 						if ($aliasPJ === "") { $aliasPJ = $nombrePJ; }
@@ -181,9 +197,9 @@
 						}
 
 						$mapEstado = [
-							"Aún por aparecer"     => "(&#64;)",
+							"A?n por aparecer"     => "(&#64;)",
 							"Paradero desconocido" => "(&#63;)",
-							"Cadáver"              => "(&#8224;)"
+							"Cad?ver"              => "(&#8224;)"
 						];
 						$simboloEstado = $mapEstado[$estadoPJ] ?? "";
 

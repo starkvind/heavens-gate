@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Temporadas | Heaven's Gate", "Consulta temporadas y capitulos de la campana.", null, 'website'); ?>
+<?php setMetaFromPage("Temporadas | Heaven's Gate", "Consulta temporadas y capitulos de la campa?a.", null, 'website'); ?>
 <style>
 	.prota-grid {
 		display: flex;
@@ -67,7 +67,7 @@ if ($temporadaId > 0 && $stmt) {
         while ($ResultQuery = mysqli_fetch_assoc($result)) {
             // Asignar valores de la base de datos a las variables
             $nameTemp = $ResultQuery["name"];
-            $numberTemp = $ResultQuery["numero"];
+            $numberTemp = $ResultQuery["season_number"];
             $sinopsis = $ResultQuery["desc"];
             $linkYoutube = $ResultQuery["opening"];
             //$charas = $ResultQuery["protagonistas"];
@@ -107,12 +107,12 @@ if ($temporadaId > 0 && $stmt) {
 							$query = "
 							SELECT 
 								p.id, 
-								p.nombre, 
+								p.name, 
 								p.img
 							FROM fact_characters p
 							WHERE 1=1
 								AND id IN ($ids) 
-								AND jugador > 0 
+								AND player_id > 0 
 							ORDER BY 2
 							";
 							// temporadaId
@@ -130,8 +130,8 @@ if ($temporadaId > 0 && $stmt) {
 
 								if ($participaciones >= $umbral) {
 									$hrefProta = pretty_url($link, 'fact_characters', '/characters', (int)$row['id']);
-									echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card' target='_blank' title='" . htmlspecialchars($row["nombre"]) . "'>";
-										echo "<img src='" . htmlspecialchars($row["img"]) . "' class='photochapter'><span>" . htmlspecialchars($row["nombre"]) . "</span>";
+									echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card' target='_blank' title='" . htmlspecialchars($row["name"]) . "'>";
+										echo "<img src='" . htmlspecialchars($row["img"]) . "' class='photochapter'><span>" . htmlspecialchars($row["name"]) . "</span>";
 									echo "</a>";
 								}
 								/* ------------------------------------------------------------------------- */
@@ -145,7 +145,7 @@ if ($temporadaId > 0 && $stmt) {
             echo "<fieldset id='renglonArchivos' style='padding-left:46px;'>";
             echo "<legend id='archivosLegend' style='margin-left:-36px;'>$titleChapt</legend>";
 
-            $consultaChapt = "SELECT id, name, capitulo FROM dim_chapters WHERE temporada = ? ORDER BY capitulo";
+            $consultaChapt = "SELECT id, name, chapter_number FROM dim_chapters WHERE season_number = ? ORDER BY chapter_number";
             $stmtChapt = mysqli_prepare($link, $consultaChapt);
             if ($stmtChapt) {
                 mysqli_stmt_bind_param($stmtChapt, 's', $numberTemp);
@@ -156,7 +156,7 @@ if ($temporadaId > 0 && $stmt) {
                     while ($ResultQueryChapt = mysqli_fetch_assoc($resultChapt)) {
                         $idEpi = $ResultQueryChapt["id"];
                         $nameEpi = $ResultQueryChapt["name"];
-                        $capiEpi = $ResultQueryChapt["capitulo"];
+                        $capiEpi = $ResultQueryChapt["chapter_number"];
 
                         // Definir estilo del popup de capítulos
                         if ($esTempOno == 0) {
@@ -200,3 +200,4 @@ if ($temporadaId > 0 && $stmt) {
     echo "Error al preparar la consulta: " . mysqli_error($link);
 }
 ?>
+

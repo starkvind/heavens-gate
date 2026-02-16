@@ -104,7 +104,7 @@
 			} elseif (function_exists('resolve_pretty_id')) {
 				$chapterId = (int)(resolve_pretty_id($link, 'dim_chapters', $chapterRaw) ?? 0);
 			}
-			if ($chapterId > 0 && ($stmt = mysqli_prepare($link, "SELECT s.season AS season_flag FROM dim_chapters c JOIN dim_seasons s ON s.numero = c.temporada WHERE c.id = ? LIMIT 1"))) {
+			if ($chapterId > 0 && ($stmt = mysqli_prepare($link, "SELECT s.season AS season_flag FROM dim_chapters c JOIN dim_seasons s ON s.season_number = c.season_number WHERE c.id = ? LIMIT 1"))) {
 				mysqli_stmt_bind_param($stmt, 'i', $chapterId);
 				mysqli_stmt_execute($stmt);
 				$res = mysqli_stmt_get_result($stmt);
@@ -191,7 +191,7 @@
 
 	if ($useDbMenu) {
 		function render_seasons(mysqli $link, string $seasonFlag): void {
-			$consulta = "SELECT id, name, numero, finished FROM dim_seasons WHERE season LIKE ? ORDER BY order_n";
+			$consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE ? ORDER BY order_n";
 			if ($stmt = mysqli_prepare($link, $consulta)) {
 				mysqli_stmt_bind_param($stmt, 's', $seasonFlag);
 				mysqli_stmt_execute($stmt);
@@ -369,7 +369,7 @@
 				<div class='renglonMenu menuSeparator'>&nbsp;</div>
                 <?php
                     // Conexión a la base de datos usando MySQLi
-                    $consulta = "SELECT id, name, numero, finished FROM dim_seasons WHERE season LIKE '0' ORDER BY order_n";
+                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '0' ORDER BY order_n";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);
@@ -431,7 +431,7 @@
         <td class='sekzo'>
             <div class="ocultable<?= ($menuOpenId === 'personalesMenu') ? ' open' : '' ?>" id="personalesMenu">
                 <?php
-                    $consulta = "SELECT id, name, finished FROM dim_seasons WHERE season LIKE '1' ORDER BY order_n";
+                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '1' ORDER BY order_n";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);

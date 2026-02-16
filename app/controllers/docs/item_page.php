@@ -20,9 +20,9 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     // DATOS BÁSICOS
     $itemID     = htmlspecialchars($resultQueryItem["id"]);
     $itemName   = htmlspecialchars($resultQueryItem["name"]);
-    $itemType   = (int)$resultQueryItem["tipo"];
+    $itemType   = (int)$resultQueryItem["item_type_id"];
     $itemSkill  = htmlspecialchars($resultQueryItem["habilidad"]);
-    $itemLevel  = (int)$resultQueryItem["nivel"];
+    $itemLevel  = (int)$resultQueryItem["level"];
     $itemGnosis = (int)$resultQueryItem["gnosis"];
     $itemValue  = htmlspecialchars($resultQueryItem["valor"]);
     $itemBonus  = (int)$resultQueryItem["bonus"];
@@ -31,7 +31,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $itemSTR    = (int)$resultQueryItem["fuerza"];
     $itemDEX    = (int)$resultQueryItem["destreza"];
     $itemImg    = htmlspecialchars($resultQueryItem["img"]);
-    $itemInfo   = ($resultQueryItem["descri"]);
+    $itemInfo   = ($resultQueryItem["description"]);
     $itemOrig   = (int)$resultQueryItem["bibliography_id"];
     
     // ================================================================== //
@@ -214,18 +214,18 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         }
     }
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
     $queryOwners = "
         SELECT
             p.id,
-            p.nombre,
+            p.name,
             p.alias,
             p.img,
             p.estado
         FROM bridge_characters_items b
-        JOIN fact_characters p ON p.id = b.personaje_id
-        WHERE b.objeto_id = ? $cronicaNotInSQL
-        ORDER BY p.nombre
+        JOIN fact_characters p ON p.id = b.character_id
+        WHERE b.item_id = ? $cronicaNotInSQL
+        ORDER BY p.name
     ";
     if ($stOwners = $link->prepare($queryOwners)) {
         $stOwners->bind_param('i', $itemPageID);
@@ -262,7 +262,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         ];
         foreach ($itemOwners as $o) {
             $oid = (int)($o['id'] ?? 0);
-            $name = htmlspecialchars($o['nombre'] ?? '');
+            $name = htmlspecialchars($o['name'] ?? '');
             $alias = htmlspecialchars($o['alias'] ?? '');
             $img = htmlspecialchars($o['img'] ?? '');
             $estado = (string)($o['estado'] ?? '');
@@ -305,3 +305,5 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 $stmt->close();
 
 ?>
+
+

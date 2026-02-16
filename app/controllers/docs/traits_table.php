@@ -3,6 +3,9 @@ setMetaFromPage("Rasgos | Heaven's Gate", "Listado de rasgos y habilidades.", nu
 include("app/partials/main_nav_bar.php");
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
+if (!function_exists('h')) {
+	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
 
 // Cargar rasgos con la query indicada
 $query = "
@@ -10,30 +13,43 @@ $query = "
 		nh.id as trait_id,
 		nh.pretty_id as trait_pretty_id,
 		nh.name as trait_name,
-		nh.tipo as trait_category,
+		nh.kind as trait_category,
 		SUBSTRING(nh.clasificacion, 5) as trait_subcategory,
 		COALESCE(nb.name, '') as trait_origin
 	from dim_traits nh 
 		left join dim_bibliographies nb on nh.bibliography_id = nb.id
 	order by
 		CASE
-			when nh.tipo = 'Atributos' then 0
-			when nh.tipo = 'Talentos' then 1
-			when nh.tipo = 'Técnicas' then 2
-			when nh.tipo = 'Conocimientos' then 3
-			when nh.tipo = 'Trasfondos' then 4
+			when nh.kind = 'Atributos' then 0
+			when nh.kind = 'Talentos' then 1
+			when nh.kind = 'T�cnicas' then 2
+			when nh.kind = 'Conocimientos' then 3
+			when nh.kind = 'Trasfondos' then 4
 			else 9999
 		END ASC,
 		nh.clasificacion ASC,
 		nh.id ASC
 ";
 $result = mysqli_query($link, $query);
+if (!$result) {
+  $err = mysqli_error($link);
+  if (stripos($err, "Unknown column 'nh.kind'") !== false || stripos($err, "Unknown column `nh`.`kind`") !== false) {
+    $query = str_replace("nh.kind", "nh.tipo", $query);
+    $result = mysqli_query($link, $query);
+  }
+}
 
 $rasgos = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$rasgos[] = $row;
+$isResult = ($result instanceof mysqli_result);
+if ($result && $isResult) {
+  while ($row = mysqli_fetch_assoc($result)) {
+    $rasgos[] = $row;
+  }
+  mysqli_free_result($result);
+} else {
+  $err = mysqli_error($link);
+  echo "<p class=\'texti\'>Error en consulta: " . h($err) . "</p>";
 }
-mysqli_free_result($result);
 
 function ensure_utf8($value) {
     if (is_string($value)) {
@@ -407,3 +423,8 @@ function sortValues(values){
 	});
 }
 </script>
+
+
+
+
+

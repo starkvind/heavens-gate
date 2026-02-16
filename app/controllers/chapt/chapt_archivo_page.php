@@ -6,14 +6,14 @@ if (!$link) {
 }
 
 // Obtener el parámetro 't' (id o pretty-id)
-$capituloRaw = $_GET['t'] ?? '';
-$capituloId = resolve_pretty_id($link, 'dim_chapters', (string)$capituloRaw) ?? 0;
+$chapter_numberRaw = $_GET['t'] ?? '';
+$chapter_numberId = resolve_pretty_id($link, 'dim_chapters', (string)$chapter_numberRaw) ?? 0;
 
 // Preparar la consulta para obtener detalles del capítulo
 $Query = "SELECT * FROM dim_chapters WHERE id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $Query);
-if ($capituloId > 0 && $stmt) {
-    mysqli_stmt_bind_param($stmt, 's', $capituloId);
+if ($chapter_numberId > 0 && $stmt) {
+    mysqli_stmt_bind_param($stmt, 's', $chapter_numberId);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
 
@@ -22,20 +22,20 @@ if ($capituloId > 0 && $stmt) {
         
         // Asignar valores de la base de datos a las variables
         $nameCapi 	= $ResultQuery["name"];
-        $sinoCapi 	= $ResultQuery["sinopsis"];
+        $sinoCapi 	= $ResultQuery["synopsis"];
         $noSinoCapi	= "Este capítulo no dispone de información, disculpa las molestias.";
-        $tempCapi 	= $ResultQuery["temporada"];
-        $numeCapi	= $ResultQuery["capitulo"];
+        $tempCapi 	= $ResultQuery["season_number"];
+        $numeCapi	= $ResultQuery["chapter_number"];
         //$protCapi	= $ResultQuery["protagonistas"];
-        $dateCapi	= $ResultQuery["fecha"];
-		$dateIngame	= $ResultQuery["fecha_ingame"];
+        $dateCapi	= $ResultQuery["played_date"];
+		$dateIngame	= $ResultQuery["in_game_date"];
 
         // Títulos para diferentes secciones
         $titleInfo 	= "Resumen";
         $titleProta	= "Participantes";
 
         // Preparamos la temporada
-        $tempQuery = "SELECT id, name, numero FROM dim_seasons WHERE numero = ? LIMIT 1";
+        $tempQuery = "SELECT id, name, season_number FROM dim_seasons WHERE season_number = ? LIMIT 1";
         $stmtTemp = mysqli_prepare($link, $tempQuery);
         if ($stmtTemp) {
             mysqli_stmt_bind_param($stmtTemp, 's', $tempCapi);
@@ -45,7 +45,7 @@ if ($capituloId > 0 && $stmt) {
 
             $idTemporada   = $resultDataTemp["id"];
             $nameTemporada = $resultDataTemp["name"];
-            $numbTemporada = $resultDataTemp["numero"];
+            $numbTemporada = $resultDataTemp["season_number"];
         }
 
         // Preparamos los títulos y nombres
@@ -59,7 +59,7 @@ if ($capituloId > 0 && $stmt) {
         // Cambiar el título de la página
         $pageSect = "{$nameTemporada} {$numeracionOK}";
         $pageTitle2	= $nameCapi;
-		setMetaFromPage($nameCapi . " | Capitulos | Heaven's Gate", meta_excerpt(!empty($sinoCapi) ? $sinoCapi : $noSinoCapi), null, 'article');
+		setMetaFromPage($nameCapi . " | Cap?tulos | Heaven's Gate", meta_excerpt(!empty($sinoCapi) ? $sinoCapi : $noSinoCapi), null, 'article');
 
         include("app/partials/main_nav_bar.php");	// Barra Navegación
         echo "<h2>{$nameCapi}</h2>";
@@ -69,15 +69,15 @@ if ($capituloId > 0 && $stmt) {
         // Sección Protagonistas (solo si hay personajes)
 		// Nueva sección de protagonistas, basada en la tabla bridge_chapters_characters
 		$protaQuery = "
-			SELECT p.id, p.nombre, p.img
+			SELECT p.id, p.name, p.img
 			FROM bridge_chapters_characters acp
-			INNER JOIN fact_characters p ON acp.id_personaje = p.id
-			WHERE acp.id_capitulo = ?
-			ORDER BY p.nombre ASC
+			INNER JOIN fact_characters p ON acp.character_id = p.id
+			WHERE acp.chapter_id = ?
+			ORDER BY p.name ASC
 		";
 		$stmtProta = mysqli_prepare($link, $protaQuery);
 		if ($stmtProta) {
-			mysqli_stmt_bind_param($stmtProta, 'i', $capituloId);
+			mysqli_stmt_bind_param($stmtProta, 'i', $chapter_numberId);
 			mysqli_stmt_execute($stmtProta);
 			$resultProta = mysqli_stmt_get_result($stmtProta);
 
@@ -87,7 +87,7 @@ if ($capituloId > 0 && $stmt) {
 				echo "<center>";
 				while ($pj = mysqli_fetch_assoc($resultProta)) {
 					$idPJSelect = $pj["id"];
-					$nombre = htmlspecialchars($pj["nombre"]);
+					$nombre = htmlspecialchars($pj["name"]);
 					$img = htmlspecialchars($pj["img"]);
 					$hrefChar = pretty_url($link, 'fact_characters', '/characters', (int)$idPJSelect);
 					echo "<a href='" . htmlspecialchars($hrefChar) . "' title='{$nombre}' target='_blank'>";
@@ -123,7 +123,7 @@ if ($capituloId > 0 && $stmt) {
         echo "</div>"; // Cierre del Cuerpo Principal
 		
 		include("app/partials/snippet_bso_card.php");
-		mostrarTarjetaBSO($link, 'episodio', $capituloId);
+		mostrarTarjetaBSO($link, 'episodio', $chapter_numberId);
 		
 	// ===========================
 	// ENLACES SIGUIENTE / ANTERIOR
@@ -131,9 +131,9 @@ if ($capituloId > 0 && $stmt) {
 	echo "<div style='text-align:center; margin: 2em auto; width:100%;'>";
 
 	$navQuery = "
-		SELECT id, capitulo, name FROM dim_chapters 
-		WHERE temporada = ? AND capitulo IN (?, ?)
-		ORDER BY capitulo ASC
+		SELECT id, chapter_number, name FROM dim_chapters 
+		WHERE season_number = ? AND chapter_number IN (?, ?)
+		ORDER BY chapter_number ASC
 	";
 	$stmtNav = mysqli_prepare($link, $navQuery);
 	if ($stmtNav) {
@@ -143,21 +143,21 @@ if ($capituloId > 0 && $stmt) {
 		mysqli_stmt_execute($stmtNav);
 		$resultNav = mysqli_stmt_get_result($stmtNav);
 
-		$capitulosNavegacion = [];
+		$chapter_numbersNavegacion = [];
 		while ($fila = mysqli_fetch_assoc($resultNav)) {
-			$capitulosNavegacion[$fila['capitulo']] = $fila;
+			$chapter_numbersNavegacion[$fila['chapter_number']] = $fila;
 		}
 
-		if (isset($capitulosNavegacion[$prevCap])) {
-			$prevId = $capitulosNavegacion[$prevCap]['id'];
-			$prevName = htmlspecialchars($capitulosNavegacion[$prevCap]['name']);
+		if (isset($chapter_numbersNavegacion[$prevCap])) {
+			$prevId = $chapter_numbersNavegacion[$prevCap]['id'];
+			$prevName = htmlspecialchars($chapter_numbersNavegacion[$prevCap]['name']);
 			$prevHref = pretty_url($link, 'dim_chapters', '/chapters', (int)$prevId);
 			echo "<a class='boton2 pj-btn-pag' style='float:left;' href='" . htmlspecialchars($prevHref) . "'>&laquo; <small>{$prevName}</small></a> ";
 		}
 
-		if (isset($capitulosNavegacion[$nextCap])) {
-			$nextId = $capitulosNavegacion[$nextCap]['id'];
-			$nextName = htmlspecialchars($capitulosNavegacion[$nextCap]['name']);
+		if (isset($chapter_numbersNavegacion[$nextCap])) {
+			$nextId = $chapter_numbersNavegacion[$nextCap]['id'];
+			$nextName = htmlspecialchars($chapter_numbersNavegacion[$nextCap]['name']);
 			$nextHref = pretty_url($link, 'dim_chapters', '/chapters', (int)$nextId);
 			echo "<a class='boton2 pj-btn-pag' style='float:right;' href='" . htmlspecialchars($nextHref) . "'><small>{$nextName}</small> &raquo;</a>";
 		}
@@ -180,7 +180,7 @@ if ($capituloId > 0 && $stmt) {
     } else {
         echo "No se encontraron resultados para la búsqueda.";
     }
-} elseif ($capituloId <= 0) {
+} elseif ($chapter_numberId <= 0) {
     echo "No se encontraron resultados para la búsqueda.";
 } else {
     echo "Error al preparar la consulta: " . mysqli_error($link);
@@ -207,3 +207,6 @@ if ($capituloId > 0 && $stmt) {
 </style>
 
 </html>
+
+
+

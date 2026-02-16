@@ -6,7 +6,7 @@
 //
 // Requisitos:
 // - Debe existir $link (mysqli) ya conectado
-// - Opcional: $excludeChronicles (CSV ints) para filtrar fact_characters.cronica
+// - Opcional: $excludeChronicles (CSV ints) para filtrar fact_characters.chronicle_id
 
 if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
 if (method_exists($link, 'set_charset')) $link->set_charset('utf8mb4'); else mysqli_set_charset($link,'utf8mb4');
@@ -40,7 +40,7 @@ function fetchPairs(mysqli $link, string $sql): array {
 // Config / filtros
 // ============================
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL   = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+$cronicaNotInSQL   = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 $tab = $_GET['tab'] ? 'chars'; // chars | clans
 $pageTitle2 = "Bridges — Relaciones";
@@ -282,7 +282,7 @@ $chars = [];
 $sqlChars = "
   SELECT
     p.id,
-    p.nombre,
+    p.name,
     p.img,
     p.estado,
 
@@ -304,7 +304,7 @@ $sqlChars = "
     ON c.id = cc.clan_id
   WHERE 1=1
   {$cronicaNotInSQL}
-  ORDER BY p.nombre ASC
+  ORDER BY p.name ASC
 ";
 if ($rs = $link->query($sqlChars)) {
   while($r = $rs->fetch_assoc()) $chars[] = $r;
@@ -457,13 +457,13 @@ if ($rs = $link->query($sqlCG)) {
       <tbody>
         <?php foreach($chars as $c):
           $cid = (int)$c['id'];
-          $nm  = (string)($c['nombre'] ? '');
-          $img = (string)($c['img'] ? '');
-          $est = (string)($c['estado'] ? '');
-          $cln = (string)($c['active_clan_name'] ? '');
-          $grp = (string)($c['active_group_name'] ? '');
-          $clanId = (int)($c['active_clan_id'] ? 0);
-          $groupId= (int)($c['active_group_id'] ? 0);
+          $nm  = (string)($c['name'] ?? '');
+          $img = (string)($c['img'] ?? '');
+          $est = (string)($c['estado'] ?? '');
+          $cln = (string)($c['active_clan_name'] ?? '');
+          $grp = (string)($c['active_group_name'] ?? '');
+          $clanId = (int)($c['active_clan_id'] ?? 0);
+          $groupId= (int)($c['active_group_id'] ?? 0);
         ?>
         <tr data-nombre="<?= strtolower(h($nm)) ?>">
           <td><strong style="color:#33FFFF;"><?= $cid ?></strong></td>

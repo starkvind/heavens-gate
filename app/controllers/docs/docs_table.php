@@ -7,13 +7,13 @@ $query = "
 	select
 		d2.id as document_id, 
 		d2.pretty_id as document_pretty_id,
-		d2.titulo as document_name,
-		d.tipo as document_category,
+		d2.title as document_name,
+		d.kind as document_category,
 		COALESCE(nb.name, '') as document_origin
 	from fact_docs d2
 		left join dim_doc_categories d on d2.seccion = d.id
 		left join dim_bibliographies nb on d2.bibliography_id = nb.id
-	order by d.orden
+	order by d.sort_order
 ";
 $result = mysqli_query($link, $query);
 
@@ -422,3 +422,4 @@ $(document).ready(function () {
 	updateSummaryOrgs(null);
 });
 </script>
+

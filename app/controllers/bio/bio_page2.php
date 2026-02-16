@@ -60,6 +60,128 @@
 		return $out;
 	}
 
+	function fetch_trait_values(mysqli $link, int $characterId): array {
+		$map = [];
+		if ($characterId <= 0) return $map;
+		$sql = "SELECT trait_id, value FROM fact_character_traits WHERE character_id = ?";
+		if ($st = $link->prepare($sql)) {
+			$st->bind_param('i', $characterId);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$map[(int)$row['trait_id']] = (int)$row['value'];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+		return $map;
+	}
+
+
+
+	function fetch_traits_by_type(mysqli $link, int $characterId, string $kind, bool $onlyNonZero = true): array {
+		$out = [];
+		if ($characterId <= 0) return $out;
+		$sql = "SELECT t.id, t.name, f.value
+				FROM fact_character_traits f
+				INNER JOIN dim_traits t ON t.id = f.trait_id
+				WHERE f.character_id = ? AND t.kind = ?";
+		if ($onlyNonZero) $sql .= " AND f.value > 0";
+		$sql .= " ORDER BY f.value DESC, t.name";
+		if ($st = $link->prepare($sql)) {
+			$st->bind_param('is', $characterId, $kind);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$out[] = ['id'=>(int)$row['id'], 'name'=>(string)$row['name'], 'value'=>(int)$row['value']];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+		return $out;
+	}
+
+	// Cálculo de círculos de habilidad, atributos, etc.
+	if (!function_exists('createSkillCircle')) {
+		function createSkillCircle(array $array, string $prefix): array {
+			$result = [];
+			foreach ($array as $value) {
+				$baseDir = ($prefix === 'gem-pwr') ? 'img/ui/gems/pwr' : 'img/ui/gems/attr';
+				$result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0{$value}.png'/>";
+			}
+			return $result;
+		}
+	}
+
+	function fetch_traits_for_system_type(mysqli $link, int $characterId, int $systemId, string $kind): array {
+		$out = [];
+		if ($characterId <= 0) return $out;
+		$hasSet = false;
+		if ($systemId > 0) {
+			$sql = "SELECT t.id, t.name, COALESCE(f.value,0) AS value, s.sort_order
+					FROM fact_trait_sets s
+					JOIN dim_traits t ON t.id = s.trait_id AND t.kind = ?
+					LEFT JOIN fact_character_traits f ON f.trait_id = t.id AND f.character_id = ?
+					WHERE s.system_id = ? AND s.is_active = 1
+					ORDER BY s.sort_order, t.name";
+			if ($st = $link->prepare($sql)) {
+				$st->bind_param('sii', $kind, $characterId, $systemId);
+				$st->execute();
+				$res = $st->get_result();
+				if ($res) {
+					while ($row = $res->fetch_assoc()) {
+						$out[] = ['id'=>(int)$row['id'], 'name'=>(string)$row['name'], 'value'=>(int)$row['value']];
+					}
+					$res->free();
+				}
+				$st->close();
+			}
+			if (!empty($out)) $hasSet = true;
+		}
+
+		if ($hasSet && $systemId > 0) {
+			// Append traits with value>0 not present in the set
+			$sql = "SELECT t.id, t.name, f.value
+					FROM fact_character_traits f
+					JOIN dim_traits t ON t.id = f.trait_id AND t.kind = ?
+					WHERE f.character_id = ? AND f.value > 0
+					AND t.id NOT IN (SELECT trait_id FROM fact_trait_sets WHERE system_id = ? AND is_active = 1)
+					ORDER BY f.value DESC, t.name";
+			if ($st = $link->prepare($sql)) {
+				$st->bind_param('sii', $kind, $characterId, $systemId);
+				$st->execute();
+				$res = $st->get_result();
+				if ($res) {
+					while ($row = $res->fetch_assoc()) {
+						$out[] = ['id'=>(int)$row['id'], 'name'=>(string)$row['name'], 'value'=>(int)$row['value']];
+					}
+					$res->free();
+				}
+				$st->close();
+			}
+			return $out;
+		}
+
+		// Fallback: only existing values
+		return fetch_traits_by_type($link, $characterId, $kind, false);
+	}
+
+	function order_trait_list(array $list, int $baseCount = 0): array {
+		if ($baseCount <= 0) return $list;
+		$base = array_slice($list, 0, $baseCount);
+		$extras = array_slice($list, $baseCount);
+		usort($extras, function($a, $b){
+			$an = strtolower((string)($a['name'] ?? ''));
+			$bn = strtolower((string)($b['name'] ?? ''));
+			return $an <=> $bn;
+		});
+		return array_merge($base, $extras);
+	}
+
 	$characterId = isset($_GET['b']) ? (int)$_GET['b'] : 0; // Cogemos datos del GET "b"
 	if ($characterId <= 0) {
 		echo "<p style='text-align:center;'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
@@ -88,16 +210,16 @@
 			$characterIdDb		 = $dataResult["id"];
 		$bioId = $characterIdDb;
  			// ID del personaje. Aunque la tengamos en el get, mejor así.
-			$bioName 	 = $dataResult["nombre"]; 		// Nombre completo del personaje.
+			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
-			$bioPackName = $dataResult["nombregarou"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
+			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
 			$bioPhoto	 = $dataResult["img"]; 			// Imagen del personaje.
-			$bioType	 = $dataResult["tipo"]; 		// Tipo de personaje. Si es Protagonista o pertenece al grupo de PNJs.
-			$bioBday	 = $dataResult["cumple"]; 		// Cumpleaños del personaje.
+		$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
+			$bioBday	 = $dataResult["birthdate_text"]; // Cumpleaños del personaje.
 			$bioConcept	 = $dataResult["concepto"]; 	// Concepto del personaje.
-			$bioNature	 = $dataResult["naturaleza"]; 	// Naturaleza del personaje, como es en realidad.
-			$bioBehavior = $dataResult["conducta"]; 	// Conducta del personaje, como se comporta.
-			$bioText	 = $dataResult["infotext"]; 	// Texto escrito que habla sobre el personaje.
+			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
+			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
+			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
 			$bioTxtColor = $dataResult["colortexto"]; 	// Color de fondo para el globo de texto del personaje.
 		// ================================================================== //
 			$pageSect 	 = "Biografía";						// Para cambiar el título a la página.
@@ -118,31 +240,31 @@
 			$titleParticp= "&nbsp;Participación&nbsp;";		// Titulo de la seccion "Participación"		
 		// ================================================================== //
 		// Datos de jugador y crónica
-			$bioPlayer	 = $dataResult["jugador"]; 		// Jugador al que pertenece el personaje.
-			$bioChronic	 = $dataResult["cronica"]; 		// Crónica a la que pertenece el personaje.
+			$bioPlayer	 = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
+			$bioChronic	 = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
 			$bioStatus	 = $dataResult["estado"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
-			$bioDethCaus = $dataResult["causamuerte"]; 	// Causa de la muerte. Si está vivo o no, no lo usaremos.
-			$bioSheet	 = $dataResult["kes"]; 			// Si el personaje posee Ficha de Personaje o no. Los que no tienen, muestran menos datos.
+			$bioDethCaus = $dataResult["cause_of_death"]; // Causa de la muerte.
+			$bioSheet	 = $dataResult["character_kind"]; // Si el personaje posee Ficha de Personaje o no.
 			$bioXP		 = $dataResult["px"]; 			// Puntos de experiencia restantes del personaje.
 		// ================================================================== //
 		// Datos de raza y alineamientos
-			$bioRace	 = $dataResult["raza"]; 		// Raza a la que pertenece el personaje.
+			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
 			$bioAuspice	 = $dataResult["auspicio"]; 	// Auspicio al que pertenece el personaje.
 			$bioTribe	 = $dataResult["tribu"]; 		// Tribu a la que pertenece el personaje.
-			$bioRange	 = $dataResult["rango"]; 		// Rango de importancia del personaje en su organización.
+			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organización.
 		// ================================================================== //
 		// Ventajas y poderes
-			$bioTotem	 = (string)($dataResult["totem_name"] ?? $dataResult["totem"] ?? ""); 		// Tótem que guía al personaje.
+			$bioTotem	 = (string)($dataResult["totem_name"] ?? ""); 		// Tótem que guía al personaje.
 		// Género
 			$bioGender	 = $dataResult["genero_pj"];		// Género del personaje
 		// Títulos de la sección Detalles		
 			$titlePkName	= "Nombre Garou";		// Título del nombre Garou
 		// Sistema, para nombres de detalles y tal.
-			$bioSystem 	= (string)($dataResult["system_name"] ?? $dataResult["sistema"] ?? "");
+			$bioSystem 	= (string)($dataResult["system_name"] ?? "");
 		// Nombres de conceptos
 			// ================================================================== //
 			// Datos y Nombre del Sistema
-			$bioFera = $dataResult["fera"];
+			$bioFera = $dataResult["shifter_type"];
 			// ================================================================== //
 			// IDENTIFICACION
 			$titleAuspice	= "Auspicio";
@@ -162,95 +284,172 @@
 		// ================================================================== //
 		if ($bioSheet == "pj") { // <--- Inicio de comprobación si lleva hoja de PJ
 		// ================================================================== //
+		// Traits normalizados (fact_character_traits)
+			$traitValues = fetch_trait_values($link, (int)$characterId);
+
+			// Mapa trait_id por columna legacy (mismo mapping que migración)
+			$traitIdMap = [
+				'fuerza' => 1,
+				'destreza' => 33,
+				'resistencia' => 34,
+				'carisma' => 35,
+				'manipulacion' => 36,
+				'apariencia' => 37,
+				'percepcion' => 38,
+				'inteligencia' => 39,
+				'astucia' => 40,
+				'alerta' => 5,
+				'atletismo' => 6,
+				'callejeo' => 7,
+				'empatia' => 8,
+				'esquivar' => 9,
+				'expresion' => 10,
+				'impulsprimario' => 11,
+				'intimidacion' => 12,
+				'pelea' => 13,
+				'subterfugio' => 14,
+				'armascc' => 43,
+				'armasdefuego' => 44,
+				'conducir' => 45,
+				'etiqueta' => 46,
+				'interpretacion' => 47,
+				'liderazgo' => 52,
+				'reparaciones' => 18,
+				'sigilo' => 49,
+				'supervivencia' => 50,
+				'tratoanimales' => 51,
+				'ciencias' => 19,
+				'enigmas' => 20,
+				'informatica' => 55,
+				'investigacion' => 56,
+				'leyes' => 57,
+				'linguistica' => 58,
+				'medicina' => 59,
+				'ocultismo' => 60,
+				'politica' => 61,
+				'rituales' => 21,
+			];
+
+			$traitVal = function(string $col) use ($traitIdMap, $traitValues, $dataResult): int {
+				$tid = $traitIdMap[$col] ?? 0;
+				if ($tid > 0 && isset($traitValues[$tid])) return (int)$traitValues[$tid];
+				return (int)($dataResult[$col] ?? 0);
+			};
+
 		// Datos sociales
 			$bioArrayPow = array(
-				$dataResult["gloriap"],		// Gloria para Fêra, Conciencia para Vampiro
-				$dataResult["honorp"],		// Honor para Fêra, Autocontrol para Vampiro
-				$dataResult["sabiduriap"],	// Sabiduria para Fêra, Coraje para Vampiro
-				$dataResult["rabiap"],		// Rabia para Fêra
-				$dataResult["gnosisp"],		// Gnosis para Fêra, Senda para Vampiro
-				$dataResult["fvp"],			// Fuerza de Voluntad
+				$dataResult["glory_points"],	// Gloria para Fêra, Conciencia para Vampiro
+				$dataResult["honor_points"],	// Honor para Fêra, Autocontrol para Vampiro
+				$dataResult["wisdom_points"],	// Sabiduria para Fêra, Coraje para Vampiro
+				$dataResult["rage_points"],		// Rabia para Fêra
+				$dataResult["gnosis_points"],	// Gnosis para Fêra, Senda para Vampiro
+				$dataResult["fvp"],				// Fuerza de Voluntad
 			);
 		// Atributos
 			$bioArrayAtt = array(
 				// FISICOS
-				$dataResult["fuerza"],
-				$dataResult["destreza"],
-				$dataResult["resistencia"],	
+				$traitVal('fuerza'),
+				$traitVal('destreza'),
+				$traitVal('resistencia'),	
 				// SOCIALES				
-				$dataResult["carisma"],
-				$dataResult["manipulacion"],
-				$dataResult["apariencia"],
+				$traitVal('carisma'),
+				$traitVal('manipulacion'),
+				$traitVal('apariencia'),
 				// MENTALES				
-				$dataResult["percepcion"],
-				$dataResult["inteligencia"],
-				$dataResult["astucia"],
+				$traitVal('percepcion'),
+				$traitVal('inteligencia'),
+				$traitVal('astucia'),
 			);
 		// ================================================================== //
 		// Habilidades
-			$bioArraySki = array(
-				// TALENTOS
-				$dataResult["alerta"],			 
-				$dataResult["atletismo"],		 
-				$dataResult["callejeo"], 		
-				$dataResult["empatia"], 			 
-				$dataResult["esquivar"], 		 
-				$dataResult["expresion"], 		 
-				$dataResult["impulsprimario"], 	 
-				$dataResult["intimidacion"],	 
-				$dataResult["pelea"],	
-				$dataResult["subterfugio"],
-				// TECNICAS
-				$dataResult["armascc"],
-				$dataResult["armasdefuego"],
-				$dataResult["conducir"],
-				$dataResult["etiqueta"],
-				$dataResult["interpretacion"],
-				$dataResult["liderazgo"],
-				$dataResult["reparaciones"],
-				$dataResult["sigilo"],
-				$dataResult["supervivencia"],
-				$dataResult["tratoanimales"],
-				// CONOCIMIENTOS
-				$dataResult["ciencias"],
-				$dataResult["enigmas"],
-				$dataResult["informatica"],
-				$dataResult["investigacion"],
-				$dataResult["leyes"],
-				$dataResult["linguistica"],
-				$dataResult["medicina"],
-				$dataResult["ocultismo"],
-				$dataResult["politica"],
-				$dataResult["rituales"],
-				// HABILIDADES SECUNDARIAS
-				$dataResult["talento1valor"],
-				$dataResult["talento2valor"],
-				$dataResult["tecnica1valor"],
-				$dataResult["tecnica2valor"],
-				$dataResult["conoci1valor"],
-				$dataResult["conoci2valor"],
-				// TRASFONDOS
-				$dataResult["trasfondo1valor"],
-				$dataResult["trasfondo2valor"],
-				$dataResult["trasfondo3valor"],
-				$dataResult["trasfondo4valor"],
-				$dataResult["trasfondo5valor"],
-			);
-		// Habilidades Secundarias
-			$bioTale1N		 = $dataResult["talento1extra"]; 	// Talento 1 extra del PJ.
-			$bioTale2N		 = $dataResult["talento2extra"]; 	// Talento 2 extra del PJ.
-			$bioTecn1N		 = $dataResult["tecnica1extra"]; 	// Técnica 1 extra del PJ.
-			$bioTecn2N		 = $dataResult["tecnica2extra"]; 	// Técnica 2 extra del PJ.
-			$bioCono1N		 = $dataResult["conoci1extra"]; 	// Conocimiento 1 extra del PJ.
-			$bioCono2N		 = $dataResult["conoci2extra"]; 	// Conocimiento 2 extra del PJ.
-		// ================================================================== //
-		// Trasfondos
-			$bioBack1N		 = $dataResult["trasfondo1"]; 	// Trasfondo 1 del PJ.
-			$bioBack2N		 = $dataResult["trasfondo2"]; 	// Trasfondo 2 del PJ.
-			$bioBack3N		 = $dataResult["trasfondo3"]; 	// Trasfondo 3 del PJ.
-			$bioBack4N		 = $dataResult["trasfondo4"]; 	// Trasfondo 4 del PJ.
-			$bioBack5N		 = $dataResult["trasfondo5"]; 	// Trasfondo 5 del PJ.
-		// ================================================================== //
+		$bioTraitsByType = [
+			'Atributos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Atributos'),
+			'Talentos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Talentos'),
+			'Técnicas' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Técnicas'),
+			'Conocimientos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Conocimientos'),
+			'Trasfondos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Trasfondos'),
+		];
+
+		// Orden + extras al final (alfab?tico)
+		$bioTraitsByType['Talentos'] = order_trait_list($bioTraitsByType['Talentos'] ?? [], 10);
+		$bioTraitsByType['Técnicas'] = order_trait_list($bioTraitsByType['Técnicas'] ?? [], 10);
+		$bioTraitsByType['Conocimientos'] = order_trait_list($bioTraitsByType['Conocimientos'] ?? [], 10);
+
+		$bioTraitImgsByType = [];
+		foreach ($bioTraitsByType as $tipo => $list) {
+			$vals = array_map(fn($t) => (int)($t['value'] ?? 0), $list);
+			$bioTraitImgsByType[$tipo] = createSkillCircle($vals, 'gem-attr');
+		}
+
+		$bioAttrList = $bioTraitsByType['Atributos'] ?? [];
+		$bioAttrCols = [
+			array_slice($bioAttrList, 0, 3),
+			array_slice($bioAttrList, 3, 3),
+			array_slice($bioAttrList, 6, 3),
+		];
+		$bioAttrColImgs = [
+			createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $bioAttrCols[0]), 'gem-attr'),
+			createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $bioAttrCols[1]), 'gem-attr'),
+			createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $bioAttrCols[2]), 'gem-attr'),
+		];
+
+		$bioSkillCols = [
+			'Talentos' => $bioTraitsByType['Talentos'] ?? [],
+			'Técnicas' => $bioTraitsByType['Técnicas'] ?? [],
+			'Conocimientos' => $bioTraitsByType['Conocimientos'] ?? [],
+		];
+		$bioSkillColImgs = [
+			'Talentos' => $bioTraitImgsByType['Talentos'] ?? [],
+			'Técnicas' => $bioTraitImgsByType['Técnicas'] ?? [],
+			'Conocimientos' => $bioTraitImgsByType['Conocimientos'] ?? [],
+		];
+
+		$bioBackgrounds = $bioTraitsByType['Trasfondos'] ?? [];
+		$bioBackVals = array_map(fn($t) => (int)($t['value'] ?? 0), $bioBackgrounds);
+		$bioBackImgs = createSkillCircle($bioBackVals, 'gem-attr');
+
+		// Legacy: construir array de habilidades fijo (30) + extras por tipo
+		$bioArraySkiLegacy = [
+			$traitVal('alerta'),
+			$traitVal('atletismo'),
+			$traitVal('callejeo'),
+			$traitVal('empatia'),
+			$traitVal('esquivar'),
+			$traitVal('expresion'),
+			$traitVal('impulsprimario'),
+			$traitVal('intimidacion'),
+			$traitVal('pelea'),
+			$traitVal('subterfugio'),
+			$traitVal('armascc'),
+			$traitVal('armasdefuego'),
+			$traitVal('conducir'),
+			$traitVal('etiqueta'),
+			$traitVal('interpretacion'),
+			$traitVal('liderazgo'),
+			$traitVal('reparaciones'),
+			$traitVal('sigilo'),
+			$traitVal('supervivencia'),
+			$traitVal('tratoanimales'),
+			$traitVal('ciencias'),
+			$traitVal('enigmas'),
+			$traitVal('informatica'),
+			$traitVal('investigacion'),
+			$traitVal('leyes'),
+			$traitVal('linguistica'),
+			$traitVal('medicina'),
+			$traitVal('ocultismo'),
+			$traitVal('politica'),
+			$traitVal('rituales'),
+		];
+		$bioSkilImg = createSkillCircle($bioArraySkiLegacy, 'gem-attr');
+
+		$talentoExtras = array_slice($bioTraitsByType['Talentos'] ?? [], 10);
+		$tecnicaExtras = array_slice($bioTraitsByType['Técnicas'] ?? [], 10);
+		$conociExtras = array_slice($bioTraitsByType['Conocimientos'] ?? [], 10);
+		$bioExtraTalImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $talentoExtras), 'gem-attr');
+		$bioExtraTecImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $tecnicaExtras), 'gem-attr');
+		$bioExtraConImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $conociExtras), 'gem-attr');
+// ================================================================== //
 			}
 	 	} // <---- Fin de comprobación si lleva hoja de PJ
 		
@@ -260,7 +459,7 @@
 		$relaciones = [];
 		
 		// Relaciones salientes
-		$stmt1 = $link->prepare("SELECT cr.*, p2.nombre, p2.alias, p2.img, p2.genero_pj, 'outgoing' as direction
+		$stmt1 = $link->prepare("SELECT cr.*, p2.name, p2.alias, p2.img, p2.genero_pj, 'outgoing' as direction
 								FROM bridge_characters_relations cr
 								LEFT JOIN fact_characters p2 ON cr.target_id = p2.id
 								WHERE cr.source_id = ?
@@ -271,7 +470,7 @@
 		$relaciones = array_merge($relaciones, $stm11_results);
 
 		// Relaciones entrantes
-		$stmt2 = $link->prepare("SELECT cr.*, p2.nombre, p2.alias, p2.img, p2.genero_pj, 'incoming' as direction
+		$stmt2 = $link->prepare("SELECT cr.*, p2.name, p2.alias, p2.img, p2.genero_pj, 'incoming' as direction
 								FROM bridge_characters_relations cr
 								LEFT JOIN fact_characters p2 ON cr.source_id = p2.id
 								WHERE cr.target_id = ?
@@ -291,11 +490,11 @@
 		// Nueva preparación 2025. Participación del personaje.
 		// ======================================================================================		
 		$participacion = [];
-		$stmtP = $link->prepare("SELECT ac.id, ac.name, ac.capitulo, at2.name AS temporada_name, at2.numero, ac.fecha FROM dim_chapters ac
-								INNER JOIN bridge_chapters_characters acp ON ac.id = acp.id_capitulo 
-								INNER JOIN dim_seasons at2 ON ac.temporada = at2.numero 
-								WHERE acp.id_personaje = ?
-								ORDER BY ac.fecha, ac.capitulo");
+		$stmtP = $link->prepare("SELECT ac.id, ac.name, ac.chapter_number, at2.name AS temporada_name, at2.season_number, ac.played_date FROM dim_chapters ac
+								INNER JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id 
+								INNER JOIN dim_seasons at2 ON ac.season_number = at2.season_number 
+								WHERE acp.character_id = ?
+								ORDER BY ac.played_date, ac.chapter_number");
 		$stmtP->bind_param('i', $characterId);
 		$stmtP->execute();
 		$stmtP_results = stmt_fetch_all_assoc_compat($stmtP);
@@ -450,25 +649,15 @@
 			// ================================================================== //
 			echo "<div class='bioSheetBackgrounds'>"; // Trasfondos de la Hoja ~~ #SEC07
 			echo "<fieldset class='bioSeccion'><legend>$titleBackg</legend>";
-				if ($bioBack1N != "") {
-					echo"<div class='bioSheetBackgroundLeft'>" . h($bioBack1N) . ":</div>";
-					echo"<div class='bioSheetBackgroundRight'>$bioSkilImg[36]</div>";
-				}
-				if ($bioBack2N != "") {
-					echo"<div class='bioSheetBackgroundLeft'>" . h($bioBack2N) . ":</div>";
-					echo"<div class='bioSheetBackgroundRight'>$bioSkilImg[37]</div>";
-				}
-				if ($bioBack3N != "") {
-					echo"<div class='bioSheetBackgroundLeft'>" . h($bioBack3N) . ":</div>";
-					echo"<div class='bioSheetBackgroundRight'>$bioSkilImg[38]</div>";
-				}
-				if ($bioBack4N != "") {
-					echo"<div class='bioSheetBackgroundLeft'>" . h($bioBack4N) . ":</div>";
-					echo"<div class='bioSheetBackgroundRight'>$bioSkilImg[39]</div>";
-				}
-				if ($bioBack5N != "") {
-					echo"<div class='bioSheetBackgroundLeft'>" . h($bioBack5N) . ":</div>";
-					echo"<div class='bioSheetBackgroundRight'>$bioSkilImg[40]</div>";
+				if (!empty($bioBackgrounds)) {
+					foreach ($bioBackgrounds as $idx => $bg) {
+						$nm = (string)($bg['name'] ?? '');
+						$val = (int)($bg['value'] ?? 0);
+						if ($nm === '' || $val <= 0) continue;
+						echo"<div class='bioSheetBackgroundLeft'>" . h($nm) . ":</div>";
+						$img = $bioBackImgs[$idx] ?? '';
+						echo"<div class='bioSheetBackgroundRight'>" . $img . "</div>";
+					}
 				}
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Trasfondos ~~
@@ -708,3 +897,5 @@
 			});
 		});
 	</script>
+
+

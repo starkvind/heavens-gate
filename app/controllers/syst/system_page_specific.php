@@ -22,7 +22,7 @@ function sanitize_int_csv($csv){
 
 // EXCLUSIONES (si existe la variable global, la usamos; si no, mantenemos 2,7)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
-$whereChron = ($excludeChronicles !== '') ? "p.cronica NOT IN ($excludeChronicles)" : "1=1";
+$whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChronicles)" : "1=1";
 
 // Preparar Queries
 switch ($systemTypeDocument) {
@@ -76,13 +76,13 @@ if ($table !== "") {
 
     while ($ResultQuery = $result->fetch_assoc()) {
         // Datos del Sistema
-        $returnType = htmlspecialchars($ResultQuery["sistema"]);
+        $returnType = htmlspecialchars($ResultQuery["system_name"]);
         $typeOfSystem = $returnType;
         $nameSyst = htmlspecialchars($ResultQuery["name"]);
-        $infoDesc = ($ResultQuery["desc"]);
+        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["desc"] ?? "");
         $systemId = (int)($ResultQuery["system_id"] ?? 0);
-        if (isset($ResultQuery["imagen"])) {
-			$imageSyst = htmlspecialchars($ResultQuery["imagen"]);
+        if (isset($ResultQuery["image_url"])) {
+			$imageSyst = htmlspecialchars($ResultQuery["image_url"]);
 		} else {
 			$imageSyst = "";
 		}
@@ -95,8 +95,8 @@ if ($table !== "") {
         include("app/partials/main_nav_bar.php"); // Barra Navegación
 
         // Comprobar si los datos tienen energía para mostrarla
-        if (isset($ResultQuery["energia"])) {
-			$checkEnergy = htmlspecialchars($ResultQuery["energia"]);
+        if (isset($ResultQuery["energy"])) {
+			$checkEnergy = htmlspecialchars($ResultQuery["energy"]);
 		} else {
 			$checkEnergy = 0;
 		}
@@ -135,8 +135,8 @@ if ($table !== "") {
 
         } elseif ($systemTypeDocument == 4) {
             $miscInfoData = ($ResultQuery["miscinfo"]);
-            $miscNameEnergy = htmlspecialchars($ResultQuery["energianombre"]);
-            $miscValuEnergy = htmlspecialchars($ResultQuery["energiavalor"]);
+            $miscNameEnergy = htmlspecialchars($ResultQuery["energy_name"]);
+            $miscValuEnergy = htmlspecialchars($ResultQuery["energy_value"]);
 
             if ($miscInfoData != "") { 
                 $metaHtml .= "<p>$miscInfoData</p>"; 
@@ -162,7 +162,7 @@ if ($table !== "") {
 <?php
         // Don Query para obtener dones basados en el sistema
         $donGroup = $nameSyst;
-        $donQuery = "SELECT id, nombre, rango FROM fact_gifts WHERE grupo = ? AND system_id = ? ORDER BY rango;";
+        $donQuery = "SELECT id, name, rank FROM fact_gifts WHERE grupo = ? AND system_id = ? ORDER BY rank;";
         $stmtDon = $link->prepare($donQuery);
         $stmtDon->bind_param('si', $donGroup, $systemId);
         $stmtDon->execute();
@@ -177,12 +177,12 @@ if ($table !== "") {
             while ($resultDonQuery = $resultDon->fetch_assoc()) {
                 echo "
                     <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$resultDonQuery['id'])) . "' 
-                        title='" . htmlspecialchars($resultDonQuery['nombre']) . ", Rango " . htmlspecialchars($resultDonQuery['rango']) . "' target='_blank'>
+                        title='" . htmlspecialchars($resultDonQuery['name']) . ", Rango " . htmlspecialchars($resultDonQuery['rank']) . "' target='_blank'>
                         <div class='renglon2col'>
                             <div class='renglon2colIz'>
-                                <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($resultDonQuery['nombre']) . "
+                                <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($resultDonQuery['name']) . "
                             </div>
-                            <div class='renglon2colDe'>" . htmlspecialchars($resultDonQuery['rango']) . "</div>
+                            <div class='renglon2colDe'>" . htmlspecialchars($resultDonQuery['rank']) . "</div>
                         </div>
                     </a>
                 ";
@@ -197,7 +197,7 @@ if ($table !== "") {
 <?php
         // Mostrar personajes asociados (raza / auspicio / tribu)
         $charField = '';
-        if ($systemTypeDocument === 1) $charField = 'raza';
+        if ($systemTypeDocument === 1) $charField = 'breed_id';
         elseif ($systemTypeDocument === 2) $charField = 'auspicio';
         elseif ($systemTypeDocument === 3) $charField = 'tribu';
 
@@ -205,7 +205,7 @@ if ($table !== "") {
             $charsWithoutPackQuery = "
                 SELECT 
                     p.id,
-                    p.nombre,
+                    p.name,
                     GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS grupos,
                     GROUP_CONCAT(DISTINCT o.name ORDER BY o.name SEPARATOR ', ') AS organizaciones
                 FROM fact_characters p
@@ -216,7 +216,7 @@ if ($table !== "") {
                 WHERE p.`$charField` = ?
                   AND $whereChron
                 GROUP BY p.id
-                ORDER BY p.nombre
+                ORDER BY p.name
             ";
             $stmtChars = $link->prepare($charsWithoutPackQuery);
             $stmtChars->bind_param('i', $resolvedId);
@@ -232,7 +232,7 @@ if ($table !== "") {
             while ($charsWithoutPackResult = $resultChars->fetch_assoc()) { 
                 $members[] = [
                     'id' => (int)$charsWithoutPackResult["id"],
-                    'nombre' => (string)$charsWithoutPackResult["nombre"],
+                    'nombre' => (string)$charsWithoutPackResult["name"],
                     'grupos' => (string)($charsWithoutPackResult["grupos"] ?? ''),
                     'organizaciones' => (string)($charsWithoutPackResult["organizaciones"] ?? ''),
                 ];

@@ -67,7 +67,7 @@ function render_clans_table($link){
 }
 
 function render_groups_table($link){
-  $sql = "SELECT m.id, m.name, m.activa FROM dim_groups m ORDER BY m.name ASC";
+  $sql = "SELECT m.id, m.name, m.is_active AS activa FROM dim_groups m ORDER BY m.name ASC";
   [$ok,$err,$rs] = q($link,$sql);
   if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
 
@@ -161,11 +161,11 @@ function render_clan_detail($link,$clan_id){
 /* --- fragmento: detalle manada (miembros) --- */
 function render_group_detail($link,$group_id){
   $group_id = (int)$group_id;
-  $sql = "SELECT p.id, p.nombre, p.alias, p.nombregarou, b.is_active, b.position
+  $sql = "SELECT p.id, p.name AS nombre, p.alias, p.garou_name AS nombregarou, b.is_active, b.position
           FROM bridge_characters_groups b
           INNER JOIN fact_characters p ON p.id=b.character_id
           WHERE b.group_id=?
-          ORDER BY p.nombre ASC";
+          ORDER BY p.name ASC";
   [$ok,$err,$rs] = q($link,$sql,'i',[$group_id]);
   if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
 
@@ -210,7 +210,7 @@ function render_group_detail($link,$group_id){
 /* --- MODALES --- */
 function render_clan_modal($link,$clan_id){
   $clan_id = (int)$clan_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,totem FROM dim_organizations WHERE id=? LIMIT 1",'i',[$clan_id]);
+  [$ok,$err,$rs] = q($link,"SELECT id,name,totem_id AS totem FROM dim_organizations WHERE id=? LIMIT 1",'i',[$clan_id]);
   if(!$ok || !$rs || !($clan=mysqli_fetch_assoc($rs))){
     echo "<div class='err'>Clan no encontrado.</div>"; return;
   }
@@ -243,7 +243,7 @@ function render_clan_modal($link,$clan_id){
 
 function render_group_modal($link,$group_id){
   $group_id = (int)$group_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,activa,IFNULL(cronica,1) AS cronica, totem FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
+  [$ok,$err,$rs] = q($link,"SELECT id,name,is_active AS activa,IFNULL(chronicle_id,1) AS cronica, totem_id AS totem FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
   if(!$ok || !$rs || !($g=mysqli_fetch_assoc($rs))){
     echo "<div class='err'>Manada no encontrada.</div>"; return;
   }
@@ -355,7 +355,7 @@ if(!empty($_POST['action'])){
     $id=(int)($_POST['clan_id']??0);
     $name=trim((string)($_POST['name']??''));
     $totem=(int)($_POST['totem']??0);
-    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=?, totem=? WHERE id=?",'sii',[$name,$totem,$id]); }
+    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=?, totem_id=? WHERE id=?",'sii',[$name,$totem,$id]); }
     hg_update_pretty_id_if_exists($link, 'dim_organizations', $id, $name);
     render_clan_modal($link,$id); exit;
   }
@@ -379,7 +379,7 @@ if(!empty($_POST['action'])){
     $cronica = (int)($_POST['cronica']??1); if($cronica<1){ $cronica=1; }
     $totem = (int)($_POST['totem']??0);
     if($id>0 && $name!==''){
-      q($link,"UPDATE dim_groups SET name=?, activa=?, cronica=?, totem=? WHERE id=?",'siiii',[$name,$activa,$cronica,$totem,$id]);
+      q($link,"UPDATE dim_groups SET name=?, is_active=?, chronicle_id=?, totem_id=? WHERE id=?",'siiii',[$name,$activa,$cronica,$totem,$id]);
       hg_update_pretty_id_if_exists($link, 'dim_groups', $id, $name);
     }
     render_group_modal($link,$id); exit;
@@ -396,7 +396,7 @@ if(!empty($_POST['action'])){
 
     // dim_groups requiere varias columnas NOT NULL; ponemos defaults seguros
     [$ok,$err,$rs,$newId] = q($link,
-      "INSERT INTO dim_groups (name, cronica, clan, totem, activa, `desc`) VALUES (?,?,?,?,?,?)",
+      "INSERT INTO dim_groups (name, chronicle_id, clan, totem_id, is_active, `desc`) VALUES (?,?,?,?,?,?)",
       'sisiis', [$name, $cronica, /*clan(texto)*/'', $totem, $activa, /*desc*/'']);
     hg_update_pretty_id_if_exists($link, 'dim_groups', $newId, $name);
     if(!$ok){ render_group_create_form($link,$clan_id); echo "<div class='err'>".e($err)."</div>"; exit; }
@@ -475,10 +475,10 @@ if(!empty($_POST['action'])){
     $qtxt = trim((string)($_POST['q']??''));
     if($qtxt===''){ echo ""; exit; }
     $like="%{$qtxt}%";
-    [$ok,$err,$rs] = q($link,"SELECT id,nombre,alias,nombregarou
+    [$ok,$err,$rs] = q($link,"SELECT id,name AS nombre,alias,garou_name AS nombregarou
                               FROM fact_characters
-                              WHERE nombre LIKE ? OR alias LIKE ? OR nombregarou LIKE ?
-                              ORDER BY nombre ASC LIMIT 30",'sss',[$like,$like,$like]);
+                              WHERE name LIKE ? OR alias LIKE ? OR garou_name LIKE ?
+                              ORDER BY name ASC LIMIT 30",'sss',[$like,$like,$like]);
     if(!$ok){ echo "<div class='err'>".e($err)."</div>"; exit; }
     echo "<div class='grid'>";
     while($r=mysqli_fetch_assoc($rs)){

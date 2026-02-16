@@ -16,7 +16,7 @@ $query = "
 		nto.id as item_type_id,
 		COALESCE(nb.name, '') as item_origin
 	FROM fact_items no2
-		left join dim_item_types nto on no2.tipo = nto.id 
+		left join dim_item_types nto on no2.item_type_id = nto.id 
 		left join dim_bibliographies nb on no2.bibliography_id = nb.id
 	order by
 		nto.name ASC,

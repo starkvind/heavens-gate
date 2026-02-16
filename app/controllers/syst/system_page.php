@@ -15,7 +15,7 @@ if ($systemCategory !== '') {
 
 // =========================================================== >
 // Preparamos la consulta para evitar inyecciones SQL
-$ordenQuery = "SELECT name, img, descripcion, formas FROM dim_systems WHERE id = ? LIMIT 1";
+$ordenQuery = "SELECT name, img, description, forms FROM dim_systems WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($ordenQuery);
 $stmt->bind_param('i', $systemCategoryId);
 $stmt->execute();
@@ -31,8 +31,8 @@ if (!$ordenQueryResult) {
 } else {
     $systemName = htmlspecialchars($ordenQueryResult["name"]);
     $systemImg = htmlspecialchars($ordenQueryResult["img"]);
-    $systemDesc = ($ordenQueryResult["descripcion"]);
-    $systemForm = (int)$ordenQueryResult["formas"];
+    $systemDesc = ($ordenQueryResult["description"]);
+    $systemForm = (int)$ordenQueryResult["forms"];
     $systemNameRaw = (string)$ordenQueryResult["name"];
 
     // CAMBIAR EL TITULO A LA PAGINA
@@ -146,8 +146,8 @@ if (!$ordenQueryResult) {
             $formsByRace = [];
             while ($formQueryResult = $resultForms->fetch_assoc()) {
                 $formId = (int)$formQueryResult["id"];
-                $formAff = htmlspecialchars($formQueryResult["raza"]);
-                $formName = htmlspecialchars($formQueryResult["forma"]);
+                $formAff = htmlspecialchars($formQueryResult["race"]);
+                $formName = htmlspecialchars($formQueryResult["form"]);
                 if ($systemName === "Bastet") {
                     $formsByRace[$formAff][] = ['id'=>$formId,'name'=>$formName];
                 } else {
@@ -267,7 +267,7 @@ if (!$ordenQueryResult) {
     $stmtTribes->close();
 
     // CUADRO MISCELÁNEA
-    $queryMisc = "SELECT id, name, type FROM fact_misc_systems WHERE sistema = ? OR sistema = ? ORDER BY id";
+    $queryMisc = "SELECT id, name, kind FROM fact_misc_systems WHERE system_name = ? OR system_name = ? ORDER BY id";
     $stmtMisc = $link->prepare($queryMisc);
     $stmtMisc->bind_param('ss', $systemNameRaw, $systemNameAlt);
     $stmtMisc->execute();

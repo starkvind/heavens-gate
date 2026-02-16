@@ -10,7 +10,7 @@ if (!$link) {
 }
 
 // Consulta preparada (id = ?, no LIKE)
-$Query = "SELECT dz.titulo, d.tipo as seccion, dz.texto, dz.source
+$Query = "SELECT dz.title, d.kind as seccion, dz.texto, dz.source
           FROM fact_docs dz
           LEFT JOIN dim_doc_categories d ON d.id = dz.seccion
           WHERE dz.id = ? LIMIT 1";
@@ -30,7 +30,7 @@ if (!$ResultQuery) {
   print("Documento no encontrado."); 
 } else {
 
-$titleDoc = (string)$ResultQuery["titulo"];
+$titleDoc = (string)$ResultQuery["title"];
 $texto    = (string)$ResultQuery["texto"];   // HTML (Quill) -> se imprime tal cual
 $source   = (string)($ResultQuery["source"] ?? '');
 $secciDoc = (string)($ResultQuery["seccion"] ?? 'Documento');
@@ -366,3 +366,4 @@ include("app/partials/main_nav_bar.php");
 
 
 <?php } ?>
+

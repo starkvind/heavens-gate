@@ -7,7 +7,7 @@ include("app/partials/main_nav_bar.php"); // Barra de Navegación
 echo "<h2>Maniobras de combate</h2>";
 
 // Consulta para obtener sistemas distintos de maniobras de combate
-$queryClasi = "SELECT DISTINCT sistema FROM fact_combat_maneuvers ORDER BY name ASC";
+$queryClasi = "SELECT DISTINCT system_name FROM fact_combat_maneuvers ORDER BY name ASC";
 $stmtClasi = $link->prepare($queryClasi);
 $stmtClasi->execute();
 $resultClasi = $stmtClasi->get_result();
@@ -15,12 +15,12 @@ $filasClasi = $resultClasi->num_rows;
 
 // Iterar sobre cada sistema de maniobras
 while ($resultClasiArray = $resultClasi->fetch_assoc()) {
-    $nameClasi = htmlspecialchars($resultClasiArray["sistema"]);
+    $nameClasi = htmlspecialchars($resultClasiArray["system_name"]);
     echo "<fieldset class='grupoHabilidad'>"; // Inicio Fieldset
     echo "<legend><b>$nameClasi</b></legend>";
 
     // Consulta para obtener maniobras específicas del sistema actual
-    $consulta = "SELECT id, name FROM fact_combat_maneuvers WHERE sistema = ? ORDER BY roll DESC";
+    $consulta = "SELECT id, name FROM fact_combat_maneuvers WHERE system_name = ? ORDER BY roll DESC";
     $stmtConsulta = $link->prepare($consulta);
     $stmtConsulta->bind_param('s', $nameClasi);
     $stmtConsulta->execute();

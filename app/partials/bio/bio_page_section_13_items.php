@@ -7,12 +7,12 @@
         SELECT
             o.id,
             o.name,
-            o.tipo, t.pretty_id AS tipo_pretty
+            o.item_type_id, t.pretty_id AS tipo_pretty
         FROM bridge_characters_items b
-        JOIN fact_items o ON o.id = b.objeto_id
-        LEFT JOIN dim_item_types t ON t.id = o.tipo
-        WHERE b.personaje_id = ?
-        ORDER BY o.tipo, o.name
+        JOIN fact_items o ON o.id = b.item_id
+        LEFT JOIN dim_item_types t ON t.id = o.item_type_id
+        WHERE b.character_id = ?
+        ORDER BY o.item_type_id, o.name
     ";
 
     $stmt = $link->prepare($sql);
@@ -27,7 +27,7 @@
         while ($row = $result->fetch_assoc()) {
             $itemIdSelect      = (int)$row['id'];
             $nombreItemSelect  = htmlspecialchars($row['name']);
-            $tipoItemSelect    = (int)$row['tipo'];
+            $tipoItemSelect    = (int)$row['item_type_id'];
 
             // ================================================= //
             // Elección de icono
@@ -68,3 +68,4 @@
     }
     $stmt->close();
 ?>
+

@@ -78,3 +78,13 @@ app/tools/migrate_totem_id.php
 app/tools/create_missing_totems.php
 app/tools/check_bio_systems.php
 app/tools/check_totem_id.php
+app/tools/check_character_traits.php
+app/tools/dedupe_dim_traits.php
+app/tools/migrate_character_traits.php
+app/tools/migrate_rename_bridges.php
+app/tools/migrate_rename_desc.php
+app/tools/migrate_rename_parties_misc.php
+app/tools/migrate_trait_sets.php
+app/tools/seed_trait_sets_from_bio.php
+app/tools/migrate_rename_all_columns.php
+app/tools/check_fulltext_issues.php

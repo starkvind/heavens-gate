@@ -60,7 +60,7 @@ if (!function_exists('sanitize_int_csv')) {
     }
 }
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND cronica NOT IN ($excludeChronicles) " : "";
+$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND chronicle_id NOT IN ($excludeChronicles) " : "";
 
 // Mostrar imagen de jugador
 if (empty($picPJ)) {
@@ -69,7 +69,7 @@ if (empty($picPJ)) {
 echo "<tr><td class='bext2'><img src='$picPJ'></td>";
 
 // Obtener personajes asociados al jugador
-$sqlPlayerCharacters = "SELECT id, nombre FROM fact_characters WHERE jugador = ? $cronicaNotInSQL";
+$sqlPlayerCharacters = "SELECT id, name FROM fact_characters WHERE player_id = ? $cronicaNotInSQL";
 $stmt2 = mysqli_prepare($link, $sqlPlayerCharacters);
 
 if (!$stmt2) {
@@ -92,7 +92,7 @@ if ($result2) {
 
     while ($resultSelectPJ2 = mysqli_fetch_assoc($result2)) {
         $pjIdResult = (int)$resultSelectPJ2['id'];
-        $pjNombreResult = htmlspecialchars($resultSelectPJ2['nombre']);
+        $pjNombreResult = htmlspecialchars($resultSelectPJ2['name']);
         $pjHref = pretty_url($link, 'fact_characters', '/characters', $pjIdResult);
 
         echo "

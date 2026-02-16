@@ -16,8 +16,8 @@ if ($rowsQueryArche > 0) {
 
     // Datos básicos
     $archeName = htmlspecialchars($resultQueryArche["name"]);
-    $archeDesc = $resultQueryArche["desc"]; // keep HTML from DB
-    $archeWill = $resultQueryArche["fv"];
+    $archeDesc = $resultQueryArche["description"] ?? $resultQueryArche["desc"] ?? ''; // keep HTML from DB
+$archeWill = $resultQueryArche["willpower_text"] ?? $resultQueryArche["fv"] ?? '';
     $archeOrig = htmlspecialchars($resultQueryArche["bibliography_id"]);
 
     // Seleccionar origen

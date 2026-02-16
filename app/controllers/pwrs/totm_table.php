@@ -9,12 +9,12 @@ $query = "
 		nt.pretty_id as totem_pretty_id,
 		nt.name as totem_name,
 		ntt.name as totem_type,
-		nt.coste as totem_cost,
+		nt.cost as totem_cost,
 		nb.name as totem_origin
 	from dim_totems nt
-		left join dim_totem_types ntt on ntt.id = nt.tipo
+		left join dim_totem_types ntt on ntt.id = nt.totem_type_id
 		left join dim_bibliographies nb on nt.bibliography_id = nb.id
-	order by nt.bibliography_id, nt.coste
+	order by nt.bibliography_id, nt.cost
 ";
 $result = mysqli_query($link, $query);
 

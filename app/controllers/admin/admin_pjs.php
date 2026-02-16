@@ -208,13 +208,13 @@ function save_character_powers(mysqli $link, int $charId, array $types, array $i
     $n = min(count($types), count($ids), count($lvls));
     $inserted = 0; $skipped = 0;
 
-    if ($st = $link->prepare("DELETE FROM bridge_characters_powers WHERE personaje_id=?")) {
+    if ($st = $link->prepare("DELETE FROM bridge_characters_powers WHERE character_id=?")) {
         $st->bind_param("i", $charId); $st->execute(); $st->close();
     }
     if ($n<=0) return ['inserted'=>0,'skipped'=>0];
 
     $seen = [];
-    if ($ins = $link->prepare("INSERT INTO bridge_characters_powers (personaje_id, tipo_poder, poder_id, poder_lvl) VALUES (?,?,?,?)")) {
+    if ($ins = $link->prepare("INSERT INTO bridge_characters_powers (character_id, power_kind, power_id, power_level) VALUES (?,?,?,?)")) {
         for ($i=0; $i<$n; $i++){
             $t = (string)$types[$i];
             $id = (int)$ids[$i];
@@ -240,14 +240,14 @@ function save_character_merits_flaws(mysqli $link, int $charId, array $ids, arra
     $n = min(count($ids), count($lvls_raw));
     $inserted = 0; $skipped = 0;
 
-    if ($st = $link->prepare("DELETE FROM bridge_characters_merits_flaws WHERE personaje_id=?")) {
+    if ($st = $link->prepare("DELETE FROM bridge_characters_merits_flaws WHERE character_id=?")) {
         $st->bind_param("i", $charId); $st->execute(); $st->close();
     }
     if ($n<=0) return ['inserted'=>0,'skipped'=>0];
 
     $seen = [];
     // 3er parámetro lo bindeamos como string para que NULL viaje como NULL sin convertirse a 0
-    if ($ins = $link->prepare("INSERT INTO bridge_characters_merits_flaws (personaje_id, mer_y_def_id, nivel) VALUES (?,?,?)")) {
+    if ($ins = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?,?,?)")) {
         for ($i=0; $i<$n; $i++){
             $mid = (int)$ids[$i];
             if ($mid <= 0) { $skipped++; continue; }
@@ -276,13 +276,13 @@ function save_character_merits_flaws(mysqli $link, int $charId, array $ids, arra
 function save_character_items(mysqli $link, int $charId, array $itemIds): array {
     $inserted = 0; $skipped = 0;
 
-    if ($st = $link->prepare("DELETE FROM bridge_characters_items WHERE personaje_id=?")) {
+    if ($st = $link->prepare("DELETE FROM bridge_characters_items WHERE character_id=?")) {
         $st->bind_param("i", $charId); $st->execute(); $st->close();
     }
     if (empty($itemIds)) return ['inserted'=>0,'skipped'=>0];
 
     $seen = [];
-    if ($ins = $link->prepare("INSERT INTO bridge_characters_items (personaje_id, objeto_id) VALUES (?,?)")) {
+    if ($ins = $link->prepare("INSERT INTO bridge_characters_items (character_id, item_id) VALUES (?,?)")) {
         foreach ($itemIds as $iid){
             $iid = (int)$iid;
             if ($iid <= 0) { $skipped++; continue; }
@@ -295,6 +295,70 @@ function save_character_items(mysqli $link, int $charId, array $itemIds): array 
         $ins->close();
     }
     return ['inserted'=>$inserted,'skipped'=>$skipped];
+}
+
+/* --- TRAITS: helper guardar valores + log --- */
+function save_character_traits(mysqli $link, int $charId, array $traits, string $source = 'admin', ?string $createdBy = null): array {
+    if (empty($traits)) return ['updated'=>0,'logged'=>0,'skipped'=>0];
+
+    $old = [];
+    if ($st = $link->prepare("SELECT trait_id, value FROM fact_character_traits WHERE character_id=?")) {
+        $st->bind_param("i", $charId);
+        $st->execute();
+        $rs = $st->get_result();
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $old[(int)$row['trait_id']] = (int)$row['value'];
+        }
+        $st->close();
+    }
+
+    $updated = 0; $logged = 0; $skipped = 0;
+
+    $ins = $link->prepare("INSERT INTO fact_character_traits (character_id, trait_id, value)
+                           VALUES (?,?,?)
+                           ON DUPLICATE KEY UPDATE value=VALUES(value), updated_at=NOW()");
+    $log = $link->prepare("INSERT INTO fact_character_traits_log
+                           (character_id, trait_id, old_value, new_value, delta, reason, source, created_at, created_by)
+                           VALUES (?,?,?,?,?,?,?,NOW(),?)");
+
+    foreach ($traits as $tid => $val) {
+        $tid = (int)$tid;
+        if ($tid <= 0) { $skipped++; continue; }
+        $v = (int)$val;
+        if ($v < 0) $v = 0;
+        if ($v > 10) $v = 10;
+
+        if ($ins) {
+            $ins->bind_param("iii", $charId, $tid, $v);
+            if ($ins->execute()) { $updated++; } else { $skipped++; }
+        }
+
+        $hadOld = array_key_exists($tid, $old);
+        $oldVal = $hadOld ? (int)$old[$tid] : null;
+        if (!$hadOld && $v === 0) {
+            continue; // no log for implicit zero
+        }
+        if ($hadOld && $oldVal === $v) {
+            continue; // no changes
+        }
+
+        $oldStr = $hadOld ? (string)$oldVal : null;
+        $newStr = (string)$v;
+        $delta  = $hadOld ? (string)($v - $oldVal) : $newStr;
+        $reason = $hadOld ? 'admin update' : 'admin initial';
+        $src    = $source;
+        $cb     = $createdBy;
+
+        if ($log) {
+            $log->bind_param("iissssss", $charId, $tid, $oldStr, $newStr, $delta, $reason, $src, $cb);
+            if ($log->execute()) { $logged++; } else { $skipped++; }
+        }
+    }
+
+    if ($ins) $ins->close();
+    if ($log) $log->close();
+
+    return ['updated'=>$updated,'logged'=>$logged,'skipped'=>$skipped];
 }
 
 /* -------------------------------------------------
@@ -345,7 +409,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $id = max(0, (int)($_GET['id'] ?? 0));
         if ($id <= 0) { echo json_encode(['ok'=>false,'msg'=>'bad_id'], $jsonFlags); exit; }
 
-        if ($st = $link->prepare("SELECT estado, causamuerte, cumple, rango, infotext FROM fact_characters WHERE id=? LIMIT 1")) {
+        if ($st = $link->prepare("SELECT estado, cause_of_death, birthdate_text, rank, info_text FROM fact_characters WHERE id=? LIMIT 1")) {
             $st->bind_param("i", $id);
             $st->execute();
             $rs = $st->get_result();
@@ -354,10 +418,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 echo json_encode([
                     'ok'          => true,
                     'estado'      => (string)($row['estado'] ?? ''),
-                    'causamuerte' => (string)($row['causamuerte'] ?? ''),
-                    'cumple'      => (string)($row['cumple'] ?? ''),
-                    'rango'       => (string)($row['rango'] ?? ''),
-                    'infotext'    => (string)($row['infotext'] ?? ''),
+                    'causamuerte' => (string)($row['cause_of_death'] ?? ''),
+                    'cumple'      => (string)($row['birthdate_text'] ?? ''),
+                    'rango'       => (string)($row['rank'] ?? ''),
+                    'infotext'    => (string)($row['info_text'] ?? ''),
                 ], $jsonFlags);
             } else {
                 echo json_encode(['ok'=>false,'msg'=>'not_found'], $jsonFlags);
@@ -394,24 +458,24 @@ $opts_clanes   = fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER
 $opts_jug      = fetchPairs($link, "SELECT id, name FROM dim_players ORDER BY name");
 $opts_sist     = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
 $opts_totems   = fetchPairs($link, "SELECT id, name FROM dim_totems ORDER BY name");
-$opts_afili    = fetchPairs($link, "SELECT id, tipo AS name FROM dim_character_types ORDER BY tipo");
+$opts_afili    = fetchPairs($link, "SELECT id, kind AS name FROM dim_character_types ORDER BY sort_order, kind");
 $opts_manadas_flat = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
 
 /* --- PODERES: catálogos --- */
-$opts_dones        = fetchPairs($link, "SELECT id, CONCAT(nombre, ' (', grupo, ')') AS name FROM fact_gifts");
+$opts_dones        = fetchPairs($link, "SELECT id, CONCAT(name, ' (', grupo, ')') AS name FROM fact_gifts");
 $opts_disciplinas  = fetchPairs($link, "SELECT nd.id, CONCAT(nd.name, ' (', ntd.name, ')') AS name FROM fact_discipline_powers nd LEFT JOIN dim_discipline_types ntd ON nd.disc = ntd.id");
-$opts_rituales     = fetchPairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.tipo = ntr.id");
+$opts_rituales     = fetchPairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id");
 
 /* --- MÉRITOS/DEFECTOS: catálogo completo (para select + chips) --- */
 $opts_myd_full = []; // [{id,name,tipo,coste}]
-if ($st = $link->prepare("SELECT id, name, tipo, coste FROM dim_merits_flaws ORDER BY tipo DESC, coste, name")) {
+if ($st = $link->prepare("SELECT id, name, kind, cost FROM dim_merits_flaws ORDER BY kind DESC, cost, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
         $opts_myd_full[] = [
             'id'    => (int)$r['id'],
             'name'  => (string)$r['name'],
-            'tipo'  => (string)$r['tipo'],
-            'coste' => (string)($r['coste'] ?? ''),
+            'tipo'  => (string)$r['kind'],
+            'coste' => (string)($r['cost'] ?? ''),
         ];
     }
     $st->close();
@@ -419,16 +483,54 @@ if ($st = $link->prepare("SELECT id, name, tipo, coste FROM dim_merits_flaws ORD
 
 /* --- INVENTARIO: catálogo --- */
 $opts_items_full = []; // [{id,name,tipo}]
-if ($st = $link->prepare("SELECT id, name, tipo FROM fact_items ORDER BY name")) {
+if ($st = $link->prepare("SELECT id, name, item_type_id FROM fact_items ORDER BY name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
         $opts_items_full[] = [
             'id'   => (int)$r['id'],
             'name' => (string)$r['name'],
-            'tipo' => (int)($r['tipo'] ?? 0),
+            'tipo' => (int)($r['item_type_id'] ?? 0),
         ];
     }
     $st->close();
+}
+
+/* --- TRAITS: catálogo (todos los tipos) --- */
+$traits_by_type = [];
+$trait_types = [];
+$trait_order_fixed = ['Atributos','Talentos','Técnicas','Conocimientos','Trasfondos'];
+if ($st = $link->prepare("
+    SELECT id, name, kind
+    FROM dim_traits
+    WHERE kind IS NOT NULL AND TRIM(kind) <> ''
+    ORDER BY kind, name
+")) {
+    $st->execute(); $rs = $st->get_result();
+    while ($r = $rs->fetch_assoc()) {
+        $kind = (string)$r['kind'];
+        if (!isset($traits_by_type[$kind])) {
+            $traits_by_type[$kind] = [];
+        }
+        $traits_by_type[$kind][] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']];
+    }
+    $st->close();
+}
+// Orden fijo + resto al final (alfabético)
+$trait_types = $trait_order_fixed;
+foreach (array_keys($traits_by_type) as $kind) {
+    if (!in_array($kind, $trait_types, true)) $trait_types[] = $kind;
+}
+
+/* --- TRAIT SETS: orden por sistema --- */
+$trait_set_order = [];
+if ($rs = $link->query("SELECT system_id, trait_id, sort_order FROM fact_trait_sets WHERE is_active=1")) {
+    while ($r = $rs->fetch_assoc()) {
+        $sid = (int)$r['system_id'];
+        $tid = (int)$r['trait_id'];
+        $ord = (int)$r['sort_order'];
+        $trait_set_order[$sid][$tid] = $ord;
+    }
+    $rs->close();
 }
 
 /* -------------------------------------------------
@@ -552,6 +654,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     // INVENTARIO
     $items_id    = isset($_POST['items_id']) ? array_map('intval',(array)$_POST['items_id']) : [];
 
+    // TRAITS
+    $traits_raw = isset($_POST['traits']) && is_array($_POST['traits']) ? $_POST['traits'] : [];
+    $traits = [];
+    foreach ($traits_raw as $tid => $val) {
+        $tid = (int)$tid;
+        if ($tid <= 0) continue;
+        $v = is_string($val) ? trim($val) : $val;
+        if ($v === '' || $v === null) { $v = 0; }
+        $v = (int)$v;
+        if ($v < 0) $v = 0;
+        if ($v > 10) $v = 10;
+        $traits[$tid] = $v;
+    }
+
     if ($genero_pj === '')  $genero_pj = 'f';
     if ($colortexto === '') $colortexto = 'SkyBlue';
     if ($estado === '')     $estado = 'En activo';
@@ -582,19 +698,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if ($totem_id <= 0) {
         $totem_from_group = 0;
         if ($manada > 0) {
-            if ($st = $link->prepare("SELECT totem FROM dim_groups WHERE id=? LIMIT 1")) {
+            if ($st = $link->prepare("SELECT totem_id FROM dim_groups WHERE id=? LIMIT 1")) {
                 $st->bind_param("i", $manada);
                 $st->execute();
-                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_group = (int)($row['totem'] ?? 0); } }
+                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_group = (int)($row['totem_id'] ?? 0); } }
                 $st->close();
             }
         }
         $totem_from_clan = 0;
         if ($totem_from_group <= 0 && $clan > 0) {
-            if ($st = $link->prepare("SELECT totem FROM dim_organizations WHERE id=? LIMIT 1")) {
+            if ($st = $link->prepare("SELECT totem_id FROM dim_organizations WHERE id=? LIMIT 1")) {
                 $st->bind_param("i", $clan);
                 $st->execute();
-                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_clan = (int)($row['totem'] ?? 0); } }
+                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_clan = (int)($row['totem_id'] ?? 0); } }
                 $st->close();
             }
         }
@@ -621,8 +737,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'⚠ El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
-                (nombre, alias, nombregarou, genero_pj, concepto, cronica, jugador, tipo, img, notas, colortexto, kes, sistema, system_id,
-                 fera, totem, totem_id, estado, causamuerte, cumple, rango, infotext, raza, auspicio, tribu)
+                (name, alias, garou_name, genero_pj, concepto, chronicle_id, player_id, kind, img, notes, colortexto, character_kind, system_name, system_id,
+                 shifter_type, totem_name, totem_id, estado, cause_of_death, birthdate_text, rank, info_text, breed_id, auspicio, tribu)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img=''; $kes='pnj'; $fera=''; $totem='';
@@ -671,7 +787,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🎒 Objetos vinculados: '.$resultIt['inserted']]; }
                     if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
-                    $flash[] = ['type'=>'ok','msg'=>'✅ Personaje creado correctamente.'];
+                    
+                    // Traits
+                    $resultTr = save_character_traits($link, (int)$newId, $traits, 'admin', null);
+                    if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+$flash[] = ['type'=>'ok','msg'=>'✅ Personaje creado correctamente.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'❌ Error al crear: '.$stmt->error];
                 }
@@ -690,11 +810,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
           // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
-                  nombre=?, alias=?, nombregarou=?, genero_pj=?, concepto=?,
-                  cronica=?, jugador=?, tipo=?, sistema=?, system_id=?, colortexto=?,
-                  raza=?, auspicio=?, tribu=?,
-                  totem=?, totem_id=?,
-                  estado=?, causamuerte=?, cumple=?, rango=?, infotext=?
+                  name=?, alias=?, garou_name=?, genero_pj=?, concepto=?,
+                  chronicle_id=?, player_id=?, kind=?, system_name=?, system_id=?, colortexto=?,
+                  breed_id=?, auspicio=?, tribu=?,
+                  totem_name=?, totem_id=?,
+                  estado=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
                   WHERE id=?";
 
           if ($stmt = $link->prepare($sql)) {
@@ -758,7 +878,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                   if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🎒 Objetos vinculados: '.$resultIt['inserted']]; }
                   if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
-                  $flash[] = ['type'=>'ok','msg'=>'✏ Personaje actualizado.'];
+                  
+                  // Traits
+                  $resultTr = save_character_traits($link, (int)$id, $traits, 'admin', null);
+                  if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+$flash[] = ['type'=>'ok','msg'=>'✏ Personaje actualizado.'];
 
               } else {
                   $flash[] = ['type'=>'error','msg'=>'❌ Error al actualizar: '.$stmt->error];
@@ -778,9 +902,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
    Listado + Paginación
 ------------------------------------------------- */
 $where = "WHERE 1=1"; $params = []; $types = "";
-if ($fil_cr > 0) { $where .= " AND p.cronica = ?"; $types .= "i"; $params[] = $fil_cr; }
+if ($fil_cr > 0) { $where .= " AND p.chronicle_id = ?"; $types .= "i"; $params[] = $fil_cr; }
 if ($fil_ma > 0) { $where .= " AND pgb.group_id = ?"; $types .= "i"; $params[] = $fil_ma; }
-if ($q !== '')   { $where .= " AND p.nombre LIKE ?"; $types .= "s"; $params[] = "%".$q."%"; }
+if ($q !== '')   { $where .= " AND p.name LIKE ?"; $types .= "s"; $params[] = "%".$q."%"; }
 
 $sqlCnt = "
   SELECT COUNT(*) AS c
@@ -813,13 +937,13 @@ $offset= ($page - 1) * $perPage;
 
 $sql = "
 SELECT
-  p.id, p.nombre, p.alias, p.nombregarou, p.genero_pj, p.concepto,
-  p.cronica, p.jugador, p.system_id, p.sistema, p.colortexto,
-  p.raza, p.auspicio, p.tribu,
+  p.id, p.name, p.alias, p.garou_name, p.genero_pj, p.concepto,
+  p.chronicle_id, p.player_id, p.system_id, p.system_name, p.colortexto,
+  p.breed_id, p.auspicio, p.tribu,
   -- ✅ IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.clan_id, 0)  AS clan,
-  p.img, p.tipo, p.totem_id, p.totem,
+  p.img, p.kind AS character_type_id, p.totem_id, p.totem_name,
 
   nj.name AS jugador_,
   nc.name AS cronica_,
@@ -831,7 +955,7 @@ SELECT
 
   nm.name AS manada_n,
   nc2.name AS clan_n,
-  af.tipo AS tipo_n
+  af.kind AS tipo_n
 
 FROM fact_characters p
 
@@ -849,11 +973,11 @@ LEFT JOIN (
     GROUP BY character_id
 ) pcb ON pcb.character_id = p.id
 
-LEFT JOIN dim_players  nj ON p.jugador = nj.id
-LEFT JOIN dim_chronicles  nc ON p.cronica = nc.id
+LEFT JOIN dim_players  nj ON p.player_id = nj.id
+LEFT JOIN dim_chronicles  nc ON p.chronicle_id = nc.id
 LEFT JOIN dim_systems     ds ON p.system_id = ds.id
 LEFT JOIN dim_totems      dt ON p.totem_id = dt.id
-LEFT JOIN dim_breeds      nr ON p.raza    = nr.id
+LEFT JOIN dim_breeds      nr ON p.breed_id    = nr.id
 LEFT JOIN dim_auspices  na ON p.auspicio= na.id
 LEFT JOIN dim_tribes     nt ON p.tribu   = nt.id
 
@@ -861,10 +985,10 @@ LEFT JOIN dim_tribes     nt ON p.tribu   = nt.id
 LEFT JOIN dim_groups   nm  ON nm.id  = pgb.group_id
 LEFT JOIN dim_organizations    nc2 ON nc2.id = pcb.clan_id
 
-LEFT JOIN dim_character_types af ON p.tipo  = af.id
+LEFT JOIN dim_character_types af ON p.kind  = af.id
 
 $where
-ORDER BY p.nombre ASC
+ORDER BY p.name ASC
 LIMIT ?, ?";
 
 $typesPage = $types."ii";
@@ -892,17 +1016,17 @@ $stmt->close();
 $char_details = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT id, estado, causamuerte, cumple, rango, infotext FROM fact_characters WHERE id IN ($in)");
+    $qdet = $link->query("SELECT id, estado, cause_of_death, birthdate_text, rank, info_text FROM fact_characters WHERE id IN ($in)");
     if ($qdet) {
         while ($d = $qdet->fetch_assoc()) {
             $cid = (int)($d['id'] ?? 0);
             if ($cid <= 0) continue;
             $char_details[$cid] = [
                 'estado'      => (string)($d['estado'] ?? ''),
-                'causamuerte' => (string)($d['causamuerte'] ?? ''),
-                'cumple'      => (string)($d['cumple'] ?? ''),
-                'rango'       => (string)($d['rango'] ?? ''),
-                'infotext'    => (string)($d['infotext'] ?? ''),
+                'causamuerte' => (string)($d['cause_of_death'] ?? ''),
+                'cumple'      => (string)($d['birthdate_text'] ?? ''),
+                'rango'       => (string)($d['rank'] ?? ''),
+                'infotext'    => (string)($d['info_text'] ?? ''),
             ];
         }
         $qdet->close();
@@ -913,13 +1037,13 @@ if (!empty($ids_page)) {
 $char_powers = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval',$ids_page));
-    $qpow = $link->query("SELECT personaje_id, tipo_poder, poder_id, poder_lvl FROM bridge_characters_powers WHERE personaje_id IN ($in) ORDER BY tipo_poder, poder_id");
+    $qpow = $link->query("SELECT character_id, power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id IN ($in) ORDER BY power_kind, power_id");
     if ($qpow) {
         while($pw = $qpow->fetch_assoc()){
-            $cid = (int)$pw['personaje_id'];
-            $tp  = (string)$pw['tipo_poder'];
-            $pid = (int)$pw['poder_id'];
-            $lvl = (int)$pw['poder_lvl'];
+            $cid = (int)$pw['character_id'];
+            $tp  = (string)$pw['power_kind'];
+            $pid = (int)$pw['power_id'];
+            $lvl = (int)$pw['power_level'];
             if ($tp==='dones')          { $nm = $opts_dones[$pid]        ?? ('#'.$pid); }
             elseif ($tp==='disciplinas'){ $nm = $opts_disciplinas[$pid]  ?? ('#'.$pid); }
             else                        { $nm = $opts_rituales[$pid]     ?? ('#'.$pid); }
@@ -934,21 +1058,21 @@ $char_myd = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval',$ids_page));
     $qmyd = $link->query("
-        SELECT b.personaje_id, nmd.id, nmd.name, nmd.tipo, nmd.coste, b.nivel
+        SELECT b.character_id, nmd.id, nmd.name, nmd.kind, nmd.cost, b.level
         FROM bridge_characters_merits_flaws b
-        JOIN dim_merits_flaws nmd ON nmd.id = b.mer_y_def_id
-        WHERE b.personaje_id IN ($in)
-        ORDER BY nmd.tipo DESC, nmd.coste, nmd.name
+        JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
+        WHERE b.character_id IN ($in)
+        ORDER BY nmd.kind DESC, nmd.cost, nmd.name
     ");
     if ($qmyd) {
         while($r = $qmyd->fetch_assoc()){
-            $cid = (int)$r['personaje_id'];
+            $cid = (int)$r['character_id'];
             $char_myd[$cid][] = [
                 'id'    => (int)$r['id'],
                 'name'  => (string)$r['name'],
-                'tipo'  => (string)$r['tipo'],
-                'coste' => (string)($r['coste'] ?? ''),
-                'nivel' => $r['nivel'] === null ? null : (int)$r['nivel'],
+                'tipo'  => (string)$r['kind'],
+                'coste' => (string)($r['cost'] ?? ''),
+                'nivel' => $r['level'] === null ? null : (int)$r['level'],
             ];
         }
         $qmyd->close();
@@ -960,22 +1084,43 @@ $char_items = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval',$ids_page));
     $qit = $link->query("
-        SELECT b.personaje_id, o.id, o.name, o.tipo
+        SELECT b.character_id, o.id, o.name, o.item_type_id
         FROM bridge_characters_items b
-        JOIN fact_items o ON o.id = b.objeto_id
-        WHERE b.personaje_id IN ($in)
+        JOIN fact_items o ON o.id = b.item_id
+        WHERE b.character_id IN ($in)
         ORDER BY o.name
     ");
     if ($qit) {
         while($r = $qit->fetch_assoc()){
-            $cid = (int)$r['personaje_id'];
+            $cid = (int)$r['character_id'];
             $char_items[$cid][] = [
                 'id'   => (int)$r['id'],
                 'name' => (string)$r['name'],
-                'tipo' => (int)($r['tipo'] ?? 0),
+                'tipo' => (int)($r['item_type_id'] ?? 0),
             ];
         }
         $qit->close();
+    }
+}
+
+/* --- TRAITS: precarga --- */
+$char_traits = [];
+if (!empty($ids_page)) {
+    $in = implode(',', array_map('intval',$ids_page));
+    $qtr = $link->query("
+        SELECT character_id, trait_id, value
+        FROM fact_character_traits
+        WHERE character_id IN ($in)
+        ORDER BY character_id, trait_id
+    ");
+    if ($qtr) {
+        while ($r = $qtr->fetch_assoc()) {
+            $cid = (int)$r['character_id'];
+            $tid = (int)$r['trait_id'];
+            $val = (int)$r['value'];
+            $char_traits[$cid][$tid] = $val;
+        }
+        $qtr->close();
     }
 }
 
@@ -1011,6 +1156,13 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 .avatar-wrap{ display:flex; gap:10px; align-items:flex-start; }
 .avatar-wrap img{ width:96px; height:96px; object-fit:cover; border-radius:10px; border:1px solid #1b4aa0; background:#000022; }
 .small-note{ font-size:10px; color:#9dd; display:block; margin-top:4px; }
+.traits-grid{ display:grid; grid-template-columns:repeat(2, minmax(260px,1fr)); gap:10px; }
+.traits-group{ background:#04023b; border:1px solid #000088; border-radius:10px; padding:8px; }
+.traits-title{ font-weight:700; color:#9ff; margin-bottom:6px; }
+.traits-items{ display:grid; grid-template-columns:repeat(2, minmax(120px,1fr)); gap:6px 8px; }
+.trait-item{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.trait-item span{ font-size:11px; color:#cfe; }
+.trait-item input{ width:64px; }
 
 .modal-back{
   position:fixed; inset:0;
@@ -1131,33 +1283,33 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
     </thead>
     <tbody>
       <?php foreach ($rows as $r): ?>
-        <tr data-nombre="<?= strtolower(h($r['nombre'])) ?>">
+        <tr data-nombre="<?= strtolower(h($r['name'])) ?>">
           <td><strong style="color:#33FFFF;"><?= (int)$r['id'] ?></strong></td>
-          <td><?= h($r['nombre']) ?></td>
-          <td><?= h($r['jugador_'] ?? $r['jugador']) ?></td>
-          <td><?= h($r['cronica_'] ?? $r['cronica']) ?></td>
-          <td><?= h($r['sistema_n'] ?? $r['sistema']) ?></td>
+          <td><?= h($r['name']) ?></td>
+          <td><?= h($r['jugador_'] ?? $r['player_id']) ?></td>
+          <td><?= h($r['cronica_'] ?? $r['chronicle_id']) ?></td>
+          <td><?= h($r['sistema_n'] ?? $r['system_name']) ?></td>
           <td>
             <button class="btn btn-small" data-edit='1'
               data-id="<?= (int)$r['id'] ?>"
-              data-nombre="<?= h($r['nombre']) ?>"
+              data-nombre="<?= h($r['name']) ?>"
               data-alias="<?= h($r['alias']) ?>"
-              data-nombregarou="<?= h($r['nombregarou']) ?>"
+              data-nombregarou="<?= h($r['garou_name']) ?>"
               data-genero_pj="<?= h($r['genero_pj']) ?>"
               data-concepto="<?= h($r['concepto']) ?>"
-              data-cronica="<?= (int)$r['cronica'] ?>"
-              data-jugador="<?= (int)$r['jugador'] ?>"
+              data-cronica="<?= (int)$r['chronicle_id'] ?>"
+              data-jugador="<?= (int)$r['player_id'] ?>"
               data-system_id="<?= (int)($r['system_id'] ?? 0) ?>"
-              data-sistema_legacy="<?= h($r['sistema']) ?>"
+              data-sistema_legacy="<?= h($r['system_name']) ?>"
               data-totem_id="<?= (int)($r['totem_id'] ?? 0) ?>"
               data-colortexto="<?= h($r['colortexto']) ?>"
-              data-raza="<?= (int)$r['raza'] ?>"
+              data-raza="<?= (int)$r['breed_id'] ?>"
               data-auspicio="<?= (int)$r['auspicio'] ?>"
               data-tribu="<?= (int)$r['tribu'] ?>"
               data-manada="<?= (int)$r['manada'] ?>"
               data-clan="<?= (int)$r['clan'] ?>"
               data-img="<?= h($r['img']) ?>"
-              data-afiliacion="<?= (int)$r['tipo'] ?>"
+              data-afiliacion="<?= (int)$r['character_type_id'] ?>"
             >✏ Editar</button>
           </td>
         </tr>
@@ -1378,6 +1530,27 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
 
+        <!-- TRAITS -->
+        <div style="grid-column:1/-1;">
+          <label><strong>Traits</strong></label>
+          <div class="traits-grid">
+            <?php foreach ($trait_types as $tipo): $list = $traits_by_type[$tipo] ?? []; if (!$list) continue; ?>
+              <div class="traits-group">
+                <div class="traits-title"><?= h($tipo) ?></div>
+                <div class="traits-items">
+                  <?php foreach ($list as $t): ?>
+                    <label class="trait-item" data-trait-name="<?= h($t['name']) ?>">
+                      <span><?= h($t['name']) ?></span>
+                      <input class="inp trait-input" type="number" min="0" max="10" name="traits[<?= (int)$t['id'] ?>]" data-trait-id="<?= (int)$t['id'] ?>" value="0">
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <span class="small-note">Se guardan en fact_character_traits.</span>
+        </div>
+
         <!-- PODERES -->
         <div style="grid-column:1/-1;">
           <label><strong>Poderes</strong></label>
@@ -1500,6 +1673,18 @@ var CHAR_MYD         = <?= json_encode($char_myd, JSON_HEX_TAG|JSON_HEX_APOS|JSO
 var ITEMS_OPTS       = <?= json_encode($opts_items_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var CHAR_ITEMS       = <?= json_encode($char_items, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
+// TRAITS
+var CHAR_TRAITS      = <?= json_encode(
+    $char_traits,
+    JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE
+    | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0)
+); ?>;
+var TRAIT_SET_ORDER  = <?= json_encode(
+    $trait_set_order,
+    JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE
+    | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0)
+); ?>;
+
 var CHAR_DETAILS     = <?= json_encode(
     $char_details,
     JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE
@@ -1562,6 +1747,7 @@ var CHAR_DETAILS     = <?= json_encode(
   var invSel   = document.getElementById('inv_sel');
   var invAdd   = document.getElementById('inv_add');
   var invList  = document.getElementById('invList');
+  var traitInputs = document.querySelectorAll('.trait-input');
 
   function clearSelect(sel, keepFirst){
     while (sel.options.length > (keepFirst?1:0)) sel.remove(keepFirst?1:0);
@@ -1634,6 +1820,40 @@ var CHAR_DETAILS     = <?= json_encode(
     avatarRm.checked = false;
     avatarPrev.src = '';
     avatarPrev.style.display = 'none';
+  }
+
+  function resetTraits(){
+    if (!traitInputs) return;
+    traitInputs.forEach(function(inp){ inp.value = '0'; });
+  }
+
+  function fillTraits(map){
+    resetTraits();
+    if (!map) return;
+    traitInputs.forEach(function(inp){
+      var tid = inp.getAttribute('data-trait-id');
+      if (tid && map[tid] !== undefined) {
+        inp.value = String(map[tid]);
+      }
+    });
+  }
+
+  function applyTraitOrder(systemId){
+    var orderMap = (TRAIT_SET_ORDER && systemId && TRAIT_SET_ORDER[String(systemId)]) ? TRAIT_SET_ORDER[String(systemId)] : {};
+    document.querySelectorAll('.traits-group').forEach(function(group){
+      var items = Array.prototype.slice.call(group.querySelectorAll('.trait-item'));
+      items.sort(function(a,b){
+        var aid = a.querySelector('[data-trait-id]')?.getAttribute('data-trait-id') || '';
+        var bid = b.querySelector('[data-trait-id]')?.getAttribute('data-trait-id') || '';
+        var ao = orderMap[aid] !== undefined ? parseInt(orderMap[aid],10) : 9999;
+        var bo = orderMap[bid] !== undefined ? parseInt(orderMap[bid],10) : 9999;
+        if (ao !== bo) return ao - bo;
+        var an = (a.getAttribute('data-trait-name') || '').toLowerCase();
+        var bn = (b.getAttribute('data-trait-name') || '').toLowerCase();
+        return an.localeCompare(bn);
+      });
+      items.forEach(function(it){ group.appendChild(it); });
+    });
   }
 
   // PODERES
@@ -1793,6 +2013,10 @@ var CHAR_DETAILS     = <?= json_encode(
     invList.innerHTML = '';
     refreshInvSelect();
 
+    // reset traits
+    resetTraits();
+    applyTraitOrder(0);
+
     mb.style.display='flex';
     initSelect2Modal();
 
@@ -1831,6 +2055,7 @@ var CHAR_DETAILS     = <?= json_encode(
     var ausId  = parseInt(btn.getAttribute('data-auspicio')||'0',10)||0;
     var triId  = parseInt(btn.getAttribute('data-tribu')||'0',10)||0;
     updateSistemaSets(sistId, razaId, ausId, triId);
+    applyTraitOrder(sistId);
 
     var clanId   = parseInt(btn.getAttribute('data-clan') || '0',10) || 0;
     var manadaId = parseInt(btn.getAttribute('data-manada') || '0',10) || 0;
@@ -1865,6 +2090,9 @@ var CHAR_DETAILS     = <?= json_encode(
       addInvChip(it.id, it.name, it.tipo);
     });
 
+    // Traits: cargar
+    fillTraits(CHAR_TRAITS[cid] || {});
+
     fCausa.value  = '';
     fInfo.value   = '';
     fCumple.value = '';
@@ -1898,6 +2126,7 @@ var CHAR_DETAILS     = <?= json_encode(
   onSelectChange(selSistema, function(){
     var sys = parseInt(selSistema.value,10)||0;
     updateSistemaSets(sys, 0,0,0);
+    applyTraitOrder(sys);
   });
 
   // Clan → manadas

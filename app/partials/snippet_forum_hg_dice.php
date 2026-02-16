@@ -17,8 +17,8 @@ if (!$tirada = mysqli_fetch_assoc($res)) {
     die("Tirada no encontrada.");
 }
 
-$nombre = htmlspecialchars($tirada['nombre']);
-$titulo = htmlspecialchars($tirada['tirada_nombre']);
+$nombre = htmlspecialchars($tirada['name']);
+$titulo = htmlspecialchars($tirada['roll_name']);
 $dificultad = (int)$tirada['dificultad'];
 $resultados = explode(",", $tirada['resultados']);
 $exitos = (int)$tirada['exitos'];
@@ -135,3 +135,4 @@ if ($exitos > 0) {
 		</script>
 	</body>
 </html>
+

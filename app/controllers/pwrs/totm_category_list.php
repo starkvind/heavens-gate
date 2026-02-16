@@ -6,7 +6,7 @@ setMetaFromPage("Totems | Heaven's Gate", "Categorias de totems.", null, 'websit
 $pageSect = "Tótems"; // PARA CAMBIAR EL TÍTULO DE LA PÁGINA
 
 // Consulta segura usando MySQLi
-$consulta = "SELECT id, name, determinante FROM dim_totem_types ORDER BY orden";
+$consulta = "SELECT id, name, determinant FROM dim_totem_types ORDER BY sort_order";
 $stmt = $link->prepare($consulta);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -16,7 +16,7 @@ $totalCategorias = $result->num_rows;
 while ($ResultQuery = $result->fetch_assoc()) {
     $typeID  = (int)$ResultQuery["id"];
     $typeName = htmlspecialchars($ResultQuery["name"]);
-    $typeDet  = htmlspecialchars($ResultQuery["determinante"]);
+    $typeDet  = htmlspecialchars($ResultQuery["determinant"]);
 
     echo "
         <a href='" . htmlspecialchars(pretty_url($link, 'dim_totem_types', '/powers/totem/type', $typeID)) . "' title='$typeName'>

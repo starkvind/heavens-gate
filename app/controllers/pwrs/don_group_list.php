@@ -5,7 +5,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
     $routeParam = isset($_GET['b']) ? $_GET['b'] : ''; 
 
     // Preparar la consulta para obtener información sobre el tipo de don
-    $consulta = "SELECT name, determinante, `desc` FROM dim_gift_types WHERE id = ? LIMIT 1";
+    $consulta = "SELECT name, determinant AS determinante, description FROM dim_gift_types WHERE id = ? LIMIT 1";
     $stmt = $link->prepare($consulta);
     $stmt->bind_param('s', $routeParam);
     $stmt->execute();
@@ -15,7 +15,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
     if ($ResultQuery) {
         $routeLabel = htmlspecialchars($ResultQuery["name"]);
         $determinante = htmlspecialchars($ResultQuery["determinante"]);
-        $descDones = htmlspecialchars($ResultQuery["desc"]);
+        $descDones = htmlspecialchars($ResultQuery["description"] ?? $ResultQuery["desc"] ?? '');
         $donTypePhrase = "Dones";
         $pageSect = "$donTypePhrase $determinante $routeLabel"; // Para cambiar el título de la página
 		
@@ -25,7 +25,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
         echo "<fieldset class='descripcionGrupo'>$descDones</fieldset>";
 
         // Preparar la consulta para obtener los grupos de dones
-        $consulta = "SELECT DISTINCT grupo FROM fact_gifts WHERE tipo = ? ORDER BY grupo";
+        $consulta = "SELECT DISTINCT grupo FROM fact_gifts WHERE kind = ? ORDER BY grupo";
         $stmt = $link->prepare($consulta);
         $stmt->bind_param('s', $routeParam);
         $stmt->execute();
@@ -41,7 +41,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
         if ($misterroboto > 0) {
             foreach ($domoarigato as $grupo) {
                 // Preparar la consulta para obtener los dones dentro de cada grupo
-                $consulta = "SELECT id, pretty_id, nombre, rango FROM fact_gifts WHERE grupo = ? AND tipo = ? ORDER BY rango";
+                $consulta = "SELECT id, pretty_id, name, rank FROM fact_gifts WHERE grupo = ? AND kind = ? ORDER BY rank";
                 $stmt = $link->prepare($consulta);
                 $stmt->bind_param('ss', $grupo, $routeParam);
                 $stmt->execute();
@@ -55,12 +55,12 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
                 while ($row = $result->fetch_assoc()) {
                     echo "
                         <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$row["id"])) . "' 
-                            title='" . htmlspecialchars($row["nombre"]) . ", Rango " . htmlspecialchars($row["rango"]) . "'>
+                            title='" . htmlspecialchars($row["name"]) . ", Rango " . htmlspecialchars($row["rank"]) . "'>
                             <div class='renglon2col'>
                                 <div class='renglon2colIz'>
-                                    <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($row["nombre"]) . "
+                                    <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($row["name"]) . "
                                 </div>
-                                <div class='renglon2colDe'>" . htmlspecialchars($row["rango"]) . "</div>
+                                <div class='renglon2colDe'>" . htmlspecialchars($row["rank"]) . "</div>
                             </div>
                         </a>
                     ";

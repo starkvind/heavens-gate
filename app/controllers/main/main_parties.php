@@ -18,10 +18,10 @@ if (!function_exists('sanitize_int_csv')) {
     }
 }
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 /* 1) Tramas activas */
-$sqlPlots = "SELECT hp.id, hp.name, hp.description FROM dim_parties hp WHERE hp.active = 1 ORDER BY hp.order ASC";
+$sqlPlots = "SELECT hp.id, hp.name, hp.description FROM dim_parties hp WHERE hp.active = 1 ORDER BY hp.sort_order ASC";
 $resPlots = $link->query($sqlPlots);
 if (!$resPlots) die("Error al preparar la consulta: " . $link->error);
 
@@ -39,7 +39,7 @@ $sqlMembers = "SELECT c.id, c.plot_id, c.base_char_id,
        FROM fact_party_members c
        JOIN fact_characters p ON p.id = c.base_char_id
 	   LEFT JOIN dim_parties hp ON c.plot_id = hp.id
-       WHERE c.active = 1 AND hp.active = 1 $cronicaNotInSQL";
+       WHERE c.active = 1 AND hp.active = 1 $chronicle_idNotInSQL";
 $resChars = $link->query($sqlMembers);
 if (!$resChars) die("Error al preparar la consulta: " . $link->error);
 
@@ -332,3 +332,4 @@ mysqli_free_result($resChanges);
 	}
 
 </style>
+

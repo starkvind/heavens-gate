@@ -21,7 +21,7 @@ function sanitize_int_csv($csv){
 
 // EXCLUSIONES (si existe la variable global, la usamos; si no, no excluimos nada)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 /*
     ============================================
@@ -35,7 +35,7 @@ $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($exclud
 $charactersSql = "
     SELECT
         p.id,
-        p.nombre,
+        p.name,
         p.img,
         p.estado,
         COALESCE(nc.name, '') AS clan_name
@@ -46,8 +46,8 @@ $charactersSql = "
         LEFT JOIN dim_organizations nc
             ON nc.id = hccb.clan_id
     WHERE 1=1
-        $cronicaNotInSQL
-    ORDER BY p.nombre ASC
+        $chronicle_idNotInSQL
+    ORDER BY p.name ASC
 ";
 
 $characters = $link->query($charactersSql)->fetch_all(MYSQLI_ASSOC);
@@ -115,7 +115,7 @@ $pageTitle2 = "Personajes";
             <?php
                 $hasImage = !empty($c['img']);
                 $isDead = ($c['estado'] ?? '') === 'Cadáver';
-                $label = ($c['nombre'] ?? '') . ($isDead ? ' †' : '');
+                $label = ($c['name'] ?? '') . ($isDead ? ' †' : '');
                 $nodeColor = $isDead ? [
                     'background' => '#888',
                     'border' => '#555',
@@ -234,3 +234,4 @@ $pageTitle2 = "Personajes";
      background-color:#fff; border:1px solid #ccc; border-radius:6px; padding:8px 14px; font-family:sans-serif;
      font-size:14px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); z-index:2000;">
 </div>
+

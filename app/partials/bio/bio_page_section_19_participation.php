@@ -1,15 +1,15 @@
 <?php
-$id_personaje = $_GET['b'] ?? 1;
+$character_id = $_GET['b'] ?? 1;
 
 // 1. Obtener la primera fecha de aparición
 $query_inicio = "
-    SELECT MIN(ac.fecha) AS primera_fecha
+    SELECT MIN(ac.played_date) AS primera_fecha
     FROM dim_chapters ac
-    JOIN bridge_chapters_characters acp ON ac.id = acp.id_capitulo
-    WHERE acp.id_personaje = ? AND ac.fecha != '0000-00-00'
+    JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id
+    WHERE acp.character_id = ? AND ac.played_date != '0000-00-00'
 ";
 $stmt = $link->prepare($query_inicio);
-$stmt->bind_param("i", $id_personaje);
+$stmt->bind_param("i", $character_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $inicio = $result->fetch_assoc()['primera_fecha'] ?? null;
@@ -18,13 +18,13 @@ if ($inicio && isset($finalPlayer)) {
 
     // 2. Obtener capítulos en los que participó
     $query_capitulos_pj = "
-        SELECT ac.id, ac.fecha, ac.temporada
+        SELECT ac.id, ac.played_date, ac.season_number
         FROM dim_chapters ac
-        JOIN bridge_chapters_characters acp ON ac.id = acp.id_capitulo
-        WHERE acp.id_personaje = ? AND ac.fecha != '0000-00-00'
+        JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id
+        WHERE acp.character_id = ? AND ac.played_date != '0000-00-00'
     ";
     $stmt = $link->prepare($query_capitulos_pj);
-    $stmt->bind_param("i", $id_personaje);
+    $stmt->bind_param("i", $character_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -32,18 +32,18 @@ if ($inicio && isset($finalPlayer)) {
     $temporadas_validas = [];
     $temporadas_por_mes = [];
     while ($row = $result->fetch_assoc()) {
-        $mes = date('Y-m', strtotime($row['fecha']));
+        $mes = date('Y-m', strtotime($row['played_date']));
         $jugados[$mes] = ($jugados[$mes] ?? 0) + 1;
-        $temporadas_validas[$row['temporada']] = true;
-        $temporadas_por_mes[$mes] = $row['temporada']; // última temporada válida en el mes
+        $temporadas_validas[$row['season_number']] = true;
+        $temporadas_por_mes[$mes] = $row['season_number']; // última temporada válida en el mes
     }
 
 	// Obtener capítulos de todas las temporadas válidas (aunque el personaje no jugara)
 	$temporadas_in = implode(',', array_keys($temporadas_validas));
 	$query_mapeo_temporadas = "
-		SELECT DATE_FORMAT(ac.fecha, '%Y-%m') AS mes, MAX(ac.temporada) AS temporada
+		SELECT DATE_FORMAT(ac.played_date, '%Y-%m') AS mes, MAX(ac.season_number) AS season_number
 		FROM dim_chapters ac
-		WHERE ac.fecha >= ? AND ac.fecha != '0000-00-00' AND ac.temporada IN ($temporadas_in)
+		WHERE ac.played_date >= ? AND ac.played_date != '0000-00-00' AND ac.season_number IN ($temporadas_in)
 		GROUP BY mes
 	";
 	$stmt = $link->prepare($query_mapeo_temporadas);
@@ -52,15 +52,15 @@ if ($inicio && isset($finalPlayer)) {
 	$result = $stmt->get_result();
 	$temporadas_por_mes = [];
 	while ($row = $result->fetch_assoc()) {
-		$temporadas_por_mes[$row['mes']] = $row['temporada'];
+		$temporadas_por_mes[$row['mes']] = $row['season_number'];
 	}
 
     // 3. Obtener todos los capítulos de esas temporadas para contar “esperados”
     //$temporadas_in = implode(',', array_keys($temporadas_validas));
     $query_esperados = "
-        SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes, COUNT(*) AS total
+        SELECT DATE_FORMAT(played_date, '%Y-%m') AS mes, COUNT(*) AS total
         FROM dim_chapters
-        WHERE fecha >= ? AND fecha != '0000-00-00' AND temporada IN ($temporadas_in)
+        WHERE played_date >= ? AND played_date != '0000-00-00' AND season_number IN ($temporadas_in)
         GROUP BY mes
     ";
     $stmt = $link->prepare($query_esperados);
@@ -84,8 +84,8 @@ if ($inicio && isset($finalPlayer)) {
 
     // Obtener nombres de temporadas para tooltip
     $query_nombres = "
-        SELECT numero AS id, name FROM dim_seasons
-        WHERE numero IN ($temporadas_in)
+        SELECT season_number AS id, name FROM dim_seasons
+        WHERE season_number IN ($temporadas_in)
     ";
     $result = $link->query($query_nombres);
     $nombre_temporadas = [];
@@ -196,3 +196,4 @@ let chart = new Chart(ctx, {
 </script>
 
 <?php endif; ?>
+

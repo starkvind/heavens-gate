@@ -60,7 +60,7 @@ function propose_fix($root, $path) {
     return '';
 }
 
-$sql = "SELECT id, nombre, img FROM fact_characters ORDER BY id ASC LIMIT ? OFFSET ?";
+$sql = "SELECT id, name, img FROM fact_characters ORDER BY id ASC LIMIT ? OFFSET ?";
 $stmt = $link->prepare($sql);
 $stmt->bind_param('ii', $limit, $offset);
 $stmt->execute();
@@ -86,7 +86,7 @@ echo "<tr><th>ID</th><th>Name</th><th>Current</th><th>Status</th><th>Proposed</t
 
 foreach ($rows as $r) {
     $id = (int)$r['id'];
-    $name = (string)$r['nombre'];
+    $name = (string)$r['name'];
     $img = (string)($r['img'] ?? '');
 
     $norm = normalize_url_path($img);

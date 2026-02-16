@@ -28,64 +28,64 @@ $outExtraLabel = '';
 $outExtra = '';
 
 if ($type === 'don') {
-    if ($st = $link->prepare("SELECT nombre, rango, ferasistema, sistema, descripcion FROM fact_gifts WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['nombre'] ?? '';
-            $rango = $r['rango'] ?? '';
-            $fera = $r['ferasistema'] ?? '';
-            $outMeta = "Rango " . h($rango);
-            if ($fera !== '') $outMeta .= " - " . h($fera);
-            $outSystem = short_text($r['sistema'] ?? '');
-            $outDesc = short_text($r['descripcion'] ?? '', 360);
-        }
-        $st->close();
-    }
-} elseif ($type === 'rite') {
-    if ($st = $link->prepare("SELECT name, nivel, raza, syst, `desc` AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, rank, shifter_system_name, system_name, description FROM fact_gifts WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $nivel = $r['nivel'] ?? '';
-            $raza = $r['raza'] ?? '';
+            $rango = $r['rank'] ?? '';
+            $fera = $r['shifter_system_name'] ?? '';
+            $outMeta = "Rango " . h($rango);
+            if ($fera !== '') $outMeta .= " - " . h($fera);
+            $outSystem = short_text($r['system_name'] ?? '');
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'rite') {
+    if ($st = $link->prepare("SELECT name, level, race, system_name, description AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $nivel = $r['level'] ?? '';
+            $raza = $r['race'] ?? '';
             $outMeta = "Nivel " . h($nivel);
             if ($raza !== '') $outMeta .= " - " . h($raza);
-            $outSystem = short_text($r['syst'] ?? '');
+            $outSystem = short_text($r['system_name'] ?? '');
             $outDesc = short_text($r['descr'] ?? '', 360);
         }
         $st->close();
     }
 } elseif ($type === 'merit') {
-    if ($st = $link->prepare("SELECT name, tipo, coste, afiliacion, sistema, descripcion FROM dim_merits_flaws WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, kind, cost, affiliation, system_name, description FROM dim_merits_flaws WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $tipo = $r['tipo'] ?? '';
-            $coste = $r['coste'] ?? '';
-            $afil = $r['afiliacion'] ?? '';
+            $tipo = $r['kind'] ?? '';
+            $coste = $r['cost'] ?? '';
+            $afil = $r['affiliation'] ?? '';
             $outMeta = h($tipo);
             if ($coste !== '') $outMeta .= " - Coste " . h($coste);
             if ($afil !== '') $outMeta .= " - " . h($afil);
-            $outSystem = short_text($r['sistema'] ?? '');
-            $outDesc = short_text($r['descripcion'] ?? '', 360);
+            $outSystem = short_text($r['system_name'] ?? '');
+            $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
     }
 } elseif ($type === 'item') {
-    if ($st = $link->prepare("SELECT name, tipo, nivel, gnosis, descri, img, habilidad, dano, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, img, habilidad, dano, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $tipo = (int)($r['tipo'] ?? 0);
-            $nivel = $r['nivel'] ?? '';
+            $tipo = (int)($r['item_type_id'] ?? 0);
+            $nivel = $r['level'] ?? '';
             $gnosis = $r['gnosis'] ?? '';
             $habilidad = (string)($r['habilidad'] ?? '');
             $dano = (string)($r['dano'] ?? '');
@@ -119,7 +119,7 @@ if ($type === 'don') {
             }
             if ($extraMeta !== '') $outMeta .= " - " . $extraMeta;
 
-            $outDesc = short_text($r['descri'] ?? '', 360);
+            $outDesc = short_text($r['description'] ?? '', 360);
             $outImg = (string)($r['img'] ?? '');
             $outImgAlt = $outTitle;
         }
@@ -141,14 +141,15 @@ echo "<div class='hg-tip' style='display:flex; gap:8px; align-items:flex-start;'
 		echo "<div class='hg-tip-label'>" . h($outExtraLabel) . "</div>";
 		echo "<div class='hg-tip-text'>" . h($outExtra) . "</div>";
 	}
-	if ($outSystem !== '') {
-		echo "<div class='hg-tip-label'>Sistema</div>";
-		echo "<div class='hg-tip-text'>" . h($outSystem) . "</div>";
-	}
 	if ($outDesc !== '') {
 		echo "<div class='hg-tip-label'>Descripci&oacute;n</div>";
 		echo "<div class='hg-tip-text'>" . h($outDesc) . "</div>";
 	}
+	if ($outSystem !== '') {
+		echo "<div class='hg-tip-label'>Sistema</div>";
+		echo "<div class='hg-tip-text'>" . h($outSystem) . "</div>";
+	}
 	echo "</div>";
 echo "</div>";
 ?>
+

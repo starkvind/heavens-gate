@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Noticias | Heaven's Gate", "Ultimas novedades de la campana Heaven's Gate.", null, 'website'); ?>
+<?php setMetaFromPage("Noticias | Heaven's Gate", "Ultimas novedades de la campa?a Heaven's Gate.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegación ?>
 <h2> Noticias </h2>
 
@@ -26,15 +26,15 @@
 		$total_paginas = ceil($num_total_registros / $tamano_pagina);
 
 		// Consulta para obtener los registros de la página actual
-		$consulta = "SELECT autor, titulo, mensaje, fecha FROM fact_admin_posts ORDER BY id DESC LIMIT ?, ?";
+		$consulta = "SELECT autor, title, mensaje, posted_at FROM fact_admin_posts ORDER BY id DESC LIMIT ?, ?";
 		$stmt = mysqli_prepare($link, $consulta);
 		mysqli_stmt_bind_param($stmt, "ii", $inicio, $tamano_pagina);
 		mysqli_stmt_execute($stmt);
 		$result = mysqli_stmt_get_result($stmt);
 
 		while ($ResultQuery = mysqli_fetch_assoc($result)) {
-			echo "<tr><td><fieldset class='notf'><legend class='notf'>" . htmlspecialchars($ResultQuery["titulo"]) . "</legend><p>" . (($ResultQuery["mensaje"])) . "</p>\n</fieldset></td></tr>";
-			echo "<tr><td align='right'>por <b>" . htmlspecialchars($ResultQuery["autor"]) . "</b> el " . htmlspecialchars($ResultQuery["fecha"]) . "</td></tr>";
+			echo "<tr><td><fieldset class='notf'><legend class='notf'>" . htmlspecialchars($ResultQuery["title"]) . "</legend><p>" . (($ResultQuery["mensaje"])) . "</p>\n</fieldset></td></tr>";
+			echo "<tr><td align='right'>por <b>" . htmlspecialchars($ResultQuery["autor"]) . "</b> el " . htmlspecialchars($ResultQuery["posted_at"]) . "</td></tr>";
 		}
 
 		mysqli_stmt_close($stmt);
@@ -51,7 +51,7 @@
 		if ($total_paginas >= 2) {
 			if ($pagina > 1) {
 				$back = $pagina - 1;
-				echo "<td align='center'><span class='boton2'><a href='/news&amp;pag=$back'>&#8592; Atr&aacute;s</a></span></td>";
+				echo "<td align='center'><span class='boton2'><a href='/news&amp;pag=$back'>&#8592; Atr?s</a></span></td>";
 				// &#60;&#60;
 			}
 
@@ -83,3 +83,4 @@
 	}
 	?>
 </p>
+

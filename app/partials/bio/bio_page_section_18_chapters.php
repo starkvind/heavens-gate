@@ -1,12 +1,12 @@
 <?php
 /*
 	foreach ($participacion as $rel) {
-		$capituloTitle = "Capítulo " . htmlspecialchars($rel["capitulo"]) ." de " . htmlspecialchars($rel["temporada_name"]) . " (Temporada " . htmlspecialchars($rel["numero"]) . ")'";
+		$chapter_numberTitle = "Capítulo " . htmlspecialchars($rel["chapter_number"]) ." de " . htmlspecialchars($rel["temporada_name"]) . " (Temporada " . htmlspecialchars($rel["season_number"]) . ")'";
 		echo "
-			<a href='/chapters/" . $rel["id"] . "' title='" . $capituloTitle . "' target='_blank'>
+			<a href='/chapters/" . $rel["id"] . "' title='" . $chapter_numberTitle . "' target='_blank'>
 				<div class='bioSheetPower'>
 					" . htmlspecialchars($rel["name"]) . "
-					<div style='float:right;font-size:8px;padding-top:2px;'>" . htmlspecialchars($rel["fecha"]) . "</div>
+					<div style='float:right;font-size:8px;padding-top:2px;'>" . htmlspecialchars($rel["played_date"]) . "</div>
 				</div>
 			</a>
 		";
@@ -58,8 +58,8 @@ $ultimaTemporada = null;
 
 foreach ($participacion as $rel) {
 	$tempNombre = htmlspecialchars($rel["temporada_name"]);
-	$tempNumero = htmlspecialchars($rel["numero"]);
-	$capituloTitle = "Capítulo " . htmlspecialchars($rel["capitulo"]) ."";
+	$tempNumero = htmlspecialchars($rel["season_number"]);
+	$chapter_numberTitle = "Capítulo " . htmlspecialchars($rel["chapter_number"]) ."";
 
 	if ($ultimaTemporada !== $tempNumero) {
 		if ($ultimaTemporada !== null) {
@@ -78,10 +78,10 @@ foreach ($participacion as $rel) {
 
     $chapHref = pretty_url($link, 'dim_chapters', '/chapters', (int)$rel["id"]);
 	echo "
-		<a href='" . htmlspecialchars($chapHref) . "' title='" . $capituloTitle . "' target='_blank'>
+		<a href='" . htmlspecialchars($chapHref) . "' title='" . $chapter_numberTitle . "' target='_blank'>
 			<div class='bioSheetPower' style='width:100%;'>
 				" . htmlspecialchars($rel["name"]) . "
-				<div style='float:right;font-size:8px;padding-top:2px;'>" . htmlspecialchars($rel["fecha"]) . "</div>
+				<div style='float:right;font-size:8px;padding-top:2px;'>" . htmlspecialchars($rel["played_date"]) . "</div>
 			</div>
 		</a>
 	";
@@ -92,3 +92,5 @@ if ($ultimaTemporada !== null) {
 }
 ?>
 </div>
+
+

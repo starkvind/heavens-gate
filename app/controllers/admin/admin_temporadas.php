@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_temporada'])) {
     $opening = trim($_POST['opening'] ?? '');            // por si lo añades luego al form
     $protas  = trim($_POST['protagonistas'] ?? '');      // por si lo añades luego al form
 
-    $sql = "INSERT INTO dim_seasons (`name`, `numero`, `season`, `desc`, `opening`, `protagonistas`)
+    $sql = "INSERT INTO dim_seasons (`name`, `season_number`, `season`, `desc`, `opening`, `main_cast`)
             VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $link->prepare($sql);
     if (!$stmt) db_fail($link, "Prepare INSERT falló");
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
     // $protas  = trim($_POST['protagonistas'] ?? '');
 
     $sql = "UPDATE dim_seasons
-            SET `name`=?, `numero`=?, `season`=?, `desc`=?
+            SET `name`=?, `season_number`=?, `season`=?, `desc`=?
             WHERE id=?";
     $stmt = $link->prepare($sql);
     if (!$stmt) db_fail($link, "Prepare UPDATE falló");
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
 
 // Obtener todas las temporadas
 $temporadas = [];
-$result = $link->query("SELECT * FROM dim_seasons ORDER BY numero ASC");
+$result = $link->query("SELECT *, season_number AS numero, main_cast AS protagonistas FROM dim_seasons ORDER BY season_number ASC");
 if (!$result) db_fail($link, "Query SELECT falló");
 
 while ($row = $result->fetch_assoc()) {

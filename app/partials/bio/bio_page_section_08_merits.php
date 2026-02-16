@@ -4,13 +4,13 @@
         SELECT
             nmd.id,
             nmd.name,
-            nmd.tipo,
-            nmd.coste,
-            b.nivel
+            nmd.kind,
+            nmd.cost,
+            b.level
         FROM bridge_characters_merits_flaws b
-        JOIN dim_merits_flaws nmd ON nmd.id = b.mer_y_def_id
-        WHERE b.personaje_id = ?
-        ORDER BY nmd.tipo DESC, nmd.coste, nmd.name
+        JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
+        WHERE b.character_id = ?
+        ORDER BY nmd.kind DESC, nmd.cost, nmd.name
     ";
 
     $stmt = $link->prepare($sql);
@@ -32,9 +32,9 @@
         while ($row = $result->fetch_assoc()) {
             $meritId   = (int)$row['id'];
             $nameMerit = htmlspecialchars($row['name']);
-            $typeMerit = htmlspecialchars($row['tipo']);
-            $costMerit = $row['coste'];
-            $lvlMerit  = $row['nivel'];
+            $typeMerit = htmlspecialchars($row['kind']);
+            $costMerit = $row['cost'];
+            $lvlMerit  = $row['level'];
 
             if ($lvlMerit !== null) {
                 $labelNivel = $lvlMerit;
@@ -71,3 +71,5 @@
     echo "</fieldset>";
     echo "</div>";
 ?>
+
+

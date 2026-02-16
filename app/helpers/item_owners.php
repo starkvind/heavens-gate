@@ -17,19 +17,19 @@ if (!function_exists('sanitize_int_csv')) {
     }
 }
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.cronica NOT IN ($excludeChronicles) " : "";
+$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 $queryOwners = "
     SELECT
         p.id,
-        p.nombre,
+        p.name,
         p.alias,
         p.img,
         p.estado
     FROM bridge_characters_items b
-    JOIN fact_characters p ON p.id = b.personaje_id
-    WHERE b.objeto_id = ? $cronicaNotInSQL
-    ORDER BY p.nombre
+    JOIN fact_characters p ON p.id = b.character_id
+    WHERE b.item_id = ? $cronicaNotInSQL
+    ORDER BY p.name
 ";
 
 $stmtOwners = $link->prepare($queryOwners);
@@ -52,7 +52,7 @@ if ($resultOwners->num_rows === 0) {
 
     while ($rowOwner = $resultOwners->fetch_assoc()) {
         $pjId     = (int)$rowOwner['id'];
-        $pjName   = htmlspecialchars($rowOwner['nombre']);
+        $pjName   = htmlspecialchars($rowOwner['name']);
         $pjAlias  = htmlspecialchars($rowOwner['alias'] ?? '');
         $pjImg    = htmlspecialchars($rowOwner['img'] ?? '');
         $pjState  = htmlspecialchars($rowOwner['estado'] ?? '');

@@ -82,7 +82,7 @@ function normalize_pretty_request(mysqli $link, string $route): void {
             if ($route === 'verobj') {
                 // Inventario: redirigir a /inventory/{type}/{item}
                 $typePretty = null;
-                if ($stmt2 = $link->prepare("SELECT t.pretty_id, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.tipo WHERE i.id = ? LIMIT 1")) {
+                if ($stmt2 = $link->prepare("SELECT t.pretty_id, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.item_type_id WHERE i.id = ? LIMIT 1")) {
                     $idInt = (int)$raw;
                     $stmt2->bind_param('i', $idInt);
                     $stmt2->execute();

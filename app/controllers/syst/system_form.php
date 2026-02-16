@@ -14,16 +14,16 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     // Recupera los datos del sistema
     while ($ResultQuery = $result->fetch_assoc()) {
-        $returnType = htmlspecialchars($ResultQuery["afiliacion"]); // Definimos la variable para volver
-        $nameWereForm = htmlspecialchars($ResultQuery["forma"]);
-        $nameWereBreed = htmlspecialchars($ResultQuery["raza"]);
-        $infoDesc = ($ResultQuery["desc"]);
-        $imageWereForm = htmlspecialchars($ResultQuery["imagen"]);
-        $bonusSTR = htmlspecialchars($ResultQuery["bonfue"]);
-        $bonusDEX = htmlspecialchars($ResultQuery["bondes"]);
-        $bonusRES = htmlspecialchars($ResultQuery["bonres"]);
-        $useMelee = (int)$ResultQuery["armas"];
-        $useGuns = (int)$ResultQuery["armasfuego"];
+        $returnType = htmlspecialchars($ResultQuery["affiliation"]); // Definimos la variable para volver
+        $nameWereForm = htmlspecialchars($ResultQuery["form"]);
+        $nameWereBreed = htmlspecialchars($ResultQuery["race"]);
+        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["desc"] ?? "");
+        $imageWereForm = htmlspecialchars($ResultQuery["image_url"]);
+        $bonusSTR = htmlspecialchars($ResultQuery["strength_bonus"]);
+        $bonusDEX = htmlspecialchars($ResultQuery["dexterity_bonus"]);
+        $bonusRES = htmlspecialchars($ResultQuery["stamina_bonus"]);
+        $useMelee = (int)$ResultQuery["weapons"];
+        $useGuns = (int)$ResultQuery["firearms"];
 
         $canUseMelee = $useMelee === 1
             ? "Esta forma es capaz de utilizar armas cuerpo a cuerpo."
@@ -113,7 +113,7 @@ if ($result->num_rows > 0) {
 
   <?php
     // Maniobras de combate para esta forma
-    $formNameRaw = $ResultQuery["forma"];
+    $formNameRaw = $ResultQuery["form"] ?? $ResultQuery["forma"] ?? '';
     $likeForm = '%' . $formNameRaw . '%';
     $formSystemId = (int)($ResultQuery['system_id'] ?? 0);
     $sqlMan = "SELECT id, pretty_id, name, img FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC";

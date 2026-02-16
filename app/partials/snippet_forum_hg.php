@@ -13,7 +13,7 @@
 	}
 
 	/* 
-	$query = "SELECT nombre, img FROM fact_characters WHERE id = ? LIMIT 1";
+	$query = "SELECT name, img FROM fact_characters WHERE id = ? LIMIT 1";
 	$stmt = mysqli_prepare($link, $query);
 	mysqli_stmt_bind_param($stmt, "i", $char_id);
 	mysqli_stmt_execute($stmt);
@@ -23,23 +23,23 @@
 		die("Personaje no encontrado.");
 	}
 
-	$nombre = htmlspecialchars($row['nombre']);
+	$nombre = htmlspecialchars($row['name']);
 	$img = htmlspecialchars($row['img']);
 	*/
 	
 	$defaultImgPath = "img/subidas/";
 	$defaultAvatars = [
-		-1 => ['nombre' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
-		-2 => ['nombre' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
-		-3 => ['nombre' => 'Silueta', 'img' => 'avatar_nadie_3.png']
+		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
+		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
+		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.png']
 	];
 
 	if (array_key_exists($char_id, $defaultAvatars)) {
-		$nombre = $defaultAvatars[$char_id]['nombre'];
+		$nombre = $defaultAvatars[$char_id]['name'];
 		$img = $defaultAvatars[$char_id]['img'];
 		$colortexto = '';
 	} else {
-		$query = "SELECT nombre, img, colortexto FROM fact_characters WHERE id = ? LIMIT 1";
+		$query = "SELECT name, img, colortexto FROM fact_characters WHERE id = ? LIMIT 1";
 		$stmt = mysqli_prepare($link, $query);
 		mysqli_stmt_bind_param($stmt, "i", $char_id);
 		mysqli_stmt_execute($stmt);
@@ -49,7 +49,7 @@
 			die("Personaje no encontrado.");
 		}
 
-		$nombre = htmlspecialchars($row['nombre']);
+		$nombre = htmlspecialchars($row['name']);
 		$img = htmlspecialchars($row['img']);
 		$colortexto = htmlspecialchars($row['colortexto']);
 	}
@@ -252,3 +252,4 @@
 		</script>
 	</body>
 </html>
+

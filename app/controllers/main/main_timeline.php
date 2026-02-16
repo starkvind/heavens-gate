@@ -1,13 +1,13 @@
-<?php setMetaFromPage("Linea temporal | Heaven's Gate", "Linea temporal de eventos y descubrimientos.", null, 'website'); ?>
+<?php setMetaFromPage("L?nea temporal | Heaven's Gate", "L?nea temporal de eventos y descubrimientos.", null, 'website'); ?>
 <?php
 // Validamos conexión
 if (!$link) {
     die("Error de conexión a la base de datos.");
 }
 $eventos = [];
-$res = $link->query("SELECT id, fecha, titulo, descripcion, tipo, fuente, linea_temporal FROM fact_timeline_events ORDER BY fecha ASC");
+$res = $link->query("SELECT id, event_date, title, description, kind, source, timeline FROM fact_timeline_events ORDER BY event_date ASC");
 while ($row = $res->fetch_assoc()) {
-    $fecha = $row['fecha'];
+    $fecha = $row['event_date'];
 
     // Si quieres falsificar fechas A.C., aquí puedes hacerlo:
     if ((int)substr($fecha, 0, 1) === '-') {
@@ -16,7 +16,7 @@ while ($row = $res->fetch_assoc()) {
     }
 	
 	$icon = '🌀'; // por defecto
-	switch ($row['tipo']) {
+	switch ($row['kind']) {
 		case 'catastrofe':     $icon = '🔥'; break;
 		case 'batalla':        $icon = '⚔️'; break;
 		case 'nacimiento':     $icon = '🟢'; break;
@@ -31,22 +31,22 @@ while ($row = $res->fetch_assoc()) {
 		case 'otros':          $icon = '📌'; break;
 	}
 
-	$descripcion = nl2br(htmlspecialchars($row['descripcion']));
-	$fuente = htmlspecialchars($row['fuente']);
-	$linea = htmlspecialchars($row['linea_temporal']);
-	$eventoTipo = htmlspecialchars(ucfirst($row['tipo']));
+	$descripcion = nl2br(htmlspecialchars($row['description']));
+	$fuente = htmlspecialchars($row['source']);
+	$linea = htmlspecialchars($row['timeline']);
+	$eventoTipo = htmlspecialchars(ucfirst($row['kind']));
 
 	$eventos[] = [
 		'id' => $row['id'],
 		'content' => '<span class="evento-tooltip" ' .
-			'data-id="' . htmlspecialchars($row['tipo']) . htmlspecialchars($row['titulo']) . '"'.
+			'data-id="' . htmlspecialchars($row['kind']) . htmlspecialchars($row['title']) . '"'.
 			'data-fuente="' . $fuente . '" ' .
 			'data-linea="' . $linea . '" ' .
 			'data-tipo="' . $eventoTipo . '" ' .
-			'data-desc="' . htmlspecialchars($row['descripcion']) . '">' .
-			$icon . ' ' . htmlspecialchars($row['titulo']) .
+			'data-desc="' . htmlspecialchars($row['description']) . '">' .
+			$icon . ' ' . htmlspecialchars($row['title']) .
 		'</span>',
-		'className' => htmlspecialchars($row['tipo']),
+		'className' => htmlspecialchars($row['kind']),
 		'start' => $fecha,
 		'linea' => $linea,
 		'fuente' => $fuente,
@@ -62,28 +62,28 @@ while ($row = $res->fetch_assoc()) {
 */
 
 // Añadir eventos de nacimiento desde fact_characters
-$res2 = $link->query("SELECT p.id, p.nombre, p.cumple, nc.name AS nombre_cronica, p.kes, p.jugador 
+$res2 = $link->query("SELECT p.id, p.name, p.birthdate_text, nc.name AS nombre_cronica, p.character_kind, p.player_id 
 FROM fact_characters p
-LEFT JOIN dim_chronicles nc ON nc.id = p.cronica 
+LEFT JOIN dim_chronicles nc ON nc.id = p.chronicle_id 
 WHERE 1=1
 
-	AND p.cronica NOT IN (2,6)
-	AND p.cumple REGEXP '^[0-9]{2}/[0-9]{2}/[0-9]{4}$';"
+	AND p.chronicle_id NOT IN (2,6)
+	AND p.birthdate_text REGEXP '^[0-9]{2}/[0-9]{2}/[0-9]{4}$';"
 /*"
     SELECT p.id, p.nombre, p.cumple, nc.name AS nombre_cronica
     FROM fact_characters p
-    LEFT JOIN dim_chronicles nc ON nc.id = p.cronica 
+    LEFT JOIN dim_chronicles nc ON nc.id = p.chronicle_id 
     WHERE p.cronica NOT IN (2,6)
-      AND p.cumple REGEXP '^[0-9]{2}/[0-9]{2}/[0-9]{4}$';
+      AND p.birthdate_text REGEXP '^[0-9]{2}/[0-9]{2}/[0-9]{4}$';
 "*/
 );
 
 while ($row = $res2->fetch_assoc()) {
-    $fechaObj = DateTime::createFromFormat('d/m/Y', $row['cumple']);
+    $fechaObj = DateTime::createFromFormat('d/m/Y', $row['birthdate_text']);
     if (!$fechaObj) continue; // seguridad por si acaso
     $fechaISO = $fechaObj->format('Y-m-d');
 
-    $titulo = 'Nacimiento de ' . htmlspecialchars($row['nombre']);
+    $titulo = 'Nacimiento de ' . htmlspecialchars($row['name']);
     $fuente = 'Lista de personajes';
     $linea  = htmlspecialchars($row['nombre_cronica']);
     $icono  = '🟢';
@@ -94,7 +94,7 @@ while ($row = $res2->fetch_assoc()) {
         'data-fuente="' . htmlspecialchars($fuente) . '" ' .
         'data-linea="' . $linea . '" ' .
 		'data-tipo="' . $eventoTipo . '" ' .
-        'data-desc="' . htmlspecialchars($row['nombre']) . ' nació en esta fecha (' . $fechaISO .').">' .
+        'data-desc="' . htmlspecialchars($row['name']) . ' nació en esta fecha (' . $fechaISO .').">' .
         $icono . ' ' . $titulo .
     '</span>';
 
@@ -618,4 +618,7 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 	</thead>
 	<tbody></tbody>
 </table>
+
+
+
 

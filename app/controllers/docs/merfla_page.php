@@ -6,7 +6,7 @@ $returnID = isset($_GET['r']) ? $_GET['r'] : '';  // ID del Regreso
 $unknownOrigin = "-";
 
 // Preparar la consulta para evitar inyecciones SQL
-$queryMaf = "SELECT * FROM dim_merits_flaws WHERE id = ? LIMIT 1";
+$queryMaf = "SELECT *, kind AS tipo, affiliation AS afiliacion, cost AS coste, description AS descripcion, system_name AS sistema FROM dim_merits_flaws WHERE id = ? LIMIT 1";
 
 $stmtMaf = $link->prepare($queryMaf);
 $stmtMaf->bind_param('s', $mafPageID);
@@ -28,7 +28,7 @@ if ($rowsQueryMaf > 0) {
     $mafSystem = htmlspecialchars($resultQueryMaf["sistema"]);
     $mafOrigin = htmlspecialchars($resultQueryMaf["bibliography_id"]);
 
-	$meritsAndFlawsQuery = "SELECT DISTINCT afiliacion FROM dim_merits_flaws ORDER BY afiliacion ASC";
+	$meritsAndFlawsQuery = "SELECT DISTINCT affiliation AS afiliacion FROM dim_merits_flaws ORDER BY affiliation ASC";
 
     // Seleccionar origen
     $mafOriginName = $unknownOrigin; // Valor predeterminado si no hay origen
@@ -94,9 +94,9 @@ if ($rowsQueryMaf > 0) {
         }
     }
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.cronica NOT IN ($excludeChronicles) " : "";
+    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $mafOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.nombre, c.alias, c.img, c.estado FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.personaje_id WHERE b.mer_y_def_id = ? $cronicaNotInSQL ORDER BY c.nombre")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.img, c.estado FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $mafPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -125,7 +125,7 @@ if ($rowsQueryMaf > 0) {
     
     $itemImg = "img/inv/no-photo.gif";
 
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>"; // Colocamos la Fotografia del Don
+    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>"; // Colocamos la Fotograf?a del Don
     echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$mafName'/>";
     echo "</div>"; // Dejamos la Fotografía ya colocada
 
