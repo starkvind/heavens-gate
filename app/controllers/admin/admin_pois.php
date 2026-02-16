@@ -383,9 +383,10 @@ while ($row = $aq->fetch_assoc()) {
 $pageTitle2 = "Mapas, POIs y Áreas";
 ?>
 
-<link rel="stylesheet" href="assets/leaflet.1.9.4.css">
-<script src="assets/leaflet.1.9.4.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
+<script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
 
+<div style="clear:both;"></div>
 <h2>🗺️ Administración de Mapas & POIs & Áreas</h2>
 
 <div class="bioTextData">
@@ -811,16 +812,25 @@ async function fetchJson(url, opts={}) {
 
   try { return JSON.parse(text); } catch(_e) {}
 
-  const iBrace = text.indexOf('{');
-  const iBracket = text.indexOf('[');
-  let start = -1;
-  if (iBrace !== -1 && iBracket !== -1) start = Math.min(iBrace, iBracket);
-  else start = (iBrace !== -1) ? iBrace : iBracket;
-
+  // Preferimos la respuesta JSON estándar {"ok":...}
+  let start = text.indexOf('{"ok"');
+  if (start === -1) {
+    const iBrace = text.indexOf('{');
+    const iBracket = text.indexOf('[');
+    if (iBrace !== -1 && iBracket !== -1) start = Math.min(iBrace, iBracket);
+    else start = (iBrace !== -1) ? iBrace : iBracket;
+  }
   if (start === -1) throw new Error('No se encontró JSON en la respuesta del servidor');
 
-  const trimmed = text.slice(start);
-  return JSON.parse(trimmed);
+  // Intentar recortar al último cierre para evitar restos HTML/avisos
+  const endObj = text.lastIndexOf('}');
+  const endArr = text.lastIndexOf(']');
+  const end = Math.max(endObj, endArr);
+  if (end > start) {
+    const slice = text.slice(start, end + 1);
+    return JSON.parse(slice);
+  }
+  return JSON.parse(text.slice(start));
 }
 
 // Botón Recargar

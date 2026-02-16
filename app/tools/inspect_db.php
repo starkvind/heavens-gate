@@ -4,7 +4,7 @@
  * Explorador de esquema para saneado de BDD
  */
 
-include("../helpers/heroes.php");
+include_once(__DIR__ . "/../helpers/heroes.php");
 
 /* ---------- CONFIGURACIÓN ---------- */
 
@@ -81,47 +81,30 @@ function ends_with($haystack, $needle) {
     return substr($haystack, -$length) === $needle;
 }
 
-function guess_table_type(array $columns) {
-    $fkCount = 0;
-    $hasMeasures = false;
-
-    foreach ($columns as $col) {
-        $name = strtolower($col['Field']);
-
-        if ($name === 'id') {
-            continue;
-        }
-
-        if (ends_with($name, '_id')) {
-            $fkCount++;
-        } else {
-            if (preg_match('/(count|total|nivel|rango|exitos|valor|amount)/', $name)) {
-                $hasMeasures = true;
-            }
-        }
-    }
-
-    if ($fkCount >= 2 && !$hasMeasures) {
-        return 'bridge';
-    }
-
-    if ($hasMeasures) {
-        return 'fact';
-    }
-
-    return 'dim';
-}
-
 /* ---------- ejecución ---------- */
 
-echo "========================================<br />";
-echo " INSPECCIÓN DE BASE DE DATOS<br />";
-echo "========================================<br /><br />";
+echo "<style>
+.inspect-db-wrap{max-width:600px;width:90%;}
+.inspect-db-actions{margin:6px 0 8px;display:flex;gap:8px;align-items:center;}
+.inspect-db-btn{background:#0d3a7a;color:#fff;border:1px solid #1b4aa0;border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;}
+.inspect-db-btn:hover{filter:brightness(1.1);}
+.inspect-db-output{background:#000033;color:#cfe;border:1px solid #000088;border-radius:8px;padding:10px;max-height:45vh;overflow:auto;white-space:pre-wrap;font-size:11px;line-height:1.35;}
+.inspect-db-hint{font-size:10px;color:#9dd;}
+</style>";
+echo "<div class='inspect-db-wrap'>";
+echo "<div class='inspect-db-actions'>
+  <button type='button' class='inspect-db-btn' id='inspectDbCopy'>Copiar</button>
+  <span class='inspect-db-hint' id='inspectDbCopyHint'></span>
+</div>";
+echo "<pre class='inspect-db-output' id='inspectDbOutput'>";
+echo "========================================\n";
+echo " INSPECCIÓN DE BASE DE DATOS\n";
+echo "========================================\n\n";
 
 $resTables = mysqli_query($link, "SHOW TABLES");
 
 if (!$resTables) {
-    die("❌ Error al listar tablas.<br />");
+    die("❌ Error al listar tablas.\n</pre>");
 }
 
 echo "Modo de inspección: ";
@@ -130,7 +113,7 @@ if (!empty($ONLY_TABLES)) {
 } else {
     echo "BLACKLIST → excluyendo: " . implode(', ', $EXCLUDE_TABLES);
 }
-echo "<br /><br />";
+echo "\n\n";
 
 while ($row = mysqli_fetch_row($resTables)) {
     $table = $row[0];
@@ -140,14 +123,14 @@ while ($row = mysqli_fetch_row($resTables)) {
         continue;
     }
 
-    echo "----------------------------------------<br />";
-    echo "TABLA: {$table}<br />";
-    echo "----------------------------------------<br />";
+    echo "----------------------------------------\n";
+    echo "TABLA: {$table}\n";
+    echo "----------------------------------------\n";
 
     $resCols = mysqli_query($link, "DESCRIBE `$table`");
 
     if (!$resCols) {
-        echo "⚠ No se pudo describir la tabla<br /><br />";
+        echo "⚠ No se pudo describir la tabla\n\n";
         continue;
     }
 
@@ -156,57 +139,76 @@ while ($row = mysqli_fetch_row($resTables)) {
         $columns[] = $col;
     }
 
-    $typeGuess = guess_table_type($columns);
-    echo "Tipo sugerido: {$typeGuess}<br /><br />";
-
-    echo "Columnas:<br />";
+    echo "Columnas:\n";
     foreach ($columns as $col) {
         echo "  - {$col['Field']} ({$col['Type']})";
         if ($col['Key'] === 'PRI') echo " [PK]";
         if ($col['Key'] === 'MUL') echo " [IDX]";
         if ($col['Null'] === 'NO') echo " [NOT NULL]";
-        echo "<br />";
+        echo "\n";
     }
 
-    echo "<br />Muestra de datos (máx {$MAX_ROWS} filas):<br />";
+    echo "\nMuestra de datos (máx {$MAX_ROWS} filas):\n";
 
     $resData = mysqli_query($link, "SELECT * FROM `$table` LIMIT {$MAX_ROWS}");
 
     if (!$resData) {
-        echo "  ⚠ Error en SELECT<br /><br />";
+        echo "  ⚠ Error en SELECT\n\n";
         continue;
     }
 
     if (mysqli_num_rows($resData) === 0) {
-        echo "  (tabla vacía)<br /><br />";
+        echo "  (tabla vacía)\n\n";
         continue;
     }
 
     $i = 1;
     while ($data = mysqli_fetch_assoc($resData)) {
-        echo "  Fila {$i}:<br />";
+        echo "  Fila {$i}:\n";
         foreach ($data as $k => $v) {
             if ($v === null) {
                 $v = 'NULL';
             } else {
                 $v = mb_strimwidth((string)$v, 0, 80, '…');
             }
-            echo "    {$k}: {$v}<br />";
+            echo "    {$k}: {$v}\n";
         }
         $i++;
     }
 
-    echo "<br />Observaciones:<br />";
-
-    foreach ($columns as $c) {
-        if ($c['Field'] !== 'id' && ends_with(strtolower($c['Field']), '_id')) {
-            echo "  • Posible FK: {$c['Field']}<br />";
-        }
-    }
-
-    echo "<br /><br />";
+    echo "\n\n";
 }
 
-echo "========================================<br />";
-echo " FIN DE INSPECCIÓN<br />";
-echo "========================================<br />";
+echo "========================================\n";
+echo " FIN DE INSPECCIÓN\n";
+echo "========================================\n";
+echo "</pre>";
+echo "</div>";
+echo "<script>
+  (function(){
+    var btn = document.getElementById('inspectDbCopy');
+    var out = document.getElementById('inspectDbOutput');
+    var hint = document.getElementById('inspectDbCopyHint');
+    if (!btn || !out) return;
+    btn.addEventListener('click', async function(){
+      try {
+        var text = out.innerText || out.textContent || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        if (hint) { hint.textContent = 'Copiado.'; setTimeout(function(){ hint.textContent=''; }, 1200); }
+      } catch(e){
+        if (hint) { hint.textContent = 'No se pudo copiar.'; setTimeout(function(){ hint.textContent=''; }, 1600); }
+      }
+    });
+  })();
+</script>";

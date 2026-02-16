@@ -631,6 +631,9 @@ function initEditors(){
     var html = textarea.value || '';
     q.root.innerHTML = html;
     QUILL_MAP[taId] = q;
+    if (window.hgMentions && HG_MENTION_TYPES) {
+      window.hgMentions.attachQuill(q, { types: HG_MENTION_TYPES });
+    }
   });
 }
 

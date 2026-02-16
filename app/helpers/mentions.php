@@ -167,13 +167,17 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
 
     $params = [];
     $types = '';
+    $tableAlias = ($type === 'character') ? 't' : $table;
     $join = '';
     $extraSelect = '';
     if ($type === 'character') {
-        $join = " LEFT JOIN dim_chronicles dc ON dc.id = t.chronicle_id";
-        $extraSelect = ", dc.name AS chronicle_name";
+        $join .= " LEFT JOIN dim_chronicles dc ON dc.id = $tableAlias.chronicle_id";
+        $extraSelect .= ", dc.name AS chronicle_name";
     }
-    $tableAlias = ($type === 'character') ? 't' : $table;
+    if ($type === 'breed' || $type === 'auspice' || $type === 'tribe') {
+        $join .= " LEFT JOIN dim_systems ds ON ds.id = $tableAlias.system_id";
+        $extraSelect .= ", ds.name AS system_name";
+    }
     $sql = "SELECT $tableAlias.id, $tableAlias.`$labelCol` AS label, $tableAlias.`$prettyCol` AS pretty_id$extraSelect FROM `$table` $tableAlias$join";
     $conds = [];
     if ($where !== '') $conds[] = $where;
@@ -181,7 +185,8 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
         $like = '%' . $q . '%';
         $orParts = [];
         foreach ($searchCols as $col) {
-            $orParts[] = "`$col` LIKE ?";
+            $colRef = ($type === 'character') ? "$tableAlias.`$col`" : "`$col`";
+            $orParts[] = $colRef . " LIKE ?";
             $params[] = $like;
             $types .= 's';
         }
@@ -215,6 +220,9 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
             ];
             if ($type === 'character') {
                 $item['chronicle_name'] = (string)($row['chronicle_name'] ?? '');
+            }
+            if ($type === 'breed' || $type === 'auspice' || $type === 'tribe') {
+                $item['system_name'] = (string)($row['system_name'] ?? '');
             }
             $out[] = $item;
         }

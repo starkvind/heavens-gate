@@ -302,7 +302,7 @@ function save_character_traits(mysqli $link, int $charId, array $traits, string 
     if (empty($traits)) return ['updated'=>0,'logged'=>0,'skipped'=>0];
 
     $old = [];
-    if ($st = $link->prepare("SELECT trait_id, value FROM fact_character_traits WHERE character_id=?")) {
+    if ($st = $link->prepare("SELECT trait_id, value FROM bridge_characters_traits WHERE character_id=?")) {
         $st->bind_param("i", $charId);
         $st->execute();
         $rs = $st->get_result();
@@ -314,10 +314,10 @@ function save_character_traits(mysqli $link, int $charId, array $traits, string 
 
     $updated = 0; $logged = 0; $skipped = 0;
 
-    $ins = $link->prepare("INSERT INTO fact_character_traits (character_id, trait_id, value)
+    $ins = $link->prepare("INSERT INTO bridge_characters_traits (character_id, trait_id, value)
                            VALUES (?,?,?)
                            ON DUPLICATE KEY UPDATE value=VALUES(value), updated_at=NOW()");
-    $log = $link->prepare("INSERT INTO fact_character_traits_log
+    $log = $link->prepare("INSERT INTO bridge_characters_traits_log
                            (character_id, trait_id, old_value, new_value, delta, reason, source, created_at, created_by)
                            VALUES (?,?,?,?,?,?,?,NOW(),?)");
 
@@ -667,6 +667,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($v > 10) $v = 10;
         $traits[$tid] = $v;
     }
+    // Filtrar: solo traits por defecto del sistema + traits con valor > 0
+    $default_trait_ids = [];
+    if ($system_id > 0 && isset($trait_set_order[$system_id])) {
+        $default_trait_ids = array_keys($trait_set_order[$system_id]);
+    }
+    if (!empty($traits)) {
+        $filtered = [];
+        foreach ($traits as $tid => $v) {
+            if ($v > 0 || in_array($tid, $default_trait_ids, true)) {
+                $filtered[$tid] = $v;
+            }
+        }
+        $traits = $filtered;
+    }
 
     if ($genero_pj === '')  $genero_pj = 'f';
     if ($colortexto === '') $colortexto = 'SkyBlue';
@@ -737,7 +751,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'⚠ El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
-                (name, alias, garou_name, genero_pj, concepto, chronicle_id, player_id, kind, img, notes, colortexto, character_kind, system_name, system_id,
+                (name, alias, garou_name, genero_pj, concepto, chronicle_id, player_id, character_type_id, img, notes, colortexto, character_kind, system_name, system_id,
                  shifter_type, totem_name, totem_id, estado, cause_of_death, birthdate_text, rank, info_text, breed_id, auspicio, tribu)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
@@ -811,7 +825,7 @@ $flash[] = ['type'=>'ok','msg'=>'✅ Personaje creado correctamente.'];
           // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
                   name=?, alias=?, garou_name=?, genero_pj=?, concepto=?,
-                  chronicle_id=?, player_id=?, kind=?, system_name=?, system_id=?, colortexto=?,
+                  chronicle_id=?, player_id=?, character_type_id=?, system_name=?, system_id=?, colortexto=?,
                   breed_id=?, auspicio=?, tribu=?,
                   totem_name=?, totem_id=?,
                   estado=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
@@ -943,7 +957,7 @@ SELECT
   -- ✅ IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.clan_id, 0)  AS clan,
-  p.img, p.kind AS character_type_id, p.totem_id, p.totem_name,
+  p.img, p.character_type_id, p.totem_id, p.totem_name,
 
   nj.name AS jugador_,
   nc.name AS cronica_,
@@ -985,7 +999,7 @@ LEFT JOIN dim_tribes     nt ON p.tribu   = nt.id
 LEFT JOIN dim_groups   nm  ON nm.id  = pgb.group_id
 LEFT JOIN dim_organizations    nc2 ON nc2.id = pcb.clan_id
 
-LEFT JOIN dim_character_types af ON p.kind  = af.id
+LEFT JOIN dim_character_types af ON p.character_type_id  = af.id
 
 $where
 ORDER BY p.name ASC
@@ -1109,7 +1123,7 @@ if (!empty($ids_page)) {
     $in = implode(',', array_map('intval',$ids_page));
     $qtr = $link->query("
         SELECT character_id, trait_id, value
-        FROM fact_character_traits
+        FROM bridge_characters_traits
         WHERE character_id IN ($in)
         ORDER BY character_id, trait_id
     ");
@@ -1548,7 +1562,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               </div>
             <?php endforeach; ?>
           </div>
-          <span class="small-note">Se guardan en fact_character_traits.</span>
+          <span class="small-note">Se guardan en bridge_characters_traits.</span>
         </div>
 
         <!-- PODERES -->

@@ -218,26 +218,6 @@ if ($resultDemeanor) {
     $demeanorLink = htmlspecialchars($idDemeanor ? $idDemeanor : 'Sin especificar');
 }
 
-// BIOGRAFIAS SIMILARES
-$stmt = $link->prepare("SELECT id, name FROM fact_characters WHERE name LIKE ? AND id != ? LIMIT 10");
-$stmt->bind_param('ss', $bioName, $characterId);
-$stmt->execute();
-$resultSameBio = $stmt->get_result();
-while ($row = $resultSameBio->fetch_assoc()) {
-    $sameBioId[] = htmlspecialchars($row['id']);
-    $sameBioName[] = htmlspecialchars($row['name']);
-}
-
-// ASESINATOS
-$stmt = $link->prepare("SELECT id, name FROM fact_characters WHERE cause_of_death LIKE ?");
-$stmt->bind_param('s', $bioName);
-$stmt->execute();
-$resultKills = $stmt->get_result();
-while ($row = $resultKills->fetch_assoc()) {
-    $killsId[] = htmlspecialchars($row['id']);
-    $killsName[] = htmlspecialchars($row['name']);
-}
-
 // Cálculo de círculos de habilidad, atributos, etc.
 if (!function_exists('createSkillCircle')) {
     function createSkillCircle($array, $prefix) {

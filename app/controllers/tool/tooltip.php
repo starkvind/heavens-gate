@@ -44,7 +44,7 @@ if ($type === 'don') {
         $st->close();
     }
 } elseif ($type === 'rite') {
-    if ($st = $link->prepare("SELECT name, level, race, system_name, description AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, level, race, syst, description AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -54,13 +54,13 @@ if ($type === 'don') {
             $raza = $r['race'] ?? '';
             $outMeta = "Nivel " . h($nivel);
             if ($raza !== '') $outMeta .= " - " . h($raza);
-            $outSystem = short_text($r['system_name'] ?? '');
+            $outSystem = short_text($r['syst'] ?? '');
             $outDesc = short_text($r['descr'] ?? '', 360);
         }
         $st->close();
     }
 } elseif ($type === 'merit') {
-    if ($st = $link->prepare("SELECT name, kind, cost, affiliation, system_name, description FROM dim_merits_flaws WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, kind, cost, affiliation, description FROM dim_merits_flaws WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -72,7 +72,6 @@ if ($type === 'don') {
             $outMeta = h($tipo);
             if ($coste !== '') $outMeta .= " - Coste " . h($coste);
             if ($afil !== '') $outMeta .= " - " . h($afil);
-            $outSystem = short_text($r['system_name'] ?? '');
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();

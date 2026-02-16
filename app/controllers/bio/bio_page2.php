@@ -63,7 +63,7 @@
 	function fetch_trait_values(mysqli $link, int $characterId): array {
 		$map = [];
 		if ($characterId <= 0) return $map;
-		$sql = "SELECT trait_id, value FROM fact_character_traits WHERE character_id = ?";
+		$sql = "SELECT trait_id, value FROM bridge_characters_traits WHERE character_id = ?";
 		if ($st = $link->prepare($sql)) {
 			$st->bind_param('i', $characterId);
 			$st->execute();
@@ -85,7 +85,7 @@
 		$out = [];
 		if ($characterId <= 0) return $out;
 		$sql = "SELECT t.id, t.name, f.value
-				FROM fact_character_traits f
+				FROM bridge_characters_traits f
 				INNER JOIN dim_traits t ON t.id = f.trait_id
 				WHERE f.character_id = ? AND t.kind = ?";
 		if ($onlyNonZero) $sql .= " AND f.value > 0";
@@ -125,7 +125,7 @@
 			$sql = "SELECT t.id, t.name, COALESCE(f.value,0) AS value, s.sort_order
 					FROM fact_trait_sets s
 					JOIN dim_traits t ON t.id = s.trait_id AND t.kind = ?
-					LEFT JOIN fact_character_traits f ON f.trait_id = t.id AND f.character_id = ?
+					LEFT JOIN bridge_characters_traits f ON f.trait_id = t.id AND f.character_id = ?
 					WHERE s.system_id = ? AND s.is_active = 1
 					ORDER BY s.sort_order, t.name";
 			if ($st = $link->prepare($sql)) {
@@ -146,7 +146,7 @@
 		if ($hasSet && $systemId > 0) {
 			// Append traits with value>0 not present in the set
 			$sql = "SELECT t.id, t.name, f.value
-					FROM fact_character_traits f
+					FROM bridge_characters_traits f
 					JOIN dim_traits t ON t.id = f.trait_id AND t.kind = ?
 					WHERE f.character_id = ? AND f.value > 0
 					AND t.id NOT IN (SELECT trait_id FROM fact_trait_sets WHERE system_id = ? AND is_active = 1)
@@ -284,7 +284,7 @@
 		// ================================================================== //
 		if ($bioSheet == "pj") { // <--- Inicio de comprobación si lleva hoja de PJ
 		// ================================================================== //
-		// Traits normalizados (fact_character_traits)
+		// Traits normalizados (bridge_characters_traits)
 			$traitValues = fetch_trait_values($link, (int)$characterId);
 
 			// Mapa trait_id por columna legacy (mismo mapping que migración)

@@ -43,6 +43,7 @@
       row.dataset.index = String(idx);
       var meta = it.type;
       if (it.chronicle_name) meta += ' · ' + it.chronicle_name;
+      if (it.system_name) meta += ' · ' + it.system_name;
       row.textContent = it.label + ' (' + meta + ')';
       row.addEventListener('click', function(){ onPick(it); });
       list.appendChild(row);

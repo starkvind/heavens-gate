@@ -1683,6 +1683,9 @@ header img {
 	gap: 6px;
 	padding: 5px 10px;
 	border-radius: 999px;
+	clear: both;
+	margin-top: 12px;
+	margin-bottom: 8px;
 	/*background: linear-gradient(90deg, #00124d, #002a77);
 	border: 1px solid #0000aa;
 	box-shadow: 0 0 0 1px #000044 inset;*/

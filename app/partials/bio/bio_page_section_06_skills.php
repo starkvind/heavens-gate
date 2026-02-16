@@ -1,5 +1,5 @@
 <?php
-// NUEVO (fact_character_traits)
+// NUEVO (bridge_characters_traits)
 // Habilidades por columnas: Talentos, Técnicas, Conocimientos
 $tal = array_values(array_filter($bioSkillCols['Talentos'] ?? [], function($t){
     return isset($t['name']) && $t['name'] !== '';

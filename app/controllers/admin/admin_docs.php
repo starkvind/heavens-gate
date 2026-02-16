@@ -492,8 +492,8 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
       <label class="small">Búsqueda
         <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título…':'Sección…' ?>">
       </label>
-      <label class="small" style="margin-left:auto; text-align:left;">Filtro r?pido
-        <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta p?gina...">
+      <label class="small" style="margin-left:auto; text-align:left;">Filtro rápido
+        <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta página...">
       </label>
       <label class="small">Por p&aacute;g
         <select class="select" name="pp" onchange="this.form.submit()">
@@ -519,7 +519,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
-          <th style="width:<?= (int)($c['w'] ? 120) ?>px;"><?= h($c['label']) ?></th>
+          <th style="width:<?= (int)($c['w'] ?? 120) ?>px;"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
         <th style="width:190px;">Acciones</th>
       </tr>

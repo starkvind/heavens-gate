@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	$habilidad = trim((string)($_POST['habilidad'] ?? ''));
 	$level     = (int)($_POST['level'] ?? ($_POST['nivel'] ?? 0));
 	$gnosis    = (int)($_POST['gnosis'] ?? 0);
-	$valor     = trim((string)($_POST['valor'] ?? ''));
+	$valor     = (int)($_POST['valor'] ?? 0);
 	$bonus     = (int)($_POST['bonus'] ?? 0);
 	$dano      = trim((string)($_POST['dano'] ?? ''));
 	$metal     = (int)($_POST['metal'] ?? 0);
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 				WHERE id=?");
 			if ($st) {
 				$st->bind_param(
-					"sisiisisiiissii",
+					"sisiiiisiiissii",
 					$name, $itemTypeId, $habilidad, $level, $gnosis, $valor, $bonus, $dano, $metal,
 					$fuerza, $destreza, $img, $description, $bibliographyId, $id
 				);
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 				VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 			if ($st) {
 				$st->bind_param(
-					"sisiisisiiissi",
+					"sisiiiisiiissi",
 					$name, $itemTypeId, $habilidad, $level, $gnosis, $valor, $bonus, $dano, $metal,
 					$fuerza, $destreza, $img, $description, $bibliographyId
 				);

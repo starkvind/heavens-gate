@@ -89,6 +89,9 @@
 				case 'admin_trait_sets':
 					include("admin_trait_sets.php");
 					break;
+				case 'admin_inspect_db':
+					include(__DIR__ . "/../../tools/inspect_db.php");
+					break;
 				case 'admin_mentions_help':
 					include("mentions_help.html");
 					break;
@@ -237,6 +240,11 @@
 					<a href='/talim?s=admin_menu'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Editar Men&uacute;
+						</div>
+					</a>
+					<a href='/talim?s=admin_inspect_db'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Inspeccionar BDD
 						</div>
 					</a>
 					<a href='/talim?s=admin_mentions_help'>

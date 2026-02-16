@@ -93,7 +93,7 @@ if (count($listaPoderes) > 0) {
 				// Nombre del poder según tipo
 				$nombre = isset($data['name']) ? $data['name'] : (isset($data['name']) ? $data['name'] : '???');
 				$level = isset($data['level']) ? $data['level'] : null;
-				$rango = isset($data['rango']) ? $data['rango'] : null;
+				$rango = isset($data['rank']) ? $data['rank'] : (isset($data['rango']) ? $data['rango'] : null);
 				
 				if ($tipo == "disciplinas") {
 					if ($levelBridge !== null && $levelBridge >= 0) {
@@ -106,6 +106,7 @@ if (count($listaPoderes) > 0) {
 				} elseif ($tipo == "rituales") {
 					$levelFinal = $level;
 				} else {
+					// Dones: siempre mostrar el rango propio del don (no el nivel del bridge)
 					$levelFinal = (int)$rango;
 				}
 
