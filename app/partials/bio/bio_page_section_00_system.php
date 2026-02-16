@@ -71,7 +71,12 @@
 			// IDENTIFICACION
 			$titleAuspice = "Aspecto";
 			$titlePack = "Grupo";
-			$titleTribe = "Especie";	
+			$titleTribe = "Especie";
+			// SECCION SOCIAL
+			$titleSocial = "&nbsp;Virtudes&nbsp;"; // Titulo de la seccion "Social"
+			$titleGlory = "Conciencia";
+			$titleHonor = "Autocontrol";
+			$titleWisdo = "Coraje";
 			// SECCION VENTAJAS
 			$titleRage = "Sangre";
 			$titleGnosis = "Humanidad";

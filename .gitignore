@@ -88,3 +88,6 @@ app/tools/migrate_trait_sets.php
 app/tools/seed_trait_sets_from_bio.php
 app/tools/migrate_rename_all_columns.php
 app/tools/check_fulltext_issues.php
+
+# Migration plan
+migration/*

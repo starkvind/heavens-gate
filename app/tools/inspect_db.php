@@ -83,16 +83,34 @@ function ends_with($haystack, $needle) {
 
 /* ---------- ejecución ---------- */
 
+// Modo: full (tablas + columnas + muestra) / schema (solo tablas + columnas)
+$mode = isset($_GET['mode']) ? strtolower(trim((string)$_GET['mode'])) : 'full';
+if (!in_array($mode, ['full','schema'], true)) $mode = 'full';
+
+// Codificación (conexión + BD)
+$encConn = '';
+$encDb = '';
+if ($rsEnc = $link->query("SELECT @@character_set_connection AS cs_conn, @@collation_connection AS col_conn, @@character_set_database AS cs_db, @@collation_database AS col_db")) {
+    if ($row = $rsEnc->fetch_assoc()) {
+        $encConn = ($row['cs_conn'] ?? '').' / '.($row['col_conn'] ?? '');
+        $encDb   = ($row['cs_db'] ?? '').' / '.($row['col_db'] ?? '');
+    }
+    $rsEnc->close();
+}
+
 echo "<style>
 .inspect-db-wrap{max-width:600px;width:90%;}
-.inspect-db-actions{margin:6px 0 8px;display:flex;gap:8px;align-items:center;}
+.inspect-db-actions{margin:6px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .inspect-db-btn{background:#0d3a7a;color:#fff;border:1px solid #1b4aa0;border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;}
 .inspect-db-btn:hover{filter:brightness(1.1);}
+.inspect-db-btn.active{background:#001199;color:#01b3fa;border-color:#003399;}
 .inspect-db-output{background:#000033;color:#cfe;border:1px solid #000088;border-radius:8px;padding:10px;max-height:45vh;overflow:auto;white-space:pre-wrap;font-size:11px;line-height:1.35;}
 .inspect-db-hint{font-size:10px;color:#9dd;}
 </style>";
 echo "<div class='inspect-db-wrap'>";
 echo "<div class='inspect-db-actions'>
+  <a class='inspect-db-btn ".($mode==='full'?'active':'')."' href='?p=talim&s=admin_inspect_db&mode=full'>Modo completo</a>
+  <a class='inspect-db-btn ".($mode==='schema'?'active':'')."' href='?p=talim&s=admin_inspect_db&mode=schema'>Solo tablas/columnas</a>
   <button type='button' class='inspect-db-btn' id='inspectDbCopy'>Copiar</button>
   <span class='inspect-db-hint' id='inspectDbCopyHint'></span>
 </div>";
@@ -100,6 +118,10 @@ echo "<pre class='inspect-db-output' id='inspectDbOutput'>";
 echo "========================================\n";
 echo " INSPECCIÓN DE BASE DE DATOS\n";
 echo "========================================\n\n";
+if ($encConn !== '' || $encDb !== '') {
+    echo "Codificación conexión: " . $encConn . "\n";
+    echo "Codificación BDD: " . $encDb . "\n\n";
+}
 
 $resTables = mysqli_query($link, "SHOW TABLES");
 
@@ -148,32 +170,34 @@ while ($row = mysqli_fetch_row($resTables)) {
         echo "\n";
     }
 
-    echo "\nMuestra de datos (máx {$MAX_ROWS} filas):\n";
+    if ($mode !== 'schema') {
+        echo "\nMuestra de datos (máx {$MAX_ROWS} filas):\n";
 
-    $resData = mysqli_query($link, "SELECT * FROM `$table` LIMIT {$MAX_ROWS}");
+        $resData = mysqli_query($link, "SELECT * FROM `$table` LIMIT {$MAX_ROWS}");
 
-    if (!$resData) {
-        echo "  ⚠ Error en SELECT\n\n";
-        continue;
-    }
-
-    if (mysqli_num_rows($resData) === 0) {
-        echo "  (tabla vacía)\n\n";
-        continue;
-    }
-
-    $i = 1;
-    while ($data = mysqli_fetch_assoc($resData)) {
-        echo "  Fila {$i}:\n";
-        foreach ($data as $k => $v) {
-            if ($v === null) {
-                $v = 'NULL';
-            } else {
-                $v = mb_strimwidth((string)$v, 0, 80, '…');
-            }
-            echo "    {$k}: {$v}\n";
+        if (!$resData) {
+            echo "  ⚠ Error en SELECT\n\n";
+            continue;
         }
-        $i++;
+
+        if (mysqli_num_rows($resData) === 0) {
+            echo "  (tabla vacía)\n\n";
+            continue;
+        }
+
+        $i = 1;
+        while ($data = mysqli_fetch_assoc($resData)) {
+            echo "  Fila {$i}:\n";
+            foreach ($data as $k => $v) {
+                if ($v === null) {
+                    $v = 'NULL';
+                } else {
+                    $v = mb_strimwidth((string)$v, 0, 80, '…');
+                }
+                echo "    {$k}: {$v}\n";
+            }
+            $i++;
+        }
     }
 
     echo "\n\n";

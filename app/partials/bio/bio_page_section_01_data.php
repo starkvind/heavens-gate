@@ -43,7 +43,7 @@ $idRace = $bioRace;
 $resultRace = getSingleRecord($link, 'dim_breeds', $idRace);
 if ($resultRace) {
     $nameRaceFinal = htmlspecialchars($resultRace['name']);
-    $raceLink = $nameRaceFinal; #createLink("?p=versist&amp;tc=1&amp;b=$idRace", $nameRaceFinal);
+    $raceLink = createLink(pretty_url($link, 'dim_breeds', '/systems/detail/1', (int)$idRace), $nameRaceFinal);
 } else {
     $raceLink = htmlspecialchars($idRace);
 }
@@ -53,7 +53,7 @@ $idAuspice = $bioAuspice;
 $resultAuspice = getSingleRecord($link, 'dim_auspices', $idAuspice);
 if ($resultAuspice) {
     $nameAuspiceFinal = htmlspecialchars($resultAuspice['name']);
-    $auspiceLink = $nameAuspiceFinal; #createLink("?p=versist&amp;tc=2&amp;b=$idAuspice", $nameAuspiceFinal);
+    $auspiceLink = createLink(pretty_url($link, 'dim_auspices', '/systems/detail/2', (int)$idAuspice), $nameAuspiceFinal);
 } else {
     $auspiceLink = htmlspecialchars($idAuspice);
 }
@@ -63,7 +63,7 @@ $idTribe = $bioTribe;
 $resultTribe = getSingleRecord($link, 'dim_tribes', $idTribe);
 if ($resultTribe) {
     $nameTribeFinal = htmlspecialchars($resultTribe['name']);
-    $tribeLink = $nameTribeFinal; #createLink("?p=versist&amp;tc=3&amp;b=$idTribe", $nameTribeFinal);
+    $tribeLink = createLink(pretty_url($link, 'dim_tribes', '/systems/detail/3', (int)$idTribe), $nameTribeFinal);
 } else {
     $tribeLink = htmlspecialchars($idTribe);
 }
@@ -216,6 +216,14 @@ if ($resultDemeanor) {
     $demeanorLink = createLink(pretty_url($link, 'dim_archetypes', '/rules/archetypes', (int)$idDemeanor), $nameDemeanorFinal);
 } else {
     $demeanorLink = htmlspecialchars($idDemeanor ? $idDemeanor : 'Sin especificar');
+}
+
+// TÓTEM
+$totemLink = '';
+if (!empty($bioTotemId) && $bioTotemId > 0) {
+    $totemLink = createLink(pretty_url($link, 'dim_totems', '/powers/totem', (int)$bioTotemId), htmlspecialchars($bioTotem));
+} elseif ($bioTotem !== '') {
+    $totemLink = htmlspecialchars($bioTotem);
 }
 
 // Cálculo de círculos de habilidad, atributos, etc.

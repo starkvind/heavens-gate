@@ -214,7 +214,7 @@
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
 			$bioPhoto	 = $dataResult["img"]; 			// Imagen del personaje.
-		$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
+			$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
 			$bioBday	 = $dataResult["birthdate_text"]; // Cumpleaños del personaje.
 			$bioConcept	 = $dataResult["concepto"]; 	// Concepto del personaje.
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
@@ -226,7 +226,7 @@
 			$pageTitle2	 = $bioName;						// Título de la Página
 			setMetaFromPage($bioName . " | Personajes | Heaven's Gate", meta_excerpt($bioText), $bioPhoto, 'article');
 			$titleInfo	 = "&nbsp;Información&nbsp;";		// Titulo de la seccion "Información"
-			$titleId	 = "&nbsp;Detalles&nbsp;";			// Titulo de la seccion "Identificación"
+			$titleId	 = "&nbsp;Detalles de $bioName&nbsp;";// Titulo de la seccion "Identificación"
 			$titleAttr	 = "&nbsp;Atributos&nbsp;";			// Titulo de la seccion "Atributos"
 			$titleSkill	 = "&nbsp;Habilidades&nbsp;";		// Titulo de la seccion "Habilidades"
 			$titleBackg	 = "&nbsp;Trasfondos&nbsp;";		// Titulo de la seccion "Trasfondos"
@@ -235,7 +235,7 @@
 			$titleAdvant = "&nbsp;Estado&nbsp;";			// Titulo de la seccion "Estado"
 			$titlePowers = "&nbsp;Poderes&nbsp;";			// Titulo de la seccion "Poderes"
 			$titleItems	 = "&nbsp;Inventario&nbsp;";		// Titulo de la seccion "Inventario"
-			$titleSameBio= "&nbsp;Relaciones&nbsp;";		// Título de la sección "Relaciones"
+			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// Título de la sección "Relaciones"
 			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// Título de la sección "Nebulosa de relaciones"	
 			$titleParticp= "&nbsp;Participación&nbsp;";		// Titulo de la seccion "Participación"		
 		// ================================================================== //
@@ -255,6 +255,7 @@
 		// ================================================================== //
 		// Ventajas y poderes
 			$bioTotem	 = (string)($dataResult["totem_name"] ?? ""); 		// Tótem que guía al personaje.
+			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
 		// Género
 			$bioGender	 = $dataResult["genero_pj"];		// Género del personaje
 		// Títulos de la sección Detalles		
@@ -524,23 +525,22 @@
 		// ----------------------------------------- //
 		/* MODERNO NUEVO */
 		include("app/partials/main_nav_bar.php");	// Barra Navegación
-		echo "<h2>" . h($bioName) . "</h2>"; // Encabezado de página
 		// ================================================================== //
 		echo "<style>
 		.bioLayout{ max-width:980px; margin:0 auto; }
-		.bioTabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
-		.bioTabBtn{
+		.hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
+		.hgTabBtn{
 			font-family: verdana;
 			font-size: 10px;
 			background-color: #000066;
 			color: #fff;
-			padding: 0.5em;
-			border: 1px solid #000099;
+			padding: 0.5em 0.8em;
+			border: 1px solid #003399;
 			border-radius: 6px;
 			cursor: pointer;
 		}
-		.bioTabBtn:hover{ border-color:#003399; background:#000099; color:#01b3fa; }
-		.bioTabBtn.active{ background:#001199; color:#01b3fa; border-color:#003399; }
+		.hgTabBtn:hover{ border-color:#003399; background:#000099; color:#01b3fa; }
+		.hgTabBtn.active{ background:#001199; color:#01b3fa; border-color:#003399; }
 		.bio-tab-panel{ display:none; }
 		.bio-tab-panel.active{ display:block; }
 		#hg-tooltip{
@@ -564,29 +564,37 @@
 		#hg-tooltip .hg-tip-meta{ font-size: 11px; color:#9fb2d9; }
 		#hg-tooltip .hg-tip-label{ font-weight: bold; margin-top: 6px; color:#cfd9ff; }
 		#hg-tooltip .hg-tip-text{ font-size: 12px; color:#e6f0ff; }
+		.power-card--bio .power-card__body{ grid-template-columns: 160px 1fr; column-gap:12px; }
+		.power-card--bio .power-card__media{ display:flex; align-items:center; justify-content:center; }
+		.power-card--bio .power-card__img-wrap{ width:140px; height:140px; padding:6px; border-radius:50%; background:#001188; border:1px solid #000088; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+		.power-card--bio .power-card__img{ width:100%; height:100%; object-fit:cover; border-radius:50%; border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5); }
 		</style>";
 
 		echo "<div class='bioLayout'>";
-		echo "<div class='bioTabs'>";
-		if ($hasInfo) echo "<button class='bioTabBtn' data-tab='info'>Información</button>";
-		if ($hasBso) echo "<button class='bioTabBtn' data-tab='bso'>Banda sonora</button>";
-		if ($hasSheet) echo "<button class='bioTabBtn' data-tab='sheet'>Hoja de personaje</button>";
-		if ($hasRel) echo "<button class='bioTabBtn' data-tab='rel'>Relaciones</button>";
-		if ($hasPart) echo "<button class='bioTabBtn' data-tab='part'>Participación</button>";
+		echo "<div class='hg-tabs'>";
+		if ($hasInfo) echo "<button class='hgTabBtn' data-tab='info'>Información</button>";
+		if ($hasBso) echo "<button class='hgTabBtn' data-tab='bso'>Banda sonora</button>";
+		if ($hasSheet) echo "<button class='hgTabBtn' data-tab='sheet'>Hoja de personaje</button>";
+		if ($hasRel) echo "<button class='hgTabBtn' data-tab='rel'>Relaciones</button>";
+		if ($hasPart) echo "<button class='hgTabBtn' data-tab='part'>Participación</button>";
 		echo "</div>";
 
 	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
 		// ================================================================== //
 		echo "<section id='sec-info' class='bio-tab-panel' data-tab='info'>";
-		echo "<div class='bioSquarePhoto'>"; // Colocamos la Fotografia del personaje ~~ #SEC02
-			echo "<img class='photobio' src='" . h($bioPhoto) . "' alt='" . h($bioName) . "'/>";
-		echo"</div>"; // Dejamos la Fotografía ya colocada
-		// ================================================================== //
-		echo "<div class='bioSquareData'>"; // Comenzamos a colocar los datos básicos ~~ #SEC03
-			// ----------------------------------------- //
-			include ("app/partials/bio/bio_page_section_03_details.php"); // Utilizamos "include" para no sobrecargar la página con código
-			// ----------------------------------------- //
-		echo "</div>"; // Finalizamos los datos básicos
+		echo "<div class='power-card power-card--bio'>";
+		echo "  <div class='power-card__banner'><span class='power-card__title'>" . h($bioName) . "</span></div>";
+		echo "  <div class='power-card__body'>";
+		echo "    <div class='power-card__media'>";
+		echo "      <div class='power-card__img-wrap'>";
+		echo "        <img class='power-card__img' src='" . h($bioPhoto) . "' alt='" . h($bioName) . "'/>";
+		echo "      </div>";
+		echo "    </div>";
+		echo "    <div class='power-card__stats'>";
+		include ("app/partials/bio/bio_page_section_03_details.php"); // Detalles básicos
+		echo "    </div>";
+		echo "  </div>";
+		echo "</div>";
 		// ================================================================== //
 		if ($bioText != "") { // Empezamos colocando la información de Texto
 			echo "<div class='bioTextData'>"; 
@@ -754,7 +762,7 @@
 
 <script>
 	document.addEventListener('DOMContentLoaded', () => {
-		const tabs = Array.from(document.querySelectorAll('.bioTabBtn'));
+		const tabs = Array.from(document.querySelectorAll('.hgTabBtn, .bioTabBtn'));
 		const panels = Array.from(document.querySelectorAll('.bio-tab-panel'));
 		function activate(tabKey){
 			panels.forEach(p => {

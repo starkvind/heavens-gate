@@ -1,83 +1,4 @@
 <?php
-/* Código antiguo 2013 < */
-// Mostrar biografías similares
-/*
-if (isset($numberFilasSameBio)) {
-	for ($nSameBio = 0; $nSameBio < $numberFilasSameBio; $nSameBio++) {
-		echo "<a href='/characters/" . htmlspecialchars($sameBioId[$nSameBio]) . "' target='_blank'>
-				<div class='bioSheetPower'>
-					<img class='valign' style='width:13px; height:13px;' src='" . htmlspecialchars($bioSameIcon) . "'>
-					" . htmlspecialchars($sameBioName[$nSameBio]) . "
-					<div style='float:right;font-size:8px;padding-top:2px;'>#" . htmlspecialchars($sameBioId[$nSameBio]) . "</div>
-				</div>
-			</a>";
-	}
-}
-*/
-
-/*
-
-$idsFamily = explode("-", $bioFamily);
-$cantidadFamily = count($idsFamily);
-$iconoFamilySelect = "img/ui/icons/kek.gif";
-$tablaDeFamily = "fact_characters";
-$nombreFamily = "nombre";
-$linkFamily = "muestrabio";
-
-// Preparar la consulta SQL
-$stmt = $link->prepare("SELECT $nombreFamily FROM $tablaDeFamily WHERE id = ? LIMIT 1");
-
-for ($nfamily = 0; $nfamily < $cantidadFamily; $nfamily++) {
-    $sacarParentesco = explode("|", $idsFamily[$nfamily]);
-    $familyIdSelect = $sacarParentesco[0];
-    
-    // Bind del parámetro para prevenir inyecciones SQL
-    $stmt->bind_param('s', $familyIdSelect);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $ResultQueryFamily = $result->fetch_assoc();
-        $nombreFamilySelect = htmlspecialchars($ResultQueryFamily['nombre']);
-        $parentesco = htmlspecialchars($sacarParentesco[1]);
-
-        echo "<a href='?p=" . htmlspecialchars($linkFamily) . "&amp;b=" . htmlspecialchars($familyIdSelect) . "' target='_blank'>
-                <div class='bioSheetPower'>
-                    <img class='valign' style='width:13px; height:13px;' src='" . htmlspecialchars($iconoFamilySelect) . "'>
-                    $nombreFamilySelect
-                    <div style='float:right;font-size:9px;padding-top:0px;'>$parentesco</div>
-                </div>
-              </a>";
-    }
-}
-
-$stmt->close();
-*/
-
-
-/* Código nuevo 2025 */
-/* $iconoRelacion = "img/ui/icons/kek.gif"; // Puedes cambiar este icono según la categoría (tag) si quieres
-
-foreach ($relaciones as $rel) {
-    $relId = htmlspecialchars($rel['direction'] === 'outgoing' ? $rel['target_id'] : $rel['source_id']);
-    $relNombre = htmlspecialchars($rel['nombre']);
-    $relAlias = !empty($rel['alias']) ? " (" . htmlspecialchars($rel['alias']) . ")" : "";
-    $relTipo = htmlspecialchars($rel['relation_type']);
-    $relLink = "muestrabio"; // o el que estés usando en la bio actual
-
-    echo "<a href='?p=" . $relLink . "&amp;b=" . $relId . "' target='_blank'>
-            <div class='bioSheetPower'>
-                <img class='valign' style='width:13px; height:13px;' src='" . $iconoRelacion . "'>
-                $relNombre
-                <div style='float:right;font-size:9px;padding-top:0px;'>$relTipo</div>
-            </div>
-          </a>";
-} */
-
-// $bioGender es la variable de género.
-
-//echo $bioGender;
-
 function traducirRelacion($tipo, $direccion, $generoRelacionado, $generoBio) {
 	if (!function_exists('g')) {
 		function g($genero, $masc, $fem, $neutro) {
@@ -166,7 +87,7 @@ foreach ($grupos as $categoria => $lista) {
     echo "<h4 style='margin: 1em 0.2em; font-weight: bold;'>{$etiquetas[$categoria]}</h4>";
 		foreach ($lista as $rel) {
 			$relId     = htmlspecialchars($rel['direction'] === 'outgoing' ? $rel['target_id'] : $rel['source_id']);
-			$relNombre = htmlspecialchars($rel['nombre']);
+			$relNombre = htmlspecialchars($rel['name']);
 			$relImg    = htmlspecialchars($rel['img']);
 			$relGender  = htmlspecialchars($rel['genero_pj']);
 			$relAlias  = !empty($rel['alias']) ? " (" . htmlspecialchars($rel['alias']) . ")" : "";
@@ -186,35 +107,5 @@ foreach ($grupos as $categoria => $lista) {
     echo "<br style='width: 100%; display: block;' />";
 
 }
-	
-/*
-
-foreach ($grupos as $categoria => $lista) {
-    if (count($lista) === 0) continue;
-
-    echo "<h4 style='margin: 0.8em; font-weight: bold;'>{$etiquetas[$categoria]}</h4>";
-
-    foreach ($lista as $rel) {
-        $relId = htmlspecialchars($rel['direction'] === 'outgoing' ? $rel['target_id'] : $rel['source_id']);
-        $relNombre = htmlspecialchars($rel['nombre']);
-		$relImg = htmlspecialchars($rel['img']);
-        $relAlias = !empty($rel['alias']) ? " (" . htmlspecialchars($rel['alias']) . ")" : "";
-        $relTipo = htmlspecialchars($rel['relation_type']);
-        $relLink = "muestrabio";
-
-        echo "<a href='?p=$relLink&amp;b=$relId' target='_blank'>
-                <div class='bioSheetPower'>
-                    <img class='valign' style='width:13px; height:13px;' src='$relImg'>
-                    $relNombre
-                    <div style='float:right;font-size:9px;padding-top:0px;'>$relTipo</div>
-                </div>
-              </a>";
-    }
-	
-	echo "<br style='width: 100%; display: block;' />";
-
-}
-
-*/
 
 ?>
