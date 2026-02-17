@@ -17,13 +17,13 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     $donName    = htmlspecialchars($resultQueryDon["name"]);
     $donType    = htmlspecialchars($resultQueryDon["disc"]);
     $donRank    = htmlspecialchars($resultQueryDon["level"]);
-    $donAttr    = htmlspecialchars($resultQueryDon["atributo"]);
-    $donSkill   = htmlspecialchars($resultQueryDon["habilidad"]);
+    $donAttr    = htmlspecialchars($resultQueryDon["attribute_name"]);
+    $donSkill   = htmlspecialchars($resultQueryDon["ability_name"]);
     $donDesc    = $resultQueryDon["description"]; // NO usar htmlspecialchars() para mantener el formato HTML
     $donSystem  = $resultQueryDon["system_name"];
     $donOrigin  = htmlspecialchars($resultQueryDon["bibliography_id"]);
 
-    $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
+    $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));
     $donIcono = isset($resultQueryDon["icono"]) ? htmlspecialchars($resultQueryDon["icono"]) : "";
 
     // Ruta completa de la imagen de la Disciplina
@@ -125,5 +125,6 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     echo "<p>Error: Disciplina no encontrada.</p>";
 }
 ?>
+
 
 

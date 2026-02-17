@@ -28,8 +28,8 @@ $charsSql = "
     SELECT
         p.id,
         p.name,
-        p.img,
-        p.estado,
+        p.image_url,
+        p.status,
         gbc.group_id
     FROM fact_characters p
         LEFT JOIN bridge_characters_groups gbc
@@ -185,4 +185,5 @@ const options = {
 
 new vis.Network(container, data, options);
 </script>
+
 

@@ -15,7 +15,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
     if ($ResultQuery) {
         $routeLabel = htmlspecialchars($ResultQuery["name"]);
         $determinante = htmlspecialchars($ResultQuery["determinante"]);
-        $descDones = htmlspecialchars($ResultQuery["description"] ?? $ResultQuery["desc"] ?? '');
+        $descDones = htmlspecialchars($ResultQuery["description"] ?? $ResultQuery["description"] ?? '');
         $donTypePhrase = "Dones";
         $pageSect = "$donTypePhrase $determinante $routeLabel"; // Para cambiar el título de la página
 		
@@ -25,7 +25,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
         echo "<fieldset class='descripcionGrupo'>$descDones</fieldset>";
 
         // Preparar la consulta para obtener los grupos de dones
-        $consulta = "SELECT DISTINCT grupo FROM fact_gifts WHERE kind = ? ORDER BY grupo";
+        $consulta = "SELECT DISTINCT gift_group FROM fact_gifts WHERE kind = ? ORDER BY gift_group";
         $stmt = $link->prepare($consulta);
         $stmt->bind_param('s', $routeParam);
         $stmt->execute();
@@ -33,7 +33,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
 
         $domoarigato = [];
         while ($row = $result->fetch_assoc()) {
-            $domoarigato[] = htmlspecialchars($row["grupo"]);
+            $domoarigato[] = htmlspecialchars($row["gift_group"]);
         }
 
         $misterroboto = count($domoarigato);
@@ -41,7 +41,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
         if ($misterroboto > 0) {
             foreach ($domoarigato as $grupo) {
                 // Preparar la consulta para obtener los dones dentro de cada grupo
-                $consulta = "SELECT id, pretty_id, name, rank FROM fact_gifts WHERE grupo = ? AND kind = ? ORDER BY rank";
+                $consulta = "SELECT id, pretty_id, name, rank FROM fact_gifts WHERE gift_group = ? AND kind = ? ORDER BY rank";
                 $stmt = $link->prepare($consulta);
                 $stmt->bind_param('ss', $grupo, $routeParam);
                 $stmt->execute();
@@ -74,3 +74,4 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
         echo "<p>Error: No se encontró el tipo de don especificado.</p>";
     }
 ?>
+

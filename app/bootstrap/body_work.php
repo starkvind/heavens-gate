@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // ===================== //
 // ✨ Validación de entradas
 // ===================== //
@@ -399,6 +399,7 @@ $routes = [
 	'gallery' => ['app/controllers/main/main_gallery.php', 'Galería de imágenes'],
 	'tooltip' => ['app/controllers/tool/tooltip.php', null],
 	'mentions' => ['app/controllers/tool/mentions.php', null],
+	'talim_epis_ajax' => ['app/controllers/admin/admin_epis_ajax.php', null],
 	
 	// Mapas
 	'maps' 		  => ['app/controllers/maps/maps_main.php', 'Mapas'],
@@ -422,7 +423,7 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'keygen', 'crop', 'tooltip', 'mentions'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'keygen', 'crop', 'tooltip', 'mentions', 'talim_epis_ajax'], true)) {
 		$isBarePage = true;
 	}
 	include($file);

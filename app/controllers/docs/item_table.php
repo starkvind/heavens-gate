@@ -10,7 +10,7 @@ $query = "
 		no2.id as item_id,
 		no2.pretty_id as item_pretty_id,
 		no2.name as item_name,
-		no2.img as item_img,
+		no2.image_url as item_img,
 		nto.name as item_category,
 		nto.pretty_id as item_type_pretty,
 		nto.id as item_type_id,
@@ -391,3 +391,4 @@ function sortValues(values){
 	});
 }
 </script>
+

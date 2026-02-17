@@ -18,7 +18,7 @@ body {
 }
 
 .ocultable.open {
-	max-height: 600px; /* puedes ajustar si necesitas m�s */
+	max-height: 600px; /* puedes ajustar si necesitas m?s */
 	padding: 4px 0;
 }
 
@@ -182,7 +182,7 @@ a.enlaceUpMenu:hover {
 
 }
 
-a.titMenu { /* Enlace para el men� */
+a.titMenu { /* Enlace para el men? */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -196,7 +196,7 @@ img.menuIcon {
 	border: 1px solid #000088; /* 006699; */
 }
 
-td.sekz { /* Secci�n de men� */
+td.sekz { /* Secci?n de men? */
 
 	padding: 5px;
 	font-weight: bolder;
@@ -205,7 +205,7 @@ td.sekz { /* Secci�n de men� */
 
 }
 
-td.sekzo { /* Subsecci�n de men� */
+td.sekzo { /* Subsecci?n de men? */
 
 	padding-left: 5px;
 	text-align: left;
@@ -224,7 +224,7 @@ td.sepmenu { /* Separacion entre secciones */
 
 }
 
-td.piepagina { /* Pie de la p�gina web */
+td.piepagina { /* Pie de la p?gina web */
 	text-align:center;
 	padding:5px;
 	font-size: 9px;

@@ -11,7 +11,7 @@ $query = "
 		d.kind as document_category,
 		COALESCE(nb.name, '') as document_origin
 	from fact_docs d2
-		left join dim_doc_categories d on d2.seccion = d.id
+		left join dim_doc_categories d on d2.section_id = d.id
 		left join dim_bibliographies nb on d2.bibliography_id = nb.id
 	order by d.sort_order
 ";
@@ -229,8 +229,8 @@ $(document).ready(function () {
 			paginate: {
 				first: "Primero",
 				last: "Último",
-				next: "▶",
-				previous: "◀"
+				next: "â–¶",
+				previous: "â—€"
 			}
 		},
 		initComplete: function(){
@@ -422,4 +422,5 @@ $(document).ready(function () {
 	updateSummaryOrgs(null);
 });
 </script>
+
 

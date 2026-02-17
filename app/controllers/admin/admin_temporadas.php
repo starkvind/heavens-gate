@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_temporada'])) {
     $name   = trim($_POST['name'] ?? '');
     $numero = (int)($_POST['numero'] ?? 0);
     $season = isset($_POST['season']) ? 1 : 0;
-    $desc   = trim($_POST['desc'] ?? '');
+    $desc   = trim($_POST['description'] ?? '');
     $desc   = hg_mentions_convert($link, $desc);
 
     // Campos NOT NULL en tu tabla que NO estabas rellenando:
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_temporada'])) {
     $opening = trim($_POST['opening'] ?? '');            // por si lo añades luego al form
     $protas  = trim($_POST['protagonistas'] ?? '');      // por si lo añades luego al form
 
-    $sql = "INSERT INTO dim_seasons (`name`, `season_number`, `season`, `desc`, `opening`, `main_cast`)
+    $sql = "INSERT INTO dim_seasons (`name`, `season_number`, `season`, `description`, `opening`, `main_cast`)
             VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $link->prepare($sql);
     if (!$stmt) db_fail($link, "Prepare INSERT falló");
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
     $name   = trim($_POST['name'] ?? '');
     $numero = (int)($_POST['numero'] ?? 0);
     $season = isset($_POST['season']) ? 1 : 0;
-    $desc   = trim($_POST['desc'] ?? '');
+    $desc   = trim($_POST['description'] ?? '');
     $desc   = hg_mentions_convert($link, $desc);
 
     // Igual: si no lo editas desde aquí, lo mantenemos como está (mejor que vaciarlo sin querer)
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
     // $protas  = trim($_POST['protagonistas'] ?? '');
 
     $sql = "UPDATE dim_seasons
-            SET `name`=?, `season_number`=?, `season`=?, `desc`=?
+            SET `name`=?, `season_number`=?, `season`=?, `description`=?
             WHERE id=?";
     $stmt = $link->prepare($sql);
     if (!$stmt) db_fail($link, "Prepare UPDATE falló");
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id']) && !isset(
     hg_update_pretty_id_if_exists($link, 'dim_seasons', $id, $name);
     $stmt->close();
 
-    echo "<p style='color:deepskyblue;'>✏ Temporada actualizada.</p>";
+    echo "<p style='color:deepskyblue;'>âœ Temporada actualizada.</p>";
 }
 
 // Obtener todas las temporadas
@@ -113,7 +113,7 @@ while ($row = $result->fetch_assoc()) {
         <label>Historia personal:</label>
         <input type="checkbox" name="season" <?= !empty($temp['season']) ? 'checked' : '' ?>>
 
-        <textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="desc" rows="6" cols="80" style="margin-top: 1em;"><?= htmlspecialchars($temp['desc'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+        <textarea class="hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="desc" rows="6" cols="80" style="margin-top: 1em;"><?= htmlspecialchars($temp['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
         <br /><br />
     </div>
 
@@ -154,3 +154,4 @@ while ($row = $result->fetch_assoc()) {
 </form>
 
 <script>if (window.hgMentions) { window.hgMentions.attachAuto(); }</script>
+

@@ -34,7 +34,7 @@ $powerTypes = [
         foreach ($powerTypes as $power) {
             $name = htmlspecialchars($power['name']);
             $href = htmlspecialchars($power['href']);
-            $desc = htmlspecialchars($power['desc']);
+            $desc = htmlspecialchars($power['description']);
 
             echo "
                 <a href='$href' title='$name'>
@@ -47,3 +47,4 @@ $powerTypes = [
         }
     ?>
 </fieldset>
+

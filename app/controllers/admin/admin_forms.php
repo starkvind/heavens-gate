@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
     $afiliacion = trim((string)($_POST['afiliacion'] ?? ''));
     $raza = trim((string)($_POST['raza'] ?? ''));
     $forma = trim((string)($_POST['forma'] ?? ''));
-    $desc = sanitize_utf8_text((string)($_POST['desc'] ?? ''));
+    $desc = sanitize_utf8_text((string)($_POST['description'] ?? ''));
     $desc = hg_mentions_convert($link, $desc);
     $imagen = trim((string)($_POST['imagen'] ?? ''));
     $armas = (int)($_POST['armas'] ?? 0);
@@ -373,7 +373,7 @@ function openFormModal(id = null){
             document.getElementById('form_regenera').value = row.regenera || 0;
             document.getElementById('form_hpregen').value = row.hpregen || 0;
             document.getElementById('form_bibliography_id').value = row.bibliography_id || 0;
-            const desc = row.description || row.desc || '';
+            const desc = row.description || row.description || '';
             document.getElementById('form_desc').value = desc;
             if (formEditor) formEditor.root.innerHTML = desc;
         }
@@ -430,3 +430,4 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <?php admin_panel_close(); ?>
+

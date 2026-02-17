@@ -50,7 +50,7 @@ $sql = "
         i.id AS item_id,
         i.pretty_id AS item_pretty_id,
         i.name AS item_name,
-        i.img AS item_img,
+        i.image_url AS item_img,
         COALESCE(b.name, '') AS item_origin
     FROM fact_items i
     LEFT JOIN dim_bibliographies b ON i.bibliography_id = b.id
@@ -163,4 +163,5 @@ usort($origins, function($a, $b){
 		}
 	});
 </script>
+
 

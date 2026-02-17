@@ -24,8 +24,8 @@ $queryOwners = "
         p.id,
         p.name,
         p.alias,
-        p.img,
-        p.estado
+        p.image_url,
+        p.status
     FROM bridge_characters_items b
     JOIN fact_characters p ON p.id = b.character_id
     WHERE b.item_id = ? $cronicaNotInSQL
@@ -54,8 +54,8 @@ if ($resultOwners->num_rows === 0) {
         $pjId     = (int)$rowOwner['id'];
         $pjName   = htmlspecialchars($rowOwner['name']);
         $pjAlias  = htmlspecialchars($rowOwner['alias'] ?? '');
-        $pjImg    = htmlspecialchars($rowOwner['img'] ?? '');
-        $pjState  = htmlspecialchars($rowOwner['estado'] ?? '');
+        $pjImg    = htmlspecialchars($rowOwner['image_url'] ?? '');
+        $pjState  = htmlspecialchars($rowOwner['status'] ?? '');
 
         $pjLabel = $pjAlias !== '' ? $pjAlias : $pjName;
         $mapEstado = [
@@ -86,3 +86,4 @@ if ($resultOwners->num_rows === 0) {
 
 $stmtOwners->close();
 ?>
+

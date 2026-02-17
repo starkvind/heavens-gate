@@ -9,10 +9,10 @@ $query = "
 		d.pretty_id as gift_pretty_id,
 		d.name as gift_name,
 		ntd.name as gift_type,
-		d.grupo as gift_category,
+		d.gift_group as gift_category,
 		d.rank as gift_level,
-		d.atributo as gift_roll_attribute,
-		d.habilidad as gift_roll_skill,
+		d.attribute_name as gift_roll_attribute,
+		d.ability_name as gift_roll_skill,
 		d.description as gift_description,
 		d.system_name as gift_roll_description,
 		s.name as gift_fera_system,
@@ -528,3 +528,4 @@ function sortValues(values){
 	.ms-wrap{ width: 100%; }
 }
 </style>
+

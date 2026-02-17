@@ -29,7 +29,7 @@ foreach ($relaciones as $r) {
         $nodes[$relatedId] = [
             'id' => $relatedId,
             'label' => (string)($r['nombre'] ?? ''),
-            'image' => (string)($r['img'] ?? '/img/ui/icons/default.jpg'),
+            'image' => (string)($r['image_url'] ?? '/img/ui/icons/default.jpg'),
             'size' => 20,
             'fontSize' => 12,
         ];
@@ -182,3 +182,4 @@ foreach ($relaciones as $r) {
     });
 })();
 </script>
+

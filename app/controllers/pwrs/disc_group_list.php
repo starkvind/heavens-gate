@@ -13,7 +13,7 @@ $ResultQuery = $result->fetch_assoc();
 
 // Definir variables con valores por defecto
 $routeLabel = $ResultQuery ? htmlspecialchars($ResultQuery["name"]) : "-";
-$descDones = $ResultQuery ? ($ResultQuery["description"] ?? $ResultQuery["desc"] ?? '') : "<p>Descripción no disponible</p>"; // NO usar htmlspecialchars()
+$descDones = $ResultQuery ? ($ResultQuery["description"] ?? $ResultQuery["description"] ?? '') : "<p>Descripción no disponible</p>"; // NO usar htmlspecialchars()
 $donTypePhrase = "Disciplina";
 $pageSect = $donTypePhrase; // Para cambiar el título de la página
 $pageTitle2 = $routeLabel;
@@ -57,4 +57,5 @@ echo "</fieldset>";
 // Mostrar el número de disciplinas halladas
 echo "<p align='right'>Niveles de $routeLabel: $totalDisciplinas</p>";
 ?>
+
 

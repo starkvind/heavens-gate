@@ -35,7 +35,7 @@ mysqli_free_result($resPlots);
 /* 2) Personajes base de cada trama (valores máximos) */
 $sqlMembers = "SELECT c.id, c.plot_id, c.base_char_id,
               c.m_hp, c.m_rage, c.m_gnosis, c.m_glamour, c.m_mana, c.m_blood, c.m_wp,
-              c.alias AS nombre, p.img AS avatar
+              c.alias AS nombre, p.image_url AS avatar
        FROM fact_party_members c
        JOIN fact_characters p ON p.id = c.base_char_id
 	   LEFT JOIN dim_parties hp ON c.plot_id = hp.id
@@ -332,4 +332,5 @@ mysqli_free_result($resChanges);
 	}
 
 </style>
+
 

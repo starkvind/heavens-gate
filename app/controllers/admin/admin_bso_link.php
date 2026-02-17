@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vincular_tema'])) {
 }
 
 // Obtener listas necesarias
-$temas = $link->query("SELECT id, title_hg FROM dim_soundtracks ORDER BY added_at DESC");
+$temas = $link->query("SELECT id, context_title FROM dim_soundtracks ORDER BY added_at DESC");
 $personajes = $link->query("SELECT id, name FROM fact_characters WHERE chronicle_id NOT IN (2, 7) ORDER BY name");
 $temporadas = $link->query("SELECT id, name FROM dim_seasons ORDER BY season_number");
 $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY played_date DESC");
@@ -48,7 +48,7 @@ $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY played_dat
         <select name="id_bso" required style="width:100%;">
             <option value="">Seleccionar tema</option>
             <?php while ($row = $temas->fetch_assoc()): ?>
-                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['title_hg']) ?></option>
+                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['context_title']) ?></option>
             <?php endwhile; ?>
         </select><br><br>
 
@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+
 
 
 

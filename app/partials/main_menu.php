@@ -191,7 +191,7 @@
 
 	if ($useDbMenu) {
 		function render_seasons(mysqli $link, string $seasonFlag): void {
-			$consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE ? ORDER BY order_n";
+			$consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE ? ORDER BY sort_order";
 			if ($stmt = mysqli_prepare($link, $consulta)) {
 				mysqli_stmt_bind_param($stmt, 's', $seasonFlag);
 				mysqli_stmt_execute($stmt);
@@ -369,7 +369,7 @@
 				<div class='renglonMenu menuSeparator'>&nbsp;</div>
                 <?php
                     // Conexión a la base de datos usando MySQLi
-                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '0' ORDER BY order_n";
+                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '0' ORDER BY sort_order";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);
@@ -431,7 +431,7 @@
         <td class='sekzo'>
             <div class="ocultable<?= ($menuOpenId === 'personalesMenu') ? ' open' : '' ?>" id="personalesMenu">
                 <?php
-                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '1' ORDER BY order_n";
+                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '1' ORDER BY sort_order";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);

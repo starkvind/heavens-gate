@@ -9,10 +9,10 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_tema'])) {
     $titulo      = trim($_POST['titulo']);
     $artista     = trim($_POST['artista']);
-    $youtube     = trim($_POST['youtube']);
-    $titulo_hg   = trim($_POST['titulo_hg']);
+    $youtube     = trim($_POST['youtube_url']);
+    $titulo_hg   = trim($_POST['context_title']);
 
-    $stmt = $link->prepare("INSERT INTO dim_soundtracks (title, artist, youtube, title_hg) VALUES (?, ?, ?, ?)");
+    $stmt = $link->prepare("INSERT INTO dim_soundtracks (title, artist, youtube_url, context_title) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("ssss", $titulo, $artista, $youtube, $titulo_hg);
     $stmt->execute();
     $newId = (int)$link->insert_id;
@@ -65,10 +65,10 @@ $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY added_at DESC");
         <input type="text" name="artista" style="width:100%;"><br><br>
 
         <label>Enlace YouTube (ID o URL completa):</label><br>
-        <input type="text" name="youtube" style="width:100%;"><br><br>
+        <input type="text" name="youtube_url" style="width:100%;"><br><br>
 
         <label>Nombre simbólico (ej. "Tema de Aránzazu"):</label><br>
-        <input type="text" name="titulo_hg" style="width:100%;"><br><br>
+        <input type="text" name="context_title" style="width:100%;"><br><br>
 
         <button class="boton2" type="submit">Guardar tema</button>
     </fieldset>
@@ -89,13 +89,13 @@ $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY added_at DESC");
         <td><?= $row['id'] ?></td>
         <td><?= htmlspecialchars($row['title']) ?></td>
         <td><?= htmlspecialchars($row['artist']) ?></td>
-        <td><?= htmlspecialchars($row['title_hg']) ?></td>
+        <td><?= htmlspecialchars($row['context_title']) ?></td>
         <td>
             <?php 
-                if (strpos($row['youtube'], 'http') === 0) {
-                    echo "<a href='{$row['youtube']}' target='_blank'>🔗</a>";
+                if (strpos($row['youtube_url'], 'http') === 0) {
+                    echo "<a href='{$row['youtube_url']}' target='_blank'>🔗</a>";
                 } else {
-                    echo "<a href='https://www.youtube.com/watch?v={$row['youtube']}' target='_blank'>🎥</a>";
+                    echo "<a href='https://www.youtube.com/watch?v={$row['youtube_url']}' target='_blank'>🎥</a>";
                 }
             ?>
         </td>
@@ -103,5 +103,6 @@ $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY added_at DESC");
     </tr>
     <?php endwhile; ?>
 </table>
+
 
 

@@ -26,15 +26,15 @@
 		$total_paginas = ceil($num_total_registros / $tamano_pagina);
 
 		// Consulta para obtener los registros de la página actual
-		$consulta = "SELECT autor, title, mensaje, posted_at FROM fact_admin_posts ORDER BY id DESC LIMIT ?, ?";
+		$consulta = "SELECT author, title, message, posted_at FROM fact_admin_posts ORDER BY id DESC LIMIT ?, ?";
 		$stmt = mysqli_prepare($link, $consulta);
 		mysqli_stmt_bind_param($stmt, "ii", $inicio, $tamano_pagina);
 		mysqli_stmt_execute($stmt);
 		$result = mysqli_stmt_get_result($stmt);
 
 		while ($ResultQuery = mysqli_fetch_assoc($result)) {
-			echo "<tr><td><fieldset class='notf'><legend class='notf'>" . htmlspecialchars($ResultQuery["title"]) . "</legend><p>" . (($ResultQuery["mensaje"])) . "</p>\n</fieldset></td></tr>";
-			echo "<tr><td align='right'>por <b>" . htmlspecialchars($ResultQuery["autor"]) . "</b> el " . htmlspecialchars($ResultQuery["posted_at"]) . "</td></tr>";
+			echo "<tr><td><fieldset class='notf'><legend class='notf'>" . htmlspecialchars($ResultQuery["title"]) . "</legend><p>" . (($ResultQuery["message"])) . "</p>\n</fieldset></td></tr>";
+			echo "<tr><td align='right'>por <b>" . htmlspecialchars($ResultQuery["author"]) . "</b> el " . htmlspecialchars($ResultQuery["posted_at"]) . "</td></tr>";
 		}
 
 		mysqli_stmt_close($stmt);
@@ -83,4 +83,5 @@
 	}
 	?>
 </p>
+
 

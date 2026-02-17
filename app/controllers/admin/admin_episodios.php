@@ -412,7 +412,7 @@
 		const personajeId = document.getElementById("personaje_select").value;
 		if (!personajeId || !chapter_numberId) return;
 
-		fetch('sep/talim/talim_epis_ajax.php', {
+		fetch('/ajax/epis', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams({
@@ -431,7 +431,7 @@
 	}
 
 	function actualizarRelaciones(idCapitulo) {
-		fetch('sep/talim/talim_epis_ajax.php', {
+		fetch('/ajax/epis', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams({ action: 'get_relations', chapter_id: idCapitulo })
@@ -452,7 +452,7 @@
 	}
 
 	function eliminarRelacion(relId, chapter_numberId) {
-		fetch('sep/talim/talim_epis_ajax.php', {
+		fetch('/ajax/epis', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams({ action: 'del_relation', rel_id: relId })

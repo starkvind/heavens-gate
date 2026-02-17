@@ -74,22 +74,22 @@ $mensaje_error = '';
 $resultado_html = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre_jugador = trim($_POST['name'] ?? '');
+    $nombre_jugador = trim($_POST['nombre'] ?? '');
     $tirada_nombre = trim($_POST['tirada_nombre'] ?? '');
     $dados = (int)($_POST['dados'] ?? 0);
-    $dificultad = (int)($_POST['dificultad'] ?? 0);
+        $dificultad = (int)($_POST['dificultad'] ?? 0);
     $ip = $_SERVER['REMOTE_ADDR'];
 
     if ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > 15 || $dificultad < 2 || $dificultad > 10) {
         $mensaje_error = "Parámetros inválidos.";
     } else {
-        $query = "SELECT timestamp FROM fact_dice_rolls WHERE ip = ? ORDER BY timestamp DESC LIMIT 1";
+        $query = "SELECT rolled_at FROM fact_dice_rolls WHERE ip = ? ORDER BY rolled_at DESC LIMIT 1";
         $stmt = mysqli_prepare($link, $query);
         mysqli_stmt_bind_param($stmt, "s", $ip);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         if ($row = mysqli_fetch_assoc($res)) {
-            if (strtotime($row['timestamp']) > time() - 10) {
+            if (strtotime($row['rolled_at']) > time() - 10) {
                 $mensaje_error = "Has tirado hace menos de 10 segundos.";
             }
         }
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pifia_valor = $pifia ? 1 : 0;
         $str_resultados = implode(",", $resultados);
 
-        $query = "INSERT INTO fact_dice_rolls (name, roll_name, dados, dificultad, resultados, exitos, pifia, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $query = "INSERT INTO fact_dice_rolls (name, roll_name, dice_pool, difficulty, roll_results, successes, botch, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = mysqli_prepare($link, $query);
         mysqli_stmt_bind_param($stmt, "ssiisiss", $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia_valor, $ip);
         mysqli_stmt_execute($stmt);
@@ -143,11 +143,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 function mostrar_tirada($tirada, $id_ver) {
-    $resultados = explode(",", $tirada['resultados']);
-    $dificultad = $tirada['dificultad'];
+    $resultados = explode(",", $tirada['roll_results']);
+    $dificultad = $tirada['difficulty'];
 	$html = "<div class='form-box'>";
     $html .= "<h3 style='text-align: center;'>{$tirada['roll_name']}</h3>";
-    $html .= "<p><strong>{$tirada['name']}</strong> lanzó <strong>{$tirada['dados']}d10</strong> a dificultad <strong>{$dificultad}</strong>.</p><br />";
+    $html .= "<p><strong>{$tirada['name']}</strong> lanzó <strong>{$tirada['dice_pool']}d10</strong> a dificultad <strong>{$dificultad}</strong>.</p><br />";
     $html .= "<div style='display: flex; gap: 6px; flex-wrap: wrap;'>";
 
 	foreach ($resultados as $dado) {
@@ -166,8 +166,8 @@ function mostrar_tirada($tirada, $id_ver) {
 	}
 
     $html .= "</div>";
-    $html .= "<br /><p><strong>Éxitos:</strong> {$tirada['exitos']}</p>";
-    if ($tirada['pifia']) $html .= "<p style='color:red;'>¡PIFIA!</p>";
+    $html .= "<br /><p><strong>Éxitos:</strong> {$tirada['successes']}</p>";
+    if ($tirada['botch']) $html .= "<p style='color:red;'>¡PIFIA!</p>";
 	$html .= "<hr />";
 	$html .= "<p style='margin-top:1em;'>Embeber tirada en el foro:</p>";
 	$html .= "<pre style='background:#111; border:1px solid #444; color:#0f0; font-family:monospace; padding:0.5em; border-radius:6px; overflow:auto;'><code>[hg_tirada]{$id_ver}[/hg_tirada]</code></pre>";
@@ -213,7 +213,7 @@ if (!isset($_GET['see']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 </div>
 <?php
 	/* --------------------------------------------------------------- */
-	$query = "SELECT id, roll_name, name, timestamp FROM fact_dice_rolls ORDER BY timestamp DESC LIMIT 10";
+	$query = "SELECT id, roll_name, name, rolled_at FROM fact_dice_rolls ORDER BY rolled_at DESC LIMIT 10";
 	$res = mysqli_query($link, $query);
 
 	if ($res && mysqli_num_rows($res) > 0) {
@@ -228,5 +228,6 @@ if (!isset($_GET['see']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 	/* --------------------------------------------------------------- */
 }
 ?>
+
 
 

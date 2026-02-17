@@ -1,6 +1,6 @@
 <?php
 // admin_epis_ajax.php
-require_once("../heroes.php");
+require_once(__DIR__ . "/../../helpers/heroes.php");
 
 header('Content-Type: application/json');
 if (!$link || $_SERVER['REQUEST_METHOD'] !== 'POST') {

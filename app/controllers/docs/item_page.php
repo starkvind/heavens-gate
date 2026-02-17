@@ -21,16 +21,16 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $itemID     = htmlspecialchars($resultQueryItem["id"]);
     $itemName   = htmlspecialchars($resultQueryItem["name"]);
     $itemType   = (int)$resultQueryItem["item_type_id"];
-    $itemSkill  = htmlspecialchars($resultQueryItem["habilidad"]);
+    $itemSkill  = htmlspecialchars($resultQueryItem["ability_name"]);
     $itemLevel  = (int)$resultQueryItem["level"];
     $itemGnosis = (int)$resultQueryItem["gnosis"];
-    $itemValue  = htmlspecialchars($resultQueryItem["valor"]);
+    $itemValue  = htmlspecialchars($resultQueryItem["rating"]);
     $itemBonus  = (int)$resultQueryItem["bonus"];
-    $itemDamage = htmlspecialchars(strtolower($resultQueryItem["dano"]));
+    $itemDamage = htmlspecialchars(strtolower($resultQueryItem["damage_type"]));
     $itemMetal  = (int)$resultQueryItem["metal"];
-    $itemSTR    = (int)$resultQueryItem["fuerza"];
-    $itemDEX    = (int)$resultQueryItem["destreza"];
-    $itemImg    = htmlspecialchars($resultQueryItem["img"]);
+    $itemSTR    = (int)$resultQueryItem["strength_req"];
+    $itemDEX    = (int)$resultQueryItem["dexterity_req"];
+    $itemImg    = htmlspecialchars($resultQueryItem["image_url"]);
     $itemInfo   = ($resultQueryItem["description"]);
     $itemOrig   = (int)$resultQueryItem["bibliography_id"];
     
@@ -220,8 +220,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             p.id,
             p.name,
             p.alias,
-            p.img,
-            p.estado
+            p.image_url,
+            p.status
         FROM bridge_characters_items b
         JOIN fact_characters p ON p.id = b.character_id
         WHERE b.item_id = ? $cronicaNotInSQL
@@ -264,8 +264,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             $oid = (int)($o['id'] ?? 0);
             $name = htmlspecialchars($o['name'] ?? '');
             $alias = htmlspecialchars($o['alias'] ?? '');
-            $img = htmlspecialchars($o['img'] ?? '');
-            $estado = (string)($o['estado'] ?? '');
+            $img = htmlspecialchars($o['image_url'] ?? '');
+            $estado = (string)($o['status'] ?? '');
             $label = $alias !== '' ? $alias : $name;
             $simboloEstado = $mapEstado[$estado] ?? "";
             $href = pretty_url($link, 'fact_characters', '/characters', $oid);
@@ -305,5 +305,6 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 $stmt->close();
 
 ?>
+
 
 

@@ -2,7 +2,7 @@
 <?php
 if (!$link) die("Error de conexión a la base de datos.");
 
-$result = $link->query("SELECT id, title_hg, artist, youtube, title, added_at FROM dim_soundtracks ORDER BY title_hg ASC");
+$result = $link->query("SELECT id, context_title, artist, youtube_url, title, added_at FROM dim_soundtracks ORDER BY context_title ASC");
 if (!$result) die("Error al preparar la consulta: " . $link->error);
 
 $canciones = [];
@@ -38,7 +38,7 @@ mysqli_free_result($result);
 <div id="popupPlayer" style="display:none; position:fixed; bottom:20px; right:20px; width:350px; height:235px; background-color:#000055; border:1px solid #009; z-index:9999; padding:5px;">
 	<div style="width:100%; padding-bottom: 2em; padding-top: 0.5em;text-align: left!important;">
 		<div style="width: 85%; float:left;"><span id="titleSong" style="margin-left: 1em;"></span></div>
-		<div style="width: 10%; float:right; text-align: right;"><a href="#" onclick="cerrarPopup()" style="color:#66CCFF;margin-right:0.5em;">❌</a></div>
+		<div style="width: 10%; float:right; text-align: right;"><a href="#" onclick="cerrarPopup()" style="color:#66CCFF;margin-right:0.5em;">âŒ</a></div>
 	</div>
     <iframe id="youtubeFrame" width="350" height="200" frameborder="0" allowfullscreen></iframe>
 </div>
@@ -49,10 +49,10 @@ $(document).ready(function () {
 	const tbody = $('#tabla-canciones tbody');
 
 	canciones.forEach(c => {
-		const linkTitulo = `<a href="${escapeHtml(c.youtube)}&referrer=heavensgate" target="_blank">${escapeHtml(c.title)}</a>`;
+		const linkTitulo = `<a href="${escapeHtml(c.youtube_url)}&referrer=heavensgate" target="_blank">${escapeHtml(c.title)}</a>`;
 		const linkArtista = `<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.artist)}" target="_blank">${escapeHtml(c.artist)}</a>`;
-		const hg = escapeHtml(c.title_hg || '');
-		const btn = `<button class="boton2" onclick="abrirPopup('${escapeHtml(c.youtube)}', '${escapeHtml(c.title)}', '${escapeHtml(c.artist)}')">▶️</button>`;
+		const hg = escapeHtml(c.context_title || '');
+		const btn = `<button class="boton2" onclick="abrirPopup('${escapeHtml(c.youtube_url)}', '${escapeHtml(c.title)}', '${escapeHtml(c.artist)}')">â–¶ï¸</button>`;
 
 		const row = `<tr>
 			<td>${linkTitulo}</td>
@@ -76,8 +76,8 @@ $(document).ready(function () {
 			paginate: {
 				first: "Primero",
 				last: "Último",
-				next: "▶",
-				previous: "◀"
+				next: "â–¶",
+				previous: "â—€"
 			}
 		}
 	});
@@ -180,4 +180,5 @@ function escapeHtml(text) {
 		background: #000044 !important;
 	}
 </style>
+
 

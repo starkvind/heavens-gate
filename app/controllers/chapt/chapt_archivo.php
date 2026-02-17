@@ -68,7 +68,7 @@ if ($temporadaId > 0 && $stmt) {
             // Asignar valores de la base de datos a las variables
             $nameTemp = $ResultQuery["name"];
             $numberTemp = $ResultQuery["season_number"];
-            $sinopsis = $ResultQuery["desc"];
+            $sinopsis = $ResultQuery["description"];
             $linkYoutube = $ResultQuery["opening"];
             //$charas = $ResultQuery["protagonistas"];
 
@@ -108,7 +108,7 @@ if ($temporadaId > 0 && $stmt) {
 							SELECT 
 								p.id, 
 								p.name, 
-								p.img
+								p.image_url
 							FROM fact_characters p
 							WHERE 1=1
 								AND id IN ($ids) 
@@ -131,7 +131,7 @@ if ($temporadaId > 0 && $stmt) {
 								if ($participaciones >= $umbral) {
 									$hrefProta = pretty_url($link, 'fact_characters', '/characters', (int)$row['id']);
 									echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card' target='_blank' title='" . htmlspecialchars($row["name"]) . "'>";
-										echo "<img src='" . htmlspecialchars($row["img"]) . "' class='photochapter'><span>" . htmlspecialchars($row["name"]) . "</span>";
+										echo "<img src='" . htmlspecialchars($row["image_url"]) . "' class='photochapter'><span>" . htmlspecialchars($row["name"]) . "</span>";
 									echo "</a>";
 								}
 								/* ------------------------------------------------------------------------- */
@@ -200,4 +200,5 @@ if ($temporadaId > 0 && $stmt) {
     echo "Error al preparar la consulta: " . mysqli_error($link);
 }
 ?>
+
 

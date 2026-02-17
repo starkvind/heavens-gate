@@ -36,7 +36,7 @@ $consulta = "
 		t.pretty_id,
 		t.name,
 		t.cost,
-		t.img,
+		t.image_url,
 		COALESCE(b.name, '') AS origen
 	FROM dim_totems t
 	LEFT JOIN dim_bibliographies b ON t.bibliography_id = b.id
@@ -113,7 +113,7 @@ usort($origins, function($a, $b){
 		<fieldset class="grupoHabilidad">
 			<?php echo "<div id='" . h($fieldsetId) . "' class='contenidoAfiliacion'>"; ?>
 			<?php foreach ($groups[$origin] as $row):
-				$img = (string)($row['img'] ?? '');
+				$img = (string)($row['image_url'] ?? '');
 				$img = $img !== '' ? $img : 'img/ui/powers/totem.gif';
 				$name = (string)($row['name'] ?? '');
 				$href = pretty_url($link, 'dim_totems', '/powers/totem', (int)$row["id"]);
@@ -147,3 +147,4 @@ usort($origins, function($a, $b){
 		}
 	});
 </script>
+

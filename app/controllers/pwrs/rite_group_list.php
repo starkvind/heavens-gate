@@ -14,7 +14,7 @@ $ResultQuery = $result->fetch_assoc();
 // Definir variables con valores por defecto
 $routeLabel = $ResultQuery ? htmlspecialchars($ResultQuery["name"]) : "Desconocido";
 $determinante = $ResultQuery ? htmlspecialchars($ResultQuery["determinante"]) : "";
-$descRituales = $ResultQuery ? ($ResultQuery["description"] ?? $ResultQuery["desc"] ?? '') : "<p>Descripción no disponible</p>"; // NO usar htmlspecialchars()
+$descRituales = $ResultQuery ? ($ResultQuery["description"] ?? $ResultQuery["description"] ?? '') : "<p>Descripción no disponible</p>"; // NO usar htmlspecialchars()
 $donTypePhrase = "Ritos";
 $pageSect = "$donTypePhrase $determinante $routeLabel"; // Para cambiar el título de la página
 
@@ -75,3 +75,4 @@ if ($misterroboto > 0) {
 
 echo "<p align='right'>Rituales hallados: $misterroboto</p>";
 ?>
+

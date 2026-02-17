@@ -44,7 +44,7 @@ if ($type === 'don') {
         $st->close();
     }
 } elseif ($type === 'rite') {
-    if ($st = $link->prepare("SELECT name, level, race, syst, description AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, level, race, system_text, description AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -54,7 +54,7 @@ if ($type === 'don') {
             $raza = $r['race'] ?? '';
             $outMeta = "Nivel " . h($nivel);
             if ($raza !== '') $outMeta .= " - " . h($raza);
-            $outSystem = short_text($r['syst'] ?? '');
+            $outSystem = short_text($r['system_text'] ?? '');
             $outDesc = short_text($r['descr'] ?? '', 360);
         }
         $st->close();
@@ -77,7 +77,7 @@ if ($type === 'don') {
         $st->close();
     }
 } elseif ($type === 'item') {
-    if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, img, habilidad, dano, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, image_url, ability_name, damage_type, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -86,8 +86,8 @@ if ($type === 'don') {
             $tipo = (int)($r['item_type_id'] ?? 0);
             $nivel = $r['level'] ?? '';
             $gnosis = $r['gnosis'] ?? '';
-            $habilidad = (string)($r['habilidad'] ?? '');
-            $dano = (string)($r['dano'] ?? '');
+            $habilidad = (string)($r['ability_name'] ?? '');
+            $dano = (string)($r['damage_type'] ?? '');
             $bonus = (int)($r['bonus'] ?? 0);
             $metal = (int)($r['metal'] ?? 0);
             $mapTipo = [
@@ -119,7 +119,7 @@ if ($type === 'don') {
             if ($extraMeta !== '') $outMeta .= " - " . $extraMeta;
 
             $outDesc = short_text($r['description'] ?? '', 360);
-            $outImg = (string)($r['img'] ?? '');
+            $outImg = (string)($r['image_url'] ?? '');
             $outImgAlt = $outTitle;
         }
         $st->close();
@@ -151,4 +151,5 @@ echo "<div class='hg-tip' style='display:flex; gap:8px; align-items:flex-start;'
 	echo "</div>";
 echo "</div>";
 ?>
+
 

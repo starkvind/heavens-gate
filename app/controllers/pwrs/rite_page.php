@@ -24,13 +24,13 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $riteType   = htmlspecialchars($resultQueryRite["tipo"]);
     $riteLevel  = htmlspecialchars($resultQueryRite["nivel"]);
     $riteBreed  = htmlspecialchars($resultQueryRite["raza"]);
-    $riteDesc   = $resultQueryRite["description"] ?? $resultQueryRite["desc"] ?? ''; // NO usar htmlspecialchars() para conservar el HTML
-    $riteSystemRules = $resultQueryRite["syst"];
+    $riteDesc   = $resultQueryRite["description"] ?? $resultQueryRite["description"] ?? ''; // NO usar htmlspecialchars() para conservar el HTML
+    $riteSystemRules = $resultQueryRite["system_text"];
     $riteSystemName  = htmlspecialchars($resultQueryRite["system_name"] ?? "");
     $riteSistemaLegacy = trim((string)($resultQueryRite["sistema"] ?? ""));
     if (trim((string)$riteSystemRules) === '' && $riteSistemaLegacy !== '') { $riteSystemRules = $riteSistemaLegacy; }
     $riteOrigin = htmlspecialchars($resultQueryRite["bibliography_id"]);
-    $riteImgRaw = trim((string)($resultQueryRite["img"] ?? ""));
+    $riteImgRaw = trim((string)($resultQueryRite["image_url"] ?? ""));
 
     // Obtener el nombre del origen del ritual
     $riteOriginName = "-"; // Valor por defecto
@@ -80,7 +80,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $riteOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.img, c.estado FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.status FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $ritePageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -184,8 +184,8 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = (string)($o['img'] ?? '');
-                $estado = (string)($o['estado'] ?? '');
+                $img = (string)($o['image_url'] ?? '');
+                $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
                     "Aún por aparecer"     => "(&#64;)",
@@ -230,3 +230,4 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     echo "<p>Error: Ritual no encontrado.</p>";
 }
 ?>
+

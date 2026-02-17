@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
     $id = (int)($_POST['id'] ?? 0);
     $orden = (int)($_POST['orden'] ?? 0);
     $name = trim((string)($_POST['name'] ?? ''));
-    $img = trim((string)($_POST['img'] ?? ''));
+    $img = trim((string)($_POST['image_url'] ?? ''));
     $formas = (int)($_POST['formas'] ?? 0);
     $desc = sanitize_utf8_text((string)($_POST['descripcion'] ?? ''));
     $desc = hg_mentions_convert($link, $desc);
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
         $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
     } else {
         if ($id > 0) {
-            $sql = "UPDATE dim_systems SET sort_order=?, name=?, img=?, forms=?, description=?, bibliography_id=? WHERE id=?";
+            $sql = "UPDATE dim_systems SET sort_order=?, name=?, image_url=?, forms=?, description=?, bibliography_id=? WHERE id=?";
             if ($st = $link->prepare($sql)) {
                 $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $bibliographyId, $id);
                 if ($st->execute()) {
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                 $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
             }
         } else {
-            $sql = "INSERT INTO dim_systems (sort_order, name, img, forms, description, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
+            $sql = "INSERT INTO dim_systems (sort_order, name, image_url, forms, description, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
             if ($st = $link->prepare($sql)) {
                 $st->bind_param('issisi', $orden, $name, $img, $formas, $desc, $bibliographyId);
                 if ($st->execute()) {
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
 // Listado
 $rows = [];
 $rowsFull = [];
-$sql = "SELECT s.id, s.sort_order AS orden, s.name, s.img, s.forms AS formas, s.description AS descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.sort_order, s.name";
+$sql = "SELECT s.id, s.sort_order AS orden, s.name, s.image_url, s.forms AS formas, s.description AS descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.sort_order, s.name";
 if ($rs = $link->query($sql)) {
     while ($r = $rs->fetch_assoc()) { $rows[] = $r; $rowsFull[] = $r; }
     $rs->close();
@@ -194,7 +194,7 @@ if ($rs = $link->query($sql)) {
                     <input class="inp" type="text" name="name" id="system_name" required>
 
                     <label>Imagen</label>
-                    <input class="inp" type="text" name="img" id="system_img">
+                    <input class="inp" type="text" name="image_url" id="system_img">
 
                     <label>Formas</label>
                     <select class="select" name="formas" id="system_formas">
@@ -297,7 +297,7 @@ function openSystemModal(id = null){
             document.getElementById('system_id').value = row.id;
             document.getElementById('system_orden').value = row.orden || 0;
             document.getElementById('system_name').value = row.name || '';
-            document.getElementById('system_img').value = row.img || '';
+            document.getElementById('system_img').value = row.image_url || '';
             document.getElementById('system_formas').value = row.formas || 0;
             document.getElementById('system_bibliography_id').value = row.bibliography_id || 0;
             const desc = row.descripcion || '';
@@ -342,3 +342,4 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <?php admin_panel_close(); ?>
+

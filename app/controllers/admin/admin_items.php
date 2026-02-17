@@ -112,16 +112,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	$id        = (int)($_POST['id'] ?? ($_POST['item_id'] ?? 0));
 	$name      = trim((string)($_POST['name'] ?? ''));
 	$itemTypeId = (int)($_POST['item_type_id'] ?? ($_POST['tipo'] ?? 0));
-	$habilidad = trim((string)($_POST['habilidad'] ?? ''));
+	$habilidad = trim((string)($_POST['ability_name'] ?? ''));
 	$level     = (int)($_POST['level'] ?? ($_POST['nivel'] ?? 0));
 	$gnosis    = (int)($_POST['gnosis'] ?? 0);
-	$valor     = (int)($_POST['valor'] ?? 0);
+	$valor     = (int)($_POST['rating'] ?? 0);
 	$bonus     = (int)($_POST['bonus'] ?? 0);
-	$dano      = trim((string)($_POST['dano'] ?? ''));
+	$dano      = trim((string)($_POST['damage_type'] ?? ''));
 	$metal     = (int)($_POST['metal'] ?? 0);
-	$fuerza    = (int)($_POST['fuerza'] ?? 0);
-	$destreza  = (int)($_POST['destreza'] ?? 0);
-	$img       = trim((string)($_POST['img'] ?? ''));
+	$fuerza    = (int)($_POST['strength_req'] ?? 0);
+	$destreza  = (int)($_POST['dexterity_req'] ?? 0);
+	$img       = trim((string)($_POST['image_url'] ?? ''));
 	$description = sanitize_utf8_text((string)($_POST['description'] ?? ($_POST['descri'] ?? '')));
 	$description = hg_mentions_convert($link, $description);
 	$bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 	} else {
 		if ($id > 0) {
 			$st = $link->prepare("UPDATE fact_items
-				SET name=?, item_type_id=?, habilidad=?, level=?, gnosis=?, valor=?, bonus=?, dano=?, metal=?, fuerza=?, destreza=?, img=?, description=?, bibliography_id=?
+				SET name=?, item_type_id=?, skill_name=?, level=?, gnosis=?, rating=?, bonus=?, damage_type=?, metal=?, strength_req=?, dexterity_req=?, image_url=?, description=?, bibliography_id=?
 				WHERE id=?");
 			if ($st) {
 				$st->bind_param(
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 				$flash[] = ['type'=>'error','msg'=>'ID inválido. No se pudo actualizar el objeto.'];
 			} else {
 			$st = $link->prepare("INSERT INTO fact_items
-				(name, item_type_id, habilidad, level, gnosis, valor, bonus, dano, metal, fuerza, destreza, img, description, bibliography_id)
+				(name, item_type_id, skill_name, level, gnosis, rating, bonus, damage_type, metal, strength_req, dexterity_req, image_url, description, bibliography_id)
 				VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 			if ($st) {
 				$st->bind_param(
@@ -313,7 +313,7 @@ function origin_name($origins, $id){
 					</select>
 
 					<label>Habilidad</label>
-					<input class="inp" type="text" name="habilidad" id="item_habilidad">
+					<input class="inp" type="text" name="ability_name" id="item_habilidad">
 
 					<label>Nivel</label>
 					<input class="inp" type="number" name="level" id="item_level">
@@ -322,25 +322,25 @@ function origin_name($origins, $id){
 					<input class="inp" type="number" name="gnosis" id="item_gnosis">
 
 					<label>Valor</label>
-					<input class="inp" type="text" name="valor" id="item_valor">
+					<input class="inp" type="text" name="rating" id="item_valor">
 
 					<label>Bonus</label>
 					<input class="inp" type="number" name="bonus" id="item_bonus">
 
 					<label>Daño</label>
-					<input class="inp" type="text" name="dano" id="item_dano">
+					<input class="inp" type="text" name="damage_type" id="item_dano">
 
 					<label>Metal</label>
 					<input class="inp" type="number" name="metal" id="item_metal">
 
 					<label>Fuerza</label>
-					<input class="inp" type="number" name="fuerza" id="item_fuerza">
+					<input class="inp" type="number" name="strength_req" id="item_fuerza">
 
 					<label>Destreza</label>
-					<input class="inp" type="number" name="destreza" id="item_destreza">
+					<input class="inp" type="number" name="dexterity_req" id="item_destreza">
 
 					<label>Imagen (URL)</label>
-					<input class="inp" type="text" name="img" id="item_img">
+					<input class="inp" type="text" name="image_url" id="item_img">
 
 					<label>Subir imagen</label>
 					<input class="inp" type="file" name="img_file" id="item_img_file" accept="image/*">
@@ -448,18 +448,18 @@ function openItemModal(id = null){
 			document.getElementById('item_name').value = row.name || '';
 			document.getElementById('item_type_id').value = row.item_type_id || 0;
 			document.getElementById('item_bibliography_id').value = row.bibliography_id || 0;
-			document.getElementById('item_habilidad').value = row.habilidad || '';
+			document.getElementById('item_habilidad').value = row.ability_name || '';
 			document.getElementById('item_level').value = row.level || 0;
 			document.getElementById('item_gnosis').value = row.gnosis || 0;
-			document.getElementById('item_valor').value = row.valor || '';
+			document.getElementById('item_valor').value = row.rating || '';
 			document.getElementById('item_bonus').value = row.bonus || 0;
-			document.getElementById('item_dano').value = row.dano || '';
+			document.getElementById('item_dano').value = row.damage_type || '';
 			document.getElementById('item_metal').value = row.metal || 0;
-			document.getElementById('item_fuerza').value = row.fuerza || 0;
-			document.getElementById('item_destreza').value = row.destreza || 0;
-			document.getElementById('item_img').value = row.img || '';
-			document.getElementById('item_current_img').value = row.img || '';
-			if (row.img) document.getElementById('item_img_preview').src = row.img;
+			document.getElementById('item_fuerza').value = row.strength_req || 0;
+			document.getElementById('item_destreza').value = row.dexterity_req || 0;
+			document.getElementById('item_img').value = row.image_url || '';
+			document.getElementById('item_current_img').value = row.image_url || '';
+			if (row.image_url) document.getElementById('item_img_preview').src = row.image_url;
 			const descri = row.description || '';
 			document.getElementById('item_description').value = descri;
 			if (itemEditor) itemEditor.root.innerHTML = descri;
@@ -509,3 +509,4 @@ document.addEventListener('keydown', function(e){
 })();
 </script>
 <?php admin_panel_close(); ?>
+

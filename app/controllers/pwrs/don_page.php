@@ -22,17 +22,17 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $donId     = htmlspecialchars($resultQueryDon["id"]);
     $donName   = htmlspecialchars($resultQueryDon["nombre"]);
     $donType   = htmlspecialchars($resultQueryDon["tipo"]);
-    $donGroup  = htmlspecialchars($resultQueryDon["grupo"]);
+    $donGroup  = htmlspecialchars($resultQueryDon["gift_group"]);
     $donRank   = htmlspecialchars($resultQueryDon["rango"]);
-    $donAttr   = htmlspecialchars($resultQueryDon["atributo"]);
-    $donSkill  = htmlspecialchars($resultQueryDon["habilidad"]);
+    $donAttr   = htmlspecialchars($resultQueryDon["attribute_name"]);
+    $donSkill  = htmlspecialchars($resultQueryDon["ability_name"]);
     $donDesc   = ($resultQueryDon["descripcion"]);
     $donRules  = ($resultQueryDon["sistema"]); // texto de reglas
     $donSystemName = htmlspecialchars($resultQueryDon["system_name"] ?? "");
     $donBreedLegacy  = trim((string)($resultQueryDon["ferasistema"] ?? ""));
     $donSystemLabel = $donSystemName;
     $donOrigin = htmlspecialchars($resultQueryDon["bibliography_id"]);
-    $donImgRaw = trim((string)($resultQueryDon["img"] ?? ""));
+    $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));
 
     // Obtener el nombre del origen del Don
     $donOriginName = "-"; // Valor por defecto
@@ -82,7 +82,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $donOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.img, c.estado FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.status FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $donPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -191,8 +191,8 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = (string)($o['img'] ?? '');
-                $estado = (string)($o['estado'] ?? '');
+                $img = (string)($o['image_url'] ?? '');
+                $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
                     "Aún por aparecer"     => "(&#64;)",
@@ -237,3 +237,4 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     echo "<p>Error: Don no encontrado.</p>";
 }
 ?>
+

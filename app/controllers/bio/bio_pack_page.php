@@ -78,7 +78,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
     // Datos base
     $namePack = $ResultQuery["name"] ?? '';
-    $infoPack = $ResultQuery["description"] ?? $ResultQuery["desc"] ?? '';
+    $infoPack = $ResultQuery["description"] ?? $ResultQuery["description"] ?? '';
 
     $pageSect   = $nameTypeForTitle;
     $pageTitle2 = $namePack;
@@ -173,14 +173,14 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     if ($typePack == 1) {
 
         $packsOfSeptQuery = "
-            SELECT p.id, p.name, p.alias, p.img, p.estado
+            SELECT p.id, p.name, p.alias, p.image_url, p.status
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             WHERE bg.group_id = ?
               AND (bg.is_active = 1 OR bg.is_active IS NULL)
               $cronicaNotInSQL
             ORDER BY
-                CASE p.estado
+                CASE p.status
                     WHEN 'Paradero desconocido' THEN 1
                     WHEN 'Cadáver' THEN 2
                     WHEN 'Aún por aparecer' THEN 9999
@@ -202,8 +202,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataId     = (int)$packRow["id"];
                     $packDataName   = (string)$packRow["name"];
                     $packDataAlias  = ($packRow["alias"] !== '' && $packRow["alias"] !== null) ? (string)$packRow["alias"] : $packDataName;
-                    $packDataImg    = (string)$packRow["img"];
-                    $packDataStatus = (string)$packRow["estado"];
+                    $packDataImg    = (string)$packRow["image_url"];
+                    $packDataStatus = (string)$packRow["status"];
 
                     switch ($packDataStatus) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -318,7 +318,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         //  - Clan: bridge_characters_organizations
         //  - Sin manada: NO existe enlace activo en bridge_characters_groups
         $charsWithoutPackQuery = "
-            SELECT p.id, p.name, p.alias, p.img, p.estado
+            SELECT p.id, p.name, p.alias, p.image_url, p.status
             FROM bridge_characters_organizations bc
             INNER JOIN fact_characters p ON p.id = bc.character_id
             LEFT JOIN bridge_characters_groups bg
@@ -329,7 +329,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
               AND bg.character_id IS NULL
               $cronicaNotInSQL
             ORDER BY
-                CASE p.estado
+                CASE p.status
                     WHEN 'Paradero desconocido' THEN 1
                     WHEN 'Cadáver' THEN 2
                     WHEN 'Aún por aparecer' THEN 9999
@@ -351,8 +351,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $cid   = (int)$charRow["id"];
                     $cname = (string)$charRow["name"];
                     $calias = ($charRow["alias"] !== '' && $charRow["alias"] !== null) ? (string)$charRow["alias"] : $cname;
-                    $cimg  = (string)$charRow["img"];
-                    $cst   = (string)$charRow["estado"];
+                    $cimg  = (string)$charRow["image_url"];
+                    $cst   = (string)$charRow["status"];
 
                     switch ($cst) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -387,3 +387,4 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 mysqli_free_result($result);
 mysqli_stmt_close($stmtMain);
 ?>
+

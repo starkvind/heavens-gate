@@ -1,4 +1,4 @@
-﻿<?php
+<?php
     $T_inicio = microtime(true);
 
     //include("ip.php");

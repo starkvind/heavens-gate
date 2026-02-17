@@ -10,5 +10,8 @@
 	$link = mysqli_connect(MYSQL_HOST, MYSQL_USER, MYSQL_PWD, MYSQL_BDD);
 	if (mysqli_connect_errno()) {
 		echo "Failed to connect to MariaDB: " . mysqli_connect_error();
+	} else {
+		// Enforce UTF-8 end-to-end for all queries/results.
+		mysqli_set_charset($link, 'utf8mb4');
 	}
 ?>

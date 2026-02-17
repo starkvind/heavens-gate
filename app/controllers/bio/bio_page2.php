@@ -213,14 +213,14 @@
 			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
-			$bioPhoto	 = $dataResult["img"]; 			// Imagen del personaje.
+			$bioPhoto	 = $dataResult["image_url"]; 			// Imagen del personaje.
 			$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
 			$bioBday	 = $dataResult["birthdate_text"]; // Cumpleaños del personaje.
-			$bioConcept	 = $dataResult["concepto"]; 	// Concepto del personaje.
+			$bioConcept	 = $dataResult["concept"]; 	// Concepto del personaje.
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
 			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
-			$bioTxtColor = $dataResult["colortexto"]; 	// Color de fondo para el globo de texto del personaje.
+			$bioTxtColor = $dataResult["text_color"]; 	// Color de fondo para el globo de texto del personaje.
 		// ================================================================== //
 			$pageSect 	 = "Biografía";						// Para cambiar el título a la página.
 			$pageTitle2	 = $bioName;						// Título de la Página
@@ -242,22 +242,22 @@
 		// Datos de jugador y crónica
 			$bioPlayer	 = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
 			$bioChronic	 = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
-			$bioStatus	 = $dataResult["estado"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
+			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
 			$bioDethCaus = $dataResult["cause_of_death"]; // Causa de la muerte.
 			$bioSheet	 = $dataResult["character_kind"]; // Si el personaje posee Ficha de Personaje o no.
-			$bioXP		 = $dataResult["px"]; 			// Puntos de experiencia restantes del personaje.
+			$bioXP		 = $dataResult["xp_points"]; 			// Puntos de experiencia restantes del personaje.
 		// ================================================================== //
 		// Datos de raza y alineamientos
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
-			$bioAuspice	 = $dataResult["auspicio"]; 	// Auspicio al que pertenece el personaje.
-			$bioTribe	 = $dataResult["tribu"]; 		// Tribu a la que pertenece el personaje.
+			$bioAuspice	 = $dataResult["auspice_id"]; 	// Auspicio al que pertenece el personaje.
+			$bioTribe	 = $dataResult["tribe_id"]; 		// Tribu a la que pertenece el personaje.
 			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organización.
 		// ================================================================== //
 		// Ventajas y poderes
 			$bioTotem	 = (string)($dataResult["totem_name"] ?? ""); 		// Tótem que guía al personaje.
 			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
 		// Género
-			$bioGender	 = $dataResult["genero_pj"];		// Género del personaje
+			$bioGender	 = $dataResult["gender"];		// Género del personaje
 		// Títulos de la sección Detalles		
 			$titlePkName	= "Nombre Garou";		// Título del nombre Garou
 		// Sistema, para nombres de detalles y tal.
@@ -460,7 +460,7 @@
 		$relaciones = [];
 		
 		// Relaciones salientes
-		$stmt1 = $link->prepare("SELECT cr.*, p2.name, p2.alias, p2.img, p2.genero_pj, 'outgoing' as direction
+		$stmt1 = $link->prepare("SELECT cr.*, p2.name, p2.alias, p2.image_url, p2.gender, 'outgoing' as direction
 								FROM bridge_characters_relations cr
 								LEFT JOIN fact_characters p2 ON cr.target_id = p2.id
 								WHERE cr.source_id = ?
@@ -471,7 +471,7 @@
 		$relaciones = array_merge($relaciones, $stm11_results);
 
 		// Relaciones entrantes
-		$stmt2 = $link->prepare("SELECT cr.*, p2.name, p2.alias, p2.img, p2.genero_pj, 'incoming' as direction
+		$stmt2 = $link->prepare("SELECT cr.*, p2.name, p2.alias, p2.image_url, p2.gender, 'incoming' as direction
 								FROM bridge_characters_relations cr
 								LEFT JOIN fact_characters p2 ON cr.source_id = p2.id
 								WHERE cr.target_id = ?
@@ -905,5 +905,6 @@
 			});
 		});
 	</script>
+
 
 

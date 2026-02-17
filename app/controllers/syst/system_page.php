@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 // Aseguramos que el parámetro GET 'b' esté definido de manera segura
 $systemCategory = isset($_GET['b']) ? (string)$_GET['b'] : '';
@@ -15,7 +15,7 @@ if ($systemCategory !== '') {
 
 // =========================================================== >
 // Preparamos la consulta para evitar inyecciones SQL
-$ordenQuery = "SELECT name, img, description, forms FROM dim_systems WHERE id = ? LIMIT 1";
+$ordenQuery = "SELECT name, image_url, description, forms FROM dim_systems WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($ordenQuery);
 $stmt->bind_param('i', $systemCategoryId);
 $stmt->execute();
@@ -30,7 +30,7 @@ if (!$ordenQueryResult) {
     echo "<div class='renglonDatosSistema'>El sistema solicitado no existe.</div>";
 } else {
     $systemName = htmlspecialchars($ordenQueryResult["name"]);
-    $systemImg = htmlspecialchars($ordenQueryResult["img"]);
+    $systemImg = htmlspecialchars($ordenQueryResult["image_url"]);
     $systemDesc = ($ordenQueryResult["description"]);
     $systemForm = (int)$ordenQueryResult["forms"];
     $systemNameRaw = (string)$ordenQueryResult["name"];
@@ -51,40 +51,40 @@ if (!$ordenQueryResult) {
     include("app/partials/main_nav_bar.php"); // Barra Navegación
 ?>
 <style>
-.syst-page { display:block; }
-.syst-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; }
-.syst-banner::before { content:''; display:block; padding-top:28%; }
-.syst-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
-.syst-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
-.syst-desc { margin-top:10px; color:#fff; }
-.syst-banner { margin-top:1em; }
-.syst-sections { margin-top:14px; display:grid; gap:12px; }
-.syst-section { border:1px solid #000088; border-radius:12px; padding:10px; background:#05014E; }
-.syst-section legend { color:#33FFFF; font-weight:bold; }
-.syst-section .syst-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; }
-.syst-card { background:#00135a; border:1px solid #1b4aa0; border-radius:8px; padding:8px 10px; color:#cfe; text-decoration:none; display:block; }
-.syst-card:hover { background:#001b7a; color:#33FFFF; }
-.syst-subhead { margin:10px 0 6px; color:#9dd; font-weight:bold; }
-.syst-toggle { float:right; font-size:14px; border:0; background:transparent; color:#cfe; border-radius:8px; padding:2px 6px; cursor:pointer; }
-.syst-toggle::after { content:"▲"; }
-.syst-section.collapsed .syst-toggle::after { content:"▼"; }
-.syst-section.collapsed .syst-toggle { opacity:0.9; }
-.syst-section .syst-toggle { opacity:0.9; }
-.syst-section .syst-toggle { margin-left:8px; }
-.syst-section legend { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.syst-section.collapsed .syst-card[data-idx] { display:none; }
-.syst-section.collapsed .syst-card[data-idx="0"],
-.syst-section.collapsed .syst-card[data-idx="1"],
-.syst-section.collapsed .syst-card[data-idx="2"],
-.syst-section.collapsed .syst-card[data-idx="3"],
-.syst-section.collapsed .syst-card[data-idx="4"],
-.syst-section.collapsed .syst-card[data-idx="5"],
-.syst-section.collapsed .syst-card[data-idx="6"],
-.syst-section.collapsed .syst-card[data-idx="7"],
-.syst-section.collapsed .syst-card[data-idx="8"],
-.syst-section.collapsed .syst-card[data-idx="9"],
-.syst-section.collapsed .syst-card[data-idx="10"],
-.syst-section.collapsed .syst-card[data-idx="11"] { display:block; }
+.system_text-page { display:block; }
+.system_text-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; }
+.system_text-banner::before { content:''; display:block; padding-top:28%; }
+.system_text-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
+.system_text-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
+.system_text-desc { margin-top:10px; color:#fff; }
+.system_text-banner { margin-top:1em; }
+.system_text-sections { margin-top:14px; display:grid; gap:12px; }
+.system_text-section { border:1px solid #000088; border-radius:12px; padding:10px; background:#05014E; }
+.system_text-section legend { color:#33FFFF; font-weight:bold; }
+.system_text-section .system_text-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; }
+.system_text-card { background:#00135a; border:1px solid #1b4aa0; border-radius:8px; padding:8px 10px; color:#cfe; text-decoration:none; display:block; }
+.system_text-card:hover { background:#001b7a; color:#33FFFF; }
+.system_text-subhead { margin:10px 0 6px; color:#9dd; font-weight:bold; }
+.system_text-toggle { float:right; font-size:14px; border:0; background:transparent; color:#cfe; border-radius:8px; padding:2px 6px; cursor:pointer; }
+.system_text-toggle::after { content:"▲"; }
+.system_text-section.collapsed .system_text-toggle::after { content:"▼"; }
+.system_text-section.collapsed .system_text-toggle { opacity:0.9; }
+.system_text-section .system_text-toggle { opacity:0.9; }
+.system_text-section .system_text-toggle { margin-left:8px; }
+.system_text-section legend { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.system_text-section.collapsed .system_text-card[data-idx] { display:none; }
+.system_text-section.collapsed .system_text-card[data-idx="0"],
+.system_text-section.collapsed .system_text-card[data-idx="1"],
+.system_text-section.collapsed .system_text-card[data-idx="2"],
+.system_text-section.collapsed .system_text-card[data-idx="3"],
+.system_text-section.collapsed .system_text-card[data-idx="4"],
+.system_text-section.collapsed .system_text-card[data-idx="5"],
+.system_text-section.collapsed .system_text-card[data-idx="6"],
+.system_text-section.collapsed .system_text-card[data-idx="7"],
+.system_text-section.collapsed .system_text-card[data-idx="8"],
+.system_text-section.collapsed .system_text-card[data-idx="9"],
+.system_text-section.collapsed .system_text-card[data-idx="10"],
+.system_text-section.collapsed .system_text-card[data-idx="11"] { display:block; }
 </style>
 <div class="syst-page">
   <div class="syst-banner">
@@ -298,9 +298,9 @@ if (!$ordenQueryResult) {
   function updateSubheads(fs){
     if (!fs) return;
     var collapsed = fs.classList.contains('collapsed');
-    fs.querySelectorAll('.syst-subhead[data-group]').forEach(function(sh){
+    fs.querySelectorAll('.system_text-subhead[data-group]').forEach(function(sh){
       var group = sh.getAttribute('data-group');
-      var cards = fs.querySelectorAll('.syst-card[data-group=\"'+group+'\"]').forEach ? fs.querySelectorAll('.syst-card[data-group=\"'+group+'\"]') : [];
+      var cards = fs.querySelectorAll('.system_text-card[data-group=\"'+group+'\"]').forEach ? fs.querySelectorAll('.system_text-card[data-group=\"'+group+'\"]') : [];
       var hasVisible = false;
       cards.forEach(function(card){
         if (!collapsed) { hasVisible = true; return; }
@@ -312,13 +312,13 @@ if (!$ordenQueryResult) {
     });
   }
 
-  document.querySelectorAll('.syst-section').forEach(function(fs){
+  document.querySelectorAll('.system_text-section').forEach(function(fs){
     updateSubheads(fs);
   });
 
-  document.querySelectorAll('.syst-toggle').forEach(function(btn){
+  document.querySelectorAll('.system_text-toggle').forEach(function(btn){
     btn.addEventListener('click', function(){
-      var fs = btn.closest('.syst-section');
+      var fs = btn.closest('.system_text-section');
       if (!fs) return;
       fs.classList.toggle('collapsed');
       updateSubheads(fs);
@@ -329,3 +329,4 @@ if (!$ordenQueryResult) {
 <?php
 }
 ?>
+

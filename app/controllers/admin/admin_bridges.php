@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 
       set_clan_group($link, $T_CLAN_GROUP, $clanId, $groupId, $isAct, $enforce);
 
-      $flash[] = ['type'=>'ok','msg'=>"✅ Clan↔Manada actualizado (Clan #{$clanId} / Manada #{$groupId})."];
+      $flash[] = ['type'=>'ok','msg'=>"âœ… Clanâ†”Manada actualizado (Clan #{$clanId} / Manada #{$groupId})."];
       $tab = 'clans';
     }
 
@@ -262,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     $link->commit();
   } catch (Throwable $e) {
     $link->rollback();
-    $flash[] = ['type'=>'error','msg'=>"❌ Error: ".$e->getMessage()];
+    $flash[] = ['type'=>'error','msg'=>"âŒ Error: ".$e->getMessage()];
   }
 
   // Mantener tab al volver
@@ -283,8 +283,8 @@ $sqlChars = "
   SELECT
     p.id,
     p.name,
-    p.img,
-    p.estado,
+    p.image_url,
+    p.status,
 
     cg.id  AS char_group_bridge_id,
     cg.group_id AS active_group_id,
@@ -458,8 +458,8 @@ if ($rs = $link->query($sqlCG)) {
         <?php foreach($chars as $c):
           $cid = (int)$c['id'];
           $nm  = (string)($c['name'] ?? '');
-          $img = (string)($c['img'] ?? '');
-          $est = (string)($c['estado'] ?? '');
+          $img = (string)($c['image_url'] ?? '');
+          $est = (string)($c['status'] ?? '');
           $cln = (string)($c['active_clan_name'] ?? '');
           $grp = (string)($c['active_group_name'] ?? '');
           $clanId = (int)($c['active_clan_id'] ?? 0);
@@ -488,7 +488,7 @@ if ($rs = $link->query($sqlCG)) {
               data-name="<?= h($nm) ?>"
               data-group="<?= $groupId ?>"
               data-clan="<?= $clanId ?>"
-            >✏ Editar</button>
+            >âœ Editar</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -538,7 +538,7 @@ if ($rs = $link->query($sqlCG)) {
               data-clan="<?= $cid ?>"
               data-group="<?= $gid ?>"
               data-active="<?= $act ?>"
-            >✏ Editar</button>
+            >âœ Editar</button>
 
             <form method="post" style="display:inline;">
               <input type="hidden" name="tab" value="clans">
@@ -584,7 +584,7 @@ if ($rs = $link->query($sqlCG)) {
             <label>Personaje
               <input class="inp" type="text" id="f_char_name" value="" disabled>
             </label>
-            <span class="small">Si seleccionas Manada, el Clan puede autoajustarse por Clan→Manada activo.</span>
+            <span class="small">Si seleccionas Manada, el Clan puede autoajustarse por Clanâ†’Manada activo.</span>
           </div>
           <div></div>
 
@@ -625,10 +625,10 @@ if ($rs = $link->query($sqlCG)) {
   </div>
 </div>
 
-<!-- Modal Clan↔Manada -->
+<!-- Modal Clanâ†”Manada -->
 <div class="modal-back" id="mbCG">
   <div class="modal" role="dialog" aria-modal="true">
-    <h3>Editar Clan ↔ Manada</h3>
+    <h3>Editar Clan â†” Manada</h3>
 
     <form method="post" id="formCG" style="margin:0;">
       <input type="hidden" name="tab" value="clans">
@@ -744,7 +744,7 @@ if ($rs = $link->query($sqlCG)) {
   btnCharCancel && btnCharCancel.addEventListener('click', function(){ mbChar.style.display='none'; });
   mbChar && mbChar.addEventListener('click', function(e){ if (e.target === mbChar) mbChar.style.display='none'; });
 
-  // Modal Clan↔Manada
+  // Modal Clanâ†”Manada
   var mbCG = document.getElementById('mbCG');
   var btnCGCancel = document.getElementById('btnCGCancel');
   var btnNewCG = document.getElementById('btnNewClanGroup');
@@ -776,3 +776,4 @@ if ($rs = $link->query($sqlCG)) {
 
 })();
 </script>
+

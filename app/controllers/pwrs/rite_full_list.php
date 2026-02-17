@@ -43,7 +43,7 @@ select
     nr.level as ritual_level,
     nr.race as ritual_species,
     nr.description as ritual_description,
-    nr.syst as ritual_roll_description,
+    nr.system_text as ritual_roll_description,
     s.name as ritual_fera_system,
     nr.system_id as ritual_system_id,
     nb.name as ritual_origin
@@ -462,7 +462,7 @@ foreach ($rituales as $r) {
           ?>
             <a class="item" href="#<?php echo h($anchor); ?>">
               <div class="label">
-                <div class="badge">◆</div>
+                <div class="badge">â—†</div>
                 <div class="txt">
                   <div class="meta"><?php echo "[{$type} · Nv. {$lvl}]"; ?></div>
                   <div class="name"><?php echo $name; ?></div>
@@ -488,14 +488,14 @@ foreach ($rituales as $r) {
           $sys  = h($r['ritual_fera_system']);
           $orig = h($r['ritual_origin'] ?? '');
 
-          // CAMPOS LARGOS → NO htmlspecialchars (permitimos HTML guardado)
+          // CAMPOS LARGOS â†’ NO htmlspecialchars (permitimos HTML guardado)
           $desc = $r['ritual_description'] ?: "<p>Descripción no disponible</p>";
           $roll = $r['ritual_roll_description'] ?: "<p><i>Sistema no disponible</i></p>";
       ?>
         <article class="card" id="<?php echo h($anchor); ?>">
           <div class="topline">
             <h3 class="name"><?php echo $name; ?></h3>
-            <a class="back" href="#top">↑ Arriba</a>
+            <a class="back" href="#top">â†‘ Arriba</a>
           </div>
 
           <div class="chips">
@@ -540,3 +540,4 @@ foreach ($rituales as $r) {
 
   </div>
 </div>
+

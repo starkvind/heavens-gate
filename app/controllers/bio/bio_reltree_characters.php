@@ -36,8 +36,8 @@ $charactersSql = "
     SELECT
         p.id,
         p.name,
-        p.img,
-        p.estado,
+        p.image_url,
+        p.status,
         COALESCE(nc.name, '') AS clan_name
     FROM fact_characters p
         LEFT JOIN bridge_characters_organizations hccb
@@ -90,7 +90,7 @@ $pageTitle2 = "Personajes";
         <legend>&nbsp;Relaciones entre personajes&nbsp;</legend>
         <div style="float: right;">
             <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">🔍 Pantalla completa</button>
-            <button class="boton2" onclick="location.href='/relationship-map/organizations'">⚙️ Cambiar vista</button>
+            <button class="boton2" onclick="location.href='/relationship-map/organizations'">âš™ï¸ Cambiar vista</button>
             <button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">🛑 Detener física</button>
             <button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">🔄 Activar física</button>
         </div>
@@ -113,8 +113,8 @@ $pageTitle2 = "Personajes";
     const nodes = new vis.DataSet([
         <?php foreach ($characters as $c): ?>
             <?php
-                $hasImage = !empty($c['img']);
-                $isDead = ($c['estado'] ?? '') === 'Cadáver';
+                $hasImage = !empty($c['image_url']);
+                $isDead = ($c['status'] ?? '') === 'Cadáver';
                 $label = ($c['name'] ?? '') . ($isDead ? ' †' : '');
                 $nodeColor = $isDead ? [
                     'background' => '#888',
@@ -126,7 +126,7 @@ $pageTitle2 = "Personajes";
                 id: <?= (int)$c['id'] ?>,
                 label: <?= json_encode($label, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
                 shape: <?= $hasImage ? "'circularImage'" : "'dot'" ?>,
-                image: <?= $hasImage ? json_encode("../" . $c['img'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) : "null" ?>,
+                image: <?= $hasImage ? json_encode("../" . $c['image_url'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) : "null" ?>,
                 size: 25,
                 font: { color: "#fff", size: 12 },
                 <?= $isDead ? "color: " . json_encode($nodeColor, JSON_UNESCAPED_UNICODE) . "," : "" ?>
@@ -234,4 +234,5 @@ $pageTitle2 = "Personajes";
      background-color:#fff; border:1px solid #ccc; border-radius:6px; padding:8px 14px; font-family:sans-serif;
      font-size:14px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); z-index:2000;">
 </div>
+
 

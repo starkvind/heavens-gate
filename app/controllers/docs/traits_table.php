@@ -14,7 +14,7 @@ $query = "
 		nh.pretty_id as trait_pretty_id,
 		nh.name as trait_name,
 		nh.kind as trait_category,
-		SUBSTRING(nh.clasificacion, 5) as trait_subcategory,
+		SUBSTRING(nh.classification, 5) as trait_subcategory,
 		COALESCE(nb.name, '') as trait_origin
 	from dim_traits nh 
 		left join dim_bibliographies nb on nh.bibliography_id = nb.id
@@ -22,12 +22,12 @@ $query = "
 		CASE
 			when nh.kind = 'Atributos' then 0
 			when nh.kind = 'Talentos' then 1
-			when nh.kind = 'T�cnicas' then 2
+			when nh.kind = 'Técnicas' then 2
 			when nh.kind = 'Conocimientos' then 3
 			when nh.kind = 'Trasfondos' then 4
 			else 9999
 		END ASC,
-		nh.clasificacion ASC,
+		nh.classification ASC,
 		nh.id ASC
 ";
 $result = mysqli_query($link, $query);
@@ -273,8 +273,8 @@ $(document).ready(function () {
 			paginate: {
 				first: "Primero",
 				last: "Último",
-				next: "▶",
-				previous: "◀"
+				next: "â–¶",
+				previous: "â—€"
 			}
 		},
 		initComplete: function(){
@@ -423,6 +423,7 @@ function sortValues(values){
 	});
 }
 </script>
+
 
 
 

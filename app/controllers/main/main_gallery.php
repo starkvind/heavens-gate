@@ -86,10 +86,10 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 	.folder .cover { width:100px; height:120px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; display:block; margin:0 auto 8px; }
 	.folder .icon { font-size:32px; display:block; margin-bottom:8px; }
 	.folder .name { font-weight:600; }
-	.img-grid { display:flex; flex-wrap:wrap; gap:10px; }
-	.img-item { width:125px; text-align:center; }
-	.img-item .thumb { width:125px; height:125px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; cursor:pointer; }
-	.img-title { margin-top:6px; font-size:13px; color:#c9d6ff; }
+	.image_url-grid { display:flex; flex-wrap:wrap; gap:10px; }
+	.image_url-item { width:125px; text-align:center; }
+	.image_url-item .thumb { width:125px; height:125px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; cursor:pointer; }
+	.image_url-title { margin-top:6px; font-size:13px; color:#c9d6ff; }
 
 	#lightbox {
 	  position:fixed; inset:0; background:rgba(0,0,0,0.9);
@@ -210,7 +210,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 
 <?php if ($images): ?>
 	<script>
-		const thumbs = Array.from(document.querySelectorAll('.img-item .thumb'));
+		const thumbs = Array.from(document.querySelectorAll('.image_url-item .thumb'));
 		const lightbox = document.getElementById('lightbox');
 		const lightboxImg = document.getElementById('lightbox-img');
 		const lightboxTitle = document.getElementById('lightbox-title');
@@ -251,4 +251,5 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 		thumbs.forEach(img => { const i = new Image(); i.src = img.dataset.full; preload.push(i); });
 	</script>
 <?php endif; ?>
+
 

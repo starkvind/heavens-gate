@@ -58,6 +58,7 @@ config.env
 *.csv
 cache/
 tmp/
+img/
 
 # Migration files
 app/tools/migrations/20260215_rename_origin_to_bibliography_id.sql
@@ -88,6 +89,9 @@ app/tools/migrate_trait_sets.php
 app/tools/seed_trait_sets_from_bio.php
 app/tools/migrate_rename_all_columns.php
 app/tools/check_fulltext_issues.php
+app/tools/check_encoding.ps1
+app/tools/rename_columns_phases.php
 
 # Migration plan
 migration/*
+

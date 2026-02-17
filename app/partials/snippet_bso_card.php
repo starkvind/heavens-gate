@@ -3,7 +3,7 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	if (!in_array($tipo, ['personaje', 'temporada', 'episodio'])) return;
 
 	$queryBso = "
-		SELECT bs.title_hg, bs.title AS titulo_real, bs.artist, bs.youtube AS enlace 
+		SELECT bs.context_title, bs.title AS titulo_real, bs.artist, bs.youtube_url AS enlace 
 		FROM bridge_soundtrack_links br
 		JOIN dim_soundtracks bs ON bs.id = br.soundtrack_id
 		WHERE br.object_type = ? AND br.object_id = ?
@@ -31,7 +31,7 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 			if ($youtubeID) {
 				echo "<div class='bioTextData'>"; 
 					echo "<fieldset class='bso-card bioSeccion'>";
-					echo "<legend>&nbsp;🎵 {$tema['title_hg']}&nbsp;</legend>";
+					echo "<legend>&nbsp;🎵 {$tema['context_title']}&nbsp;</legend>";
 					echo "<div class='video-wrapper'>";
 					echo "<iframe width='550' height='315' style='clear:both;' src='https://www.youtube-nocookie.com/embed/{$youtubeID}' frameborder='0' allowfullscreen></iframe>";
 					echo "</div>";
@@ -43,4 +43,5 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	}
 }
 ?>
+
 

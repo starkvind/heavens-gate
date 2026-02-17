@@ -30,16 +30,16 @@ if (isset($_GET['delete'])) {
 // Crear / actualizar
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 	$id = (int)($_POST['id'] ?? 0);
-	$autor = trim((string)($_POST['autor'] ?? ''));
+	$autor = trim((string)($_POST['author'] ?? ''));
 	$titulo = trim((string)($_POST['titulo'] ?? ''));
-	$mensaje = (string)($_POST['mensaje'] ?? '');
+	$mensaje = (string)($_POST['message'] ?? '');
 	$mensaje = hg_mentions_convert($link, $mensaje);
 
 	if ($autor === '' || $titulo === '' || $mensaje === '') {
 		$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
 	} else {
 		if ($id > 0) {
-			$st = $link->prepare("UPDATE fact_admin_posts SET autor=?, title=?, mensaje=?, posted_at=NOW() WHERE id=?");
+			$st = $link->prepare("UPDATE fact_admin_posts SET author=?, title=?, message=?, posted_at=NOW() WHERE id=?");
 			if ($st) {
 				$st->bind_param("sssi", $autor, $titulo, $mensaje, $id);
 				$st->execute();
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 				$flash[] = ['type'=>'ok','msg'=>'Noticia actualizada.'];
 			}
 		} else {
-			$st = $link->prepare("INSERT INTO fact_admin_posts (autor, title, mensaje, posted_at) VALUES (?,?,?,NOW())");
+			$st = $link->prepare("INSERT INTO fact_admin_posts (author, title, message, posted_at) VALUES (?,?,?,NOW())");
 			if ($st) {
 				$st->bind_param("sss", $autor, $titulo, $mensaje);
 				$st->execute();
@@ -64,12 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 // Prefill edición
 // Listado
 $rows = [];
-$rs = $link->query("SELECT id, autor, title, posted_at FROM fact_admin_posts ORDER BY id DESC");
+$rs = $link->query("SELECT id, author, title, posted_at FROM fact_admin_posts ORDER BY id DESC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $rows[] = $r; } $rs->close(); }
 
 // Datos completos para edición en modal
 $rowsFull = [];
-$rs = $link->query("SELECT id, autor, title, mensaje FROM fact_admin_posts ORDER BY id DESC");
+$rs = $link->query("SELECT id, author, title, message FROM fact_admin_posts ORDER BY id DESC");
 if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 ?>
 
@@ -137,7 +137,7 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 			<div class="modal-body">
 				<div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; align-items:center;">
 					<label>Autor</label>
-					<input class="inp" type="text" name="autor" id="news_autor" required>
+					<input class="inp" type="text" name="author" id="news_autor" required>
 					<label>Título</label>
 					<input class="inp" type="text" name="titulo" id="news_titulo" required>
 					<label>Mensaje</label>
@@ -146,7 +146,7 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
 						<div id="news_editor" class="ql-container ql-snow"></div>
-						<textarea class="ta" name="mensaje" id="news_mensaje" rows="10" required style="display:none;"></textarea>
+						<textarea class="ta" name="message" id="news_mensaje" rows="10" required style="display:none;"></textarea>
 					</div>
 				</div>
 			</div>
@@ -171,14 +171,14 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
 	<tbody>
 	<?php foreach ($rows as $r): ?>
 		<?php
-			$search = trim((string)($r['title'] ?? '') . ' ' . (string)($r['autor'] ?? '') . ' ' . (string)($r['posted_at'] ?? ''));
+			$search = trim((string)($r['title'] ?? '') . ' ' . (string)($r['author'] ?? '') . ' ' . (string)($r['posted_at'] ?? ''));
 			if (function_exists('mb_strtolower')) { $search = mb_strtolower($search, 'UTF-8'); }
 			else { $search = strtolower($search); }
 		?>
 		<tr data-search="<?= h($search) ?>">
 			<td><?= (int)$r['id'] ?></td>
 			<td><?= h($r['title']) ?></td>
-			<td><?= h($r['autor']) ?></td>
+			<td><?= h($r['author']) ?></td>
 			<td><?= h($r['posted_at']) ?></td>
 			<td>
 				<button class="btn" type="button" onclick="openNewsModal(<?= (int)$r['id'] ?>)">Editar</button>
@@ -223,9 +223,9 @@ function openNewsModal(id = null){
 		if (row) {
 			document.getElementById('newsModalTitle').textContent = 'Editar noticia';
 			document.getElementById('news_id').value = row.id;
-			document.getElementById('news_autor').value = row.autor || '';
+			document.getElementById('news_autor').value = row.author || '';
 			document.getElementById('news_titulo').value = row.title || '';
-			const msg = row.mensaje || '';
+			const msg = row.message || '';
 			document.getElementById('news_mensaje').value = msg;
 			if (newsEditor) newsEditor.root.innerHTML = msg;
 		}
@@ -267,3 +267,4 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <?php admin_panel_close(); ?>
+

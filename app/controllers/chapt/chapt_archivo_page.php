@@ -69,7 +69,7 @@ if ($chapter_numberId > 0 && $stmt) {
         // Sección Protagonistas (solo si hay personajes)
 		// Nueva sección de protagonistas, basada en la tabla bridge_chapters_characters
 		$protaQuery = "
-			SELECT p.id, p.name, p.img
+			SELECT p.id, p.name, p.image_url
 			FROM bridge_chapters_characters acp
 			INNER JOIN fact_characters p ON acp.character_id = p.id
 			WHERE acp.chapter_id = ?
@@ -88,7 +88,7 @@ if ($chapter_numberId > 0 && $stmt) {
 				while ($pj = mysqli_fetch_assoc($resultProta)) {
 					$idPJSelect = $pj["id"];
 					$nombre = htmlspecialchars($pj["name"]);
-					$img = htmlspecialchars($pj["img"]);
+					$img = htmlspecialchars($pj["image_url"]);
 					$hrefChar = pretty_url($link, 'fact_characters', '/characters', (int)$idPJSelect);
 					echo "<a href='" . htmlspecialchars($hrefChar) . "' title='{$nombre}' target='_blank'>";
 					echo "<img src='{$img}' class='photochapter'>";
@@ -207,6 +207,7 @@ if ($chapter_numberId > 0 && $stmt) {
 </style>
 
 </html>
+
 
 
 

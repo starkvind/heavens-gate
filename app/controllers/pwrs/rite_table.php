@@ -20,7 +20,7 @@ $query = "
 		nr.level as ritual_level,
 		nr.race as ritual_species,
 		nr.description as ritual_description,
-		nr.syst as ritual_roll_description,
+		nr.system_text as ritual_roll_description,
 		s.name as ritual_fera_system,
         nr.system_id as ritual_system_id,
 		nb.name as ritual_origin
@@ -508,3 +508,4 @@ function sortValues(values){
 	.ms-wrap{ width: 100%; }
 }
 </style>
+

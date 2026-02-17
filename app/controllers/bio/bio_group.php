@@ -1,4 +1,4 @@
-﻿<?php setMetaFromPage("Biografías por grupo | Heaven's Gate", "Listado de biografías agrupadas por Tipo y Organización.", null, 'website'); ?>
+<?php setMetaFromPage("Biografías por grupo | Heaven's Gate", "Listado de biografías agrupadas por Tipo y Organización.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;
@@ -56,7 +56,7 @@
 		exit;
 	}
 
-$valuePJ = "p.id, p.name, p.alias, p.estado, p.img, p.character_kind, p.character_type_id,
+$valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.character_type_id,
 					COALESCE(nc2.id, nc_from_pack.id, 0) AS clan_id,
 					COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
 					COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name";
@@ -183,9 +183,9 @@ $valuePJ = "p.id, p.name, p.alias, p.estado, p.img, p.character_kind, p.characte
 						$idPJ     = (int)$rowPJ["id"];
 						$nombrePJ = h($rowPJ["name"] ?? '');
 						$aliasPJ  = h($rowPJ["alias"] ?? '');
-						$imgPJ    = h($rowPJ["img"] ?? '');
+						$imgPJ    = h($rowPJ["image_url"] ?? '');
 						$clasePJ  = h($rowPJ["character_kind"] ?? '');
-						$estadoPJ = h($rowPJ["estado"] ?? '');
+						$estadoPJ = h($rowPJ["status"] ?? '');
 
 						if ($aliasPJ === "") { $aliasPJ = $nombrePJ; }
 
@@ -253,4 +253,5 @@ $valuePJ = "p.id, p.name, p.alias, p.estado, p.img, p.character_kind, p.characte
 		}
 	});
 </script>
+
 

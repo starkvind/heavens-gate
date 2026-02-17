@@ -89,7 +89,7 @@ function build_pretty_search_url(string $rutu, string $id): string {
 
         case 'escritos':
             $tabla = 'fact_docs';
-            $campos = 'title, texto';
+            $campos = 'title, content';
             $searchField = 'title';
             $rutu = 'verdoc';
             break;

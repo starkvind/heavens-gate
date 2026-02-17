@@ -2,17 +2,17 @@
 // Obtener id o pretty-id
 $docRaw = $_GET['b'] ?? '';
 $docId = resolve_pretty_id($link, 'fact_docs', (string)$docRaw) ?? 0;
-if ($docId <= 0) { print("Documento inválido."); }
+if ($docId <= 0) { print("Documento invalido."); }
 
-// Asegurarse de que la conexión a la base de datos ($link) esté definida y sea válida
+// Asegurarse de que la conexion a la base de datos ($link) este definida y sea valida
 if (!$link) {
-    print("Error de conexión a la base de datos: " . mysqli_connect_error());
+    print("Error de conexion a la base de datos: " . mysqli_connect_error());
 }
 
 // Consulta preparada (id = ?, no LIKE)
-$Query = "SELECT dz.title, d.kind as seccion, dz.texto, dz.source
+$Query = "SELECT dz.title, d.kind AS section_id, dz.content, dz.source
           FROM fact_docs dz
-          LEFT JOIN dim_doc_categories d ON d.id = dz.seccion
+          LEFT JOIN dim_doc_categories d ON d.id = dz.section_id
           WHERE dz.id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $Query);
 if (!$stmt) { print("Error al preparar la consulta: " . mysqli_error($link)); }
@@ -31,16 +31,16 @@ if (!$ResultQuery) {
 } else {
 
 $titleDoc = (string)$ResultQuery["title"];
-$texto    = (string)$ResultQuery["texto"];   // HTML (Quill) -> se imprime tal cual
+$texto    = (string)$ResultQuery["content"];   // HTML (Quill) -> se imprime tal cual
 $source   = (string)($ResultQuery["source"] ?? '');
-$secciDoc = (string)($ResultQuery["seccion"] ?? 'Documento');
+$secciDoc = (string)($ResultQuery["section_id"] ?? 'Documento');
 
-// Para tu sistema de títulos
+// Para tu sistema de titulos
 $pageSect   = "Documento";
 $pageTitle2 = $titleDoc;
 setMetaFromPage($titleDoc . " | Documentos | Heaven's Gate", meta_excerpt($texto), null, 'article');
 
-// Barra navegación (la tuya)
+// Barra navegacion (la tuya)
 include("app/partials/main_nav_bar.php");
 ?>
 
@@ -235,7 +235,7 @@ include("app/partials/main_nav_bar.php");
   padding: 10px 4px 8px;
 }
 
-/* Terminal: tipografía mono y tamaño un pelín menor */
+/* Terminal: tipografia mono y tamano un poco menor */
 [data-doc-theme="terminal"] .doc-body{
   font-family: var(--mono);
   font-size: 14px;
@@ -296,7 +296,7 @@ include("app/partials/main_nav_bar.php");
 }
 .doc-source strong{ color: var(--title); }
 
-/* Pequeño “prompt” en terminal */
+/* Prompt pequeno en terminal */
 [data-doc-theme="terminal"] .doc-meta::before{
   content: "heavensgate@db:~$ cat ";
   font-family: var(--mono);
@@ -307,9 +307,9 @@ include("app/partials/main_nav_bar.php");
 <div class="doc-page" id="docRoot">
   <div class="doc-wrap">
     <div class="theme-switch" aria-label="Cambiar tema">
-      <button type="button" class="theme-btn" data-theme="og" title="Tema OG">🟦</button>
-      <button type="button" class="theme-btn" data-theme="light" title="Tema claro">⬜</button>
-      <button type="button" class="theme-btn" data-theme="terminal" title="Tema terminal">🟩</button>
+      <button type="button" class="theme-btn" data-theme="og" title="Tema OG">OG</button>
+      <button type="button" class="theme-btn" data-theme="light" title="Tema claro">Claro</button>
+      <button type="button" class="theme-btn" data-theme="terminal" title="Tema terminal">Terminal</button>
     </div>
 
     <div class="doc-card">
@@ -366,4 +366,5 @@ include("app/partials/main_nav_bar.php");
 
 
 <?php } ?>
+
 

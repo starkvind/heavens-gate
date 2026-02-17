@@ -5,7 +5,7 @@
  *
  * Tablas:
  *  - dim_doc_categories: secciones/categorías (id, kind, sort_order, created_at, updated_at)
- *  - fact_docs: documentos (id, seccion, title, texto, source, bibliography_id, created_at, updated_at)
+ *  - fact_docs: documentos (id, section_id, title, content, source, bibliography_id, created_at, updated_at)
  *
  * Requisitos:
  *  - Debe existir $link (mysqli) ya conectado.
@@ -98,9 +98,9 @@ function meta_for(string $tab, array $opts_sections, array $opts_origins): array
         'name_col' => 'title',
         'order_by' => 'id DESC',
         'fields' => [
-            ['k'=>'seccion','label'=>'Sección', 'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_sections],
+            ['k'=>'section_id','label'=>'Sección', 'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_sections],
             ['k'=>'title',  'label'=>'Título',  'ui'=>'text',       'db'=>'s','req'=>true,'max'=>150],
-            ['k'=>'texto',  'label'=>'Texto',   'ui'=>'wysiwyg',    'db'=>'s','req'=>true],   // Quill
+            ['k'=>'content',  'label'=>'Texto',   'ui'=>'wysiwyg',    'db'=>'s','req'=>true],   // Quill
             ['k'=>'source', 'label'=>'Fuente',  'ui'=>'textarea',   'db'=>'s','req'=>false],
             ['k'=>'bibliography_id', 'label'=>'Origen',  'ui'=>'select_int', 'db'=>'i','req'=>true,'opts'=>$opts_origins],
         ],
@@ -154,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         // bibliography_id ya viene del formulario
 
         // normalizaciones
-        if ($postTab === 'docs' && isset($vals['texto'])) {
-            $vals['texto'] = hg_mentions_convert($link, $vals['texto']);
+        if ($postTab === 'docs' && isset($vals['content'])) {
+            $vals['content'] = hg_mentions_convert($link, $vals['content']);
         }
 
         foreach ($M['fields'] as $f) {
@@ -176,9 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $v = (string)$vals[$k];
                         $plain = trim(strip_tags($v));
                         if (($f['ui'] ?? '') === 'wysiwyg') {
-                            if ($plain === '') $flash[] = ['type'=>'error','msg'=>'⚠ '.$f['label'].' es obligatorio.'];
+                            if ($plain === '') $flash[] = ['type'=>'error','msg'=>'âš  '.$f['label'].' es obligatorio.'];
                         } else {
-                            if (trim($v) === '') $flash[] = ['type'=>'error','msg'=>'⚠ '.$f['label'].' es obligatorio.'];
+                            if (trim($v) === '') $flash[] = ['type'=>'error','msg'=>'âš  '.$f['label'].' es obligatorio.'];
                         }
                     }
                 }
@@ -195,10 +195,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             // DELETE (safeguard para secciones con docs)
             if ($action === 'delete') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'⚠ Falta ID para borrar.'];
+                    $flash[] = ['type'=>'error','msg'=>'âš  Falta ID para borrar.'];
                 } else {
                     if ($postTab === 'sections') {
-                        $stChk = $link->prepare("SELECT COUNT(*) AS c FROM fact_docs WHERE seccion=?");
+                        $stChk = $link->prepare("SELECT COUNT(*) AS c FROM fact_docs WHERE section_id=?");
                         $stChk->bind_param("i", $id);
                         $stChk->execute();
                         $rs = $stChk->get_result();
@@ -215,11 +215,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     $sql = "DELETE FROM `$table` WHERE `$pk`=?";
                     $st = $link->prepare($sql);
                     if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar DELETE: '.$link->error];
+                        $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar DELETE: '.$link->error];
                     } else {
                         $st->bind_param("i", $id);
                         if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'🗑 Eliminado correctamente.'];
-                        else $flash[] = ['type'=>'error','msg'=>'❌ Error al borrar: '.$st->error];
+                        else $flash[] = ['type'=>'error','msg'=>'âŒ Error al borrar: '.$st->error];
                         $st->close();
                     }
                 }
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                 $st = $link->prepare($sql);
                 if (!$st) {
-                    $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar INSERT: '.$link->error];
+                    $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar INSERT: '.$link->error];
                 } else {
                     $st->bind_param($types, ...$bind);
                     if ($st->execute()) {
@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             // UPDATE
             if ($action === 'update') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'⚠ Falta ID para actualizar.'];
+                    $flash[] = ['type'=>'error','msg'=>'âš  Falta ID para actualizar.'];
                 } else {
                     $sets = [];
                     $types= '';
@@ -287,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                     $st = $link->prepare($sql);
                     if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'❌ Error al preparar UPDATE: '.$link->error];
+                        $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar UPDATE: '.$link->error];
                     } else {
                         $st->bind_param($types, ...$bind);
                         if ($st->execute()) {
@@ -362,7 +362,7 @@ $rowMap = [];
 while ($r = $rsL->fetch_assoc()) {
     $idv = (int)$r[$pk];
     if ($tab === 'docs') {
-        $r['seccion_name'] = ($opts_sections[(int)($r['seccion'] ?? 0)] ?? '');
+        $r['seccion_name'] = ($opts_sections[(int)($r['section_id'] ?? 0)] ?? '');
         $r['origin_name'] = ($opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '');
     }
     $rows[] = $r;
@@ -409,7 +409,7 @@ function ui_short(string $s, int $n=120): string {
 .modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
 #formCrud{ display:flex; flex-direction:column; flex:1; min-height:0; }
 
-/* ✅ Grid del modal: 2 columnas + campo "full width" */
+/* âœ… Grid del modal: 2 columnas + campo "full width" */
 .grid{
   display:grid;
   grid-template-columns:repeat(2, minmax(280px, 1fr));
@@ -483,7 +483,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
       <a class="tablnk <?= $tab==='sections'?'active':'' ?>" href="<?= $baseTabs ?>&tab=sections">Secciones</a>
     </div>
 
-    <button class="btn btn-green" id="btnNew">➕ Nuevo</button>
+    <button class="btn btn-green" id="btnNew">âž• Nuevo</button>
 
     <form method="get" style="display:flex; gap:8px; align-items:center; margin-left:auto;">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
@@ -550,7 +550,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
             </td>
           <?php endforeach; ?>
           <td>
-            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">✏ Editar</button>
+            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">âœ Editar</button>
             <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">🗑 Borrar</button>
           </td>
         </tr>
@@ -643,7 +643,7 @@ var OPTS_SECTIONS = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>
 var OPTS_ORIGINS = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_origins), array_values($opts_origins)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
 function pickOptsForField(fieldKey){
-  if (TAB==='docs' && fieldKey==='seccion') return OPTS_SECTIONS;
+  if (TAB==='docs' && fieldKey==='section_id') return OPTS_SECTIONS;
   if (TAB==='docs' && fieldKey==='bibliography_id') return OPTS_ORIGINS;
   return [];
 }
@@ -768,7 +768,7 @@ function syncEditorsToTextarea(){
     }
 
     if (ui === 'wysiwyg') {
-      wrap.className = 'field field-full'; // ✅ Texto ocupa toda la fila
+      wrap.className = 'field field-full'; // âœ… Texto ocupa toda la fila
 
       // Hidden textarea (lo que viaja al POST) + Quill toolbar + editor
       var taId = 'f_'+k;
@@ -783,7 +783,7 @@ function syncEditorsToTextarea(){
         'data-toolbar': toolbarId,
         'data-editor': editorId
       });
-      wysWrap.className = 'wys-wrap'; // ✅ para aplicar estilos de scroll interno
+      wysWrap.className = 'wys-wrap'; // âœ… para aplicar estilos de scroll interno
 
       // Toolbar “sencilla” y estable
       var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, QUILL_TOOLBAR_INNER);
@@ -967,6 +967,7 @@ function syncEditorsToTextarea(){
   });
 })();
 </script>
+
 
 
 

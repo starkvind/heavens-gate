@@ -208,17 +208,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $resp["title"] = formatTitle($safeName);
                         $resp["thumb"] = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . 'thumbnails/' . $safeName);
                         $resp["url"]   = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . $safeName);
-                        $resp["msg"]   = "✅ Subida: $safeName";
+                        $resp["msg"]   = "âœ… Subida: $safeName";
                     } else {
-                        $resp["msg"] = "❌ Error al procesar $origName.";
+                        $resp["msg"] = "âŒ Error al procesar $origName.";
                     }
                 }
             } else {
-                $resp["msg"] = "❌ Error en la subida.";
+                $resp["msg"] = "âŒ Error en la subida.";
             }
         }
 
-        // ⚠️ Limpia cualquier salida previa para no romper el JSON:
+        // âš ï¸ Limpia cualquier salida previa para no romper el JSON:
         while (ob_get_level()) { ob_end_clean(); }
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -233,11 +233,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newName = trim((string)($_POST['new_dir_name'] ?? ''));
             if (!isValidDirName($newName)) { $messages[] = "❌ Nombre de carpeta no válido."; break; }
             $targetAbs = fsPathJoin($postAbs, $newName);
-            if (is_dir($targetAbs)) { $messages[] = "⚠️ La carpeta ya existe."; break; }
+            if (is_dir($targetAbs)) { $messages[] = "âš ï¸ La carpeta ya existe."; break; }
             if (ensureDir($targetAbs) && ensureDir($targetAbs . "/thumbnails")) {
-                $messages[] = "✅ Carpeta creada: " . htmlspecialchars($newName);
+                $messages[] = "âœ… Carpeta creada: " . htmlspecialchars($newName);
             } else {
-                $messages[] = "❌ No se pudo crear la carpeta.";
+                $messages[] = "âŒ No se pudo crear la carpeta.";
             }
             break;
 
@@ -247,15 +247,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isValidDirName($old) || !isValidDirName($new)) { $messages[] = "❌ Nombres inválidos."; break; }
             $oldAbs = fsPathJoin($postAbs, $old);
             $newAbs = fsPathJoin($postAbs, $new);
-            if (!is_dir($oldAbs)) { $messages[] = "❌ La carpeta origen no existe."; break; }
-            if (is_dir($newAbs)) { $messages[] = "⚠️ Ya existe una carpeta con ese nombre."; break; }
+            if (!is_dir($oldAbs)) { $messages[] = "âŒ La carpeta origen no existe."; break; }
+            if (is_dir($newAbs)) { $messages[] = "âš ï¸ Ya existe una carpeta con ese nombre."; break; }
             if (@rename($oldAbs, $newAbs)) {
-                $messages[] = "✅ Carpeta renombrada.";
+                $messages[] = "âœ… Carpeta renombrada.";
                 if ($relDir === ($postRel === '' ? $old : $postRel . "/" . $old)) {
                     $relDir = ($postRel === '' ? $new : $postRel . "/" . $new);
                 }
             } else {
-                $messages[] = "❌ No se pudo renombrar.";
+                $messages[] = "âŒ No se pudo renombrar.";
             }
             break;
 
@@ -264,17 +264,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isValidRelPath($del)) { $messages[] = "❌ Carpeta inválida."; break; }
             if ($del === '') { $messages[] = "❌ No se puede eliminar la raíz."; break; }
             $delAbs = fsPathJoin($GALLERY_BASE_FS, $del);
-            if (!is_dir($delAbs)) { $messages[] = "❌ Carpeta no encontrada."; break; }
+            if (!is_dir($delAbs)) { $messages[] = "âŒ Carpeta no encontrada."; break; }
             if (rrmdir($delAbs)) {
                 $messages[] = "🗑️ Carpeta eliminada.";
                 if (strpos($relDir, $del) === 0) $relDir = '';
             } else {
-                $messages[] = "❌ No se pudo eliminar la carpeta.";
+                $messages[] = "âŒ No se pudo eliminar la carpeta.";
             }
             break;
 
         case 'upload_images': // fallback no-AJAX
-            if (!isset($_FILES['images'])) { $messages[] = "❌ No se recibieron archivos."; break; }
+            if (!isset($_FILES['images'])) { $messages[] = "âŒ No se recibieron archivos."; break; }
             $count = count($_FILES['images']['name']);
             $okN = 0;
             for ($i = 0; $i < $count; $i++) {
@@ -317,7 +317,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $srcImg  = fsPathJoin($fromAbs, $file);
             $srcTh   = fsPathJoin($fromAbs, "thumbnails/" . $file);
-            if (!is_file($srcImg)) { $messages[] = "❌ Imagen origen no encontrada."; break; }
+            if (!is_file($srcImg)) { $messages[] = "âŒ Imagen origen no encontrada."; break; }
 
             $destName = uniqueFileName($toAbs, $file);
             $dstImg   = fsPathJoin($toAbs, $destName);
@@ -330,9 +330,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     createThumbnail($dstImg, $dstTh, 200, 200);
                 }
-                $messages[] = "✅ Imagen movida.";
+                $messages[] = "âœ… Imagen movida.";
             } else {
-                $messages[] = "❌ No se pudo mover la imagen.";
+                $messages[] = "âŒ No se pudo mover la imagen.";
             }
             break;
     }
@@ -367,10 +367,10 @@ array_unshift($allDirs, ''); // raíz al principio
 .btn:hover { background:#23304f; }
 .input, select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
 .small { font-size:12px; color:#9fb1d9; }
-.img-grid { display:flex; flex-wrap:wrap; gap:10px; }
-.img-item { width:170px; text-align:center; }
-.img-item .thumb { width:150px; height:150px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; }
-.img-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+.image_url-grid { display:flex; flex-wrap:wrap; gap:10px; }
+.image_url-item { width:170px; text-align:center; }
+.image_url-item .thumb { width:150px; height:150px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; }
+.image_url-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
 hr.sep { border:0; border-top:1px solid #1f2a44; margin:16px 0; }
 form.inline { display:inline-block; }
 label { display:block; margin-bottom:4px; }
@@ -615,3 +615,4 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
   });
 })();
 </script>
+

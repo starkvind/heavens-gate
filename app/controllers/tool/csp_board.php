@@ -13,7 +13,7 @@
 
             // ORDEN GUAY
 
-            $consulta ="SELECT autor, title, mensaje, posted_at FROM fact_csp_posts ORDER BY id DESC";
+            $consulta ="SELECT author, title, message, posted_at FROM fact_csp_posts ORDER BY id DESC";
 
             $stmt = mysqli_prepare($link, $consulta);
             mysqli_stmt_execute($stmt);
@@ -22,7 +22,7 @@
                 while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     print("
                     <tr>
-                    <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["autor"]."</td>
+                    <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["author"]."</td>
                     <td class='klax1'>Fecha:</td><td class='klax2'>".$ResultQuery["posted_at"]."</td>
                     </tr><tr><td class='klax1'>T&iacute;tulo:</td>
                     <td colspan='3' class='klax2'>".$ResultQuery["title"]."</td>
@@ -32,7 +32,7 @@
                     print("
                     <tr>
                     <td colspan='6' class='klax2'>
-                    <p>".nl2br($ResultQuery["mensaje"])."</p>\n
+                    <p>".nl2br($ResultQuery["message"])."</p>\n
                     </td>
                     </tr>
                     ");
@@ -46,3 +46,4 @@
         ?>
     </table>
 </center>
+

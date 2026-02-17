@@ -32,10 +32,10 @@ select
     d.id as gift_id,
     d.name as gift_name,
     ntd.name as gift_type,
-    d.grupo as gift_category,
+    d.gift_group as gift_category,
     d.rank as gift_level,
-    d.atributo as gift_roll_attribute,
-    d.habilidad as gift_roll_skill,
+    d.attribute_name as gift_roll_attribute,
+    d.ability_name as gift_roll_skill,
     d.description as gift_description,
     d.system_name as gift_roll_description,
     s.name as gift_fera_system,
@@ -429,7 +429,7 @@ foreach ($gifts as $g) {
               ?>
                 <a class="item" href="#<?php echo h($anchor); ?>">
                   <div class="label">
-                    <div class="badge">◆</div>
+                    <div class="badge">â—†</div>
                     <div class="txt">
                       <div class="meta"><?php echo ($type !== '' || $lvl !== '') ? "[{$type} · Nv. {$lvl}]" : ""; ?></div>
                       <div class="name"><?php echo $name; ?></div>
@@ -458,7 +458,7 @@ foreach ($gifts as $g) {
           $fera = h($g['gift_fera_system'] ?? '');
           $orig = h($g['gift_origin'] ?? '');
 
-          // CAMPOS LARGOS → NO htmlspecialchars()
+          // CAMPOS LARGOS â†’ NO htmlspecialchars()
           $desc = $g['gift_description'] ?: "<p>Descripción no disponible</p>";
           $roll = $g['gift_roll_description'] ?: "<p><i>Sistema no disponible</i></p>";
 
@@ -468,7 +468,7 @@ foreach ($gifts as $g) {
         <article class="card" id="<?php echo h($anchor); ?>">
           <div class="topline">
             <h3 class="name"><?php echo $name; ?></h3>
-            <a class="back" href="#top">↑ Arriba</a>
+            <a class="back" href="#top">â†‘ Arriba</a>
           </div>
 
           <div class="chips">
@@ -503,3 +503,4 @@ foreach ($gifts as $g) {
 
   </div>
 </div>
+

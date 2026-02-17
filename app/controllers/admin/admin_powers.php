@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * admin_powers.php — CRUD autocontenido (Dones / Rituales / Tótems / Disciplinas)
  * Requisitos:
@@ -156,11 +156,11 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             'fields' => [
                 ['k'=>'name',        'label'=>'Nombre',       'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>100],
                 ['k'=>'kind',        'label'=>'Tipo',         'ui'=>'select_or_text', 'db'=>'s', 'req'=>true,  'opts'=>$opts_tipo_dones, 'placeholder'=>'(ID tipo)'],
-                ['k'=>'grupo',       'label'=>'Grupo',        'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>55],
+                ['k'=>'gift_group',       'label'=>'Grupo',        'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>55],
                 ['k'=>'rank',        'label'=>'Rango',        'ui'=>'text',     'db'=>'s', 'req'=>true,  'max'=>25],
                 // FIX: ahora pueden ir vacíos
-                ['k'=>'atributo',    'label'=>'Atributo',     'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
-                ['k'=>'habilidad',   'label'=>'Habilidad',    'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
+                ['k'=>'attribute_name',    'label'=>'Atributo',     'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
+                ['k'=>'ability_name',   'label'=>'Habilidad',    'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
                 ['k'=>'description', 'label'=>'Descripción',  'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 // FIX: ahora puede ir vacío
                 ['k'=>'system_name', 'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
@@ -172,7 +172,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>70],
                 ['k'=>'name','label'=>'Nombre','w'=>260],
-                ['k'=>'grupo','label'=>'Grupo','w'=>140],
+                ['k'=>'gift_group','label'=>'Grupo','w'=>140],
                 ['k'=>'rank','label'=>'Rango','w'=>90],
                 ['k'=>'system_label','label'=>'Sistema','w'=>140],
                 ['k'=>'origen_name','label'=>'Origen','w'=>180],
@@ -192,7 +192,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
                 ['k'=>'level',  'label'=>'Nivel',       'ui'=>'number',   'db'=>'i', 'req'=>true, 'min'=>0, 'max'=>20],
                 ['k'=>'race',   'label'=>'Raza',        'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
                 ['k'=>'description', 'label'=>'Descripción', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
-                ['k'=>'syst',   'label'=>'Sistema (texto largo)', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
+                ['k'=>'system_text',   'label'=>'Sistema (texto largo)', 'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id','label'=>'Sistema',     'ui'=>'select_int','db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'system_name','label'=>'Sistema (legacy)',     'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
@@ -249,8 +249,8 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             // FIX: ahora puede ir vacío
             ['k'=>'system_name',    'label'=>'Sistema',     'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             // FIX: ahora puede ir vacío
-            ['k'=>'atributo',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
-            ['k'=>'habilidad',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+            ['k'=>'attribute_name',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+            ['k'=>'ability_name',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
             ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
             ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
         ],
@@ -302,9 +302,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $upload = save_power_image($_FILES['img_file'] ?? [], $uploadDir, $urlBase, $prefix);
             if (($upload['ok'] ?? false) === true) {
                 if ($currentImg !== '') safe_unlink_power_image($currentImg, $uploadDir);
-                $vals['img'] = $upload['url'];
+                $vals['image_url'] = $upload['url'];
             } else {
-                if (($vals['img'] ?? '') === '' && $currentImg !== '') $vals['img'] = $currentImg;
+                if (($vals['image_url'] ?? '') === '' && $currentImg !== '') $vals['image_url'] = $currentImg;
             }
         }
 // normalizaciones
@@ -558,7 +558,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .wys-wrap .ql-container.ql-snow { background:#000033; border:1px solid #333; border-top:0; border-radius:0 0 6px 6px; }
 .wys-wrap .ql-editor { min-height:140px; color:#fff; }
 .wys-wrap .ql-editor a { color:#33ffff; }
-.img-preview{ max-width:120px; max-height:120px; border:1px solid #000088; border-radius:8px; background:#000033; display:block; }
+.image_url-preview{ max-width:120px; max-height:120px; border:1px solid #000088; border-radius:8px; background:#000033; display:block; }
 .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
 @media (max-width:1100px){ .grid{ grid-template-columns:repeat(2, minmax(240px,1fr)); } }
 @media (max-width:750px){ .grid{ grid-template-columns:1fr; } }
@@ -1045,6 +1045,7 @@ function syncEditorsToTextarea(){
 
 })();
 </script>
+
 
 
 

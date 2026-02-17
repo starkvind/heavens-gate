@@ -34,7 +34,7 @@ $rulesTypes = [
         foreach ($rulesTypes as $rule) {
             $name = htmlspecialchars($rule['name']);
             $href = htmlspecialchars($rule['href']);
-            $desc = htmlspecialchars($rule['desc']);
+            $desc = htmlspecialchars($rule['description']);
 
             echo "
                 <a href='$href' title='$name'>
@@ -47,3 +47,4 @@ $rulesTypes = [
         }
     ?>
 </fieldset>
+

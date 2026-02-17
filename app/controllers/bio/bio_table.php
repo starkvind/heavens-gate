@@ -58,7 +58,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
       SELECT 
 
-          p.id, p.pretty_id AS character_pretty_id, p.name AS character_name, p.alias, p.concepto, p.img,
+          p.id, p.pretty_id AS character_pretty_id, p.name AS character_name, p.alias, p.concept, p.image_url,
 
 
 
@@ -94,7 +94,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
           a.id AS type_id, a.pretty_id AS type_pretty_id, a.kind AS type_name,
 
-          s.name AS system_name, p.system_name AS system_legacy, p.estado
+          s.name AS system_name, p.system_name AS system_legacy, p.status
 
       FROM fact_characters p
 
@@ -782,7 +782,7 @@ $(document).ready(function () {
 
 	const data = personajes.map(p => {
 
-		const imgUrl = safeUrl(p.img);
+		const imgUrl = safeUrl(p.image_url);
 
 		const pj_img = imgUrl ? `<img src="${escapeAttr(imgUrl)}" height="12" alt="" loading="lazy" />` : '';
 
@@ -822,7 +822,7 @@ $(document).ready(function () {
 
 			tipo,
 
-			escapeHtml(p.estado || '')
+			escapeHtml(p.status || '')
 
 		];
 
@@ -876,9 +876,9 @@ $(document).ready(function () {
 
 				last: "Último",
 
-				next: "▶",
+				next: "â–¶",
 
-				previous: "◀"
+				previous: "â—€"
 
 			}
 
@@ -994,7 +994,7 @@ $(document).ready(function () {
 
 		typesSet.add((p.type_name && String(p.type_name).trim() !== '') ? String(p.type_name).trim() : '-');
 
-		statusSet.add((p.estado && String(p.estado).trim() !== '') ? String(p.estado).trim() : '-');
+		statusSet.add((p.status && String(p.status).trim() !== '') ? String(p.status).trim() : '-');
 
 	});
 
@@ -1151,6 +1151,7 @@ $(document).ready(function () {
 });
 
 </script>
+
 
 
 

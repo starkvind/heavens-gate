@@ -1,5 +1,5 @@
 <?php
-// Report and optionally fix broken character image URLs (fact_characters.img).
+// Report and optionally fix broken character image URLs (fact_characters.image_url).
 // Usage:
 //   /sep/tools/fix_character_image_urls.php         -> dry run (report only)
 //   /sep/tools/fix_character_image_urls.php?apply=1 -> apply fixes
@@ -60,7 +60,7 @@ function propose_fix($root, $path) {
     return '';
 }
 
-$sql = "SELECT id, name, img FROM fact_characters ORDER BY id ASC LIMIT ? OFFSET ?";
+$sql = "SELECT id, name, image_url FROM fact_characters ORDER BY id ASC LIMIT ? OFFSET ?";
 $stmt = $link->prepare($sql);
 $stmt->bind_param('ii', $limit, $offset);
 $stmt->execute();
@@ -87,7 +87,7 @@ echo "<tr><th>ID</th><th>Name</th><th>Current</th><th>Status</th><th>Proposed</t
 foreach ($rows as $r) {
     $id = (int)$r['id'];
     $name = (string)$r['name'];
-    $img = (string)($r['img'] ?? '');
+    $img = (string)($r['image_url'] ?? '');
 
     $norm = normalize_url_path($img);
     $exists = ($norm !== '') && file_exists_any($root, $norm);
@@ -97,7 +97,7 @@ foreach ($rows as $r) {
     if (!$exists) $broken++;
 
     if ($apply && !$exists && $proposed !== '') {
-        $up = $link->prepare("UPDATE fact_characters SET img=? WHERE id=?");
+        $up = $link->prepare("UPDATE fact_characters SET image_url=? WHERE id=?");
         $up->bind_param('si', $proposed, $id);
         if ($up->execute()) {
             $status = "FIXED";
@@ -120,3 +120,4 @@ foreach ($rows as $r) {
 echo "</table>";
 echo "<p>Total: $total | Broken: $broken | Fixed: $fixed</p>";
 ?>
+

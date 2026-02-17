@@ -155,14 +155,14 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close();
 				<label>Origen
 					<select class="select" name="rel[source_id]" id="rel_source">
 						<?php foreach ($personajes as $p): ?>
-							<option value="<?= (int)$p['id'] ?>"><?= h($p['nombre']) ?></option>
+							<option value="<?= (int)$p['id'] ?>"><?= h($p['name']) ?> (<?= h($p['id']) ?>)</option>
 						<?php endforeach; ?>
 					</select>
 				</label>
 				<label>Destino
 					<select class="select" name="rel[target_id]" id="rel_target">
 						<?php foreach ($personajes as $p): ?>
-							<option value="<?= (int)$p['id'] ?>"><?= h($p['nombre']) ?></option>
+							<option value="<?= (int)$p['id'] ?>"><?= h($p['name']) ?> (<?= h($p['id']) ?>)</option>
 						<?php endforeach; ?>
 					</select>
 				</label>

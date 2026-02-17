@@ -14,13 +14,13 @@ if ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > 15
 }
 
 // Anti-spam
-$query = "SELECT timestamp FROM fact_dice_rolls WHERE ip = ? ORDER BY timestamp DESC LIMIT 1";
+$query = "SELECT rolled_at FROM fact_dice_rolls WHERE ip = ? ORDER BY rolled_at DESC LIMIT 1";
 $stmt = mysqli_prepare($link, $query);
 mysqli_stmt_bind_param($stmt, "s", $ip);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
 if ($row = mysqli_fetch_assoc($res)) {
-    if (strtotime($row['timestamp']) > time() - 10) {
+    if (strtotime($row['rolled_at']) > time() - 10) {
         die("Has tirado hace menos de 10 segundos.");
     }
 }
@@ -58,10 +58,10 @@ $str_resultados = implode(",", $resultados);
 
 // Insertar la tirada
 $query = "INSERT INTO fact_dice_rolls 
-(name, roll_name, dados, dificultad, resultados, exitos, pifia, ip) 
+(name, roll_name, dice_pool, difficulty, roll_results, successes, botch, ip) 
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt = mysqli_prepare($link, $query);
-mysqli_stmt_bind_param($stmt, "isiiisis", $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia, $ip);
+mysqli_stmt_bind_param($stmt, "ssiisiss", $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia, $ip);
 mysqli_stmt_execute($stmt);
 
 // Mostrar resultado
@@ -74,6 +74,7 @@ echo "<p>Éxitos netos: <strong>$exitos</strong></p>";
 if ($pifia) echo "<p style='color:red;'>¡PIFIA!</p>";
 echo "<p>Enlace para foro: <code>[roll]$link_roll[/roll]</code></p>";
 ?>
+
 
 
 

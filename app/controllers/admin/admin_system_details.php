@@ -164,7 +164,7 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             ['k'=>'energy_name', 'label'=>'Energia (nombre)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
             ['k'=>'energy_value', 'label'=>'Energia (valor)', 'ui'=>'number', 'db'=>'i', 'req'=>false],
             ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
-            ['k'=>'miscinfo', 'label'=>'Info extra', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+            ['k'=>'extra_info', 'label'=>'Info extra', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
         ],
         'list_cols' => [
             ['k'=>'id','label'=>'ID','w'=>60],
@@ -463,15 +463,15 @@ admin_panel_open('Detalles de sistemas', $actions);
 .grid label{ font-size:12px; color:#cfe; display:block; text-align:left; }
 .grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
 textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
-.img-row{ display:flex; gap:12px; align-items:center; }
-.img-preview{ width:32px; height:32px; border-radius:50%; background:#001188; border:1px solid #000088; display:flex; align-items:center; justify-content:center; overflow:hidden; flex:0 0 32px; }
-.img-preview img{ width:100%; height:100%; object-fit:cover; display:none; }
-.img-preview .ph{ font-size:9px; color:#88a; }
-.img-controls{ flex:1; display:grid; gap:6px; }
-.img-controls input[type="file"]{ font-size:12px; color:#cfe; }
-.img-controls .row{ display:flex; align-items:center; gap:10px; }
-.img-controls .row label{ margin:0; font-size:11px; color:#cfe; }
-.img-controls .row input[type="checkbox"]{ transform:scale(1.05); }
+.image_url-row{ display:flex; gap:12px; align-items:center; }
+.image_url-preview{ width:32px; height:32px; border-radius:50%; background:#001188; border:1px solid #000088; display:flex; align-items:center; justify-content:center; overflow:hidden; flex:0 0 32px; }
+.image_url-preview img{ width:100%; height:100%; object-fit:cover; display:none; }
+.image_url-preview .ph{ font-size:9px; color:#88a; }
+.image_url-controls{ flex:1; display:grid; gap:6px; }
+.image_url-controls input[type="file"]{ font-size:12px; color:#cfe; }
+.image_url-controls .row{ display:flex; align-items:center; gap:10px; }
+.image_url-controls .row label{ margin:0; font-size:11px; color:#cfe; }
+.image_url-controls .row input[type="checkbox"]{ transform:scale(1.05); }
 .ql-toolbar.ql-snow{ border:1px solid #000088 !important; background:#050b36 !important; border-radius:8px 8px 0 0; }
 .ql-container.ql-snow{ border:1px solid #000088 !important; border-top:none !important; background:#000033 !important; color:#fff !important; border-radius:0 0 8px 8px; }
 .ql-editor{ min-height:220px; font-size:12px; }
@@ -726,7 +726,7 @@ function syncEditorsToTextarea(){
     var input;
 
     if (ui === 'textarea') {
-      if (k === 'poderes' || k === 'miscinfo') wrap.className = 'field field-full';
+      if (k === 'poderes' || k === 'extra_info') wrap.className = 'field field-full';
       input = el('textarea', {name:k, id:'f_'+k, class:'inp'});
       label.appendChild(input);
       wrap.appendChild(label);
@@ -969,3 +969,4 @@ function syncEditorsToTextarea(){
 </script>
 
 <?php admin_panel_close(); ?>
+

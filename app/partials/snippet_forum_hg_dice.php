@@ -19,10 +19,10 @@ if (!$tirada = mysqli_fetch_assoc($res)) {
 
 $nombre = htmlspecialchars($tirada['name']);
 $titulo = htmlspecialchars($tirada['roll_name']);
-$dificultad = (int)$tirada['dificultad'];
-$resultados = explode(",", $tirada['resultados']);
-$exitos = (int)$tirada['exitos'];
-$pifia = (bool)$tirada['pifia'];
+$dificultad = (int)$tirada['difficulty'];
+$resultados = explode(",", $tirada['roll_results']);
+$exitos = (int)$tirada['successes'];
+$pifia = (bool)$tirada['botch'];
 
 $palette = '#222';
 
@@ -135,4 +135,5 @@ if ($exitos > 0) {
 		</script>
 	</body>
 </html>
+
 

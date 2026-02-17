@@ -25,7 +25,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 	$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " WHERE p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 	// ============================================================
-	// ✅ BRIDGES
+	// âœ… BRIDGES
 	// - Clan de PJ: bridge_characters_organizations (activo)
 	// - Manada de PJ: bridge_characters_groups (activo)
 	// - Clan <-> Manada: bridge_organizations_groups (activo)
@@ -37,7 +37,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 		SELECT
 			p.id,
 			p.name,
-			p.img,
+			p.image_url,
 			cbc.clan_id,
 			gbc.group_id AS manada_id
 		FROM fact_characters p
@@ -160,7 +160,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 	<legend>&nbsp;Relaciones entre clanes y manadas&nbsp;</legend>
 		<div style="float: right;">
 			<button class="boton2" id='fullscreen-btn' onclick="toggleFullScreen()">🔍 Pantalla completa</button>
-			<button class="boton2" onclick="location.href='/relationship-map/characters'">⚙️ Cambiar vista</button>
+			<button class="boton2" onclick="location.href='/relationship-map/characters'">âš™ï¸ Cambiar vista</button>
 			<button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">🛑 Detener física</button>
 			<button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">🔄 Activar física</button>
 		</div>
@@ -193,8 +193,8 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 		{
 			id: "pj_<?= (int)$p['id'] ?>",
 			label: <?= json_encode($p['name'], JSON_UNESCAPED_UNICODE) ?>,
-			shape: <?= !empty($p['img']) ? "'circularImage'" : "'dot'" ?>,
-			image: <?= !empty($p['img']) ? json_encode("../" . $p['img'], JSON_UNESCAPED_UNICODE) : 'null' ?>,
+			shape: <?= !empty($p['image_url']) ? "'circularImage'" : "'dot'" ?>,
+			image: <?= !empty($p['image_url']) ? json_encode("../" . $p['image_url'], JSON_UNESCAPED_UNICODE) : 'null' ?>,
 			size: 25,
 			color: '#27ae60',
 			font: { color: "#fff", size: 12 },
@@ -296,4 +296,5 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
      background-color:#fff; border:1px solid #ccc; border-radius:6px; padding:8px 14px; font-family:sans-serif;
      font-size:14px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); z-index:2000;">
 </div>
+
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 // Aseguramos que el parámetro GET 'b' esté definido de manera segura
 $systemIdWere = isset($_GET['b']) ? (string)$_GET['b'] : '';
@@ -17,7 +17,7 @@ if ($result->num_rows > 0) {
         $returnType = htmlspecialchars($ResultQuery["affiliation"]); // Definimos la variable para volver
         $nameWereForm = htmlspecialchars($ResultQuery["form"]);
         $nameWereBreed = htmlspecialchars($ResultQuery["race"]);
-        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["desc"] ?? "");
+        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["description"] ?? "");
         $imageWereForm = htmlspecialchars($ResultQuery["image_url"]);
         $bonusSTR = htmlspecialchars($ResultQuery["strength_bonus"]);
         $bonusDEX = htmlspecialchars($ResultQuery["dexterity_bonus"]);
@@ -116,7 +116,7 @@ if ($result->num_rows > 0) {
     $formNameRaw = $ResultQuery["form"] ?? $ResultQuery["forma"] ?? '';
     $likeForm = '%' . $formNameRaw . '%';
     $formSystemId = (int)($ResultQuery['system_id'] ?? 0);
-    $sqlMan = "SELECT id, pretty_id, name, img FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC";
+    $sqlMan = "SELECT id, pretty_id, name, image_url FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC";
     $stmtMan = $link->prepare($sqlMan);
     $stmtMan->bind_param('is', $formSystemId, $likeForm);
     $stmtMan->execute();
@@ -134,7 +134,7 @@ if ($result->num_rows > 0) {
       while ($m = $rsMan->fetch_assoc()) {
         $maneId = (int)$m['id'];
         $maneName = htmlspecialchars($m['name']);
-        $maneImg = trim((string)($m['img'] ?? ''));
+        $maneImg = trim((string)($m['image_url'] ?? ''));
         $thumb = "img/inv/no-photo.gif";
         if ($maneImg !== '') {
           $thumb = (strpos($maneImg, '/') !== false) ? $maneImg : "img/maneuvers/" . $maneImg;
@@ -160,3 +160,4 @@ if ($result->num_rows > 0) {
 //$stmt->close();
 
 ?>
+

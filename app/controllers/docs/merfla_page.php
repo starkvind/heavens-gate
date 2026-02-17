@@ -96,7 +96,7 @@ if ($rowsQueryMaf > 0) {
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $mafOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.img, c.estado FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.status FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $mafPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -203,8 +203,8 @@ if ($rowsQueryMaf > 0) {
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = (string)($o['img'] ?? '');
-                $estado = (string)($o['estado'] ?? '');
+                $img = (string)($o['image_url'] ?? '');
+                $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
                     "Aún por aparecer"     => "(&#64;)",
@@ -249,3 +249,4 @@ if ($rowsQueryMaf > 0) {
 // Cerramos la sentencia preparada para la consulta principal
 $stmtMaf->close();
 ?>
+

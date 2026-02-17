@@ -19,11 +19,11 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $totemPrettyRaw = (string)($resultQueryTotem["pretty_id"] ?? "");
     $totemType  = htmlspecialchars($resultQueryTotem["totem_type_id"] ?? $resultQueryTotem["tipo"] ?? '');
     $totemCost  = htmlspecialchars($resultQueryTotem["cost"]);
-    $totemDesc  = $resultQueryTotem["description"] ?? $resultQueryTotem["desc"] ?? ''; // NO usar htmlspecialchars() para mantener el formato HTML
+    $totemDesc  = $resultQueryTotem["description"] ?? $resultQueryTotem["description"] ?? ''; // NO usar htmlspecialchars() para mantener el formato HTML
     $totemAttr  = $resultQueryTotem["traits"];
     $totemBan   = $resultQueryTotem["prohibited"];
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
-    $totemImgRaw = trim((string)($resultQueryTotem["img"] ?? ""));
+    $totemImgRaw = trim((string)($resultQueryTotem["image_url"] ?? ""));
 
     // Obtener el nombre del origen del tótem
     $totemOriginName = "-"; // Valor por defecto
@@ -73,7 +73,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
     $totemCharOwners = [];
-    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.img, p.estado FROM fact_characters p WHERE (p.totem_id = ? OR p.totem_name = ? OR p.totem_name = ?) $cronicaNotInSQL ORDER BY p.name")) {
+    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.status FROM fact_characters p WHERE (p.totem_id = ? OR p.totem_name = ? OR p.totem_name = ?) $cronicaNotInSQL ORDER BY p.name")) {
         $stOwners->bind_param('iss', $totemPageID, $totemNameRaw, $totemPrettyRaw);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -199,8 +199,8 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = (string)($o['img'] ?? '');
-                $estado = (string)($o['estado'] ?? '');
+                $img = (string)($o['image_url'] ?? '');
+                $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
                     "Aún por aparecer"     => "(&#64;)",
@@ -273,3 +273,4 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     echo "<p>Error: Tótem no encontrado.</p>";
 }
 ?>
+

@@ -18,15 +18,15 @@ while ($row = $res->fetch_assoc()) {
 	$icon = '🌀'; // por defecto
 	switch ($row['kind']) {
 		case 'catastrofe':     $icon = '🔥'; break;
-		case 'batalla':        $icon = '⚔️'; break;
+		case 'batalla':        $icon = 'âš”ï¸'; break;
 		case 'nacimiento':     $icon = '🟢'; break;
-		case 'muerte':         $icon = '⚰️'; break;
+		case 'muerte':         $icon = 'âš°ï¸'; break;
 		case 'descubrimiento': $icon = '🔍'; break;
 		case 'traicion':       $icon = '🩸'; break;
 		case 'romance':        $icon = '💖'; break;
 		case 'fundacion':      $icon = '🏛️'; break;
 		case 'alianza':        $icon = '🤝'; break;
-		case 'enemistad':      $icon = '☠️'; break;
+		case 'enemistad':      $icon = 'â˜ ï¸'; break;
 		case 'reclutamiento':  $icon = '🧭'; break; // brújula, como símbolo de inicio de camino
 		case 'otros':          $icon = '📌'; break;
 	}
@@ -426,7 +426,7 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 <!--<p>Página aún en construcción.</p>
 
 <div style="text-align:right; margin: 0 1em 1em 0;">
-	<button id="btn-fullscreen" class="boton2">⛶ Pantalla completa</button>
+	<button id="btn-fullscreen" class="boton2">â›¶ Pantalla completa</button>
 </div>
 
 <div id="timeline-container">
@@ -519,8 +519,8 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 				paginate: {
 					first: "Primero",
 					last: "Último",
-					next: "▶",
-					previous: "◀"
+					next: "â–¶",
+					previous: "â—€"
 				}
 			}
 		});
@@ -581,7 +581,7 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 			const fuente = target.dataset.fuente;
 			const linea = target.dataset.linea;
 			const tipo = target.dataset.tipo;
-			const desc = target.dataset.desc;
+			const desc = target.dataset.description;
 
 			tooltip.innerHTML = `
 				<div class='tooltip-timeline-event-container'>
@@ -618,6 +618,7 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 	</thead>
 	<tbody></tbody>
 </table>
+
 
 
 

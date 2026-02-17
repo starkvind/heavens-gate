@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 // Obtener parámetros de manera segura
 $systemIdDocument = isset($_GET['b']) ? (string)$_GET['b'] : '';  // ID o pretty_id
@@ -79,7 +79,7 @@ if ($table !== "") {
         $returnType = htmlspecialchars($ResultQuery["system_name"]);
         $typeOfSystem = $returnType;
         $nameSyst = htmlspecialchars($ResultQuery["name"]);
-        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["desc"] ?? "");
+        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["description"] ?? "");
         $systemId = (int)($ResultQuery["system_id"] ?? 0);
         if (isset($ResultQuery["image_url"])) {
 			$imageSyst = htmlspecialchars($ResultQuery["image_url"]);
@@ -110,14 +110,14 @@ if ($table !== "") {
         }
 ?>
 <style>
-.syst-detail { display:grid; gap:12px; }
-.syst-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
-.syst-banner::before { content:''; display:block; padding-top:28%; }
-.syst-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
-.syst-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
-.syst-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.syst-box h3 { margin-top:0; color:#33FFFF; }
-.syst-meta { color:#cfe; }
+.system_text-detail { display:grid; gap:12px; }
+.system_text-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
+.system_text-banner::before { content:''; display:block; padding-top:28%; }
+.system_text-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
+.system_text-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
+.system_text-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
+.system_text-box h3 { margin-top:0; color:#33FFFF; }
+.system_text-meta { color:#cfe; }
 </style>
 <div class="syst-detail">
   <div class="syst-banner">
@@ -134,7 +134,7 @@ if ($table !== "") {
             $metaHtml .= "<p><b>$energy inicial:</b> $checkEnergy</p>";
 
         } elseif ($systemTypeDocument == 4) {
-            $miscInfoData = ($ResultQuery["miscinfo"]);
+            $miscInfoData = ($ResultQuery["extra_info"]);
             $miscNameEnergy = htmlspecialchars($ResultQuery["energy_name"]);
             $miscValuEnergy = htmlspecialchars($ResultQuery["energy_value"]);
 
@@ -162,7 +162,7 @@ if ($table !== "") {
 <?php
         // Don Query para obtener dones basados en el sistema
         $donGroup = $nameSyst;
-        $donQuery = "SELECT id, name, rank FROM fact_gifts WHERE grupo = ? AND system_id = ? ORDER BY rank;";
+        $donQuery = "SELECT id, name, rank FROM fact_gifts WHERE gift_group = ? AND system_id = ? ORDER BY rank;";
         $stmtDon = $link->prepare($donQuery);
         $stmtDon->bind_param('si', $donGroup, $systemId);
         $stmtDon->execute();
@@ -198,8 +198,8 @@ if ($table !== "") {
         // Mostrar personajes asociados (raza / auspicio / tribu)
         $charField = '';
         if ($systemTypeDocument === 1) $charField = 'breed_id';
-        elseif ($systemTypeDocument === 2) $charField = 'auspicio';
-        elseif ($systemTypeDocument === 3) $charField = 'tribu';
+        elseif ($systemTypeDocument === 2) $charField = 'auspice_id';
+        elseif ($systemTypeDocument === 3) $charField = 'tribe_id';
 
         if ($charField !== '') {
             $charsWithoutPackQuery = "
@@ -286,3 +286,4 @@ if ($table !== "") {
     }
 }
 ?>
+

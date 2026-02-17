@@ -16,7 +16,7 @@ if ($rowsQueryArche > 0) {
 
     // Datos básicos
     $archeName = htmlspecialchars($resultQueryArche["name"]);
-    $archeDesc = $resultQueryArche["description"] ?? $resultQueryArche["desc"] ?? ''; // keep HTML from DB
+    $archeDesc = $resultQueryArche["description"] ?? $resultQueryArche["description"] ?? ''; // keep HTML from DB
 $archeWill = $resultQueryArche["willpower_text"] ?? $resultQueryArche["fv"] ?? '';
     $archeOrig = htmlspecialchars($resultQueryArche["bibliography_id"]);
 
@@ -88,3 +88,4 @@ $archeWill = $resultQueryArche["willpower_text"] ?? $resultQueryArche["fv"] ?? '
 // Cerramos la sentencia preparada para la consulta principal
 $stmtArche->close();
 ?>
+

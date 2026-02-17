@@ -88,8 +88,8 @@ foreach ($grupos as $categoria => $lista) {
 		foreach ($lista as $rel) {
 			$relId     = htmlspecialchars($rel['direction'] === 'outgoing' ? $rel['target_id'] : $rel['source_id']);
 			$relNombre = htmlspecialchars($rel['name']);
-			$relImg    = htmlspecialchars($rel['img']);
-			$relGender  = htmlspecialchars($rel['genero_pj']);
+			$relImg    = htmlspecialchars($rel['image_url']);
+			$relGender  = htmlspecialchars($rel['gender']);
 			$relAlias  = !empty($rel['alias']) ? " (" . htmlspecialchars($rel['alias']) . ")" : "";
 			$relTipo   = htmlspecialchars($rel['relation_type']);
 			$relLink   = "/characters/";
@@ -109,3 +109,4 @@ foreach ($grupos as $categoria => $lista) {
 }
 
 ?>
+

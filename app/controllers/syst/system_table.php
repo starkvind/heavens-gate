@@ -13,7 +13,7 @@ $query = "
 		s.id AS system_id,
 		s.sort_order AS system_order,
 		s.name AS system_name,
-		s.img AS system_img,
+		s.image_url AS system_img,
 		s.forms AS system_forms,
 		COALESCE(nb.name, '') AS system_origin
 	FROM dim_systems s
@@ -453,3 +453,4 @@ $(document).ready(function () {
 	updateSummaryOrigins(null);
 });
 </script>
+

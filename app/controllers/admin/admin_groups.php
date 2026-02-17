@@ -4,7 +4,7 @@
  *
  * Requisitos:
  * - $link: conexión mysqli abierta (body_work.php)
- * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,activa,cronica,clan,totem,`desc`)
+ * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,activa,cronica,clan,totem,`description`)
  * - Puentes: bridge_organizations_groups(id,clan_id,group_id,is_active)
  *            bridge_characters_groups(id,character_id,group_id,is_active,position)
  * - fact_characters(id,nombre,alias,nombregarou)
@@ -188,7 +188,7 @@ function render_group_detail($link,$group_id){
             <span>".e($label)."</span>
             <input type='text' value='".e($m['position'])."' placeholder='posición'>
             <button class='btn btn-save-position' data-id='".e($m['id'])."' data-group='$group_id'>💾</button>
-            <button class='btn btn-bad btn-rem-member' data-id='".e($m['id'])."' data-group='$group_id'>✖</button>
+            <button class='btn btn-bad btn-rem-member' data-id='".e($m['id'])."' data-group='$group_id'>âœ–</button>
           </span>";
   }
   echo   "</div></div>
@@ -201,7 +201,7 @@ function render_group_detail($link,$group_id){
     echo "<span class='chip off' data-id='".e($m['id'])."'>
             <span>".e($label)."</span>
             <input type='text' value='".e($m['position'])."' placeholder='posición'>
-            <button class='btn btn-ok btn-activate-member' data-id='".e($m['id'])."' data-group='$group_id'>➕</button>
+            <button class='btn btn-ok btn-activate-member' data-id='".e($m['id'])."' data-group='$group_id'>âž•</button>
           </span>";
   }
   echo   "</div></div>";
@@ -396,7 +396,7 @@ if(!empty($_POST['action'])){
 
     // dim_groups requiere varias columnas NOT NULL; ponemos defaults seguros
     [$ok,$err,$rs,$newId] = q($link,
-      "INSERT INTO dim_groups (name, chronicle_id, clan, totem_id, is_active, `desc`) VALUES (?,?,?,?,?,?)",
+      "INSERT INTO dim_groups (name, chronicle_id, clan, totem_id, is_active, `description`) VALUES (?,?,?,?,?,?)",
       'sisiis', [$name, $cronica, /*clan(texto)*/'', $totem, $activa, /*desc*/'']);
     hg_update_pretty_id_if_exists($link, 'dim_groups', $newId, $name);
     if(!$ok){ render_group_create_form($link,$clan_id); echo "<div class='err'>".e($err)."</div>"; exit; }
@@ -817,3 +817,4 @@ function bindModalInside(){
 /* Bind inicial de filas tras carga */
 bindRowButtons();
 </script>
+

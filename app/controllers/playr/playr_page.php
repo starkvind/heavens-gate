@@ -28,7 +28,7 @@ if ($result) {
         $namePJ = htmlspecialchars($ResultQuery["name"]);
         $surnamePJ = htmlspecialchars($ResultQuery["surname"]);
         $picPJ = htmlspecialchars($ResultQuery["picture"]);
-        $descPJ = ($ResultQuery["desc"]);
+        $descPJ = ($ResultQuery["description"]);
         $pageSect = "Jugador"; // PARA CAMBIAR EL TITULO A LA PAGINA
         $pageTitle2 = $namePJ . " " . $surnamePJ;
         setMetaFromPage($namePJ . " " . $surnamePJ . " | Jugadores | Heaven's Gate", meta_excerpt($descPJ), $picPJ, 'article');
@@ -119,3 +119,4 @@ mysqli_free_result($result2);
 mysqli_stmt_close($stmt2);
 ?>
 </table>
+

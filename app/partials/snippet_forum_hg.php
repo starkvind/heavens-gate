@@ -24,7 +24,7 @@
 	}
 
 	$nombre = htmlspecialchars($row['name']);
-	$img = htmlspecialchars($row['img']);
+	$img = htmlspecialchars($row['image_url']);
 	*/
 	
 	$defaultImgPath = "img/subidas/";
@@ -38,8 +38,9 @@
 		$nombre = $defaultAvatars[$char_id]['name'];
 		$img = $defaultAvatars[$char_id]['img'];
 		$colortexto = '';
+		$char_pretty = (string)$char_id;
 	} else {
-		$query = "SELECT name, img, colortexto FROM fact_characters WHERE id = ? LIMIT 1";
+		$query = "SELECT name, image_url, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
 		$stmt = mysqli_prepare($link, $query);
 		mysqli_stmt_bind_param($stmt, "i", $char_id);
 		mysqli_stmt_execute($stmt);
@@ -50,8 +51,12 @@
 		}
 
 		$nombre = htmlspecialchars($row['name']);
-		$img = htmlspecialchars($row['img']);
-		$colortexto = htmlspecialchars($row['colortexto']);
+		$img = htmlspecialchars($row['image_url']);
+		$colortexto = htmlspecialchars($row['text_color']);
+		$char_pretty = trim((string)($row['pretty_id'] ?? ''));
+		if ($char_pretty === '') {
+			$char_pretty = (string)$char_id;
+		}
 	}
 
 	$decoded_msg = htmlspecialchars_decode($msg);
@@ -106,6 +111,9 @@
 		'$1',
 		'$1'
 	], $parsed_msg);
+
+	// Remove leading blank lines / breaks at message start.
+	$parsed_msg = preg_replace('/^(?:(?:\s|&nbsp;|<br\s*\/?>)+|<p>\s*(?:&nbsp;|<br\s*\/?>|\s)*<\/p>)+/i', '', $parsed_msg);
 	
 	// Color de texto por defecto.
 	if ($colortexto != "" and $palette == "SkyBlue") $palette = $colortexto;
@@ -202,7 +210,7 @@
 	<body>
 		<div class="msg_main_box">
 			<?php if ($char_id > 0): ?>
-				<a class="img_link" href="https://naufragio-heavensgate.duckdns.org/characters/<?= $char_id ?>" target="_blank">
+				<a class="img_link" href="https://naufragio-heavensgate.duckdns.org/characters/<?= rawurlencode($char_pretty) ?>" target="_blank">
 					<img class="msg_face" src="../<?= $img ?>" alt="avatar">
 				</a>
 			<?php else: ?>
@@ -252,4 +260,5 @@
 		</script>
 	</body>
 </html>
+
 

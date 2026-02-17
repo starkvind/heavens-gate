@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 // Obtener el parámetro 'b' de manera segura
 $maneuverId = isset($_GET['b']) ? $_GET['b'] : '';  // ID de la Maniobra
@@ -44,7 +44,7 @@ if ($rowsQueryManeuver > 0) {
     // Incluir barra de navegación
     include("app/partials/main_nav_bar.php");  // Barra de Navegación
     // Imagen de la Maniobra
-    $maneImg = trim((string)($resultQueryManeuver["img"] ?? ""));
+    $maneImg = trim((string)($resultQueryManeuver["image_url"] ?? ""));
     $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
     if ($maneImg !== "") {
         if (strpos($maneImg, "/") !== false) {
@@ -97,3 +97,4 @@ if ($rowsQueryManeuver > 0) {
 // Cerramos la sentencia preparada para la consulta principal
 $stmtManeuver->close();
 ?>
+
