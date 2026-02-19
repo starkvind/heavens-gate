@@ -107,87 +107,68 @@ if ($rowsQueryMaf > 0) {
     $useTabs = $hasOwners;
 
     // Título e Imágenes
-    $costMeritFlaw = $mafCoste; // Usamos $mafCoste para el coste
-    $costeEsFijo = is_numeric($costMeritFlaw);
-    $iconoCoste = "img/ui/icons/range-star.gif";
+    $costMeritFlaw = $mafCoste;
     $pageSect = $mafNameType; // PARA CAMBIAR EL TITULO A LA PAGINA
     $pageTitle2 = $mafName;
     setMetaFromPage($mafName . " | Méritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
-    $pointQty = ($costMeritFlaw >= 2) ? "puntos" : "punto"; // Numeración
 
     // Incluir archivos para navegación y contenido
     include("app/partials/main_nav_bar.php"); // Barra Navegación
-    echo "<h2>$mafName</h2>"; // Encabezado de página
 
     ob_start();
 
-    echo "<fieldset class='renglonPaginaDon'>"; // Cuerpo principal de la Ficha del Mérito
-    
     $itemImg = "img/inv/no-photo.gif";
-
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>"; // Colocamos la Fotograf?a del Don
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$mafName'/>";
-    echo "</div>"; // Dejamos la Fotografía ya colocada
-
-    echo "<div class='bioSquareData'>";
-
-    // Coste del Mérito
-    echo "<div class='bioRenglonData'>";
-    if ($mafCoste > 0) { 
-        echo "<div class='bioDataName'>Coste:</div>"; 
-        echo "<div class='bioDataText'>";
-        for ($nrange = 0; $nrange < $mafCoste; $nrange++) {
-            echo "<img src='$iconoCoste' alt='Coste $mafCoste'>";
-        }    
-        echo "</div>";
-    }
-    echo "</div>";
-
-    // Tipo del Mérito
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Tipo:</div>";
-    echo "<div class='bioDataText'>$mafNameType</div>";
-    echo "</div>";
-
-    // Sistema del Mérito
-    if ($mafSystem != "") {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Sistema:</div>";
-        echo "<div class='bioDataText'>$mafSystem</div>"; 
-        echo "</div>";
+    $costText = '';
+    if (is_numeric((string)$costMeritFlaw)) {
+        $n = (int)$costMeritFlaw;
+        $costText = $n . ' ' . (($n === 1) ? 'punto' : 'puntos');
+    } else {
+        $costText = (string)$costMeritFlaw;
     }
 
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Categoría:</div>";
-    echo "<div class='bioDataText'>$mafAfil</div>"; 
-    echo "</div>";
+    echo "<div class='power-card power-card--merfla'>";
+    echo "  <div class='power-card__banner'>";
+    echo "    <span class='power-card__title'>$mafName</span>";
+    echo "  </div>";
 
-    // Orígenes del Mérito
-    echo "<div class='bioRenglonData'>";
-    echo "<div class='bioDataName'>Origen:</div>";
-    echo "<div class='bioDataText'>$mafOriginName</div>"; 
-    echo "</div>";
+    echo "  <div class='power-card__body'>";
+    echo "    <div class='power-card__media'>";
+    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='$itemImg' alt='$mafName'/>";
+    echo "    </div>";
 
-    echo "</div>";
+    echo "    <div class='power-card__stats'>";
+    if ($mafNameType !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$mafNameType</div></div>";
+    }
+    if ($costText !== '' && $costText !== '0 puntos') {
+        echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'>$costText</div></div>";
+    }
+    if ($mafAfil !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Categoría</div><div class='power-stat__value'>$mafAfil</div></div>";
+    }
+    if ($mafSystem !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>$mafSystem</div></div>";
+    }
+    if ($mafOriginName !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$mafOriginName</div></div>";
+    }
+    echo "    </div>";
+    echo "  </div>";
 
     // Descripción del Mérito
     if ($mafDesc != "") {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripci&oacute;n:</b><p>$mafDesc</p>";
-        echo "</div>";
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
+        echo "    <div class='power-card__desc-body'>$mafDesc</div>";
+        echo "  </div>";
     }
-    echo "</fieldset>";
+
+    echo "</div>";
     $infoHtml = ob_get_clean();
 
     if ($useTabs) {
-        echo "<style>
-            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
-            .hg-tab-panel{ display:none; }
-            .hg-tab-panel.active{ display:block; }
-            .hgTabBtn{ border:1px solid #003399; }
-            .hgTabBtn.active{ background:#001199; color:#01b3fa; border-color:#003399; }
-            .contenidoAfiliacion{ display:flex; flex-wrap:wrap; gap:6px; padding:8px 0 12px 0; }
-        </style>";
+        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
+        hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";

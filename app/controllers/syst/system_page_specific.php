@@ -110,14 +110,14 @@ if ($table !== "") {
         }
 ?>
 <style>
-.system_text-detail { display:grid; gap:12px; }
-.system_text-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
-.system_text-banner::before { content:''; display:block; padding-top:28%; }
-.system_text-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
-.system_text-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
-.system_text-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.system_text-box h3 { margin-top:0; color:#33FFFF; }
-.system_text-meta { color:#cfe; }
+.syst-detail { display:grid; gap:12px; }
+.syst-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
+.syst-banner::before { content:''; display:block; padding-top:28%; }
+.syst-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
+.syst-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
+.syst-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
+.syst-box h3 { margin-top:0; color:#33FFFF; }
+.syst-meta { color:#cfe; }
 </style>
 <div class="syst-detail">
   <div class="syst-banner">

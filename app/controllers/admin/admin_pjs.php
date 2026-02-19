@@ -34,7 +34,7 @@
 
 if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
 
-// âš™ï¸ MUY IMPORTANTE: asegura que MySQLi entregue UTF-8 real (evita JSON roto)
+// [IMPORTANT] MUY IMPORTANTE: asegura que MySQLi entregue UTF-8 real (evita JSON roto)
 if (method_exists($link, 'set_charset')) {
     $link->set_charset('utf8mb4');
 } else {
@@ -63,7 +63,7 @@ function preview_text(string $s, int $len = 180): string {
    Subidas (avatar): rutas y utilidades
 ------------------------------------------------- */
 $DOCROOT      = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
-$AV_UPLOADDIR = $DOCROOT . '/img/characters';
+$AV_UPLOADDIR = $DOCROOT . '/public/img/characters';
 $AV_URLBASE   = '/img/characters';
 if (!is_dir($AV_UPLOADDIR)) { @mkdir($AV_UPLOADDIR, 0775, true); }
 
@@ -101,7 +101,14 @@ function save_avatar_file(array $file, int $pjId, string $displayName, string $u
 }
 function safe_unlink_avatar(string $relUrl, string $uploadDir){
     if ($relUrl==='') return;
-    $abs = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/').'/'.ltrim($relUrl,'/');
+    $docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/');
+    $rel = '/'.ltrim($relUrl,'/');
+    // Public URL remains /img/... but physical files live under /public/img/...
+    if (strpos($rel, '/img/') === 0) {
+        $abs = $docroot . '/public' . $rel;
+    } else {
+        $abs = $docroot . $rel;
+    }
     $base= realpath($uploadDir);
     $absr= @realpath($abs);
     if ($absr && $base && strpos($absr,$base)===0 && is_file($absr)) { @unlink($absr); }
@@ -361,6 +368,141 @@ function save_character_traits(mysqli $link, int $charId, array $traits, string 
     return ['updated'=>$updated,'logged'=>$logged,'skipped'=>$skipped];
 }
 
+function pjs_table_exists(mysqli $link, string $table): bool {
+    $st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    if (!$st) return false;
+    $st->bind_param("s", $table);
+    $st->execute();
+    $st->bind_result($c);
+    $st->fetch();
+    $st->close();
+    return ((int)$c > 0);
+}
+
+function pjs_table_has_column(mysqli $link, string $table, string $column): bool {
+    $st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+    if (!$st) return false;
+    $st->bind_param("ss", $table, $column);
+    $st->execute();
+    $st->bind_result($c);
+    $st->fetch();
+    $st->close();
+    return ((int)$c > 0);
+}
+
+function save_character_resources(
+    mysqli $link,
+    int $charId,
+    int $systemId,
+    array $submittedRows,
+    array $systemResourcesBySystem,
+    bool $hasStateTable,
+    bool $hasLogTable,
+    string $source = 'admin',
+    ?string $createdBy = null
+): array {
+    if (!$hasStateTable || $charId <= 0) {
+        return ['saved'=>0,'logged'=>0,'skipped'=>count($submittedRows),'disabled'=>true];
+    }
+
+    $old = [];
+    if ($st = $link->prepare("SELECT resource_id, value_permanent, value_temporary FROM bridge_characters_system_resources WHERE character_id=?")) {
+        $st->bind_param("i", $charId);
+        $st->execute();
+        $rs = $st->get_result();
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $rid = (int)$row['resource_id'];
+            $old[$rid] = [
+                'perm' => (int)($row['value_permanent'] ?? 0),
+                'temp' => (int)($row['value_temporary'] ?? 0),
+            ];
+        }
+        $st->close();
+    }
+
+    $final = [];
+    foreach ($submittedRows as $rid => $vals) {
+        $rid = (int)$rid;
+        if ($rid <= 0) continue;
+        $perm = max(0, (int)($vals['perm'] ?? 0));
+        $temp = max(0, (int)($vals['temp'] ?? 0));
+        $final[$rid] = ['perm'=>$perm, 'temp'=>$temp];
+    }
+
+    $forcedRows = 0;
+    $defaultRows = $systemResourcesBySystem[$systemId] ?? [];
+    foreach ($defaultRows as $r) {
+        $rid = (int)($r['id'] ?? 0);
+        if ($rid <= 0 || isset($final[$rid])) continue;
+        if (isset($old[$rid])) {
+            $final[$rid] = ['perm'=>$old[$rid]['perm'], 'temp'=>$old[$rid]['temp']];
+        } else {
+            $final[$rid] = ['perm'=>0, 'temp'=>0];
+        }
+        $forcedRows++;
+    }
+
+    $saved = 0; $logged = 0; $skipped = 0;
+    $logStmt = null;
+
+    $link->begin_transaction();
+    try {
+        if ($stDel = $link->prepare("DELETE FROM bridge_characters_system_resources WHERE character_id=?")) {
+            $stDel->bind_param("i", $charId);
+            $stDel->execute();
+            $stDel->close();
+        }
+
+        $ins = $link->prepare("INSERT INTO bridge_characters_system_resources (character_id, resource_id, value_permanent, value_temporary) VALUES (?,?,?,?)");
+        if (!$ins) throw new RuntimeException("No se pudo preparar INSERT de recursos.");
+
+        if ($hasLogTable) {
+            $logStmt = $link->prepare("
+                INSERT INTO bridge_characters_system_resources_log
+                (character_id, resource_id, old_permanent, new_permanent, old_temporary, new_temporary, delta_permanent, delta_temporary, reason, source, created_at, created_by)
+                VALUES (?,?,?,?,?,?,?,?,?,?,NOW(),?)
+            ");
+        }
+
+        foreach ($final as $rid => $vals) {
+            $rid = (int)$rid;
+            $perm = (int)$vals['perm'];
+            $temp = (int)$vals['temp'];
+
+            $ins->bind_param("iiii", $charId, $rid, $perm, $temp);
+            if ($ins->execute()) $saved++; else $skipped++;
+
+            if ($logStmt) {
+                $had = isset($old[$rid]);
+                $oldPerm = $had ? (string)$old[$rid]['perm'] : null;
+                $oldTemp = $had ? (string)$old[$rid]['temp'] : null;
+                $newPerm = (string)$perm;
+                $newTemp = (string)$temp;
+                $dPerm = $had ? (string)($perm - $old[$rid]['perm']) : $newPerm;
+                $dTemp = $had ? (string)($temp - $old[$rid]['temp']) : $newTemp;
+                if ($had && $oldPerm === $newPerm && $oldTemp === $newTemp) {
+                    continue;
+                }
+                $reason = $had ? 'admin update' : 'admin initial';
+                $src = $source;
+                $cb = $createdBy;
+                $logStmt->bind_param("iisssssssss", $charId, $rid, $oldPerm, $newPerm, $oldTemp, $newTemp, $dPerm, $dTemp, $reason, $src, $cb);
+                if ($logStmt->execute()) $logged++;
+            }
+        }
+
+        $ins->close();
+        if ($logStmt) $logStmt->close();
+
+        $link->commit();
+    } catch (Throwable $e) {
+        $link->rollback();
+        return ['saved'=>0,'logged'=>0,'skipped'=>count($final),'error'=>$e->getMessage(),'forced'=>$forcedRows];
+    }
+
+    return ['saved'=>$saved,'logged'=>$logged,'skipped'=>$skipped,'forced'=>$forcedRows,'disabled'=>false];
+}
+
 /* -------------------------------------------------
    Helpers generales
 ------------------------------------------------- */
@@ -495,6 +637,58 @@ if ($st = $link->prepare("SELECT id, name, item_type_id FROM fact_items ORDER BY
     $st->close();
 }
 
+/* --- RECURSOS: catálogo + defaults por sistema --- */
+$has_dim_systems_resources = pjs_table_exists($link, 'dim_systems_resources');
+$has_bridge_systems_resources = pjs_table_exists($link, 'bridge_systems_resources_to_system');
+$has_bridge_char_resources = pjs_table_exists($link, 'bridge_characters_system_resources');
+$has_bridge_char_resources_log = pjs_table_exists($link, 'bridge_characters_system_resources_log');
+
+$opts_resources_full = [];      // [{id,name,kind,sort_order}]
+$resources_by_id = [];          // [id => row]
+$sys_resources_by_system = [];  // [system_id => [{id,name,kind,sort_order}]]
+
+if ($has_dim_systems_resources) {
+    if ($st = $link->prepare("SELECT id, name, kind, sort_order FROM dim_systems_resources ORDER BY kind, sort_order, name")) {
+        $st->execute(); $rs = $st->get_result();
+        while ($r = $rs->fetch_assoc()) {
+            $row = [
+                'id' => (int)$r['id'],
+                'name' => (string)$r['name'],
+                'kind' => (string)$r['kind'],
+                'sort_order' => (int)($r['sort_order'] ?? 0),
+            ];
+            $opts_resources_full[] = $row;
+            $resources_by_id[(int)$r['id']] = $row;
+        }
+        $st->close();
+    }
+}
+
+if ($has_bridge_systems_resources && $has_dim_systems_resources) {
+    $hasActiveCol = pjs_table_has_column($link, 'bridge_systems_resources_to_system', 'is_active');
+    $sqlSysRes = "
+        SELECT b.system_id, r.id, r.name, r.kind, r.sort_order
+        FROM bridge_systems_resources_to_system b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+    ";
+    if ($hasActiveCol) $sqlSysRes .= " WHERE b.is_active = 1";
+    $sqlSysRes .= " ORDER BY b.system_id, r.kind, r.sort_order, r.name";
+
+    if ($rs = $link->query($sqlSysRes)) {
+        while ($r = $rs->fetch_assoc()) {
+            $sid = (int)$r['system_id'];
+            if (!isset($sys_resources_by_system[$sid])) $sys_resources_by_system[$sid] = [];
+            $sys_resources_by_system[$sid][] = [
+                'id' => (int)$r['id'],
+                'name' => (string)$r['name'],
+                'kind' => (string)$r['kind'],
+                'sort_order' => (int)($r['sort_order'] ?? 0),
+            ];
+        }
+        $rs->close();
+    }
+}
+
 /* --- TRAITS: catálogo (todos los tipos) --- */
 $traits_by_type = [];
 $trait_types = [];
@@ -534,7 +728,7 @@ if ($rs = $link->query("SELECT system_id, trait_id, sort_order FROM fact_trait_s
 }
 
 /* -------------------------------------------------
-   Sistema â†’ (Raza, Auspicio, Tribu)
+   Sistema -> (Raza, Auspicio, Tribu)
 ------------------------------------------------- */
 // RAZAS
 $opts_razas = [];
@@ -579,7 +773,7 @@ if ($st = $link->prepare("SELECT id, name, system_id FROM dim_tribes ORDER BY sy
 }
 
 /* -------------------------------------------------
-   MAPAS Clanâ†’Manadas (por BRIDGE bridge_organizations_groups)
+   MAPAS Clan->Manadas (por BRIDGE bridge_organizations_groups)
 ------------------------------------------------- */
 $manadas_map_id_to_clan = [];
 $manadas_by_clan        = [];
@@ -682,23 +876,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $traits = $filtered;
     }
 
+    // RECURSOS (nuevo modelo): arrays paralelos enviados desde chips del modal
+    $resources_rows = [];
+    $res_ids_raw  = isset($_POST['resource_ids']) ? (array)$_POST['resource_ids'] : [];
+    $res_perm_raw = isset($_POST['resource_perm']) ? (array)$_POST['resource_perm'] : [];
+    $res_temp_raw = isset($_POST['resource_temp']) ? (array)$_POST['resource_temp'] : [];
+    $nres = min(count($res_ids_raw), count($res_perm_raw), count($res_temp_raw));
+    for ($i = 0; $i < $nres; $i++) {
+        $rid = (int)$res_ids_raw[$i];
+        if ($rid <= 0) continue;
+        if (!isset($resources_by_id[$rid])) continue; // ignora IDs no válidos
+        $perm = (int)(is_string($res_perm_raw[$i]) ? trim($res_perm_raw[$i]) : $res_perm_raw[$i]);
+        $temp = (int)(is_string($res_temp_raw[$i]) ? trim($res_temp_raw[$i]) : $res_temp_raw[$i]);
+        if ($perm < 0) $perm = 0;
+        if ($temp < 0) $temp = 0;
+        $resources_rows[$rid] = ['perm'=>$perm, 'temp'=>$temp];
+    }
+
     if ($gender === '')  $gender = 'f';
     if ($text_color === '') $text_color = 'SkyBlue';
     if ($status === '')     $status = 'En activo';
 
     // Validaciones
-    if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'âš  Debes seleccionar un Clan.'];
+    if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
     if (!isset($estado_set[$status])) $flash[] = ['type'=>'error','msg'=>'⚠ El status no es válido.'];
     if ($manada > 0) {
         $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
         if ($clan_of_manada !== $clan) {
-            $flash[] = ['type'=>'error','msg'=>'âš  La Manada seleccionada no pertenece al Clan elegido.'];
+            $flash[] = ['type'=>'error','msg'=>'[WARN] La Manada seleccionada no pertenece al Clan elegido.'];
         }
     }
     if ($system_id > 0) {
-        if ($raza     > 0 && isset($raza_id_to_sys[$raza])     && (int)$raza_id_to_sys[$raza]     !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'âš  La Raza no pertenece al Sistema elegido.'];
-        if ($auspice_id > 0 && isset($ausp_id_to_sys[$auspice_id]) && (int)$ausp_id_to_sys[$auspice_id] !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'âš  El Auspicio no pertenece al Sistema elegido.'];
-        if ($tribe_id    > 0 && isset($tribu_id_to_sys[$tribe_id])   && (int)$tribu_id_to_sys[$tribe_id]   !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'âš  La Tribu no pertenece al Sistema elegido.'];
+        if ($raza     > 0 && isset($raza_id_to_sys[$raza])     && (int)$raza_id_to_sys[$raza]     !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] La Raza no pertenece al Sistema elegido.'];
+        if ($auspice_id > 0 && isset($ausp_id_to_sys[$auspice_id]) && (int)$ausp_id_to_sys[$auspice_id] !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] El Auspicio no pertenece al Sistema elegido.'];
+        if ($tribe_id    > 0 && isset($tribu_id_to_sys[$tribe_id])   && (int)$tribu_id_to_sys[$tribe_id]   !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
     }
 
     if ($system_id > 0 && isset($opts_sist[$system_id])) {
@@ -748,7 +959,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 
     if ($action === 'create') {
-        if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'âš  El campo \"nombre\" es obligatorio.'];
+        if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'[WARN] El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, character_kind, system_name, system_id,
@@ -782,13 +993,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                             }
                             $flash[] = ['type'=>'ok','msg'=>'🖼 Avatar subido.'];
                         } elseif ($res['msg']!=='no_file') {
-                            $flash[] = ['type'=>'error','msg'=>'âš  Avatar no guardado: '.$res['msg']];
+                            $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                         }
                     }
 
                     // Poderes
                     $resultPow = save_character_powers($link, (int)$newId, $powers_type, $powers_id, $powers_lvl);
-                    if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'âœ¨ Poderes vinculados: '.$resultPow['inserted']]; }
+                    if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'[OK] Poderes vinculados: '.$resultPow['inserted']]; }
                     if ($resultPow['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Poderes omitidos: '.$resultPow['skipped'].')']; }
 
                     // Méritos/Defectos
@@ -805,20 +1016,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     // Traits
                     $resultTr = save_character_traits($link, (int)$newId, $traits, 'admin', null);
                     if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
-$flash[] = ['type'=>'ok','msg'=>'âœ… Personaje creado correctamente.'];
+
+                    // Recursos (estado/permanente)
+                    $resultRes = save_character_resources(
+                        $link,
+                        (int)$newId,
+                        (int)$system_id,
+                        $resources_rows,
+                        $sys_resources_by_system,
+                        $has_bridge_char_resources,
+                        $has_bridge_char_resources_log,
+                        'admin',
+                        null
+                    );
+                    if (!empty($resultRes['error'])) {
+                        $flash[]=['type'=>'error','msg'=>'[WARN] Recursos no guardados: '.$resultRes['error']];
+                    } elseif (!empty($resultRes['disabled'])) {
+                        $flash[]=['type'=>'info','msg'=>'(Recursos omitidos: tabla bridge_characters_system_resources no disponible)'];
+                    } elseif (($resultRes['saved'] ?? 0) > 0) {
+                        $msgRes = 'Recursos guardados: ' . (int)$resultRes['saved'];
+                        if (($resultRes['forced'] ?? 0) > 0) $msgRes .= ' (forzados por sistema: '.(int)$resultRes['forced'].')';
+                        $flash[]=['type'=>'ok','msg'=>$msgRes];
+                    }
+$flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                 } else {
-                    $flash[] = ['type'=>'error','msg'=>'âŒ Error al crear: '.$stmt->error];
+                    $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al crear: '.$stmt->error];
                 }
                 $stmt->close();
             } else {
-                $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar INSERT: '.$link->error];
+                $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al preparar INSERT: '.$link->error];
             }
         }
     }
 
     if ($action === 'update') {
-    if ($id <= 0)       $flash[] = ['type'=>'error','msg'=>'âš  Falta el ID para editar.'];
-    if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'âš  El campo "nombre" es obligatorio.'];
+    if ($id <= 0)       $flash[] = ['type'=>'error','msg'=>'[WARN] Falta el ID para editar.'];
+    if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'[WARN] El campo "nombre" es obligatorio.'];
 
     if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
 
@@ -870,7 +1103,7 @@ $flash[] = ['type'=>'ok','msg'=>'âœ… Personaje creado correctamente.'];
                           }
                           $flash[] = ['type'=>'ok','msg'=>'🖼 Avatar actualizado.'];
                       } elseif ($res['msg']!=='no_file') {
-                          $flash[] = ['type'=>'error','msg'=>'âš  Avatar no guardado: '.$res['msg']];
+                          $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                       }
                   }
 
@@ -879,7 +1112,7 @@ $flash[] = ['type'=>'ok','msg'=>'âœ… Personaje creado correctamente.'];
 
                   // Poderes
                   $resultPow = save_character_powers($link, (int)$id, $powers_type, $powers_id, $powers_lvl);
-                  if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'âœ¨ Poderes vinculados: '.$resultPow['inserted']]; }
+                  if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'[OK] Poderes vinculados: '.$resultPow['inserted']]; }
                   if ($resultPow['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Poderes omitidos: '.$resultPow['skipped'].')']; }
 
                   // Méritos/Defectos
@@ -896,16 +1129,38 @@ $flash[] = ['type'=>'ok','msg'=>'âœ… Personaje creado correctamente.'];
                   // Traits
                   $resultTr = save_character_traits($link, (int)$id, $traits, 'admin', null);
                   if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
-$flash[] = ['type'=>'ok','msg'=>'âœ Personaje actualizado.'];
+
+                  // Recursos (estado/permanente)
+                  $resultRes = save_character_resources(
+                      $link,
+                      (int)$id,
+                      (int)$system_id,
+                      $resources_rows,
+                      $sys_resources_by_system,
+                      $has_bridge_char_resources,
+                      $has_bridge_char_resources_log,
+                      'admin',
+                      null
+                  );
+                  if (!empty($resultRes['error'])) {
+                      $flash[]=['type'=>'error','msg'=>'[WARN] Recursos no guardados: '.$resultRes['error']];
+                  } elseif (!empty($resultRes['disabled'])) {
+                      $flash[]=['type'=>'info','msg'=>'(Recursos omitidos: tabla bridge_characters_system_resources no disponible)'];
+                  } elseif (($resultRes['saved'] ?? 0) > 0) {
+                      $msgRes = 'Recursos guardados: ' . (int)$resultRes['saved'];
+                      if (($resultRes['forced'] ?? 0) > 0) $msgRes .= ' (forzados por sistema: '.(int)$resultRes['forced'].')';
+                      $flash[]=['type'=>'ok','msg'=>$msgRes];
+                  }
+$flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
 
               } else {
-                  $flash[] = ['type'=>'error','msg'=>'âŒ Error al actualizar: '.$stmt->error];
+                  $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al actualizar: '.$stmt->error];
               }
 
               $stmt->close();
 
           } else {
-              $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar UPDATE: '.$link->error];
+              $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al preparar UPDATE: '.$link->error];
           }
       }
   }
@@ -954,7 +1209,7 @@ SELECT
   p.id, p.name, p.alias, p.garou_name, p.gender, p.concept,
   p.chronicle_id, p.player_id, p.system_id, p.system_name, p.text_color,
   p.breed_id, p.auspice_id, p.tribe_id,
-  -- âœ… IDs desde bridge (para el modal y coherencia)
+  -- [OK] IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.clan_id, 0)  AS clan,
   p.image_url, p.character_type_id, p.totem_id, p.totem_name,
@@ -995,7 +1250,7 @@ LEFT JOIN dim_breeds      nr ON p.breed_id    = nr.id
 LEFT JOIN dim_auspices  na ON p.auspice_id= na.id
 LEFT JOIN dim_tribes     nt ON p.tribe_id   = nt.id
 
--- âœ… Nombres desde ids bridge
+-- [OK] Nombres desde ids bridge
 LEFT JOIN dim_groups   nm  ON nm.id  = pgb.group_id
 LEFT JOIN dim_organizations    nc2 ON nc2.id = pcb.clan_id
 
@@ -1138,6 +1393,33 @@ if (!empty($ids_page)) {
     }
 }
 
+/* --- RECURSOS: precarga --- */
+$char_resources = [];
+if ($has_bridge_char_resources && $has_dim_systems_resources && !empty($ids_page)) {
+    $in = implode(',', array_map('intval', $ids_page));
+    $qrs = $link->query("
+        SELECT b.character_id, b.resource_id, b.value_permanent, b.value_temporary, r.name, r.kind, r.sort_order
+        FROM bridge_characters_system_resources b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+        WHERE b.character_id IN ($in)
+        ORDER BY b.character_id, r.kind, r.sort_order, r.name
+    ");
+    if ($qrs) {
+        while ($r = $qrs->fetch_assoc()) {
+            $cid = (int)$r['character_id'];
+            $char_resources[$cid][] = [
+                'id' => (int)$r['resource_id'],
+                'name' => (string)$r['name'],
+                'kind' => (string)$r['kind'],
+                'sort_order' => (int)($r['sort_order'] ?? 0),
+                'perm' => (int)($r['value_permanent'] ?? 0),
+                'temp' => (int)($r['value_temporary'] ?? 0),
+            ];
+        }
+        $qrs->close();
+    }
+}
+
 // Base AJAX (misma página)
 $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 ?>
@@ -1241,7 +1523,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 <div class="panel-wrap">
   <div class="hdr">
     <h2>👤 Personajes — Lista & CRUD</h2>
-    <button class="btn btn-green" id="btnNew">âž• Nuevo personaje</button>
+    <button class="btn btn-green" id="btnNew">+ Nuevo personaje</button>
 
     <form method="get" style="display:flex; gap:8px; align-items:center;">
       <input type="hidden" name="p" value="talim">
@@ -1324,7 +1606,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-clan="<?= (int)$r['clan'] ?>"
               data-img="<?= h($r['image_url']) ?>"
               data-afiliacion="<?= (int)$r['character_type_id'] ?>"
-            >âœ Editar</button>
+            >Editar</button>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -1565,6 +1847,17 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <span class="small-note">Se guardan en bridge_characters_traits.</span>
         </div>
 
+        <!-- RECURSOS -->
+        <div style="grid-column:1/-1;">
+          <label><strong>Recursos</strong></label>
+          <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
+            <select class="select" id="res_sel"></select>
+            <button class="btn" type="button" id="res_add">Añadir</button>
+          </div>
+          <div class="chips" id="resourceList"></div>
+          <span class="small-note">Se guardan en bridge_characters_system_resources. Los recursos por defecto del sistema se vinculan automáticamente.</span>
+        </div>
+
         <!-- PODERES -->
         <div style="grid-column:1/-1;">
           <label><strong>Poderes</strong></label>
@@ -1687,6 +1980,11 @@ var CHAR_MYD         = <?= json_encode($char_myd, JSON_HEX_TAG|JSON_HEX_APOS|JSO
 var ITEMS_OPTS       = <?= json_encode($opts_items_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var CHAR_ITEMS       = <?= json_encode($char_items, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
+// RECURSOS
+var RESOURCE_OPTS    = <?= json_encode($opts_resources_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var SYS_RESOURCES_BY_SYS = <?= json_encode($sys_resources_by_system, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var CHAR_RESOURCES   = <?= json_encode($char_resources, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+
 // TRAITS
 var CHAR_TRAITS      = <?= json_encode(
     $char_traits,
@@ -1761,6 +2059,11 @@ var CHAR_DETAILS     = <?= json_encode(
   var invSel   = document.getElementById('inv_sel');
   var invAdd   = document.getElementById('inv_add');
   var invList  = document.getElementById('invList');
+
+  // RECURSOS
+  var resSel   = document.getElementById('res_sel');
+  var resAdd   = document.getElementById('res_add');
+  var resList  = document.getElementById('resourceList');
   var traitInputs = document.querySelectorAll('.trait-input');
 
   function clearSelect(sel, keepFirst){
@@ -1813,17 +2116,17 @@ var CHAR_DETAILS     = <?= json_encode(
     var okT = fillSelectFrom(TRIBUS_BY_SYS[sys]||[], selTribu,'— Sin tribus para este Sistema —', preTribu);
 
     if (preRaza && !okR){
-      var w=document.createElement('option'); w.value=String(preRaza); w.textContent='âš  (Fuera del Sistema) ID '+preRaza;
+      var w=document.createElement('option'); w.value=String(preRaza); w.textContent='[WARN] (Fuera del Sistema) ID '+preRaza;
       selRaza.appendChild(w); selRaza.value=String(preRaza); selRaza.disabled=false;
       reinitSelect2(selRaza);
     }
     if (preAusp && !okA){
-      var w2=document.createElement('option'); w2.value=String(preAusp); w2.textContent='âš  (Fuera del Sistema) ID '+preAusp;
+      var w2=document.createElement('option'); w2.value=String(preAusp); w2.textContent='[WARN] (Fuera del Sistema) ID '+preAusp;
       selAusp.appendChild(w2); selAusp.value=String(preAusp); selAusp.disabled=false;
       reinitSelect2(selAusp);
     }
     if (preTribu && !okT){
-      var w3=document.createElement('option'); w3.value=String(preTribu); w3.textContent='âš  (Fuera del Sistema) ID '+preTribu;
+      var w3=document.createElement('option'); w3.value=String(preTribu); w3.textContent='[WARN] (Fuera del Sistema) ID '+preTribu;
       selTribu.appendChild(w3); selTribu.value=String(preTribu); selTribu.disabled=false;
       reinitSelect2(selTribu);
     }
@@ -1896,7 +2199,7 @@ var CHAR_DETAILS     = <?= json_encode(
       '<input class="inp power-lvl" type="number" name="powers_lvl[]" min="0" max="9" value="'+(lvl||0)+'">' +
       '<input type="hidden" name="powers_type[]" value="'+type+'">' +
       '<input type="hidden" name="powers_id[]" value="'+id+'">' +
-      '<button type="button" class="btn btn-red btn-del-power">âœ–</button>';
+      '<button type="button" class="btn btn-red btn-del-power">X</button>';
     powList.appendChild(chip);
     chip.querySelector('.btn-del-power').addEventListener('click', function(){ chip.remove(); });
   }
@@ -1934,7 +2237,7 @@ var CHAR_DETAILS     = <?= json_encode(
       '<span class="pname">'+name+'</span>' +
       '<input type="hidden" name="myd_id[]" value="'+id+'">' +
       '<input class="inp myd-lvl" type="number" name="myd_lvl[]" min="-99" max="999" placeholder="nivel" value="'+lvlVal+'">' +
-      '<button type="button" class="btn btn-red btn-del-myd">âœ–</button>';
+      '<button type="button" class="btn btn-red btn-del-myd">X</button>';
 
     mydList.appendChild(chip);
     chip.querySelector('.btn-del-myd').addEventListener('click', function(){ chip.remove(); });
@@ -1961,10 +2264,81 @@ var CHAR_DETAILS     = <?= json_encode(
       '<span class="tag">OBJ</span>' +
       '<span class="pname">'+(name || ('#'+id))+'</span>' +
       '<input type="hidden" name="items_id[]" value="'+id+'">' +
-      '<button type="button" class="btn btn-red btn-del-inv">âœ–</button>';
+      '<button type="button" class="btn btn-red btn-del-inv">X</button>';
 
     invList.appendChild(chip);
     chip.querySelector('.btn-del-inv').addEventListener('click', function(){ chip.remove(); });
+  }
+
+  // RECURSOS
+  function refreshResourceSelect(){
+    var list = (RESOURCE_OPTS||[]).map(function(it){
+      return { id: it.id, name: (it.name || ('#'+it.id)) + ' [' + (it.kind || '') + ']' };
+    });
+    fillSelectFrom(list, resSel, '— Sin recursos —', 0);
+  }
+
+  function getResourceMeta(rid){
+    rid = parseInt(rid, 10) || 0;
+    for (var i=0; i<(RESOURCE_OPTS||[]).length; i++) {
+      var r = RESOURCE_OPTS[i];
+      if ((parseInt(r.id,10)||0) === rid) return r;
+    }
+    return null;
+  }
+
+  function setResourceChipDefault(chip, isDefault){
+    if (!chip) return;
+    chip.dataset.sysDefault = isDefault ? '1' : '0';
+    var badge = chip.querySelector('.res-default-badge');
+    var btnDel = chip.querySelector('.btn-del-res');
+    if (badge) badge.style.display = isDefault ? '' : 'none';
+    if (btnDel) btnDel.style.display = isDefault ? 'none' : '';
+  }
+
+  function addResourceChip(id, name, kind, perm, temp, isSystemDefault){
+    id = parseInt(id,10)||0;
+    if (!id) return;
+    var exists = Array.prototype.find.call(resList.querySelectorAll('.res-chip'), function(c){
+      return c.dataset.id === String(id);
+    });
+    if (exists) {
+      if (isSystemDefault) setResourceChipDefault(exists, true);
+      return;
+    }
+
+    perm = parseInt(perm,10); if (isNaN(perm) || perm < 0) perm = 0;
+    temp = parseInt(temp,10); if (isNaN(temp) || temp < 0) temp = 0;
+
+    var chip = document.createElement('span');
+    chip.className = 'chip res-chip';
+    chip.dataset.id = String(id);
+    chip.innerHTML =
+      '<span class="tag">'+(kind || 'res')+'</span>' +
+      '<span class="pname">'+(name || ('#'+id))+'</span>' +
+      '<span class="res-default-badge" style="display:none;font-size:10px;color:#8fd7ff;">SYS</span>' +
+      '<input type="hidden" name="resource_ids[]" value="'+id+'">' +
+      '<input class="inp" type="number" min="0" name="resource_perm[]" value="'+perm+'" title="Permanente" style="width:90px;">' +
+      '<input class="inp" type="number" min="0" name="resource_temp[]" value="'+temp+'" title="Temporal" style="width:90px;">' +
+      '<button type="button" class="btn btn-red btn-del-res">X</button>';
+
+    resList.appendChild(chip);
+    chip.querySelector('.btn-del-res').addEventListener('click', function(){ chip.remove(); });
+    setResourceChipDefault(chip, !!isSystemDefault);
+  }
+
+  function ensureSystemResources(systemId){
+    systemId = parseInt(systemId,10)||0;
+    var defaults = SYS_RESOURCES_BY_SYS[String(systemId)] || [];
+    defaults.forEach(function(r){
+      addResourceChip(r.id, r.name, r.kind, 0, 0, true);
+    });
+    // Re-marca defaults de este sistema y desmarca el resto
+    var defaultMap = {};
+    defaults.forEach(function(r){ defaultMap[String(r.id)] = true; });
+    Array.prototype.forEach.call(resList.querySelectorAll('.res-chip'), function(ch){
+      setResourceChipDefault(ch, !!defaultMap[ch.dataset.id]);
+    });
   }
 
   function ensureEstadoOption(val){
@@ -1974,7 +2348,7 @@ var CHAR_DETAILS     = <?= json_encode(
     if (!ok) {
       var opt = document.createElement('option');
       opt.value = val;
-      opt.textContent = 'âš  ' + val + ' (no en lista)';
+      opt.textContent = '[WARN] ' + val + ' (no en lista)';
       sel.appendChild(opt);
       reinitSelect2(sel);
     }
@@ -2026,6 +2400,11 @@ var CHAR_DETAILS     = <?= json_encode(
     // reset inv
     invList.innerHTML = '';
     refreshInvSelect();
+
+    // reset recursos
+    resList.innerHTML = '';
+    refreshResourceSelect();
+    ensureSystemResources(parseInt(selSistema.value,10)||0);
 
     // reset traits
     resetTraits();
@@ -2104,6 +2483,15 @@ var CHAR_DETAILS     = <?= json_encode(
       addInvChip(it.id, it.name, it.tipo);
     });
 
+    // RECURSOS: cargar (existentes) + defaults del sistema
+    resList.innerHTML = '';
+    refreshResourceSelect();
+    var rl = CHAR_RESOURCES[cid] || [];
+    rl.forEach(function(rr){
+      addResourceChip(rr.id, rr.name, rr.kind, rr.perm, rr.temp, false);
+    });
+    ensureSystemResources(sistId);
+
     // Traits: cargar
     fillTraits(CHAR_TRAITS[cid] || {});
 
@@ -2141,9 +2529,10 @@ var CHAR_DETAILS     = <?= json_encode(
     var sys = parseInt(selSistema.value,10)||0;
     updateSistemaSets(sys, 0,0,0);
     applyTraitOrder(sys);
+    ensureSystemResources(sys);
   });
 
-  // Clan â†’ manadas
+  // Clan -> manadas
   onSelectChange(selClan, function(){
     var c = parseInt(selClan.value,10)||0;
     if (!c){
@@ -2255,7 +2644,16 @@ var CHAR_DETAILS     = <?= json_encode(
     addInvChip(iid, nm, tp);
   });
 
+  // RECURSOS UI
+  refreshResourceSelect();
+  reinitSelect2(resSel);
+  resAdd.addEventListener('click', function(){
+    var rid = parseInt(resSel.value,10)||0;
+    if (!rid){ alert('Elige un recurso.'); return; }
+    var meta = getResourceMeta(rid);
+    addResourceChip(rid, meta ? meta.name : ('#'+rid), meta ? meta.kind : 'res', 0, 0, false);
+    ensureSystemResources(parseInt(selSistema.value,10)||0);
+  });
+
 })();
 </script>
-
-

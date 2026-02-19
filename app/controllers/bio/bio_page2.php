@@ -245,7 +245,6 @@
 			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
 			$bioDethCaus = $dataResult["cause_of_death"]; // Causa de la muerte.
 			$bioSheet	 = $dataResult["character_kind"]; // Si el personaje posee Ficha de Personaje o no.
-			$bioXP		 = $dataResult["xp_points"]; 			// Puntos de experiencia restantes del personaje.
 		// ================================================================== //
 		// Datos de raza y alineamientos
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
@@ -337,15 +336,6 @@
 				return (int)($dataResult[$col] ?? 0);
 			};
 
-		// Datos sociales
-			$bioArrayPow = array(
-				$dataResult["glory_points"],	// Gloria para Fêra, Conciencia para Vampiro
-				$dataResult["honor_points"],	// Honor para Fêra, Autocontrol para Vampiro
-				$dataResult["wisdom_points"],	// Sabiduria para Fêra, Coraje para Vampiro
-				$dataResult["rage_points"],		// Rabia para Fêra
-				$dataResult["gnosis_points"],	// Gnosis para Fêra, Senda para Vampiro
-				$dataResult["fvp"],				// Fuerza de Voluntad
-			);
 		// Atributos
 			$bioArrayAtt = array(
 				// FISICOS
@@ -508,8 +498,16 @@
 		$hasSheet = ($bioSheet == "pj");
 		$hasRel = (isset($relaciones) && $numRelaciones > 0);
 		$hasPart = (isset($participacion) && $numParticipa > 0);
+		$characterComments = [];
+		if ($stComments = $link->prepare("SELECT id, nick, comment_time, commented_at, message, ip, created_at FROM fact_characters_comments WHERE character_id = ? ORDER BY commented_at DESC, comment_time DESC, id DESC")) {
+			$stComments->bind_param('i', $characterId);
+			$stComments->execute();
+			$characterComments = stmt_fetch_all_assoc_compat($stComments);
+			$stComments->close();
+		}
+		$hasComments = !empty($characterComments);
 		$hasBso = false;
-		if ($stBso = $link->prepare("SELECT COUNT(*) AS c FROM bridge_soundtrack_links WHERE tipo_objeto = 'personaje' AND id_objeto = ?")) {
+		if ($stBso = $link->prepare("SELECT COUNT(*) AS c FROM bridge_soundtrack_links WHERE object_type = 'personaje' AND object_id = ?")) {
 			$stBso->bind_param('i', $characterId);
 			$stBso->execute();
 			$resBso = $stBso->get_result();
@@ -538,9 +536,28 @@
 			border: 1px solid #003399;
 			border-radius: 6px;
 			cursor: pointer;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
 		}
 		.hgTabBtn:hover{ border-color:#003399; background:#000099; color:#01b3fa; }
 		.hgTabBtn.active{ background:#001199; color:#01b3fa; border-color:#003399; }
+		.hgTabBtn .hgTabEmoji{
+			font-size: 13px;
+			line-height: 1;
+		}
+		.hgTabBtn .hgTabLabel{
+			max-width: 0;
+			opacity: 0;
+			overflow: hidden;
+			white-space: nowrap;
+			transition: max-width .16s ease, opacity .12s ease;
+		}
+		.hgTabBtn:hover .hgTabLabel,
+		.hgTabBtn:focus-visible .hgTabLabel{
+			max-width: 180px;
+			opacity: 1;
+		}
 		.bio-tab-panel{ display:none; }
 		.bio-tab-panel.active{ display:block; }
 		#hg-tooltip{
@@ -568,20 +585,12 @@
 		.power-card--bio .power-card__media{ display:flex; align-items:center; justify-content:center; }
 		.power-card--bio .power-card__img-wrap{ width:140px; height:140px; padding:6px; border-radius:50%; background:#001188; border:1px solid #000088; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 		.power-card--bio .power-card__img{ width:100%; height:100%; object-fit:cover; border-radius:50%; border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5); }
+		.bioSheetBackgroundLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
+		.bioSheetBackgroundLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
 		</style>";
 
 		echo "<div class='bioLayout'>";
-		echo "<div class='hg-tabs'>";
-		if ($hasInfo) echo "<button class='hgTabBtn' data-tab='info'>Información</button>";
-		if ($hasBso) echo "<button class='hgTabBtn' data-tab='bso'>Banda sonora</button>";
-		if ($hasSheet) echo "<button class='hgTabBtn' data-tab='sheet'>Hoja de personaje</button>";
-		if ($hasRel) echo "<button class='hgTabBtn' data-tab='rel'>Relaciones</button>";
-		if ($hasPart) echo "<button class='hgTabBtn' data-tab='part'>Participación</button>";
-		echo "</div>";
-
-	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
-		// ================================================================== //
-		echo "<section id='sec-info' class='bio-tab-panel' data-tab='info'>";
+		echo "<section class='bioContextHeader'>";
 		echo "<div class='power-card power-card--bio'>";
 		echo "  <div class='power-card__banner'><span class='power-card__title'>" . h($bioName) . "</span></div>";
 		echo "  <div class='power-card__body'>";
@@ -591,10 +600,23 @@
 		echo "      </div>";
 		echo "    </div>";
 		echo "    <div class='power-card__stats'>";
-		include ("app/partials/bio/bio_page_section_03_details.php"); // Detalles básicos
+		include ("app/partials/bio/bio_page_section_03_details.php"); // Detalles básicos (contexto fijo)
 		echo "    </div>";
 		echo "  </div>";
 		echo "</div>";
+		echo "</section>";
+		echo "<div class='hg-tabs'>";
+		if ($hasInfo) echo "<button class='hgTabBtn' data-tab='info'><span class='hgTabEmoji' aria-hidden='true'>📄</span><span class='hgTabLabel'>Información</span></button>";
+		if ($hasSheet) echo "<button class='hgTabBtn' data-tab='sheet'><span class='hgTabEmoji' aria-hidden='true'>🧾</span><span class='hgTabLabel'>Hoja de personaje</span></button>";
+		if ($hasRel) echo "<button class='hgTabBtn' data-tab='rel'><span class='hgTabEmoji' aria-hidden='true'>🕸️</span><span class='hgTabLabel'>Relaciones</span></button>";
+		if ($hasPart) echo "<button class='hgTabBtn' data-tab='part'><span class='hgTabEmoji' aria-hidden='true'>📚</span><span class='hgTabLabel'>Participación</span></button>";
+		if ($hasBso) echo "<button class='hgTabBtn' data-tab='bso'><span class='hgTabEmoji' aria-hidden='true'>🎵</span><span class='hgTabLabel'>Banda sonora</span></button>";
+		if ($hasComments) echo "<button class='hgTabBtn' data-tab='comments'><span class='hgTabEmoji' aria-hidden='true'>💬</span><span class='hgTabLabel'>Comentarios</span></button>";
+		echo "</div>";
+
+	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
+		// ================================================================== //
+		echo "<section id='sec-info' class='bio-tab-panel' data-tab='info'>";
 		// ================================================================== //
 		if ($bioText != "") { // Empezamos colocando la información de Texto
 			echo "<div class='bioTextData'>"; 
@@ -659,10 +681,16 @@
 			echo "<fieldset class='bioSeccion'><legend>$titleBackg</legend>";
 				if (!empty($bioBackgrounds)) {
 					foreach ($bioBackgrounds as $idx => $bg) {
+						$tid = (int)($bg['id'] ?? 0);
 						$nm = (string)($bg['name'] ?? '');
 						$val = (int)($bg['value'] ?? 0);
 						if ($nm === '' || $val <= 0) continue;
-						echo"<div class='bioSheetBackgroundLeft'>" . h($nm) . ":</div>";
+						$nameHtml = h($nm);
+						if ($tid > 0 && function_exists('pretty_url')) {
+							$hrefT = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+							$nameHtml = "<a href='" . h($hrefT) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>" . h($nm) . "</a>";
+						}
+						echo"<div class='bioSheetBackgroundLeft'>" . $nameHtml . ":</div>";
 						$img = $bioBackImgs[$idx] ?? '';
 						echo"<div class='bioSheetBackgroundRight'>" . $img . "</div>";
 					}
@@ -674,39 +702,9 @@
 			// ================================================================== //
 			include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la página con código
 			// ================================================================== //
-		echo "<div class='bioSheetSociaWhole'>"; // Caja de la Seccion SOCIAL y VENTAJAS
-			echo "<div class='bioSheetSocialPower'>"; // Datos Sociales de la Hoja ~~ #SEC09
-			echo "<fieldset class='bioSeccion'><legend>$titleSocial</legend>";
-				echo"<div class='bioSheetSocialPowerLeft'>$titleGlory:</div>";
-				echo"<div class='bioSheetSocialPowerRight'>$bioPowrImg[0]</div>";
-				echo"<div class='bioSheetSocialPowerLeft'>$titleHonor:</div>";
-				echo"<div class='bioSheetSocialPowerRight'>$bioPowrImg[1]</div>";
-				echo"<div class='bioSheetSocialPowerLeft'>$titleWisdo:</div>";
-				echo"<div class='bioSheetSocialPowerRight'>$bioPowrImg[2]</div>";
-				if ($bioRange != "") { // Rango del Personaje
-					echo"<div class='bioSheetSocialPowerLeft'>Rango:</div>";
-					echo"<div class='bioSheetSocialPowerRight'>" . h($bioRange) . "</div>";
-				}
-			echo "</fieldset>";
-			echo "</div>"; // Cerramos Datos Sociales ~~
+			// RECURSOS DEL PERSONAJE
 			// ================================================================== //
-			echo "<div class='bioSheetSocialPower'>"; // Fuerza de Voluntad y demás de la Hoja ~~ #SEC10
-			echo "<fieldset class='bioSeccion'><legend>$titleAdvant</legend>";
-				if ($bioFera != "") {
-					echo"<div class='bioSheetSocialPowerLeft'>$titleRage:</div>";
-					echo"<div class='bioSheetSocialPowerRight'>$bioPowrImg[3]</div>";
-				}
-				echo"<div class='bioSheetSocialPowerLeft'>$titleGnosis:</div>";
-				echo"<div class='bioSheetSocialPowerRight'>$bioPowrImg[4]</div>";
-				echo"<div class='bioSheetSocialPowerLeft'>Fuerza de Voluntad:</div>";
-				echo"<div class='bioSheetSocialPowerRight'>$bioPowrImg[5]</div>";
-				if ($bioXP != 0) {
-					echo"<div class='bioSheetSocialPowerLeft'>Experiencia:</div>";
-					echo"<div class='bioSheetSocialPowerRight'>" . h($bioXP) . " PX</div>";				
-				}
-			echo "</fieldset>";
-			echo "</div>"; // Cerramos Fuerza de Voluntad y demás~~
-		echo "</div>"; // Caja de la Seccion SOCIAL y VENTAJAS
+			include ("app/partials/bio/bio_page_section_07_resources.php"); // Utilizamos "include" para no sobrecargar la página con código
 			// ================================================================== //
 			// PODERES, DONES, RITUALES Y DISCIPLINAS
 			// ================================================================== //
@@ -745,6 +743,11 @@
 			<?php if ($bioSheet == "pj"): ?>
 				<?php include("app/partials/bio/bio_page_section_19_participation.php"); ?>
 			<?php endif; ?>
+			</section>
+		<?php endif; ?>
+		<?php if ($hasComments): ?>
+			<section id="sec-comments" class="bio-tab-panel" data-tab="comments">
+				<?php include("app/partials/bio/bio_page_section_15_comments.php"); ?>
 			</section>
 		<?php endif; ?>
 		<?php

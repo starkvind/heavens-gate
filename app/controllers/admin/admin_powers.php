@@ -60,7 +60,13 @@ function save_power_image(array $file, string $uploadDir, string $urlBase, strin
 }
 function safe_unlink_power_image(string $relUrl, string $uploadDir): void {
     if ($relUrl === '') return;
-    $abs = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/').'/'.ltrim($relUrl,'/');
+    $docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/');
+    $rel = '/'.ltrim($relUrl,'/');
+    if (strpos($rel, '/img/') === 0) {
+        $abs = $docroot . '/public' . $rel;
+    } else {
+        $abs = $docroot . $rel;
+    }
     $base = realpath($uploadDir);
     $absr = @realpath($abs);
     if ($absr && $base && strpos($absr, $base) === 0 && is_file($absr)) { @unlink($absr); }
@@ -166,7 +172,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
                 ['k'=>'system_name', 'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'system_id',   'label'=>'Sistema',     'ui'=>'select_int','db'=>'i','req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'shifter_system_name', 'label'=>'Fera-sistema (legacy)', 'ui'=>'text',     'db'=>'s', 'req'=>false,  'max'=>100],
-                ['k'=>'img',         'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
+                ['k'=>'image_url',   'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen',   'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
             ],
             'list_cols' => [
@@ -221,7 +227,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
                 // FIX: ahora pueden ir vacíos
                 ['k'=>'traits', 'label'=>'Rasgos',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'prohibited', 'label'=>'Prohibición', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
-                ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
+                ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
             ],
             'list_cols' => [
@@ -249,9 +255,9 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             // FIX: ahora puede ir vacío
             ['k'=>'system_name',    'label'=>'Sistema',     'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             // FIX: ahora puede ir vacío
-            ['k'=>'attribute_name',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
-            ['k'=>'ability_name',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
-            ['k'=>'img',    'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
+            ['k'=>'atributo',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+            ['k'=>'habilidad',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+            ['k'=>'image_url',  'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
             ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
         ],
         'list_cols' => [
@@ -909,16 +915,19 @@ function syncEditorsToTextarea(){
   }
 
   function wireImageUpload(){
-    var file = document.getElementById('f_img_file');
-    var prev = document.getElementById('f_img_preview');
-    if (file && prev) {
+    (META.fields||[]).forEach(function(f){
+      if ((f.ui || '') !== 'image_upload') return;
+      var k = f.k;
+      var file = document.getElementById('f_'+k+'_file');
+      var prev = document.getElementById('f_'+k+'_preview');
+      if (!file || !prev) return;
       file.addEventListener('change', function(){
-        var f = this.files && this.files[0];
-        if (!f) return;
-        var url = URL.createObjectURL(f);
+        var fl = this.files && this.files[0];
+        if (!fl) return;
+        var url = URL.createObjectURL(fl);
         prev.src = url;
       });
-    }
+    });
   }
 
   function openCreate(){

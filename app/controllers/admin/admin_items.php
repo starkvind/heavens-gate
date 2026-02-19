@@ -67,7 +67,13 @@ function save_item_image(array $file, string $uploadDir, string $urlBase): array
 }
 function safe_unlink_item_image(string $relUrl, string $uploadDir): void {
 	if ($relUrl === '') return;
-	$abs = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/').'/'.ltrim($relUrl,'/');
+	$docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/');
+	$rel = '/'.ltrim($relUrl,'/');
+	if (strpos($rel, '/img/') === 0) {
+		$abs = $docroot . '/public' . $rel;
+	} else {
+		$abs = $docroot . $rel;
+	}
 	$base = realpath($uploadDir);
 	$absr = @realpath($abs);
 	if ($absr && $base && strpos($absr, $base) === 0 && is_file($absr)) { @unlink($absr); }
@@ -448,7 +454,7 @@ function openItemModal(id = null){
 			document.getElementById('item_name').value = row.name || '';
 			document.getElementById('item_type_id').value = row.item_type_id || 0;
 			document.getElementById('item_bibliography_id').value = row.bibliography_id || 0;
-			document.getElementById('item_habilidad').value = row.ability_name || '';
+			document.getElementById('item_habilidad').value = row.skill_name || row.ability_name || '';
 			document.getElementById('item_level').value = row.level || 0;
 			document.getElementById('item_gnosis').value = row.gnosis || 0;
 			document.getElementById('item_valor').value = row.rating || '';

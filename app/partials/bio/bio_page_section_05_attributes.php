@@ -1,5 +1,9 @@
 <?php
 // Atributos en 3 columnas (1-3, 4-6, 7-9)
+echo "<style>
+.bioSheetAttrLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
+.bioSheetAttrLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
+</style>";
 $cols = $bioAttrCols ?? [[],[],[]];
 $imgs = $bioAttrColImgs ?? [[],[],[]];
 $maxRows = 0;
@@ -9,9 +13,16 @@ for ($i = 0; $i < $maxRows; $i++) {
         if (!isset($cols[$c][$i])) continue;
         $t = $cols[$c][$i];
         $name = h($t['name'] ?? '');
+        $tid = (int)($t['id'] ?? 0);
         if ($name === '') continue;
         $img = $imgs[$c][$i] ?? '';
-        echo "<div class='bioSheetAttrLeft'>{$name}:</div>";
+        if ($tid > 0 && function_exists('pretty_url')) {
+            $href = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+            $nameHtml = "<a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>{$name}</a>";
+        } else {
+            $nameHtml = $name;
+        }
+        echo "<div class='bioSheetAttrLeft'>{$nameHtml}:</div>";
         echo "<div class='bioSheetAttrRight'>{$img}</div>";
     }
 }

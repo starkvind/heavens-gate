@@ -1,6 +1,15 @@
 <?php
 // NUEVO (bridge_characters_traits)
 // Habilidades por columnas: Talentos, Técnicas, Conocimientos
+echo "<style>
+.bioSkillNameCell{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bioSheetAttrLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
+.bioSheetAttrLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
+</style>";
 $tal = array_values(array_filter($bioSkillCols['Talentos'] ?? [], function($t){
     return isset($t['name']) && $t['name'] !== '';
 }));
@@ -82,26 +91,50 @@ $conImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $con), 
 $maxRows = max(count($tal), count($tec), count($con));
 for ($i = 0; $i < $maxRows; $i++) {
     if (isset($tal[$i])) {
-        $name = h($tal[$i]['name'] ?? '');
+        $rawName = (string)($tal[$i]['name'] ?? '');
+        $name = h($rawName);
+        $tid = (int)($tal[$i]['id'] ?? 0);
         if ($name !== '') {
             $img = $talImg[$i] ?? '';
-            echo "<div class='bioSheetAttrLeft'>{$name}:</div>";
+            if ($tid > 0 && function_exists('pretty_url')) {
+                $href = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+                $nameHtml = "<a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>{$name}</a>";
+            } else {
+                $nameHtml = $name;
+            }
+            echo "<div class='bioSheetAttrLeft bioSkillNameCell'>{$nameHtml}:</div>";
             echo "<div class='bioSheetAttrRight'>{$img}</div>";
         }
     }
     if (isset($tec[$i])) {
-        $name = h($tec[$i]['name'] ?? '');
+        $rawName = (string)($tec[$i]['name'] ?? '');
+        $name = h($rawName);
+        $tid = (int)($tec[$i]['id'] ?? 0);
         if ($name !== '') {
             $img = $tecImg[$i] ?? '';
-            echo "<div class='bioSheetAttrLeft'>{$name}:</div>";
+            if ($tid > 0 && function_exists('pretty_url')) {
+                $href = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+                $nameHtml = "<a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>{$name}</a>";
+            } else {
+                $nameHtml = $name;
+            }
+            echo "<div class='bioSheetAttrLeft bioSkillNameCell'>{$nameHtml}:</div>";
             echo "<div class='bioSheetAttrRight'>{$img}</div>";
         }
     }
     if (isset($con[$i])) {
-        $name = h($con[$i]['name'] ?? '');
+        $rawName = (string)($con[$i]['name'] ?? '');
+        $name = h($rawName);
+        $tid = (int)($con[$i]['id'] ?? 0);
         if ($name !== '') {
             $img = $conImg[$i] ?? '';
-            echo "<div class='bioSheetAttrLeft'>{$name}:</div>";
+            if ($tid > 0 && function_exists('pretty_url')) {
+                $href = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+                $nameHtml = "<a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>{$name}</a>";
+            } else {
+                $nameHtml = $name;
+            }
+            echo "<div class='bioSheetAttrLeft bioSkillNameCell'>{$nameHtml}:</div>";
             echo "<div class='bioSheetAttrRight'>{$img}</div>";
         }
     }

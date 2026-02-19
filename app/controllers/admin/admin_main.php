@@ -89,6 +89,12 @@
 				case 'admin_trait_sets':
 					include("admin_trait_sets.php");
 					break;
+				case 'admin_systems_resources':
+					include("admin_systems_resources.php");
+					break;
+				case 'admin_resources_migration':
+					include("admin_resources_migration.php");
+					break;
 				case 'admin_inspect_db':
 					include(__DIR__ . "/../../tools/inspect_db.php");
 					break;
@@ -226,6 +232,11 @@
 							Traits por Sistema
 						</div>
 					</a>
+					<a href='/talim?s=admin_systems_resources'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Recursos por Sistema
+						</div>
+					</a>
 					<a href='/talim?s=admin_forms'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Formas
@@ -245,6 +256,11 @@
 					<a href='/talim?s=admin_inspect_db'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Inspeccionar BDD
+						</div>
+					</a>
+					<a href='/talim?s=admin_resources_migration'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Migrar Recursos de PJ
 						</div>
 					</a>
 					<a href='/talim?s=admin_mentions_help'>

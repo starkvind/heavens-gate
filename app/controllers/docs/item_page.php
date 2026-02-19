@@ -21,7 +21,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $itemID     = htmlspecialchars($resultQueryItem["id"]);
     $itemName   = htmlspecialchars($resultQueryItem["name"]);
     $itemType   = (int)$resultQueryItem["item_type_id"];
-    $itemSkill  = htmlspecialchars($resultQueryItem["ability_name"]);
+    $itemSkill  = htmlspecialchars($resultQueryItem["skill_name"]);
     $itemLevel  = (int)$resultQueryItem["level"];
     $itemGnosis = (int)$resultQueryItem["gnosis"];
     $itemValue  = htmlspecialchars($resultQueryItem["rating"]);
@@ -237,14 +237,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $hasOwners = count($itemOwners) > 0;
 
     if ($hasOwners) {
-        echo "<style>
-            .hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
-            .hg-tab-panel{ display:none; }
-            .hg-tab-panel.active{ display:block; }
-            .hgTabBtn{ border:1px solid #003399; }
-            .hgTabBtn.active{ background:#001199; color:#01b3fa; border-color:#003399; }
-            .contenidoAfiliacion{ display:flex; flex-wrap:wrap; gap:6px; padding:8px 0 12px 0; }
-        </style>";
+        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
+        hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";

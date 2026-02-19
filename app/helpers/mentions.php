@@ -66,6 +66,24 @@ function hg_mentions_config(): array {
             'pretty' => 'pretty_id',
             'url' => '/inventory',
             'special' => 'item',
+            'type' => 'item',
+        ],
+        // Backward-compatible aliases for item mentions.
+        'items' => [
+            'table' => 'fact_items',
+            'label' => 'name',
+            'pretty' => 'pretty_id',
+            'url' => '/inventory',
+            'special' => 'item',
+            'type' => 'item',
+        ],
+        'fact_items' => [
+            'table' => 'fact_items',
+            'label' => 'name',
+            'pretty' => 'pretty_id',
+            'url' => '/inventory',
+            'special' => 'item',
+            'type' => 'item',
         ],
         'trait' => [
             'table' => 'dim_traits',
@@ -156,6 +174,7 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
     $cfg = hg_mentions_config();
     if (!isset($cfg[$type])) return [];
     $c = $cfg[$type];
+    $canonicalType = (string)($c['type'] ?? $type);
     $table = $c['table'];
     $labelCol = $c['label'];
     $prettyCol = $c['pretty'];
@@ -216,7 +235,7 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
                 'pretty_id' => $pretty,
                 'label' => $label,
                 'href' => $href,
-                'type' => $type,
+                'type' => $canonicalType,
             ];
             if ($type === 'character') {
                 $item['chronicle_name'] = (string)($row['chronicle_name'] ?? '');
@@ -236,6 +255,7 @@ function hg_mentions_lookup(mysqli $link, string $type, string $value): ?array {
     $cfg = hg_mentions_config();
     if (!isset($cfg[$type])) return null;
     $c = $cfg[$type];
+    $canonicalType = (string)($c['type'] ?? $type);
     $table = $c['table'];
     $labelCol = $c['label'];
     $prettyCol = $c['pretty'];
@@ -272,7 +292,7 @@ function hg_mentions_lookup(mysqli $link, string $type, string $value): ?array {
                 'pretty_id' => $pretty,
                 'label' => $label,
                 'href' => $href,
-                'type' => $type,
+                'type' => $canonicalType,
             ];
         }
     }
@@ -290,6 +310,7 @@ function hg_mentions_convert(mysqli $link, string $html): string {
         if (!$info) return $m[0];
         $href = htmlspecialchars($info['href'], ENT_QUOTES, 'UTF-8');
         $label = htmlspecialchars($info['label'], ENT_QUOTES, 'UTF-8');
-        return "<a href=\"{$href}\" class=\"hg-mention\" data-type=\"{$type}\" data-id=\"{$info['id']}\" target=\"_blank\">{$label}</a>";
+        $dataType = htmlspecialchars((string)($info['type'] ?? $type), ENT_QUOTES, 'UTF-8');
+        return "<a href=\"{$href}\" class=\"hg-mention\" data-type=\"{$dataType}\" data-id=\"{$info['id']}\" target=\"_blank\">{$label}</a>";
     }, $html);
 }

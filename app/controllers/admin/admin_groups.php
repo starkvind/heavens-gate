@@ -188,7 +188,7 @@ function render_group_detail($link,$group_id){
             <span>".e($label)."</span>
             <input type='text' value='".e($m['position'])."' placeholder='posición'>
             <button class='btn btn-save-position' data-id='".e($m['id'])."' data-group='$group_id'>💾</button>
-            <button class='btn btn-bad btn-rem-member' data-id='".e($m['id'])."' data-group='$group_id'>âœ–</button>
+            <button class='btn btn-bad btn-rem-member' data-id='".e($m['id'])."' data-group='$group_id'>🚫</button>
           </span>";
   }
   echo   "</div></div>
@@ -201,7 +201,7 @@ function render_group_detail($link,$group_id){
     echo "<span class='chip off' data-id='".e($m['id'])."'>
             <span>".e($label)."</span>
             <input type='text' value='".e($m['position'])."' placeholder='posición'>
-            <button class='btn btn-ok btn-activate-member' data-id='".e($m['id'])."' data-group='$group_id'>âž•</button>
+            <button class='btn btn-ok btn-activate-member' data-id='".e($m['id'])."' data-group='$group_id'>⏫</button>
           </span>";
   }
   echo   "</div></div>";

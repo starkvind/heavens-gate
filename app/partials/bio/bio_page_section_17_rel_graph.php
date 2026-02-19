@@ -29,7 +29,7 @@ foreach ($relaciones as $r) {
         $nodes[$relatedId] = [
             'id' => $relatedId,
             'label' => (string)($r['nombre'] ?? ''),
-            'image' => (string)($r['image_url'] ?? '/img/ui/icons/default.jpg'),
+            'image' => (string)($r['image_url'] ?? ($r['img'] ?? '/img/ui/icons/default.jpg')),
             'size' => 20,
             'fontSize' => 12,
         ];
@@ -121,62 +121,50 @@ foreach ($relaciones as $r) {
                 springLength: 120,
                 springConstant: 0.02
             },
-            minVelocity: 0.5,
-            stabilization: { iterations: 600, fit: true }
+            minVelocity: 0.5
         }
     };
 
     var network = new vis.Network(container, data, options);
     window.__bioRelNetwork = network;
+    var fitTimer = null;
 
-    function refreshRelGraph(forcePhysics){
-        if (!container) return;
+    function refreshRelGraph() {
         var w = container.clientWidth || 0;
         var h = container.clientHeight || 0;
         if (!w || !h) {
-            setTimeout(function(){ refreshRelGraph(forcePhysics); }, 120);
+            setTimeout(refreshRelGraph, 120);
             return;
         }
         try {
-            if (forcePhysics) {
-                network.setOptions({ physics: { enabled: true } });
-            }
+            network.setSize('100%', '100%');
             network.redraw();
-            network.fit({ animation: { duration: 220, easingFunction: 'easeInOutQuad' } });
-            if (forcePhysics) {
-                network.stabilize();
-            }
+            if (fitTimer) clearTimeout(fitTimer);
+            fitTimer = setTimeout(function () {
+                try {
+                    network.fit({
+                        animation: { duration: 220, easingFunction: 'easeInOutQuad' }
+                    });
+                } catch (e) {}
+            }, 120);
         } catch (e) {}
     }
 
-    // Inicial
-    refreshRelGraph(true);
-    network.once('stabilized', function(){
-        try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
-        refreshRelGraph(false);
-    });
-    setTimeout(function(){
-        try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
-        refreshRelGraph(false);
-    }, 1800);
-
     window.__bioRelNetworkRefresh = function(){
-        refreshRelGraph(false);
+        refreshRelGraph();
     };
 
-    network.on('dragStart', function(){
-        try { network.setOptions({ physics: { enabled: true } }); } catch (e) {}
+    network.once('stabilized', function(){
+        refreshRelGraph();
     });
-    network.on('dragEnd', function(){
-        try { network.storePositions(); } catch (e) {}
-        try { network.setOptions({ physics: { enabled: false } }); } catch (e) {}
-    });
+
+    setTimeout(refreshRelGraph, 80);
 
     network.on('doubleClick', function(params){
         if (params.nodes.length === 1) {
             var nodeId = String(params.nodes[0]);
             if (nodeId !== <?= json_encode((string)$characterId) ?>) {
-                window.open('/characters/' + nodeId, '_blank');
+                window.open('?p=muestrabio&b=' + nodeId, '_blank');
             }
         }
     });

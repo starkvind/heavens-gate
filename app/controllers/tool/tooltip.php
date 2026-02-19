@@ -76,8 +76,8 @@ if ($type === 'don') {
         }
         $st->close();
     }
-} elseif ($type === 'item') {
-    if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, image_url, ability_name, damage_type, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
+} elseif ($type === 'item' || $type === 'items' || $type === 'fact_items') {
+    if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, image_url, skill_name, damage_type, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -86,7 +86,7 @@ if ($type === 'don') {
             $tipo = (int)($r['item_type_id'] ?? 0);
             $nivel = $r['level'] ?? '';
             $gnosis = $r['gnosis'] ?? '';
-            $habilidad = (string)($r['ability_name'] ?? '');
+            $habilidad = (string)($r['skill_name'] ?? '');
             $dano = (string)($r['damage_type'] ?? '');
             $bonus = (int)($r['bonus'] ?? 0);
             $metal = (int)($r['metal'] ?? 0);
@@ -121,6 +121,19 @@ if ($type === 'don') {
             $outDesc = short_text($r['description'] ?? '', 360);
             $outImg = (string)($r['image_url'] ?? '');
             $outImgAlt = $outTitle;
+        }
+        $st->close();
+    }
+} elseif ($type === 'trait') {
+    if ($st = $link->prepare("SELECT name, kind, description FROM dim_traits WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $kind = (string)($r['kind'] ?? '');
+            if ($kind !== '') $outMeta = h($kind);
+            $outDesc = short_text($r['description'] ?? '', 320);
         }
         $st->close();
     }

@@ -238,7 +238,6 @@ if (!function_exists('createSkillCircle')) {
     }
 }
 
-if (isset($bioArrayPow)) $bioPowrImg = createSkillCircle($bioArrayPow, 'gem-pwr');
 if (isset($bioArrayAtt)) $bioAttrImg = createSkillCircle($bioArrayAtt, 'gem-attr');
 if (isset($bioArraySki)) $bioSkilImg = createSkillCircle($bioArraySki, 'gem-attr');
 
