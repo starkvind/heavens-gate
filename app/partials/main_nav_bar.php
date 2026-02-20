@@ -266,23 +266,21 @@
 				$typeHref = pretty_url($link, 'dim_discipline_types', '/powers/discipline/type', $donTypeNav);
 				echo "<a href='/powers/disciplines' title='Disciplinas'>Disciplinas</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $donName";
 				break;
-			// ========================================== //
-			// Simulador de Combate
-			// ========================================== //
-			case "simulador2":	// Resultado del Combate
-				echo "<a href='?p=simulador' title='Simulador de Combate'>Simulador</a> $pillSeparator $nombreCom1 VS $nombreCom2";
-				break;
-			case "combtodo":	// Lista de Combates
-				echo "<a href='?p=simulador' title='Simulador de Combate'>Simulador</a> $pillSeparator Registro de Combates";
-				break;
-			case "vercombat":	// Ver Combate
-				echo "<a href='?p=simulador' title='Simulador de Combate'>Simulador</a> $pillSeparator <a href='?p=combtodo' title='Registro de Combates'>Registro de Combates</a> $pillSeparator Combate #$idDelCombate";
-				break;
-			case "punts":		// Tabla de Puntuaciones
-				echo "<a href='?p=simulador' title='Simulador de Combate'>Simulador</a> $pillSeparator Puntuaciones";
-				break;
-			case "arms":		// Tabla de Armas
-				echo "<a href='?p=simulador' title='Simulador de Combate'>Simulador</a> $pillSeparator Listado de Armas";
+			case "dados":		// Tiradados
+				if (isset($_GET['see']) && (int)$_GET['see'] > 0) {
+					$rollIdNav = (int)$_GET['see'];
+					$stmt = mysqli_prepare($link, "SELECT roll_name FROM fact_dice_rolls WHERE id = ? LIMIT 1");
+					if ($stmt) {
+						mysqli_stmt_bind_param($stmt, "i", $rollIdNav);
+						mysqli_stmt_execute($stmt);
+						$res = mysqli_stmt_get_result($stmt);
+						if ($rowRoll = mysqli_fetch_assoc($res)) {
+							$rollTitleNav = htmlspecialchars((string)$rowRoll['roll_name'], ENT_QUOTES, 'UTF-8');
+							echo "<a href='/tools/dice' title='Tiradados'>Tiradados</a> $pillSeparator {$rollTitleNav}";
+						}
+						mysqli_stmt_close($stmt);
+					}
+				}
 				break;
 			// ========================================== //
 			default:

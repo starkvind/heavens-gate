@@ -117,7 +117,9 @@ if ($chapter_numberId > 0 && $stmt) {
 		if ($dateCapi != "0000-00-00" or $dateIngame != "0000-00-00") {
 			echo "</ul>";
 		}
+        echo "<div class='db-text-pad'>";
         echo (!empty($sinoCapi)) ? "<p>{$sinoCapi}</p>" : "<p>{$noSinoCapi}</p>";
+        echo "</div>";
         echo "</fieldset>";
 
         echo "</div>"; // Cierre del Cuerpo Principal
@@ -202,6 +204,9 @@ if ($chapter_numberId > 0 && $stmt) {
 }
 .pj-btn-pag:hover {
     cursor: pointer;
+}
+.db-text-pad {
+    padding: 0 14px;
 }
 
 </style>

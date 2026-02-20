@@ -95,3 +95,4 @@ app/tools/rename_columns_phases.php
 # Migration plan
 migration/*
 
+bdd_structure.txt

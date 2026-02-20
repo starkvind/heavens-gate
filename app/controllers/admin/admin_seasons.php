@@ -4,6 +4,7 @@ if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
@@ -216,6 +217,27 @@ if ($rs) {
 }
 .modal form{ display:flex; flex-direction:column; flex:1; }
 .modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
+.ql-toolbar.ql-snow{
+  border:1px solid #000088 !important;
+  background:#050b36 !important;
+  border-radius:8px 8px 0 0;
+}
+.ql-container.ql-snow{
+  border:1px solid #000088 !important;
+  border-top:none !important;
+  background:#000033 !important;
+  color:#fff !important;
+  border-radius:0 0 8px 8px;
+}
+.ql-editor{ min-height:140px; font-size:12px; }
+.ql-snow .ql-stroke{ stroke:#cfe !important; }
+.ql-snow .ql-fill{ fill:#cfe !important; }
+.ql-snow .ql-picker{ color:#cfe !important; }
+.ql-snow .ql-picker-options{
+  background:#050b36 !important;
+  border:1px solid #000088 !important;
+}
+.ql-snow .ql-picker-item{ color:#cfe !important; }
 </style>
 
 <div class="modal-back" id="seasonModal">
@@ -252,16 +274,34 @@ if ($rs) {
                     <?php endif; ?>
 
                     <label>Descripcion</label>
-                    <textarea class="inp hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="description" id="season_description" rows="8" style="min-height:180px;"></textarea>
+                    <div>
+                        <div id="season_description_toolbar" class="ql-toolbar ql-snow">
+                            <?= admin_quill_toolbar_inner(); ?>
+                        </div>
+                        <div id="season_description_editor" class="ql-container ql-snow"></div>
+                        <textarea class="ta" name="description" id="season_description" rows="8" style="display:none;"></textarea>
+                    </div>
 
                     <?php if ($hasOpening): ?>
                     <label>Opening</label>
-                    <textarea class="inp hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="opening" id="season_opening" rows="3"></textarea>
+                    <div>
+                        <div id="season_opening_toolbar" class="ql-toolbar ql-snow">
+                            <?= admin_quill_toolbar_inner(); ?>
+                        </div>
+                        <div id="season_opening_editor" class="ql-container ql-snow"></div>
+                        <textarea class="ta" name="opening" id="season_opening" rows="3" style="display:none;"></textarea>
+                    </div>
                     <?php endif; ?>
 
                     <?php if ($hasMainCast): ?>
                     <label>Protagonistas</label>
-                    <textarea class="inp hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="main_cast" id="season_main_cast" rows="4"></textarea>
+                    <div>
+                        <div id="season_main_cast_toolbar" class="ql-toolbar ql-snow">
+                            <?= admin_quill_toolbar_inner(); ?>
+                        </div>
+                        <div id="season_main_cast_editor" class="ql-container ql-snow"></div>
+                        <textarea class="ta" name="main_cast" id="season_main_cast" rows="4" style="display:none;"></textarea>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -331,11 +371,52 @@ if ($rs) {
     </tbody>
 </table>
 
+<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <script>
 const seasonsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+const SEASON_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
+const seasonEditors = {};
+
+function ensureSeasonEditor(key){
+    if (seasonEditors[key] || !window.Quill) return seasonEditors[key] || null;
+    const editorSel = `#season_${key}_editor`;
+    const toolbarSel = `#season_${key}_toolbar`;
+    const editorEl = document.querySelector(editorSel);
+    const toolbarEl = document.querySelector(toolbarSel);
+    if (!editorEl || !toolbarEl) return null;
+    const q = new Quill(editorSel, { theme:'snow', modules:{ toolbar: toolbarSel } });
+    if (window.hgMentions) { window.hgMentions.attachQuill(q, { types: SEASON_MENTION_TYPES }); }
+    seasonEditors[key] = q;
+    return q;
+}
+
+function ensureSeasonEditors(){
+    ensureSeasonEditor('description');
+    ensureSeasonEditor('opening');
+    ensureSeasonEditor('main_cast');
+}
+
+function setSeasonEditorHtml(key, html){
+    const ta = document.getElementById(`season_${key}`);
+    if (ta) ta.value = html || '';
+    const q = ensureSeasonEditor(key);
+    if (q) q.root.innerHTML = html || '';
+}
+
+function syncSeasonEditorToTextarea(key){
+    const ta = document.getElementById(`season_${key}`);
+    if (!ta) return;
+    const q = seasonEditors[key];
+    if (!q) return;
+    const html = q.root.innerHTML || '';
+    const plain = (q.getText() || '').replace(/\s+/g, ' ').trim();
+    ta.value = plain ? html : '';
+}
 
 function openSeasonModal(id = null){
+    ensureSeasonEditors();
     const modal = document.getElementById('seasonModal');
     document.getElementById('season_action').value = 'create';
     document.getElementById('season_id').value = '0';
@@ -344,9 +425,9 @@ function openSeasonModal(id = null){
     const eSort = document.getElementById('season_sort_order'); if (eSort) eSort.value = '0';
     const eSeas = document.getElementById('season_flag'); if (eSeas) eSeas.checked = false;
     const eFin = document.getElementById('season_finished'); if (eFin) eFin.checked = false;
-    const eDesc = document.getElementById('season_description'); if (eDesc) eDesc.value = '';
-    const eOpen = document.getElementById('season_opening'); if (eOpen) eOpen.value = '';
-    const eCast = document.getElementById('season_main_cast'); if (eCast) eCast.value = '';
+    setSeasonEditorHtml('description', '');
+    setSeasonEditorHtml('opening', '');
+    setSeasonEditorHtml('main_cast', '');
 
     if (id) {
         const row = seasonsData.find(r => parseInt(r.id, 10) === parseInt(id, 10));
@@ -359,16 +440,15 @@ function openSeasonModal(id = null){
             if (eSort) eSort.value = String(parseInt(row.sort_order || 0, 10) || 0);
             if (eSeas) eSeas.checked = parseInt(row.season || 0, 10) === 1;
             if (eFin) eFin.checked = parseInt(row.finished || 0, 10) === 1;
-            if (eDesc) eDesc.value = row.description || '';
-            if (eOpen) eOpen.value = row.opening || '';
-            if (eCast) eCast.value = row.main_cast || '';
+            setSeasonEditorHtml('description', row.description || '');
+            setSeasonEditorHtml('opening', row.opening || '');
+            setSeasonEditorHtml('main_cast', row.main_cast || '');
         }
     } else {
         document.getElementById('seasonModalTitle').textContent = 'Nueva temporada';
     }
 
     modal.style.display = 'flex';
-    if (window.hgMentions) { window.hgMentions.attachAuto(); }
 }
 
 function closeSeasonModal(){
@@ -389,6 +469,12 @@ document.addEventListener('keydown', function(e){
         closeSeasonModal();
         closeSeasonDeleteModal();
     }
+});
+
+document.getElementById('seasonForm').addEventListener('submit', function(){
+    syncSeasonEditorToTextarea('description');
+    syncSeasonEditorToTextarea('opening');
+    syncSeasonEditorToTextarea('main_cast');
 });
 </script>
 

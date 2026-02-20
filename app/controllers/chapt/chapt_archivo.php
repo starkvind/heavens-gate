@@ -42,6 +42,9 @@
 	.video-wrapper iframe {
 		border: 1px solid #000099;
 	}
+	.db-text-pad {
+		padding: 0 14px;
+	}
 </style>
 
 <?php
@@ -93,7 +96,7 @@ if ($temporadaId > 0 && $stmt) {
             // Sección Sinopsis
             echo "<fieldset id='renglonArchivosTop'>";
 				echo "<legend id='archivosLegend'>$titleSinop</legend>";
-				echo "<p>$sinopsis</p>";
+				echo "<div class='db-text-pad'>$sinopsis</div>";
             echo "</fieldset>";
 			
 			if (isset($player_ids)) {
