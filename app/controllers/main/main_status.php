@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Estado | Heaven's Gate", "Estado general de la campana y sus recursos.", null, 'website'); ?>
+<?php setMetaFromPage("Estado | Heaven's Gate", "Estado general de la campaña y su contenido.", null, 'website'); ?>
 <?php
 
 if (!$link) {

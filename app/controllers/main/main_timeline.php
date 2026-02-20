@@ -1,4 +1,4 @@
-<?php setMetaFromPage("L?nea temporal | Heaven's Gate", "L?nea temporal de eventos y descubrimientos.", null, 'website'); ?>
+<?php setMetaFromPage("Línea temporal | Heaven's Gate", "Línea temporal de eventos y sucesos.", null, 'website'); ?>
 <?php
 // Validamos conexión
 if (!$link) {

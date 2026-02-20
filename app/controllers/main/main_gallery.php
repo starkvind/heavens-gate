@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Galeria | Heaven's Gate", "Galeria de imagenes de la campana.", null, 'website'); ?>
+<?php setMetaFromPage("Galería | Heaven's Gate", "Galería de imágenes de la campaña.", null, 'website'); ?>
 <?php
 /*******************************************************
  * Galería pública con carpetas y lightbox

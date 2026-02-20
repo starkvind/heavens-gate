@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Equipos activos | Heaven's Gate", "Personajes en tramas abiertas, estado y recursos.", null, 'website'); ?>
+<?php setMetaFromPage("Equipos activos | Heaven's Gate", "Grupos con personajes activos, jugando actualmente.", null, 'website'); ?>
 <?php
 if (!$link) die("Error de conexión a la base de datos.");
 

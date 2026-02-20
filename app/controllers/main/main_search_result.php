@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Resultados de b?squeda | Heaven's Gate", "Resultados de la b?squeda en la campa?a.", null, 'website'); ?>
+<?php setMetaFromPage("Resultados de búsqueda | Heaven's Gate", "Resultados de la búsqueda en el repositorio.", null, 'website'); ?>
 <?php
 
 // Verificar la conexión a la base de datos

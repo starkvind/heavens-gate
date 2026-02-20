@@ -11,27 +11,13 @@
 	if (!$char_id || !$msg) {
 		die("Parámetros incorrectos.");
 	}
-
-	/* 
-	$query = "SELECT name, img FROM fact_characters WHERE id = ? LIMIT 1";
-	$stmt = mysqli_prepare($link, $query);
-	mysqli_stmt_bind_param($stmt, "i", $char_id);
-	mysqli_stmt_execute($stmt);
-	$result = mysqli_stmt_get_result($stmt);
-
-	if (!$row = mysqli_fetch_assoc($result)) {
-		die("Personaje no encontrado.");
-	}
-
-	$nombre = htmlspecialchars($row['name']);
-	$img = htmlspecialchars($row['image_url']);
-	*/
 	
 	$defaultImgPath = "img/subidas/";
 	$defaultAvatars = [
 		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
 		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
-		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.png']
+		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.png'],
+		-4 => ['name' => 'Espíritu', 'img' => 'avatar_nadie_4.png'],
 	];
 
 	if (array_key_exists($char_id, $defaultAvatars)) {

@@ -80,7 +80,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     $namePack = $ResultQuery["name"] ?? '';
     $infoPack = $ResultQuery["description"] ?? $ResultQuery["description"] ?? '';
 
-    $pageSect   = $nameTypeForTitle;
+    $pageSect   = "Biografías";
     $pageTitle2 = $namePack;
     setMetaFromPage($namePack . " | " . $nameTypeForTitle . " | Heaven's Gate", meta_excerpt($infoPack), null, 'article');
 
@@ -229,6 +229,65 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
             if ($packsOfSeptResult) mysqli_free_result($packsOfSeptResult);
             mysqli_stmt_close($stmtSept);
+        }
+
+        $oldMembersQuery = "
+            SELECT p.id, p.name, p.alias, p.image_url, p.status
+            FROM bridge_characters_groups bg
+            INNER JOIN fact_characters p ON p.id = bg.character_id
+            WHERE bg.group_id = ?
+              AND bg.is_active = 0
+              $cronicaNotInSQL
+            ORDER BY
+                CASE p.status
+                    WHEN 'Paradero desconocido' THEN 1
+                    WHEN 'Cadáver' THEN 2
+                    WHEN 'Aún por aparecer' THEN 9999
+                    ELSE 0
+                END,
+                p.name
+        ";
+
+        $stmtOldMembers = mysqli_prepare($link, $oldMembersQuery);
+        if ($stmtOldMembers) {
+            mysqli_stmt_bind_param($stmtOldMembers, 'i', $packId);
+            mysqli_stmt_execute($stmtOldMembers);
+            $oldMembersResult = mysqli_stmt_get_result($stmtOldMembers);
+
+            if ($oldMembersResult && mysqli_num_rows($oldMembersResult) > 0) {
+                echo "<tr><td colspan='2' class='texti'><b>Antiguos miembros</b>:<br/><br/>";
+                echo "<div style='padding-left:30px;'>";
+                while ($oldMemberRow = mysqli_fetch_assoc($oldMembersResult)) {
+                    $oldMemberId     = (int)$oldMemberRow["id"];
+                    $oldMemberName   = (string)$oldMemberRow["name"];
+                    $oldMemberAlias  = ($oldMemberRow["alias"] !== '' && $oldMemberRow["alias"] !== null) ? (string)$oldMemberRow["alias"] : $oldMemberName;
+                    $oldMemberImg    = (string)$oldMemberRow["image_url"];
+                    $oldMemberStatus = (string)$oldMemberRow["status"];
+
+                    switch ($oldMemberStatus) {
+                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
+                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        default:                       $simboloEstado = ""; break;
+                    }
+
+                    echo "
+                    <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$oldMemberId)) . "' title='" . h($oldMemberName) . "'>
+                        <div class='marcoFotoBio'>
+                            <div class='textoDentroFotoBio'>" . h($oldMemberAlias) . " $simboloEstado</div>
+                            <div class='dentroFotoBio'>
+                                <img class='fotoBioList' src='" . h($oldMemberImg) . "'>
+                            </div>
+                        </div>
+                    </a>
+                    ";
+                }
+                echo "</div>";
+                echo "</td></tr>";
+            }
+
+            if ($oldMembersResult) mysqli_free_result($oldMembersResult);
+            mysqli_stmt_close($stmtOldMembers);
         }
     }
 

@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Banda sonora | Heaven's Gate", "Banda sonora y temas musicales usados en la campana.", null, 'website'); ?>
+<?php setMetaFromPage("Banda sonora | Heaven's Gate", "Temas musicales usados en la campaña.", null, 'website'); ?>
 <?php
 if (!$link) die("Error de conexión a la base de datos.");
 

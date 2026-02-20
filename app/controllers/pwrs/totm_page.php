@@ -176,6 +176,32 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     if ($useTabs) {
         include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
         hg_render_owner_tabs_styles(true, 28);
+        echo "<style>
+            .hg-tab-panel[data-tab='groups'] .grupoBioClan,
+            .hg-tab-panel[data-tab='orgs'] .grupoBioClan{
+                display:flex;
+                justify-content:center;
+                margin-top:8px;
+            }
+            .hg-tab-panel[data-tab='groups'] .contenidoAfiliacion,
+            .hg-tab-panel[data-tab='orgs'] .contenidoAfiliacion{
+                display:grid;
+                grid-template-columns: repeat(2, 240px);
+                align-content:flex-start;
+                column-gap:10px;
+                row-gap:8px;
+                width:max-content;
+                max-width:100%;
+                margin:0 auto;
+                padding:8px 0 10px 0;
+            }
+            .hg-tab-panel[data-tab='groups'] .contenidoAfiliacion .renglon2col,
+            .hg-tab-panel[data-tab='orgs'] .contenidoAfiliacion .renglon2col{
+                float:none;
+                margin:0;
+                width:auto;
+            }
+        </style>";
 
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";

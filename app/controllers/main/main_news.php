@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Noticias | Heaven's Gate", "Ultimas novedades de la campa?a Heaven's Gate.", null, 'website'); ?>
+<?php setMetaFromPage("Noticias | Heaven's Gate", "Últimas novedades de la campaña Heaven's Gate.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
 <h2> Noticias </h2>
 

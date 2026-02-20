@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Busqueda | Heaven's Gate", "Buscador de contenido de la campana.", null, 'website'); ?>
+<?php setMetaFromPage("Búsqueda | Heaven's Gate", "Buscador de contenido de la campaña.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php");	// Barra Navegación ?>
 <h2>B&uacute;squeda</h2>
 <br/>

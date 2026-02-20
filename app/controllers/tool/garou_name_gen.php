@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rapido de nombres Garou.", null, 'website'); ?>
+<?php setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rápido de nombres Garou.", null, 'website'); ?>
 <style>
 	.wrap{max-width:900px;margin:0 auto}
 	.card{border-radius:12px;padding:16px 18px}

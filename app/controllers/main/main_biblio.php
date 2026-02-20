@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Bibliograf?a | Heaven's Gate", "Bibliograf?a y referencias de la campa?a.", null, 'website'); ?>
+<?php setMetaFromPage("Bibliografía | Heaven's Gate", "Bibliografía y referencias de la campaña.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegación ?>
 <h2>Bibliograf&iacute;a</h2>
 <fieldset class="grupoHabilidad">
