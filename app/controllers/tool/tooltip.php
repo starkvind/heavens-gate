@@ -137,6 +137,109 @@ if ($type === 'don') {
         }
         $st->close();
     }
+} elseif ($type === 'breed') {
+    if ($st = $link->prepare("SELECT name, system_name, forms, energy, description FROM dim_breeds WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outMeta = '';
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'auspice') {
+    if ($st = $link->prepare("SELECT name, system_name, energy, description FROM dim_auspices WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outMeta = '';
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'tribe') {
+    if ($st = $link->prepare("SELECT name, system_name, affiliation, energy, description FROM dim_tribes WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outMeta = '';
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'archetype') {
+    if ($st = $link->prepare("SELECT name, description, willpower_text FROM dim_archetypes WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outDesc = short_text($r['description'] ?? '', 280);
+            $wp = short_text($r['willpower_text'] ?? '', 220);
+            if ($wp !== '') {
+                $outExtraLabel = 'Recuperacion de voluntad';
+                $outExtra = $wp;
+            }
+        }
+        $st->close();
+    }
+} elseif ($type === 'totem') {
+    if ($st = $link->prepare("SELECT name, cost, description FROM dim_totems WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $cost = (string)($r['cost'] ?? '');
+            if ($cost !== '') $outMeta = 'Coste ' . h($cost);
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'group') {
+    if ($st = $link->prepare("SELECT name, description FROM dim_groups WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'organization') {
+    if ($st = $link->prepare("SELECT name, description FROM dim_organizations WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'resource') {
+    if ($st = $link->prepare("SELECT name, kind, description FROM dim_systems_resources WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $kindRaw = strtolower(trim((string)($r['kind'] ?? '')));
+            if (in_array($kindRaw, ['renombre', 'estado'], true)) {
+                $outTitle = $r['name'] ?? '';
+                $kindNorm = $kindRaw !== '' ? ucfirst($kindRaw) : '';
+                if ($kindNorm !== '') $outMeta = h($kindNorm);
+                $outDesc = short_text($r['description'] ?? '', 320);
+            }
+        }
+        $st->close();
+    }
 }
 
 if ($outTitle === '') { echo '<div class="hg-tip">No disponible</div>'; exit; }

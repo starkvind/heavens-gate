@@ -12,9 +12,11 @@ function getSingleRecord($link, $table, $id, $fields = ['name']) {
 }
 
 // Función para crear enlaces seguros
-function createLink($href, $text, $target = '_blank', $title = '') {
+function createLink($href, $text, $target = '_blank', $title = '', $extraAttrs = '') {
     $titleAttr = $title ? "title='$title'" : '';
-    return "<a href='$href' target='$target' $titleAttr>$text</a>";
+    $extra = trim((string)$extraAttrs);
+    if ($extra !== '') $extra = ' ' . $extra;
+    return "<a href='$href' target='$target' $titleAttr$extra>$text</a>";
 }
 
 // JUGADOR
@@ -43,7 +45,13 @@ $idRace = $bioRace;
 $resultRace = getSingleRecord($link, 'dim_breeds', $idRace);
 if ($resultRace) {
     $nameRaceFinal = htmlspecialchars($resultRace['name']);
-    $raceLink = createLink(pretty_url($link, 'dim_breeds', '/systems/detail/1', (int)$idRace), $nameRaceFinal);
+    $raceLink = createLink(
+        pretty_url($link, 'dim_breeds', '/systems/detail/1', (int)$idRace),
+        $nameRaceFinal,
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='breed' data-id='" . (int)$idRace . "'"
+    );
 } else {
     $raceLink = htmlspecialchars($idRace);
 }
@@ -53,7 +61,13 @@ $idAuspice = $bioAuspice;
 $resultAuspice = getSingleRecord($link, 'dim_auspices', $idAuspice);
 if ($resultAuspice) {
     $nameAuspiceFinal = htmlspecialchars($resultAuspice['name']);
-    $auspiceLink = createLink(pretty_url($link, 'dim_auspices', '/systems/detail/2', (int)$idAuspice), $nameAuspiceFinal);
+    $auspiceLink = createLink(
+        pretty_url($link, 'dim_auspices', '/systems/detail/2', (int)$idAuspice),
+        $nameAuspiceFinal,
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='auspice' data-id='" . (int)$idAuspice . "'"
+    );
 } else {
     $auspiceLink = htmlspecialchars($idAuspice);
 }
@@ -63,7 +77,13 @@ $idTribe = $bioTribe;
 $resultTribe = getSingleRecord($link, 'dim_tribes', $idTribe);
 if ($resultTribe) {
     $nameTribeFinal = htmlspecialchars($resultTribe['name']);
-    $tribeLink = createLink(pretty_url($link, 'dim_tribes', '/systems/detail/3', (int)$idTribe), $nameTribeFinal);
+    $tribeLink = createLink(
+        pretty_url($link, 'dim_tribes', '/systems/detail/3', (int)$idTribe),
+        $nameTribeFinal,
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='tribe' data-id='" . (int)$idTribe . "'"
+    );
 } else {
     $tribeLink = htmlspecialchars($idTribe);
 }
@@ -161,13 +181,25 @@ if ($bioClan === 0) {
 $idPack = $bioPack;
 $resultPack = $idPack ? getSingleRecord($link, 'dim_groups', $idPack) : null;
 $packLink = $resultPack
-    ? createLink(pretty_url($link, 'dim_groups', '/groups', (int)$idPack), htmlspecialchars($resultPack['name']))
+    ? createLink(
+        pretty_url($link, 'dim_groups', '/groups', (int)$idPack),
+        htmlspecialchars($resultPack['name']),
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='group' data-id='" . (int)$idPack . "'"
+    )
     : htmlspecialchars($idPack);
 
 $idClan = $bioClan;
 $resultClan = $idClan ? getSingleRecord($link, 'dim_organizations', $idClan) : null;
 $clanLink = $resultClan
-    ? createLink(pretty_url($link, 'dim_organizations', '/organizations', (int)$idClan), htmlspecialchars($resultClan['name']))
+    ? createLink(
+        pretty_url($link, 'dim_organizations', '/organizations', (int)$idClan),
+        htmlspecialchars($resultClan['name']),
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='organization' data-id='" . (int)$idClan . "'"
+    )
     : htmlspecialchars($idClan);
 $nameClanFinal = $resultClan ? htmlspecialchars($resultClan['name']) : '';
 	
@@ -203,7 +235,13 @@ $idNature = $bioNature;
 $resultNature = getSingleRecord($link, 'dim_archetypes', $idNature);
 if ($resultNature) {
     $nameNatureFinal = htmlspecialchars($resultNature['name']);
-    $natureLink = createLink(pretty_url($link, 'dim_archetypes', '/rules/archetypes', (int)$idNature), $nameNatureFinal);
+    $natureLink = createLink(
+        pretty_url($link, 'dim_archetypes', '/rules/archetypes', (int)$idNature),
+        $nameNatureFinal,
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='archetype' data-id='" . (int)$idNature . "'"
+    );
 } else {
     $natureLink = htmlspecialchars($idNature ? $idNature : 'Sin especificar');
 }
@@ -213,7 +251,13 @@ $idDemeanor = $bioBehavior;
 $resultDemeanor = getSingleRecord($link, 'dim_archetypes', $idDemeanor);
 if ($resultDemeanor) {
     $nameDemeanorFinal = htmlspecialchars($resultDemeanor['name']);
-    $demeanorLink = createLink(pretty_url($link, 'dim_archetypes', '/rules/archetypes', (int)$idDemeanor), $nameDemeanorFinal);
+    $demeanorLink = createLink(
+        pretty_url($link, 'dim_archetypes', '/rules/archetypes', (int)$idDemeanor),
+        $nameDemeanorFinal,
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='archetype' data-id='" . (int)$idDemeanor . "'"
+    );
 } else {
     $demeanorLink = htmlspecialchars($idDemeanor ? $idDemeanor : 'Sin especificar');
 }
@@ -221,7 +265,22 @@ if ($resultDemeanor) {
 // TÓTEM
 $totemLink = '';
 if (!empty($bioTotemId) && $bioTotemId > 0) {
-    $totemLink = createLink(pretty_url($link, 'dim_totems', '/powers/totem', (int)$bioTotemId), htmlspecialchars($bioTotem));
+    $totemName = '';
+    $resultTotem = getSingleRecord($link, 'dim_totems', (int)$bioTotemId, ['name']);
+    if ($resultTotem && !empty($resultTotem['name'])) {
+        $totemName = (string)$resultTotem['name'];
+    } elseif (!empty($bioTotem)) {
+        $totemName = (string)$bioTotem;
+    } else {
+        $totemName = (string)$bioTotemId;
+    }
+    $totemLink = createLink(
+        pretty_url($link, 'dim_totems', '/powers/totem', (int)$bioTotemId),
+        htmlspecialchars($totemName),
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='totem' data-id='" . (int)$bioTotemId . "'"
+    );
 } elseif ($bioTotem !== '') {
     $totemLink = htmlspecialchars($bioTotem);
 }

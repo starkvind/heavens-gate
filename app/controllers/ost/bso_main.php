@@ -23,10 +23,10 @@ mysqli_free_result($result);
     <table id="tabla-canciones" class="display" style="width:100%">
         <thead>
             <tr>
-                <th>Título</th>
+                <th>T&iacute;tulo</th>
                 <th>Artista</th>
-                <th>Título HG</th>
-                <th>🎶</th>
+                <th>T&iacute;tulo HG</th>
+                <th>&#127925;</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -38,7 +38,7 @@ mysqli_free_result($result);
 <div id="popupPlayer" style="display:none; position:fixed; bottom:20px; right:20px; width:350px; height:235px; background-color:#000055; border:1px solid #009; z-index:9999; padding:5px;">
 	<div style="width:100%; padding-bottom: 2em; padding-top: 0.5em;text-align: left!important;">
 		<div style="width: 85%; float:left;"><span id="titleSong" style="margin-left: 1em;"></span></div>
-		<div style="width: 10%; float:right; text-align: right;"><a href="#" onclick="cerrarPopup()" style="color:#66CCFF;margin-right:0.5em;">âŒ</a></div>
+		<div style="width: 10%; float:right; text-align: right;"><a href="#" onclick="cerrarPopup(); return false;" style="color:#66CCFF;margin-right:0.5em;">&#10060;</a></div>
 	</div>
     <iframe id="youtubeFrame" width="350" height="200" frameborder="0" allowfullscreen></iframe>
 </div>
@@ -52,7 +52,7 @@ $(document).ready(function () {
 		const linkTitulo = `<a href="${escapeHtml(c.youtube_url)}&referrer=heavensgate" target="_blank">${escapeHtml(c.title)}</a>`;
 		const linkArtista = `<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.artist)}" target="_blank">${escapeHtml(c.artist)}</a>`;
 		const hg = escapeHtml(c.context_title || '');
-		const btn = `<button class="boton2" onclick="abrirPopup('${escapeHtml(c.youtube_url)}', '${escapeHtml(c.title)}', '${escapeHtml(c.artist)}')">â–¶ï¸</button>`;
+		const btn = `<button class="boton2 js-play-song" type="button" data-url="${escapeAttr(c.youtube_url)}" data-hg="${escapeAttr(c.context_title || '')}">&#9654;&#65039;</button>`;
 
 		const row = `<tr>
 			<td>${linkTitulo}</td>
@@ -63,27 +63,33 @@ $(document).ready(function () {
 		tbody.append(row);
 	});
 
+	tbody.on('click', '.js-play-song', function () {
+		const url = this.getAttribute('data-url') || '';
+		const hgTitle = this.getAttribute('data-hg') || '';
+		if (url) abrirPopup(url, hgTitle);
+	});
+
 	$('#tabla-canciones').DataTable({
 		pageLength: 10,
 		lengthMenu: [10, 25, 50, 100],
 		order: [[0, "asc"]],
 		language: {
-			search: "🔍 Buscar:&nbsp;",
+			search: "&#128269; Buscar:&nbsp;",
 			lengthMenu: "Mostrar _MENU_ canciones",
 			info: "Mostrando _START_ a _END_ de _TOTAL_ canciones",
 			infoEmpty: "No hay canciones disponibles",
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Último",
-				next: "â–¶",
-				previous: "â—€"
+				last: "&Uacute;ltimo",
+				next: "&#9654;",
+				previous: "&#9664;"
 			}
 		}
 	});
 });
 
-function abrirPopup(url, titulo = "", artista = "") {
+function abrirPopup(url, hgTitle = "") {
 	const embedUrl = url.replace("watch?v=", "embed/");
 	const frame = document.getElementById("youtubeFrame");
 	const container = document.getElementById("popupPlayer");
@@ -91,7 +97,7 @@ function abrirPopup(url, titulo = "", artista = "") {
 
 	frame.src = embedUrl;
 	container.style.display = "block";
-	titleSpan.textContent = `${titulo} — ${artista}`;
+	titleSpan.textContent = hgTitle || "";
 
 	frame.onerror = () => {
 		container.style.display = "none";
@@ -107,6 +113,9 @@ function cerrarPopup() {
 function escapeHtml(text) {
 	if (!text) return '';
 	return text.replace(/[&<>"']/g, m => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[m]);
+}
+function escapeAttr(text) {
+	return escapeHtml(text ?? '');
 }
 </script>
 
@@ -180,5 +189,8 @@ function escapeHtml(text) {
 		background: #000044 !important;
 	}
 </style>
+
+
+
 
 

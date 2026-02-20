@@ -226,7 +226,10 @@
 						$historiaCheck = '';
 					}
 
-					echo "<a href='/seasons/" . h($idTemporada) . "' title='" . h($tituloTemp) . "'>";
+					$hrefTemporada = function_exists('pretty_url')
+						? pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada)
+						: ('/seasons/' . (int)$idTemporada);
+					echo "<a href='" . h($hrefTemporada) . "' title='" . h($tituloTemp) . "'>";
 					echo "<div class='renglonMenu {$claseTemporada}'>";
 					echo "<div style='float:left!important;margin-left:6px;'>" . h($nombreTemporada) . "</div>";
 					echo "<div style='float:right!important;'>" . $historiaCheck . "</div>";
@@ -405,7 +408,10 @@
 							$historiaCheck = '';
 						}
 						// nombreTemporada
-                        echo "<a href='/seasons/$idTemporada' title='{$tituloTemp}'>
+						$hrefTemporada = function_exists('pretty_url')
+							? pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada)
+							: ('/seasons/' . (int)$idTemporada);
+                        echo "<a href='" . h($hrefTemporada) . "' title='{$tituloTemp}'>
 							<div class='renglonMenu {$claseTemporada}'>
 								<div style='float:left!important;margin-left:6px;'>{$nombreTemporada}</div>
 								<div style='float:right!important;'>{$historiaCheck}</div>
@@ -450,7 +456,10 @@
 						} else {
 							$historiaCheck = '';
 						}
-                        echo "<a href='/seasons/{$idHistoria}'><div class='renglonMenu'>
+						$hrefHistoria = function_exists('pretty_url')
+							? pretty_url($link, 'dim_seasons', '/seasons', (int)$idHistoria)
+							: ('/seasons/' . (int)$idHistoria);
+                        echo "<a href='" . h($hrefHistoria) . "'><div class='renglonMenu'>
 							<div style='float:left!important;margin-left:6px;'>{$nombreHistoria}</div>
 							<div style='float:right!important;'>{$historiaCheck}</div>
 						</div></a>";

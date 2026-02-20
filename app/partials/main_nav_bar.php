@@ -43,9 +43,11 @@
 							echo " $pillSeparator Grupos (Manadas & Clanes)";
 							break;
 						case 'admin_temp':
+						case 'admin_seasons':
 							echo " $pillSeparator Temporadas";
 							break;
 						case 'admin_epis':
+						case 'admin_chapters':
 							echo " $pillSeparator Capítulos";
 							break;
 						case 'admin_pois':
@@ -94,6 +96,30 @@
 					case 'admin_bridges':
 							echo " $pillSeparator Bridges";
 							break;
+					case 'admin_trait_sets':
+						echo " $pillSeparator Asignar rasgos por sistema";
+						break;
+					case 'admin_traits':
+						echo " $pillSeparator Gestionar rasgos";
+						break;
+					case 'admin_systems_resources':
+						echo " $pillSeparator Asignar recursos por sistema";
+						break;
+					case 'admin_resources':
+						echo " $pillSeparator Gestionar recursos (catálogo)";
+						break;
+					case 'admin_resources_migration':
+						echo " $pillSeparator Migración de recursos";
+						break;
+					case 'admin_inspect_db':
+						echo " $pillSeparator Inspeccionar BDD";
+						break;
+					case 'admin_mentions_help':
+						echo " $pillSeparator Ayuda mentions";
+						break;
+					case 'logout':
+						echo " $pillSeparator Cerrar sesión";
+						break;
 					}
 					echo "<br />";
 				}

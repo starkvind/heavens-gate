@@ -69,7 +69,7 @@ if ($temporadaId > 0 && $stmt) {
             $nameTemp = $ResultQuery["name"];
             $numberTemp = $ResultQuery["season_number"];
             $sinopsis = $ResultQuery["description"];
-            $linkYoutube = $ResultQuery["opening"];
+            //$linkYoutube = $ResultQuery["opening"];
             //$charas = $ResultQuery["protagonistas"];
 
             // Títulos para diferentes secciones

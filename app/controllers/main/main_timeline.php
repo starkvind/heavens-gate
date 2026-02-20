@@ -511,16 +511,16 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 			lengthMenu: [10, 25, 50, 100],
 			order: [[1, "asc"]],
 			language: {
-				search: "🔍 Buscar:&nbsp;",
+				search: "&#128269; Buscar:&nbsp;",
 				lengthMenu: "Mostrar _MENU_ eventos",
 				info: "Mostrando _START_ a _END_ de _TOTAL_ eventos",
 				infoEmpty: "No hay eventos disponibles",
 				emptyTable: "No hay datos en la tabla",
 				paginate: {
 					first: "Primero",
-					last: "Último",
-					next: "â–¶",
-					previous: "â—€"
+					last: "&Uacute;ltimo",
+					next: "&#9654;",
+					previous: "&#9664;"
 				}
 			}
 		});
@@ -618,6 +618,7 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 	</thead>
 	<tbody></tbody>
 </table>
+
 
 
 

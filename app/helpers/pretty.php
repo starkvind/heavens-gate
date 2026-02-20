@@ -64,11 +64,20 @@ function hg_table_has_column(mysqli $link, string $table, string $column): bool 
     if (isset($cache[$key])) return $cache[$key];
 
     $ok = false;
-    if ($st = $link->prepare("SHOW COLUMNS FROM `$table` LIKE ?")) {
-        $st->bind_param('s', $column);
+    // MariaDB/MySQL can fail preparing SHOW ... LIKE ? with placeholders.
+    // Use information_schema with bind params for full compatibility.
+    if ($st = $link->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+    ")) {
+        $st->bind_param('ss', $table, $column);
         $st->execute();
-        $res = $st->get_result();
-        $ok = $res && $res->num_rows > 0;
+        $st->bind_result($count);
+        $st->fetch();
+        $ok = ((int)$count > 0);
         $st->close();
     }
 

@@ -85,6 +85,15 @@ if (!$ordenQueryResult) {
 .syst-section.collapsed .syst-card[data-idx="9"],
 .syst-section.collapsed .syst-card[data-idx="10"],
 .syst-section.collapsed .syst-card[data-idx="11"] { display:block; }
+.syst-pill { background:#00135a; border:1px solid #1b4aa0; border-radius:8px; padding:8px 10px; color:#cfe; display:block; }
+.syst-pill-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.syst-pill-title { color:#9ff; font-weight:bold; margin-bottom:4px; }
+.syst-pill-desc { color:#d9e7ff; font-size:12px; line-height:1.25; }
+.syst-resource-list { display:flex; flex-direction:column; gap:8px; }
+.syst-pill.collapsed-desc-item .syst-pill-desc { display:none; }
+.syst-toggle.syst-toggle-inline { float:none; margin-left:0; font-size:12px; padding:0 4px; line-height:1; }
+.syst-toggle.syst-toggle-inline[data-toggle-item-desc]::after { content:"\25BC"; }
+.syst-pill:not(.collapsed-desc-item) .syst-toggle.syst-toggle-inline[data-toggle-item-desc]::after { content:"\25B2"; }
 </style>
 <div class="syst-page">
   <div class="syst-banner">
@@ -290,6 +299,93 @@ if (!$ordenQueryResult) {
         echo "</div></fieldset>";
     }
     $stmtMisc->close();
+
+    // CUADRO DE RECURSOS ASOCIADOS (RENOMBRE / ESTADO)
+    $resByKind = ['renombre' => [], 'estado' => []];
+    if ($stCols = $link->prepare("SHOW COLUMNS FROM bridge_systems_resources_to_system LIKE 'is_active'")) {
+        $stCols->execute();
+        $rsCols = $stCols->get_result();
+        $hasActive = ($rsCols && $rsCols->num_rows > 0);
+        $stCols->close();
+    } else {
+        $hasActive = false;
+    }
+
+    $sqlSysRes = "
+        SELECT r.id, r.name, r.kind, r.description, b.sort_order
+        FROM bridge_systems_resources_to_system b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+        WHERE b.system_id = ?
+          AND r.kind IN ('renombre','estado')
+          " . ($hasActive ? "AND b.is_active = 1" : "") . "
+        ORDER BY
+            r.kind,
+            COALESCE(NULLIF(CAST(b.sort_order AS SIGNED), 0), CAST(r.sort_order AS SIGNED), 9999),
+            CAST(r.sort_order AS SIGNED),
+            r.name
+    ";
+    if ($stSysRes = $link->prepare($sqlSysRes)) {
+        $stSysRes->bind_param('i', $systemCategoryId);
+        $stSysRes->execute();
+        $rsSysRes = $stSysRes->get_result();
+        while ($rowRes = $rsSysRes->fetch_assoc()) {
+            $kind = strtolower((string)($rowRes['kind'] ?? ''));
+            if (!isset($resByKind[$kind])) continue;
+            $resByKind[$kind][] = [
+                'id' => (int)($rowRes['id'] ?? 0),
+                'name' => (string)($rowRes['name'] ?? ''),
+                'description' => (string)($rowRes['description'] ?? ''),
+            ];
+        }
+        $stSysRes->close();
+    }
+
+    $hasRenombre = !empty($resByKind['renombre']);
+    $hasEstado = !empty($resByKind['estado']);
+    if ($hasRenombre || $hasEstado) {
+        echo "<fieldset class='syst-section'><legend><b>Recursos</b></legend>";
+        if ($hasRenombre) {
+            echo "<div class='syst-subhead'>Renombre</div>";
+            echo "<div class='syst-resource-list'>";
+            foreach ($resByKind['renombre'] as $resItem) {
+                $descHtml = html_entity_decode((string)($resItem['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $hasDesc = (trim((string)$descHtml) !== '');
+                echo "<div class='syst-pill" . ($hasDesc ? " collapsed-desc-item" : "") . "'>";
+                echo "<div class='syst-pill-head'>";
+                echo "<div class='syst-pill-title'>" . htmlspecialchars((string)$resItem['name']) . "</div>";
+                if ($hasDesc) {
+                    echo "<button type='button' class='syst-toggle syst-toggle-inline' data-toggle-item-desc='1'></button>";
+                }
+                echo "</div>";
+                if ($hasDesc) {
+                    echo "<div class='syst-pill-desc'>" . $descHtml . "</div>";
+                }
+                echo "</div>";
+            }
+            echo "</div>";
+        }
+        if ($hasEstado) {
+            echo "<div class='syst-subhead'>Estado</div>";
+            echo "<div class='syst-resource-list'>";
+            foreach ($resByKind['estado'] as $resItem) {
+                $descHtml = html_entity_decode((string)($resItem['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $hasDesc = (trim((string)$descHtml) !== '');
+                echo "<div class='syst-pill" . ($hasDesc ? " collapsed-desc-item" : "") . "'>";
+                echo "<div class='syst-pill-head'>";
+                echo "<div class='syst-pill-title'>" . htmlspecialchars((string)$resItem['name']) . "</div>";
+                if ($hasDesc) {
+                    echo "<button type='button' class='syst-toggle syst-toggle-inline' data-toggle-item-desc='1'></button>";
+                }
+                echo "</div>";
+                if ($hasDesc) {
+                    echo "<div class='syst-pill-desc'>" . $descHtml . "</div>";
+                }
+                echo "</div>";
+            }
+            echo "</div>";
+        }
+        echo "</fieldset>";
+    }
 ?>
   </div>
 </div>
@@ -318,10 +414,19 @@ if (!$ordenQueryResult) {
 
   document.querySelectorAll('.syst-toggle').forEach(function(btn){
     btn.addEventListener('click', function(){
+      if (btn.hasAttribute('data-toggle-item-desc')) return;
       var fs = btn.closest('.syst-section');
       if (!fs) return;
       fs.classList.toggle('collapsed');
       updateSubheads(fs);
+    });
+  });
+
+  document.querySelectorAll('.syst-toggle[data-toggle-item-desc]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pill = btn.closest('.syst-pill');
+      if (!pill) return;
+      pill.classList.toggle('collapsed-desc-item');
     });
   });
 })();
@@ -329,4 +434,3 @@ if (!$ordenQueryResult) {
 <?php
 }
 ?>
-

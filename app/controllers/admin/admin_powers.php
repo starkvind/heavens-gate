@@ -441,6 +441,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 /* -----------------------------
    Listado + paginación
 ------------------------------ */
+if (($_GET['ajax'] ?? '') === 'search') {
+    $tabAjax = (string)($_GET['tab'] ?? $tab);
+    $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'dones';
+    $qAjax   = trim((string)($_GET['q'] ?? ''));
+    $MAjax   = meta_for($tabAjax, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+
+    $tableAjax   = $MAjax['table'];
+    $pkAjax      = $MAjax['pk'];
+    $nameColAjax = $MAjax['name_col'];
+
+    $whereAjax = "WHERE 1=1";
+    $paramsAjax = [];
+    $typesAjax  = "";
+    if ($qAjax !== '') {
+        $whereAjax .= " AND `$nameColAjax` LIKE ?";
+        $typesAjax .= "s";
+        $paramsAjax[] = "%".$qAjax."%";
+    }
+
+    $colsAllAjax = array_map(fn($f)=>"`".$f['k']."`", $MAjax['fields']);
+    $colsAllAjax[] = "`$pkAjax`";
+    $colsAllAjax = array_values(array_unique($colsAllAjax));
+
+    $sqlAjax = "SELECT ".implode(',', $colsAllAjax)." FROM `$tableAjax` $whereAjax ORDER BY ".$MAjax['order_by'];
+    $stAjax = $link->prepare($sqlAjax);
+    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
+    $stAjax->execute();
+    $rsAjax = $stAjax->get_result();
+
+    $rowsAjax = [];
+    $rowMapAjax = [];
+    while ($r = $rsAjax->fetch_assoc()) {
+        $idv = (int)$r[$pkAjax];
+
+        $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
+        if (isset($r['system_id'])) {
+            $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
+        }
+
+        if ($tabAjax === 'dones') {
+            $t = (int)($r['kind'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
+        } elseif ($tabAjax === 'rituales') {
+            $t = (int)($r['kind'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
+        } elseif ($tabAjax === 'totems') {
+            $t = (int)($r['totem_type_id'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
+        } else {
+            $t = (int)($r['disc'] ?? 0);
+            $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
+        }
+
+        $rowsAjax[] = $r;
+        $rowMapAjax[$idv] = $r;
+    }
+    $stAjax->close();
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'tab' => $tabAjax,
+        'rows' => $rowsAjax,
+        'rowMap' => $rowMapAjax,
+        'total' => count($rowsAjax),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 $table   = $META['table'];
 $pk      = $META['pk'];
 $nameCol = $META['name_col'];
@@ -592,7 +661,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_powers') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
-        <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="Nombre…">
+        <input class="inp" type="text" name="q" id="quickSearchPowers" value="<?= h($q) ?>" placeholder="Nombre (realtime en todo el set)…">
       </label>
       <label class="small">Por pág
         <select class="select" name="pp" onchange="this.form.submit()">
@@ -614,7 +683,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     </div>
   <?php endif; ?>
 
-  <table class="table">
+  <table class="table" id="powersTable">
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
@@ -623,7 +692,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
         <th style="width:120px;">Acciones</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="powersTbody">
       <?php foreach ($rows as $r): ?>
         <tr>
           <?php foreach ($META['list_cols'] as $c):
@@ -652,7 +721,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     </tbody>
   </table>
 
-  <div class="pager">
+  <div class="pager" id="powersPager">
     <?php
       $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_powers');
       $base .= "&tab=".urlencode($tab)."&pp=".$perPage."&q=".urlencode($q);
@@ -1019,12 +1088,17 @@ function syncEditorsToTextarea(){
   btnCancel.addEventListener('click', function(){ mb.style.display='none'; });
   mb.addEventListener('click', function(e){ if (e.target === mb) mb.style.display='none'; });
 
-  Array.prototype.forEach.call(document.querySelectorAll('button[data-edit]'), function(b){
-    b.addEventListener('click', function(){
-      var id = parseInt(b.getAttribute('data-edit')||'0',10)||0;
-      openEdit(id);
+  function bindEditButtons(){
+    Array.prototype.forEach.call(document.querySelectorAll('#powersTbody button[data-edit]'), function(b){
+      b.addEventListener('click', function(){
+        var id = parseInt(b.getAttribute('data-edit')||'0',10)||0;
+        openEdit(id);
+      });
     });
-  });
+  }
+  bindEditButtons();
+  window.bindPowerEditButtons = bindEditButtons;
+  window.openPowerEdit = openEdit;
 
   document.getElementById('formCrud').addEventListener('submit', function(ev){
     syncEditorsToTextarea();
@@ -1052,6 +1126,101 @@ function syncEditorsToTextarea(){
     }
   });
 
+})();
+</script>
+
+<script>
+(function(){
+  var input = document.getElementById('quickSearchPowers');
+  var tbody = document.getElementById('powersTbody');
+  var pager = document.getElementById('powersPager');
+  if (!input || !tbody) return;
+
+  var initialHtml = tbody.innerHTML;
+  var initialMap = ROWMAP;
+  var reqSeq = 0;
+  var timer = null;
+
+  function esc(str){
+    return String(str||'')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+  function shortText(str, n){
+    var s = String(str||'').replace(/\s+/g,' ').trim();
+    if (s.length <= n) return s;
+    return s.slice(0, n) + '...';
+  }
+
+  function renderRows(rows, rowMap){
+    ROWMAP = rowMap || {};
+    if (!rows || !rows.length){
+      tbody.innerHTML = '<tr><td colspan="'+(META.list_cols.length+1)+'" style="color:#bbb;">(Sin resultados)</td></tr>';
+      return;
+    }
+
+    var html = '';
+    rows.forEach(function(r){
+      html += '<tr>';
+      (META.list_cols || []).forEach(function(c){
+        var k = c.k;
+        var val = (r[k]===null || r[k]===undefined) ? '' : String(r[k]);
+        if (k === 'id') {
+          html += '<td><strong style="color:#33FFFF;">'+(parseInt(r.id||0,10)||0)+'</strong></td>';
+        } else if (k.indexOf('_name') !== -1) {
+          html += '<td>'+(val !== '' ? esc(val) : '<span class="small">(-)</span>')+'</td>';
+        } else {
+          html += '<td>'+esc(shortText(val, 120))+'</td>';
+        }
+      });
+      html += '<td><button class="btn" type="button" data-edit="'+(parseInt(r.id||0,10)||0)+'">&#x270F; Editar</button></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+    if (window.bindPowerEditButtons) window.bindPowerEditButtons();
+  }
+
+  function runSearch(){
+    var term = (input.value || '').trim();
+    if (term === ''){
+      ROWMAP = initialMap;
+      tbody.innerHTML = initialHtml;
+      if (window.bindPowerEditButtons) window.bindPowerEditButtons();
+      if (pager) pager.style.display = '';
+      return;
+    }
+
+    if (pager) pager.style.display = 'none';
+    var mySeq = ++reqSeq;
+    var pVal = 'talim';
+    try {
+      var usp = new URLSearchParams(window.location.search || '');
+      pVal = usp.get('p') || 'talim';
+    } catch(e){}
+
+    var url = '?p=' + encodeURIComponent(pVal)
+      + '&s=admin_powers'
+      + '&tab=' + encodeURIComponent(TAB)
+      + '&ajax=search'
+      + '&q=' + encodeURIComponent(term);
+
+    fetch(url, { credentials:'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (mySeq !== reqSeq) return;
+        if (!data || data.ok !== true) return;
+        renderRows(data.rows || [], data.rowMap || {});
+      })
+      .catch(function(){});
+  }
+
+  input.addEventListener('input', function(){
+    clearTimeout(timer);
+    timer = setTimeout(runSearch, 180);
+  });
 })();
 </script>
 

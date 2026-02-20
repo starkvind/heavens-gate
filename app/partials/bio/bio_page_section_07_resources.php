@@ -70,7 +70,7 @@ if (isset($link) && $link instanceof mysqli) {
 
 if ($bridgeTable && !empty($characterId) && isset($link) && $link instanceof mysqli) {
     $sqlRes = "
-        SELECT r.name, r.kind, r.sort_order, b.value_permanent, b.value_temporary
+        SELECT r.id, r.name, r.kind, r.sort_order, b.value_permanent, b.value_temporary
         FROM `$bridgeTable` b
         INNER JOIN dim_systems_resources r ON r.id = b.resource_id
         WHERE b.character_id = ?
@@ -84,6 +84,7 @@ if ($bridgeTable && !empty($characterId) && isset($link) && $link instanceof mys
             $kind = strtolower((string)($row['kind'] ?? ''));
             if (!isset($resourcesByKind[$kind])) $resourcesByKind[$kind] = [];
             $resourcesByKind[$kind][] = [
+                'id' => (int)($row['id'] ?? 0),
                 'name' => (string)($row['name'] ?? ''),
                 'perm' => (int)($row['value_permanent'] ?? 0),
                 'temp' => (int)($row['value_temporary'] ?? 0),
@@ -117,10 +118,15 @@ echo "<div class='bioSheetSociaWhole'>"; // Caja de la Seccion SOCIAL y VENTAJAS
         foreach (($resourcesByKind['renombre'] ?? []) as $res) {
             $nm = (string)($res['name'] ?? '');
             if ($nm === '') continue;
+            $rid = (int)($res['id'] ?? 0);
+            $nameHtml = h($nm);
+            if ($rid > 0) {
+                $nameHtml = "<span class='hg-tooltip' data-tip='resource' data-id='" . $rid . "' style='cursor:help;'>" . h($nm) . "</span>";
+            }
             $perm = (int)($res['perm'] ?? 0);
             $temp = (int)($res['temp'] ?? 0);
             echo "<div class='bio-renown-row'>";
-            echo "<div class='bio-renown-left'>" . h($nm) . ":</div>";
+            echo "<div class='bio-renown-left'>" . $nameHtml . ":</div>";
             echo "<div class='bio-renown-right'>";
             echo "<div class='bio-renown-line'><span class='bio-renown-tag'>P</span><span>" . $renderPwrPip($perm) . "</span></div>";
             echo "<div class='bio-renown-line'><span class='bio-renown-tag'>T</span><span>" . $renderPwrPip($temp) . "</span></div>";
@@ -141,7 +147,12 @@ echo "<div class='bioSheetSociaWhole'>"; // Caja de la Seccion SOCIAL y VENTAJAS
         foreach (($resourcesByKind['estado'] ?? []) as $res) {
             $nm = (string)($res['name'] ?? '');
             if ($nm === '') continue;
-            echo "<div class='bioSheetSocialPowerLeft'>" . h($nm) . ":</div>";
+            $rid = (int)($res['id'] ?? 0);
+            $nameHtml = h($nm);
+            if ($rid > 0) {
+                $nameHtml = "<span class='hg-tooltip' data-tip='resource' data-id='" . $rid . "' style='cursor:help;'>" . h($nm) . "</span>";
+            }
+            echo "<div class='bioSheetSocialPowerLeft'>" . $nameHtml . ":</div>";
             echo "<div class='bioSheetSocialPowerRight'>" . $renderEstadoValue($res) . "</div>";
         }
         foreach (($resourcesByKind['exp'] ?? []) as $res) {

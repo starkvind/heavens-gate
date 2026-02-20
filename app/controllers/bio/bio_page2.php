@@ -188,7 +188,7 @@
 		exit;
 	}
 
-	$orderData ="SELECT p.*, s.name AS system_name, t.name AS totem_name FROM fact_characters p LEFT JOIN dim_systems s ON p.system_id = s.id LEFT JOIN dim_totems t ON p.totem_id = t.id WHERE p.id = ? LIMIT 1;"; // Elegimos al PJ de la Base de Datos
+	$orderData ="SELECT p.*, s.name AS system_label FROM fact_characters p LEFT JOIN dim_systems s ON p.system_id = s.id WHERE p.id = ? LIMIT 1;"; // Elegimos al PJ de la Base de Datos
 	$stmtMain = mysqli_prepare($link, $orderData);
 	if (!$stmtMain) {
 		echo "<p style='text-align:center;'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
@@ -253,19 +253,17 @@
 			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organización.
 		// ================================================================== //
 		// Ventajas y poderes
-			$bioTotem	 = (string)($dataResult["totem_name"] ?? ""); 		// Tótem que guía al personaje.
+			$bioTotem	 = ""; 		// Tótem que guía al personaje.
 			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
 		// Género
 			$bioGender	 = $dataResult["gender"];		// Género del personaje
 		// Títulos de la sección Detalles		
 			$titlePkName	= "Nombre Garou";		// Título del nombre Garou
 		// Sistema, para nombres de detalles y tal.
-			$bioSystem 	= (string)($dataResult["system_name"] ?? "");
+			$bioSystem 	= (string)($dataResult["system_label"] ?? "");
 		// Nombres de conceptos
 			// ================================================================== //
-			// Datos y Nombre del Sistema
-			$bioFera = $dataResult["shifter_type"];
-			// ================================================================== //
+			// Datos y nombre del sistema
 			// IDENTIFICACION
 			$titleAuspice	= "Auspicio";
 			$titlePack 		= "Manada";
@@ -908,6 +906,7 @@
 			});
 		});
 	</script>
+
 
 
 

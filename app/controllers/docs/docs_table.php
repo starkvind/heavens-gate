@@ -228,9 +228,9 @@ $(document).ready(function () {
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Último",
-				next: "â–¶",
-				previous: "â—€"
+				last: "&Uacute;ltimo",
+				next: "&#9654;",
+				previous: "&#9664;"
 			}
 		},
 		initComplete: function(){
@@ -422,5 +422,6 @@ $(document).ready(function () {
 	updateSummaryOrgs(null);
 });
 </script>
+
 
 

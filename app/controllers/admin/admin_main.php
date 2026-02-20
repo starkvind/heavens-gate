@@ -13,6 +13,32 @@
 	if (!isset($_SESSION['is_admin'])) {
 		include("admin_login.php");
 	} else {
+		// Modo AJAX: responder sin navbar/layout para no romper JSON.
+		if (isset($_GET['ajax']) && $_GET['ajax'] === '1' && isset($_GET['s'])) {
+			$seccionAjax = htmlspecialchars($_GET['s']);
+			switch ($seccionAjax) {
+				case 'admin_epis': // legacy alias
+				case 'admin_chapters':
+					include("admin_chapters.php");
+					break;
+				case 'admin_menu':
+					include("admin_menu.php");
+					break;
+				case 'admin_groups':
+					include("admin_groups.php");
+					break;
+				case 'admin_traits':
+					include("admin_traits.php");
+					break;
+				default:
+					http_response_code(400);
+					header('Content-Type: application/json; charset=UTF-8');
+					echo json_encode(['ok' => false, 'error' => 'Seccion AJAX no soportada']);
+					break;
+			}
+			return;
+		}
+
 		/* MODERNO NUEVO */
 		include(__DIR__ . "/../../partials/main_nav_bar.php");	// Barra Navegación
 		// Si hay parámetro "s", incluimos la sección correspondiente
@@ -20,23 +46,19 @@
 			$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
 
 			switch ($seccion) {
-				// case 'admin_pjs_crud':
-				// 	include("admin_pjs_crud.php");
-				// 	break;
 				case 'admin_pjs':
 					include("admin_pjs.php");
 					break;
-				// case 'admin_pjs_text':
-				// 	include("admin_pjs_text.php");
-				// 	break;
 				case 'admin_groups':
 					include("admin_groups.php");
 					break;
-				case 'admin_temp':
-					include("admin_temporadas.php");
+				case 'admin_temp': // legacy alias
+				case 'admin_seasons':
+					include("admin_seasons.php");
 					break;
-				case 'admin_epis':
-					include("admin_episodios.php");
+				case 'admin_epis': // legacy alias
+				case 'admin_chapters':
+					include("admin_chapters.php");
 					break;
 				case 'admin_pois':
 					include("admin_pois.php");
@@ -89,8 +111,14 @@
 				case 'admin_trait_sets':
 					include("admin_trait_sets.php");
 					break;
+				case 'admin_traits':
+					include("admin_traits.php");
+					break;
 				case 'admin_systems_resources':
 					include("admin_systems_resources.php");
+					break;
+				case 'admin_resources':
+					include("admin_resources.php");
 					break;
 				case 'admin_resources_migration':
 					include("admin_resources_migration.php");
@@ -154,12 +182,12 @@
 							Gestionar Noticias
 						</div>
 					</a>
-					<a href='/talim?s=admin_temp'>
+					<a href='/talim?s=admin_seasons'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Temporadas
 						</div>
 					</a>
-					<a href='/talim?s=admin_epis'>
+					<a href='/talim?s=admin_chapters'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Episodios
 						</div>
@@ -217,6 +245,11 @@
 				// REGLAMENTO
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Reglamento&nbsp;</legend>";
 				echo "
+					<a href='/talim?s=admin_traits'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Gestionar Rasgos
+						</div>
+					</a>
 					<a href='/talim?s=admin_systems'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Gestionar Sistemas
@@ -224,17 +257,22 @@
 					</a>
 					<a href='/talim?s=admin_system_details'>
 						<div class='bioSheetPower' style='width:47.5%;'>
-							Detalles de Sistemas
+							Gestionar Razas / Auspicios / Tribus
 						</div>
 					</a>
 					<a href='/talim?s=admin_trait_sets'>
 						<div class='bioSheetPower' style='width:47.5%;'>
-							Traits por Sistema
+							Asignar Rasgos por Sistema
 						</div>
 					</a>
 					<a href='/talim?s=admin_systems_resources'>
 						<div class='bioSheetPower' style='width:47.5%;'>
-							Recursos por Sistema
+							Asginar Recursos por Sistema
+						</div>
+					</a>
+					<a href='/talim?s=admin_resources'>
+						<div class='bioSheetPower' style='width:47.5%;'>
+							Gestionar Recursos (Catalogo)
 						</div>
 					</a>
 					<a href='/talim?s=admin_forms'>
@@ -256,11 +294,6 @@
 					<a href='/talim?s=admin_inspect_db'>
 						<div class='bioSheetPower' style='width:47.5%;'>
 							Inspeccionar BDD
-						</div>
-					</a>
-					<a href='/talim?s=admin_resources_migration'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Migrar Recursos de PJ
 						</div>
 					</a>
 					<a href='/talim?s=admin_mentions_help'>

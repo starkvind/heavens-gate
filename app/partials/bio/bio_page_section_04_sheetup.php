@@ -11,7 +11,7 @@
 		echo"<div class='bioSheetSectionLeft'>$titleTribe:</div>";
 		echo"<div class='bioSheetSectionRight'>$tribeLink</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
-	if ($bioTotem != "") { // Tótem del Personaje
+	if (($bioTotemId ?? 0) > 0 || ($totemLink ?? '') !== '' || $bioTotem != "") { // Tótem del Personaje
 		echo"<div class='bioSheetSectionLeft'>Tótem:</div>";
 		echo"<div class='bioSheetSectionRight'>".($totemLink !== '' ? $totemLink : $bioTotem)."</div>";
 	}
@@ -40,3 +40,4 @@
 		echo"<div class='bioSheetSectionRight'>$nameCronicaFinal</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
 ?>
+

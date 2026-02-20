@@ -114,10 +114,13 @@ if ($table !== "") {
 .syst-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
 .syst-banner::before { content:''; display:block; padding-top:28%; }
 .syst-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
-.syst-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
+.syst-banner-title { position:absolute; top:10px; left:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; text-align:left; }
 .syst-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
 .syst-box h3 { margin-top:0; color:#33FFFF; }
 .syst-meta { color:#cfe; }
+.syst-detail, .syst-box, .syst-box h3, .syst-box p, .syst-box div, .renglon2col, .renglon2colIz, .renglon2colDe { text-align:left !important; }
+.syst-box fieldset, .syst-box fieldset * { text-align:left !important; }
+.syst-box a, .syst-box a * { text-align:left !important; }
 </style>
 <div class="syst-detail">
   <div class="syst-banner">
@@ -176,8 +179,11 @@ if ($table !== "") {
             echo "<fieldset class='grupoHabilidad'>";
             while ($resultDonQuery = $resultDon->fetch_assoc()) {
                 echo "
-                    <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$resultDonQuery['id'])) . "' 
-                        title='" . htmlspecialchars($resultDonQuery['name']) . ", Rango " . htmlspecialchars($resultDonQuery['rank']) . "' target='_blank'>
+                    <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$resultDonQuery['id'])) . "'
+                        class='hg-tooltip'
+                        data-tip='don'
+                        data-id='" . (int)$resultDonQuery['id'] . "'
+                        target='_blank'>
                         <div class='renglon2col'>
                             <div class='renglon2colIz'>
                                 <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($resultDonQuery['name']) . "
@@ -251,7 +257,7 @@ if ($table !== "") {
                 echo "<tr><td><a href='" . htmlspecialchars($charHref) . "' target='_blank'>$charName</a></td><td>$charGroup</td><td>$charOrg</td></tr>";
             }
             echo "</tbody></table>";
-            echo "<p style='text-align:right;'>$nameSyst: $pjCount</p>";
+            echo "<p style='text-align:left;'>$nameSyst: $pjCount</p>";
             echo "</div>";
 
             echo "<link rel='stylesheet' href='/assets/vendor/datatables/jquery.dataTables.min.css'>";
@@ -286,4 +292,111 @@ if ($table !== "") {
     }
 }
 ?>
+<style>
+#hg-tooltip{
+	position: fixed;
+	z-index: 999999;
+	max-width: 380px;
+	background: #050b36;
+	border: 1px solid #0b3a7a;
+	color: #e6f0ff;
+	border-radius: 8px;
+	padding: 10px 12px;
+	box-shadow: 0 8px 24px rgba(0,0,0,.45);
+	display: none;
+	pointer-events: none;
+	font-size: 12px;
+	line-height: 1.35;
+	text-align: left !important;
+}
+#hg-tooltip *{ text-align: left !important; }
+#hg-tooltip .hg-tip-title{ font-weight: bold; margin-bottom: 4px; color:#8fd7ff; }
+#hg-tooltip .hg-tip-meta{ font-size: 11px; color:#9fb2d9; }
+#hg-tooltip .hg-tip-label{ font-weight: bold; margin-top: 6px; color:#cfd9ff; }
+#hg-tooltip .hg-tip-text{ font-size: 12px; color:#e6f0ff; }
+</style>
+<script>
+(function(){
+	const nodes = document.querySelectorAll('.hg-tooltip[data-tip="don"]');
+	if (!nodes.length) return;
 
+	let tooltip = document.getElementById('hg-tooltip');
+	if (!tooltip) {
+		tooltip = document.createElement('div');
+		tooltip.id = 'hg-tooltip';
+		document.body.appendChild(tooltip);
+	}
+
+	let lastX = 0, lastY = 0;
+	const cache = new Map();
+	let timer = null;
+	let currentKey = '';
+
+	function moveTip(x, y){
+		const pad = 14;
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+		const tw = tooltip.offsetWidth || 320;
+		const th = tooltip.offsetHeight || 120;
+		let left = x + pad;
+		let top = y + pad;
+		if (left + tw > vw - 8) left = x - tw - pad;
+		if (top + th > vh - 8) top = y - th - pad;
+		if (left < 8) left = 8;
+		if (top < 8) top = 8;
+		tooltip.style.left = left + 'px';
+		tooltip.style.top = top + 'px';
+	}
+
+	function hideTip(){
+		tooltip.style.display = 'none';
+		tooltip.innerHTML = '';
+		currentKey = '';
+	}
+
+	nodes.forEach(el => {
+		el.addEventListener('mousemove', (ev) => {
+			lastX = ev.clientX;
+			lastY = ev.clientY;
+			if (tooltip.style.display === 'block') moveTip(lastX, lastY);
+		});
+
+		el.addEventListener('mouseenter', (ev) => {
+			lastX = ev.clientX;
+			lastY = ev.clientY;
+			const type = el.getAttribute('data-tip') || '';
+			const id = el.getAttribute('data-id') || '';
+			if (!type || !id) return;
+			const key = type + ':' + id;
+			currentKey = key;
+			if (timer) clearTimeout(timer);
+
+			timer = setTimeout(async () => {
+				if (currentKey !== key) return;
+				if (cache.has(key)) {
+					tooltip.innerHTML = cache.get(key);
+					tooltip.style.display = 'block';
+					moveTip(lastX, lastY);
+					return;
+				}
+
+				try {
+					const res = await fetch('/ajax/tooltip?type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id));
+					const html = await res.text();
+					if (currentKey !== key) return;
+					cache.set(key, html);
+					tooltip.innerHTML = html;
+					tooltip.style.display = 'block';
+					moveTip(lastX, lastY);
+				} catch (_e) {}
+			}, 2000);
+		});
+
+		el.addEventListener('mouseleave', () => {
+			if (timer) clearTimeout(timer);
+			timer = null;
+			hideTip();
+		});
+	});
+})();
+</script>

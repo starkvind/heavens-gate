@@ -73,8 +73,8 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
     $totemCharOwners = [];
-    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.status FROM fact_characters p WHERE (p.totem_id = ? OR p.totem_name = ? OR p.totem_name = ?) $cronicaNotInSQL ORDER BY p.name")) {
-        $stOwners->bind_param('iss', $totemPageID, $totemNameRaw, $totemPrettyRaw);
+    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.status FROM fact_characters p WHERE p.totem_id = ? $cronicaNotInSQL ORDER BY p.name")) {
+        $stOwners->bind_param('i', $totemPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
         while ($r = $rsOwners->fetch_assoc()) { $totemCharOwners[] = $r; }

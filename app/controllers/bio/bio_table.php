@@ -94,7 +94,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
           a.id AS type_id, a.pretty_id AS type_pretty_id, a.kind AS type_name,
 
-          s.name AS system_name, p.system_name AS system_legacy, p.status
+          s.name AS system_name, p.status
 
       FROM fact_characters p
 
@@ -818,7 +818,7 @@ $(document).ready(function () {
 
 			clan,
 
-			escapeHtml(p.system_name || p.system_legacy || ''),
+			escapeHtml(p.system_name || '-'),
 
 			tipo,
 
@@ -990,7 +990,7 @@ $(document).ready(function () {
 
 		clansSet.add((p.clan_name && String(p.clan_name).trim() !== '') ? String(p.clan_name).trim() : '-');
 
-		systemsSet.add((p.system_name && String(p.system_name).trim() !== '') ? String(p.system_name).trim() : ((p.system_legacy && String(p.system_legacy).trim() !== '') ? String(p.system_legacy).trim() : '-'));
+		systemsSet.add((p.system_name && String(p.system_name).trim() !== '') ? String(p.system_name).trim() : '-');
 
 		typesSet.add((p.type_name && String(p.type_name).trim() !== '') ? String(p.type_name).trim() : '-');
 

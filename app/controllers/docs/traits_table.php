@@ -265,16 +265,16 @@ $(document).ready(function () {
 		lengthMenu: [10, 25, 50, 100],
 		order: [[0, "asc"]],
 		language: {
-			search: "🔍 Buscar:&nbsp;",
+			search: "&#128269; Buscar:&nbsp;",
 			lengthMenu: "Mostrar _MENU_ rasgos",
 			info: "Mostrando _START_ a _END_ de _TOTAL_ rasgos",
 			infoEmpty: "No hay rasgos disponibles",
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Último",
-				next: "â–¶",
-				previous: "â—€"
+				last: "&Uacute;ltimo",
+				next: "&#9654;",
+				previous: "&#9664;"
 			}
 		},
 		initComplete: function(){
@@ -423,6 +423,7 @@ function sortValues(values){
 	});
 }
 </script>
+
 
 
 

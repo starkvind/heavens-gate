@@ -941,10 +941,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         }
         $totem_id = $totem_from_group > 0 ? $totem_from_group : $totem_from_clan;
     }
-    $totem_legacy = '';
-    if ($totem_id > 0 && isset($opts_totems[$totem_id])) {
-        $totem_legacy = (string)$opts_totems[$totem_id];
-    } else {
+    if (!($totem_id > 0 && isset($opts_totems[$totem_id]))) {
         $totem_id = null; // NULL para evitar FK con 0
     }
 
@@ -963,16 +960,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, character_kind, system_name, system_id,
-                 shifter_type, totem_name, totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 shifter_type, totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
-                $img=''; $kes='pnj'; $fera=''; $totem='';
+                $img=''; $kes='pnj'; $fera='';
                 $stmt->bind_param(
-                    "sssssiiisssssississsssiii",
+                    "sssssiiisssssisisssssiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
                     $img, $notas, $text_color, $kes, $sistema_legacy, $system_id, $fera,
-                    $totem_legacy, $totem_id,
+                    $totem_id,
                     $status, $causamuerte, $cumple, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id
                 );
@@ -1060,7 +1057,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   name=?, alias=?, garou_name=?, gender=?, concept=?,
                   chronicle_id=?, player_id=?, character_type_id=?, system_name=?, system_id=?, text_color=?,
                   breed_id=?, auspice_id=?, tribe_id=?,
-                  totem_name=?, totem_id=?,
+                  totem_id=?,
                   status=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
                   WHERE id=?";
 
@@ -1068,11 +1065,11 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiisisiiisisssssi",
+                  "sssssiiisisiiiisssssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $sistema_legacy, $system_id, $text_color,
                   $raza, $auspice_id, $tribe_id,
-                  $totem_legacy, $totem_id,
+                  $totem_id,
                   $status, $causamuerte, $cumple, $rango, $infotext,
                   $id
               );
@@ -1212,7 +1209,7 @@ SELECT
   -- [OK] IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.clan_id, 0)  AS clan,
-  p.image_url, p.character_type_id, p.totem_id, p.totem_name,
+  p.image_url, p.character_type_id, p.totem_id,
 
   nj.name AS jugador_,
   nc.name AS cronica_,
