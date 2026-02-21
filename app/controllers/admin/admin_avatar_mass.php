@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // admin_avatar_mass.php - Actualizacion masiva de avatares de personajes (sin paginacion)
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
@@ -152,7 +152,7 @@ SELECT
     COALESCE(ch.name, '') AS chronicle_name,
     COALESCE(bg.group_id, 0) AS group_id,
     COALESCE(g.name, '') AS group_name,
-    COALESCE(bo.clan_id, 0) AS org_id,
+    COALESCE(bo.organization_id, 0) AS org_id,
     COALESCE(o.name, '') AS org_name
 FROM fact_characters p
 LEFT JOIN (
@@ -163,12 +163,12 @@ LEFT JOIN (
 ) bg ON bg.character_id = p.id
 LEFT JOIN dim_groups g ON g.id = bg.group_id
 LEFT JOIN (
-    SELECT character_id, MIN(clan_id) AS clan_id
+    SELECT character_id, MIN(organization_id) AS organization_id
     FROM bridge_characters_organizations
     WHERE (is_active=1 OR is_active IS NULL)
     GROUP BY character_id
 ) bo ON bo.character_id = p.id
-LEFT JOIN dim_organizations o ON o.id = bo.clan_id
+LEFT JOIN dim_organizations o ON o.id = bo.organization_id
 LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id
 ORDER BY p.name ASC
 ";
@@ -432,3 +432,4 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
   });
 })();
 </script>
+

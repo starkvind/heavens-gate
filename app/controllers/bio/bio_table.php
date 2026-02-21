@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 setMetaFromPage("Personajes | Heaven's Gate", "Listado completo de personajes.", null, 'website');
 
@@ -8,13 +8,13 @@ include("app/partials/main_nav_bar.php");
 
 if (!$link) {
 
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 
 }
 
 
 
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 
 function sanitize_int_csv($csv){
 
@@ -74,7 +74,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
         -- CLAN del PJ (bridge personaje->clan)
 
-        nc2.id   AS clan_id,
+        nc2.id   AS organization_id,
 
         nc2.pretty_id AS clan_pretty_id,
 
@@ -124,7 +124,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
         LEFT JOIN dim_organizations nc2
 
-            ON nc2.id = hcc.clan_id
+            ON nc2.id = hcc.organization_id
 
 
 
@@ -138,7 +138,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
         LEFT JOIN dim_organizations nc_from_pack
 
-            ON nc_from_pack.id = hcg2.clan_id
+            ON nc_from_pack.id = hcg2.organization_id
 
 
 
@@ -198,9 +198,9 @@ while ($row = mysqli_fetch_assoc($result)) {
 
     // Si no hay clan directo del PJ, usamos el clan derivado de su manada
 
-    if (empty($row['clan_id']) && !empty($row['clan_from_pack_id'])) {
+    if (empty($row['organization_id']) && !empty($row['clan_from_pack_id'])) {
 
-        $row['clan_id']   = $row['clan_from_pack_id'];
+        $row['organization_id']   = $row['clan_from_pack_id'];
 
         $row['clan_name'] = $row['clan_from_pack_name'];
 
@@ -270,7 +270,7 @@ $personajes = ensure_utf8($personajes);
 
 
 
-$pageSect = "Lista de personajes - Biografías";
+$pageSect = "Lista de personajes - BiografÃ­as";
 
 ?>
 
@@ -520,7 +520,7 @@ $pageSect = "Lista de personajes - Biografías";
 
           <div class="ms-btn" id="ms-toggle-clan" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
 
-            <span class="ms-label">Organización</span>
+            <span class="ms-label">OrganizaciÃ³n</span>
 
             <span class="ms-summary" id="ms-summary-clan">Todas</span>
 
@@ -648,7 +648,7 @@ $pageSect = "Lista de personajes - Biografías";
 
                 <th>Grupo</th>
 
-                <th>Organización</th>
+                <th>OrganizaciÃ³n</th>
 
                 <th>Sistema</th>
 
@@ -686,7 +686,7 @@ function escapeHtml(text) {
 
 
 
-// Escape específico para atributos (incluye backticks)
+// Escape especÃ­fico para atributos (incluye backticks)
 
 function escapeAttr(text) {
 
@@ -778,7 +778,7 @@ $(document).ready(function () {
 
 
 
-	// Construimos el array final para DataTables (más rápido que append por fila)
+	// Construimos el array final para DataTables (mÃ¡s rÃ¡pido que append por fila)
 
 	const data = personajes.map(p => {
 
@@ -792,7 +792,7 @@ $(document).ready(function () {
 
 		const packSlug = p.pack_pretty_id || Number(p.pack_id);
 
-		const clanSlug = p.clan_pretty_id || Number(p.clan_id);
+		const clanSlug = p.clan_pretty_id || Number(p.organization_id);
 
 		const typeSlug = p.type_pretty_id || Number(p.type_id);
 
@@ -802,7 +802,7 @@ $(document).ready(function () {
 
 		const manada = p.pack_id ? `<a href="/groups/${escapeAttr(packSlug)}" target="_blank">${escapeHtml(p.pack_name)}</a>` : '-';
 
-		const clan   = p.clan_id ? `<a href="/organizations/${escapeAttr(clanSlug)}" target="_blank">${escapeHtml(p.clan_name)}</a>` : '-';
+		const clan   = p.organization_id ? `<a href="/organizations/${escapeAttr(clanSlug)}" target="_blank">${escapeHtml(p.clan_name)}</a>` : '-';
 
 		const tipo   = p.type_id ? `<a href="/characters/type/${escapeAttr(typeSlug)}" target="_blank">${escapeHtml(p.type_name)}</a>` : '-';
 
@@ -842,7 +842,7 @@ $(document).ready(function () {
 
 			{ title: "Grupo" },
 
-			{ title: "Organización" },
+			{ title: "OrganizaciÃ³n" },
 
 			{ title: "Sistema" },
 
@@ -860,7 +860,7 @@ $(document).ready(function () {
 
 		language: {
 
-			search: "🔍 Buscar:&nbsp;",
+			search: "ðŸ” Buscar:&nbsp;",
 
 			lengthMenu: "Mostrar _MENU_ personajes",
 
@@ -874,7 +874,7 @@ $(document).ready(function () {
 
 				first: "Primero",
 
-				last: "Último",
+				last: "Ãšltimo",
 
 				next: "&#9654;",
 
@@ -1151,6 +1151,7 @@ $(document).ready(function () {
 });
 
 </script>
+
 
 
 

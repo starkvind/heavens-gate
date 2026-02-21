@@ -20,25 +20,29 @@ if (!function_exists('sanitize_int_csv')) {
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
-/* 1) Tramas activas */
-$sqlPlots = "SELECT hp.id, hp.name, hp.description FROM dim_parties hp WHERE hp.active = 1 ORDER BY hp.sort_order ASC";
-$resPlots = $link->query($sqlPlots);
-if (!$resPlots) die("Error al preparar la consulta: " . $link->error);
+/* Legacy naming mapping:
+   plot_id == party_id (FK -> dim_parties.id)
+   plot_char_id == party_member_id (FK -> fact_party_members.id) */
 
-$plots = [];
-while ($row = $resPlots->fetch_assoc()) {
-    $plots[$row['id']] = $row;
-    $plots[$row['id']]['characters'] = [];
+/* 1) Parties activas */
+$sqlParties = "SELECT hp.id, hp.name, hp.description FROM dim_parties hp WHERE hp.active = 1 ORDER BY hp.sort_order ASC";
+$resParties = $link->query($sqlParties);
+if (!$resParties) die("Error al preparar la consulta: " . $link->error);
+
+$parties = [];
+while ($row = $resParties->fetch_assoc()) {
+    $parties[$row['id']] = $row;
+    $parties[$row['id']]['characters'] = [];
 }
-mysqli_free_result($resPlots);
+mysqli_free_result($resParties);
 
-/* 2) Personajes base de cada trama (valores máximos) */
-$sqlMembers = "SELECT c.id, c.plot_id, c.base_char_id,
+/* 2) Personajes base de cada party (valores máximos) */
+$sqlMembers = "SELECT c.id, c.party_id, c.base_char_id,
               c.m_hp, c.m_rage, c.m_gnosis, c.m_glamour, c.m_mana, c.m_blood, c.m_wp,
               c.alias AS nombre, p.image_url AS avatar
        FROM fact_party_members c
        JOIN fact_characters p ON p.id = c.base_char_id
-	   LEFT JOIN dim_parties hp ON c.plot_id = hp.id
+	   LEFT JOIN dim_parties hp ON c.party_id = hp.id
        WHERE c.active = 1 AND hp.active = 1 $chronicle_idNotInSQL";
 $resChars = $link->query($sqlMembers);
 if (!$resChars) die("Error al preparar la consulta: " . $link->error);
@@ -56,19 +60,19 @@ while ($row = $resChars->fetch_assoc()) {
 
     $characters[$row['id']] = $row;
     // Guardamos por referencia para poder modificar tras aplicar cambios
-    $plots[$row['plot_id']]['characters'][] = &$characters[$row['id']];
+    $parties[$row['party_id']]['characters'][] = &$characters[$row['id']];
 }
 mysqli_free_result($resChars);
 
 /* 3) Aplicar cambios agregados desde fact_party_members_changes */
-$sqlChanges = "SELECT plot_char_id, resource, SUM(value) AS total
+$sqlChanges = "SELECT party_member_id, resource, SUM(value) AS total
        FROM fact_party_members_changes
-       GROUP BY plot_char_id, resource";
+       GROUP BY party_member_id, resource";
 $resChanges = $link->query($sqlChanges);
 if (!$resChanges) die("Error al preparar la consulta de cambios: " . $link->error);
 
 while ($chg = $resChanges->fetch_assoc()) {
-    $cid = (int)$chg['plot_char_id'];
+    $cid = (int)$chg['party_member_id'];
     if (!isset($characters[$cid])) continue; // por seguridad
 
     $res = $chg['resource'];
@@ -106,14 +110,14 @@ mysqli_free_result($resChanges);
 
 <h2 style="text-align:right;">Grupos en activo</h2>
 
-<?php foreach ($plots as $plot): ?>
+<?php foreach ($parties as $party): ?>
 <div class="plot-box">
-  <h3 class="plot-title"><?= htmlspecialchars($plot['name']) ?></h3>
+  <h3 class="plot-title"><?= htmlspecialchars($party['name']) ?></h3>
   <div class="plot-desc"><!-- abierto por defecto -->
-    <p class="plot-info"><?= nl2br(htmlspecialchars($plot['description'])) ?></p>
+    <p class="plot-info"><?= nl2br(htmlspecialchars($party['description'])) ?></p>
 
     <div class="characters-grid">
-      <?php foreach ($plot['characters'] as $ch): ?>
+      <?php foreach ($party['characters'] as $ch): ?>
       <?php
         // Cálculo de porcentajes (clamp 0..100, evitando división por 0)
         $hpPct    = ($ch['m_hp']     > 0) ? max(0, min(100, (int)round(($ch['cur_hp']     / $ch['m_hp'])     * 100))) : 0;
@@ -332,5 +336,3 @@ mysqli_free_result($resChanges);
 	}
 
 </style>
-
-

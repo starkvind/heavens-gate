@@ -1,13 +1,13 @@
-<?php
-// Verificar la conexión a la base de datos
+﻿<?php
+// Verificar la conexiÃ³n a la base de datos
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 }
 
 // Helper escape
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-// Sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+// Sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -21,7 +21,7 @@ function sanitize_int_csv($csv){
     return implode(',', $ints);
 }
 
-// Obtener y sanitizar los parámetros de la URL
+// Obtener y sanitizar los parÃ¡metros de la URL
 $typePack = isset($_GET['t']) ? (int)$_GET['t'] : 0;  /* Tipo de contenido */
 $packId   = isset($_GET['b']) ? (int)$_GET['b'] : 0;  /* ID del contenido */
 
@@ -41,13 +41,13 @@ switch($typePack) {
         $nameTypeForTitle = "Clan";
         break;
     default:
-        // Tipo inválido: evita warnings y sal con algo legible
+        // Tipo invÃ¡lido: evita warnings y sal con algo legible
         echo "<h2>Error</h2>";
-        echo "<p class='texti'>Tipo de contenido inválido.</p>";
+        echo "<p class='texti'>Tipo de contenido invÃ¡lido.</p>";
         exit;
 }
 
-// Excluir crónicas (si existe la variable)
+// Excluir crÃ³nicas (si existe la variable)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
@@ -80,7 +80,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     $namePack = $ResultQuery["name"] ?? '';
     $infoPack = $ResultQuery["description"] ?? $ResultQuery["description"] ?? '';
 
-    $pageSect   = "Biografías";
+    $pageSect   = "BiografÃ­as";
     $pageTitle2 = $namePack;
     setMetaFromPage($namePack . " | " . $nameTypeForTitle . " | Heaven's Gate", meta_excerpt($infoPack), null, 'article');
 
@@ -90,9 +90,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     $clanLink = '';
     if ($typePack == 1) {
         $clanBridgeQuery = "
-            SELECT c.id AS clan_id, c.name AS clan_name
+            SELECT c.id AS organization_id, c.name AS clan_name
             FROM bridge_organizations_groups b
-            INNER JOIN dim_organizations c ON c.id = b.clan_id
+            INNER JOIN dim_organizations c ON c.id = b.organization_id
             WHERE b.group_id = ?
               AND (b.is_active = 1 OR b.is_active IS NULL)
             ORDER BY b.id ASC
@@ -106,7 +106,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
             if ($clanResult && mysqli_num_rows($clanResult) > 0) {
                 $clanRow = mysqli_fetch_assoc($clanResult);
-                $clanDataId = (int)$clanRow["clan_id"];
+                $clanDataId = (int)$clanRow["organization_id"];
                 $clanName   = (string)$clanRow["clan_name"];
                 $clanHref   = pretty_url($link, 'dim_organizations', '/organizations', (int)$clanDataId);
                 $clanLink   = "<a href='" . h($clanHref) . "'>" . h($clanName) . "</a>";
@@ -119,7 +119,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     }
 
     // ------------------------------------------------------------
-    // Tótem (igual que lo tenías)
+    // TÃ³tem (igual que lo tenÃ­as)
     // ------------------------------------------------------------
     $totemLink = "";
     $totemPack  = isset($ResultQuery["totem_id"]) ? (int)$ResultQuery["totem_id"] : 0;
@@ -182,8 +182,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             ORDER BY
                 CASE p.status
                     WHEN 'Paradero desconocido' THEN 1
-                    WHEN 'Cadáver' THEN 2
-                    WHEN 'Aún por aparecer' THEN 9999
+                    WHEN 'CadÃ¡ver' THEN 2
+                    WHEN 'AÃºn por aparecer' THEN 9999
                     ELSE 0
                 END,
                 p.name
@@ -206,9 +206,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataStatus = (string)$packRow["status"];
 
                     switch ($packDataStatus) {
-                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -241,8 +241,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             ORDER BY
                 CASE p.status
                     WHEN 'Paradero desconocido' THEN 1
-                    WHEN 'Cadáver' THEN 2
-                    WHEN 'Aún por aparecer' THEN 9999
+                    WHEN 'CadÃ¡ver' THEN 2
+                    WHEN 'AÃºn por aparecer' THEN 9999
                     ELSE 0
                 END,
                 p.name
@@ -265,9 +265,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $oldMemberStatus = (string)$oldMemberRow["status"];
 
                     switch ($oldMemberStatus) {
-                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -302,7 +302,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             SELECT m.id, m.name
             FROM bridge_organizations_groups b
             INNER JOIN dim_groups m ON m.id = b.group_id
-            WHERE b.clan_id = ?
+            WHERE b.organization_id = ?
               AND (b.is_active = 1 OR b.is_active IS NULL)
               AND m.is_active = 1
               " . (($excludeChronicles !== '') ? " AND m.chronicle_id NOT IN ($excludeChronicles) " : "") . "
@@ -313,7 +313,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             SELECT m.id, m.name
             FROM bridge_organizations_groups b
             INNER JOIN dim_groups m ON m.id = b.group_id
-            WHERE b.clan_id = ?
+            WHERE b.organization_id = ?
               AND (b.is_active = 1 OR b.is_active IS NULL)
               AND m.is_active = 0
               " . (($excludeChronicles !== '') ? " AND m.chronicle_id NOT IN ($excludeChronicles) " : "") . "
@@ -383,15 +383,15 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
             LEFT JOIN bridge_characters_groups bg
                 ON bg.character_id = p.id
                AND (bg.is_active = 1 OR bg.is_active IS NULL)
-            WHERE bc.clan_id = ?
+            WHERE bc.organization_id = ?
               AND (bc.is_active = 1 OR bc.is_active IS NULL)
               AND bg.character_id IS NULL
               $cronicaNotInSQL
             ORDER BY
                 CASE p.status
                     WHEN 'Paradero desconocido' THEN 1
-                    WHEN 'Cadáver' THEN 2
-                    WHEN 'Aún por aparecer' THEN 9999
+                    WHEN 'CadÃ¡ver' THEN 2
+                    WHEN 'AÃºn por aparecer' THEN 9999
                     ELSE 0
                 END,
                 p.name
@@ -414,9 +414,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $cst   = (string)$charRow["status"];
 
                     switch ($cst) {
-                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -446,4 +446,5 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 mysqli_free_result($result);
 mysqli_stmt_close($stmtMain);
 ?>
+
 

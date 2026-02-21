@@ -41,6 +41,7 @@ $tables = [
     ['table' => 'dim_item_types', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'fact_items', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'fact_map_pois', 'id' => 'id', 'expr' => 'name'],
+    ['table' => 'dim_bibliographies', 'id' => 'id', 'expr' => 'name'],
 ];
 
 function column_exists(mysqli $link, string $table, string $column): bool {

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // admin_bridges.php - Panel para ver/editar Bridges
 // - PJ -> Manada (bridge_characters_groups)
 // - PJ -> Clan   (bridge_characters_organizations)
@@ -101,7 +101,7 @@ function set_active_character_clan(mysqli $link, string $T_CHAR_CLAN, int $charI
   if ($charId <= 0) return;
 
   if ($clanId > 0) {
-    if ($st = $link->prepare("SELECT id FROM {$T_CHAR_CLAN} WHERE character_id=? AND clan_id=? ORDER BY id DESC LIMIT 1")) {
+    if ($st = $link->prepare("SELECT id FROM {$T_CHAR_CLAN} WHERE character_id=? AND organization_id=? ORDER BY id DESC LIMIT 1")) {
       $st->bind_param("ii",$charId,$clanId);
       $st->execute();
       $rs = $st->get_result();
@@ -114,12 +114,12 @@ function set_active_character_clan(mysqli $link, string $T_CHAR_CLAN, int $charI
           $u->bind_param("i",$idRow); $u->execute(); $u->close();
         }
       } else {
-        if ($ins = $link->prepare("INSERT INTO {$T_CHAR_CLAN} (character_id, clan_id, is_active) VALUES (?,?,1)")) {
+        if ($ins = $link->prepare("INSERT INTO {$T_CHAR_CLAN} (character_id, organization_id, is_active) VALUES (?,?,1)")) {
           $ins->bind_param("ii",$charId,$clanId); $ins->execute(); $ins->close();
         }
       }
     }
-    if ($off = $link->prepare("UPDATE {$T_CHAR_CLAN} SET is_active=0 WHERE character_id=? AND clan_id<>?")) {
+    if ($off = $link->prepare("UPDATE {$T_CHAR_CLAN} SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
       $off->bind_param("ii",$charId,$clanId); $off->execute(); $off->close();
     }
   } else {
@@ -131,17 +131,17 @@ function set_active_character_clan(mysqli $link, string $T_CHAR_CLAN, int $charI
 
 /**
  * Dado un group_id (manada), intenta resolver su clan activo via bridge_organizations_groups.
- * Devuelve clan_id o 0 si no encuentra.
+ * Devuelve organization_id o 0 si no encuentra.
  */
 function resolve_clan_for_group(mysqli $link, string $T_CLAN_GROUP, int $groupId): int {
   if ($groupId <= 0) return 0;
   $cid = 0;
-  $sql = "SELECT clan_id FROM {$T_CLAN_GROUP} WHERE group_id=? AND (is_active=1 OR is_active IS NULL) ORDER BY id DESC LIMIT 1";
+  $sql = "SELECT organization_id FROM {$T_CLAN_GROUP} WHERE group_id=? AND (is_active=1 OR is_active IS NULL) ORDER BY id DESC LIMIT 1";
   if ($st = $link->prepare($sql)) {
     $st->bind_param("i",$groupId);
     $st->execute();
     $rs = $st->get_result();
-    if ($rs && ($r=$rs->fetch_assoc())) $cid = (int)$r['clan_id'];
+    if ($rs && ($r=$rs->fetch_assoc())) $cid = (int)$r['organization_id'];
     $st->close();
   }
   return $cid;
@@ -157,7 +157,7 @@ function set_clan_group(mysqli $link, string $T_CLAN_GROUP, int $clanId, int $gr
 
   // Si existe, update; si no, insert
   $idRow = 0;
-  if ($st = $link->prepare("SELECT id FROM {$T_CLAN_GROUP} WHERE clan_id=? AND group_id=? ORDER BY id DESC LIMIT 1")) {
+  if ($st = $link->prepare("SELECT id FROM {$T_CLAN_GROUP} WHERE organization_id=? AND group_id=? ORDER BY id DESC LIMIT 1")) {
     $st->bind_param("ii",$clanId,$groupId);
     $st->execute();
     $rs = $st->get_result();
@@ -170,14 +170,14 @@ function set_clan_group(mysqli $link, string $T_CLAN_GROUP, int $clanId, int $gr
       $u->bind_param("ii",$isActive,$idRow); $u->execute(); $u->close();
     }
   } else {
-    if ($ins = $link->prepare("INSERT INTO {$T_CLAN_GROUP} (clan_id, group_id, is_active) VALUES (?,?,?)")) {
+    if ($ins = $link->prepare("INSERT INTO {$T_CLAN_GROUP} (organization_id, group_id, is_active) VALUES (?,?,?)")) {
       $ins->bind_param("iii",$clanId,$groupId,$isActive); $ins->execute(); $ins->close();
     }
   }
 
   // Si activas una (clanId, groupId) y quieres que la manada tenga SOLO un clan activo a la vez:
   if ($isActive===1 && $enforceOneActiveOwnerPerGroup) {
-    if ($off = $link->prepare("UPDATE {$T_CLAN_GROUP} SET is_active=0 WHERE group_id=? AND clan_id<>?")) {
+    if ($off = $link->prepare("UPDATE {$T_CLAN_GROUP} SET is_active=0 WHERE group_id=? AND organization_id<>?")) {
       $off->bind_param("ii",$groupId,$clanId); $off->execute(); $off->close();
     }
   }
@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if ($action === 'save_char_links') {
       $charId  = max(0, (int)($_POST['character_id'] ?? 0));
       $groupId = max(0, (int)($_POST['group_id'] ?? 0)); // manada
-      $clanId  = max(0, (int)($_POST['clan_id'] ?? 0));
+      $clanId  = max(0, (int)($_POST['organization_id'] ?? 0));
 
       // Si eliges manada, opcionalmente forzamos clan al clan "dueno" de esa manada (bridge clan-group)
       $autoClan = 0;
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     }
 
     if ($action === 'save_clan_group') {
-      $clanId  = max(0,(int)($_POST['clan_id'] ?? 0));
+      $clanId  = max(0,(int)($_POST['organization_id'] ?? 0));
       $groupId = max(0,(int)($_POST['group_id'] ?? 0));
       $isAct   = isset($_POST['is_active']) ? (int)($_POST['is_active']) : 1;
 
@@ -244,25 +244,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
       }
     }
 
-    // Si quieres borrado duro (NO recomendado si quieres historico), descomenta el boton y este handler:
-    /*
-    if ($action === 'delete_row') {
-      $table = (string)($_POST['table'] ?? '');
-      $id    = max(0,(int)($_POST['id'] ?? 0));
-      $allowed = [$T_CHAR_GROUP, $T_CHAR_CLAN, $T_CLAN_GROUP];
-      if ($id>0 && in_array($table,$allowed,true)) {
-        if ($st = $link->prepare("DELETE FROM {$table} WHERE id=?")) {
-          $st->bind_param("i",$id); $st->execute(); $st->close();
-        }
-        $flash[] = ['type'=>'ok','msg'=>"[OK] Relacion eliminada (#{$id})."];
-      }
-    }
-    */
-
     $link->commit();
   } catch (Throwable $e) {
     $link->rollback();
-    $flash[] = ['type'=>'error','msg'=>"❌ Error: ".$e->getMessage()];
+    $flash[] = ['type'=>'error','msg'=>"âŒ Error: ".$e->getMessage()];
   }
 
   // Mantener tab al volver
@@ -291,7 +276,7 @@ $sqlChars = "
     m.name AS active_group_name,
 
     cc.id  AS char_clan_bridge_id,
-    cc.clan_id AS active_clan_id,
+    cc.organization_id AS active_clan_id,
     c.name AS active_clan_name
   FROM fact_characters p
   LEFT JOIN {$T_CHAR_GROUP} cg
@@ -301,7 +286,7 @@ $sqlChars = "
   LEFT JOIN {$T_CHAR_CLAN} cc
     ON cc.character_id = p.id AND (cc.is_active=1 OR cc.is_active IS NULL)
   LEFT JOIN dim_organizations c
-    ON c.id = cc.clan_id
+    ON c.id = cc.organization_id
   WHERE 1=1
   {$cronicaNotInSQL}
   ORDER BY p.name ASC
@@ -318,11 +303,11 @@ $clanGroups = []; // filas
 $sqlCG = "
   SELECT
     b.id,
-    b.clan_id, c.name AS clan_name,
+    b.organization_id, c.name AS clan_name,
     b.group_id, m.name AS group_name,
     COALESCE(b.is_active,0) AS is_active
   FROM {$T_CLAN_GROUP} b
-  LEFT JOIN dim_organizations c ON c.id=b.clan_id
+  LEFT JOIN dim_organizations c ON c.id=b.organization_id
   LEFT JOIN dim_groups m ON m.id=b.group_id
   ORDER BY c.name ASC, m.name ASC, b.id DESC
 ";
@@ -488,7 +473,7 @@ if ($rs = $link->query($sqlCG)) {
               data-name="<?= h($nm) ?>"
               data-group="<?= $groupId ?>"
               data-clan="<?= $clanId ?>"
-            >✏ Editar</button>
+            >âœ Editar</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -523,7 +508,7 @@ if ($rs = $link->query($sqlCG)) {
           $rid = (int)$r['id'];
           $cln = (string)($r['clan_name'] ?? '');
           $grp = (string)($r['group_name'] ?? '');
-          $cid = (int)($r['clan_id'] ?? 0);
+          $cid = (int)($r['organization_id'] ?? 0);
           $gid = (int)($r['group_id'] ?? 0);
           $act = (int)($r['is_active'] ?? 0);
         ?>
@@ -538,7 +523,7 @@ if ($rs = $link->query($sqlCG)) {
               data-clan="<?= $cid ?>"
               data-group="<?= $gid ?>"
               data-active="<?= $act ?>"
-            >✏ Editar</button>
+            >âœ Editar</button>
 
             <form method="post" style="display:inline;">
               <input type="hidden" name="tab" value="clans">
@@ -584,13 +569,13 @@ if ($rs = $link->query($sqlCG)) {
             <label>Personaje
               <input class="inp" type="text" id="f_char_name" value="" disabled>
             </label>
-            <span class="small">Si seleccionas Manada, el Clan puede autoajustarse por Clan→Manada activo.</span>
+            <span class="small">Si seleccionas Manada, el Clan puede autoajustarse por Clanâ†’Manada activo.</span>
           </div>
           <div></div>
 
           <div>
             <label>Clan activo
-              <select class="select" name="clan_id" id="f_char_clan">
+              <select class="select" name="organization_id" id="f_char_clan">
                 <option value="0">- (ninguno) -</option>
                 <?php foreach($opts_clanes as $id=>$name): ?>
                   <option value="<?= (int)$id ?>"><?= h($name) ?></option>
@@ -625,10 +610,10 @@ if ($rs = $link->query($sqlCG)) {
   </div>
 </div>
 
-<!-- Modal Clan↔Manada -->
+<!-- Modal Clanâ†”Manada -->
 <div class="modal-back" id="mbCG">
   <div class="modal" role="dialog" aria-modal="true">
-    <h3>Editar Clan ↔ Manada</h3>
+    <h3>Editar Clan â†” Manada</h3>
 
     <form method="post" id="formCG" style="margin:0;">
       <input type="hidden" name="tab" value="clans">
@@ -638,7 +623,7 @@ if ($rs = $link->query($sqlCG)) {
         <div class="grid">
           <div>
             <label>Clan
-              <select class="select" name="clan_id" id="f_cg_clan" required>
+              <select class="select" name="organization_id" id="f_cg_clan" required>
                 <option value="0">- Selecciona -</option>
                 <?php foreach($opts_clanes as $id=>$name): ?>
                   <option value="<?= (int)$id ?>"><?= h($name) ?></option>
@@ -744,7 +729,7 @@ if ($rs = $link->query($sqlCG)) {
   btnCharCancel && btnCharCancel.addEventListener('click', function(){ mbChar.style.display='none'; });
   mbChar && mbChar.addEventListener('click', function(e){ if (e.target === mbChar) mbChar.style.display='none'; });
 
-  // Modal Clan↔Manada
+  // Modal Clanâ†”Manada
   var mbCG = document.getElementById('mbCG');
   var btnCGCancel = document.getElementById('btnCGCancel');
   var btnNewCG = document.getElementById('btnNewClanGroup');
@@ -776,4 +761,5 @@ if ($rs = $link->query($sqlCG)) {
 
 })();
 </script>
+
 

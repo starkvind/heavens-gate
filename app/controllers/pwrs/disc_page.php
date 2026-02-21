@@ -17,8 +17,8 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     $donName    = htmlspecialchars($resultQueryDon["name"]);
     $donType    = htmlspecialchars($resultQueryDon["disc"]);
     $donRank    = htmlspecialchars($resultQueryDon["level"]);
-    $donAttrRaw = (string)($resultQueryDon["attribute_name"] ?? $resultQueryDon["atributo"] ?? '');
-    $donSkillRaw = (string)($resultQueryDon["ability_name"] ?? $resultQueryDon["habilidad"] ?? '');
+    $donAttrRaw = (string)($resultQueryDon["attribute"] ?? '');
+    $donSkillRaw = (string)($resultQueryDon["skill"] ?? '');
     $donAttr    = htmlspecialchars($donAttrRaw);
     $donSkill   = htmlspecialchars($donSkillRaw);
     $donDesc    = $resultQueryDon["description"]; // NO usar htmlspecialchars() para mantener el formato HTML
@@ -127,6 +127,5 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     echo "<p>Error: Disciplina no encontrada.</p>";
 }
 ?>
-
 
 

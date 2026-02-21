@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre clanes y organizaciones.", null, 'website');
 	if (!$link) {
-		die("Error de conexión a la base de datos: " . mysqli_connect_error());
+		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 	}
 
-	// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+	// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 	function sanitize_int_csv($csv){
 		$csv = (string)$csv;
 		if (trim($csv) === '') return '';
@@ -20,12 +20,12 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 
 	$pageTitle2 = "Clanes y Manadas";
 
-	// Excluir crónicas (si existe la variable global, la usamos; si no, no excluimos nada)
+	// Excluir crÃ³nicas (si existe la variable global, la usamos; si no, no excluimos nada)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " WHERE p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 	// ============================================================
-	// âœ… BRIDGES
+	// Ã¢Å“â€¦ BRIDGES
 	// - Clan de PJ: bridge_characters_organizations (activo)
 	// - Manada de PJ: bridge_characters_groups (activo)
 	// - Clan <-> Manada: bridge_organizations_groups (activo)
@@ -38,11 +38,11 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 			p.id,
 			p.name,
 			p.image_url,
-			cbc.clan_id,
+			cbc.organization_id,
 			gbc.group_id AS manada_id
 		FROM fact_characters p
 			LEFT JOIN (
-				SELECT character_id, MIN(clan_id) AS clan_id
+				SELECT character_id, MIN(organization_id) AS organization_id
 				FROM bridge_characters_organizations
 				WHERE (is_active = 1 OR is_active IS NULL)
 				GROUP BY character_id
@@ -59,7 +59,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 	if ($result) {
 		while ($row = $result->fetch_assoc()) {
 			// normalizamos a int donde toca
-			$row['clan_id']   = isset($row['clan_id']) ? (int)$row['clan_id'] : 0;
+			$row['organization_id']   = isset($row['organization_id']) ? (int)$row['organization_id'] : 0;
 			$row['manada_id'] = isset($row['manada_id']) ? (int)$row['manada_id'] : 0;
 			$personajes[] = $row;
 		}
@@ -71,7 +71,7 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 	$clanesUsados  = [];
 	foreach ($personajes as $p) {
 		if (!empty($p['manada_id'])) $manadasUsadas[(int)$p['manada_id']] = true;
-		if (!empty($p['clan_id']))   $clanesUsados[(int)$p['clan_id']]   = true;
+		if (!empty($p['organization_id']))   $clanesUsados[(int)$p['organization_id']]   = true;
 	}
 
 	// Obtener clanes usados
@@ -107,16 +107,16 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 		$inManadas = implode(',', array_map('intval', array_keys($manadasUsadas)));
 
 		$sqlCM = "
-			SELECT clan_id, group_id
+			SELECT organization_id, group_id
 			FROM bridge_organizations_groups
-			WHERE clan_id IN ($inClanes)
+			WHERE organization_id IN ($inClanes)
 			  AND group_id IN ($inManadas)
 			  AND (is_active = 1 OR is_active IS NULL)
 		";
 		$resCM = $link->query($sqlCM);
 		if ($resCM) {
 			while ($r = $resCM->fetch_assoc()) {
-				$c = (int)$r['clan_id'];
+				$c = (int)$r['organization_id'];
 				$m = (int)$r['group_id'];
 				$key = $c . '-' . $m;
 				$clanManada[$key] = ['clan' => $c, 'manada' => $m];
@@ -159,10 +159,10 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
     <fieldset class='bioSeccion'>
 	<legend>&nbsp;Relaciones entre clanes y manadas&nbsp;</legend>
 		<div style="float: right;">
-			<button class="boton2" id='fullscreen-btn' onclick="toggleFullScreen()">🔍 Pantalla completa</button>
-			<button class="boton2" onclick="location.href='/relationship-map/characters'">âš™ï¸ Cambiar vista</button>
-			<button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">🛑 Detener física</button>
-			<button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">🔄 Activar física</button>
+			<button class="boton2" id='fullscreen-btn' onclick="toggleFullScreen()">ðŸ” Pantalla completa</button>
+			<button class="boton2" onclick="location.href='/relationship-map/characters'">Ã¢Å¡â„¢Ã¯Â¸Â Cambiar vista</button>
+			<button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">ðŸ›‘ Detener fÃ­sica</button>
+			<button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">ðŸ”„ Activar fÃ­sica</button>
 		</div>
         <div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
 			<div id="network" style="width:100%; height:100%;"></div>
@@ -211,8 +211,8 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 		<?php foreach ($personajes as $p): ?>
 		<?php if (!empty($p['manada_id'])): ?>
 		{ from: "manada_<?= (int)$p['manada_id'] ?>", to: "pj_<?= (int)$p['id'] ?>", arrows: 'to', color: '#888' },
-		<?php elseif (!empty($p['clan_id'])): ?>
-		{ from: "clan_<?= (int)$p['clan_id'] ?>", to: "pj_<?= (int)$p['id'] ?>", arrows: 'to', color: '#aaa', dashes: true },
+		<?php elseif (!empty($p['organization_id'])): ?>
+		{ from: "clan_<?= (int)$p['organization_id'] ?>", to: "pj_<?= (int)$p['id'] ?>", arrows: 'to', color: '#aaa', dashes: true },
 		<?php endif; ?>
 		<?php endforeach; ?>
 	]);
@@ -296,5 +296,6 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
      background-color:#fff; border:1px solid #ccc; border-radius:6px; padding:8px 14px; font-family:sans-serif;
      font-size:14px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); z-index:2000;">
 </div>
+
 
 

@@ -10,8 +10,8 @@ $query = "
 		d.name as disc_name,
 		ddt.name as disc_type,
 		d.level as disc_level,
-		d.atributo as disc_roll_attribute,
-		d.habilidad as disc_roll_skill,
+		d.attribute as disc_roll_attribute,
+		d.skill as disc_roll_skill,
 		nb.name as disc_origin
 	from fact_discipline_powers d
 		left join dim_discipline_types ddt on d.disc = ddt.id
@@ -476,5 +476,4 @@ function sortValues(values){
 	.ms-wrap{ width: 100%; }
 }
 </style>
-
 

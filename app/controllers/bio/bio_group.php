@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Biografías por grupo | Heaven's Gate", "Listado de biografías agrupadas por Tipo y Organización.", null, 'website'); ?>
+﻿<?php setMetaFromPage("BiografÃ­as por grupo | Heaven's Gate", "Listado de biografÃ­as agrupadas por Tipo y OrganizaciÃ³n.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;
@@ -29,13 +29,13 @@
 
 <?php
 	if (!$link) {
-		die("Error de conexión a la base de datos: " . mysqli_connect_error());
+		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 	}
 
 	// Helper escape
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 	function sanitize_int_csv($csv){
 		$csv = (string)$csv;
 		if (trim($csv) === '') return '';
@@ -52,18 +52,18 @@
 	$idTipo = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 	if ($idTipo <= 0) {
 		include("app/partials/main_nav_bar.php");
-		echo "<h2>Error</h2><p class='texti'>Tipo inválido.</p>";
+		echo "<h2>Error</h2><p class='texti'>Tipo invÃ¡lido.</p>";
 		exit;
 	}
 
 $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.character_type_id,
-					COALESCE(nc2.id, nc_from_pack.id, 0) AS clan_id,
+					COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
 					COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
 					COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name";
 	$howMuch = 0;
 
 	// ======================================== //
-	// EXCLUSIONES DE CRÓNICAS (lista de ints, segura)
+	// EXCLUSIONES DE CRÃ“NICAS (lista de ints, segura)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
@@ -80,7 +80,7 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 	if ($rowType = mysqli_fetch_assoc($resultTypeQuery)) {
 
 		$nombreTipo = h($rowType["kind"]);
-		$pageSect   = "$nombreTipo | Biografías";
+		$pageSect   = "$nombreTipo | BiografÃ­as";
 
 		include("app/partials/main_nav_bar.php");
 		echo "<h2>$nombreTipo</h2>";
@@ -107,18 +107,18 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 					ON hcc.character_id = p.id
 					AND (hcc.is_active = 1 OR hcc.is_active IS NULL)
 				LEFT JOIN dim_organizations nc2
-					ON nc2.id = hcc.clan_id
+					ON nc2.id = hcc.organization_id
 
 				-- Bridge: manada -> clan (fallback / coherencia)
 				LEFT JOIN bridge_organizations_groups hcg2
 					ON hcg2.group_id = nm2.id
 					AND (hcg2.is_active = 1 OR hcg2.is_active IS NULL)
 				LEFT JOIN dim_organizations nc_from_pack
-					ON nc_from_pack.id = hcg2.clan_id
+					ON nc_from_pack.id = hcg2.organization_id
 
 			WHERE p.__TYPE_COL__ = ?
 			  $cronicaNotInSQL
-			ORDER BY clan_id ASC, p.name ASC
+			ORDER BY organization_id ASC, p.name ASC
 		";
 
 		$runQuery = function($typeCol) use ($link, $queryPJBase, $idTipo){
@@ -145,7 +145,7 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 
 				$grupos = [];
 				while ($rowPJ = mysqli_fetch_assoc($resultPJ)) {
-					$clanId = (int)($rowPJ['clan_id'] ?? 0);
+					$clanId = (int)($rowPJ['organization_id'] ?? 0);
 					$clanName = (string)($rowPJ['clan_name'] ?? 'Sin clan');
 					$clanPretty = (string)($rowPJ['clan_pretty_id'] ?? '');
 
@@ -236,7 +236,7 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 	mysqli_free_result($resultTypeQuery);
 	mysqli_stmt_close($stmtType);
 
-	// OJO: yo NO cerrarí­a $link aquí­ si lo reutilizas en la misma request con includes.
+	// OJO: yo NO cerrarÃ­Â­a $link aquÃ­Â­ si lo reutilizas en la misma request con includes.
 	// mysqli_close($link);
 ?>
 
@@ -253,5 +253,6 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 		}
 	});
 </script>
+
 
 
