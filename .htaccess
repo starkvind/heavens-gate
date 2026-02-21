@@ -6,6 +6,8 @@ Options -Indexes
 RewriteRule (^|/)\.git/ - [F,L]
 RewriteRule (^|/)\.gitattributes$ - [F,L]
 RewriteRule (^|/)\.gitignore$ - [F,L]
+# Block access to internal technical docs
+RewriteRule (^|/)(README|TECHNICAL_DOCUMENTATION)\.md$ - [F,L,NC]
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
