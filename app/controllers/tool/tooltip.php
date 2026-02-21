@@ -252,13 +252,13 @@ echo "<div class='hg-tip' style='display:flex; gap:8px; align-items:flex-start;'
 	echo "<div class='hg-tip-body'>";
 	echo "<div class='hg-tip-title'>" . h($outTitle) . "</div>";
 	if ($outMeta !== '') echo "<div class='hg-tip-meta'>" . $outMeta . "</div>";
-	if ($outExtra !== '') {
-		echo "<div class='hg-tip-label'>" . h($outExtraLabel) . "</div>";
-		echo "<div class='hg-tip-text'>" . h($outExtra) . "</div>";
-	}
 	if ($outDesc !== '') {
 		echo "<div class='hg-tip-label'>Descripci&oacute;n</div>";
 		echo "<div class='hg-tip-text'>" . h($outDesc) . "</div>";
+	}
+	if ($outExtra !== '') {
+		echo "<div class='hg-tip-label'>" . h($outExtraLabel) . "</div>";
+		echo "<div class='hg-tip-text'>" . h($outExtra) . "</div>";
 	}
 	if ($outSystem !== '') {
 		echo "<div class='hg-tip-label'>Sistema</div>";

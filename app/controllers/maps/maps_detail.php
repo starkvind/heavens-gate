@@ -74,8 +74,8 @@ $q->close();
 $lat = (float)$poi['latitude']; $lng = (float)$poi['longitude'];
 ?>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
+<script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
 
 <style>
   #hg-map-detail { height: 70vh; width: 100%; background:#05014E; position:relative; }

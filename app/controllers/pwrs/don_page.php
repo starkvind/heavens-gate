@@ -128,16 +128,16 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     if ($donRank > 0) {
         echo "<div class='power-stat'><div class='power-stat__label'>Rango</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div></div>";
     }
-    if ($donGroup !== "") {
-        echo "<div class='power-stat'><div class='power-stat__label'>Grupo</div><div class='power-stat__value'>$donGroup</div></div>";
-    }
     if (!empty($donAttr) || !empty($donSkill)) {
         $tiradaDon2 = !empty($donSkill) ? "$donAttr + $donSkill" : $donAttr;
         echo "<div class='power-stat'><div class='power-stat__label'>Tirada</div><div class='power-stat__value'>$tiradaDon2</div></div>";
     }
-      if ($donBreedLegacy !== "") {
-        echo "<div class='power-stat'><div class='power-stat__label'>Fera-sistema</div><div class='power-stat__value'>" . htmlspecialchars($donBreedLegacy) . "</div></div>";
-      }
+    if ($donGroup !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Grupo</div><div class='power-stat__value'>$donGroup</div></div>";
+    }
+    if ($donBreedLegacy !== "") {
+        echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>" . htmlspecialchars($donBreedLegacy) . "</div></div>";
+    }      
       if ($donOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
       }
@@ -151,12 +151,9 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         echo "  </div>";
       }
 
-      if ($donSystemLabel !== "" || !empty($donRules)) {
+      if (!empty($donRules)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
-        if ($donSystemLabel !== "") {
-          echo "    <div class='power-card__desc-body'><strong>$donSystemLabel</strong></div>";
-        }
         if (!empty($donRules)) {
           echo "    <div class='power-card__desc-body'>$donRules</div>";
         }

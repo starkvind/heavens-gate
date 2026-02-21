@@ -323,15 +323,15 @@ $initialPoisJson  = json_encode($initialPois, JSON_UNESCAPED_UNICODE | JSON_UNES
 $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ?>
 
-<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.1.9.4.css">
-<script src="assets/vendor/leaflet/leaflet.1.9.4.js"></script>
-<link rel="stylesheet" href="assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css">
-<link rel="stylesheet" href="assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css">
-<script src="assets/vendor/leaflet/markercluster/leaflet.markercluster.1.5.3.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
+<script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css">
+<link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css">
+<script src="/assets/vendor/leaflet/markercluster/leaflet.markercluster.1.5.3.js"></script>
 
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="/assets/vendor/datatables/jquery.dataTables.min.css">
+<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
 
 <style>
 	#hg-map { 

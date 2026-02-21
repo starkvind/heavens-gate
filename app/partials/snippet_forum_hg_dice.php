@@ -36,7 +36,7 @@ if ($exitos > 0) {
 	<head>
 		<meta charset="UTF-8">
 		<title><?= $titulo ?></title>
-		<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+		<link href="/assets/vendor/fonts/quicksand/quicksand.css" rel="stylesheet">
 		<style>
 			:root {
 				--palette: <?= $palette ?>;

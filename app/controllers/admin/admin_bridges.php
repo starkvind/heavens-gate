@@ -1,5 +1,5 @@
 <?php
-// admin_bridges.php — Panel para ver/editar Bridges
+// admin_bridges.php - Panel para ver/editar Bridges
 // - PJ -> Manada (bridge_characters_groups)
 // - PJ -> Clan   (bridge_characters_organizations)
 // - Clan -> Manadas (bridge_organizations_groups)
@@ -8,7 +8,7 @@
 // - Debe existir $link (mysqli) ya conectado
 // - Opcional: $excludeChronicles (CSV ints) para filtrar fact_characters.chronicle_id
 
-if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
+if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) $link->set_charset('utf8mb4'); else mysqli_set_charset($link,'utf8mb4');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -43,9 +43,9 @@ $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChroni
 $cronicaNotInSQL   = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 $tab = isset($_GET['tab']) && $_GET['tab'] !== '' ? (string)$_GET['tab'] : 'chars'; // chars | clans
-$pageTitle2 = "Bridges — Relaciones";
+$pageTitle2 = "Bridges - Relaciones";
 
-// IMPORTANTE: si tu tabla es hg_character_clan_bridge (singular), cambia aquí:
+// IMPORTANTE: si tu tabla es hg_character_clan_bridge (singular), cambia aqui:
 $T_CHAR_GROUP = "bridge_characters_groups";
 $T_CHAR_CLAN  = "bridge_characters_organizations";   // <-- cambia si procede
 $T_CLAN_GROUP = "bridge_organizations_groups";
@@ -55,7 +55,7 @@ $T_CLAN_GROUP = "bridge_organizations_groups";
 // ============================
 
 /**
- * Activa UNA relación PJ->Manada (group) y desactiva el resto para ese PJ.
+ * Activa UNA relacion PJ->Manada (group) y desactiva el resto para ese PJ.
  * Si $groupId <= 0: desactiva todas.
  */
 function set_active_character_group(mysqli $link, string $T_CHAR_GROUP, int $charId, int $groupId): void {
@@ -94,7 +94,7 @@ function set_active_character_group(mysqli $link, string $T_CHAR_GROUP, int $cha
 }
 
 /**
- * Activa UNA relación PJ->Clan y desactiva el resto para ese PJ.
+ * Activa UNA relacion PJ->Clan y desactiva el resto para ese PJ.
  * Si $clanId <= 0: desactiva todas.
  */
 function set_active_character_clan(mysqli $link, string $T_CHAR_CLAN, int $charId, int $clanId): void {
@@ -148,8 +148,8 @@ function resolve_clan_for_group(mysqli $link, string $T_CLAN_GROUP, int $groupId
 }
 
 /**
- * Activa/desactiva una relación Clan->Manada. Aquí NO imponemos "solo una" por clan (porque un clan tiene muchas manadas),
- * pero sí puedes imponer "una manada solo puede pertenecer a un clan activo" desactivando el resto por group_id.
+ * Activa/desactiva una relacion Clan->Manada. Aqui NO imponemos "solo una" por clan (porque un clan tiene muchas manadas),
+ * pero si puedes imponer "una manada solo puede pertenecer a un clan activo" desactivando el resto por group_id.
  */
 function set_clan_group(mysqli $link, string $T_CLAN_GROUP, int $clanId, int $groupId, int $isActive, bool $enforceOneActiveOwnerPerGroup = true): void {
   if ($clanId<=0 || $groupId<=0) return;
@@ -191,7 +191,7 @@ $flash = [];
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
   $action = (string)$_POST['action'];
 
-  // Nota: mejor en transacción (si algo falla, no deja la BD a medias)
+  // Nota: mejor en transaccion (si algo falla, no deja la BD a medias)
   $link->begin_transaction();
 
   try {
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
       $groupId = max(0, (int)($_POST['group_id'] ?? 0)); // manada
       $clanId  = max(0, (int)($_POST['clan_id'] ?? 0));
 
-      // Si eliges manada, opcionalmente forzamos clan al clan "dueño" de esa manada (bridge clan-group)
+      // Si eliges manada, opcionalmente forzamos clan al clan "dueno" de esa manada (bridge clan-group)
       $autoClan = 0;
       if ($groupId > 0) {
         $autoClan = resolve_clan_for_group($link, $T_CLAN_GROUP, $groupId);
@@ -215,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
       $finalClan = ($autoClan>0) ? $autoClan : $clanId;
       set_active_character_clan($link, $T_CHAR_CLAN, $charId, $finalClan);
 
-      $flash[] = ['type'=>'ok','msg'=>"✅ Relación actualizada (PJ #{$charId})."];
+      $flash[] = ['type'=>'ok','msg'=>"[OK] Relacion actualizada (PJ #{$charId})."];
     }
 
     if ($action === 'save_clan_group') {
@@ -223,12 +223,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
       $groupId = max(0,(int)($_POST['group_id'] ?? 0));
       $isAct   = isset($_POST['is_active']) ? (int)($_POST['is_active']) : 1;
 
-      // Si quieres permitir que una manada esté activa en MÁS de un clan, pon esto a false:
+      // Si quieres permitir que una manada este activa en MAS de un clan, pon esto a false:
       $enforce = true;
 
       set_clan_group($link, $T_CLAN_GROUP, $clanId, $groupId, $isAct, $enforce);
 
-      $flash[] = ['type'=>'ok','msg'=>"âœ… Clanâ†”Manada actualizado (Clan #{$clanId} / Manada #{$groupId})."];
+      $flash[] = ['type'=>'ok','msg'=>"[OK] Clan->Manada actualizado (Clan #{$clanId} / Manada #{$groupId})."];
       $tab = 'clans';
     }
 
@@ -240,11 +240,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE id=?")) {
           $st->bind_param("i",$id); $st->execute(); $st->close();
         }
-        $flash[] = ['type'=>'ok','msg'=>"🧊 Relación desactivada (#{$id})."];
+        $flash[] = ['type'=>'ok','msg'=>"[OK] Relacion desactivada (#{$id})."];
       }
     }
 
-    // Si quieres borrado duro (NO recomendado si quieres histórico), descomenta el botón y este handler:
+    // Si quieres borrado duro (NO recomendado si quieres historico), descomenta el boton y este handler:
     /*
     if ($action === 'delete_row') {
       $table = (string)($_POST['table'] ?? '');
@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         if ($st = $link->prepare("DELETE FROM {$table} WHERE id=?")) {
           $st->bind_param("i",$id); $st->execute(); $st->close();
         }
-        $flash[] = ['type'=>'ok','msg'=>"🗑️ Relación eliminada (#{$id})."];
+        $flash[] = ['type'=>'ok','msg'=>"[OK] Relacion eliminada (#{$id})."];
       }
     }
     */
@@ -262,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     $link->commit();
   } catch (Throwable $e) {
     $link->rollback();
-    $flash[] = ['type'=>'error','msg'=>"âŒ Error: ".$e->getMessage()];
+    $flash[] = ['type'=>'error','msg'=>"❌ Error: ".$e->getMessage()];
   }
 
   // Mantener tab al volver
@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 }
 
 // ============================
-// Cargar catálogos para selects
+// Cargar catalogos para selects
 // ============================
 $opts_clanes = fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER BY name");
 $opts_manadas= fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
@@ -416,13 +416,13 @@ if ($rs = $link->query($sqlCG)) {
 
 <div class="panel-wrap">
   <div class="hdr">
-    <h2>🔗 Bridges — Relaciones</h2>
-    <span class="small">Editar pertenencias activas (con histórico en is_active=0)</span>
+    <h2>Bridges - Relaciones</h2>
+    <span class="small">Editar pertenencias activas (con historico en is_active=0)</span>
   </div>
 
   <div class="tabs">
-    <a class="tablink <?= $tab==='chars'?'active':'' ?>" href="/talim?s=admin_bridges&tab=chars">👤 PJ → Clan/Manada</a>
-    <a class="tablink <?= $tab==='clans'?'active':'' ?>" href="/talim?s=admin_bridges&tab=clans">🏛️ Clan → Manadas</a>
+    <a class="tablink <?= $tab==='chars'?'active':'' ?>" href="/talim?s=admin_bridges&tab=chars">PJ -> Clan/Manada</a>
+    <a class="tablink <?= $tab==='clans'?'active':'' ?>" href="/talim?s=admin_bridges&tab=clans">Clan -> Manadas</a>
   </div>
 
   <?php if (!empty($flash)): ?>
@@ -437,8 +437,8 @@ if ($rs = $link->query($sqlCG)) {
   <?php if ($tab === 'chars'): ?>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
-      <label style="color:#cfe; font-size:12px;">Filtro rápido
-        <input class="inp" type="text" id="qChars" placeholder="Nombre del PJ…">
+      <label style="color:#cfe; font-size:12px;">Filtro rapido
+        <input class="inp" type="text" id="qChars" placeholder="Nombre del PJ...">
       </label>
       <span class="small">Doble click en el nombre abre la bio</span>
     </div>
@@ -475,11 +475,11 @@ if ($rs = $link->query($sqlCG)) {
           </td>
           <td><?= h($est) ?></td>
           <td>
-            <?= $cln ? h($cln) : "<span class='badge off'>—</span>" ?>
+            <?= $cln ? h($cln) : "<span class='badge off'>-</span>" ?>
             <?php if ($clanId>0): ?><span class="small">#<?= $clanId ?></span><?php endif; ?>
           </td>
           <td>
-            <?= $grp ? h($grp) : "<span class='badge off'>—</span>" ?>
+            <?= $grp ? h($grp) : "<span class='badge off'>-</span>" ?>
             <?php if ($groupId>0): ?><span class="small">#<?= $groupId ?></span><?php endif; ?>
           </td>
           <td>
@@ -488,7 +488,7 @@ if ($rs = $link->query($sqlCG)) {
               data-name="<?= h($nm) ?>"
               data-group="<?= $groupId ?>"
               data-clan="<?= $clanId ?>"
-            >âœ Editar</button>
+            >✏ Editar</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -501,11 +501,11 @@ if ($rs = $link->query($sqlCG)) {
   <?php else: /* tab clans */ ?>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
-      <button class="btn btn-green" id="btnNewClanGroup">➕ Nueva relación Clan↔Manada</button>
-      <label style="color:#cfe; font-size:12px;">Filtro rápido
-        <input class="inp" type="text" id="qClanGroups" placeholder="Clan o Manada…">
+      <button class="btn btn-green" id="btnNewClanGroup">Nueva relacion Clan->Manada</button>
+      <label style="color:#cfe; font-size:12px;">Filtro rapido
+        <input class="inp" type="text" id="qClanGroups" placeholder="Clan o Manada...">
       </label>
-      <span class="small">Activa=1 es la relación vigente. Desactivar conserva histórico.</span>
+      <span class="small">Activa=1 es la relacion vigente. Desactivar conserva historico.</span>
     </div>
 
     <table class="table" id="tblClanGroups">
@@ -538,14 +538,14 @@ if ($rs = $link->query($sqlCG)) {
               data-clan="<?= $cid ?>"
               data-group="<?= $gid ?>"
               data-active="<?= $act ?>"
-            >âœ Editar</button>
+            >✏ Editar</button>
 
             <form method="post" style="display:inline;">
               <input type="hidden" name="tab" value="clans">
               <input type="hidden" name="action" value="deactivate_row">
               <input type="hidden" name="table" value="<?= h($T_CLAN_GROUP) ?>">
               <input type="hidden" name="id" value="<?= $rid ?>">
-              <button class="btn btn-gray" type="submit">🧊 Desactivar</button>
+              <button class="btn btn-gray" type="submit">Desactivar</button>
             </form>
 
             <!-- Borrado duro (desaconsejado): activa si lo necesitas
@@ -554,7 +554,7 @@ if ($rs = $link->query($sqlCG)) {
               <input type="hidden" name="action" value="delete_row">
               <input type="hidden" name="table" value="<?= h($T_CLAN_GROUP) ?>">
               <input type="hidden" name="id" value="<?= $rid ?>">
-              <button class="btn btn-red" type="submit" onclick="return confirm('¿Eliminar definitivo?')">🗑</button>
+              <button class="btn btn-red" type="submit" onclick="return confirm('Eliminar definitivo?')">Eliminar</button>
             </form>
             -->
           </td>
@@ -584,14 +584,14 @@ if ($rs = $link->query($sqlCG)) {
             <label>Personaje
               <input class="inp" type="text" id="f_char_name" value="" disabled>
             </label>
-            <span class="small">Si seleccionas Manada, el Clan puede autoajustarse por Clanâ†’Manada activo.</span>
+            <span class="small">Si seleccionas Manada, el Clan puede autoajustarse por Clan→Manada activo.</span>
           </div>
           <div></div>
 
           <div>
             <label>Clan activo
               <select class="select" name="clan_id" id="f_char_clan">
-                <option value="0">— (ninguno) —</option>
+                <option value="0">- (ninguno) -</option>
                 <?php foreach($opts_clanes as $id=>$name): ?>
                   <option value="<?= (int)$id ?>"><?= h($name) ?></option>
                 <?php endforeach; ?>
@@ -601,7 +601,7 @@ if ($rs = $link->query($sqlCG)) {
           <div>
             <label>Manada activa
               <select class="select" name="group_id" id="f_char_group">
-                <option value="0">— (ninguna) —</option>
+                <option value="0">- (ninguna) -</option>
                 <?php foreach($opts_manadas as $id=>$name): ?>
                   <option value="<?= (int)$id ?>"><?= h($name) ?></option>
                 <?php endforeach; ?>
@@ -612,7 +612,7 @@ if ($rs = $link->query($sqlCG)) {
 
         <div style="margin-top:10px;">
           <span class="small">
-            Regla aplicada al guardar: 1) activa la relación elegida; 2) desactiva el resto del mismo PJ.
+            Regla aplicada al guardar: 1) activa la relacion elegida; 2) desactiva el resto del mismo PJ.
           </span>
         </div>
       </div>
@@ -625,10 +625,10 @@ if ($rs = $link->query($sqlCG)) {
   </div>
 </div>
 
-<!-- Modal Clanâ†”Manada -->
+<!-- Modal Clan↔Manada -->
 <div class="modal-back" id="mbCG">
   <div class="modal" role="dialog" aria-modal="true">
-    <h3>Editar Clan â†” Manada</h3>
+    <h3>Editar Clan ↔ Manada</h3>
 
     <form method="post" id="formCG" style="margin:0;">
       <input type="hidden" name="tab" value="clans">
@@ -639,7 +639,7 @@ if ($rs = $link->query($sqlCG)) {
           <div>
             <label>Clan
               <select class="select" name="clan_id" id="f_cg_clan" required>
-                <option value="0">— Selecciona —</option>
+                <option value="0">- Selecciona -</option>
                 <?php foreach($opts_clanes as $id=>$name): ?>
                   <option value="<?= (int)$id ?>"><?= h($name) ?></option>
                 <?php endforeach; ?>
@@ -649,7 +649,7 @@ if ($rs = $link->query($sqlCG)) {
           <div>
             <label>Manada
               <select class="select" name="group_id" id="f_cg_group" required>
-                <option value="0">— Selecciona —</option>
+                <option value="0">- Selecciona -</option>
                 <?php foreach($opts_manadas as $id=>$name): ?>
                   <option value="<?= (int)$id ?>"><?= h($name) ?></option>
                 <?php endforeach; ?>
@@ -668,7 +668,7 @@ if ($rs = $link->query($sqlCG)) {
           <div>
             <span class="small">
               Si marcas Activa, por defecto se desactivan otras relaciones activas de ESA manada con otros clanes.
-              (Eso se puede cambiar en el código: <code>$enforce=true</code>).
+              (Eso se puede cambiar en el codigo: <code>$enforce=true</code>).
             </span>
           </div>
         </div>
@@ -694,7 +694,7 @@ if ($rs = $link->query($sqlCG)) {
     });
   }
 
-  // Filtro rápido
+  // Filtro rapido
   var qChars = document.getElementById('qChars');
   if (qChars) {
     qChars.addEventListener('input', function(){
@@ -744,7 +744,7 @@ if ($rs = $link->query($sqlCG)) {
   btnCharCancel && btnCharCancel.addEventListener('click', function(){ mbChar.style.display='none'; });
   mbChar && mbChar.addEventListener('click', function(e){ if (e.target === mbChar) mbChar.style.display='none'; });
 
-  // Modal Clanâ†”Manada
+  // Modal Clan↔Manada
   var mbCG = document.getElementById('mbCG');
   var btnCGCancel = document.getElementById('btnCGCancel');
   var btnNewCG = document.getElementById('btnNewClanGroup');

@@ -182,6 +182,58 @@
 		return array_merge($base, $extras);
 	}
 
+	function fetch_system_detail_labels(mysqli $link, int $systemId): array {
+		$labels = [];
+		if ($systemId <= 0) return $labels;
+
+		$columns = [];
+		if ($stCols = $link->prepare("SHOW COLUMNS FROM bridge_systems_detail_labels")) {
+			$stCols->execute();
+			$rsCols = $stCols->get_result();
+			if ($rsCols) {
+				while ($col = $rsCols->fetch_assoc()) {
+					$name = (string)($col['Field'] ?? '');
+					if ($name !== '') $columns[$name] = true;
+				}
+				$rsCols->free();
+			}
+			$stCols->close();
+		}
+		if (empty($columns) || !isset($columns['system_id'])) return $labels;
+
+		$candidates = [
+			'label_breed',
+			'label_auspice',
+			'label_pack',
+			'label_tribe',
+			'label_clan',
+			'label_pk_name',
+			'label_social',
+			'label_misc',
+		];
+
+		$selectCols = [];
+		foreach ($candidates as $c) {
+			if (isset($columns[$c])) $selectCols[] = $c;
+		}
+		if (empty($selectCols)) return $labels;
+
+		$sql = "SELECT " . implode(', ', $selectCols) . " FROM bridge_systems_detail_labels WHERE system_id = ? LIMIT 1";
+		if ($st = $link->prepare($sql)) {
+			$st->bind_param('i', $systemId);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res && ($row = $res->fetch_assoc())) {
+				foreach ($selectCols as $c) {
+					$v = trim((string)($row[$c] ?? ''));
+					if ($v !== '') $labels[$c] = $v;
+				}
+			}
+			$st->close();
+		}
+		return $labels;
+	}
+
 	$characterId = isset($_GET['b']) ? (int)$_GET['b'] : 0; // Cogemos datos del GET "b"
 	if ($characterId <= 0) {
 		echo "<p style='text-align:center;'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
@@ -220,7 +272,6 @@
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
 			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
-			$bioTxtColor = $dataResult["text_color"]; 	// Color de fondo para el globo de texto del personaje.
 		// ================================================================== //
 			$pageSect 	 = "Biografía";						// Para cambiar el título a la página.
 			$pageTitle2	 = $bioName;						// Título de la Página
@@ -261,21 +312,17 @@
 			$titlePkName	= "Nombre Garou";		// Título del nombre Garou
 		// Sistema, para nombres de detalles y tal.
 			$bioSystem 	= (string)($dataResult["system_label"] ?? "");
+			$bioSystemId = (int)($dataResult["system_id"] ?? 0);
+			$systemDetailLabels = fetch_system_detail_labels($link, $bioSystemId);
 		// Nombres de conceptos
 			// ================================================================== //
 			// Datos y nombre del sistema
 			// IDENTIFICACION
+			$titleBreed		= "Raza";
 			$titleAuspice	= "Auspicio";
 			$titlePack 		= "Manada";
 			$titleTribe 	= "Tribu";
 			$titleClan 		= "Clan";
-			// SECCION SOCIAL
-			$titleGlory 	= "Gloria";
-			$titleHonor 	= "Honor";
-			$titleWisdo 	= "Sabiduría";
-			// SECCION VENTAJAS
-			$titleRage 		= "Rabia";
-			$titleGnosis 	= "Gnosis";
 			// ================================================================== //
 			// Cambiamos títulos de secciones acorde al Sistema del PJ
 			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la página con código
@@ -585,6 +632,30 @@
 		.power-card--bio .power-card__img{ width:100%; height:100%; object-fit:cover; border-radius:50%; border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5); }
 		.bioSheetBackgroundLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
 		.bioSheetBackgroundLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
+		.hg-forum-roll-code{
+			margin-top:10px;
+			border:1px solid #444;
+			background:#111;
+			border-radius:8px;
+			padding:8px 10px;
+			display:flex;
+			align-items:center;
+			justify-content:space-between;
+			gap:8px;
+			overflow:auto;
+		}
+		.hg-forum-roll-code code{ color:#0f0; font-family:monospace; white-space:nowrap; }
+		.hg-roll-copy-emoji{
+			border:1px solid #666;
+			background:#111;
+			color:#fff;
+			border-radius:6px;
+			width:32px;
+			height:32px;
+			line-height:1;
+			cursor:pointer;
+			flex:0 0 auto;
+		}
 		</style>";
 
 		echo "<div class='bioLayout'>";
@@ -631,8 +702,9 @@
 			<fieldset class='bioSeccion'>
 				<legend>Embeber personaje en el foro</legend>
 		<?php
-			if ($bioTxtColor == "") $bioTxtColor = "SkyBlue";
-			$html = "<pre style='background:#111; border:1px solid #444; color:#0f0; font-family:monospace; padding:0.5em; border-radius:6px; overflow:auto;'><code>[hg_avatar=" . h($characterId) . "," . h($bioTxtColor) . "]Mensaje de " . h($bioName) . "[/hg_avatar]</code></pre>";
+			$embedCodeRaw = "[hg_avatar=" . (int)$characterId . "]Mensaje de " . (string)$bioName . "[/hg_avatar]";
+			$embedCodeEsc = h($embedCodeRaw);
+			$html = "<div class='hg-forum-roll-code'><code>{$embedCodeEsc}</code><button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$embedCodeEsc}' title='Copiar codigo'>&#128203;</button></div>";
 			echo $html;
 		?>
 			</fieldset>
@@ -904,6 +976,31 @@
 					hideTip();
 				});
 			});
+		});
+	</script>
+	<script>
+		document.addEventListener('click', async (event) => {
+			const btn = event.target.closest('.js-copy-roll');
+			if (!btn) return;
+			const text = String(btn.getAttribute('data-copy') || '');
+			if (!text) return;
+			const old = btn.innerHTML;
+			try {
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(text);
+				} else {
+					const ta = document.createElement('textarea');
+					ta.value = text;
+					document.body.appendChild(ta);
+					ta.select();
+					document.execCommand('copy');
+					ta.remove();
+				}
+				btn.innerHTML = '&#9989;';
+			} catch (e) {
+				btn.innerHTML = '&#10060;';
+			}
+			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
 

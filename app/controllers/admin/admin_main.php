@@ -30,6 +30,9 @@
 				case 'admin_traits':
 					include("admin_traits.php");
 					break;
+				case 'admin_avatar_mass':
+					include("admin_avatar_mass.php");
+					break;
 				default:
 					http_response_code(400);
 					header('Content-Type: application/json; charset=UTF-8');
@@ -48,6 +51,9 @@
 			switch ($seccion) {
 				case 'admin_pjs':
 					include("admin_pjs.php");
+					break;
+				case 'admin_avatar_mass':
+					include("admin_avatar_mass.php");
 					break;
 				case 'admin_groups':
 					include("admin_groups.php");
@@ -149,6 +155,11 @@
 					<a href='/talim?s=admin_pjs&pp=500'>
 					  <div class='bioSheetPower' style='width:47.5%;'>
 						Gestionar Personajes
+					  </div>
+					</a>
+					<a href='/talim?s=admin_avatar_mass'>
+					  <div class='bioSheetPower' style='width:47.5%;'>
+						Avatares Masivos
 					  </div>
 					</a>
 					<a href='/talim?s=admin_groups'>

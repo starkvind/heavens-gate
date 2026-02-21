@@ -161,12 +161,12 @@ foreach ($eventosPorDecada as $decada => $cantidad) {
 
 ?>
 
-<script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="/assets/vendor/vis/vis-timeline-graph2d.min.js"></script>
+<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
 
-<link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link href="/assets/vendor/vis/vis-timeline-graph2d.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/vendor/datatables/jquery.dataTables.min.css">
 
 <style>
 	/* ------------------------ */

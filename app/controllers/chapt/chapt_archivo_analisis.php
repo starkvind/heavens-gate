@@ -96,7 +96,7 @@ foreach ($pj_order as $pj_id) {
 }
 ?>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/assets/vendor/chartjs/chart.min.js"></script>
 <h2><?php echo $pageSect; ?></h2>
 <div class="bioTextData">
     <fieldset class='bioSeccion'>

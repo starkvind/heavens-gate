@@ -306,7 +306,7 @@ foreach ($rows as $r) {
     <button class="btn" type="button" id="undoBtn">Deshacer</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="/assets/vendor/sortablejs/Sortable.min.js"></script>
 <script>
 (function(){
     const menuCards = document.getElementById('menuCards');

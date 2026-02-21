@@ -1,6 +1,6 @@
 <?php
 
-// Aseguramos que el parámetro GET 'b' esté definido de manera segura
+// Aseguramos que el parametro GET 'b' este definido de manera segura
 $systemCategory = isset($_GET['b']) ? (string)$_GET['b'] : '';
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
@@ -11,6 +11,48 @@ if ($systemCategory !== '') {
     } else {
         $systemCategoryId = (int)resolve_pretty_id($link, 'dim_systems', $systemCategory);
     }
+}
+
+function fetch_system_detail_labels(mysqli $link, int $systemId): array {
+    $labels = [];
+    if ($systemId <= 0) return $labels;
+
+    $columns = [];
+    if ($stCols = $link->prepare("SHOW COLUMNS FROM bridge_systems_detail_labels")) {
+        $stCols->execute();
+        $rsCols = $stCols->get_result();
+        if ($rsCols) {
+            while ($col = $rsCols->fetch_assoc()) {
+                $name = (string)($col['Field'] ?? '');
+                if ($name !== '') $columns[$name] = true;
+            }
+            $rsCols->free();
+        }
+        $stCols->close();
+    }
+    if (empty($columns) || !isset($columns['system_id'])) return $labels;
+
+    $candidates = ['label_auspice', 'label_tribe', 'label_misc'];
+    $selectCols = [];
+    foreach ($candidates as $c) {
+        if (isset($columns[$c])) $selectCols[] = $c;
+    }
+    if (empty($selectCols)) return $labels;
+
+    $sql = "SELECT " . implode(', ', $selectCols) . " FROM bridge_systems_detail_labels WHERE system_id = ? LIMIT 1";
+    if ($st = $link->prepare($sql)) {
+        $st->bind_param('i', $systemId);
+        $st->execute();
+        $res = $st->get_result();
+        if ($res && ($row = $res->fetch_assoc())) {
+            foreach ($selectCols as $c) {
+                $v = trim((string)($row[$c] ?? ''));
+                if ($v !== '') $labels[$c] = $v;
+            }
+        }
+        $st->close();
+    }
+    return $labels;
 }
 
 // =========================================================== >
@@ -34,6 +76,8 @@ if (!$ordenQueryResult) {
     $systemDesc = ($ordenQueryResult["description"]);
     $systemForm = (int)$ordenQueryResult["forms"];
     $systemNameRaw = (string)$ordenQueryResult["name"];
+    $systemNameAlt = $systemNameRaw;
+    $systemDetailLabels = fetch_system_detail_labels($link, $systemCategoryId);
 
     // CAMBIAR EL TITULO A LA PAGINA
     if (!empty($systemName)) { 
@@ -48,7 +92,7 @@ if (!$ordenQueryResult) {
     }
 
     // =========================================================== >
-    include("app/partials/main_nav_bar.php"); // Barra Navegación
+    include("app/partials/main_nav_bar.php"); // Barra Navegacion
 ?>
 <style>
 .syst-page { display:block; }
@@ -107,35 +151,9 @@ if (!$ordenQueryResult) {
   <div class="syst-sections">
 <?php
     // =========================================================== >
-    switch ($systemName) {
-        case "Bastet":
-            $nameAuspice = "Pryios";
-            $nameTribe = "Tribus";
-            break;
-        case "Ananasi":
-            $nameAuspice = "Facciones";
-            $nameTribe = "Aspectos";
-            break;
-        case "Mokole":
-        case "Mokolé":
-            $nameAuspice = "Auspicios";
-            $nameTribe = "Oleadas";
-            $nameMisc = "Varnas";
-            break;
-        case "Changeling":
-            $nameAuspice = "Aspectos";
-            $nameTribe = "Linajes";
-            $nameMisc = "Legados";
-            break;
-        case "Vampiro":
-            $nameTribe = "Clanes";
-            break;
-        default:
-            $nameAuspice = "Auspicios";
-            $nameTribe = "Tribus";
-            $nameMisc = "";
-            break;
-    }
+    $nameAuspice = $systemDetailLabels['label_auspice'] ?? "Auspicios";
+    $nameTribe = $systemDetailLabels['label_tribe'] ?? "Tribus";
+    $nameMisc = $systemDetailLabels['label_misc'] ?? "Miscelánea";
 
     // CUADRO DE FORMAS
     if ($systemForm === 1) {
@@ -275,7 +293,7 @@ if (!$ordenQueryResult) {
     }
     $stmtTribes->close();
 
-    // CUADRO MISCELÁNEA
+    // CUADRO MISCELANEA
     $queryMisc = "SELECT id, name, kind FROM fact_misc_systems WHERE system_name = ? OR system_name = ? ORDER BY id";
     $stmtMisc = $link->prepare($queryMisc);
     $stmtMisc->bind_param('ss', $systemNameRaw, $systemNameAlt);
@@ -434,3 +452,4 @@ if (!$ordenQueryResult) {
 <?php
 }
 ?>
+

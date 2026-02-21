@@ -1,6 +1,6 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
@@ -822,7 +822,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $manada      = max(0, intval($_POST['manada'] ?? 0));
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
-    $sistema_legacy = trim($_POST['sistema_legacy'] ?? '');
     $totem_id = isset($_POST['totem_id']) ? (int)$_POST['totem_id'] : 0;
     $rm_avatar   = isset($_POST['avatar_remove']) && $_POST['avatar_remove'] ? true : false;
 
@@ -912,13 +911,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($tribe_id    > 0 && isset($tribu_id_to_sys[$tribe_id])   && (int)$tribu_id_to_sys[$tribe_id]   !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
     }
 
-    if ($system_id > 0 && isset($opts_sist[$system_id])) {
-        $sistema_legacy = (string)$opts_sist[$system_id];
-    }
-    if ($sistema_legacy === '') {
-        $sistema_legacy = 'Otros';
-    }
-
     // Totem: si no elige, hereda de manada o clan
     if ($totem_id <= 0) {
         $totem_from_group = 0;
@@ -959,16 +951,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'[WARN] El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
-                (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, character_kind, system_name, system_id,
+                (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, character_kind, system_id,
                  shifter_type, totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img=''; $kes='pnj'; $fera='';
                 $stmt->bind_param(
-                    "sssssiiisssssisisssssiii",
+                    "sssssiiissssisisssssiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
-                    $img, $notas, $text_color, $kes, $sistema_legacy, $system_id, $fera,
+                    $img, $notas, $text_color, $kes, $system_id, $fera,
                     $totem_id,
                     $status, $causamuerte, $cumple, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id
@@ -1055,7 +1047,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
           // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
                   name=?, alias=?, garou_name=?, gender=?, concept=?,
-                  chronicle_id=?, player_id=?, character_type_id=?, system_name=?, system_id=?, text_color=?,
+                  chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?,
                   breed_id=?, auspice_id=?, tribe_id=?,
                   totem_id=?,
                   status=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
@@ -1065,9 +1057,9 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiisisiiiisssssi",
+                  "sssssiiiisiiiisssssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
-                  $cronica, $jugador, $afili, $sistema_legacy, $system_id, $text_color,
+                  $cronica, $jugador, $afili, $system_id, $text_color,
                   $raza, $auspice_id, $tribe_id,
                   $totem_id,
                   $status, $causamuerte, $cumple, $rango, $infotext,
@@ -1204,7 +1196,7 @@ $offset= ($page - 1) * $perPage;
 $sql = "
 SELECT
   p.id, p.name, p.alias, p.garou_name, p.gender, p.concept,
-  p.chronicle_id, p.player_id, p.system_id, p.system_name, p.text_color,
+  p.chronicle_id, p.player_id, p.system_id, p.text_color,
   p.breed_id, p.auspice_id, p.tribe_id,
   -- [OK] IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
@@ -1581,7 +1573,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <td><?= h($r['name']) ?></td>
           <td><?= h($r['jugador_'] ?? $r['player_id']) ?></td>
           <td><?= h($r['cronica_'] ?? $r['chronicle_id']) ?></td>
-          <td><?= h($r['sistema_n'] ?? $r['system_name']) ?></td>
+          <td><?= h($r['sistema_n'] ?? '') ?></td>
           <td>
             <button class="btn btn-small" data-edit='1'
               data-id="<?= (int)$r['id'] ?>"
@@ -1593,7 +1585,6 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-cronica="<?= (int)$r['chronicle_id'] ?>"
               data-jugador="<?= (int)$r['player_id'] ?>"
               data-system_id="<?= (int)($r['system_id'] ?? 0) ?>"
-              data-sistema_legacy="<?= h($r['system_name']) ?>"
               data-totem_id="<?= (int)($r['totem_id'] ?? 0) ?>"
               data-text_color="<?= h($r['text_color']) ?>"
               data-raza="<?= (int)$r['breed_id'] ?>"
@@ -1729,7 +1720,6 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
-            <input type="hidden" name="sistema_legacy" id="f_sistema_legacy" value="">
             <span class="small-note">Filtra Raza, Auspicio y Tribu</span>
           </label>
         </div>
@@ -2364,8 +2354,6 @@ var CHAR_DETAILS     = <?= json_encode(
     ['cronica','jugador','system_id'].forEach(function(k){
       var el=document.getElementById('f_'+k); if(el) el.value='0';
     });
-    var sistLegacy = document.getElementById('f_sistema_legacy');
-    if (sistLegacy) sistLegacy.value = '';
     if (selTotem) selTotem.value = '0';
     selAfili.value = '0';
 
@@ -2433,8 +2421,6 @@ var CHAR_DETAILS     = <?= json_encode(
     var sistId = parseInt(btn.getAttribute('data-system_id')||'0',10)||0;
     var selS = document.getElementById('f_system_id');
     if (selS) selS.value = String(sistId||0);
-    var sistLegacy = document.getElementById('f_sistema_legacy');
-    if (sistLegacy) sistLegacy.value = btn.getAttribute('data-sistema_legacy') || '';
 
     if (selTotem) {
       var tId = parseInt(btn.getAttribute('data-totem_id')||'0',10)||0;

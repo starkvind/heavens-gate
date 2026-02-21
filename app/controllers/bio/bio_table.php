@@ -876,9 +876,9 @@ $(document).ready(function () {
 
 				last: "Último",
 
-				next: "â–¶",
+				next: "&#9654;",
 
-				previous: "â—€"
+				previous: "&#9664;"
 
 			}
 

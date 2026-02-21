@@ -1,6 +1,6 @@
 <?php if ($numero_temporada <= 50) { ?>
 
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script src="/assets/vendor/chartjs/chart.min.js"></script>
 
 		<fieldset class="bioSeccion" id='renglonArchivos'>
 			<legend id='archivosLegend'>&nbsp;Participación en la temporada&nbsp;</legend>

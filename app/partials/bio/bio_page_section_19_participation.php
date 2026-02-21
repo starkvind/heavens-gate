@@ -110,7 +110,7 @@ if ($inicio && isset($finalPlayer)) {
 
 <?php if ($inicio && isset($finalPlayer)): ?>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/assets/vendor/chartjs/chart.min.js"></script>
 
 <div class="bioTextData">
 	<fieldset class='bioSeccion'>

@@ -1,6 +1,6 @@
 <?php	
 	if ($bioRace != 0) { // Raza del Personaje
-		echo"<div class='bioSheetSectionLeft'>Raza:</div>";
+		echo"<div class='bioSheetSectionLeft'>$titleBreed:</div>";
 		echo"<div class='bioSheetSectionRight'>$raceLink</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
 	if ($bioAuspice != 0) { // Auspicio del Personaje
