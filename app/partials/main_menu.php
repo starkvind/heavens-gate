@@ -49,7 +49,7 @@
 		if (hg_starts_with($path, '/news') || hg_starts_with($path, '/search') || hg_starts_with($path, '/status') || hg_starts_with($path, '/about')) {
 			return 'startMenu';
 		}
-		if (hg_starts_with($path, '/characters') || hg_starts_with($path, '/organizations') || hg_starts_with($path, '/relationship-map')) {
+		if (hg_starts_with($path, '/characters') || hg_starts_with($path, '/organizations') || hg_starts_with($path, '/groups') || hg_starts_with($path, '/relationship-map')) {
 			return 'bioMenu';
 		}
 		if (hg_starts_with($path, '/parties')) {

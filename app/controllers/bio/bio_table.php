@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 setMetaFromPage("Personajes | Heaven's Gate", "Listado completo de personajes.", null, 'website');
 
@@ -8,13 +8,13 @@ include("app/partials/main_nav_bar.php");
 
 if (!$link) {
 
-    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+    die("Error de conexión a la base de datos: " . mysqli_connect_error());
 
 }
 
 
 
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 
 function sanitize_int_csv($csv){
 
@@ -270,7 +270,7 @@ $personajes = ensure_utf8($personajes);
 
 
 
-$pageSect = "Lista de personajes - BiografÃ­as";
+$pageSect = "Lista de personajes - Biografías";
 
 ?>
 
@@ -520,7 +520,7 @@ $pageSect = "Lista de personajes - BiografÃ­as";
 
           <div class="ms-btn" id="ms-toggle-clan" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
 
-            <span class="ms-label">OrganizaciÃ³n</span>
+            <span class="ms-label">Organización</span>
 
             <span class="ms-summary" id="ms-summary-clan">Todas</span>
 
@@ -648,7 +648,7 @@ $pageSect = "Lista de personajes - BiografÃ­as";
 
                 <th>Grupo</th>
 
-                <th>OrganizaciÃ³n</th>
+                <th>Organización</th>
 
                 <th>Sistema</th>
 
@@ -686,7 +686,7 @@ function escapeHtml(text) {
 
 
 
-// Escape especÃ­fico para atributos (incluye backticks)
+// Escape específico para atributos (incluye backticks)
 
 function escapeAttr(text) {
 
@@ -778,7 +778,7 @@ $(document).ready(function () {
 
 
 
-	// Construimos el array final para DataTables (mÃ¡s rÃ¡pido que append por fila)
+	// Construimos el array final para DataTables (más rápido que append por fila)
 
 	const data = personajes.map(p => {
 
@@ -842,7 +842,7 @@ $(document).ready(function () {
 
 			{ title: "Grupo" },
 
-			{ title: "OrganizaciÃ³n" },
+			{ title: "Organización" },
 
 			{ title: "Sistema" },
 
@@ -860,7 +860,7 @@ $(document).ready(function () {
 
 		language: {
 
-			search: "ðŸ” Buscar:&nbsp;",
+			search: "🔍 Buscar:&nbsp;",
 
 			lengthMenu: "Mostrar _MENU_ personajes",
 
@@ -874,7 +874,7 @@ $(document).ready(function () {
 
 				first: "Primero",
 
-				last: "Ãšltimo",
+				last: "Último",
 
 				next: "&#9654;",
 

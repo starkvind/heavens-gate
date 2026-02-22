@@ -58,7 +58,7 @@ setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null
                             title='" . htmlspecialchars($row["name"]) . ", Rango " . htmlspecialchars($row["rank"]) . "'>
                             <div class='renglon2col'>
                                 <div class='renglon2colIz'>
-                                    <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($row["name"]) . "
+                                    <img class='valign' src='img/ui/powers/claws.png'> " . htmlspecialchars($row["name"]) . "
                                 </div>
                                 <div class='renglon2colDe'>" . htmlspecialchars($row["rank"]) . "</div>
                             </div>

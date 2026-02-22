@@ -1,4 +1,4 @@
-﻿<?php setMetaFromPage("BiografÃ­as por grupo | Heaven's Gate", "Listado de biografÃ­as agrupadas por Tipo y OrganizaciÃ³n.", null, 'website'); ?>
+<?php setMetaFromPage("Biografías por grupo | Heaven's Gate", "Listado de biografías agrupadas por Tipo y Organización.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;
@@ -29,13 +29,13 @@
 
 <?php
 	if (!$link) {
-		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+		die("Error de conexión a la base de datos: " . mysqli_connect_error());
 	}
 
 	// Helper escape
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 	function sanitize_int_csv($csv){
 		$csv = (string)$csv;
 		if (trim($csv) === '') return '';
@@ -52,18 +52,19 @@
 	$idTipo = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 	if ($idTipo <= 0) {
 		include("app/partials/main_nav_bar.php");
-		echo "<h2>Error</h2><p class='texti'>Tipo invÃ¡lido.</p>";
+		echo "<h2>Error</h2><p class='texti'>Tipo inválido.</p>";
 		exit;
 	}
 
-$valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.character_type_id,
-					COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
-					COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
-					COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name";
+	$valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.character_type_id,
+						COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
+						COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
+						COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name,
+						IFNULL(COALESCE(nc2.sort_order, nc_from_pack.sort_order), 999999) AS organization_sort_order";
 	$howMuch = 0;
 
 	// ======================================== //
-	// EXCLUSIONES DE CRÃ“NICAS (lista de ints, segura)
+	// EXCLUSIONES DE CRÓNICAS (lista de ints, segura)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
@@ -80,14 +81,11 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 	if ($rowType = mysqli_fetch_assoc($resultTypeQuery)) {
 
 		$nombreTipo = h($rowType["kind"]);
-		$pageSect   = "$nombreTipo | BiografÃ­as";
+		$pageSect   = "$nombreTipo | Biografías";
 
 		include("app/partials/main_nav_bar.php");
 		echo "<h2>$nombreTipo</h2>";
 
-		// ============================================================
-		// Personajes por tipo + clan
-		// ============================================================
 		// ============================================================
 		// Personajes por tipo + clan
 		// ============================================================
@@ -150,24 +148,28 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 					$clanPretty = (string)($rowPJ['clan_pretty_id'] ?? '');
 
 					$key = $clanId > 0 ? (string)$clanId : 'none';
-					if (!isset($grupos[$key])) {
-						$grupos[$key] = [
-							'id' => $clanId,
-							'name' => $clanName,
-							'pretty_id' => $clanPretty,
-							'items' => [],
-						];
+						if (!isset($grupos[$key])) {
+							$grupos[$key] = [
+								'id' => $clanId,
+								'name' => $clanName,
+								'pretty_id' => $clanPretty,
+								'sort_order' => (int)($rowPJ['organization_sort_order'] ?? 999999),
+								'items' => [],
+							];
+						}
+						$grupos[$key]['items'][] = $rowPJ;
 					}
-					$grupos[$key]['items'][] = $rowPJ;
-				}
 
-				// Ordenar por ID asc, dejando "none" al final
-				$keys = array_keys($grupos);
-				usort($keys, function($a, $b){
-					if ($a === 'none') return 1;
-					if ($b === 'none') return -1;
-					return (int)$a <=> (int)$b;
-				});
+					// Ordenar por sort_order, dejando "none" al final
+					$keys = array_keys($grupos);
+					usort($keys, function($a, $b) use ($grupos){
+						if ($a === 'none') return 1;
+						if ($b === 'none') return -1;
+						$sa = (int)($grupos[$a]['sort_order'] ?? 999999);
+						$sb = (int)($grupos[$b]['sort_order'] ?? 999999);
+						if ($sa !== $sb) return $sa <=> $sb;
+						return (int)$a <=> (int)$b;
+					});
 
 				foreach ($keys as $k) {
 					$grp = $grupos[$k];
@@ -236,7 +238,7 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 	mysqli_free_result($resultTypeQuery);
 	mysqli_stmt_close($stmtType);
 
-	// OJO: yo NO cerrarÃ­Â­a $link aquÃ­Â­ si lo reutilizas en la misma request con includes.
+	// OJO: no cierres $link aqui si lo reutilizas en la misma request con includes.
 	// mysqli_close($link);
 ?>
 
@@ -253,6 +255,5 @@ $valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.ch
 		}
 	});
 </script>
-
 
 

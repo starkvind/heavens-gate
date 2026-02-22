@@ -62,7 +62,7 @@ if ($misterroboto > 0) {
                     title='" . htmlspecialchars($row["name"]) . "'>
                     <div class='renglon2col'>
                         <div class='renglon2colIz'>
-                            <img class='valign' src='img/ui/powers/rite.gif'> " . htmlspecialchars($row["name"]) . "
+                            <img class='valign' src='img/ui/powers/book.png'> " . htmlspecialchars($row["name"]) . "
                         </div>
                     </div>
                 </a>

@@ -351,7 +351,7 @@ $routes = [
 	'verrasgo'    => ['app/controllers/docs/traits_page.php', null],
 	'maneuver'    => ['app/controllers/docs/maneuver_list.php', null],
 	'vermaneu'    => ['app/controllers/docs/maneuver_page.php', null],
-	'arquetip'    => ['app/controllers/docs/arche_list.php', null],
+	'arquetip'    => ['app/controllers/docs/arche_table.php', null],
 	'verarch'     => ['app/controllers/docs/arche_page.php', null],
 
 	// 🧬 Méritos y fallos
@@ -435,4 +435,3 @@ if (isset($routes[$routeKey])) {
 if (empty($metaTitle)) {
 $metaTitle = trim(($pageTitle2 ?? '') . ' | ' . ($pageSect ?? '') . ' | ' . $pageTitle, ' |');
 }
-

@@ -186,7 +186,7 @@ if ($table !== "") {
                         target='_blank'>
                         <div class='renglon2col'>
                             <div class='renglon2colIz'>
-                                <img class='valign' src='img/ui/powers/don.gif'> " . htmlspecialchars($resultDonQuery['name']) . "
+                                <img class='valign' src='img/ui/powers/claws.png'> " . htmlspecialchars($resultDonQuery['name']) . "
                             </div>
                             <div class='renglon2colDe'>" . htmlspecialchars($resultDonQuery['rank']) . "</div>
                         </div>

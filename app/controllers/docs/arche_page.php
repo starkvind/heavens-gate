@@ -1,91 +1,257 @@
 <?php
-// Obtener el parámetro 'b' de manera segura
-$archeID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del Arquetipo
+$archeRaw = $_GET['b'] ?? '';
+$archeId = resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0;
 
-// Preparar la consulta para evitar inyecciones SQL
 $queryArche = "SELECT * FROM dim_archetypes WHERE id = ? LIMIT 1";
 $stmtArche = $link->prepare($queryArche);
-$stmtArche->bind_param('s', $archeID);
+
+if (!$stmtArche || $archeId <= 0) {
+    echo "No se encontraron resultados para la busqueda.";
+    return;
+}
+
+$stmtArche->bind_param('i', $archeId);
 $stmtArche->execute();
 $resultArche = $stmtArche->get_result();
-$rowsQueryArche = $resultArche->num_rows;
 
-// Comprobamos si hay resultados
-if ($rowsQueryArche > 0) {
-    $resultQueryArche = $resultArche->fetch_assoc();
+if (!$resultArche || $resultArche->num_rows <= 0) {
+    echo "No se encontraron resultados para la busqueda.";
+    $stmtArche->close();
+    return;
+}
 
-    // Datos básicos
-    $archeName = htmlspecialchars($resultQueryArche["name"]);
-    $archeDesc = $resultQueryArche["description"] ?? $resultQueryArche["description"] ?? ''; // keep HTML from DB
-$archeWill = $resultQueryArche["willpower_text"] ?? $resultQueryArche["fv"] ?? '';
-    $archeOrig = htmlspecialchars($resultQueryArche["bibliography_id"]);
+$resultQueryArche = $resultArche->fetch_assoc();
 
-    // Seleccionar origen
-    $archeOrigName = "-"; // Valor predeterminado si no hay origen
-    if ($archeOrig != 0) {
-        $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
-        $stmtOrigen = $link->prepare($queryOrigen);
-        $stmtOrigen->bind_param('s', $archeOrig);
+$archeName = htmlspecialchars((string)$resultQueryArche['name']);
+$archeDesc = (string)($resultQueryArche['description'] ?? '');
+$archeWill = (string)($resultQueryArche['willpower_text'] ?? '');
+$archeOrig = (int)($resultQueryArche['bibliography_id'] ?? 0);
+
+$archeOrigName = '-';
+if ($archeOrig > 0) {
+    $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
+    if ($stmtOrigen = $link->prepare($queryOrigen)) {
+        $stmtOrigen->bind_param('i', $archeOrig);
         $stmtOrigen->execute();
         $resultOrigen = $stmtOrigen->get_result();
-        if ($resultOrigen->num_rows > 0) {
-            $resultQueryArcheOrigen = $resultOrigen->fetch_assoc();
-            $archeOrigName = htmlspecialchars($resultQueryArcheOrigen["name"]);
+        if ($resultOrigen && ($rowOrigen = $resultOrigen->fetch_assoc())) {
+            $archeOrigName = htmlspecialchars((string)$rowOrigen['name']);
         }
         $stmtOrigen->close();
     }
-
-    // Imágenes y Título
-    $pageSect = "Arquetipo"; // Título de la Página
-    $pageTitle2 = $archeName;
-    setMetaFromPage($archeName . " | Arquetipos | Heaven's Gate", meta_excerpt($archeDesc), null, 'article');
-
-    // Incluir barra de navegación
-    include("app/partials/main_nav_bar.php"); // Barra de Navegación
-    echo "<h2>$archeName</h2>"; // Encabezado de página
-
-    // Cuerpo principal de la Ficha del Arquetipo
-    echo "<fieldset class='renglonPaginaDon'>";
-
-    // Imagen del Arquetipo
-    $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
-
-    echo "<div class='itemSquarePhoto' style='padding-left:4px;'>";
-    echo "<img class='photobio' style='width:100px;height:100px;' src='$itemImg' alt='$archeName'/>";
-    echo "</div>";
-
-    // Datos generales del Arquetipo
-    echo "<div class='bioSquareData'>";
-
-    // Orígenes del Arquetipo
-    if ($archeOrig != 0) {
-        echo "<div class='bioRenglonData'>";
-        echo "<div class='bioDataName'>Origen:</div>";
-        echo "<div class='bioDataText'>$archeOrigName</div>";
-        echo "</div>";
-    }
-
-    echo "</div>";
-
-    // Descripción del Arquetipo
-    if ($archeDesc != "") {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Descripci&oacute;n:</b><p>$archeDesc</p>";
-        echo "</div>";
-    }
-
-
-    // Fuerza de Voluntad
-    if ($archeWill != "") {
-        echo "<div class='renglonDonData'>";
-        echo "<b>Fuerza de Voluntad:</b><p>$archeWill</p>";
-        echo "</div>";
-    }
-
-    echo "</fieldset>";
 }
 
-// Cerramos la sentencia preparada para la consulta principal
+$pageSect = 'Arquetipo';
+$pageTitle2 = $archeName;
+setMetaFromPage($archeName . " | Arquetipos | Heaven's Gate", meta_excerpt($archeDesc), null, 'article');
+include("app/partials/main_nav_bar.php");
+
+$itemImg = 'img/inv/no-photo.gif';
+
+ob_start();
+
+echo "<div class='power-card power-card--item'>";
+echo "  <div class='power-card__banner'>";
+echo "    <span class='power-card__title'>{$archeName}</span>";
+echo "  </div>";
+
+echo "  <div class='power-card__body'>";
+echo "    <div class='power-card__media'>";
+echo "      <div class='power-card__img-wrap'>";
+echo "        <img class='power-card__img' src='" . htmlspecialchars($itemImg) . "' alt='{$archeName}'/>";
+echo "      </div>";
+echo "    </div>";
+
+echo "    <div class='power-card__stats'>";
+echo "      <div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$archeOrigName}</div></div>";
+echo "    </div>";
+echo "  </div>";
+
+if ($archeDesc !== '') {
+    echo "  <div class='power-card__desc'>";
+    echo "    <div class='power-card__desc-title'>Descripcion</div>";
+    echo "    <div class='power-card__desc-body'>{$archeDesc}</div>";
+    echo "  </div>";
+}
+if ($archeWill !== '') {
+    echo "  <div class='power-card__desc'>";
+    echo "    <div class='power-card__desc-title'>Fuerza de Voluntad</div>";
+    echo "    <div class='power-card__desc-body'>" . htmlspecialchars($archeWill) . "</div>";
+    echo "  </div>";
+}
+
+echo "</div>";
+
+$infoHtml = ob_get_clean();
+
+if (!function_exists('sanitize_int_csv')) {
+    function sanitize_int_csv($csv){
+        $csv = (string)$csv;
+        if (trim($csv) === '') return '';
+        $parts = preg_split('/\s*,\s*/', trim($csv));
+        $ints = [];
+        foreach ($parts as $p) {
+            if ($p === '') continue;
+            if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
+        }
+        $ints = array_values(array_unique($ints));
+        return implode(',', $ints);
+    }
+}
+
+$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
+$chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
+
+$natureOwners = [];
+$demeanorOwners = [];
+
+$queryOwnersNature = "
+    SELECT p.id, p.name, p.alias, p.image_url, p.status
+    FROM fact_characters p
+    WHERE p.nature_id = ? {$chronicleNotInSQL}
+    ORDER BY p.name
+";
+if ($stNature = $link->prepare($queryOwnersNature)) {
+    $stNature->bind_param('i', $archeId);
+    $stNature->execute();
+    $rsNature = $stNature->get_result();
+    while ($row = $rsNature->fetch_assoc()) {
+        $natureOwners[] = $row;
+    }
+    $stNature->close();
+}
+
+$queryOwnersDemeanor = "
+    SELECT p.id, p.name, p.alias, p.image_url, p.status
+    FROM fact_characters p
+    WHERE p.demeanor_id = ? {$chronicleNotInSQL}
+    ORDER BY p.name
+";
+if ($stDemeanor = $link->prepare($queryOwnersDemeanor)) {
+    $stDemeanor->bind_param('i', $archeId);
+    $stDemeanor->execute();
+    $rsDemeanor = $stDemeanor->get_result();
+    while ($row = $rsDemeanor->fetch_assoc()) {
+        $demeanorOwners[] = $row;
+    }
+    $stDemeanor->close();
+}
+
+$hasNature = count($natureOwners) > 0;
+$hasDemeanor = count($demeanorOwners) > 0;
+$hasOwnersTabs = $hasNature || $hasDemeanor;
+
+if ($hasOwnersTabs) {
+    include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
+    hg_render_owner_tabs_styles(true, 28);
+
+    echo "<style>
+        .hg-tab-panel[data-tab='owners'] .grupoBioClan{ display:flex; justify-content:flex-start !important; }
+        .hg-tab-panel[data-tab='owners'] .contenidoAfiliacion{
+            display:flex;
+            flex-wrap:wrap;
+            gap:6px;
+            padding:8px 0 12px 0 !important;
+            margin-left:28px !important;
+            justify-content:flex-start !important;
+        }
+        .owners-section-title{
+            color:#66CCFF;
+            font-weight:bold;
+            margin:4px 0 6px 28px;
+            text-transform:uppercase;
+            letter-spacing:.04em;
+        }
+    </style>";
+
+    echo "<div class='hg-tabs'>";
+    echo "<button class='boton2 hgTabBtn' data-tab='info'>Informacion</button>";
+    echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
+    echo "</div>";
+
+    echo "<section class='hg-tab-panel' data-tab='info'>{$infoHtml}</section>";
+
+    $mapEstado = [
+        'Aun por aparecer'      => '(@)',
+        'Aún por aparecer'      => '(@)',
+        'Paradero desconocido'  => '(?)',
+        'Cadaver'               => '(&#8224;)',
+        'Cadáver'               => '(&#8224;)'
+    ];
+
+    echo "<section class='hg-tab-panel' data-tab='owners'>";
+
+    if ($hasNature) {
+        echo "<div class='owners-section-title'>Naturaleza</div>";
+        echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+        foreach ($natureOwners as $o) {
+            $oid = (int)($o['id'] ?? 0);
+            $name = htmlspecialchars((string)($o['name'] ?? ''));
+            $alias = htmlspecialchars((string)($o['alias'] ?? ''));
+            $img = htmlspecialchars((string)($o['image_url'] ?? ''));
+            $estado = (string)($o['status'] ?? '');
+            $label = $alias !== '' ? $alias : $name;
+            $simboloEstado = $mapEstado[$estado] ?? '';
+            $href = pretty_url($link, 'fact_characters', '/characters', $oid);
+            echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
+            echo "<div class='marcoFotoBio'>";
+            echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
+            if ($img !== '') {
+                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
+            } else {
+                echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
+            }
+            echo "</div>";
+            echo "</a>";
+        }
+        echo "</div></div>";
+        echo "<p align='right'>Personajes (Naturaleza): " . count($natureOwners) . "</p>";
+    }
+
+    if ($hasDemeanor) {
+        echo "<div class='owners-section-title'>Conducta</div>";
+        echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+        foreach ($demeanorOwners as $o) {
+            $oid = (int)($o['id'] ?? 0);
+            $name = htmlspecialchars((string)($o['name'] ?? ''));
+            $alias = htmlspecialchars((string)($o['alias'] ?? ''));
+            $img = htmlspecialchars((string)($o['image_url'] ?? ''));
+            $estado = (string)($o['status'] ?? '');
+            $label = $alias !== '' ? $alias : $name;
+            $simboloEstado = $mapEstado[$estado] ?? '';
+            $href = pretty_url($link, 'fact_characters', '/characters', $oid);
+            echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
+            echo "<div class='marcoFotoBio'>";
+            echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
+            if ($img !== '') {
+                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
+            } else {
+                echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
+            }
+            echo "</div>";
+            echo "</a>";
+        }
+        echo "</div></div>";
+        echo "<p align='right'>Personajes (Conducta): " . count($demeanorOwners) . "</p>";
+    }
+    echo "</section>";
+
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = Array.from(document.querySelectorAll('.hgTabBtn'));
+            const panels = Array.from(document.querySelectorAll('.hg-tab-panel'));
+            function activate(key){
+                panels.forEach(p => p.classList.toggle('active', p.dataset.tab === key));
+                tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === key));
+            }
+            if (tabs.length) activate(tabs[0].dataset.tab);
+            tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
+        });
+    </script>";
+} else {
+    echo $infoHtml;
+}
+
 $stmtArche->close();
 ?>
 

@@ -1,5 +1,5 @@
 <?php
-setMetaFromPage("Biograf?as | Heaven's Gate", "Listado de biograf?as y personajes.", null, 'website');
+setMetaFromPage("Biografías | Heaven's Gate", "Listado de biografías y personajes.", null, 'website');
 // Verificar la conexión a la base de datos
 if (!$link) {
     die("Error de conexión a la base de datos: " . mysqli_connect_error());

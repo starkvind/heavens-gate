@@ -4,9 +4,9 @@
 // Requiere: $link = conexión mysqli y $idPersonaje definido
 
 $iconos = [
-    'dones' => 'img/ui/powers/don.gif',
-    'disciplinas' => 'img/ui/powers/disc.gif',
-    'rituales' => 'img/ui/powers/rite.gif',
+    'dones' => 'img/ui/powers/claws.png',
+    'disciplinas' => 'img/ui/powers/fangs.png',
+    'rituales' => 'img/ui/powers/book.png',
     // Puedes añadir más tipos aquí si aparecen (como taumaturgia, etc)
 ];
 

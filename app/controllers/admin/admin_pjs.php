@@ -1,4 +1,4 @@
-﻿<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 
@@ -30,9 +30,9 @@
 </style>
 
 <?php
-// admin_pjs.php â€” CRUD Personajes (Clanâ†’Manada + Sistemaâ†’Raza/Auspicio/Tribu + Avatar + AfiliaciÃ³n + Poderes + MÃ©ritos/Defectos + Inventario + Campos complejos)
+// admin_pjs.php — CRUD Personajes (Clan→Manada + Sistema→Raza/Auspicio/Tribu + Avatar + Afiliación + Poderes + Méritos/Defectos + Inventario + Campos complejos)
 
-if (!isset($link) || !$link) { die("Error de conexiÃ³n a la base de datos."); }
+if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
 
 // [IMPORTANT] MUY IMPORTANTE: asegura que MySQLi entregue UTF-8 real (evita JSON roto)
 if (method_exists($link, 'set_charset')) {
@@ -48,14 +48,14 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 /* -------------------------------------------------
-   Helpers (texto â€œcomplejoâ€)
+   Helpers (texto “complejo”)
 ------------------------------------------------- */
 function preview_text(string $s, int $len = 180): string {
   $s = strip_tags($s);
   $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
   $s = preg_replace('/\s+/u', ' ', $s);
   $s = trim($s);
-  if (function_exists('mb_strlen') && mb_strlen($s, 'UTF-8') > $len) $s = mb_substr($s, 0, $len - 1, 'UTF-8') . 'â€¦';
+  if (function_exists('mb_strlen') && mb_strlen($s, 'UTF-8') > $len) $s = mb_substr($s, 0, $len - 1, 'UTF-8') . '…';
   return $s;
 }
 
@@ -81,7 +81,7 @@ function save_avatar_file(array $file, int $pjId, string $displayName, string $u
     if ($file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Error de subida (#'.$file['error'].')'];
     if ($file['size'] > 5*1024*1024)     return ['ok'=>false,'msg'=>'El archivo supera 5 MB'];
     $tmp = $file['tmp_name'];
-    if (!is_uploaded_file($tmp))         return ['ok'=>false,'msg'=>'Subida no vÃ¡lida'];
+    if (!is_uploaded_file($tmp))         return ['ok'=>false,'msg'=>'Subida no válida'];
 
     $mime = '';
     if (function_exists('finfo_open')) { $fi = finfo_open(FILEINFO_MIME_TYPE); if ($fi) { $mime = finfo_file($fi, $tmp); finfo_close($fi); } }
@@ -242,7 +242,7 @@ function save_character_powers(mysqli $link, int $charId, array $types, array $i
     return ['inserted'=>$inserted,'skipped'=>$skipped];
 }
 
-/* --- MÃ‰RITOS/DEFECTOS: helper guardar bridge (nivel NULL o int) --- */
+/* --- MÉRITOS/DEFECTOS: helper guardar bridge (nivel NULL o int) --- */
 function save_character_merits_flaws(mysqli $link, int $charId, array $ids, array $lvls_raw): array {
     $n = min(count($ids), count($lvls_raw));
     $inserted = 0; $skipped = 0;
@@ -253,7 +253,7 @@ function save_character_merits_flaws(mysqli $link, int $charId, array $ids, arra
     if ($n<=0) return ['inserted'=>0,'skipped'=>0];
 
     $seen = [];
-    // 3er parÃ¡metro lo bindeamos como string para que NULL viaje como NULL sin convertirse a 0
+    // 3er parámetro lo bindeamos como string para que NULL viaje como NULL sin convertirse a 0
     if ($ins = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?,?,?)")) {
         for ($i=0; $i<$n; $i++){
             $mid = (int)$ids[$i];
@@ -522,7 +522,7 @@ function fetchPairs($link, $sql, $bindTypes = "", $bindValues = []) {
 }
 
 /* -------------------------------------------------
-   Estado (lista vÃ¡lida desde BD)
+   Estado (lista válida desde BD)
 ------------------------------------------------- */
 $estado_opts = [];
 if ($rs = $link->query("SELECT status FROM fact_characters GROUP BY 1 ORDER BY 1")) {
@@ -601,14 +601,15 @@ $opts_jug      = fetchPairs($link, "SELECT id, name FROM dim_players ORDER BY na
 $opts_sist     = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
 $opts_totems   = fetchPairs($link, "SELECT id, name FROM dim_totems ORDER BY name");
 $opts_afili    = fetchPairs($link, "SELECT id, kind AS name FROM dim_character_types ORDER BY sort_order, kind");
+$opts_archetypes = fetchPairs($link, "SELECT id, name FROM dim_archetypes ORDER BY name");
 $opts_manadas_flat = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
 
-/* --- PODERES: catÃ¡logos --- */
+/* --- PODERES: catálogos --- */
 $opts_dones        = fetchPairs($link, "SELECT id, CONCAT(name, ' (', gift_group, ')') AS name FROM fact_gifts");
 $opts_disciplinas  = fetchPairs($link, "SELECT nd.id, CONCAT(nd.name, ' (', ntd.name, ')') AS name FROM fact_discipline_powers nd LEFT JOIN dim_discipline_types ntd ON nd.disc = ntd.id");
 $opts_rituales     = fetchPairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id");
 
-/* --- MÃ‰RITOS/DEFECTOS: catÃ¡logo completo (para select + chips) --- */
+/* --- MÉRITOS/DEFECTOS: catálogo completo (para select + chips) --- */
 $opts_myd_full = []; // [{id,name,tipo,coste}]
 if ($st = $link->prepare("SELECT id, name, kind, cost FROM dim_merits_flaws ORDER BY kind DESC, cost, name")) {
     $st->execute(); $rs = $st->get_result();
@@ -623,7 +624,7 @@ if ($st = $link->prepare("SELECT id, name, kind, cost FROM dim_merits_flaws ORDE
     $st->close();
 }
 
-/* --- INVENTARIO: catÃ¡logo --- */
+/* --- INVENTARIO: catálogo --- */
 $opts_items_full = []; // [{id,name,tipo}]
 if ($st = $link->prepare("SELECT id, name, item_type_id FROM fact_items ORDER BY name")) {
     $st->execute(); $rs = $st->get_result();
@@ -637,7 +638,7 @@ if ($st = $link->prepare("SELECT id, name, item_type_id FROM fact_items ORDER BY
     $st->close();
 }
 
-/* --- RECURSOS: catÃ¡logo + defaults por sistema --- */
+/* --- RECURSOS: catálogo + defaults por sistema --- */
 $has_dim_systems_resources = pjs_table_exists($link, 'dim_systems_resources');
 $has_bridge_systems_resources = pjs_table_exists($link, 'bridge_systems_resources_to_system');
 $has_bridge_char_resources = pjs_table_exists($link, 'bridge_characters_system_resources');
@@ -689,10 +690,10 @@ if ($has_bridge_systems_resources && $has_dim_systems_resources) {
     }
 }
 
-/* --- TRAITS: catÃ¡logo (todos los tipos) --- */
+/* --- TRAITS: catálogo (todos los tipos) --- */
 $traits_by_type = [];
 $trait_types = [];
-$trait_order_fixed = ['Atributos','Talentos','TÃ©cnicas','Conocimientos','Trasfondos'];
+$trait_order_fixed = ['Atributos','Talentos','Técnicas','Conocimientos','Trasfondos'];
 if ($st = $link->prepare("
     SELECT id, name, kind
     FROM dim_traits
@@ -709,7 +710,7 @@ if ($st = $link->prepare("
     }
     $st->close();
 }
-// Orden fijo + resto al final (alfabÃ©tico)
+// Orden fijo + resto al final (alfabético)
 $trait_types = $trait_order_fixed;
 foreach (array_keys($traits_by_type) as $kind) {
     if (!in_array($kind, $trait_types, true)) $trait_types[] = $kind;
@@ -802,7 +803,7 @@ if ($stmtM = $link->prepare($sqlMap)) {
 }
 
 /* -------------------------------------------------
-   Crear / Editar (POST) + avatar + validaciones + PODERES + MÃ‰RITOS/DEFECTOS + INVENTARIO + CAMPOS COMPLEJOS
+   Crear / Editar (POST) + avatar + validaciones + PODERES + MÉRITOS/DEFECTOS + INVENTARIO + CAMPOS COMPLEJOS
 ------------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $action      = $_POST['crud_action'];
@@ -819,6 +820,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $raza        = max(0, intval($_POST['raza'] ?? 0));
     $auspice_id    = max(0, intval($_POST['auspice_id'] ?? 0));
     $tribe_id       = max(0, intval($_POST['tribe_id'] ?? 0));
+    $nature_id      = max(0, intval($_POST['nature_id'] ?? 0));
+    $demeanor_id    = max(0, intval($_POST['demeanor_id'] ?? 0));
     $manada      = max(0, intval($_POST['manada'] ?? 0));
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
@@ -840,7 +843,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $powers_id   = isset($_POST['powers_id'])   ? array_map('intval',(array)$_POST['powers_id']) : [];
     $powers_lvl  = isset($_POST['powers_lvl'])  ? array_map('intval',(array)$_POST['powers_lvl']) : [];
 
-    // MÃ‰RITOS/DEFECTOS
+    // MÉRITOS/DEFECTOS
     $myd_id      = isset($_POST['myd_id'])  ? array_map('intval',(array)$_POST['myd_id']) : [];
     $myd_lvl_raw = isset($_POST['myd_lvl']) ? (array)$_POST['myd_lvl'] : [];
 
@@ -884,7 +887,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     for ($i = 0; $i < $nres; $i++) {
         $rid = (int)$res_ids_raw[$i];
         if ($rid <= 0) continue;
-        if (!isset($resources_by_id[$rid])) continue; // ignora IDs no vÃ¡lidos
+        if (!isset($resources_by_id[$rid])) continue; // ignora IDs no válidos
         $perm = (int)(is_string($res_perm_raw[$i]) ? trim($res_perm_raw[$i]) : $res_perm_raw[$i]);
         $temp = (int)(is_string($res_temp_raw[$i]) ? trim($res_temp_raw[$i]) : $res_temp_raw[$i]);
         if ($perm < 0) $perm = 0;
@@ -898,7 +901,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     // Validaciones
     if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
-    if (!isset($estado_set[$status])) $flash[] = ['type'=>'error','msg'=>'âš  El status no es vÃ¡lido.'];
+    if (!isset($estado_set[$status])) $flash[] = ['type'=>'error','msg'=>'⚠ El status no es válido.'];
     if ($manada > 0) {
         $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
         if ($clan_of_manada !== $clan) {
@@ -952,18 +955,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, character_kind, system_id,
-                 shifter_type, totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 shifter_type, totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img=''; $kes='pnj'; $fera='';
                 $stmt->bind_param(
-                    "sssssiiissssisisssssiii",
+                    "sssssiiissssisisssssiiiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
                     $img, $notas, $text_color, $kes, $system_id, $fera,
                     $totem_id,
                     $status, $causamuerte, $cumple, $rango, $infotext,
-                    $raza, $auspice_id, $tribe_id
+                    $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
                 );
                 if ($stmt->execute()) {
                     $newId = $stmt->insert_id;
@@ -980,7 +983,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                                 $st2->bind_param("si", $res['url'], $newId);
                                 $st2->execute(); $st2->close();
                             }
-                            $flash[] = ['type'=>'ok','msg'=>'ðŸ–¼ Avatar subido.'];
+                            $flash[] = ['type'=>'ok','msg'=>'🖼 Avatar subido.'];
                         } elseif ($res['msg']!=='no_file') {
                             $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                         }
@@ -991,14 +994,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'[OK] Poderes vinculados: '.$resultPow['inserted']]; }
                     if ($resultPow['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Poderes omitidos: '.$resultPow['skipped'].')']; }
 
-                    // MÃ©ritos/Defectos
+                    // Méritos/Defectos
                     $resultMyd = save_character_merits_flaws($link, (int)$newId, $myd_id, $myd_lvl_raw);
-                    if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'ðŸ·ï¸ MÃ©ritos/Defectos vinculados: '.$resultMyd['inserted']]; }
-                    if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(MÃ©ritos/Defectos omitidos: '.$resultMyd['skipped'].')']; }
+                    if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
+                    if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped'].')']; }
 
                     // Inventario
                     $resultIt = save_character_items($link, (int)$newId, $items_id);
-                    if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'ðŸŽ’ Objetos vinculados: '.$resultIt['inserted']]; }
+                    if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🎒 Objetos vinculados: '.$resultIt['inserted']]; }
                     if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                     
@@ -1044,11 +1047,11 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
 
     if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
 
-          // âœ… OJO: ya NO actualizamos p.manada ni p.clan aquÃ­ (bridges mandan)
+          // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
                   name=?, alias=?, garou_name=?, gender=?, concept=?,
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?,
-                  breed_id=?, auspice_id=?, tribe_id=?,
+                  breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
                   status=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
                   WHERE id=?";
@@ -1057,10 +1060,10 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiisiiiisssssi",
+                  "sssssiiiisiiiiiisssssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
-                  $raza, $auspice_id, $tribe_id,
+                  $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
                   $status, $causamuerte, $cumple, $rango, $infotext,
                   $id
@@ -1077,7 +1080,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                           $st2->execute();
                           $st2->close();
                       }
-                      $flash[] = ['type'=>'ok','msg'=>'ðŸ—‘ Avatar eliminado.'];
+                      $flash[] = ['type'=>'ok','msg'=>'🗑 Avatar eliminado.'];
                       $current_img = '';
                   }
 
@@ -1090,13 +1093,13 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                               $st3->execute();
                               $st3->close();
                           }
-                          $flash[] = ['type'=>'ok','msg'=>'ðŸ–¼ Avatar actualizado.'];
+                          $flash[] = ['type'=>'ok','msg'=>'🖼 Avatar actualizado.'];
                       } elseif ($res['msg']!=='no_file') {
                           $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                       }
                   }
 
-                  // âœ… Bridges: aquÃ­ sÃ­ guardas clan/manada (fuente de verdad)
+                  // ✅ Bridges: aquí sí guardas clan/manada (fuente de verdad)
                   sync_character_bridges($link, (int)$id, (int)$manada, (int)$clan);
 
                   // Poderes
@@ -1104,14 +1107,14 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'[OK] Poderes vinculados: '.$resultPow['inserted']]; }
                   if ($resultPow['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Poderes omitidos: '.$resultPow['skipped'].')']; }
 
-                  // MÃ©ritos/Defectos
+                  // Méritos/Defectos
                   $resultMyd = save_character_merits_flaws($link, (int)$id, $myd_id, $myd_lvl_raw);
-                  if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'ðŸ·ï¸ MÃ©ritos/Defectos vinculados: '.$resultMyd['inserted']]; }
-                  if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(MÃ©ritos/Defectos omitidos: '.$resultMyd['skipped'].')']; }
+                  if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
+                  if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped'].')']; }
 
                   // Inventario
                   $resultIt = save_character_items($link, (int)$id, $items_id);
-                  if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'ðŸŽ’ Objetos vinculados: '.$resultIt['inserted']]; }
+                  if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🎒 Objetos vinculados: '.$resultIt['inserted']]; }
                   if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                   
@@ -1157,7 +1160,7 @@ $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
 }
 
 /* -------------------------------------------------
-   Listado + PaginaciÃ³n
+   Listado + Paginación
 ------------------------------------------------- */
 $where = "WHERE 1=1"; $params = []; $types = "";
 if ($fil_cr > 0) { $where .= " AND p.chronicle_id = ?"; $types .= "i"; $params[] = $fil_cr; }
@@ -1197,7 +1200,7 @@ $sql = "
 SELECT
   p.id, p.name, p.alias, p.garou_name, p.gender, p.concept,
   p.chronicle_id, p.player_id, p.system_id, p.text_color,
-  p.breed_id, p.auspice_id, p.tribe_id,
+  p.breed_id, p.auspice_id, p.tribe_id, p.nature_id, p.demeanor_id,
   -- [OK] IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.organization_id, 0)  AS clan,
@@ -1256,7 +1259,7 @@ $stmt = $link->prepare($sql);
 if ($stmt === false) {
     die(
         "<pre>SQL PREPARE ERROR:\n" .
-        $link->errno . " â€” " . $link->error .
+        $link->errno . " — " . $link->error .
         "\n\nSQL:\n" . $sql .
         "</pre>"
     );
@@ -1311,7 +1314,7 @@ if (!empty($ids_page)) {
     }
 }
 
-/* --- MÃ‰RITOS/DEFECTOS: precarga --- */
+/* --- MÉRITOS/DEFECTOS: precarga --- */
 $char_myd = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval',$ids_page));
@@ -1409,7 +1412,7 @@ if ($has_bridge_char_resources && $has_dim_systems_resources && !empty($ids_page
     }
 }
 
-// Base AJAX (misma pÃ¡gina)
+// Base AJAX (misma página)
 $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 ?>
 
@@ -1458,7 +1461,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
   box-sizing:border-box;
 }
 
-/* Modal: altura mÃ¡xima y scroll interno */
+/* Modal: altura máxima y scroll interno */
 .modal{
   width:min(1000px, 96vw);
   max-height:92vh;
@@ -1511,13 +1514,13 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 <br />
 <div class="panel-wrap">
   <div class="hdr">
-    <h2>ðŸ‘¤ Personajes â€” Lista & CRUD</h2>
+    <h2>👤 Personajes — Lista & CRUD</h2>
     <button class="btn btn-green" id="btnNew">+ Nuevo personaje</button>
 
     <form method="get" style="display:flex; gap:8px; align-items:center;">
       <input type="hidden" name="p" value="talim">
       <input type="hidden" name="s" value="admin_pjs">
-      <label>CrÃ³nica
+      <label>Crónica
         <select class="select" name="fil_cr" onchange="this.form.submit()">
           <option value="0">Todas</option>
           <?php foreach($opts_cronicas as $id=>$name): ?>
@@ -1533,10 +1536,10 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <?php endforeach; ?>
         </select>
       </label>
-      <label style="margin-left:auto;text-align:left;">Filtro rÃ¡pido
-        <input class="inp" type="text" id="quickFilter" placeholder="En esta pÃ¡ginaâ€¦">
+      <label style="margin-left:auto;text-align:left;">Filtro rápido
+        <input class="inp" type="text" id="quickFilter" placeholder="En esta página…">
       </label>
-      <label>PÃ¡g
+      <label>Pág
         <select class="select" name="pp" onchange="this.form.submit()">
           <?php foreach([25,50,100,250,500,1000] as $pp): ?>
             <option value="<?= $pp ?>" <?= $perPage==$pp?'selected':'' ?>><?= $pp ?></option>
@@ -1561,7 +1564,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <th style="width:60px;">ID</th>
         <th>Nombre</th>
         <th>Jugador</th>
-        <th>CrÃ³nica</th>
+        <th>Crónica</th>
         <th>Sistema</th>
         <th style="width:120px;">Acciones</th>
       </tr>
@@ -1590,6 +1593,8 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-raza="<?= (int)$r['breed_id'] ?>"
               data-auspice_id="<?= (int)$r['auspice_id'] ?>"
               data-tribe_id="<?= (int)$r['tribe_id'] ?>"
+              data-nature_id="<?= (int)($r['nature_id'] ?? 0) ?>"
+              data-demeanor_id="<?= (int)($r['demeanor_id'] ?? 0) ?>"
               data-manada="<?= (int)$r['manada'] ?>"
               data-clan="<?= (int)$r['clan'] ?>"
               data-img="<?= h($r['image_url']) ?>"
@@ -1610,11 +1615,11 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
     ?>
-    <a href="<?= $base ?>&pg=1">Â« Primero</a>
-    <a href="<?= $base ?>&pg=<?= $prev ?>">â€¹ Anterior</a>
-    <span class="cur">PÃ¡g <?= $page ?>/<?= $pages ?> Â· Total <?= $total ?></span>
-    <a href="<?= $base ?>&pg=<?= $next ?>">Siguiente â€º</a>
-    <a href="<?= $base ?>&pg=<?= $pages ?>">Ãšltimo Â»</a>
+    <a href="<?= $base ?>&pg=1">« Primero</a>
+    <a href="<?= $base ?>&pg=<?= $prev ?>">‹ Anterior</a>
+    <span class="cur">Pág <?= $page ?>/<?= $pages ?> · Total <?= $total ?></span>
+    <a href="<?= $base ?>&pg=<?= $next ?>">Siguiente ›</a>
+    <a href="<?= $base ?>&pg=<?= $pages ?>">Último »</a>
   </div>
 </div>
 
@@ -1644,7 +1649,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <div>
-          <label>GÃ©nero (f/m/â€¦)
+          <label>Género (f/m/…)
             <input class="inp" type="text" name="gender" id="f_genero_pj" maxlength="1" placeholder="f">
           </label>
         </div>
@@ -1662,16 +1667,16 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Estado
             <select class="select" name="status" id="f_estado" required>
-              <option value="">â€” Selecciona â€”</option>
+              <option value="">— Selecciona —</option>
               <?php foreach ($estado_opts as $val=>$label): ?>
-                <option value="<?= h($val) ?>"><?= h($label==='' ? '(vacÃ­o)' : $label) ?></option>
+                <option value="<?= h($val) ?>"><?= h($label==='' ? '(vacío)' : $label) ?></option>
               <?php endforeach; ?>
             </select>
             <span class="small-note">Lista desde: SELECT status FROM fact_characters GROUP BY 1</span>
           </label>
         </div>
         <div>
-          <label>CumpleaÃ±os <span class="small-note">(ej: 1990-05-21)</span>
+          <label>Cumpleaños <span class="small-note">(ej: 1990-05-21)</span>
             <input class="inp" type="text" name="cumple" id="f_cumple" placeholder="YYYY-MM-DD">
           </label>
         </div>
@@ -1682,9 +1687,9 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <div>
-          <label>CrÃ³nica
+          <label>Crónica
             <select class="select" name="cronica" id="f_cronica">
-              <option value="0">â€”</option>
+              <option value="0">—</option>
               <?php foreach($opts_cronicas as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
@@ -1694,7 +1699,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Jugador
             <select class="select" name="jugador" id="f_jugador">
-              <option value="0">â€”</option>
+              <option value="0">—</option>
               <?php foreach($opts_jug as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
@@ -1702,9 +1707,9 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
         <div>
-          <label style="text-align:left;">Â¿QuÃ© es?
+          <label style="text-align:left;">¿Qué es?
             <select class="select" name="afiliacion" id="f_afiliacion">
-              <option value="0">â€”</option>
+              <option value="0">—</option>
               <?php foreach($opts_afili as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
@@ -1715,7 +1720,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Sistema
             <select class="select" name="system_id" id="f_system_id">
-              <option value="0">â€”</option>
+              <option value="0">—</option>
               <?php foreach($opts_sist as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
@@ -1727,7 +1732,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Raza
             <select class="select" name="raza" id="f_raza" disabled>
-              <option value="0">â€” Elige un Sistema â€”</option>
+              <option value="0">— Elige un Sistema —</option>
               <?php foreach($opts_razas as $id=>$label): ?>
                 <option value="<?= (int)$id ?>"><?= h($label) ?></option>
               <?php endforeach; ?>
@@ -1737,7 +1742,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Auspicio
             <select class="select" name="auspice_id" id="f_auspicio" disabled>
-              <option value="0">â€” Elige un Sistema â€”</option>
+              <option value="0">— Elige un Sistema —</option>
               <?php foreach($opts_ausp as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
@@ -1747,8 +1752,28 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Tribu
             <select class="select" name="tribe_id" id="f_tribu" disabled>
-              <option value="0">â€” Elige un Sistema â€”</option>
+              <option value="0">— Elige un Sistema —</option>
               <?php foreach($opts_tribus as $id=>$name): ?>
+                <option value="<?= (int)$id ?>"><?= h($name) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>Naturaleza
+            <select class="select" name="nature_id" id="f_nature_id">
+              <option value="0">— Sin naturaleza —</option>
+              <?php foreach($opts_archetypes as $id=>$name): ?>
+                <option value="<?= (int)$id ?>"><?= h($name) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>Conducta
+            <select class="select" name="demeanor_id" id="f_demeanor_id">
+              <option value="0">— Sin conducta —</option>
+              <?php foreach($opts_archetypes as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
@@ -1758,7 +1783,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Clan
             <select class="select" name="clan" id="f_clan" required>
-              <option value="0">â€” Selecciona â€”</option>
+              <option value="0">— Selecciona —</option>
               <?php foreach($opts_clanes as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
@@ -1768,23 +1793,23 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <div>
-          <label>TÃ³tem (opcional)
+          <label>Tótem (opcional)
             <select class="select" name="totem_id" id="f_totem_id">
-              <option value="0">â€” Sin tÃ³tem â€”</option>
+              <option value="0">— Sin tótem —</option>
               <?php foreach($opts_totems as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
-            <span class="small-note">Si no eliges, se usa el tÃ³tem de la Manada o del Clan</span>
+            <span class="small-note">Si no eliges, se usa el tótem de la Manada o del Clan</span>
           </label>
         </div>
 
         <div>
           <label>Manada
             <select class="select" name="manada" id="f_manada" disabled>
-              <option value="0">â€” Selecciona primero un Clan â€”</option>
+              <option value="0">— Selecciona primero un Clan —</option>
             </select>
-            <span class="small-note">SÃ³lo se muestran las manadas del Clan elegido</span>
+            <span class="small-note">Sólo se muestran las manadas del Clan elegido</span>
           </label>
         </div>
 
@@ -1795,7 +1820,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               <div>
                 <input class="inp" type="file" name="avatar" id="f_avatar" accept="image/*">
                 <label class="small-note"><input type="checkbox" name="avatar_remove" id="f_avatar_remove" value="1"> Quitar avatar</label>
-                <span class="small-note">JPG/PNG/GIF/WebP Â· mÃ¡x. 5 MB</span>
+                <span class="small-note">JPG/PNG/GIF/WebP · máx. 5 MB</span>
               </div>
             </div>
           </label>
@@ -1803,13 +1828,13 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 
         <div style="grid-column:1/-1;">
           <label style="text-align:left;">Causa de muerte
-            <textarea class="ta" name="causamuerte" id="f_causamuerte" rows="3" placeholder="Texto libreâ€¦"></textarea>
+            <textarea class="ta" name="causamuerte" id="f_causamuerte" rows="3" placeholder="Texto libre…"></textarea>
           </label>
         </div>
 
         <div style="grid-column:1/-1;">
-          <label style="text-align:left;">InformaciÃ³n sobre el personaje
-            <textarea class="ta hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="infotext" id="f_infotext" rows="6" placeholder="Texto largoâ€¦"></textarea>
+          <label style="text-align:left;">Información sobre el personaje
+            <textarea class="ta hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="infotext" id="f_infotext" rows="6" placeholder="Texto largo…"></textarea>
           </label>
         </div>
 
@@ -1839,10 +1864,10 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <label><strong>Recursos</strong></label>
           <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
             <select class="select" id="res_sel"></select>
-            <button class="btn" type="button" id="res_add">AÃ±adir</button>
+            <button class="btn" type="button" id="res_add">Añadir</button>
           </div>
           <div class="chips" id="resourceList"></div>
-          <span class="small-note">Se guardan en bridge_characters_system_resources. Los recursos por defecto del sistema se vinculan automÃ¡ticamente.</span>
+          <span class="small-note">Se guardan en bridge_characters_system_resources. Los recursos por defecto del sistema se vinculan automáticamente.</span>
         </div>
 
         <!-- PODERES -->
@@ -1856,22 +1881,22 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
             </select>
             <select class="select" id="pow_poder"></select>
             <input class="inp" id="pow_lvl" type="number" min="0" max="9" value="0" title="Nivel">
-            <button class="btn" type="button" id="pow_add">AÃ±adir</button>
+            <button class="btn" type="button" id="pow_add">Añadir</button>
           </div>
           <div class="chips" id="powersList"></div>
-          <span class="small-note">Los poderes listados aquÃ­ se guardarÃ¡n con el personaje.</span>
+          <span class="small-note">Los poderes listados aquí se guardarán con el personaje.</span>
         </div>
 
-        <!-- MÃ‰RITOS Y DEFECTOS -->
+        <!-- MÉRITOS Y DEFECTOS -->
         <div style="grid-column:1/-1;">
-          <label><strong>MÃ©ritos &amp; Defectos</strong></label>
+          <label><strong>Méritos &amp; Defectos</strong></label>
           <div class="grid" style="grid-template-columns: 2fr 140px auto; gap:8px;">
             <select class="select" id="myd_sel"></select>
             <input class="inp" id="myd_lvl" type="number" min="-99" max="999" placeholder="nivel (opcional)">
-            <button class="btn" type="button" id="myd_add">AÃ±adir</button>
+            <button class="btn" type="button" id="myd_add">Añadir</button>
           </div>
           <div class="chips" id="mydList"></div>
-          <span class="small-note">Nivel vacÃ­o = NULL (se usarÃ¡ el coste del mÃ©rito/defecto en la hoja).</span>
+          <span class="small-note">Nivel vacío = NULL (se usará el coste del mérito/defecto en la hoja).</span>
         </div>
 
         <!-- INVENTARIO -->
@@ -1879,10 +1904,10 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <label><strong>Inventario</strong></label>
           <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
             <select class="select" id="inv_sel"></select>
-            <button class="btn" type="button" id="inv_add">AÃ±adir</button>
+            <button class="btn" type="button" id="inv_add">Añadir</button>
           </div>
           <div class="chips" id="invList"></div>
-          <span class="small-note">Los objetos listados aquÃ­ se guardarÃ¡n con el personaje.</span>
+          <span class="small-note">Los objetos listados aquí se guardarán con el personaje.</span>
         </div>
 
       </div>
@@ -1901,7 +1926,7 @@ function initSelect2Modal(){
   if (!window.jQuery || !jQuery.fn || !jQuery.fn.select2) return;
 
   var $parent = jQuery('#mb');
-  // SÃ³lo selects del modal
+  // Sólo selects del modal
   $parent.find('select').each(function(){
   if (window.hgMentions) { window.hgMentions.attachAuto(); }
     var $s = jQuery(this);
@@ -1928,7 +1953,7 @@ function reinitSelect2(el){
   });
 }
 
-// Bind change que funciona con Select2 (jQuery) y sin Ã©l
+// Bind change que funciona con Select2 (jQuery) y sin él
 function onSelectChange(el, handler){
   if (!el) return;
   if (window.jQuery) {
@@ -1959,7 +1984,7 @@ var DISC_OPTS        = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name
 var RITU_OPTS        = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_rituales), array_values($opts_rituales)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var CHAR_POWERS      = <?= json_encode($char_powers, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
-// MÃ‰RITOS/DEFECTOS
+// MÉRITOS/DEFECTOS
 var MYD_OPTS         = <?= json_encode($opts_myd_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var CHAR_MYD         = <?= json_encode($char_myd, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 
@@ -1991,7 +2016,7 @@ var CHAR_DETAILS     = <?= json_encode(
 ); ?>;
 
 (function(){
-  // Filtro rÃ¡pido (cliente)
+  // Filtro rápido (cliente)
   var quick = document.getElementById('quickFilter');
   if (quick) {
     quick.addEventListener('input', function(){
@@ -2008,9 +2033,11 @@ var CHAR_DETAILS     = <?= json_encode(
   var btnCancel = document.getElementById('btnCancel');
 
   var selSistema = document.getElementById('f_system_id');
-  var selRaza    = document.getElementById('f_raza');
-  var selAusp    = document.getElementById('f_auspicio');
-  var selTribu   = document.getElementById('f_tribu');
+	  var selRaza    = document.getElementById('f_raza');
+	  var selAusp    = document.getElementById('f_auspicio');
+	  var selTribu   = document.getElementById('f_tribu');
+	  var selNature  = document.getElementById('f_nature_id');
+	  var selDemeanor= document.getElementById('f_demeanor_id');
 
   var selClan    = document.getElementById('f_clan');
   var selManada  = document.getElementById('f_manada');
@@ -2070,7 +2097,7 @@ var CHAR_DETAILS     = <?= json_encode(
     }
 
     sel.disabled = false;
-    var ph=document.createElement('option'); ph.value='0'; ph.textContent='â€” Elige â€”';
+    var ph=document.createElement('option'); ph.value='0'; ph.textContent='— Elige —';
     sel.appendChild(ph);
 
     var found=false;
@@ -2087,20 +2114,20 @@ var CHAR_DETAILS     = <?= json_encode(
 
   function updateManadas(clanId, preselect){
     var list = MANADAS_BY_CLAN[String(clanId||0)] || [];
-    fillSelectFrom(list, selManada, 'â€” Sin manadas en este Clan â€”', preselect);
+    fillSelectFrom(list, selManada, '— Sin manadas en este Clan —', preselect);
   }
 
   function updateSistemaSets(sys, preRaza, preAusp, preTribu){
     if (!sys){
-      clearSelect(selRaza,false); var a1=document.createElement('option'); a1.value='0'; a1.textContent='â€” Elige un Sistema â€”'; selRaza.appendChild(a1); selRaza.disabled=true; reinitSelect2(selRaza);
-      clearSelect(selAusp,false); var a2=document.createElement('option'); a2.value='0'; a2.textContent='â€” Elige un Sistema â€”'; selAusp.appendChild(a2); selAusp.disabled=true; reinitSelect2(selAusp);
-      clearSelect(selTribu,false); var a3=document.createElement('option'); a3.value='0'; a3.textContent='â€” Elige un Sistema â€”'; selTribu.appendChild(a3); selTribu.disabled=true; reinitSelect2(selTribu);
+      clearSelect(selRaza,false); var a1=document.createElement('option'); a1.value='0'; a1.textContent='— Elige un Sistema —'; selRaza.appendChild(a1); selRaza.disabled=true; reinitSelect2(selRaza);
+      clearSelect(selAusp,false); var a2=document.createElement('option'); a2.value='0'; a2.textContent='— Elige un Sistema —'; selAusp.appendChild(a2); selAusp.disabled=true; reinitSelect2(selAusp);
+      clearSelect(selTribu,false); var a3=document.createElement('option'); a3.value='0'; a3.textContent='— Elige un Sistema —'; selTribu.appendChild(a3); selTribu.disabled=true; reinitSelect2(selTribu);
       return;
     }
 
-    var okR = fillSelectFrom(RAZAS_BY_SYS[sys]||[], selRaza, 'â€” Sin razas para este Sistema â€”', preRaza);
-    var okA = fillSelectFrom(AUSP_BY_SYS[sys]||[],  selAusp, 'â€” Sin auspicios para este Sistema â€”', preAusp);
-    var okT = fillSelectFrom(TRIBUS_BY_SYS[sys]||[], selTribu,'â€” Sin tribus para este Sistema â€”', preTribu);
+    var okR = fillSelectFrom(RAZAS_BY_SYS[sys]||[], selRaza, '— Sin razas para este Sistema —', preRaza);
+    var okA = fillSelectFrom(AUSP_BY_SYS[sys]||[],  selAusp, '— Sin auspicios para este Sistema —', preAusp);
+    var okT = fillSelectFrom(TRIBUS_BY_SYS[sys]||[], selTribu,'— Sin tribus para este Sistema —', preTribu);
 
     if (preRaza && !okR){
       var w=document.createElement('option'); w.value=String(preRaza); w.textContent='[WARN] (Fuera del Sistema) ID '+preRaza;
@@ -2168,7 +2195,7 @@ var CHAR_DETAILS     = <?= json_encode(
   }
   function refreshPowerSelect(){
     var t = powTipo.value;
-    fillSelectFrom(powersCatalogFor(t), powPoder, 'â€” Sin poderes â€”', 0);
+    fillSelectFrom(powersCatalogFor(t), powPoder, '— Sin poderes —', 0);
   }
   function addPowerChip(type, id, name, lvl){
     var exists = Array.prototype.some.call(powList.querySelectorAll('.power-chip'), function(c){
@@ -2193,14 +2220,14 @@ var CHAR_DETAILS     = <?= json_encode(
 
   // MYD
   function refreshMydSelect(){
-    // Construimos un name amigable: "Nombre â€” Tipo (Coste)"
+    // Construimos un name amigable: "Nombre — Tipo (Coste)"
     var list = (MYD_OPTS||[]).map(function(it){
       var extra = '';
-      if (it.tipo) extra += ' â€” ' + it.tipo;
+      if (it.tipo) extra += ' — ' + it.tipo;
       if (it.coste!==undefined && it.coste!==null && String(it.coste)!=='') extra += ' ('+it.coste+')';
       return { id: it.id, name: (it.name || ('#'+it.id)) + extra, tipo: it.tipo, coste: it.coste };
     });
-    fillSelectFrom(list, mydSel, 'â€” Sin mÃ©ritos/defectos â€”', 0);
+    fillSelectFrom(list, mydSel, '— Sin méritos/defectos —', 0);
   }
 
   function addMydChip(id, baseName, tipo, coste, nivel){
@@ -2235,7 +2262,7 @@ var CHAR_DETAILS     = <?= json_encode(
     var list = (ITEMS_OPTS||[]).map(function(it){
       return { id: it.id, name: (it.name || ('#'+it.id)), tipo: it.tipo };
     });
-    fillSelectFrom(list, invSel, 'â€” Sin objetos â€”', 0);
+    fillSelectFrom(list, invSel, '— Sin objetos —', 0);
   }
 
   function addInvChip(id, name, tipo){
@@ -2262,7 +2289,7 @@ var CHAR_DETAILS     = <?= json_encode(
     var list = (RESOURCE_OPTS||[]).map(function(it){
       return { id: it.id, name: (it.name || ('#'+it.id)) + ' [' + (it.kind || '') + ']' };
     });
-    fillSelectFrom(list, resSel, 'â€” Sin recursos â€”', 0);
+    fillSelectFrom(list, resSel, '— Sin recursos —', 0);
   }
 
   function getResourceMeta(rid){
@@ -2362,11 +2389,13 @@ var CHAR_DETAILS     = <?= json_encode(
     fCausa.value = '';
     fInfo.value  = '';
 
-    updateSistemaSets('', 0,0,0);
+	    updateSistemaSets('', 0,0,0);
+	    if (selNature) selNature.value = '0';
+	    if (selDemeanor) selDemeanor.value = '0';
 
     selClan.value='0';
     clearSelect(selManada,false);
-    var o=document.createElement('option'); o.value='0'; o.textContent='â€” Selecciona primero un Clan â€”';
+    var o=document.createElement('option'); o.value='0'; o.textContent='— Selecciona primero un Clan —';
     selManada.appendChild(o); selManada.disabled=true;
     reinitSelect2(selManada);
 
@@ -2427,11 +2456,15 @@ var CHAR_DETAILS     = <?= json_encode(
       selTotem.value = String(tId||0);
     }
 
-    var razaId = parseInt(btn.getAttribute('data-raza')||'0',10)||0;
-    var ausId  = parseInt(btn.getAttribute('data-auspice_id')||'0',10)||0;
-    var triId  = parseInt(btn.getAttribute('data-tribe_id')||'0',10)||0;
-    updateSistemaSets(sistId, razaId, ausId, triId);
-    applyTraitOrder(sistId);
+	    var razaId = parseInt(btn.getAttribute('data-raza')||'0',10)||0;
+	    var ausId  = parseInt(btn.getAttribute('data-auspice_id')||'0',10)||0;
+	    var triId  = parseInt(btn.getAttribute('data-tribe_id')||'0',10)||0;
+	    var natId  = parseInt(btn.getAttribute('data-nature_id')||'0',10)||0;
+	    var demId  = parseInt(btn.getAttribute('data-demeanor_id')||'0',10)||0;
+	    updateSistemaSets(sistId, razaId, ausId, triId);
+	    applyTraitOrder(sistId);
+	    if (selNature) selNature.value = String(natId||0);
+	    if (selDemeanor) selDemeanor.value = String(demId||0);
 
     var clanId   = parseInt(btn.getAttribute('data-clan') || '0',10) || 0;
     var manadaId = parseInt(btn.getAttribute('data-manada') || '0',10) || 0;
@@ -2520,7 +2553,7 @@ var CHAR_DETAILS     = <?= json_encode(
     var c = parseInt(selClan.value,10)||0;
     if (!c){
       clearSelect(selManada,false);
-      var o=document.createElement('option'); o.value='0'; o.textContent='â€” Selecciona primero un Clan â€”';
+      var o=document.createElement('option'); o.value='0'; o.textContent='— Selecciona primero un Clan —';
       selManada.appendChild(o); selManada.disabled=true;
       reinitSelect2(selManada);
       return;
@@ -2546,7 +2579,7 @@ var CHAR_DETAILS     = <?= json_encode(
     }
   });
 
-  // ValidaciÃ³n rÃ¡pida cliente
+  // Validación rápida cliente
   document.getElementById('formCrud').addEventListener('submit', function(ev){
     var c = parseInt(selClan.value,10)||0;
     var m = parseInt(selManada.value,10)||0;
@@ -2588,7 +2621,7 @@ var CHAR_DETAILS     = <?= json_encode(
 
   mydAdd.addEventListener('click', function(){
     var mid = parseInt(mydSel.value,10)||0;
-    if (!mid){ alert('Elige un MÃ©rito o Defecto.'); return; }
+    if (!mid){ alert('Elige un Mérito o Defecto.'); return; }
 
     var base = null, tipo=null, coste=null;
     for (var i=0;i<MYD_OPTS.length;i++){
