@@ -1,9 +1,9 @@
 ﻿<?php
 /**
- * admin_groups.php â€” Modales + creaciÃ³n/renombrado + HTML server-side
+ * admin_groups.php — Modales + creación/renombrado + HTML server-side
  *
  * Requisitos:
- * - $link: conexiÃ³n mysqli abierta (body_work.php)
+ * - $link: conexión mysqli abierta (body_work.php)
  * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,activa,cronica,clan,totem,`description`)
  * - Puentes: bridge_organizations_groups(id,organization_id,group_id,is_active)
  *            bridge_characters_groups(id,character_id,group_id,is_active,position)
@@ -11,7 +11,7 @@
  */
 
 if (!isset($link) || !$link) {
-  echo "<div style='color:#f88'>Error: conexiÃ³n DB no disponible.</div>";
+  echo "<div style='color:#f88'>Error: conexión DB no disponible.</div>";
   return;
 }
 include_once(__DIR__ . '/../../helpers/pretty.php');
@@ -30,7 +30,7 @@ function q($link,$sql,$types='',$params=[]){
 }
 
 function get_totems($link): array {
-  $out = [0 => 'â€” Sin tÃ³tem â€”'];
+  $out = [0 => '— Sin tótem —'];
   $sql = "SELECT id, name FROM dim_totems ORDER BY name ASC";
   [$ok,$err,$rs] = q($link,$sql);
   if($ok && $rs){
@@ -78,7 +78,7 @@ function render_groups_table($link){
     echo "<tr class='row'>
             <td>".e($r['id'])."</td>
             <td>".e($r['name'])."</td>
-            <td>".( (int)$r['activa']===1 ? 'SÃ­' : 'No' )."</td>
+            <td>".( (int)$r['activa']===1 ? 'Sí' : 'No' )."</td>
             <td>
               <button class='btn btn-edit-group' data-id='".e($r['id'])."'>Editar</button>
             </td>
@@ -133,12 +133,12 @@ function render_clan_detail($link,$organization_id){
   echo   "</div>
         </div>
         <div>
-          <h4>AÃ±adir manada</h4>
+          <h4>Añadir manada</h4>
           <div class='toolbar'>
             <select id='packsAvailable' style='flex:1; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
   foreach($avail as $p){ echo "<option value='".e($p['id'])."'>".e($p['name'])."</option>"; }
   echo     "</select>
-            <button class='btn btn-ok' id='btnAddPack' data-clan='$organization_id' ".(empty($avail)?'disabled':'').">AÃ±adir</button>
+            <button class='btn btn-ok' id='btnAddPack' data-clan='$organization_id' ".(empty($avail)?'disabled':'').">Añadir</button>
           </div>
           <div class='hr'></div>
           <h4>Manadas inactivas</h4>
@@ -173,9 +173,9 @@ function render_group_detail($link,$group_id){
   while($r=mysqli_fetch_assoc($rs)){ ((int)$r['is_active']===1) ? $a[]=$r : $i[]=$r; }
 
   echo "<div class='toolbar'>
-          <input id='searchChar' type='text' placeholder='Buscar personaje para aÃ±adir...'>
-          <input id='newPosition' type='text' placeholder='PosiciÃ³n (opcional)'>
-          <button class='btn btn-ok' id='btnAddMember' data-group='$group_id'>AÃ±adir a la manada</button>
+          <input id='searchChar' type='text' placeholder='Buscar personaje para añadir...'>
+          <input id='newPosition' type='text' placeholder='Posición (opcional)'>
+          <button class='btn btn-ok' id='btnAddMember' data-group='$group_id'>Añadir a la manada</button>
         </div>
         <div id='searchResults' class='grid' style='display:none'></div>
 
@@ -186,9 +186,9 @@ function render_group_detail($link,$group_id){
     $label = $m['nombre'].( $m['alias'] ? " ({$m['alias']})" : "" );
     echo "<span class='chip' data-id='".e($m['id'])."'>
             <span>".e($label)."</span>
-            <input type='text' value='".e($m['position'])."' placeholder='posiciÃ³n'>
-            <button class='btn btn-save-position' data-id='".e($m['id'])."' data-group='$group_id'>ðŸ’¾</button>
-            <button class='btn btn-bad btn-rem-member' data-id='".e($m['id'])."' data-group='$group_id'>ðŸš«</button>
+            <input type='text' value='".e($m['position'])."' placeholder='posición'>
+            <button class='btn btn-save-position' data-id='".e($m['id'])."' data-group='$group_id'>Guardar</button>
+            <button class='btn btn-bad btn-rem-member' data-id='".e($m['id'])."' data-group='$group_id'>Quitar</button>
           </span>";
   }
   echo   "</div></div>
@@ -200,8 +200,8 @@ function render_group_detail($link,$group_id){
     $label = $m['nombre'].( $m['alias'] ? " ({$m['alias']})" : "" );
     echo "<span class='chip off' data-id='".e($m['id'])."'>
             <span>".e($label)."</span>
-            <input type='text' value='".e($m['position'])."' placeholder='posiciÃ³n'>
-            <button class='btn btn-ok btn-activate-member' data-id='".e($m['id'])."' data-group='$group_id'>â«</button>
+            <input type='text' value='".e($m['position'])."' placeholder='posición'>
+            <button class='btn btn-ok btn-activate-member' data-id='".e($m['id'])."' data-group='$group_id'>Reactivar</button>
           </span>";
   }
   echo   "</div></div>";
@@ -255,10 +255,10 @@ function render_group_modal($link,$group_id){
         </div>
         <div class='modal-body'>
           <div class='card'>
-            <h4>Datos bÃ¡sicos</h4>
+            <h4>Datos básicos</h4>
             <div class='toolbar'>
               <input id='groupName' type='text' value='".e($g['name'])."' placeholder='Nombre'>
-              <input id='groupCronica' type='number' min='1' step='1' value='".e($g['cronica'])."' style='max-width:120px' title='CrÃ³nica'>
+              <input id='groupCronica' type='number' min='1' step='1' value='".e($g['cronica'])."' style='max-width:120px' title='Crónica'>
               <select id='groupTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
   foreach($totems as $tid=>$tname){
     echo "<option value='".e($tid)."' ".($tid===$totemSel?'selected':'').">".e($tname)."</option>";
@@ -268,7 +268,7 @@ function render_group_modal($link,$group_id){
                 <input id='groupActiva' type='checkbox' ".((int)$g['activa']===1?'checked':'')."> Activa
               </label>
               <button class='btn btn-ok' id='btnSaveGroupBasic' data-id='".e($g['id'])."'>Guardar</button>
-              <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver pÃ¡gina</a>
+              <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver página</a>
             </div>
           </div>
           <div class='hr'></div>
@@ -289,7 +289,7 @@ function render_clan_create_form(){
             <input id='newClanName' type='text' placeholder='Nombre del clan'>
             <button class='btn btn-ok' id='btnCreateClan'>Crear</button>
           </div>
-          <div class='small'>Se crearÃ¡ con valores por defecto. PodrÃ¡s completar mÃ¡s campos en otras pantallas si es necesario.</div>
+          <div class='small'>Se creará con valores por defecto. Podrás completar más campos en otras pantallas si es necesario.</div>
         </div>";
 }
 
@@ -304,10 +304,10 @@ function render_group_create_form($link,$prefill_clan_id=0){
         <div class='modal-body'>
           <div class='grid'>
             <div class='card'>
-              <h4>Datos bÃ¡sicos</h4>
+              <h4>Datos básicos</h4>
               <div class='toolbar'>
                 <input id='newGroupName' type='text' placeholder='Nombre de la manada'>
-                <input id='newGroupCronica' type='number' min='1' step='1' value='1' style='max-width:120px' title='CrÃ³nica'>
+                <input id='newGroupCronica' type='number' min='1' step='1' value='1' style='max-width:120px' title='Crónica'>
                 <select id='newGroupTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
   foreach($totems as $tid=>$tname){
     echo "<option value='".e($tid)."'>".e($tname)."</option>";
@@ -319,17 +319,17 @@ function render_group_create_form($link,$prefill_clan_id=0){
               </div>
             </div>
             <div class='card'>
-              <h4>AsignaciÃ³n inicial</h4>
+              <h4>Asignación inicial</h4>
               <div class='toolbar'>
                 <select id='newGroupClan' style='flex:1; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>
-                  <option value='0' ".($prefill_clan_id===0?'selected':'').">â€” Sin asignar â€”</option>";
+                  <option value='0' ".($prefill_clan_id===0?'selected':'').">— Sin asignar —</option>";
   if($ok){ while($c=mysqli_fetch_assoc($rs)){
     echo "<option value='".e($c['id'])."' ".($prefill_clan_id===(int)$c['id']?'selected':'').">".e($c['name'])."</option>";
   }}
   echo        "</select>
                 <button class='btn btn-ok' id='btnCreateGroup'>Crear</button>
               </div>
-              <div class='small'>Si eliges un clan, se crearÃ¡ tambiÃ©n el vÃ­nculo activo en el bridge.</div>
+              <div class='small'>Si eliges un clan, se creará también el vínculo activo en el bridge.</div>
             </div>
           </div>
         </div>";
@@ -340,7 +340,7 @@ if(!empty($_POST['action'])){
   $act = $_POST['action'];
   header('Content-Type: text/html; charset=utf-8');
 
-  // tablas bÃ¡sicas
+  // tablas básicas
   if($act==='load_clans_table'){ render_clans_table($link); exit; }
   if($act==='load_groups_table'){ render_groups_table($link); exit; }
 
@@ -364,14 +364,14 @@ if(!empty($_POST['action'])){
   if($act==='clan_create'){
     $name=trim((string)($_POST['name']??''));
     if($name===''){ render_clan_create_form(); echo "<div class='err'>Indica un nombre.</div>"; exit; }
-    // Insert bÃ¡sico: si tu tabla exige mÃ¡s campos NOT NULL sin default, aÃ±ade aquÃ­ columnas con valores por defecto.
+    // Insert básico: si tu tabla exige más campos NOT NULL sin default, añade aquí columnas con valores por defecto.
     [$ok,$err,$rs,$newId] = q($link,"INSERT INTO dim_organizations (name) VALUES (?)",'s',[$name]);
     hg_update_pretty_id_if_exists($link, 'dim_organizations', $newId, $name);
     if(!$ok){ render_clan_create_form(); echo "<div class='err'>".e($err)."</div>"; exit; }
     render_clan_modal($link,$newId); exit;
   }
 
-  // grupo: guardar bÃ¡sicos (rename, activa, crÃ³nica)
+  // grupo: guardar básicos (rename, activa, crónica)
   if($act==='group_update_basic'){
     $id=(int)($_POST['group_id']??0);
     $name=trim((string)($_POST['name']??''));
@@ -401,7 +401,7 @@ if(!empty($_POST['action'])){
     hg_update_pretty_id_if_exists($link, 'dim_groups', $newId, $name);
     if(!$ok){ render_group_create_form($link,$organization_id); echo "<div class='err'>".e($err)."</div>"; exit; }
 
-    // Bridge (opcional) si seleccionÃ³ organization_id
+    // Bridge (opcional) si seleccionó organization_id
     if($organization_id>0){
       // activar si existe, si no crear
       [$ok0,$err0,$rs0] = q($link,"SELECT id FROM bridge_organizations_groups WHERE organization_id=? AND group_id=? LIMIT 1",'ii',[$organization_id,$newId]);
@@ -414,7 +414,7 @@ if(!empty($_POST['action'])){
     render_group_modal($link,$newId); exit;
   }
 
-  // clan detalle (packs dentro del modal) â€” mismas acciones que antes
+  // clan detalle (packs dentro del modal) — mismas acciones que antes
   if($act==='clan_add_group'){
     $organization_id=(int)($_POST['organization_id']??0);
     $group_id=(int)($_POST['group_id']??0);
@@ -470,7 +470,7 @@ if(!empty($_POST['action'])){
     render_group_detail($link,$group_id); exit;
   }
 
-  // bÃºsqueda de personajes
+  // búsqueda de personajes
   if($act==='search_characters'){
     $qtxt = trim((string)($_POST['q']??''));
     if($qtxt===''){ echo ""; exit; }
@@ -486,14 +486,14 @@ if(!empty($_POST['action'])){
       echo "<div class='card'>
               <div style='display:flex;justify-content:space-between;gap:8px;align-items:center'>
                 <div>".e($lab)."</div>
-                <button class='btn btn-pick-char' data-id='".e($r['id'])."'>AÃ±adir</button>
+                <button class='btn btn-pick-char' data-id='".e($r['id'])."'>Añadir</button>
               </div>
             </div>";
     }
     echo "</div>"; exit;
   }
 
-  echo "<div class='err'>AcciÃ³n no reconocida.</div>"; exit;
+  echo "<div class='err'>Acción no reconocida.</div>"; exit;
 }
 
 /* ----------------------- Estilos + UI ----------------------- */ ?>
@@ -594,7 +594,7 @@ function openModal(html){
   const closeBtn = $('.modal-close', $('#modalContent'));
   $('.modal-backdrop').onclick = closeModal;
   if(closeBtn) closeBtn.onclick = closeModal;
-  bindModalInside(); // enlaza eventos internos segÃºn contenido
+  bindModalInside(); // enlaza eventos internos según contenido
 }
 function closeModal(){
   $('#agModal').classList.add('hidden');
@@ -653,7 +653,7 @@ bindRowButtons();
 function bindModalInside(){
   const root = $('#modalContent');
 
-  // â€” Crear clan
+  // — Crear clan
   const btnCreateClan = $('#btnCreateClan', root);
   if(btnCreateClan){
     btnCreateClan.onclick = async ()=>{
@@ -663,7 +663,7 @@ function bindModalInside(){
     };
   }
 
-  // â€” Crear manada
+  // — Crear manada
   const btnCreateGroup = $('#btnCreateGroup', root);
   if(btnCreateGroup){
     btnCreateGroup.onclick = async ()=>{
@@ -674,11 +674,11 @@ function bindModalInside(){
       const totem = ($('#newGroupTotem', root).value||'0').trim();
       openModal(await htmlPost('group_create',{name,cronica,activa,organization_id,totem}));
       reloadGroups();
-      reloadClans(); // por si asignÃ³ al clan
+      reloadClans(); // por si asignó al clan
     };
   }
 
-  // â€” Desde modal de clan: guardar nombre, abrir crear manada, gestionar packs
+  // — Desde modal de clan: guardar nombre, abrir crear manada, gestionar packs
   const btnClanSave = $('#btnClanSave', root);
   if(btnClanSave){
     btnClanSave.onclick = async ()=>{
@@ -718,7 +718,7 @@ function bindModalInside(){
           reloadClans();
         };
       });
-      // aÃ±adir desde select
+      // añadir desde select
       const btnAddPack = $('#btnAddPack', detailClan);
       if(btnAddPack){
         btnAddPack.onclick = async ()=>{
@@ -735,7 +735,7 @@ function bindModalInside(){
     rebindClanDetail();
   }
 
-  // â€” Modal de manada: guardar bÃ¡sicos (nombre/activa/cronica)
+  // — Modal de manada: guardar básicos (nombre/activa/cronica)
   const btnSaveGroupBasic = $('#btnSaveGroupBasic', root);
   if(btnSaveGroupBasic){
     btnSaveGroupBasic.onclick = async ()=>{
@@ -749,11 +749,11 @@ function bindModalInside(){
     };
   }
 
-  // â€” Miembros dentro del modal de manada
+  // — Miembros dentro del modal de manada
   const groupDetail = $('#groupModalDetail', root);
   if(groupDetail){
     const rebindGroupDetail = ()=>{
-      // bÃºsqueda
+      // búsqueda
       const inSearch = $('#searchChar', groupDetail);
       const results = $('#searchResults', root); // fuera del detalle pero dentro del modal
       if(inSearch){
@@ -771,19 +771,19 @@ function bindModalInside(){
           },300);
         };
       }
-      // aÃ±adir miembro
+      // añadir miembro
       const btnAdd = $('#btnAddMember', groupDetail);
       if(btnAdd){
         btnAdd.onclick = async ()=>{
           const gid = btnAdd.dataset.group;
           const pos = ($('#newPosition', groupDetail).value||'').trim();
           const cid = ($('#searchChar', groupDetail).dataset.charId||'').trim();
-          if(!cid){ alert('Selecciona un personaje de la bÃºsqueda.'); return; }
+          if(!cid){ alert('Selecciona un personaje de la búsqueda.'); return; }
           groupDetail.innerHTML = await htmlPost('group_add_member',{group_id:gid, character_id:cid, position:pos});
           rebindGroupDetail();
         };
       }
-      // guardar posiciÃ³n
+      // guardar posición
       $$('.btn-save-position', groupDetail).forEach(b=>{
         b.onclick = async ()=>{
           const gid = b.dataset.group, cid = b.dataset.id;

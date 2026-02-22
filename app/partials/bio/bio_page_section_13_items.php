@@ -33,19 +33,19 @@
             // Elección de icono
             switch ($tipoItemSelect) {
                 case 1:
-                    $iconoItemSelect = "img/ui/inv-icons/machete.png";
+                    $iconoItemSelect = "img/ui/icons/icon_machete.png";
                     break;
                 case 2:
-                    $iconoItemSelect = "img/ui/inv-icons/kevlar.png";
+                    $iconoItemSelect = "img/ui/icons/icon_kevlar.png";
                     break;
                 case 3:
-                    $iconoItemSelect = "img/ui/inv-icons/magic_orb.png";
+                    $iconoItemSelect = "img/ui/icons/icon_magic_orb.png";
                     break;
                 case 4:
-                    $iconoItemSelect = "img/ui/inv-icons/crate.png";
+                    $iconoItemSelect = "img/ui/icons/icon_crate.png";
                     break;
                 case 5:
-                    $iconoItemSelect = "img/ui/inv-icons/amulet.png";
+                    $iconoItemSelect = "img/ui/icons/icon_amulet.png";
                     break;
                 default:
                     $iconoItemSelect = "img/ui/icons/default.jpg";

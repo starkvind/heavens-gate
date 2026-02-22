@@ -1,11 +1,11 @@
-﻿<?php
+<?php
 setMetaFromPage("Nebulosa de personajes | Heaven's Gate", "Mapa de relaciones entre personajes.", null, 'website');
 
 if (!$link) {
-    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+    die("Error de conexión a la base de datos: " . mysqli_connect_error());
 }
 
-// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -31,7 +31,7 @@ $chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT I
     ============================================
 */
 
-// Nota: role en bridge es NOT NULL, pero aquÃ­ solo leemos
+// Nota: role en bridge es NOT NULL, pero aquí solo leemos
 $charactersSql = "
     SELECT
         p.id,
@@ -89,10 +89,10 @@ $pageTitle2 = "Personajes";
     <fieldset class='bioSeccion'>
         <legend>&nbsp;Relaciones entre personajes&nbsp;</legend>
         <div style="float: right;">
-            <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">ðŸ” Pantalla completa</button>
-            <button class="boton2" onclick="location.href='/relationship-map/organizations'">Ã¢Å¡â„¢Ã¯Â¸Â Cambiar vista</button>
-            <button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">ðŸ›‘ Detener fÃ­sica</button>
-            <button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">ðŸ”„ Activar fÃ­sica</button>
+            <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">🔍 Pantalla completa</button>
+            <button class="boton2" onclick="location.href='/relationship-map/organizations'">Cambiar vista</button>
+            <button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">🛑 Detener física</button>
+            <button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">🔄 Activar física</button>
         </div>
         <div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
             <div id="network" style="width:100%; height:100%;"></div>
@@ -114,8 +114,8 @@ $pageTitle2 = "Personajes";
         <?php foreach ($characters as $c): ?>
             <?php
                 $hasImage = !empty($c['image_url']);
-                $isDead = ($c['status'] ?? '') === 'CadÃ¡ver';
-                $label = ($c['name'] ?? '') . ($isDead ? ' â€ ' : '');
+                $isDead = ($c['status'] ?? '') === 'Cadáver';
+                $label = ($c['name'] ?? '') . ($isDead ? ' †' : '');
                 $nodeColor = $isDead ? [
                     'background' => '#888',
                     'border' => '#555',

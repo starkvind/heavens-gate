@@ -44,10 +44,10 @@
 
             switch ($typeMerit) {
                 case "Méritos":
-                    $meritIcon = "img/ui/merits/merit.gif";
+                    $meritIcon = "img/ui/icons/icon_merit.png";
                     break;
                 case "Defectos":
-                    $meritIcon = "img/ui/merits/flaw.gif";
+                    $meritIcon = "img/ui/icons/icon_flaw.png";
                     break;
                 default:
                     $meritIcon = "img/ui/icons/default.jpg";

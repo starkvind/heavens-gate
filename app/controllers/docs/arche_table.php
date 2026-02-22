@@ -9,9 +9,13 @@ $query = "
         a.id AS arche_id,
         a.pretty_id AS arche_pretty_id,
         a.name AS arche_name,
-        COALESCE(b.name, '') AS arche_origin
+        COALESCE(b.name, '') AS arche_origin,
+        COUNT(DISTINCT c.id) AS arche_holders
     FROM dim_archetypes a
     LEFT JOIN dim_bibliographies b ON a.bibliography_id = b.id
+    LEFT JOIN fact_characters c
+        ON c.nature_id = a.id OR c.demeanor_id = a.id
+    GROUP BY a.id, a.pretty_id, a.name, b.name
     ORDER BY a.name ASC
 ";
 $result = mysqli_query($link, $query);
@@ -166,6 +170,7 @@ $pageSect = "Arquetipos de personalidad";
             <thead>
                 <tr>
                     <th>Arquetipo</th>
+                    <th>Personajes</th>
                     <th>Origen</th>
                 </tr>
             </thead>
@@ -183,8 +188,9 @@ $(document).ready(function () {
         const archeSlug = a.arche_pretty_id || a.arche_id;
         const nombre = `<a href="/rules/archetypes/${escapeHtml(archeSlug)}">${escapeHtml(a.arche_name)}</a>`;
         const origen = a.arche_origin ? escapeHtml(a.arche_origin) : '-';
+        const holders = Number(a.arche_holders || 0);
 
-        tbody.append(`<tr><td>${nombre}</td><td>${origen}</td></tr>`);
+        tbody.append(`<tr><td>${nombre}</td><td>${holders}</td><td>${origen}</td></tr>`);
     });
 
     const dt = $('#tabla-arquetipos').DataTable({
@@ -198,10 +204,10 @@ $(document).ready(function () {
             infoEmpty: "No hay arquetipos disponibles",
             emptyTable: "No hay datos en la tabla",
             paginate: {
-                first: "Primero",
-                last: "Ultimo",
-                next: ">",
-                previous: "<"
+				first: "Primero",
+				last: "&Uacute;ltimo",
+				next: "&#9654;",
+				previous: "&#9664;"
             }
         },
         initComplete: function(){
@@ -260,10 +266,10 @@ $(document).ready(function () {
         const selected = getSelected();
         updateSummary(selected);
         if (selected === null) {
-            dt.column(1).search('', true, false);
+            dt.column(2).search('', true, false);
         } else {
             const pat = '^(?:' + selected.map(s => escapeRegex(s)).join('|') + ')$';
-            dt.column(1).search(pat, true, false);
+            dt.column(2).search(pat, true, false);
         }
         dt.draw();
     }

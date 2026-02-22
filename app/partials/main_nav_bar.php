@@ -203,7 +203,8 @@
 			// Habilidades
 			// ========================================== //
 			case "verrasgo":
-				echo "<a href='/rules/traits' title='Rasgos'>Rasgos</a> $pillSeparator $nameSkill";
+				$traitNavName = isset($nameSkill) ? $nameSkill : (isset($pageTitle2) ? $pageTitle2 : '');
+				echo "<a href='/rules/traits' title='Rasgos'>Rasgos</a> $pillSeparator $traitNavName";
 				break;
 			// ========================================== //
 			// Méritos y Defectos
@@ -298,4 +299,3 @@ if ($nav !== '') {
     echo '</div><br/>';
 }
 ?>
-

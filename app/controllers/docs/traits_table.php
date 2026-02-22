@@ -6,6 +6,24 @@ if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 if (!function_exists('h')) {
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
+if (!function_exists('sanitize_int_csv')) {
+	function sanitize_int_csv($csv){
+		$csv = (string)$csv;
+		if (trim($csv) === '') return '';
+		$parts = preg_split('/\s*,\s*/', trim($csv));
+		$ints = [];
+		foreach ($parts as $p) {
+			if ($p === '') continue;
+			if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
+		}
+		$ints = array_values(array_unique($ints));
+		return implode(',', $ints);
+	}
+}
+
+// Mismo criterio que bio_table.php: si no viene variable global, excluir 2,7
+$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
+$whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChronicles)" : "1=1";
 
 // Cargar rasgos con la query indicada
 $query = "
@@ -15,9 +33,13 @@ $query = "
 		nh.name as trait_name,
 		nh.kind as trait_category,
 		SUBSTRING(nh.classification, 5) as trait_subcategory,
-		COALESCE(nb.name, '') as trait_origin
+		COALESCE(nb.name, '') as trait_origin,
+		COUNT(DISTINCT p.id) as trait_holders
 	from dim_traits nh 
 		left join dim_bibliographies nb on nh.bibliography_id = nb.id
+		left join bridge_characters_traits bt on bt.trait_id = nh.id and bt.value >= 1
+		left join fact_characters p on p.id = bt.character_id and $whereChron
+	group by nh.id, nh.pretty_id, nh.name, nh.kind, nh.classification, nb.name
 	order by
 		CASE
 			when nh.kind = 'Atributos' then 0
@@ -229,6 +251,7 @@ $pageSect = "Rasgos";
 			<thead>
 				<tr>
 					<th>Nombre</th>
+					<th>Personajes</th>
 					<th>Tipo</th>
 					<th>Clasificación</th>
 					<th>Origen</th>
@@ -247,12 +270,14 @@ $(document).ready(function () {
 	rasgos.forEach(r => {
 		const traitSlug = r.trait_pretty_id || r.trait_id;
 		const nombre = `<a href="/rules/traits/${escapeHtml(traitSlug)}">${escapeHtml(r.trait_name)}</a>`;
+		const holders = Number(r.trait_holders || 0);
 		const tipo = r.trait_category ? escapeHtml(r.trait_category) : '-';
 		const clasificacion = r.trait_subcategory ? escapeHtml(r.trait_subcategory) : '-';
 		const origen = r.trait_origin ? escapeHtml(r.trait_origin) : '-';
 
 		const row = `<tr>
 			<td>${nombre}</td>
+			<td>${holders}</td>
 			<td>${tipo}</td>
 			<td>${clasificacion}</td>
 			<td>${origen}</td>
@@ -329,9 +354,9 @@ $(document).ready(function () {
 	});
 
 	const filterConfigs = [
-		{ key: 'type', column: 1, allLabel: 'Todos', values: sortValues(Array.from(typeSet)) },
-		{ key: 'class', column: 2, allLabel: 'Todas', values: sortValues(Array.from(classSet)) },
-		{ key: 'origin', column: 3, allLabel: 'Todos', values: sortValues(Array.from(originSet)) },
+		{ key: 'type', column: 2, allLabel: 'Todos', values: sortValues(Array.from(typeSet)) },
+		{ key: 'class', column: 3, allLabel: 'Todas', values: sortValues(Array.from(classSet)) },
+		{ key: 'origin', column: 4, allLabel: 'Todos', values: sortValues(Array.from(originSet)) },
 	];
 
 	function openPanel(key){ $('#ms-panel-' + key).show().attr('aria-hidden','false'); $('#ms-toggle-' + key).attr('aria-expanded','true'); }
@@ -423,10 +448,4 @@ function sortValues(values){
 	});
 }
 </script>
-
-
-
-
-
-
 

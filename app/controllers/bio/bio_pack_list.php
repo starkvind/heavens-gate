@@ -1,17 +1,17 @@
 ﻿<?php
 setMetaFromPage("Grupos y sociedades | Heaven's Gate", "Listado de grupos, manadas y clanes.", null, 'website');
-// Verificar la conexiÃ³n a la base de datos
+// Verificar la conexión a la base de datos
 if (!$link) {
-    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+    die("Error de conexión a la base de datos: " . mysqli_connect_error());
 }
 
 $nameTypePack = "Grupos y sociedades";
-$iconPack = "img/ui/icons/kek.gif";
-$iconSept = "img/ui/icons/kek2.gif";
-$pageSect = "BiografÃ­as";
+$iconPack = "img/ui/icons/icon_person_active.png";
+$iconSept = "img/ui/icons/icon_person_dead.png";
+$pageSect = "Biografías";
 $pageTitle2 = $nameTypePack;
 
-// Si no existe, deja excludeChronicles vacÃ­o (no excluye nada)
+// Si no existe, deja excludeChronicles vacío (no excluye nada)
 $excludeChronicles = isset($excludeChronicles) && trim($excludeChronicles) !== '' ? $excludeChronicles : ''; // ej: "2,3,5"
 
 // ============================================================
@@ -39,7 +39,7 @@ mysqli_free_result($result);
 $numeroClanesHallados = count($clanes);
 $numeroDeGruposHallados = 0;
 
-// 2) Preparar stmt para obtener manadas por bridge (mÃ¡s eficiente)
+// 2) Preparar stmt para obtener manadas por bridge (más eficiente)
 $sqlGrupoBase = "
     SELECT m.id, m.name, m.is_active
     FROM bridge_organizations_groups b
@@ -115,4 +115,3 @@ mysqli_stmt_close($stmtGrupo);
 print("<p style='text-align:right;'>Organizaciones halladas: " . htmlspecialchars((string)$numeroClanesHallados, ENT_QUOTES, 'UTF-8'));
 print("<br/>Grupos hallados: " . htmlspecialchars((string)$numeroDeGruposHallados, ENT_QUOTES, 'UTF-8') . "</p>");
 ?>
-

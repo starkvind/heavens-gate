@@ -114,7 +114,7 @@ usort($origins, function($a, $b){
 			<?php echo "<div id='" . h($fieldsetId) . "' class='contenidoAfiliacion'>"; ?>
 			<?php foreach ($groups[$origin] as $row):
 				$img = (string)($row['image_url'] ?? '');
-				$img = $img !== '' ? $img : 'img/ui/powers/totem.gif';
+				$img = $img !== '' ? $img : 'img/ui/icons/icon_totem.png';
 				$name = (string)($row['name'] ?? '');
 				$href = pretty_url($link, 'dim_totems', '/powers/totem', (int)$row["id"]);
 			?>

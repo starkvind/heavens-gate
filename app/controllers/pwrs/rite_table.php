@@ -284,9 +284,9 @@ $(document).ready(function () {
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Ultimo",
-				next: ">",
-				previous: "<"
+				last: "&Uacute;ltimo",
+				next: "&#9654;",
+				previous: "&#9664;"
 			}
 		},
 		initComplete: function(){

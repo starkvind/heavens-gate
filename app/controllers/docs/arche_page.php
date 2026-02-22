@@ -76,7 +76,7 @@ if ($archeDesc !== '') {
 if ($archeWill !== '') {
     echo "  <div class='power-card__desc'>";
     echo "    <div class='power-card__desc-title'>Fuerza de Voluntad</div>";
-    echo "    <div class='power-card__desc-body'>" . htmlspecialchars($archeWill) . "</div>";
+    echo "    <div class='power-card__desc-body'>" . ($archeWill) . "</div>";
     echo "  </div>";
 }
 

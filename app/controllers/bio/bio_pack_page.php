@@ -145,7 +145,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     }
 
     if ($typePack == 1) {
-        $packNavLinks = "$clanLink > $namePack";
+        $packNavLinks = "$clanLink » $namePack";
     } else {
         $packNavLinks = $namePack;
     }
@@ -206,9 +206,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataStatus = (string)$packRow["status"];
 
                     switch ($packDataStatus) {
-                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
+                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -265,9 +265,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $oldMemberStatus = (string)$oldMemberRow["status"];
 
                     switch ($oldMemberStatus) {
-                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
+                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 

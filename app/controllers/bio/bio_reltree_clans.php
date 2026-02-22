@@ -1,10 +1,10 @@
-﻿<?php
+<?php
 setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre clanes y organizaciones.", null, 'website');
 	if (!$link) {
-		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+		die("Error de conexión a la base de datos: " . mysqli_connect_error());
 	}
 
-	// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+	// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 	function sanitize_int_csv($csv){
 		$csv = (string)$csv;
 		if (trim($csv) === '') return '';
@@ -20,12 +20,12 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 
 	$pageTitle2 = "Clanes y Manadas";
 
-	// Excluir crÃ³nicas (si existe la variable global, la usamos; si no, no excluimos nada)
+	// Excluir crónicas (si existe la variable global, la usamos; si no, no excluimos nada)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " WHERE p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
 	// ============================================================
-	// Ã¢Å“â€¦ BRIDGES
+		// OK BRIDGES
 	// - Clan de PJ: bridge_characters_organizations (activo)
 	// - Manada de PJ: bridge_characters_groups (activo)
 	// - Clan <-> Manada: bridge_organizations_groups (activo)
@@ -159,10 +159,10 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
     <fieldset class='bioSeccion'>
 	<legend>&nbsp;Relaciones entre clanes y manadas&nbsp;</legend>
 		<div style="float: right;">
-			<button class="boton2" id='fullscreen-btn' onclick="toggleFullScreen()">ðŸ” Pantalla completa</button>
-			<button class="boton2" onclick="location.href='/relationship-map/characters'">Ã¢Å¡â„¢Ã¯Â¸Â Cambiar vista</button>
-			<button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">ðŸ›‘ Detener fÃ­sica</button>
-			<button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">ðŸ”„ Activar fÃ­sica</button>
+			<button class="boton2" id='fullscreen-btn' onclick="toggleFullScreen()">🔍 Pantalla completa</button>
+			<button class="boton2" onclick="location.href='/relationship-map/characters'">Cambiar vista</button>
+			<button class="boton2" id="btnDetenerFisica" onclick="detenerFisica()">🛑 Detener física</button>
+			<button class="boton2" id="btnActivarFisica" onclick="activarFisica()" style="display:none;">🔄 Activar física</button>
 		</div>
         <div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
 			<div id="network" style="width:100%; height:100%;"></div>

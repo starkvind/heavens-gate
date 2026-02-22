@@ -199,9 +199,9 @@
 						}
 
 						$mapEstado = [
-							"A?n por aparecer"     => "(&#64;)",
+							"Aún por aparecer"     => "(&#64;)",
 							"Paradero desconocido" => "(&#63;)",
-							"Cad?ver"              => "(&#8224;)"
+							"Cadáver"              => "(&#8224;)"
 						];
 						$simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
