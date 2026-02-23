@@ -4,7 +4,6 @@ if (!isset($link) || !$link) { die("Sin conexion BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
-include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
@@ -38,6 +37,20 @@ $offset  = ($page - 1) * $perPage;
 $flash = [];
 
 $opts_origins = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name");
+$opts_kinds = [];
+if ($rs = $link->query("SELECT DISTINCT kind FROM dim_traits WHERE kind IS NOT NULL AND TRIM(kind) <> '' ORDER BY kind ASC")) {
+    while ($r = $rs->fetch_assoc()) {
+        $opts_kinds[] = (string)($r['kind'] ?? '');
+    }
+    $rs->close();
+}
+$opts_classifications = [];
+if ($rs = $link->query("SELECT DISTINCT classification FROM dim_traits WHERE classification IS NOT NULL AND TRIM(classification) <> '' ORDER BY classification ASC")) {
+    while ($r = $rs->fetch_assoc()) {
+        $opts_classifications[] = (string)($r['classification'] ?? '');
+    }
+    $rs->close();
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if (!csrf_ok()) {
@@ -128,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 }
 
-if (($_GET['ajax'] ?? '') === 'search') {
+if (($_GET['ajax'] ?? '') === 'search' || ($_GET['ajax'] ?? '') === '1') {
     $qAjax = trim((string)($_GET['q'] ?? ''));
     $whereAjax = "WHERE 1=1";
     $typesAjax = "";
@@ -220,6 +233,7 @@ $stL->close();
 $actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
     . '<button class="btn btn-green" type="button" id="btnNewTrait">+ Nuevo trait</button>'
     . '</span>';
+include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 admin_panel_open('Traits', $actions);
 ?>
 
@@ -232,9 +246,9 @@ admin_panel_open('Traits', $actions);
 </div>
 <?php endif; ?>
 
-<form method="get" style="display:flex; gap:8px; align-items:center; margin:10px 0;">
+<form method="get" id="traitsFilterForm" style="display:flex; gap:8px; align-items:center; margin:10px 0;">
     <input type="hidden" name="s" value="admin_traits">
-    <label class="small">Busqueda
+    <label class="small">Búsqueda
         <input class="inp" type="text" name="q" id="quickFilterTraits" value="<?= h($q) ?>" placeholder="Nombre, tipo o clasificacion (realtime en todo el set)">
     </label>
     <label class="small">Por pag
@@ -244,7 +258,7 @@ admin_panel_open('Traits', $actions);
             <?php endforeach; ?>
         </select>
     </label>
-    <button class="btn" type="submit">Aplicar</button>
+    <button class="btn" type="button" id="btnApplyTraitsFilter">Aplicar</button>
 </form>
 
 <table class="table" id="tablaTraits">
@@ -284,7 +298,7 @@ admin_panel_open('Traits', $actions);
 
 <div class="pager" id="traitsPager">
     <?php
-    $base = "?s=admin_traits&pp=".$perPage."&q=".urlencode($q);
+    $base = "/talim?s=admin_traits&pp=".$perPage."&q=".urlencode($q);
     $prev = max(1, $page-1);
     $next = min($pages, $page+1);
     ?>
@@ -308,10 +322,20 @@ admin_panel_open('Traits', $actions);
                     <input class="inp" type="text" name="name" id="trait_name" maxlength="100" required>
                 </label>
                 <label><span>Tipo</span> <span class="badge">oblig.</span>
-                    <input class="inp" type="text" name="kind" id="trait_kind" maxlength="100" required>
+                    <select class="select" name="kind" id="trait_kind" required>
+                        <option value="">-- Selecciona --</option>
+                        <?php foreach ($opts_kinds as $kind): ?>
+                        <option value="<?= h($kind) ?>"><?= h($kind) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </label>
                 <label><span>Clasificacion</span> <span class="badge">oblig.</span>
-                    <input class="inp" type="text" name="classification" id="trait_classification" maxlength="100" required>
+                    <select class="select" name="classification" id="trait_classification" required>
+                        <option value="">-- Selecciona --</option>
+                        <?php foreach ($opts_classifications as $classification): ?>
+                        <option value="<?= h($classification) ?>"><?= h($classification) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </label>
                 <label><span>Origen</span>
                     <select class="select" name="bibliography_id" id="trait_bibliography_id">
@@ -372,13 +396,20 @@ admin_panel_open('Traits', $actions);
 .field-full{ grid-column:1 / -1; }
 .ta-lg{ min-height:180px; resize:vertical; }
 .ta-md{ min-height:120px; resize:vertical; }
-.modal-back{
+#mbTrait.modal-back,
+#mbTraitDel.modal-back{
     position:fixed; inset:0; background:rgba(0,0,0,.6);
     display:none; align-items:center; justify-content:center;
     z-index:9999; padding:14px; box-sizing:border-box;
 }
-.modal{
+#mbTrait .modal{
+    position:relative; inset:auto;
     width:min(1100px,96vw); max-height:92vh; overflow:auto;
+    background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px;
+}
+#mbTraitDel .modal{
+    position:relative; inset:auto;
+    width:min(560px,96vw); max-height:92vh; overflow:auto;
     background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px;
 }
 .badge{
@@ -401,6 +432,36 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
 (function(){
     var modal = document.getElementById('mbTrait');
     var delModal = document.getElementById('mbTraitDel');
+    var kindSelect = document.getElementById('trait_kind');
+    var classificationSelect = document.getElementById('trait_classification');
+
+    function ensureKindOption(value){
+        var v = String(value || '').trim();
+        if (!kindSelect || v === '') return;
+        var exists = Array.prototype.some.call(kindSelect.options, function(opt){
+            return String(opt.value) === v;
+        });
+        if (!exists) {
+            var opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            kindSelect.appendChild(opt);
+        }
+    }
+
+    function ensureClassificationOption(value){
+        var v = String(value || '').trim();
+        if (!classificationSelect || v === '') return;
+        var exists = Array.prototype.some.call(classificationSelect.options, function(opt){
+            return String(opt.value) === v;
+        });
+        if (!exists) {
+            var opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            classificationSelect.appendChild(opt);
+        }
+    }
 
     function openCreate(){
         document.getElementById('traitModalTitle').textContent = 'Nuevo trait';
@@ -425,7 +486,9 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
         document.getElementById('trait_action').value = 'update';
         document.getElementById('trait_id').value = String(id);
         document.getElementById('trait_name').value = row.name || '';
+        ensureKindOption(row.kind || '');
         document.getElementById('trait_kind').value = row.kind || '';
+        ensureClassificationOption(row.classification || '');
         document.getElementById('trait_classification').value = row.classification || '';
         document.getElementById('trait_bibliography_id').value = String(parseInt(row.bibliography_id || 0, 10) || 0);
         document.getElementById('trait_description').value = row.description || '';
@@ -467,6 +530,8 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
 
 (function(){
     var input = document.getElementById('quickFilterTraits');
+    var filterForm = document.getElementById('traitsFilterForm');
+    var filterBtn = document.getElementById('btnApplyTraitsFilter');
     var tbody = document.getElementById('traitsTbody');
     var pager = document.getElementById('traitsPager');
     if (!input || !tbody) return;
@@ -495,7 +560,9 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
                 document.getElementById('trait_action').value = 'update';
                 document.getElementById('trait_id').value = String(id);
                 document.getElementById('trait_name').value = row.name || '';
+                ensureKindOption(row.kind || '');
                 document.getElementById('trait_kind').value = row.kind || '';
+                ensureClassificationOption(row.classification || '');
                 document.getElementById('trait_classification').value = row.classification || '';
                 document.getElementById('trait_bibliography_id').value = String(parseInt(row.bibliography_id || 0, 10) || 0);
                 document.getElementById('trait_description').value = row.description || '';
@@ -550,20 +617,33 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
 
         var mySeq = ++reqSeq;
         if (pager) pager.style.display = 'none';
-        fetch('?s=admin_traits&ajax=search&q=' + encodeURIComponent(term), { credentials: 'same-origin' })
+        fetch('/talim?s=admin_traits&ajax=1&q=' + encodeURIComponent(term), { credentials: 'same-origin' })
             .then(function(r){ return r.json(); })
             .then(function(data){
                 if (mySeq !== reqSeq) return;
                 if (!data || data.ok !== true) return;
                 renderRows(data.rows || [], data.rowMap || {});
             })
-            .catch(function(){});
+            .catch(function(){
+                if (pager) pager.style.display = '';
+            });
     }
 
     input.addEventListener('input', function(){
         clearTimeout(timer);
         timer = setTimeout(runSearch, 180);
     });
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(e){
+            e.preventDefault();
+            runSearch();
+        });
+    }
+    if (filterBtn) {
+        filterBtn.addEventListener('click', function(){
+            runSearch();
+        });
+    }
 })();
 </script>
 <?php admin_panel_close(); ?>

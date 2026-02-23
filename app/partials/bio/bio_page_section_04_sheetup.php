@@ -32,12 +32,12 @@
 		echo"<div class='bioSheetSectionRight'>$clanLink</div>"; // Variable obtenida de #bio_page_section_01_data
 	}	
 	if ($bioPlayer != 0) {	// Jugador del Personaje
+		$playerDisplay = (isset($playerLinkOfChara) && $playerLinkOfChara !== '') ? $playerLinkOfChara : $namePlayerOfChara;
 		echo"<div class='bioSheetSectionLeft'>Jugador:</div>";
-		echo"<div class='bioSheetSectionRight'>$namePlayerOfChara</div>"; // Variable obtenida de #bio_page_section_01_data
+		echo"<div class='bioSheetSectionRight'>$playerDisplay</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
 	if ($bioChronic != 0) { // Crónica del Personaje
 		echo"<div class='bioSheetSectionLeft'>Crónica:</div>";
 		echo"<div class='bioSheetSectionRight'>$nameCronicaFinal</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
 ?>
-

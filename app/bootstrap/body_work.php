@@ -409,7 +409,6 @@ $routes = [
 	'seeplayer' => ['app/controllers/playr/playr_page.php', 'Jugador'],
 
 	// Test
-	'snippet_forum_a' => ['app/partials/snippet_forum_hg.php', null],
 	'forum_message'   => ['app/partials/snippet_forum_hg.php', null],
 	'forum_diceroll'  => ['app/partials/snippet_forum_hg_dice.php', null],
 

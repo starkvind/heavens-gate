@@ -22,11 +22,20 @@ function createLink($href, $text, $target = '_blank', $title = '', $extraAttrs =
 // JUGADOR
 $idJugador = $bioPlayer;
 if ($idJugador != "PNJ") {
-    $resultCheckNPla = getSingleRecord($link, 'dim_players', $idJugador);
-    $finalPlayer = ($resultCheckNPla['name']);
-    $namePlayerOfChara = $finalPlayer; #createLink("/players/$idJugador", $finalPlayer);
+    $resultCheckNPla = getSingleRecord($link, 'dim_players', $idJugador, ['name', 'show_in_catalog']);
+    $finalPlayer = ($resultCheckNPla['name'] ?? '');
+    $namePlayerOfChara = htmlspecialchars($finalPlayer, ENT_QUOTES, 'UTF-8');
+    $playerLinkOfChara = '';
+    if (!empty($resultCheckNPla) && (int)($resultCheckNPla['show_in_catalog'] ?? 0) === 1) {
+        $playerLinkOfChara = createLink(
+            pretty_url($link, 'dim_players', '/players', (int)$idJugador),
+            $namePlayerOfChara,
+            '_blank'
+        );
+    }
 } else {
     $namePlayerOfChara = htmlspecialchars($bioPlayer);
+    $playerLinkOfChara = '';
 }
 
 // CRONICA

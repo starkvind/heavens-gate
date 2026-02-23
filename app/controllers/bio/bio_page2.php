@@ -265,10 +265,10 @@
 			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
-			$bioPhoto	 = $dataResult["image_url"]; 			// Imagen del personaje.
+			$bioPhoto	 = $dataResult["image_url"]; 	// Imagen del personaje.
 			$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
 			$bioBday	 = $dataResult["birthdate_text"]; // Cumpleaños del personaje.
-			$bioConcept	 = $dataResult["concept"]; 	// Concepto del personaje.
+			$bioConcept	 = $dataResult["concept"]; 		// Concepto del personaje.
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
 			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
@@ -300,14 +300,14 @@
 		// Datos de raza y alineamientos
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
 			$bioAuspice	 = $dataResult["auspice_id"]; 	// Auspicio al que pertenece el personaje.
-			$bioTribe	 = $dataResult["tribe_id"]; 		// Tribu a la que pertenece el personaje.
+			$bioTribe	 = $dataResult["tribe_id"]; 	// Tribu a la que pertenece el personaje.
 			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organización.
 		// ================================================================== //
 		// Ventajas y poderes
 			$bioTotem	 = ""; 		// Tótem que guía al personaje.
 			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
 		// Género
-			$bioGender	 = $dataResult["gender"];		// Género del personaje
+			$bioGender	 = $dataResult["gender"];	// Género del personaje
 		// Títulos de la sección Detalles		
 			$titlePkName	= "Nombre Garou";		// Título del nombre Garou
 		// Sistema, para nombres de detalles y tal.
