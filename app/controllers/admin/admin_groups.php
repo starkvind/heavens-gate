@@ -4,7 +4,7 @@
  *
  * Requisitos:
  * - $link: conexión mysqli abierta (body_work.php)
- * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,activa,cronica,clan,totem,`description`)
+ * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,chronicle_id,totem_id,is_active,`description`)
  * - Puentes: bridge_organizations_groups(id,organization_id,group_id,is_active)
  *            bridge_characters_groups(id,character_id,group_id,is_active,position)
  * - fact_characters(id,nombre,alias,nombregarou)
@@ -20,9 +20,9 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function q($link,$sql,$types='',$params=[]){
   $st = mysqli_prepare($link,$sql);
-  if(!$st){ return [false,mysqli_error($link),null]; }
+  if(!$st){ return [false,mysqli_error($link),null,null]; }
   if($types!==''){ mysqli_stmt_bind_param($st,$types,...$params); }
-  if(!mysqli_stmt_execute($st)){ $err=mysqli_stmt_error($st); mysqli_stmt_close($st); return [false,$err,null]; }
+  if(!mysqli_stmt_execute($st)){ $err=mysqli_stmt_error($st); mysqli_stmt_close($st); return [false,$err,null,null]; }
   $res = mysqli_stmt_get_result($st);
   $id  = mysqli_insert_id($link);
   mysqli_stmt_close($st);
@@ -210,19 +210,23 @@ function render_group_detail($link,$group_id){
 /* --- MODALES --- */
 function render_clan_modal($link,$organization_id){
   $organization_id = (int)$organization_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,totem_id AS totem FROM dim_organizations WHERE id=? LIMIT 1",'i',[$organization_id]);
+  [$ok,$err,$rs] = q($link,"SELECT id,name,totem_id AS totem,color,is_npc,`description` FROM dim_organizations WHERE id=? LIMIT 1",'i',[$organization_id]);
   if(!$ok || !$rs || !($clan=mysqli_fetch_assoc($rs))){
     echo "<div class='err'>Clan no encontrado.</div>"; return;
   }
   $totems = get_totems($link);
   $totemSel = (int)($clan['totem'] ?? 0);
+  $clanColor = (string)($clan['color'] ?? '#ffffff');
+  if (!preg_match('/^#[0-9a-fA-F]{6}$/', $clanColor)) $clanColor = '#ffffff';
+  $clanIsNpc = ((int)($clan['is_npc'] ?? 0) === 1) ? 1 : 0;
+  $clanDesc = (string)($clan['description'] ?? '');
   echo "<div class='modal-header'>
           <h3>Editar clan</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
         </div>
         <div class='modal-body'>
           <div class='card'>
-            <h4>Nombre del clan</h4>
+            <h4>Datos del clan</h4>
             <div class='toolbar'>
               <input id='clanName' type='text' value='".e($clan['name'])."'>
               <select id='clanTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
@@ -230,8 +234,16 @@ function render_clan_modal($link,$organization_id){
     echo "<option value='".e($tid)."' ".($tid===$totemSel?'selected':'').">".e($tname)."</option>";
   }
   echo      "</select>
+              <input id='clanColor' type='color' value='".e($clanColor)."' title='Color'>
+              <select id='clanIsNpc' style='max-width:140px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>
+                <option value='0' ".($clanIsNpc===0?'selected':'').">is_npc: 0</option>
+                <option value='1' ".($clanIsNpc===1?'selected':'').">is_npc: 1</option>
+              </select>
               <button class='btn btn-ok' id='btnClanSave' data-id='".e($clan['id'])."'>Guardar</button>
               <button class='btn' id='btnOpenGroupCreate' data-clan='".e($clan['id'])."'>Nueva manada</button>
+            </div>
+            <div class='toolbar' style='margin-top:8px'>
+              <textarea id='clanDescription' rows='4' style='width:100%; resize:vertical;' placeholder='Descripción'>".e($clanDesc)."</textarea>
             </div>
           </div>
           <div class='hr'></div>
@@ -279,7 +291,12 @@ function render_group_modal($link,$group_id){
         </div>";
 }
 
-function render_clan_create_form(){
+function render_clan_create_form($link){
+  $nextSort = 0;
+  [$ok,$err,$rs] = q($link, "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort FROM dim_organizations");
+  if ($ok && $rs && ($row = mysqli_fetch_assoc($rs))) {
+    $nextSort = (int)($row['next_sort'] ?? 0);
+  }
   echo "<div class='modal-header'>
           <h3>Nuevo clan</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
@@ -287,7 +304,16 @@ function render_clan_create_form(){
         <div class='modal-body'>
           <div class='toolbar'>
             <input id='newClanName' type='text' placeholder='Nombre del clan'>
+            <input id='newClanSortOrder' type='number' min='0' step='1' value='".e($nextSort)."' placeholder='Orden'>
+            <input id='newClanColor' type='color' value='#ffffff' title='Color'>
+            <select id='newClanIsNpc' style='max-width:140px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>
+              <option value='0' selected>is_npc: 0</option>
+              <option value='1'>is_npc: 1</option>
+            </select>
             <button class='btn btn-ok' id='btnCreateClan'>Crear</button>
+          </div>
+          <div class='toolbar' style='margin-top:8px'>
+            <textarea id='newClanDescription' rows='4' style='width:100%; resize:vertical;' placeholder='Descripción'></textarea>
           </div>
           <div class='small'>Se creará con valores por defecto. Podrás completar más campos en otras pantallas si es necesario.</div>
         </div>";
@@ -347,15 +373,19 @@ if(!empty($_POST['action'])){
   // modales abrir
   if($act==='clan_modal'){ $id=(int)($_POST['organization_id']??0); render_clan_modal($link,$id); exit; }
   if($act==='group_modal'){ $id=(int)($_POST['group_id']??0); render_group_modal($link,$id); exit; }
-  if($act==='clan_create_form'){ render_clan_create_form(); exit; }
+  if($act==='clan_create_form'){ render_clan_create_form($link); exit; }
   if($act==='group_create_form'){ $cid=(int)($_POST['organization_id']??0); render_group_create_form($link,$cid); exit; }
 
-  // clan update basic (name + totem)
+  // clan update basic (name + totem + color + is_npc + description)
   if($act==='clan_update_basic'){
     $id=(int)($_POST['organization_id']??0);
     $name=trim((string)($_POST['name']??''));
     $totem=(int)($_POST['totem']??0);
-    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=?, totem_id=? WHERE id=?",'sii',[$name,$totem,$id]); }
+    $color=trim((string)($_POST['color']??'#ffffff'));
+    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#ffffff';
+    $is_npc=((int)($_POST['is_npc']??0)===1)?1:0;
+    $description=(string)($_POST['description']??'');
+    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=?, totem_id=?, color=?, is_npc=?, `description`=? WHERE id=?",'sisisi',[$name,$totem,$color,$is_npc,$description,$id]); }
     hg_update_pretty_id_if_exists($link, 'dim_organizations', $id, $name);
     render_clan_modal($link,$id); exit;
   }
@@ -363,11 +393,17 @@ if(!empty($_POST['action'])){
   // crear clan
   if($act==='clan_create'){
     $name=trim((string)($_POST['name']??''));
-    if($name===''){ render_clan_create_form(); echo "<div class='err'>Indica un nombre.</div>"; exit; }
+    $sort_order=(int)($_POST['sort_order']??0);
+    if($sort_order < 0){ $sort_order = 0; }
+    $color=trim((string)($_POST['color']??'#ffffff'));
+    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#ffffff';
+    $is_npc=((int)($_POST['is_npc']??0)===1)?1:0;
+    $description=(string)($_POST['description']??'');
+    if($name===''){ render_clan_create_form($link); echo "<div class='err'>Indica un nombre.</div>"; exit; }
     // Insert básico: si tu tabla exige más campos NOT NULL sin default, añade aquí columnas con valores por defecto.
-    [$ok,$err,$rs,$newId] = q($link,"INSERT INTO dim_organizations (name) VALUES (?)",'s',[$name]);
-    hg_update_pretty_id_if_exists($link, 'dim_organizations', $newId, $name);
-    if(!$ok){ render_clan_create_form(); echo "<div class='err'>".e($err)."</div>"; exit; }
+    [$ok,$err,$rs,$newId] = q($link,"INSERT INTO dim_organizations (name, sort_order, totem_id, color, is_npc, `description`) VALUES (?,?,0,?,?,?)",'sisis',[$name, $sort_order, $color, $is_npc, $description]);
+    if(!$ok){ render_clan_create_form($link); echo "<div class='err'>".e($err)."</div>"; exit; }
+    hg_update_pretty_id_if_exists($link, 'dim_organizations', (int)$newId, $name);
     render_clan_modal($link,$newId); exit;
   }
 
@@ -394,12 +430,12 @@ if(!empty($_POST['action'])){
     $totem=(int)($_POST['totem']??0);
     if($name===''){ render_group_create_form($link,$organization_id); echo "<div class='err'>Indica un nombre.</div>"; exit; }
 
-    // dim_groups requiere varias columnas NOT NULL; ponemos defaults seguros
+    // dim_groups: name, chronicle_id, totem_id, is_active, description (NOT NULL)
     [$ok,$err,$rs,$newId] = q($link,
-      "INSERT INTO dim_groups (name, chronicle_id, clan, totem_id, is_active, `description`) VALUES (?,?,?,?,?,?)",
-      'sisiis', [$name, $cronica, /*clan(texto)*/'', $totem, $activa, /*desc*/'']);
-    hg_update_pretty_id_if_exists($link, 'dim_groups', $newId, $name);
+      "INSERT INTO dim_groups (name, chronicle_id, totem_id, is_active, `description`) VALUES (?,?,?,?,?)",
+      'siiis', [$name, $cronica, $totem, $activa, '']);
     if(!$ok){ render_group_create_form($link,$organization_id); echo "<div class='err'>".e($err)."</div>"; exit; }
+    hg_update_pretty_id_if_exists($link, 'dim_groups', (int)$newId, $name);
 
     // Bridge (opcional) si seleccionó organization_id
     if($organization_id>0){
@@ -658,7 +694,11 @@ function bindModalInside(){
   if(btnCreateClan){
     btnCreateClan.onclick = async ()=>{
       const name = ($('#newClanName', root).value||'').trim();
-      openModal(await htmlPost('clan_create',{name}));
+      const sort_order = ($('#newClanSortOrder', root).value||'0').trim();
+      const color = ($('#newClanColor', root).value||'#ffffff').trim();
+      const is_npc = ($('#newClanIsNpc', root).value||'0').trim();
+      const description = ($('#newClanDescription', root).value||'');
+      openModal(await htmlPost('clan_create',{name,sort_order,color,is_npc,description}));
       reloadClans();
     };
   }
@@ -685,7 +725,10 @@ function bindModalInside(){
       const organization_id = btnClanSave.dataset.id;
       const name = ($('#clanName', root).value||'').trim();
       const totem = ($('#clanTotem', root).value||'0').trim();
-      openModal(await htmlPost('clan_update_basic',{organization_id,name,totem}));
+      const color = ($('#clanColor', root).value||'#ffffff').trim();
+      const is_npc = ($('#clanIsNpc', root).value||'0').trim();
+      const description = ($('#clanDescription', root).value||'');
+      openModal(await htmlPost('clan_update_basic',{organization_id,name,totem,color,is_npc,description}));
       reloadClans();
     };
   }

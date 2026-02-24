@@ -50,6 +50,11 @@ switch($typePack) {
 // Excluir crónicas (si existe la variable)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
+$characterKindCol = 'character_kind';
+if ($rsKind = mysqli_query($link, "SHOW COLUMNS FROM fact_characters LIKE 'kind'")) {
+    if (mysqli_num_rows($rsKind) > 0) $characterKindCol = 'kind';
+    mysqli_free_result($rsKind);
+}
 
 // Ejecutar la consulta principal
 $stmtMain = mysqli_prepare($link, $query);
@@ -173,7 +178,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     if ($typePack == 1) {
 
         $packsOfSeptQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.status
+            SELECT p.id, p.name, p.alias, p.image_url, p.status, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             WHERE bg.group_id = ?
@@ -204,6 +209,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataAlias  = ($packRow["alias"] !== '' && $packRow["alias"] !== null) ? (string)$packRow["alias"] : $packDataName;
                     $packDataImg    = (string)$packRow["image_url"];
                     $packDataStatus = (string)$packRow["status"];
+                    $packDataKind   = strtolower(trim((string)($packRow["character_kind"] ?? '')));
+                    $packFotoClass  = ($packDataKind === 'mon' || $packDataKind === 'monster') ? "Monster" : "";
 
                     switch ($packDataStatus) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -214,8 +221,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
                     echo "
                     <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$packDataId)) . "' title='" . h($packDataName) . "'>
-                        <div class='marcoFotoBio'>
-                            <div class='textoDentroFotoBio'>" . h($packDataAlias) . " $simboloEstado</div>
+                        <div class='marcoFotoBio" . h($packFotoClass) . "'>
+                            <div class='textoDentroFotoBio" . h($packFotoClass) . "'>" . h($packDataAlias) . " $simboloEstado</div>
                             <div class='dentroFotoBio'>
                                 <img class='fotoBioList' src='" . h($packDataImg) . "'>
                             </div>
@@ -232,7 +239,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         }
 
         $oldMembersQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.status
+            SELECT p.id, p.name, p.alias, p.image_url, p.status, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             WHERE bg.group_id = ?
@@ -263,6 +270,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $oldMemberAlias  = ($oldMemberRow["alias"] !== '' && $oldMemberRow["alias"] !== null) ? (string)$oldMemberRow["alias"] : $oldMemberName;
                     $oldMemberImg    = (string)$oldMemberRow["image_url"];
                     $oldMemberStatus = (string)$oldMemberRow["status"];
+                    $oldMemberKind   = strtolower(trim((string)($oldMemberRow["character_kind"] ?? '')));
+                    $oldFotoClass    = ($oldMemberKind === 'mon' || $oldMemberKind === 'monster') ? "Monster" : "";
 
                     switch ($oldMemberStatus) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -273,8 +282,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
                     echo "
                     <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$oldMemberId)) . "' title='" . h($oldMemberName) . "'>
-                        <div class='marcoFotoBio'>
-                            <div class='textoDentroFotoBio'>" . h($oldMemberAlias) . " $simboloEstado</div>
+                        <div class='marcoFotoBio" . h($oldFotoClass) . "'>
+                            <div class='textoDentroFotoBio" . h($oldFotoClass) . "'>" . h($oldMemberAlias) . " $simboloEstado</div>
                             <div class='dentroFotoBio'>
                                 <img class='fotoBioList' src='" . h($oldMemberImg) . "'>
                             </div>
@@ -377,7 +386,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         //  - Clan: bridge_characters_organizations
         //  - Sin manada: NO existe enlace activo en bridge_characters_groups
         $charsWithoutPackQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.status
+            SELECT p.id, p.name, p.alias, p.image_url, p.status, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_organizations bc
             INNER JOIN fact_characters p ON p.id = bc.character_id
             LEFT JOIN bridge_characters_groups bg
@@ -412,6 +421,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $calias = ($charRow["alias"] !== '' && $charRow["alias"] !== null) ? (string)$charRow["alias"] : $cname;
                     $cimg  = (string)$charRow["image_url"];
                     $cst   = (string)$charRow["status"];
+                    $ckind = strtolower(trim((string)($charRow["character_kind"] ?? '')));
+                    $charFotoClass = ($ckind === 'mon' || $ckind === 'monster') ? "Monster" : "";
 
                     switch ($cst) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -422,8 +433,8 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 
                     echo "
                         <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$cid)) . "' title='" . h($cname) . "'>
-                            <div class='marcoFotoBio'>
-                                <div class='textoDentroFotoBio'>" . h($calias) . " $simboloEstado</div>
+                            <div class='marcoFotoBio" . h($charFotoClass) . "'>
+                                <div class='textoDentroFotoBio" . h($charFotoClass) . "'>" . h($calias) . " $simboloEstado</div>
                                 <div class='dentroFotoBio'>
                                     <img class='fotoBioList' src='" . h($cimg) . "'>
                                 </div>
@@ -446,4 +457,3 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 mysqli_free_result($result);
 mysqli_stmt_close($stmtMain);
 ?>
-

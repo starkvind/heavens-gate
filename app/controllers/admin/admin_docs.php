@@ -1,4 +1,7 @@
 <?php
+if (!headers_sent()) {
+    header('Content-Type: text/html; charset=UTF-8');
+}
 /**
  * admin_docs_crud.php — CRUD autocontenido (Documentos + Secciones)
  * WYSIWYG SIN CKEDITOR: Quill (CDN) — sin API key, sin carpetas de plugins.
@@ -483,7 +486,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
       <a class="tablnk <?= $tab==='sections'?'active':'' ?>" href="<?= $baseTabs ?>&tab=sections">Secciones</a>
     </div>
 
-    <button class="btn btn-green" id="btnNew">âž• Nuevo</button>
+    <button class="btn btn-green" id="btnNew">➕ Nuevo</button>
 
     <form method="get" style="display:flex; gap:8px; align-items:center; margin-left:auto;">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
@@ -550,8 +553,8 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
             </td>
           <?php endforeach; ?>
           <td>
-            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">âœ Editar</button>
-            <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">🗑 Borrar</button>
+            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">📝 Editar</button>
+            <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">🗑️ Borrar</button>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -967,7 +970,6 @@ function syncEditorsToTextarea(){
   });
 })();
 </script>
-
 
 
 

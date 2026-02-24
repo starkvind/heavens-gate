@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 	/*  Índice de secciones
 			1.- Query en Base de Datos 		[#SEC01]
 			2.- Foto del Personaje 			[#SEC02]
@@ -117,17 +117,75 @@
 		}
 	}
 
-	function fetch_traits_for_system_type(mysqli $link, int $characterId, int $systemId, string $kind): array {
+	function fetch_traits_for_system_type(mysqli $link, int $characterId, int $systemId, string $kind, bool $bridgeOnly = false): array {
 		$out = [];
 		if ($characterId <= 0) return $out;
+		if ($bridgeOnly) {
+			// Monster: mostrar solo lo realmente guardado en bridge_characters_traits,
+			// pero respetando el orden del set del sistema cuando exista.
+			if ($systemId > 0) {
+				$sql = "SELECT t.id, t.name, f.value, s.sort_order, t.classification
+						FROM bridge_characters_traits f
+						JOIN dim_traits t ON t.id = f.trait_id AND t.kind = ?
+						LEFT JOIN fact_trait_sets s
+							ON s.trait_id = t.id
+						   AND s.system_id = ?
+						   AND s.is_active = 1
+						WHERE f.character_id = ?
+						ORDER BY
+							CASE WHEN s.sort_order IS NULL THEN 1 ELSE 0 END,
+							COALESCE(NULLIF(CAST(SUBSTRING_INDEX(TRIM(t.classification), ' ', 1) AS UNSIGNED), 0), 9999),
+							s.sort_order,
+							t.name";
+				if ($st = $link->prepare($sql)) {
+					$st->bind_param('sii', $kind, $systemId, $characterId);
+					$st->execute();
+					$res = $st->get_result();
+					if ($res) {
+						while ($row = $res->fetch_assoc()) {
+							$out[] = [
+								'id' => (int)$row['id'],
+								'name' => (string)$row['name'],
+								'value' => (int)$row['value'],
+							];
+						}
+						$res->free();
+					}
+					$st->close();
+				}
+				if (!empty($out)) return $out;
+			}
+			// Fallback sin set del sistema: orden nominal.
+			$sql = "SELECT t.id, t.name, f.value
+					FROM bridge_characters_traits f
+					JOIN dim_traits t ON t.id = f.trait_id
+					WHERE f.character_id = ? AND t.kind = ?
+					ORDER BY t.name";
+			if ($st = $link->prepare($sql)) {
+				$st->bind_param('is', $characterId, $kind);
+				$st->execute();
+				$res = $st->get_result();
+				if ($res) {
+					while ($row = $res->fetch_assoc()) {
+						$out[] = ['id'=>(int)$row['id'], 'name'=>(string)$row['name'], 'value'=>(int)$row['value']];
+					}
+					$res->free();
+				}
+				$st->close();
+			}
+			return $out;
+		}
 		$hasSet = false;
 		if ($systemId > 0) {
-			$sql = "SELECT t.id, t.name, COALESCE(f.value,0) AS value, s.sort_order
+			$sql = "SELECT t.id, t.name, COALESCE(f.value,0) AS value, s.sort_order, t.classification
 					FROM fact_trait_sets s
 					JOIN dim_traits t ON t.id = s.trait_id AND t.kind = ?
 					LEFT JOIN bridge_characters_traits f ON f.trait_id = t.id AND f.character_id = ?
 					WHERE s.system_id = ? AND s.is_active = 1
-					ORDER BY s.sort_order, t.name";
+					ORDER BY
+						COALESCE(NULLIF(CAST(SUBSTRING_INDEX(TRIM(t.classification), ' ', 1) AS UNSIGNED), 0), 9999),
+						s.sort_order,
+						t.name";
 			if ($st = $link->prepare($sql)) {
 				$st->bind_param('sii', $kind, $characterId, $systemId);
 				$st->execute();
@@ -295,7 +353,10 @@
 			$bioChronic	 = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
 			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
 			$bioDethCaus = $dataResult["cause_of_death"]; // Causa de la muerte.
-			$bioSheet	 = $dataResult["character_kind"]; // Si el personaje posee Ficha de Personaje o no.
+			$bioSheetRaw = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
+			$bioSheet	 = $bioSheetRaw; // Compatibilidad con código legacy.
+			$bioIsMonster = in_array($bioSheetRaw, ["mon", "monster"], true);
+			$bioHasSheet = in_array($bioSheetRaw, ["pj", "mon", "monster"], true);
 		// ================================================================== //
 		// Datos de raza y alineamientos
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
@@ -327,7 +388,7 @@
 			// Cambiamos títulos de secciones acorde al Sistema del PJ
 			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la página con código
 		// ================================================================== //
-		if ($bioSheet == "pj") { // <--- Inicio de comprobación si lleva hoja de PJ
+		if ($bioHasSheet) { // <--- Inicio de comprobación si lleva hoja
 		// ================================================================== //
 		// Traits normalizados (bridge_characters_traits)
 			$traitValues = fetch_trait_values($link, (int)$characterId);
@@ -399,14 +460,14 @@
 		// ================================================================== //
 		// Habilidades
 		$bioTraitsByType = [
-			'Atributos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Atributos'),
-			'Talentos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Talentos'),
-			'Técnicas' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Técnicas'),
-			'Conocimientos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Conocimientos'),
-			'Trasfondos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Trasfondos'),
+			'Atributos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Atributos', $bioIsMonster),
+			'Talentos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Talentos', $bioIsMonster),
+			'Técnicas' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Técnicas', $bioIsMonster),
+			'Conocimientos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Conocimientos', $bioIsMonster),
+			'Trasfondos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Trasfondos', $bioIsMonster),
 		];
 
-		// Orden + extras al final (alfab?tico)
+		// Orden + extras al final (alfabético)
 		$bioTraitsByType['Talentos'] = order_trait_list($bioTraitsByType['Talentos'] ?? [], 10);
 		$bioTraitsByType['Técnicas'] = order_trait_list($bioTraitsByType['Técnicas'] ?? [], 10);
 		$bioTraitsByType['Conocimientos'] = order_trait_list($bioTraitsByType['Conocimientos'] ?? [], 10);
@@ -418,6 +479,18 @@
 		}
 
 		$bioAttrList = $bioTraitsByType['Atributos'] ?? [];
+		$bioDebugTraitsEnabled = isset($_GET['debug_traits']) && (string)$_GET['debug_traits'] === '1';
+		if ($bioDebugTraitsEnabled && $bioIsMonster) {
+			echo "<div style='margin:8px 0;padding:8px;border:1px dashed #0ff;color:#0ff;background:#001a2a;font-family:monospace;font-size:12px;'>";
+			echo "<strong>DEBUG TRAITS (monster)</strong><br>";
+			echo "system_id=" . (int)($dataResult['system_id'] ?? 0) . "<br>";
+			foreach ($bioAttrList as $ix => $t) {
+				$nm = h((string)($t['name'] ?? ''));
+				$tv = (int)($t['value'] ?? 0);
+				echo "#" . ($ix + 1) . " {$nm} (v={$tv})<br>";
+			}
+			echo "</div>";
+		}
 		$bioAttrCols = [
 			array_slice($bioAttrList, 0, 3),
 			array_slice($bioAttrList, 3, 3),
@@ -540,7 +613,7 @@
 
 		// Flags de secciones
 		$hasInfo = true;
-		$hasSheet = ($bioSheet == "pj");
+		$hasSheet = $bioHasSheet;
 		$hasRel = (isset($relaciones) && $numRelaciones > 0);
 		$hasPart = (isset($participacion) && $numParticipa > 0);
 		$characterComments = [];
@@ -694,7 +767,7 @@
 		} // Finalizamos de poner el Texto
 		// INVENTARIO Y OBJETOS
 		// ================================================================== //
-		include ("app/partials/bio/bio_page_section_13_items.php"); // Utilizamos "include" para no sobrecargar la p?gina con c?digo
+		include ("app/partials/bio/bio_page_section_13_items.php"); // Utilizamos "include" para no sobrecargar la página con código
 		// ================================================================== //
 		?>
 		
@@ -722,7 +795,7 @@
 			echo "</section>";
 		}
 		// ================================================================== //
-		if ($bioSheet == "pj") { // Comprobamos si el personaje dispone de Hoja de Personaje
+		if ($bioHasSheet) { // Comprobamos si el personaje dispone de Hoja
 			// ----
 			echo "<section id='sec-sheet' class='bio-tab-panel' data-tab='sheet'>";
 			echo "<div class='bioSheetData'>"; // Parte Superior de la Hoja ~~ #SEC04
@@ -743,34 +816,36 @@
 			// ================================================================== //
 			echo "<div class='bioSheetData'>"; // Habilidades de la Hoja ~~ #SEC06
 			echo "<fieldset class='bioSeccion'><legend>$titleSkill</legend>";
-				include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la página con códigoç
+				include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la página con código
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Habilidades ~~
 			// ================================================================== //
-			echo "<div class='bioSheetBackgrounds'>"; // Trasfondos de la Hoja ~~ #SEC07
-			echo "<fieldset class='bioSeccion'><legend>$titleBackg</legend>";
-				if (!empty($bioBackgrounds)) {
-					foreach ($bioBackgrounds as $idx => $bg) {
-						$tid = (int)($bg['id'] ?? 0);
-						$nm = (string)($bg['name'] ?? '');
-						$val = (int)($bg['value'] ?? 0);
-						if ($nm === '' || $val <= 0) continue;
-						$nameHtml = h($nm);
-						if ($tid > 0 && function_exists('pretty_url')) {
-							$hrefT = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
-							$nameHtml = "<a href='" . h($hrefT) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>" . h($nm) . "</a>";
-						}
-						echo"<div class='bioSheetBackgroundLeft'>" . $nameHtml . ":</div>";
-						$img = $bioBackImgs[$idx] ?? '';
-						echo"<div class='bioSheetBackgroundRight'>" . $img . "</div>";
+			if (!$bioIsMonster) {
+		echo "<div class='bioSheetBackgrounds'>"; // Trasfondos de la Hoja ~~ #SEC07
+		echo "<fieldset class='bioSeccion'><legend>$titleBackg</legend>";
+			if (!empty($bioBackgrounds)) {
+				foreach ($bioBackgrounds as $idx => $bg) {
+					$tid = (int)($bg['id'] ?? 0);
+					$nm = (string)($bg['name'] ?? '');
+					$val = (int)($bg['value'] ?? 0);
+					if ($nm === '' || $val <= 0) continue;
+					$nameHtml = h($nm);
+					if ($tid > 0 && function_exists('pretty_url')) {
+						$hrefT = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+						$nameHtml = "<a href='" . h($hrefT) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>" . h($nm) . "</a>";
 					}
+					echo"<div class='bioSheetBackgroundLeft'>" . $nameHtml . ":</div>";
+					$img = $bioBackImgs[$idx] ?? '';
+					echo"<div class='bioSheetBackgroundRight'>" . $img . "</div>";
 				}
-			echo "</fieldset>";
-			echo "</div>"; // Cerramos Trasfondos ~~
-			// ================================================================== //
-			// MÉRITOS Y DEFECTOS
-			// ================================================================== //
-			include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la página con código
+			}
+		echo "</fieldset>";
+		echo "</div>"; // Cerramos Trasfondos ~~
+		// ================================================================== //
+		// MÉRITOS Y DEFECTOS
+		// ================================================================== //
+		include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la página con código
+	}
 			// ================================================================== //
 			// RECURSOS DEL PERSONAJE
 			// ================================================================== //
@@ -810,7 +885,7 @@
 					<?php include("app/partials/bio/bio_page_section_18_chapters.php"); ?>
 				</fieldset>
 			</div>
-			<?php if ($bioSheet == "pj"): ?>
+			<?php if ($bioHasSheet): ?>
 				<?php include("app/partials/bio/bio_page_section_19_participation.php"); ?>
 			<?php endif; ?>
 			</section>
@@ -1003,7 +1078,5 @@
 			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
-
-
 
 

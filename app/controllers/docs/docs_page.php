@@ -162,6 +162,13 @@ include("app/partials/main_nav_bar.php");
   font-size: 12px;
   transition: transform .06s ease, filter .12s ease, background .12s ease;
 }
+.theme-btn .ico{
+  display:inline-block;
+  width: 1.1em;
+  text-align:center;
+  margin-right: .28em;
+  opacity: .92;
+}
 .theme-btn:hover{ filter: brightness(1.1); }
 .theme-btn:active{ transform: translateY(1px); }
 .theme-btn.active{
@@ -229,8 +236,8 @@ include("app/partials/main_nav_bar.php");
 /* Cuerpo */
 .doc-body{
   font-family: var(--serif);
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.62;
   color: var(--text);
   padding: 10px 4px 8px;
 }
@@ -238,8 +245,8 @@ include("app/partials/main_nav_bar.php");
 /* Terminal: tipografia mono y tamano un poco menor */
 [data-doc-theme="terminal"] .doc-body{
   font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: 12px;
+  line-height: 1.62;
 }
 
 /* Respeta HTML de Quill */
@@ -247,8 +254,15 @@ include("app/partials/main_nav_bar.php");
 .doc-body h1,.doc-body h2,.doc-body h3{
   font-family: var(--sans);
   color: var(--title);
-  margin: 18px 0 10px;
-  line-height: 1.2;
+  margin: 16px 0 10px;
+  line-height: 1.25;
+  text-align: left !important;
+}
+.doc-body h1{ font-size: 1.55rem; }
+.doc-body h2{ font-size: 1.25rem; }
+.doc-body h3{ font-size: 1.08rem; }
+.doc-body h4,.doc-body h5,.doc-body h6{
+  text-align: left !important;
 }
 [data-doc-theme="terminal"] .doc-body h1,
 [data-doc-theme="terminal"] .doc-body h2,
@@ -266,6 +280,14 @@ include("app/partials/main_nav_bar.php");
 }
 .doc-body ul, .doc-body ol{ margin: 0 0 12px 22px; }
 .doc-body li{ margin: 4px 0; }
+.doc-body li.ql-indent-1{ margin-left: 1.4em; list-style-type: circle; }
+.doc-body li.ql-indent-2{ margin-left: 2.8em; list-style-type: square; }
+.doc-body li.ql-indent-3{ margin-left: 4.2em; list-style-type: circle; }
+.doc-body li.ql-indent-4{ margin-left: 5.6em; list-style-type: square; }
+.doc-body li.ql-indent-5{ margin-left: 7.0em; list-style-type: circle; }
+.doc-body li.ql-indent-6{ margin-left: 8.4em; list-style-type: square; }
+.doc-body li.ql-indent-7{ margin-left: 9.8em; list-style-type: circle; }
+.doc-body li.ql-indent-8{ margin-left: 11.2em; list-style-type: square; }
 .doc-body a{ color: var(--a); text-decoration: underline; }
 
 .doc-body code{
@@ -307,9 +329,9 @@ include("app/partials/main_nav_bar.php");
 <div class="doc-page" id="docRoot">
   <div class="doc-wrap">
     <div class="theme-switch" aria-label="Cambiar tema">
-      <button type="button" class="theme-btn" data-theme="og" title="Tema OG">OG</button>
-      <button type="button" class="theme-btn" data-theme="light" title="Tema claro">Claro</button>
-      <button type="button" class="theme-btn" data-theme="terminal" title="Tema terminal">Terminal</button>
+      <button type="button" class="theme-btn" data-theme="og" title="Tema OG"><span class="ico">◇</span>OG</button>
+      <button type="button" class="theme-btn" data-theme="light" title="Tema claro"><span class="ico">☀</span>Claro</button>
+      <button type="button" class="theme-btn" data-theme="terminal" title="Tema terminal"><span class="ico">⌘</span>Terminal</button>
     </div>
 
     <div class="doc-card">
@@ -366,5 +388,3 @@ include("app/partials/main_nav_bar.php");
 
 
 <?php } ?>
-
-

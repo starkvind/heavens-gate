@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+﻿<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 
@@ -390,6 +390,17 @@ function pjs_table_has_column(mysqli $link, string $table, string $column): bool
     return ((int)$c > 0);
 }
 
+function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
+    $st = $link->prepare("SELECT COALESCE(CHARACTER_MAXIMUM_LENGTH, 0) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
+    if (!$st) return 0;
+    $st->bind_param("ss", $table, $column);
+    $st->execute();
+    $st->bind_result($len);
+    $st->fetch();
+    $st->close();
+    return (int)$len;
+}
+
 function save_character_resources(
     mysqli $link,
     int $charId,
@@ -591,6 +602,8 @@ $fil_cr  = isset($_GET['fil_cr']) ? max(0, intval($_GET['fil_cr'])) : 0;
 $fil_ma  = isset($_GET['fil_ma']) ? max(0, intval($_GET['fil_ma'])) : 0;
 $offset  = ($page - 1) * $perPage;
 $flash   = [];
+$character_kind_column = pjs_table_has_column($link, 'fact_characters', 'kind') ? 'kind' : 'character_kind';
+$character_kind_maxlen = pjs_column_char_maxlen($link, 'fact_characters', $character_kind_column);
 
 /* -------------------------------------------------
    Cargar opciones de referencia
@@ -693,20 +706,36 @@ if ($has_bridge_systems_resources && $has_dim_systems_resources) {
 /* --- TRAITS: catálogo (todos los tipos) --- */
 $traits_by_type = [];
 $trait_types = [];
+$monster_blocked_trait_ids = [];
 $trait_order_fixed = ['Atributos','Talentos','Técnicas','Conocimientos','Trasfondos'];
 if ($st = $link->prepare("
-    SELECT id, name, kind
+    SELECT id, name, kind, classification
     FROM dim_traits
     WHERE kind IS NOT NULL AND TRIM(kind) <> ''
     ORDER BY kind, name
 ")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
-        $kind = (string)$r['kind'];
-        if (!isset($traits_by_type[$kind])) {
-            $traits_by_type[$kind] = [];
+        $kindTrait = (string)$r['kind'];
+        $classification = (string)($r['classification'] ?? '');
+        if (!isset($traits_by_type[$kindTrait])) {
+            $traits_by_type[$kindTrait] = [];
         }
-        $traits_by_type[$kind][] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']];
+        $traits_by_type[$kindTrait][] = [
+            'id'=>(int)$r['id'],
+            'name'=>(string)$r['name'],
+            'classification'=>$classification,
+        ];
+
+        $kindNorm = function_exists('mb_strtolower') ? mb_strtolower($kindTrait, 'UTF-8') : strtolower($kindTrait);
+        $classNorm = function_exists('mb_strtolower') ? mb_strtolower($classification, 'UTF-8') : strtolower($classification);
+        $kindNorm = str_replace('é', 'e', $kindNorm);
+        $isSec = (strpos($classNorm, '002 secundarias') === 0);
+        $isBlockedForMonster = ($kindNorm === 'trasfondos')
+            || ($isSec && in_array($kindNorm, ['talentos','tecnicas','conocimientos'], true));
+        if ($isBlockedForMonster) {
+            $monster_blocked_trait_ids[(int)$r['id']] = true;
+        }
     }
     $st->close();
 }
@@ -826,6 +855,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
     $totem_id = isset($_POST['totem_id']) ? (int)$_POST['totem_id'] : 0;
+    $kind_raw = strtolower(trim((string)($_POST['kind'] ?? 'pj')));
+    if ($kind_raw === 'monster' || $kind_raw === 'mon') {
+        $kind = 'monster';
+    } elseif ($kind_raw === 'pj') {
+        $kind = 'pj';
+    } else {
+        $kind = 'pnj';
+    }
+    if ($kind === 'monster' && $character_kind_maxlen > 0 && $character_kind_maxlen < 7) {
+        $kind = 'mon';
+    }
+    $isMonsterKind = ($kind === 'monster' || $kind === 'mon');
+    $isPlayableKind = ($kind !== 'pnj');
+    $allowMydForKind = ($isPlayableKind && !$isMonsterKind);
     $rm_avatar   = isset($_POST['avatar_remove']) && $_POST['avatar_remove'] ? true : false;
 
     // Campos complejos
@@ -876,6 +919,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             }
         }
         $traits = $filtered;
+    }
+    if ($isMonsterKind && !empty($traits) && !empty($monster_blocked_trait_ids)) {
+        foreach (array_keys($monster_blocked_trait_ids) as $blockedTid) {
+            unset($traits[(int)$blockedTid]);
+        }
     }
 
     // RECURSOS (nuevo modelo): arrays paralelos enviados desde chips del modal
@@ -954,16 +1002,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'[WARN] El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
-                (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, character_kind, system_id,
-                 shifter_type, totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, `$character_kind_column`, system_id,
+                 totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
-                $img=''; $kes='pnj'; $fera='';
+                $img='';
                 $stmt->bind_param(
-                    "sssssiiissssisisssssiiiii",
+                    "sssssiiissssiisssssiiiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
-                    $img, $notas, $text_color, $kes, $system_id, $fera,
+                    $img, $notas, $text_color, $kind, $system_id,
                     $totem_id,
                     $status, $causamuerte, $cumple, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
@@ -989,15 +1037,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                         }
                     }
 
+                    if ($isPlayableKind) {
                     // Poderes
                     $resultPow = save_character_powers($link, (int)$newId, $powers_type, $powers_id, $powers_lvl);
                     if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'[OK] Poderes vinculados: '.$resultPow['inserted']]; }
                     if ($resultPow['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Poderes omitidos: '.$resultPow['skipped'].')']; }
 
                     // Méritos/Defectos
-                    $resultMyd = save_character_merits_flaws($link, (int)$newId, $myd_id, $myd_lvl_raw);
-                    if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
-                    if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped'].')']; }
+                    if ($allowMydForKind) {
+                        $resultMyd = save_character_merits_flaws($link, (int)$newId, $myd_id, $myd_lvl_raw);
+                        if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
+                        if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped']. ')']; }
+                    }
 
                     // Inventario
                     $resultIt = save_character_items($link, (int)$newId, $items_id);
@@ -1030,6 +1081,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                         if (($resultRes['forced'] ?? 0) > 0) $msgRes .= ' (forzados por sistema: '.(int)$resultRes['forced'].')';
                         $flash[]=['type'=>'ok','msg'=>$msgRes];
                     }
+                    }
 $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al crear: '.$stmt->error];
@@ -1050,7 +1102,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
           // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
                   name=?, alias=?, garou_name=?, gender=?, concept=?,
-                  chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?,
+                  chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
                   breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
                   status=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
@@ -1060,9 +1112,10 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiisiiiiiisssssi",
+                  "sssssiiiissiiiiiisssssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
+                  $kind,
                   $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
                   $status, $causamuerte, $cumple, $rango, $infotext,
@@ -1102,15 +1155,18 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   // ✅ Bridges: aquí sí guardas clan/manada (fuente de verdad)
                   sync_character_bridges($link, (int)$id, (int)$manada, (int)$clan);
 
+                  if ($isPlayableKind) {
                   // Poderes
                   $resultPow = save_character_powers($link, (int)$id, $powers_type, $powers_id, $powers_lvl);
                   if ($resultPow['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'[OK] Poderes vinculados: '.$resultPow['inserted']]; }
                   if ($resultPow['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Poderes omitidos: '.$resultPow['skipped'].')']; }
 
                   // Méritos/Defectos
-                  $resultMyd = save_character_merits_flaws($link, (int)$id, $myd_id, $myd_lvl_raw);
-                  if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
-                  if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped'].')']; }
+                  if ($allowMydForKind) {
+                      $resultMyd = save_character_merits_flaws($link, (int)$id, $myd_id, $myd_lvl_raw);
+                      if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
+                      if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped']. ')']; }
+                  }
 
                   // Inventario
                   $resultIt = save_character_items($link, (int)$id, $items_id);
@@ -1142,6 +1198,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                       $msgRes = 'Recursos guardados: ' . (int)$resultRes['saved'];
                       if (($resultRes['forced'] ?? 0) > 0) $msgRes .= ' (forzados por sistema: '.(int)$resultRes['forced'].')';
                       $flash[]=['type'=>'ok','msg'=>$msgRes];
+                  }
                   }
 $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
 
@@ -1204,7 +1261,7 @@ SELECT
   -- [OK] IDs desde bridge (para el modal y coherencia)
   COALESCE(pgb.group_id, 0) AS manada,
   COALESCE(pcb.organization_id, 0)  AS clan,
-  p.image_url, p.character_type_id, p.totem_id,
+  p.image_url, p.character_type_id, p.totem_id, p.`$character_kind_column` AS kind,
 
   nj.name AS jugador_,
   nc.name AS cronica_,
@@ -1599,6 +1656,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-clan="<?= (int)$r['clan'] ?>"
               data-img="<?= h($r['image_url']) ?>"
               data-afiliacion="<?= (int)$r['character_type_id'] ?>"
+              data-kind="<?= h((string)($r['kind'] ?? 'pj')) ?>"
             >Editar</button>
           </td>
         </tr>
@@ -1713,6 +1771,15 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               <?php foreach($opts_afili as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label style="text-align:left;">kind
+            <select class="select" name="kind" id="f_kind">
+              <option value="pj">pj</option>
+              <option value="monster">monster</option>
+              <option value="pnj">pnj</option>
             </select>
           </label>
         </div>
@@ -1839,7 +1906,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- TRAITS -->
-        <div style="grid-column:1/-1;">
+        <div class="kind-pj-only" style="grid-column:1/-1;">
           <label><strong>Traits</strong></label>
           <div class="traits-grid">
             <?php foreach ($trait_types as $tipo): $list = $traits_by_type[$tipo] ?? []; if (!$list) continue; ?>
@@ -1847,7 +1914,10 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
                 <div class="traits-title"><?= h($tipo) ?></div>
                 <div class="traits-items">
                   <?php foreach ($list as $t): ?>
-                    <label class="trait-item" data-trait-name="<?= h($t['name']) ?>">
+                    <label class="trait-item"
+                           data-trait-name="<?= h($t['name']) ?>"
+                           data-trait-kind="<?= h($tipo) ?>"
+                           data-trait-classification="<?= h((string)($t['classification'] ?? '')) ?>">
                       <span><?= h($t['name']) ?></span>
                       <input class="inp trait-input" type="number" min="0" max="10" name="traits[<?= (int)$t['id'] ?>]" data-trait-id="<?= (int)$t['id'] ?>" value="0">
                     </label>
@@ -1860,7 +1930,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- RECURSOS -->
-        <div style="grid-column:1/-1;">
+        <div class="kind-pj-only" style="grid-column:1/-1;">
           <label><strong>Recursos</strong></label>
           <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
             <select class="select" id="res_sel"></select>
@@ -1871,7 +1941,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- PODERES -->
-        <div style="grid-column:1/-1;">
+        <div class="kind-pj-only" style="grid-column:1/-1;">
           <label><strong>Poderes</strong></label>
           <div class="grid" style="grid-template-columns: 1fr 2fr 120px auto; gap:8px;">
             <select class="select" id="pow_tipo">
@@ -1888,7 +1958,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- MÉRITOS Y DEFECTOS -->
-        <div style="grid-column:1/-1;">
+        <div class="kind-pj-only kind-no-monster" style="grid-column:1/-1;">
           <label><strong>Méritos &amp; Defectos</strong></label>
           <div class="grid" style="grid-template-columns: 2fr 140px auto; gap:8px;">
             <select class="select" id="myd_sel"></select>
@@ -1900,7 +1970,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- INVENTARIO -->
-        <div style="grid-column:1/-1;">
+        <div class="kind-pj-only" style="grid-column:1/-1;">
           <label><strong>Inventario</strong></label>
           <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
             <select class="select" id="inv_sel"></select>
@@ -2044,6 +2114,7 @@ var CHAR_DETAILS     = <?= json_encode(
   var selTotem   = document.getElementById('f_totem_id');
 
   var selAfili   = document.getElementById('f_afiliacion');
+  var selKind    = document.getElementById('f_kind');
 
   var avatar      = document.getElementById('f_avatar');
   var avatarPrev  = document.getElementById('f_avatar_preview');
@@ -2079,6 +2150,49 @@ var CHAR_DETAILS     = <?= json_encode(
   var resAdd   = document.getElementById('res_add');
   var resList  = document.getElementById('resourceList');
   var traitInputs = document.querySelectorAll('.trait-input');
+  var pjOnlyBlocks = document.querySelectorAll('.kind-pj-only');
+  var noMonsterBlocks = document.querySelectorAll('.kind-no-monster');
+
+  function normalizeText(v){
+    v = String(v || '').toLowerCase();
+    if (v.normalize) {
+      v = v.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    return v;
+  }
+
+  function applyMonsterTraitFilter(kind){
+    var isMonster = (normalizeText(kind) === 'monster' || normalizeText(kind) === 'mon');
+    document.querySelectorAll('.trait-item').forEach(function(item){
+      var k = normalizeText(item.getAttribute('data-trait-kind') || '');
+      var c = normalizeText(item.getAttribute('data-trait-classification') || '');
+      var hide = false;
+      if (isMonster) {
+        hide = (k === 'trasfondos') || (
+          (k === 'talentos' || k === 'tecnicas' || k === 'conocimientos') &&
+          c.indexOf('002 secundarias') === 0
+        );
+      }
+      item.style.display = hide ? 'none' : '';
+      if (hide) {
+        var inp = item.querySelector('.trait-input');
+        if (inp) inp.value = '0';
+      }
+    });
+  }
+
+  function applyKindVisibility(kind){
+    var k = String(kind || '').toLowerCase();
+    var isPj = (k !== 'pnj');
+    var isMonster = (normalizeText(k) === 'monster' || normalizeText(k) === 'mon');
+    pjOnlyBlocks.forEach(function(block){
+      block.style.display = isPj ? '' : 'none';
+    });
+    noMonsterBlocks.forEach(function(block){
+      block.style.display = (isPj && !isMonster) ? '' : 'none';
+    });
+    applyMonsterTraitFilter(kind);
+  }
 
   function clearSelect(sel, keepFirst){
     while (sel.options.length > (keepFirst?1:0)) sel.remove(keepFirst?1:0);
@@ -2383,6 +2497,7 @@ var CHAR_DETAILS     = <?= json_encode(
     });
     if (selTotem) selTotem.value = '0';
     selAfili.value = '0';
+    if (selKind) selKind.value = 'pj';
 
     ensureEstadoOption('En activo');
 
@@ -2423,6 +2538,7 @@ var CHAR_DETAILS     = <?= json_encode(
     // reset traits
     resetTraits();
     applyTraitOrder(0);
+    applyKindVisibility(selKind ? selKind.value : 'pj');
 
     mb.style.display='flex';
     initSelect2Modal();
@@ -2446,6 +2562,11 @@ var CHAR_DETAILS     = <?= json_encode(
     document.getElementById('f_cronica').value     = btn.getAttribute('data-cronica') || '0';
     document.getElementById('f_jugador').value     = btn.getAttribute('data-jugador') || '0';
     document.getElementById('f_afiliacion').value  = btn.getAttribute('data-afiliacion') || '0';
+    if (selKind) {
+      var k = (btn.getAttribute('data-kind') || 'pj').toLowerCase();
+      if (k === 'monster' || k === 'mon') selKind.value = 'monster';
+      else selKind.value = (k === 'pj') ? 'pj' : 'pnj';
+    }
 
     var sistId = parseInt(btn.getAttribute('data-system_id')||'0',10)||0;
     var selS = document.getElementById('f_system_id');
@@ -2510,6 +2631,7 @@ var CHAR_DETAILS     = <?= json_encode(
 
     // Traits: cargar
     fillTraits(CHAR_TRAITS[cid] || {});
+    applyKindVisibility(selKind ? selKind.value : 'pj');
 
     fCausa.value  = '';
     fInfo.value   = '';
@@ -2560,6 +2682,11 @@ var CHAR_DETAILS     = <?= json_encode(
     }
     updateManadas(c, 0);
   });
+
+  onSelectChange(selKind, function(){
+    applyKindVisibility(selKind ? selKind.value : 'pj');
+  });
+  applyKindVisibility(selKind ? selKind.value : 'pj');
 
   // Avatar preview / remove
   avatar.addEventListener('change', function(){
@@ -2673,4 +2800,11 @@ var CHAR_DETAILS     = <?= json_encode(
 
 })();
 </script>
+
+
+
+
+
+
+
 

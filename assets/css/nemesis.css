@@ -1290,6 +1290,37 @@ div.textoDentroFotoBioNoSheet {
 	font-size: 9px;
 }
 
+div.marcoFotoBioMonster {
+	float: left;
+	position: relative;
+	height: 96px;
+	width: 96px;
+	margin: 2px;
+	margin-bottom: 8px;
+	border: 1px solid #D4AF37;
+	background: #5A4A00;
+}
+
+div.marcoFotoBioMonster:hover {
+	border: 1px solid #FFD54A;
+	cursor: pointer;
+}
+
+div.textoDentroFotoBioMonster {
+	position: absolute;
+	top: 81px;
+	right: 0px;
+	overflow: hidden;
+	line-height: 12px;
+	z-index: 4;
+	text-align: right;
+	padding: 2px;
+	padding-top: 1px;
+	background: #7A6400;
+	font-size: 9px;
+	color: #FFF2B3;
+}
+
 div.dentroFotoBio {
 	position: absolute; 
 	top: 0px; 

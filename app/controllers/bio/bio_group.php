@@ -186,14 +186,19 @@
 						$nombrePJ = h($rowPJ["name"] ?? '');
 						$aliasPJ  = h($rowPJ["alias"] ?? '');
 						$imgPJ    = h($rowPJ["image_url"] ?? '');
-						$clasePJ  = h($rowPJ["character_kind"] ?? '');
+						$claseRaw = strtolower(trim((string)($rowPJ["character_kind"] ?? $rowPJ["kind"] ?? '')));
 						$estadoPJ = h($rowPJ["status"] ?? '');
 
 						if ($aliasPJ === "") { $aliasPJ = $nombrePJ; }
 
 						$fondoFoto = "";
 						$estiloLink = "";
-						if ($clasePJ !== "pj" && $clasePJ !== "") {
+						$isMonster = ($claseRaw === "mon" || $claseRaw === "monster");
+						$isPj = ($claseRaw === "pj");
+						if ($isMonster) {
+							$fondoFoto = "Monster";
+							$estiloLink = "color: #FFD54A;";
+						} elseif (!$isPj && $claseRaw !== "") {
 							$fondoFoto = "NoSheet";
 							$estiloLink = "color: #EE0000;";
 						}
@@ -255,5 +260,3 @@
 		}
 	});
 </script>
-
-

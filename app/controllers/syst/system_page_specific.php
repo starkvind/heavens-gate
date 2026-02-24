@@ -1,12 +1,12 @@
 ﻿<?php
 
-// Obtener parÃ¡metros de manera segura
+// Obtener parámetros de manera segura
 $systemIdDocument = isset($_GET['b']) ? (string)$_GET['b'] : '';  // ID o pretty_id
 $systemTypeDocument = isset($_GET['tc']) ? (int)$_GET['tc'] : 0;  // Tipo de contenido
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -92,20 +92,20 @@ if ($table !== "") {
         setMetaFromPage($nameSyst . " | Sistemas | Heaven's Gate", meta_excerpt($infoDesc), $imageSyst, 'article'); 
         
         include("app/helpers/system_category_helper.php");
-        include("app/partials/main_nav_bar.php"); // Barra NavegaciÃ³n
+        include("app/partials/main_nav_bar.php"); // Barra Navegación
 
-        // Comprobar si los datos tienen energÃ­a para mostrarla
+        // Comprobar si los datos tienen energía para mostrarla
         if (isset($ResultQuery["energy"])) {
 			$checkEnergy = htmlspecialchars($ResultQuery["energy"]);
 		} else {
 			$checkEnergy = 0;
 		}
 
-        if ($returnType == "Ãcaros") {
+        if ($returnType == "Ícaros") {
             $energy = "Fuerza de Voluntad";
         }
 
-        if ($returnType == "MokolÃ©" && $systemTypeDocument == 2) {
+        if ($returnType == "Mokolé" && $systemTypeDocument == 2) {
             $energy = "Fuerza de Voluntad";
         }
 ?>
@@ -158,7 +158,7 @@ if ($table !== "") {
 ?>
 
   <div class="syst-box">
-    <h3>DescripciÃ³n</h3>
+    <h3>Descripción</h3>
     <div><?= $infoDesc ?></div>
   </div>
 
@@ -248,7 +248,7 @@ if ($table !== "") {
             echo "<div class='syst-box'>";
             echo "<h3>Miembros</h3>";
             echo "<table id='tabla-miembros' class='display' style='width:100%'>";
-            echo "<thead><tr><th>Nombre</th><th>Grupo</th><th>OrganizaciÃ³n</th></tr></thead><tbody>";
+            echo "<thead><tr><th>Nombre</th><th>Grupo</th><th>Organización</th></tr></thead><tbody>";
             foreach ($members as $m) {
                 $charHref = pretty_url($link, 'fact_characters', '/characters', (int)$m['id']);
                 $charName = htmlspecialchars($m['nombre']);
@@ -257,7 +257,7 @@ if ($table !== "") {
                 echo "<tr><td><a href='" . htmlspecialchars($charHref) . "' target='_blank'>$charName</a></td><td>$charGroup</td><td>$charOrg</td></tr>";
             }
             echo "</tbody></table>";
-            echo "<p style='text-align:left;'>$nameSyst: $pjCount</p>";
+            //echo "<p style='text-align:left;'>$nameSyst: $pjCount</p>";
             echo "</div>";
 
             echo "<link rel='stylesheet' href='/assets/vendor/datatables/jquery.dataTables.min.css'>";
@@ -277,7 +277,7 @@ if ($table !== "") {
                     info: 'Mostrando _START_ a _END_ de _TOTAL_ personajes',
                     infoEmpty: 'No hay personajes disponibles',
                     emptyTable: 'No hay datos en la tabla',
-                    paginate: { first: 'Primero', last: 'Ãšltimo', next: 'â–¶', previous: 'â—€' }
+                    paginate: { first: 'Primero', last: 'Último', next: '▶', previous: '◀' }
                   }
                 });
               });
@@ -400,4 +400,3 @@ if ($table !== "") {
 	});
 })();
 </script>
-

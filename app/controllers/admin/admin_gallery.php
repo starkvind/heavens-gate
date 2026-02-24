@@ -367,10 +367,10 @@ array_unshift($allDirs, ''); // raíz al principio
 .btn:hover { background:#23304f; }
 .input, select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
 .small { font-size:12px; color:#9fb1d9; }
-.image_url-grid { display:flex; flex-wrap:wrap; gap:10px; }
-.image_url-item { width:170px; text-align:center; }
-.image_url-item .thumb { width:150px; height:150px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; }
-.image_url-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+.img-grid { display:flex; flex-wrap:wrap; gap:10px; }
+.img-item { width:170px; text-align:center; }
+.img-item .thumb { width:150px; height:150px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; }
+.img-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
 hr.sep { border:0; border-top:1px solid #1f2a44; margin:16px 0; }
 form.inline { display:inline-block; }
 label { display:block; margin-bottom:4px; }
@@ -615,4 +615,3 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
   });
 })();
 </script>
-
