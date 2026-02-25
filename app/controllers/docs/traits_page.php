@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 $traitPageID = isset($_GET['b']) ? (int)$_GET['b'] : 0;
 $skillId = $traitPageID; // Compatibilidad con main_nav_bar.php
@@ -119,6 +120,7 @@ if ($result->num_rows > 0) {
             c.name,
             c.alias,
             c.image_url,
+            c.gender,
             c.status,
             b.value
         FROM bridge_characters_traits b
@@ -180,7 +182,7 @@ if ($result->num_rows > 0) {
                 $oid = (int)($o['id'] ?? 0);
                 $name = htmlspecialchars((string)($o['name'] ?? ''));
                 $alias = htmlspecialchars((string)($o['alias'] ?? ''));
-                $img = htmlspecialchars((string)($o['image_url'] ?? ''));
+                $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $simboloEstado = $mapEstado[$estado] ?? "";
@@ -189,11 +191,7 @@ if ($result->num_rows > 0) {
                 echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
                 echo "  <div class='marcoFotoBio'>";
                 echo "    <div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                if ($img !== "") {
-                    echo "    <div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-                } else {
-                    echo "    <div class='dentroFotoBio'><span>Sin imagen</span></div>";
-                }
+                echo "    <div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
                 echo "  </div>";
                 echo "</a>";
             }

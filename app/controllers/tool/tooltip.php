@@ -224,6 +224,18 @@ if ($type === 'don') {
         }
         $st->close();
     }
+} elseif ($type === 'chronicle' || $type === 'dim_chronicle' || $type === 'dim_chronicles') {
+    if ($st = $link->prepare("SELECT name, description FROM dim_chronicles WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $outMeta = 'Crónica';
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
 } elseif ($type === 'resource') {
     if ($st = $link->prepare("SELECT name, kind, description FROM dim_systems_resources WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);
@@ -267,5 +279,4 @@ echo "<div class='hg-tip' style='display:flex; gap:8px; align-items:flex-start;'
 	echo "</div>";
 echo "</div>";
 ?>
-
 

@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 // Aseguramos que el parámetro GET 'b' esté definido y es un valor seguro
 $itemPageID = isset($_GET['b']) ? $_GET['b'] : '';
@@ -221,6 +222,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             p.name,
             p.alias,
             p.image_url,
+            p.gender,
             p.status
         FROM bridge_characters_items b
         JOIN fact_characters p ON p.id = b.character_id
@@ -258,7 +260,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             $oid = (int)($o['id'] ?? 0);
             $name = htmlspecialchars($o['name'] ?? '');
             $alias = htmlspecialchars($o['alias'] ?? '');
-            $img = htmlspecialchars($o['image_url'] ?? '');
+            $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
             $estado = (string)($o['status'] ?? '');
             $label = $alias !== '' ? $alias : $name;
             $simboloEstado = $mapEstado[$estado] ?? "";
@@ -266,11 +268,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
                 echo "<div class='marcoFotoBio'>";
                     echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                    if ($img !== "") {
-                        echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-                    } else {
-                        echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-                    }
+                    echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
                 echo "</div>";
             echo "</a>";
         }
@@ -299,6 +297,5 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 $stmt->close();
 
 ?>
-
 
 

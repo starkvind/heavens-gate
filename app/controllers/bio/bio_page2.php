@@ -1,4 +1,5 @@
 ﻿<?php
+	include_once(__DIR__ . '/../../helpers/character_avatar.php');
 	/*  Índice de secciones
 			1.- Query en Base de Datos 		[#SEC01]
 			2.- Foto del Personaje 			[#SEC02]
@@ -323,7 +324,7 @@
 			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
-			$bioPhoto	 = $dataResult["image_url"]; 	// Imagen del personaje.
+			$bioPhoto	 = hg_character_avatar_url($dataResult["image_url"] ?? '', $dataResult["gender"] ?? ''); 	// Imagen del personaje.
 			$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
 			$bioBday	 = $dataResult["birthdate_text"]; // Cumpleaños del personaje.
 			$bioConcept	 = $dataResult["concept"]; 		// Concepto del personaje.

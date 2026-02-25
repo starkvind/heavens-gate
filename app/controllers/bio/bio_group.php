@@ -32,6 +32,7 @@
 		die("Error de conexión a la base de datos: " . mysqli_connect_error());
 	}
 
+	include_once(__DIR__ . '/../../helpers/character_avatar.php');
 	// Helper escape
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -56,7 +57,7 @@
 		exit;
 	}
 
-	$valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.character_kind, p.character_type_id,
+	$valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.gender, p.character_kind, p.character_type_id,
 						COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
 						COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
 						COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name,
@@ -185,7 +186,7 @@
 						$idPJ     = (int)$rowPJ["id"];
 						$nombrePJ = h($rowPJ["name"] ?? '');
 						$aliasPJ  = h($rowPJ["alias"] ?? '');
-						$imgPJ    = h($rowPJ["image_url"] ?? '');
+						$imgPJ    = h(hg_character_avatar_url($rowPJ["image_url"] ?? '', $rowPJ["gender"] ?? ''));
 						$claseRaw = strtolower(trim((string)($rowPJ["character_kind"] ?? $rowPJ["kind"] ?? '')));
 						$estadoPJ = h($rowPJ["status"] ?? '');
 
@@ -215,11 +216,7 @@
 							echo "<div class='marcoFotoBio" . h($fondoFoto) . "'>";
 								echo "<div class='textoDentroFotoBio" . h($fondoFoto) . "'>$aliasPJ $simboloEstado</div>";
 
-								if ($imgPJ !== "") {
-									echo "<div class='dentroFotoBio'><img class='fotoBioList' src='$imgPJ' alt='$nombrePJ'></div>";
-								} else {
-									echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-								}
+								echo "<div class='dentroFotoBio'><img class='fotoBioList' src='$imgPJ' alt='$nombrePJ'></div>";
 							echo "</div>";
 						echo "</a>";
 					}

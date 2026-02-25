@@ -58,7 +58,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
       SELECT 
 
-          p.id, p.pretty_id AS character_pretty_id, p.name AS character_name, p.alias, p.concept, p.image_url,
+          p.id, p.pretty_id AS character_pretty_id, p.name AS character_name, p.alias, p.concept, p.image_url, p.gender,
 
 
 
@@ -764,6 +764,13 @@ function safeUrl(url) {
 
 }
 
+function fallbackAvatarByGender(gender) {
+	const g = String(gender || '').trim().toLowerCase();
+	if (['m', 'male', 'h', 'hombre', 'masculino', 'man', '1'].includes(g)) return '/img/ui/avatar/avatar_nadie_1.png';
+	if (['f', 'female', 'mujer', 'femenino', 'woman', '2'].includes(g)) return '/img/ui/avatar/avatar_nadie_2.png';
+	return '/img/ui/avatar/avatar_nadie_3.png';
+}
+
 
 
 $(document).ready(function () {
@@ -782,7 +789,7 @@ $(document).ready(function () {
 
 	const data = personajes.map(p => {
 
-		const imgUrl = safeUrl(p.image_url);
+		const imgUrl = safeUrl(p.image_url) || fallbackAvatarByGender(p.gender);
 
 		const pj_img = imgUrl ? `<img src="${escapeAttr(imgUrl)}" height="12" alt="" loading="lazy" />` : '';
 

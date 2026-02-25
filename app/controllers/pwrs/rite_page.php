@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Obtener y sanitizar el parámetro 'b'
 $ritePageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
@@ -80,7 +81,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $riteOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.status FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, c.status FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $ritePageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -178,7 +179,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = (string)($o['image_url'] ?? '');
+                $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
@@ -191,11 +192,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                 echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='" . htmlspecialchars($name) . "'>";
                     echo "<div class='marcoFotoBio'>";
                         echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                        if ($img !== "") {
-                            echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
-                        } else {
-                            echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-                        }
+                        echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
                     echo "</div>";
                 echo "</a>";
             }
@@ -224,4 +221,3 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     echo "<p>Error: Ritual no encontrado.</p>";
 }
 ?>
-

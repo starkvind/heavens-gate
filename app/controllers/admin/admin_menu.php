@@ -3,9 +3,6 @@
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
-include(__DIR__ . '/../../partials/admin/admin_styles.php');
-admin_panel_open('Menu', '<button class="btn btn-green" type="button" id="btnAddMenu">+ Nuevo menu</button>');
-
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 // ----------------------
@@ -175,6 +172,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     exit;
 }
 
+include(__DIR__ . '/../../partials/admin/admin_styles.php');
+admin_panel_open('Menu', '<button class="btn btn-green" type="button" id="btnAddMenu">+ Nuevo menu</button>');
+
 // ----------------------
 // DATA
 // ----------------------
@@ -322,7 +322,15 @@ foreach ($rows as $r) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(Object.assign({ action: action }, payload || {}))
-        }).then(r => r.json());
+        }).then(async (r) => {
+            const raw = await r.text();
+            try {
+                return raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                console.error('Respuesta no JSON en admin_menu:', raw);
+                throw e;
+            }
+        });
     }
 
     function showToast(msg){

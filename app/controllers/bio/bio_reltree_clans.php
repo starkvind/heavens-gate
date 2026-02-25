@@ -194,7 +194,9 @@ setMetaFromPage("Nebulosa de clanes | Heaven's Gate", "Mapa de relaciones entre 
 			id: "pj_<?= (int)$p['id'] ?>",
 			label: <?= json_encode($p['name'], JSON_UNESCAPED_UNICODE) ?>,
 			shape: <?= !empty($p['image_url']) ? "'circularImage'" : "'dot'" ?>,
-			image: <?= !empty($p['image_url']) ? json_encode("../" . $p['image_url'], JSON_UNESCAPED_UNICODE) : 'null' ?>,
+			<?php if (!empty($p['image_url'])): ?>
+			image: <?= json_encode("../" . $p['image_url'], JSON_UNESCAPED_UNICODE) ?>,
+			<?php endif; ?>
 			size: 25,
 			color: '#27ae60',
 			font: { color: "#fff", size: 12 },

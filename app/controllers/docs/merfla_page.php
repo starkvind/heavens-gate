@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Obtener parámetros 'b' y 'r' de manera segura
 $mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del Mérito Defecto
 $returnID = isset($_GET['r']) ? $_GET['r'] : '';  // ID del Regreso
@@ -96,7 +97,7 @@ if ($rowsQueryMaf > 0) {
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $mafOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.status FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, c.status FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $mafPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -184,7 +185,7 @@ if ($rowsQueryMaf > 0) {
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = (string)($o['image_url'] ?? '');
+                $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
@@ -197,11 +198,7 @@ if ($rowsQueryMaf > 0) {
                 echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='" . htmlspecialchars($name) . "'>";
                     echo "<div class='marcoFotoBio'>";
                         echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                        if ($img !== "") {
-                            echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
-                        } else {
-                            echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-                        }
+                        echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
                     echo "</div>";
                 echo "</a>";
             }
@@ -230,4 +227,3 @@ if ($rowsQueryMaf > 0) {
 // Cerramos la sentencia preparada para la consulta principal
 $stmtMaf->close();
 ?>
-

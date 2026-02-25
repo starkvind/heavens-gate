@@ -1,4 +1,5 @@
 ﻿<?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar la conexión a la base de datos
 if (!$link) {
     die("Error de conexión a la base de datos: " . mysqli_connect_error());
@@ -178,7 +179,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     if ($typePack == 1) {
 
         $packsOfSeptQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.status, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             WHERE bg.group_id = ?
@@ -207,7 +208,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataId     = (int)$packRow["id"];
                     $packDataName   = (string)$packRow["name"];
                     $packDataAlias  = ($packRow["alias"] !== '' && $packRow["alias"] !== null) ? (string)$packRow["alias"] : $packDataName;
-                    $packDataImg    = (string)$packRow["image_url"];
+                    $packDataImg    = hg_character_avatar_url((string)$packRow["image_url"], (string)($packRow["gender"] ?? ''));
                     $packDataStatus = (string)$packRow["status"];
                     $packDataKind   = strtolower(trim((string)($packRow["character_kind"] ?? '')));
                     $packFotoClass  = ($packDataKind === 'mon' || $packDataKind === 'monster') ? "Monster" : "";
@@ -239,7 +240,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         }
 
         $oldMembersQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.status, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             WHERE bg.group_id = ?
@@ -268,7 +269,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $oldMemberId     = (int)$oldMemberRow["id"];
                     $oldMemberName   = (string)$oldMemberRow["name"];
                     $oldMemberAlias  = ($oldMemberRow["alias"] !== '' && $oldMemberRow["alias"] !== null) ? (string)$oldMemberRow["alias"] : $oldMemberName;
-                    $oldMemberImg    = (string)$oldMemberRow["image_url"];
+                    $oldMemberImg    = hg_character_avatar_url((string)$oldMemberRow["image_url"], (string)($oldMemberRow["gender"] ?? ''));
                     $oldMemberStatus = (string)$oldMemberRow["status"];
                     $oldMemberKind   = strtolower(trim((string)($oldMemberRow["character_kind"] ?? '')));
                     $oldFotoClass    = ($oldMemberKind === 'mon' || $oldMemberKind === 'monster') ? "Monster" : "";
@@ -386,7 +387,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         //  - Clan: bridge_characters_organizations
         //  - Sin manada: NO existe enlace activo en bridge_characters_groups
         $charsWithoutPackQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.status, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_organizations bc
             INNER JOIN fact_characters p ON p.id = bc.character_id
             LEFT JOIN bridge_characters_groups bg
@@ -419,7 +420,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $cid   = (int)$charRow["id"];
                     $cname = (string)$charRow["name"];
                     $calias = ($charRow["alias"] !== '' && $charRow["alias"] !== null) ? (string)$charRow["alias"] : $cname;
-                    $cimg  = (string)$charRow["image_url"];
+                    $cimg  = hg_character_avatar_url((string)$charRow["image_url"], (string)($charRow["gender"] ?? ''));
                     $cst   = (string)$charRow["status"];
                     $ckind = strtolower(trim((string)($charRow["character_kind"] ?? '')));
                     $charFotoClass = ($ckind === 'mon' || $ckind === 'monster') ? "Monster" : "";

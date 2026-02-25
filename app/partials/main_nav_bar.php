@@ -138,6 +138,27 @@
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$idTipo);
 				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator $nombreTipo";
 				break;
+			case "chronicles":
+			case "bio_chronicles":
+				if (isset($_GET['t']) && (int)$_GET['t'] > 0) {
+					$chronNavId = (int)$_GET['t'];
+					$chronNavName = '';
+					if ($stChronNav = $link->prepare("SELECT name FROM dim_chronicles WHERE id = ? LIMIT 1")) {
+						$stChronNav->bind_param('i', $chronNavId);
+						$stChronNav->execute();
+						$rsChronNav = $stChronNav->get_result();
+						if ($rowChronNav = $rsChronNav->fetch_assoc()) {
+							$chronNavName = (string)($rowChronNav['name'] ?? '');
+						}
+						$stChronNav->close();
+					}
+					echo "<a href='/chronicles' title='Crónicas'>Crónicas</a>";
+					if ($chronNavName !== '') echo " $pillSeparator " . htmlspecialchars($chronNavName, ENT_QUOTES, 'UTF-8');
+				}
+				break;
+			case "bio_worlds":
+				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator Realidades";
+				break;
 			case "muestrabio":  // Ver Personaje
 				// Igual: quitamos afiliación, mostramos Clan $pillSeparator Nombre del PJ
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$bioType);

@@ -1,5 +1,6 @@
 <?php
 	include("app/helpers/heroes.php");
+	include_once("app/helpers/character_avatar.php");
 	
 	$char_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 	$palette = filter_input(INPUT_GET, 'palette', FILTER_SANITIZE_STRING) ?? 'SkyBlue';
@@ -12,7 +13,7 @@
 		die("Parámetros incorrectos.");
 	}
 	
-	$defaultImgPath = "img/subidas/";
+	$defaultImgPath = "public/img/ui/avatar/";
 	$defaultAvatars = [
 		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
 		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
@@ -26,7 +27,7 @@
 		$colortexto = '';
 		$char_pretty = (string)$char_id;
 	} else {
-		$query = "SELECT name, image_url, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
+		$query = "SELECT name, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
 		$stmt = mysqli_prepare($link, $query);
 		mysqli_stmt_bind_param($stmt, "i", $char_id);
 		mysqli_stmt_execute($stmt);
@@ -37,7 +38,7 @@
 		}
 
 		$nombre = htmlspecialchars($row['name']);
-		$img = htmlspecialchars($row['image_url']);
+		$img = htmlspecialchars(ltrim(hg_character_avatar_url($row['image_url'] ?? '', $row['gender'] ?? ''), '/'));
 		$colortexto = htmlspecialchars($row['text_color']);
 		$char_pretty = trim((string)($row['pretty_id'] ?? ''));
 		if ($char_pretty === '') {
@@ -246,5 +247,4 @@
 		</script>
 	</body>
 </html>
-
 

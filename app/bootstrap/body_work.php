@@ -18,6 +18,9 @@ function normalize_pretty_request(mysqli $link, string $route): void {
     $paramMap = [
         'muestrabio'   => ['b', 'fact_characters', '/characters'],
         'biogroup'     => ['t', 'dim_character_types', '/characters/type'],
+        'chronicles'     => ['t', 'dim_chronicles', '/chronicles'],
+        'bio_chronicles' => ['t', 'dim_chronicles', '/chronicles'],
+        'bio_worlds'     => ['t', 'dim_realities', '/characters/worlds'],
         'seegroup'     => ['b', null, null],
         'seeplayer'    => ['b', 'dim_players', '/players'],
         'verdoc'       => ['b', 'fact_docs', '/documents'],
@@ -175,6 +178,8 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 			break;
         case 'bios':
 		case 'biogroup':
+		case 'chronicles':
+		case 'bio_chronicles':
 		case 'muestrabio':
             $title = "Biografías - Heaven's Gate";
             $description = "Explora las biografías de los personajes clave de Heaven's Gate.";
@@ -321,6 +326,9 @@ $routes = [
 	'muestrabio'   => ['app/controllers/bio/bio_page2.php', 'Biografía'],
 	'listgroups'   => ['app/controllers/bio/bio_pack_list.php', null],
 	'seegroup'     => ['app/controllers/bio/bio_pack_page.php', null],
+	'chronicles'     => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
+	'bio_chronicles' => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
+	'bio_worlds'     => ['app/controllers/bio/bio_worlds.php', null],
 
 	'list_table'   => ['app/controllers/bio/bio_table.php', null],
 	'nebula_clan'  => ['app/controllers/bio/bio_reltree_clans.php', 'Nebulosa de relaciones'],

@@ -2,6 +2,7 @@
 if (!$link) {
     die("Error de conexion a la base de datos: " . mysqli_connect_error());
 }
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 $chapter_numberRaw = $_GET['t'] ?? '';
 $chapter_numberId = resolve_pretty_id($link, 'dim_chapters', (string)$chapter_numberRaw) ?? 0;
@@ -300,7 +301,7 @@ if ($chapter_numberId > 0 && $stmt) {
         echo "<h3 class='chapter-title'>Participantes</h3>";
 
         $protaQuery = "
-            SELECT p.id, p.name, p.image_url
+            SELECT p.id, p.name, p.image_url, p.gender
             FROM bridge_chapters_characters acp
             INNER JOIN fact_characters p ON acp.character_id = p.id
             WHERE acp.chapter_id = ?
@@ -318,7 +319,7 @@ if ($chapter_numberId > 0 && $stmt) {
                 while ($pj = mysqli_fetch_assoc($resultProta)) {
                     $idPJSelect = (int)$pj['id'];
                     $nombre = (string)$pj['name'];
-                    $img = (string)$pj['image_url'];
+                    $img = hg_character_avatar_url((string)($pj['image_url'] ?? ''), (string)($pj['gender'] ?? ''));
                     $hrefChar = pretty_url($link, 'fact_characters', '/characters', $idPJSelect);
 
                     echo "<a class='participant-card' href='" . htmlspecialchars($hrefChar) . "' title='" . htmlspecialchars($nombre) . "' target='_blank'>";

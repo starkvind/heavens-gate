@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 $pjRaw = $_GET['b'] ?? '';
 $pjId = resolve_pretty_id($link, 'dim_players', (string)$pjRaw) ?? 0;
 
@@ -66,7 +67,7 @@ $excludeChronicles = ($excludeChronicles === '') ? '2,7' : $excludeChronicles;
 $chronicleNotInSQL = ($excludeChronicles !== '') ? " AND chronicle_id NOT IN ($excludeChronicles) " : "";
 
 $queryCharacters = "
-    SELECT id, name, alias, image_url, status
+    SELECT id, name, alias, image_url, gender, status
     FROM fact_characters
     WHERE player_id = ? $chronicleNotInSQL
     ORDER BY name ASC
@@ -198,7 +199,7 @@ $mapEstado = [
                             $charAliasRaw = (string)($char['alias'] ?? '');
                             $charAlias = htmlspecialchars($charAliasRaw !== '' ? $charAliasRaw : (string)($char['name'] ?? ''), ENT_QUOTES, 'UTF-8');
                             $charImgRaw = (string)($char['image_url'] ?? '');
-                            $charImg = htmlspecialchars($charImgRaw !== '' ? $charImgRaw : 'img/player/sinfoto.jpg', ENT_QUOTES, 'UTF-8');
+                            $charImg = htmlspecialchars(hg_character_avatar_url($charImgRaw, (string)($char['gender'] ?? '')), ENT_QUOTES, 'UTF-8');
                             $charStatus = (string)($char['status'] ?? '');
                             $charState = $mapEstado[$charStatus] ?? '';
                             $charHref = htmlspecialchars(pretty_url($link, 'fact_characters', '/characters', $charId), ENT_QUOTES, 'UTF-8');

@@ -1,6 +1,7 @@
 <?php
 // ================================================================== //
 // PERSONAJES QUE POSEEN ESTE OBJETO
+include_once(__DIR__ . '/character_avatar.php');
 
 if (!function_exists('sanitize_int_csv')) {
     function sanitize_int_csv($csv){
@@ -25,6 +26,7 @@ $queryOwners = "
         p.name,
         p.alias,
         p.image_url,
+        p.gender,
         p.status
     FROM bridge_characters_items b
     JOIN fact_characters p ON p.id = b.character_id
@@ -54,7 +56,7 @@ if ($resultOwners->num_rows === 0) {
         $pjId     = (int)$rowOwner['id'];
         $pjName   = htmlspecialchars($rowOwner['name']);
         $pjAlias  = htmlspecialchars($rowOwner['alias'] ?? '');
-        $pjImg    = htmlspecialchars($rowOwner['image_url'] ?? '');
+        $pjImg    = htmlspecialchars(hg_character_avatar_url($rowOwner['image_url'] ?? '', $rowOwner['gender'] ?? ''));
         $pjState  = htmlspecialchars($rowOwner['status'] ?? '');
 
         $pjLabel = $pjAlias !== '' ? $pjAlias : $pjName;
@@ -69,11 +71,7 @@ if ($resultOwners->num_rows === 0) {
         echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$pjName}'>";
             echo "<div class='marcoFotoBio'>";
                 echo "<div class='textoDentroFotoBio'>{$pjLabel} {$simboloEstado}</div>";
-                if ($pjImg !== "") {
-                    echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$pjImg}' alt='{$pjName}'></div>";
-                } else {
-                    echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-                }
+                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$pjImg}' alt='{$pjName}'></div>";
             echo "</div>";
         echo "</a>";
 
@@ -86,4 +84,3 @@ if ($resultOwners->num_rows === 0) {
 
 $stmtOwners->close();
 ?>
-

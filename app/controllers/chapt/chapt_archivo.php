@@ -1,4 +1,5 @@
 <?php setMetaFromPage("Temporadas | Heaven's Gate", "Consulta temporadas y capitulos de la campana.", null, 'website'); ?>
+<?php include_once(__DIR__ . '/../../helpers/character_avatar.php'); ?>
 
 <style>
 	.archive-shell {
@@ -309,7 +310,7 @@ if ($temporadaId > 0 && $stmt) {
 
                 $ids = implode(',', array_map('intval', $player_ids));
                 $query = "
-                    SELECT p.id, p.name, p.image_url
+                    SELECT p.id, p.name, p.image_url, p.gender
                     FROM fact_characters p
                     WHERE p.id IN ($ids)
                       AND p.player_id > 0
@@ -329,7 +330,7 @@ if ($temporadaId > 0 && $stmt) {
                         if ($participaciones >= $umbral) {
                             $hrefProta = pretty_url($link, 'fact_characters', '/characters', $checkId);
                             echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card' target='_blank' title='" . htmlspecialchars((string)$row['name']) . "'>";
-                            echo "<img src='" . htmlspecialchars((string)$row['image_url']) . "' class='photochapter' alt='" . htmlspecialchars((string)$row['name']) . "'>";
+                            echo "<img src='" . htmlspecialchars(hg_character_avatar_url((string)($row['image_url'] ?? ''), (string)($row['gender'] ?? ''))) . "' class='photochapter' alt='" . htmlspecialchars((string)$row['name']) . "'>";
                             echo "<span>" . htmlspecialchars((string)$row['name']) . "</span>";
                             echo "</a>";
                         }

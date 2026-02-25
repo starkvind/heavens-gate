@@ -42,9 +42,15 @@ if ($idJugador != "PNJ") {
 $idCronica = $bioChronic;
 $resultCronica = getSingleRecord($link, 'dim_chronicles', $idCronica, ['name', 'description']);
 if ($resultCronica) {
-    $nameCronica = ($resultCronica['name']);
-    $descCronica = htmlspecialchars($resultCronica['description']);
-    $nameCronicaFinal = $nameCronica; #createLink('#', $nameCronica, '', $descCronica);
+    $nameCronica = htmlspecialchars((string)($resultCronica['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+    $descCronica = htmlspecialchars((string)($resultCronica['description'] ?? ''), ENT_QUOTES, 'UTF-8');
+    $nameCronicaFinal = createLink(
+        pretty_url($link, 'dim_chronicles', '/chronicles', (int)$idCronica),
+        $nameCronica,
+        '_blank',
+        '',
+        "class='hg-tooltip' data-tip='dim_chronicle' data-id='" . (int)$idCronica . "'"
+    );
 } else {
     $nameCronicaFinal = htmlspecialchars($bioChronic);
 }

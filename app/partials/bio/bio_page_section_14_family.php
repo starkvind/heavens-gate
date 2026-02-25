@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 function traducirRelacion($tipo, $direccion, $generoRelacionado, $generoBio) {
 	if (!function_exists('g')) {
 		function g($genero, $masc, $fem, $neutro) {
@@ -88,7 +89,7 @@ foreach ($grupos as $categoria => $lista) {
 		foreach ($lista as $rel) {
 			$relId     = htmlspecialchars($rel['direction'] === 'outgoing' ? $rel['target_id'] : $rel['source_id']);
 			$relNombre = htmlspecialchars($rel['name']);
-			$relImg    = htmlspecialchars($rel['image_url']);
+			$relImg    = htmlspecialchars(hg_character_avatar_url($rel['image_url'] ?? '', $rel['gender'] ?? ''));
 			$relGender  = htmlspecialchars($rel['gender']);
 			$relAlias  = !empty($rel['alias']) ? " (" . htmlspecialchars($rel['alias']) . ")" : "";
 			$relTipo   = htmlspecialchars($rel['relation_type']);
@@ -109,4 +110,3 @@ foreach ($grupos as $categoria => $lista) {
 }
 
 ?>
-

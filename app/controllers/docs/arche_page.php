@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 $archeRaw = $_GET['b'] ?? '';
 $archeId = resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0;
 
@@ -106,7 +107,7 @@ $natureOwners = [];
 $demeanorOwners = [];
 
 $queryOwnersNature = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.status
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status
     FROM fact_characters p
     WHERE p.nature_id = ? {$chronicleNotInSQL}
     ORDER BY p.name
@@ -122,7 +123,7 @@ if ($stNature = $link->prepare($queryOwnersNature)) {
 }
 
 $queryOwnersDemeanor = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.status
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status
     FROM fact_characters p
     WHERE p.demeanor_id = ? {$chronicleNotInSQL}
     ORDER BY p.name
@@ -188,7 +189,7 @@ if ($hasOwnersTabs) {
             $oid = (int)($o['id'] ?? 0);
             $name = htmlspecialchars((string)($o['name'] ?? ''));
             $alias = htmlspecialchars((string)($o['alias'] ?? ''));
-            $img = htmlspecialchars((string)($o['image_url'] ?? ''));
+            $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
             $estado = (string)($o['status'] ?? '');
             $label = $alias !== '' ? $alias : $name;
             $simboloEstado = $mapEstado[$estado] ?? '';
@@ -196,11 +197,7 @@ if ($hasOwnersTabs) {
             echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
             echo "<div class='marcoFotoBio'>";
             echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-            if ($img !== '') {
-                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-            } else {
-                echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-            }
+            echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
             echo "</div>";
             echo "</a>";
         }
@@ -215,7 +212,7 @@ if ($hasOwnersTabs) {
             $oid = (int)($o['id'] ?? 0);
             $name = htmlspecialchars((string)($o['name'] ?? ''));
             $alias = htmlspecialchars((string)($o['alias'] ?? ''));
-            $img = htmlspecialchars((string)($o['image_url'] ?? ''));
+            $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
             $estado = (string)($o['status'] ?? '');
             $label = $alias !== '' ? $alias : $name;
             $simboloEstado = $mapEstado[$estado] ?? '';
@@ -223,11 +220,7 @@ if ($hasOwnersTabs) {
             echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
             echo "<div class='marcoFotoBio'>";
             echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-            if ($img !== '') {
-                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-            } else {
-                echo "<div class='dentroFotoBio'><span>Sin imagen</span></div>";
-            }
+            echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
             echo "</div>";
             echo "</a>";
         }
@@ -254,4 +247,3 @@ if ($hasOwnersTabs) {
 
 $stmtArche->close();
 ?>
-

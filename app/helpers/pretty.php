@@ -18,8 +18,16 @@ function get_pretty_id(mysqli $link, string $table, int $id): ?string {
     static $cache = [];
     if ($id <= 0) return null;
     if (isset($cache[$table][$id])) return $cache[$table][$id];
+    if (!hg_table_has_column($link, $table, 'pretty_id')) {
+        $cache[$table][$id] = null;
+        return null;
+    }
 
     $stmt = $link->prepare("SELECT pretty_id FROM $table WHERE id = ? LIMIT 1");
+    if (!$stmt) {
+        $cache[$table][$id] = null;
+        return null;
+    }
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -35,8 +43,10 @@ function resolve_pretty_id(mysqli $link, string $table, string $value): ?int {
     $value = trim($value);
     if ($value === '') return null;
     if (preg_match('/^\d+$/', $value)) return (int)$value;
+    if (!hg_table_has_column($link, $table, 'pretty_id')) return null;
 
     $stmt = $link->prepare("SELECT id FROM $table WHERE pretty_id = ? LIMIT 1");
+    if (!$stmt) return null;
     $stmt->bind_param('s', $value);
     $stmt->execute();
     $result = $stmt->get_result();

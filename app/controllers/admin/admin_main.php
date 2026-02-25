@@ -33,6 +33,9 @@
 				case 'admin_avatar_mass':
 					include("admin_avatar_mass.php");
 					break;
+				case 'admin_characters_worlds':
+					include("admin_characters_worlds.php");
+					break;
 				default:
 					http_response_code(400);
 					header('Content-Type: application/json; charset=UTF-8');
@@ -54,6 +57,9 @@
 					break;
 				case 'admin_avatar_mass':
 					include("admin_avatar_mass.php");
+					break;
+				case 'admin_characters_worlds':
+					include("admin_characters_worlds.php");
 					break;
 				case 'admin_groups':
 					include("admin_groups.php");
@@ -160,6 +166,11 @@
 					<a href='/talim?s=admin_avatar_mass'>
 					  <div class='bioSheetPower' style='width:47.5%;'>
 						Avatares Masivos
+					  </div>
+					</a>
+					<a href='/talim?s=admin_characters_worlds'>
+					  <div class='bioSheetPower' style='width:47.5%;'>
+						Crónicas y Realidades
 					  </div>
 					</a>
 					<a href='/talim?s=admin_groups'>
@@ -324,4 +335,3 @@
 		}
 	}
 ?>
-

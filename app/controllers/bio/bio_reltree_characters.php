@@ -126,7 +126,9 @@ $pageTitle2 = "Personajes";
                 id: <?= (int)$c['id'] ?>,
                 label: <?= json_encode($label, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
                 shape: <?= $hasImage ? "'circularImage'" : "'dot'" ?>,
-                image: <?= $hasImage ? json_encode("../" . $c['image_url'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) : "null" ?>,
+                <?php if ($hasImage): ?>
+                image: <?= json_encode("../" . $c['image_url'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+                <?php endif; ?>
                 size: 25,
                 font: { color: "#fff", size: 12 },
                 <?= $isDead ? "color: " . json_encode($nodeColor, JSON_UNESCAPED_UNICODE) . "," : "" ?>
