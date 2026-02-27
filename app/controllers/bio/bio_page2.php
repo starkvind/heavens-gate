@@ -299,7 +299,25 @@
 		exit;
 	}
 
-	$orderData ="SELECT p.*, s.name AS system_label FROM fact_characters p LEFT JOIN dim_systems s ON p.system_id = s.id WHERE p.id = ? LIMIT 1;"; // Elegimos al PJ de la Base de Datos
+	$deathTable = null;
+	if ($rs = $link->query("SHOW TABLES LIKE 'fact_characters_deaths'")) {
+		if ($rs->num_rows > 0) $deathTable = 'fact_characters_deaths';
+		$rs->close();
+	}
+	if ($deathTable === null && ($rs = $link->query("SHOW TABLES LIKE 'fact_characters_death'"))) {
+		if ($rs->num_rows > 0) $deathTable = 'fact_characters_death';
+		$rs->close();
+	}
+
+	$deathJoin = '';
+	if ($deathTable !== null) {
+		$deathJoin = " LEFT JOIN `{$deathTable}` fd ON fd.character_id = p.id ";
+	}
+	$orderData = "SELECT p.*, s.name AS system_label, COALESCE(fd.death_description, '') AS death_description
+		FROM fact_characters p
+		LEFT JOIN dim_systems s ON p.system_id = s.id
+		{$deathJoin}
+		WHERE p.id = ? LIMIT 1;"; // Elegimos al PJ de la Base de Datos
 	$stmtMain = mysqli_prepare($link, $orderData);
 	if (!$stmtMain) {
 		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
@@ -353,7 +371,7 @@
 			$bioPlayer	 = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
 			$bioChronic	 = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
 			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
-			$bioDethCaus = $dataResult["cause_of_death"]; // Causa de la muerte.
+			$bioDethCaus = $dataResult["death_description"] ?? ""; // Causa de la muerte.
 			$bioSheetRaw = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
 			$bioSheet	 = $bioSheetRaw; // Compatibilidad con código legacy.
 			$bioIsMonster = in_array($bioSheetRaw, ["mon", "monster"], true);

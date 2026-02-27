@@ -537,7 +537,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $id = max(0, (int)($_GET['id'] ?? 0));
         if ($id <= 0) { echo json_encode(['ok'=>false,'msg'=>'bad_id'], $jsonFlags); exit; }
 
-        if ($st = $link->prepare("SELECT status, cause_of_death, birthdate_text, rank, info_text FROM fact_characters WHERE id=? LIMIT 1")) {
+        if ($st = $link->prepare("SELECT status, birthdate_text, rank, info_text FROM fact_characters WHERE id=? LIMIT 1")) {
             $st->bind_param("i", $id);
             $st->execute();
             $rs = $st->get_result();
@@ -546,7 +546,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 echo json_encode([
                     'ok'          => true,
                     'status'      => (string)($row['status'] ?? ''),
-                    'causamuerte' => (string)($row['cause_of_death'] ?? ''),
+                    'causamuerte' => '',
                     'cumple'      => (string)($row['birthdate_text'] ?? ''),
                     'rango'       => (string)($row['rank'] ?? ''),
                     'infotext'    => (string)($row['info_text'] ?? ''),
@@ -845,7 +845,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     // Campos complejos
     $status      = (string)($_POST['status'] ?? '');
-    $causamuerte = trim($_POST['causamuerte'] ?? '');
     $cumple      = trim($_POST['cumple'] ?? '');
     $rango       = trim($_POST['rango'] ?? '');
     $infotext    = trim($_POST['infotext'] ?? '');
@@ -975,17 +974,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, `$character_kind_column`, system_id,
-                 totem_id, status, cause_of_death, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 totem_id, status, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img='';
                 $stmt->bind_param(
-                    "sssssiiissssiisssssiiiii",
+                    "sssssiiissssiissssiiiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
                     $img, $notas, $text_color, $kind, $system_id,
                     $totem_id,
-                    $status, $causamuerte, $cumple, $rango, $infotext,
+                    $status, $cumple, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
                 );
                 if ($stmt->execute()) {
@@ -1077,20 +1076,20 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
                   breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
-                  status=?, cause_of_death=?, birthdate_text=?, rank=?, info_text=?
+                  status=?, birthdate_text=?, rank=?, info_text=?
                   WHERE id=?";
 
           if ($stmt = $link->prepare($sql)) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiissiiiiiisssssi",
+                  "sssssiiiissiiiiiissssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
                   $kind,
                   $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
-                  $status, $causamuerte, $cumple, $rango, $infotext,
+                  $status, $cumple, $rango, $infotext,
                   $id
               );
 
@@ -1306,14 +1305,14 @@ $stmt->close();
 $char_details = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT id, status, cause_of_death, birthdate_text, rank, info_text FROM fact_characters WHERE id IN ($in)");
+    $qdet = $link->query("SELECT id, status, birthdate_text, rank, info_text FROM fact_characters WHERE id IN ($in)");
     if ($qdet) {
         while ($d = $qdet->fetch_assoc()) {
             $cid = (int)($d['id'] ?? 0);
             if ($cid <= 0) continue;
             $char_details[$cid] = [
                 'status'      => (string)($d['status'] ?? ''),
-                'causamuerte' => (string)($d['cause_of_death'] ?? ''),
+                'causamuerte' => '',
                 'cumple'      => (string)($d['birthdate_text'] ?? ''),
                 'rango'       => (string)($d['rank'] ?? ''),
                 'infotext'    => (string)($d['info_text'] ?? ''),
@@ -1771,12 +1770,6 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
         </div>
 
         <div class="adm-grid-full">
-          <label class="adm-text-left">Causa de muerte
-            <textarea class="ta" name="causamuerte" id="f_causamuerte" rows="3" placeholder="Texto libre…"></textarea>
-          </label>
-        </div>
-
-        <div class="adm-grid-full">
           <label class="adm-text-left">Información sobre el personaje
             <textarea class="ta hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="infotext" id="f_infotext" rows="6" placeholder="Texto largo…"></textarea>
           </label>
@@ -2001,7 +1994,6 @@ var CHAR_DETAILS     = <?= json_encode(
   var fEstado     = document.getElementById('f_estado');
   var fCumple     = document.getElementById('f_cumple');
   var fRango      = document.getElementById('f_rango');
-  var fCausa      = document.getElementById('f_causamuerte');
   var fInfo       = document.getElementById('f_infotext');
 
   // PODERES
@@ -2378,7 +2370,6 @@ var CHAR_DETAILS     = <?= json_encode(
 
     ensureEstadoOption('En activo');
 
-    fCausa.value = '';
     fInfo.value  = '';
 
 	    updateSistemaSets('', 0,0,0);
@@ -2510,7 +2501,6 @@ var CHAR_DETAILS     = <?= json_encode(
     fillTraits(CHAR_TRAITS[cid] || {});
     applyKindVisibility(selKind ? selKind.value : 'pnj');
 
-    fCausa.value  = '';
     fInfo.value   = '';
     fCumple.value = '';
     fRango.value  = '';
@@ -2519,7 +2509,6 @@ var CHAR_DETAILS     = <?= json_encode(
     var d = CHAR_DETAILS[cid];
     if (d) {
       ensureEstadoOption(d.status || 'En activo');
-      fCausa.value  = d.causamuerte || '';
       fCumple.value = d.cumple || '';
       fRango.value  = d.rango || '';
       fInfo.value   = d.infotext || '';
@@ -2677,9 +2666,6 @@ var CHAR_DETAILS     = <?= json_encode(
 
 })();
 </script>
-
-
-
 
 
 

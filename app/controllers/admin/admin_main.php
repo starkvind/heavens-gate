@@ -40,6 +40,9 @@
 				case 'admin_characters_worlds':
 					include("admin_characters_worlds.php");
 					break;
+				case 'admin_character_deaths':
+					include("admin_character_deaths.php");
+					break;
 				default:
 					http_response_code(400);
 					header('Content-Type: application/json; charset=UTF-8');
@@ -66,6 +69,9 @@
 					break;
 				case 'admin_characters_worlds':
 					include("admin_characters_worlds.php");
+					break;
+				case 'admin_character_deaths':
+					include("admin_character_deaths.php");
 					break;
 				case 'admin_groups':
 					include("admin_groups.php");
@@ -194,6 +200,11 @@
 					<a href='/talim?s=admin_characters_worlds'>
 					  <div class='bioSheetPower adm-admin-tile'>
 						Crónicas y Realidades
+					  </div>
+					</a>
+					<a href='/talim?s=admin_character_deaths'>
+					  <div class='bioSheetPower adm-admin-tile'>
+						Muertes de Personajes
 					  </div>
 					</a>
 					<a href='/talim?s=admin_bridges'>
@@ -348,4 +359,3 @@
 		}
 	}
 ?>
-
