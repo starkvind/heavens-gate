@@ -2,61 +2,48 @@
     $T_inicio = microtime(true);
 
     //include("ip.php");
-    include(__DIR__ . "/app/helpers/heroes.php");
-	include(__DIR__ . "/app/bootstrap/error_reporting.php");
+    include(__DIR__ . "/app/helpers/db_connection.php");
+    include(__DIR__ . "/app/bootstrap/error_reporting.php");
 
     $pageTitle = "Heaven's Gate";
-	$unknownOrigin = "-";
-	
-	$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-	$host = $_SERVER['HTTP_HOST'];
-	$uri = $_SERVER['REQUEST_URI'];
+    $unknownOrigin = "-";
 
-	$pageURL = $scheme . '://' . $host . $uri;
-	$baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-	
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'];
+    $uri = $_SERVER['REQUEST_URI'];
+
+    $pageURL = $scheme . '://' . $host . $uri;
+    $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+
     ob_start();
     include("app/bootstrap/body_work.php");
     $pageContent = ob_get_clean();
 
-	if (!empty($isBarePage)) {
-		// Strip UTF-8 BOM if present (breaks JSON parsing for AJAX endpoints)
-		if (substr($pageContent, 0, 3) === "\xEF\xBB\xBF") {
-			$pageContent = substr($pageContent, 3);
-		}
-		echo $pageContent;
-		exit;
-	}
+    if (!empty($isBarePage)) {
+        // Strip UTF-8 BOM if present (breaks JSON parsing for AJAX endpoints)
+        if (substr($pageContent, 0, 3) === "\xEF\xBB\xBF") {
+            $pageContent = substr($pageContent, 3);
+        }
+        echo $pageContent;
+        exit;
+    }
 
+    $allowedThemes = ['classic', 'modern', 'power-save'];
+    $requestedTheme = isset($_GET['theme']) ? strtolower(trim((string)$_GET['theme'])) : '';
+    if ($requestedTheme !== '' && in_array($requestedTheme, $allowedThemes, true)) {
+        setcookie('hg_theme', $requestedTheme, time() + 31536000, '/');
+        $_COOKIE['hg_theme'] = $requestedTheme;
+    }
+    $activeTheme = isset($_COOKIE['hg_theme']) ? strtolower((string)$_COOKIE['hg_theme']) : 'classic';
+    if (!in_array($activeTheme, $allowedThemes, true)) {
+        $activeTheme = 'classic';
+    }
+    $bodyThemeClass = 'theme-' . $activeTheme;
 ?>
 <!DOCTYPE html>
 <html lang="es">
-	<?php include("app/bootstrap/head_work.php"); ?>
-    <style>
-        /* --- Botón Volver Arriba --- */
-        #btnTop{
-            position: fixed;
-            bottom: 18px;
-            right: 18px;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: 1px solid #009;
-            background: #005;
-            color: #00BBFF;                 /* verde terminal */
-            font-size: 18px;
-            cursor: pointer;
-            display: none;                  /* oculto por defecto */
-            z-index: 9999;
-            box-shadow: 0 6px 18px #007;
-        }
-
-        #btnTop:hover{
-            background: #006;
-            transform: translateY(-2px);
-        }
-    </style>
-    <body id="mainBody">
+    <?php include("app/bootstrap/head_work.php"); ?>
+    <body id="mainBody" class="<?= htmlspecialchars($bodyThemeClass, ENT_QUOTES, 'UTF-8') ?>">
         <div class="main-wrapper">
             <!-- CABECERA -->
             <header><img src="img/ui/branding/hg_header.png" alt="Heaven's Gate" /></header>
@@ -71,18 +58,18 @@
                     </td>
                 </tr>
             </table>
-            <button id="btnTop" aria-label="Volver arriba">⮝</button>
-            <!-- PIE DE PÁGINA -->
-            <table class="todou" style="margin: auto;">
+            <button id="btnTop" class="layout-btn-top" aria-label="Volver arriba">&#8679;</button>
+            <!-- PIE DE PAGINA -->
+            <table class="todou layout-footer-table">
                 <tr>
                     <td class="piepagina">
-                        <?php include("app/partials/main_pie.php"); ?>
+                        <?php include("app/partials/main_footer.php"); ?>
                     </td>
                 </tr>
             </table>
             <!-- TIEMPO DE CARGA -->
-            <p style="text-align:center;">
-                Página generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.
+            <p class="layout-render-time">
+                Pagina generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.
             </p>
         </div>
     </body>

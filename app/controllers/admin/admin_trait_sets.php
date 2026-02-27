@@ -105,19 +105,11 @@ if ($system_id > 0) {
 admin_panel_open('Traits por sistema', '<span class="small-note">Configura qué traits se muestran por sistema</span>');
 ?>
 
-<style>
-.traits-grid{ display:grid; grid-template-columns:repeat(2, minmax(280px,1fr)); gap:12px; }
-.traits-group{ background:#04023b; border:1px solid #000088; border-radius:10px; padding:10px; }
-.traits-title{ font-weight:700; color:#9ff; margin-bottom:8px; }
-.trait-row{ display:grid; grid-template-columns: 18px 1fr 70px; gap:8px; align-items:center; margin:4px 0; }
-.trait-row input[type="number"]{ width:70px; }
-</style>
-
 <?php foreach ($flash as $f): ?>
   <div class="flash <?= $f['type']==='ok'?'ok':'err' ?>"><?= h($f['msg']) ?></div>
 <?php endforeach; ?>
 
-<form method="get" action="/talim" style="margin-bottom:10px;">
+<form method="get" action="/talim" class="adm-mb-10">
   <input type="hidden" name="s" value="admin_trait_sets">
   <label>Sistema
     <select class="select" name="system_id" onchange="this.form.submit()">
@@ -153,9 +145,11 @@ admin_panel_open('Traits por sistema', '<span class="small-note">Configura qué 
     <?php endforeach; ?>
   </div>
 
-  <div class="modal-actions" style="margin-top:12px;">
+  <div class="modal-actions adm-mt-12">
     <button type="submit" class="btn btn-green">Guardar</button>
   </div>
 </form>
 
 <?php admin_panel_close(); ?>
+
+

@@ -1,0 +1,99 @@
+.playr-title {
+    text-align: right;
+}
+
+.playr-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.playr-inner {
+    flex: 1;
+    max-width: 640px;
+    min-width: 640px;
+}
+
+.playr-table {
+    width: 100%;
+}
+
+.player-layout {
+    width: 100%;
+}
+
+.player-card {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    border: 1px solid #000099;
+    background: rgba(0, 0, 102, 0.35);
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.player-photo {
+    width: 100%;
+    border: 1px solid #000099;
+    background: #000022;
+}
+
+.player-photo img {
+    width: 100%;
+    display: block;
+}
+
+.player-meta h2 {
+    margin: 0 0 10px;
+    text-align: left;
+}
+
+.player-meta p {
+    margin: 0;
+}
+
+.player-characters {
+    margin-top: 16px;
+    border: 1px solid #000099;
+    background: rgba(0, 0, 102, 0.2);
+    padding: 12px;
+}
+
+.player-characters-title {
+    margin: 0 0 10px;
+    font-weight: bold;
+    color: #66ccff;
+}
+
+.player-counter {
+    text-align: right;
+    margin-top: 10px;
+}
+
+.player-empty {
+    margin: 0;
+    font-style: italic;
+}
+
+.player-characters .contenidoAfiliacion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+@media (max-width: 760px) {
+    .player-card {
+        grid-template-columns: 1fr;
+    }
+
+    .player-photo {
+        max-width: 240px;
+    }
+}
+
+@media (max-width: 720px) {
+    .playr-inner {
+        min-width: 100%;
+    }
+}

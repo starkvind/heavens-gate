@@ -45,9 +45,9 @@ function csrf_ok(): bool {
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_resources']) && hash_equals($_SESSION['csrf_admin_resources'], $t);
 }
 
-$actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
+$actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openResourceModal()">+ Nuevo recurso</button>'
-    . '<label style="text-align:left;">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rapido '
     . '<input class="inp" type="text" id="quickFilterResources" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Recursos (catalogo)', $actions);
@@ -157,7 +157,7 @@ if ($rs) {
             <input type="hidden" name="crud_action" id="resource_action" value="create">
             <input type="hidden" name="id" id="resource_id" value="0">
             <div class="modal-body">
-                <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; align-items:center;">
+                <div class="adm-grid-1-2">
                     <label>Nombre</label>
                     <input class="inp" type="text" name="name" id="resource_name" maxlength="100" required>
 
@@ -183,12 +183,12 @@ if ($rs) {
 </div>
 
 <div class="modal-back" id="resourceDeleteModal">
-    <div class="modal" style="width:min(560px,96vw);">
+    <div class="modal adm-modal-sm">
         <h3>Confirmar borrado</h3>
-        <div style="color:#cfe; font-size:12px; line-height:1.4; margin-bottom:10px;">
+        <div class="adm-help-text">
             Esto eliminara el recurso del catalogo.
         </div>
-        <form method="post" id="resourceDeleteForm" style="margin:0;">
+        <form method="post" id="resourceDeleteForm" class="adm-m-0">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="crud_action" value="delete">
             <input type="hidden" name="id" id="resource_delete_id" value="0">
@@ -203,13 +203,13 @@ if ($rs) {
 <table class="table" id="tablaResources">
     <thead>
         <tr>
-            <th style="width:60px;">ID</th>
-            <th style="width:220px;">Nombre</th>
-            <th style="width:150px;">Tipo</th>
-            <th style="width:80px;">Orden</th>
-            <th style="width:220px;">Pretty ID</th>
+            <th class="adm-w-60">ID</th>
+            <th class="adm-w-220">Nombre</th>
+            <th class="adm-w-150">Tipo</th>
+            <th class="adm-w-80">Orden</th>
+            <th class="adm-w-220">Pretty ID</th>
             <th>Descripcion</th>
-            <th style="width:160px;">Acciones</th>
+            <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -233,33 +233,10 @@ if ($rs) {
         </tr>
     <?php endforeach; ?>
     <?php if (empty($rows)): ?>
-        <tr><td colspan="7" style="color:#bbb;">(Sin recursos)</td></tr>
+        <tr><td colspan="7" class="adm-color-muted">(Sin recursos)</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
-
-<style>
-.modal-back{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.6);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999; padding:14px; box-sizing:border-box;
-}
-.modal{
-  width:min(980px, 96vw);
-  max-height:92vh;
-  overflow:hidden;
-  background:#05014E;
-  border:1px solid #000088;
-  border-radius:12px;
-  padding:12px;
-  position:relative;
-  display:flex;
-  flex-direction:column;
-}
-.modal form{ display:flex; flex-direction:column; flex:1; }
-.modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
-</style>
 
 <script>
 const resourcesData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -326,3 +303,6 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <?php admin_panel_close(); ?>
+
+
+

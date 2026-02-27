@@ -255,8 +255,8 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
             // FIX: ahora puede ir vacío
             ['k'=>'system_name',    'label'=>'Sistema',     'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             // FIX: ahora puede ir vacío
-            ['k'=>'atributo',   'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
-            ['k'=>'habilidad',  'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+            ['k'=>'attribute',  'label'=>'Atributo',    'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
+            ['k'=>'skill',      'label'=>'Habilidad',   'ui'=>'text',     'db'=>'s', 'req'=>false,'max'=>100],
             ['k'=>'image_url',  'label'=>'Imagen', 'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
             ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int','db'=>'i','req'=>true,'opts'=>$opts_origen],
         ],
@@ -466,9 +466,46 @@ if (($_GET['ajax'] ?? '') === 'search') {
 
     $sqlAjax = "SELECT ".implode(',', $colsAllAjax)." FROM `$tableAjax` $whereAjax ORDER BY ".$MAjax['order_by'];
     $stAjax = $link->prepare($sqlAjax);
+    if (!$stAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'tab' => $tabAjax,
+            'rows' => [],
+            'rowMap' => [],
+            'total' => 0,
+            'error' => 'Error al preparar búsqueda: '.$link->error,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
     if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
-    $stAjax->execute();
+    if (!$stAjax->execute()) {
+        $stAjax->close();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'tab' => $tabAjax,
+            'rows' => [],
+            'rowMap' => [],
+            'total' => 0,
+            'error' => 'Error al ejecutar búsqueda: '.$link->error,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
     $rsAjax = $stAjax->get_result();
+    if (!$rsAjax) {
+        $stAjax->close();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'tab' => $tabAjax,
+            'rows' => [],
+            'rowMap' => [],
+            'total' => 0,
+            'error' => 'No se pudo leer el resultado de búsqueda: '.$link->error,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
 
     $rowsAjax = [];
     $rowMapAjax = [];
@@ -525,13 +562,21 @@ if ($q !== '') {
 }
 
 // COUNT
+$total = 0;
 $sqlCnt = "SELECT COUNT(*) AS c FROM `$table` $where";
 $stC = $link->prepare($sqlCnt);
-if ($types) $stC->bind_param($types, ...$params);
-$stC->execute();
-$rsC = $stC->get_result();
-$total = ($rsC && ($rowC=$rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
-$stC->close();
+if (!$stC) {
+    $flash[] = ['type'=>'error','msg'=>'Error al preparar el conteo: '.$link->error];
+} else {
+    if ($types) $stC->bind_param($types, ...$params);
+    if (!$stC->execute()) {
+        $flash[] = ['type'=>'error','msg'=>'Error al ejecutar el conteo: '.$link->error];
+    } else {
+        $rsC = $stC->get_result();
+        $total = ($rsC && ($rowC=$rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
+    }
+    $stC->close();
+}
 
 $pages = max(1, (int)ceil($total / $perPage));
 $page  = min($page, $pages);
@@ -549,38 +594,48 @@ $params2[] = $offset;
 $params2[] = $perPage;
 
 $stL = $link->prepare($sqlList);
-$stL->bind_param($types2, ...$params2);
-$stL->execute();
-$rsL = $stL->get_result();
-
 $rows = [];
 $rowMap = [];
-while ($r = $rsL->fetch_assoc()) {
-    $idv = (int)$r[$pk];
-
-    $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
-    if (isset($r['system_id'])) {
-        $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
-    }
-
-    if ($tab === 'dones') {
-        $t = (int)($r['kind'] ?? 0);
-        $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
-    } elseif ($tab === 'rituales') {
-        $t = (int)($r['kind'] ?? 0);
-        $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
-    } elseif ($tab === 'totems') {
-        $t = (int)($r['totem_type_id'] ?? 0);
-        $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
+if (!$stL) {
+    $flash[] = ['type'=>'error','msg'=>'Error al preparar el listado: '.$link->error];
+} else {
+    $stL->bind_param($types2, ...$params2);
+    if (!$stL->execute()) {
+        $flash[] = ['type'=>'error','msg'=>'Error al cargar el listado: '.$link->error];
     } else {
-        $t = (int)($r['disc'] ?? 0);
-        $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
-    }
+        $rsL = $stL->get_result();
+        if (!$rsL) {
+            $flash[] = ['type'=>'error','msg'=>'No se pudo leer el listado: '.$link->error];
+        } else {
+            while ($r = $rsL->fetch_assoc()) {
+                $idv = (int)$r[$pk];
 
-    $rows[] = $r;
-    $rowMap[$idv] = $r;
+                $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
+                if (isset($r['system_id'])) {
+                    $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
+                }
+
+                if ($tab === 'dones') {
+                    $t = (int)($r['kind'] ?? 0);
+                    $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
+                } elseif ($tab === 'rituales') {
+                    $t = (int)($r['kind'] ?? 0);
+                    $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
+                } elseif ($tab === 'totems') {
+                    $t = (int)($r['totem_type_id'] ?? 0);
+                    $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
+                } else {
+                    $t = (int)($r['disc'] ?? 0);
+                    $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
+                }
+
+                $rows[] = $r;
+                $rowMap[$idv] = $r;
+            }
+        }
+    }
+    $stL->close();
 }
-$stL->close();
 
 /* -----------------------------
    Helpers UI
@@ -598,47 +653,6 @@ function ui_short(string $s, int $n=120): string {
 }
 
 ?>
-<style>
-.panel-wrap { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.hdr { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-.hdr h2 { margin:0; color:#33FFFF; font-size:16px; }
-.tabs { display:flex; gap:8px; flex-wrap:wrap; }
-.tablnk{ display:inline-block; padding:6px 10px; border:1px solid #000088; background:#050b36; color:#cfe; border-radius:999px; text-decoration:none; font-size:12px; }
-.tablnk.active{ background:#001199; color:#33FFFF; }
-.btn { background:#0d3a7a; color:#fff; border:1px solid #1b4aa0; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-.btn:hover { filter:brightness(1.1); }
-.btn-green { background:#0d5d37; border-color:#168f59; }
-.btn-red { background:#6b1c1c; border-color:#993333; }
-.inp { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; border-radius:6px; }
-.select { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; border-radius:6px; }
-.table { width:100%; border-collapse:collapse; font-size:11px; font-family:Verdana,Arial,sans-serif; }
-.table th, .table td { border:1px solid #000088; padding:6px 8px; background:#05014E; white-space:nowrap; vertical-align:top; }
-.table th { background:#050b36; color:#33CCCC; text-align:left; }
-.table tr:hover td { background:#000066; color:#33FFFF; }
-.flash { margin:6px 0; }
-.flash .ok{ color:#7CFC00; } .flash .err{ color:#FF6B6B; } .flash .info{ color:#33FFFF; }
-.pager{ display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; }
-.pager a, .pager span { display:inline-block; padding:4px 8px; border:1px solid #000088; background:#05014E; color:#eee; text-decoration:none; border-radius:6px; }
-.pager .cur { background:#001199; }
-.small{ font-size:10px; color:#9dd; }
-.badge{ display:inline-block; padding:2px 8px; border:1px solid #1b4aa0; background:#00135a; color:#cfe; border-radius:999px; font-size:10px; }
-.modal-back { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:9999; }
-.modal { width:min(1100px,96vw); max-height:92vh; overflow:auto; background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.modal h3{ margin:0 0 8px; color:#33FFFF; }
-.grid { display:grid; grid-template-columns:1fr; gap:10px 12px; }
-.grid label{ font-size:12px; color:#cfe; display:block; text-align: left; }
-.grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
-textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
-.wys-wrap .ql-toolbar.ql-snow { background:#001144; border:1px solid #333; border-radius:6px 6px 0 0; }
-.wys-wrap .ql-container.ql-snow { background:#000033; border:1px solid #333; border-top:0; border-radius:0 0 6px 6px; }
-.wys-wrap .ql-editor { min-height:140px; color:#fff; }
-.wys-wrap .ql-editor a { color:#33ffff; }
-.image_url-preview{ max-width:120px; max-height:120px; border:1px solid #000088; border-radius:8px; background:#000033; display:block; }
-.modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
-@media (max-width:1100px){ .grid{ grid-template-columns:repeat(2, minmax(240px,1fr)); } }
-@media (max-width:750px){ .grid{ grid-template-columns:1fr; } }
-</style>
-
 <div class="panel-wrap">
   <div class="hdr">
     <h2>&#x1F9E9; CRUD &#8212; <?= h(ui_title($tab)) ?></h2>
@@ -656,7 +670,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 
     <button class="btn btn-green" id="btnNew">&#x2795; Nuevo</button>
 
-    <form method="get" style="display:flex; gap:8px; align-items:center; margin-left:auto;">
+    <form method="get" class="adm-flex-right-8">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_powers') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
@@ -687,9 +701,9 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
-          <th style="width:<?= (int)($c['w'] ?? 120) ?>px;"><?= h($c['label']) ?></th>
+          <th width="<?= (int)($c['w'] ?? 120) ?>"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
-        <th style="width:120px;">Acciones</th>
+        <th class="adm-w-120">Acciones</th>
       </tr>
     </thead>
     <tbody id="powersTbody">
@@ -702,7 +716,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
           ?>
             <td>
               <?php if ($k === 'id'): ?>
-                <strong style="color:#33FFFF;"><?= (int)$r[$pk] ?></strong>
+                <strong class="adm-color-accent"><?= (int)$r[$pk] ?></strong>
               <?php elseif (str_has($k,'_name')): ?>
                 <?= $val !== '' ? h($val) : '<span class="small">(—)</span>' ?>
               <?php else: ?>
@@ -716,7 +730,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
         </tr>
       <?php endforeach; ?>
       <?php if (empty($rows)): ?>
-        <tr><td colspan="<?= count($META['list_cols'])+1 ?>" style="color:#bbb;">(Sin resultados)</td></tr>
+        <tr><td colspan="<?= count($META['list_cols'])+1 ?>" class="adm-color-muted">(Sin resultados)</td></tr>
       <?php endif; ?>
     </tbody>
   </table>
@@ -735,7 +749,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     <a href="<?= $base ?>&pg=<?= $pages ?>">Último »</a>
   </div>
 
-  <div class="small" style="margin-top:8px;">
+  <div class="small adm-mt-8">
     Consejo rápido: si pegáis HTML en descripciones/sistemas, aquí se guarda tal cual (el listado solo recorta para no romper la tabla).
   </div>
 </div>
@@ -745,7 +759,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle">Nuevo</h3>
 
-    <form method="post" id="formCrud" style="margin:0;" enctype="multipart/form-data">
+    <form method="post" id="formCrud" class="adm-m-0" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="crud_tab" id="crud_tab" value="<?= h($tab) ?>">
       <input type="hidden" name="crud_action" id="crud_action" value="create">
@@ -1158,7 +1172,7 @@ function syncEditorsToTextarea(){
   function renderRows(rows, rowMap){
     ROWMAP = rowMap || {};
     if (!rows || !rows.length){
-      tbody.innerHTML = '<tr><td colspan="'+(META.list_cols.length+1)+'" style="color:#bbb;">(Sin resultados)</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="'+(META.list_cols.length+1)+'" class="adm-color-muted">(Sin resultados)</td></tr>';
       return;
     }
 
@@ -1169,7 +1183,7 @@ function syncEditorsToTextarea(){
         var k = c.k;
         var val = (r[k]===null || r[k]===undefined) ? '' : String(r[k]);
         if (k === 'id') {
-          html += '<td><strong style="color:#33FFFF;">'+(parseInt(r.id||0,10)||0)+'</strong></td>';
+          html += '<td><strong class="adm-color-accent">'+(parseInt(r.id||0,10)||0)+'</strong></td>';
         } else if (k.indexOf('_name') !== -1) {
           html += '<td>'+(val !== '' ? esc(val) : '<span class="small">(-)</span>')+'</td>';
         } else {
@@ -1223,6 +1237,8 @@ function syncEditorsToTextarea(){
   });
 })();
 </script>
+
+
 
 
 

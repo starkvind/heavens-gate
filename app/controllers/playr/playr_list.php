@@ -53,16 +53,14 @@ mysqli_free_result($result);
 
 $pageSect = "Jugadores";
 ?>
+<link rel="stylesheet" href="/assets/css/hg-playr.css">
+<?php include_once("app/partials/datatable_assets.php"); ?>
 
-<link rel="stylesheet" href="/assets/vendor/datatables/jquery.dataTables.min.css">
-<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
+<h2 class="playr-title">Jugadores</h2>
 
-<h2 style="text-align:right;">Jugadores</h2>
-
-<div style="display:flex; justify-content:center; width: 100%;">
-    <div style="flex: 1; max-width:640px; min-width:640px;">
-        <table id="tabla-jugadores" class="display" style="width:100%">
+<div class="playr-wrap">
+    <div class="playr-inner">
+        <table id="tabla-jugadores" class="display playr-table">
             <thead>
                 <tr>
                     <th>Jugador</th>
@@ -119,74 +117,3 @@ function escapeHtml(text) {
 }
 </script>
 
-<style>
-.dataTables_wrapper {
-    color: #eee;
-}
-
-table.dataTable {
-    background-color: transparent;
-    color: #eee;
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 0.9em;
-    border: 1px solid #000099;
-}
-
-table.dataTable td {
-    text-align: left;
-    border-bottom: 1px solid #000099;
-    border-top: 1px solid #000099;
-}
-
-table.dataTable th {
-    background-color: #000066;
-    color: #fff;
-}
-
-table.dataTable tbody tr:hover {
-    background-color: #111177;
-}
-
-.dataTables_info, .dataTables_paginate {
-    margin-top: 1em;
-}
-
-.dataTables_filter input,
-.dataTables_length select {
-    font-family: verdana;
-    font-size: 10px;
-    background-color: #000066;
-    color: #fff;
-    padding: 0.5em;
-    border: 1px solid #000099 !important;
-    margin-bottom: 1em;
-}
-
-.dataTables_length option {
-    background-color: #000099 !important;
-}
-
-.dataTables_paginate .paginate_button {
-    color: #fff !important;
-    background: #000066 !important;
-    border: 1px solid #000099 !important;
-    margin: 2px;
-}
-
-.dataTables_paginate .paginate_button:hover {
-    color: #00CCFF !important;
-    cursor: pointer;
-    border: 1px solid #000088 !important;
-}
-
-.dataTables_paginate .paginate_button.current {
-    background: #000044 !important;
-}
-
-@media (max-width: 720px) {
-    div[style*='min-width:640px'] {
-        min-width: 100% !important;
-    }
-}
-</style>

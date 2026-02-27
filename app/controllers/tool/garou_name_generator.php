@@ -1,42 +1,11 @@
-<?php setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rápido de nombres Garou.", null, 'website'); ?>
-<style>
-	.wrap{max-width:900px;margin:0 auto}
-	.card{border-radius:12px;padding:16px 18px}
-	.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-	select,button{border-radius:10px;padding:1em;}
-	button{cursor:pointer;padding:1em!important;}
-	ul{margin:14px 0 0 0;padding-left:18px}
-	li{padding:4px 0}
-	.hint{font-size:14px;margin-top:10px;margin-bottom:10px;padding:1em;background-color:#000066;border:1px solid #000088;border-radius:1em;display:none;}
-	.small{color:#666;font-size:13px}
-	code{background:#f6f6f6;color:#333;padding:2px 6px;border-radius:6px}
-    .list{
-        -moz-column-count: 2;
-        -moz-column-gap: 20px;
-        -webkit-column-count: 2;
-        -webkit-column-gap: 20px;
-        column-count: 2;
-        column-gap: 20px;
-        list-style: none;
-        padding: 1em;
-        margin-left: 0;
+<?php setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rÃ¡pido de nombres Garou.", null, 'website'); ?>
+<link rel="stylesheet" href="/assets/css/hg-tools.css">
 
-        background-color:#000066;border:1px solid #000088;border-radius:1em;
-    }
-
-    /* Evita que un <li> se divida entre columnas */
-    .list li{
-        break-inside: avoid-column;
-        -webkit-column-break-inside: avoid;
-        page-break-inside: avoid;
-    }
-</style>
-
-<div id="garou-name-gen" class="wrap">
-	<div class="card">
+<div id="garou-name-gen">
+	<div class="hg-garou-card">
 		<h2>Generador de Nombres Garou</h2>
 
-		<div class="row">
+		<div class="hg-garou-row">
 			<label for="garouCount"><strong>Cantidad:</strong></label>
 			<select id="garouCount" data-role="count">
 				<option value="10">10</option>
@@ -46,13 +15,13 @@
 			<button type="button" data-role="generate" class="boton2">Generar</button>
 		</div>
 
-		<p class="hint">
-			Estilo «deed name» con guiones: <code>Salta-sobre-el-Abismo</code>, <code>Aullido-Fúnebre</code>, <code>Lanza-de-Sangre</code>
+		<p class="hg-garou-hint">
+			Estilo Â«deed nameÂ» con guiones: <code>Salta-sobre-el-Abismo</code>, <code>Aullido-FÃºnebre</code>, <code>Lanza-de-Sangre</code>
 		</p>
 
-		<p class="small" data-role="note" style="display:none;"></p>
+		<p class="hg-garou-small hg-garou-note-hidden" data-role="note"></p>
 
-		<ul data-role="list" class="list"></ul>
+		<ul data-role="list" class="hg-garou-list"></ul>
 	</div>
 </div>
 
@@ -86,30 +55,30 @@
         const keepAsIs = new Set(["Gaia", "Wyrm", "Kaos", "Umbra", "Helios", "Selene"]);
 
         const verbs = [
-            "Salta", "Camina", "Corre", "Acecha", "Aúlla", "Caza", "Muerde", "Rasga",
-            "Vigila", "Guarda", "Rompe", "Quiebra", "Hierve", "Desafía", "Persigue",
+            "Salta", "Camina", "Corre", "Acecha", "AÃºlla", "Caza", "Muerde", "Rasga",
+            "Vigila", "Guarda", "Rompe", "Quiebra", "Hierve", "DesafÃ­a", "Persigue",
             "Arranca", "Sostiene", "Invoca", "Enciende", "Apaga", "Talla", "Siembra",
-            "Despierta", "Cruza", "Resiste", "Señala", "Alza", "Hunde",
+            "Despierta", "Cruza", "Resiste", "SeÃ±ala", "Alza", "Hunde",
         ];
 
         const roles = [
-            "Custodio", "Guardián", "Centinela", "Azote", "Martillo", "Colmillo", "Garra",
+            "Custodio", "GuardiÃ¡n", "Centinela", "Azote", "Martillo", "Colmillo", "Garra",
             "Lanza", "Filo", "Eco", "Sombra", "Luz", "Ojo", "Paso", "Sendero", "Voz",
-            "Aullido", "Canto", "Murmullo", "Límite", "Última", "Primera",
+            "Aullido", "Canto", "Murmullo", "LÃ­mite", "Ãšltima", "Primera",
         ];
 
         const things = [
             "Abismo", "Tormenta", "Sangre", "Hueso", "Ceniza", "Luna", "Rayo", "Trueno",
-            "Umbral", "Bosque", "Páramo", "Río", "Lirio", "Acero", "Hierro", "Cristal",
-            "Sal", "Humo", "Nieve", "Fuego", "Sombra", "Viento", "Cráneo", "Raíz",
-            "Relámpago", "Silencio", "Eco", "Puerta",
+            "Umbral", "Bosque", "PÃ¡ramo", "RÃ­o", "Lirio", "Acero", "Hierro", "Cristal",
+            "Sal", "Humo", "Nieve", "Fuego", "Sombra", "Viento", "CrÃ¡neo", "RaÃ­z",
+            "RelÃ¡mpago", "Silencio", "Eco", "Puerta",
         ];
 
         const adjectives = [
-            "Inquebrantable", "Fúnebre", "Lunar", "Sombrío", "Sangriento", "Hambriento",
-            "Antiguo", "Frío", "Ciego", "Implacable", "Sereno", "Torcido", "Gris",
-            "Rojo", "Negro", "Blanco", "Herrumbroso", "Vacío", "Vigilante",
-            "Último", "Primordial",
+            "Inquebrantable", "FÃºnebre", "Lunar", "SombrÃ­o", "Sangriento", "Hambriento",
+            "Antiguo", "FrÃ­o", "Ciego", "Implacable", "Sereno", "Torcido", "Gris",
+            "Rojo", "Negro", "Blanco", "Herrumbroso", "VacÃ­o", "Vigilante",
+            "Ãšltimo", "Primordial",
         ];
 
         const places = [
@@ -119,7 +88,7 @@
         ];
 
         // ---- Random robusto con Crypto.getRandomValues (rejection sampling) ----
-        // (Mejor que Math.random; aquí el sesgo queda controlado.) :contentReference[oaicite:2]{index=2}
+        // (Mejor que Math.random; aquÃ­ el sesgo queda controlado.) :contentReference[oaicite:2]{index=2}
         function randInt(max) {
             if (max <= 0) throw new Error("max must be > 0");
 
@@ -151,13 +120,13 @@
             const raw = String(seg).trim();
             if (!raw) return "";
 
-            // conectores se quedan en minúscula
+            // conectores se quedan en minÃºscula
             if (connectors.includes(raw)) return raw;
 
             // excepciones se respetan
             if (keepAsIs.has(raw)) return raw;
 
-            // normal: capitalizar, resto en minúscula
+            // normal: capitalizar, resto en minÃºscula
             return ucFirst(raw.toLowerCase());
         }
 
@@ -229,7 +198,7 @@
 
             if (names.length < n) {
                 $note.style.display = "";
-                $note.textContent = `Nota: se generaron ${names.length} nombres únicos (se agotaron combinaciones/intentos).`;
+                $note.textContent = `Nota: se generaron ${names.length} nombres Ãºnicos (se agotaron combinaciones/intentos).`;
             } else {
                 $note.style.display = "none";
                 $note.textContent = "";

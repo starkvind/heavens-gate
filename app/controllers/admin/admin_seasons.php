@@ -47,9 +47,9 @@ $hasCreatedAt    = hg_table_has_column($link, 'dim_seasons', 'created_at');
 $hasUpdatedAt    = hg_table_has_column($link, 'dim_seasons', 'updated_at');
 $hasPrettyId     = true; // existe en dim_seasons
 
-$actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
+$actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSeasonModal()">+ Nueva temporada</button>'
-    . '<label style="text-align:left;">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rapido '
     . '<input class="inp" type="text" id="quickFilterSeasons" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Temporadas', $actions);
@@ -196,50 +196,6 @@ if ($rs) {
     </div>
 <?php endif; ?>
 
-<style>
-.modal-back{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.6);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999; padding:14px; box-sizing:border-box;
-}
-.modal{
-  width:min(980px, 96vw);
-  max-height:92vh;
-  overflow:hidden;
-  background:#05014E;
-  border:1px solid #000088;
-  border-radius:12px;
-  padding:12px;
-  position:relative;
-  display:flex;
-  flex-direction:column;
-}
-.modal form{ display:flex; flex-direction:column; flex:1; }
-.modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
-.ql-toolbar.ql-snow{
-  border:1px solid #000088 !important;
-  background:#050b36 !important;
-  border-radius:8px 8px 0 0;
-}
-.ql-container.ql-snow{
-  border:1px solid #000088 !important;
-  border-top:none !important;
-  background:#000033 !important;
-  color:#fff !important;
-  border-radius:0 0 8px 8px;
-}
-.ql-editor{ min-height:140px; font-size:12px; }
-.ql-snow .ql-stroke{ stroke:#cfe !important; }
-.ql-snow .ql-fill{ fill:#cfe !important; }
-.ql-snow .ql-picker{ color:#cfe !important; }
-.ql-snow .ql-picker-options{
-  background:#050b36 !important;
-  border:1px solid #000088 !important;
-}
-.ql-snow .ql-picker-item{ color:#cfe !important; }
-</style>
-
 <div class="modal-back" id="seasonModal">
     <div class="modal">
         <h3 id="seasonModalTitle">Nueva temporada</h3>
@@ -247,7 +203,7 @@ if ($rs) {
             <input type="hidden" name="crud_action" id="season_action" value="create">
             <input type="hidden" name="id" id="season_id" value="0">
             <div class="modal-body">
-                <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; align-items:center;">
+                <div class="adm-grid-1-2">
                     <label>Nombre</label>
                     <input class="inp" type="text" name="name" id="season_name" maxlength="150" required>
 
@@ -260,14 +216,14 @@ if ($rs) {
                     <?php endif; ?>
 
                     <label>Historia personal</label>
-                    <label style="display:flex;align-items:center;gap:8px;">
+                    <label class="adm-flex-8-center">
                         <input type="checkbox" name="season" id="season_flag" value="1">
                         <span>Si</span>
                     </label>
 
                     <?php if ($hasFinished): ?>
                     <label>Finalizada</label>
-                    <label style="display:flex;align-items:center;gap:8px;">
+                    <label class="adm-flex-8-center">
                         <input type="checkbox" name="finished" id="season_finished" value="1">
                         <span>Si</span>
                     </label>
@@ -279,7 +235,7 @@ if ($rs) {
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="season_description_editor" class="ql-container ql-snow"></div>
-                        <textarea class="ta" name="description" id="season_description" rows="8" style="display:none;"></textarea>
+                        <textarea class="ta adm-hidden" name="description" id="season_description" rows="8"></textarea>
                     </div>
 
                     <?php if ($hasOpening): ?>
@@ -289,7 +245,7 @@ if ($rs) {
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="season_opening_editor" class="ql-container ql-snow"></div>
-                        <textarea class="ta" name="opening" id="season_opening" rows="3" style="display:none;"></textarea>
+                        <textarea class="ta adm-hidden" name="opening" id="season_opening" rows="3"></textarea>
                     </div>
                     <?php endif; ?>
 
@@ -300,7 +256,7 @@ if ($rs) {
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="season_main_cast_editor" class="ql-container ql-snow"></div>
-                        <textarea class="ta" name="main_cast" id="season_main_cast" rows="4" style="display:none;"></textarea>
+                        <textarea class="ta adm-hidden" name="main_cast" id="season_main_cast" rows="4"></textarea>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -314,12 +270,12 @@ if ($rs) {
 </div>
 
 <div class="modal-back" id="seasonDeleteModal">
-    <div class="modal" style="width:min(560px,96vw);">
+    <div class="modal adm-modal-sm">
         <h3>Confirmar borrado</h3>
-        <div style="color:#cfe; font-size:12px; line-height:1.4; margin-bottom:10px;">
+        <div class="adm-help-text">
             Se eliminara la temporada y puede afectar al archivo de capitulos.
         </div>
-        <form method="post" id="seasonDeleteForm" style="margin:0;">
+        <form method="post" id="seasonDeleteForm" class="adm-m-0">
             <input type="hidden" name="crud_action" value="delete">
             <input type="hidden" name="id" id="season_delete_id" value="0">
             <div class="modal-actions">
@@ -333,15 +289,15 @@ if ($rs) {
 <table class="table" id="tablaSeasons">
     <thead>
         <tr>
-            <th style="width:60px;">ID</th>
-            <th style="width:90px;">Numero</th>
+            <th class="adm-w-60">ID</th>
+            <th class="adm-w-90">Numero</th>
             <th>Nombre</th>
-            <?php if ($hasSortOrder): ?><th style="width:80px;">Orden</th><?php endif; ?>
-            <?php if ($hasSeasonCol): ?><th style="width:90px;">Personal</th><?php endif; ?>
-            <?php if ($hasFinished): ?><th style="width:90px;">Finalizada</th><?php endif; ?>
-            <?php if ($hasPrettyId): ?><th style="width:220px;">Pretty ID</th><?php endif; ?>
+            <?php if ($hasSortOrder): ?><th class="adm-w-80">Orden</th><?php endif; ?>
+            <?php if ($hasSeasonCol): ?><th class="adm-w-90">Personal</th><?php endif; ?>
+            <?php if ($hasFinished): ?><th class="adm-w-90">Finalizada</th><?php endif; ?>
+            <?php if ($hasPrettyId): ?><th class="adm-w-220">Pretty ID</th><?php endif; ?>
             <?php if ($hasDescription): ?><th>Descripcion</th><?php endif; ?>
-            <th style="width:160px;">Acciones</th>
+            <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -366,7 +322,7 @@ if ($rs) {
         </tr>
     <?php endforeach; ?>
     <?php if (empty($rows)): ?>
-        <tr><td colspan="<?= 6 + ($hasSortOrder?1:0) + ($hasFinished?1:0) + ($hasPrettyId?1:0) ?>" style="color:#bbb;">(Sin temporadas)</td></tr>
+        <tr><td colspan="<?= 6 + ($hasSortOrder?1:0) + ($hasFinished?1:0) + ($hasPrettyId?1:0) ?>" class="adm-color-muted">(Sin temporadas)</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
@@ -493,3 +449,6 @@ document.getElementById('seasonForm').addEventListener('submit', function(){
 </script>
 
 <?php admin_panel_close(); ?>
+
+
+

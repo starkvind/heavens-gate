@@ -115,6 +115,7 @@ if ($rowsQueryMaf > 0) {
 
     // Incluir archivos para navegación y contenido
     include("app/partials/main_nav_bar.php"); // Barra Navegación
+    echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
     ob_start();
 
@@ -134,7 +135,7 @@ if ($rowsQueryMaf > 0) {
 
     echo "  <div class='power-card__body'>";
     echo "    <div class='power-card__media'>";
-    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='$itemImg' alt='$mafName'/>";
+    echo "      <img class='power-card__img power-card__img--framed' src='$itemImg' alt='$mafName'/>";
     echo "    </div>";
 
     echo "    <div class='power-card__stats'>";
@@ -207,18 +208,6 @@ if ($rowsQueryMaf > 0) {
             echo "</section>";
         }
 
-        echo "<script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const tabs = Array.from(document.querySelectorAll('.hgTabBtn'));
-                const panels = Array.from(document.querySelectorAll('.hg-tab-panel'));
-                function activate(key){
-                    panels.forEach(p => p.classList.toggle('active', p.dataset.tab === key));
-                    tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === key));
-                }
-                if (tabs.length) activate(tabs[0].dataset.tab);
-                tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
-            });
-        </script>";
     } else {
         echo $infoHtml;
     }

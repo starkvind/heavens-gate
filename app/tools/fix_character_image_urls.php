@@ -5,7 +5,7 @@
 //   /sep/tools/fix_character_image_urls.php?apply=1 -> apply fixes
 //   /sep/tools/fix_character_image_urls.php?limit=200&offset=0
 
-require_once __DIR__ . "/../helpers/heroes.php";
+require_once __DIR__ . "/../helpers/db_connection.php";
 
 if (!$link) {
     die("DB connection error: " . mysqli_connect_error());
@@ -76,12 +76,13 @@ $total = count($rows);
 $broken = 0;
 $fixed = 0;
 
+echo "<link rel='stylesheet' href='/assets/css/hg-tools.css'>";
 echo "<h2>Fix character image URLs</h2>";
 echo "<p>Mode: " . ($apply ? "APPLY" : "DRY RUN") . "</p>";
 echo "<p>Root: " . htmlspecialchars($root, ENT_QUOTES, 'UTF-8') . "</p>";
 echo "<p>Limit: $limit | Offset: $offset</p>";
 
-echo "<table border='1' cellpadding='4' cellspacing='0' style='border-collapse:collapse; width:100%; font-family:Verdana; font-size:12px;'>";
+echo "<table border='1' cellpadding='4' cellspacing='0' class='hg-tool-report-table'>";
 echo "<tr><th>ID</th><th>Name</th><th>Current</th><th>Status</th><th>Proposed</th></tr>";
 
 foreach ($rows as $r) {
@@ -120,4 +121,5 @@ foreach ($rows as $r) {
 echo "</table>";
 echo "<p>Total: $total | Broken: $broken | Fixed: $fixed</p>";
 ?>
+
 

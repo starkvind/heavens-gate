@@ -73,39 +73,11 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 }
 ?>
 
-<style>
-	.galleryHeader { padding:16px 20px; background:#121826; border-bottom:1px solid #1f2a44; display:flex; align-items:center; gap:12px; }
-	header h1 { margin:0; font-size:18px; }
-	.container { padding:18px 20px; }
-	.breadcrumbs { width: 100%; display: block; margin-left: 2em; }
-	.breadcrumbs a, .breadcrumbs span { color:#a7c0ff; text-decoration:none; margin-right:6px; }
-	.section-title { margin:10px 0 8px; font-size:16px; margin-bottom: 2em; display: none; }
-	.grid { display:flex; flex-wrap:wrap; gap:12px; }
-	.card { background:#000044; border:1px solid #000088; border-radius:12px; padding:12px; }
-	.folder { width:25%; text-align:center; cursor:pointer; }
-	.folder .cover { width:100px; height:120px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; display:block; margin:0 auto 8px; }
-	.folder .icon { font-size:32px; display:block; margin-bottom:8px; }
-	.folder .name { font-weight:600; }
-	.img-grid { display:flex; flex-wrap:wrap; gap:10px; }
-	.img-item { width:125px; text-align:center; }
-	.img-item .thumb { width:125px; height:125px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; cursor:pointer; }
-	.img-title { margin-top:6px; font-size:13px; color:#c9d6ff; }
-
-	#lightbox {
-	  position:fixed; inset:0; background:rgba(0,0,0,0.9);
-	  display:none; justify-content:center; align-items:center; flex-direction:column; z-index:9999;
-	}
-	#lightbox img { max-width:90%; max-height:75%; margin-bottom:10px; }
-	#lightbox-title { color:#ccc; font-size:1.05em; margin-bottom:15px; }
-	.lightbox-controls { display:flex; gap:20px; font-size:2em; }
-	.lightbox-controls span { cursor:pointer; user-select:none; color:#fff; }
-	.download-link { margin-top:10px; color:#66ccff; font-size:0.9em; }
-	.embedForumSnippet { background:#111; border:1px solid #444; color:#0f0; font-family:monospace; padding:0.5em; border-radius:6px; overflow:auto; }
-</style>
+<link rel="stylesheet" href="/assets/css/hg-main.css">
 
 <h2>Galería</h2>
 
-  <div class="breadcrumbs">
+  <div class="gallery-breadcrumbs">
     <?php if ($relDir != ''): ?><a href="/gallery"><?php endif; ?>
 	📁 Inicio
 	<?php if ($relDir != ''): ?></a><?php endif; ?>
@@ -119,18 +91,18 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
     ?>
   </div>
 
-<div class="container">
+<div class="gallery-container">
 
   <?php if ($relDir === ''): ?>
-    <div class="section-title">Carpetas</div>
-    <div class="grid">
+    <div class="gallery-section-title">Carpetas</div>
+    <div class="gallery-grid">
       <?php foreach ($subdirs as $dirName):
         $childRel = $dirName;
         $childAbs = fsPathJoin($absDir, $dirName);
         $link = '/gallery?dir=' . urlencode($childRel);
         $cover = firstThumbWeb($GALLERY_BASE_WEB, $childAbs, $childRel, $ALLOWED_EXT);
       ?>
-      <a class="folder card" href="<?= $link ?>" title="Abrir carpeta">
+      <a class="gallery-folder gallery-card" href="<?= $link ?>" title="Abrir carpeta">
         <?php if ($cover): ?>
           <img class="cover" src="<?= htmlspecialchars($cover) ?>" alt="">
         <?php else: ?>
@@ -140,21 +112,21 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
       </a>
       <?php endforeach; ?>
       <?php if (!$subdirs): ?>
-        <div class="card">No hay carpetas todavía.</div>
+        <div class="gallery-card">No hay carpetas todavía.</div>
       <?php endif; ?>
     </div>
   <?php else: ?>
-    <div class="section-title"><?= htmlspecialchars($relDir) ?></div>
+    <div class="gallery-section-title"><?= htmlspecialchars($relDir) ?></div>
     <?php if ($subdirs): ?>
-      <div class="section-title" style="margin-top:16px;">Subcarpetas</div>
-      <div class="grid">
+      <div class="gallery-section-title gallery-section-title-sub">Subcarpetas</div>
+      <div class="gallery-grid">
         <?php foreach ($subdirs as $dirName):
           $childRel = $relDir . '/' . $dirName;
           $childAbs = fsPathJoin($absDir, $dirName);
           $link = '/gallery?dir=' . urlencode($childRel);
           $cover = firstThumbWeb($GALLERY_BASE_WEB, $childAbs, $childRel, $ALLOWED_EXT);
         ?>
-        <a class="folder card" href="<?= $link ?>" title="Abrir carpeta">
+        <a class="gallery-folder gallery-card" href="<?= $link ?>" title="Abrir carpeta">
           <?php if ($cover): ?>
             <img class="cover" src="<?= htmlspecialchars($cover) ?>" alt="">
           <?php else: ?>
@@ -164,27 +136,27 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
         </a>
         <?php endforeach; ?>
       </div>
-      <hr style="border:0;border-top:1px solid #1f2a44;margin:16px 0;">
+      <hr class="gallery-divider">
     <?php endif; ?>
 
-    <div class="img-grid">
+    <div class="gallery-img-grid">
       <?php foreach ($images as $idx => $img):
         $title = formatTitle($img);
         $thumbWeb = webPathJoin($GALLERY_BASE_WEB, $relDir . "/thumbnails/" . $img);
         $imgWeb   = webPathJoin($GALLERY_BASE_WEB, $relDir . "/" . $img);
       ?>
-      <div class="img-item">
+      <div class="gallery-img-item">
         <img class="thumb"
              src="<?= htmlspecialchars($thumbWeb) ?>"
              data-full="<?= htmlspecialchars($imgWeb) ?>"
              data-title="<?= htmlspecialchars($title) ?>"
              data-index="<?= $idx ?>"
              alt="<?= htmlspecialchars($title) ?>">
-        <div class="img-title"><?= htmlspecialchars($title) ?></div>
+        <div class="gallery-img-title"><?= htmlspecialchars($title) ?></div>
       </div>
       <?php endforeach; ?>
       <?php if (!$images): ?>
-        <div class="card">No hay imágenes en esta carpeta.</div>
+        <div class="gallery-card">No hay imágenes en esta carpeta.</div>
       <?php endif; ?>
     </div>
 
@@ -201,7 +173,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
     </div>
   <?php endif; ?>
   
-  	<p style="margin-top:3em;margin-bottom:0em;"><i>La totalidad de estas imágenes se han realizado con inteligencia artificial generativa.
+  	<p class="gallery-ai-note"><i>La totalidad de estas imágenes se han realizado con inteligencia artificial generativa.
 	<br />
 	Su licencia es CC0 1.0 Universal.
 	</i></p>
@@ -210,7 +182,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 
 <?php if ($images): ?>
 	<script>
-		const thumbs = Array.from(document.querySelectorAll('.img-item .thumb'));
+		const thumbs = Array.from(document.querySelectorAll('.gallery-img-item .thumb'));
 		const lightbox = document.getElementById('lightbox');
 		const lightboxImg = document.getElementById('lightbox-img');
 		const lightboxTitle = document.getElementById('lightbox-title');
@@ -252,5 +224,4 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 		thumbs.forEach(img => { const i = new Image(); i.src = img.dataset.full; preload.push(i); });
 	</script>
 <?php endif; ?>
-
 

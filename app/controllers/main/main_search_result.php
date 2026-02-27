@@ -24,6 +24,7 @@ $skz = strip_tags($skz);
 $letrax = strlen($bsq);
 
 include("app/partials/main_nav_bar.php"); // Barra Navegación
+echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 
 echo "<h2>Resultado de la b&uacute;squeda</h2>";
 
@@ -179,24 +180,24 @@ function build_pretty_search_url(string $rutu, string $id): string {
                     $id = htmlspecialchars($row['id']);
                     $href = build_pretty_search_url($rutu, $id);
                     echo "<a title='$titulo' href='$href' target='_blank'>
-                        <div class='renglon2col' style='text-align:center;'>$titulo</div>
+                        <div class='renglon2col main-search-center'>$titulo</div>
                     </a>";
                 }
                 echo "</fieldset>";
             } else {
-                echo "<p style='text-align:center;'>No se ha encontrado nada que concuerde con '$bsq'. Intenta de nuevo.</p>";
+                echo "<p class='main-search-center'>No se ha encontrado nada que concuerde con '$bsq'. Intenta de nuevo.</p>";
             }
 
             mysqli_free_result($result);
         } else {
             // Error en la ejecución de la consulta
-            echo "<p style='text-align:center;'>Error en la consulta: " . htmlspecialchars(mysqli_error($link)) . "</p>";
+            echo "<p class='main-search-center'>Error en la consulta: " . htmlspecialchars(mysqli_error($link)) . "</p>";
         }
 
         mysqli_stmt_close($stmt);
     } else {
         // Error al preparar la consulta
-        echo "<p style='text-align:center;'>Error al preparar la consulta: " . htmlspecialchars(mysqli_error($link)) . "</p>";
+        echo "<p class='main-search-center'>Error al preparar la consulta: " . htmlspecialchars(mysqli_error($link)) . "</p>";
     }
 } elseif (empty($bsq)) {
     echo "<center>No existe ning&uacute;n criterio.</center>";
@@ -207,4 +208,3 @@ function build_pretty_search_url(string $rutu, string $id): string {
 echo "<br/><center><input class='boton1' type='button' onclick='history.go(-1)' value='Volver'/></center>";
 
 ?>
-

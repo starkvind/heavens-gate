@@ -197,9 +197,9 @@ if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, c.season_number, 
     $rs->close();
 }
 
-$actions = '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
-    . '<label style="text-align:left;">Filtro rapido <input class="inp" type="text" id="quickFilter" placeholder="Nombre..."></label>'
-    . '<label style="text-align:left;">Temporada <select id="seasonFilter" class="select"><option value="">Todas</option>';
+$actions = '<span class="adm-flex-right-wrap-8">'
+    . '<label class="adm-text-left">Filtro rapido <input class="inp" type="text" id="quickFilter" placeholder="Nombre..."></label>'
+    . '<label class="adm-text-left">Temporada <select id="seasonFilter" class="select"><option value="">Todas</option>';
 foreach ($temporadasCatalogo as $t) {
     $actions .= '<option value="' . (int)$t['season_number'] . '">' . h($t['name']) . '</option>';
 }
@@ -231,10 +231,10 @@ admin_panel_open('Capitulos', $actions);
     </thead>
     <tbody></tbody>
 </table>
-<div id="chaptersPager" class="pager" style="justify-content:flex-end;"></div>
+<div id="chaptersPager" class="pager adm-justify-end"></div>
 
 <div class="chap-modal-back" id="chapterModalBack" aria-hidden="true">
-    <div class="chap-modal" style="width:min(980px,96vw)">
+    <div class="chap-modal adm-modal-980">
         <h3 id="chapterModalTitle">Capitulo</h3>
         <form method="post" action="/talim?s=admin_chapters" id="chapterForm">
             <input type="hidden" name="save_chapter" value="1">
@@ -261,21 +261,21 @@ admin_panel_open('Capitulos', $actions);
                 <label>Fecha in-game
                     <input class="inp" type="date" name="in_game_date" id="f_ingame">
                 </label>
-                <label style="grid-column:1/-1">Sinopsis
+                <label class="adm-grid-full">Sinopsis
                     <div>
                         <div id="chapter_synopsis_toolbar" class="ql-toolbar ql-snow">
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="chapter_synopsis_editor" class="ql-container ql-snow"></div>
-                        <textarea class="ta" name="synopsis" id="f_synopsis" rows="8" style="display:none;"></textarea>
+                        <textarea class="ta adm-hidden" name="synopsis" id="f_synopsis" rows="8"></textarea>
                     </div>
                 </label>
             </div>
 
-            <div class="box-like" style="margin-top:12px; border:1px solid #000088; border-radius:10px; padding:10px;">
-                <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+            <div class="box-like adm-box-like">
+                <div class="adm-flex-8-mb8">
                     <strong>Participantes</strong>
-                    <select id="characterSelect" class="select" style="max-width:360px;">
+                    <select id="characterSelect" class="select adm-maxw-360">
                         <option value="">Seleccionar personaje</option>
                         <?php foreach ($personajes as $pj): ?>
                         <option value="<?= (int)$pj['id'] ?>"><?= h($pj['name']) ?> (#<?= (int)$pj['id'] ?><?= $pj['chronicle_name'] !== '' ? ' - "' . h($pj['chronicle_name']) . '"' : '' ?>)</option>
@@ -392,9 +392,9 @@ function renderPendingRelations(){
         box.textContent = 'Sin participantes (se guardaran al crear el capitulo).';
         return;
     }
-    let html = '<ul style="margin:0; padding-left:18px;">';
+    let html = '<ul class="adm-ul-reset">';
     for (const cid of pendingRelationCharacterIds) {
-        html += `<li>${esc(characterLabelById(cid))} <button class="btn btn-red" style="padding:2px 6px; font-size:10px;" type="button" onclick="removePendingRelation(${Number(cid)})">Quitar</button></li>`;
+        html += `<li>${esc(characterLabelById(cid))} <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removePendingRelation(${Number(cid)})">Quitar</button></li>`;
     }
     html += '</ul>';
     box.innerHTML = html;
@@ -447,10 +447,10 @@ async function loadRelations(){
         const data = await postAjax({ action: 'get_relations', chapter_id: currentId });
         if (!data.ok) { box.textContent = 'No se pudieron cargar participantes.'; return; }
         if (!data.data || !data.data.length) { box.textContent = 'Sin participantes.'; return; }
-        let html = '<ul style="margin:0; padding-left:18px;">';
+        let html = '<ul class="adm-ul-reset">';
         for (const rel of data.data) {
             const chron = rel.chronicle_name ? ` - "${rel.chronicle_name}"` : '';
-            html += `<li>${esc(rel.name)} (#${Number(rel.character_id)}${esc(chron)}) <button class="btn btn-red" style="padding:2px 6px; font-size:10px;" type="button" onclick="removeRelation(${Number(rel.id)})">Quitar</button></li>`;
+            html += `<li>${esc(rel.name)} (#${Number(rel.character_id)}${esc(chron)}) <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removeRelation(${Number(rel.id)})">Quitar</button></li>`;
         }
         html += '</ul>';
         box.innerHTML = html;
@@ -513,46 +513,8 @@ renderTable();
 </script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
-<style>
-.chap-modal-back{
-    position: fixed;
-    inset: 0;
-    z-index: 12000;
-    background: rgba(0,0,0,.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 14px;
-}
-.chap-modal{
-    max-height: 92vh;
-    overflow: auto;
-    background: #05014E;
-    border: 1px solid #000088;
-    border-radius: 12px;
-    padding: 12px;
-}
-.ql-toolbar.ql-snow{
-    border:1px solid #000088 !important;
-    background:#050b36 !important;
-    border-radius:8px 8px 0 0;
-}
-.ql-container.ql-snow{
-    border:1px solid #000088 !important;
-    border-top:none !important;
-    background:#000033 !important;
-    color:#fff !important;
-    border-radius:0 0 8px 8px;
-}
-.ql-editor{ min-height:220px; font-size:12px; }
-.ql-snow .ql-stroke{ stroke:#cfe !important; }
-.ql-snow .ql-fill{ fill:#cfe !important; }
-.ql-snow .ql-picker{ color:#cfe !important; }
-.ql-snow .ql-picker-options{
-    background:#050b36 !important;
-    border:1px solid #000088 !important;
-}
-.ql-snow .ql-picker-item{ color:#cfe !important; }
-</style>
-
 <?php admin_panel_close(); ?>
+
+
+
+

@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vincular_tema'])) {
 	}
     $stmt->bind_param("isi", $id_bso, $tipo, $id_obj);
     $stmt->execute();
-    echo "<p style='color:green;'>✅ Relación añadida correctamente.</p>";
+    echo "<p class='adm-admin-ok'>Relacion anadida correctamente.</p>";
 }
 
 // Obtener listas necesarias
@@ -29,9 +29,9 @@ $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY played_dat
 <h2>🔗 Asociar tema musical</h2>
 
 <div class='bioSheetPowers'>
-	<fieldset class='bioSeccion' style="border:0px;">
+	<fieldset class='bioSeccion adm-border-none'>
 		<a href='/talim?s=admin_bso'>
-			<div class='bioSheetPower' style='width:47.5%;'>
+			<div class='bioSheetPower adm-admin-tile'>
 				Gestionar banda sonora
 			</div>
 		</a>
@@ -41,11 +41,11 @@ $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY played_dat
 <form method="POST">
     <input type="hidden" name="vincular_tema" value="1" />
 	<input type="hidden" name="id_objeto" id="id_objeto_final" value="">
-    <fieldset style="max-width:600px;" id="renglonArchivos" style="padding:1em;">
+    <fieldset id="renglonArchivos" class="adm-bso-form-fieldset">
         <legend>➕ Nueva asociación</legend>
 
         <label>Tema musical:</label><br>
-        <select name="id_bso" required style="width:100%;">
+        <select name="id_bso" required class="adm-w-full">
             <option value="">Seleccionar tema</option>
             <?php while ($row = $temas->fetch_assoc()): ?>
                 <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['context_title']) ?></option>
@@ -53,34 +53,34 @@ $episodios = $link->query("SELECT id, name FROM dim_chapters ORDER BY played_dat
         </select><br><br>
 
         <label>Tipo de vínculo:</label><br>
-        <select name="tipo" id="tipoSelector" required style="width:100%;" onchange="mostrarSelector()">
+        <select name="tipo" id="tipoSelector" required class="adm-w-full" onchange="mostrarSelector()">
             <option value="">Seleccionar tipo</option>
             <option value="personaje">Personaje</option>
             <option value="temporada">Temporada</option>
             <option value="episodio">Episodio</option>
         </select><br><br>
 
-        <div id="selectorPersonaje" style="display:none;">
+        <div id="selectorPersonaje" class="adm-hidden">
             <label>Personaje:</label><br>
-            <select id="select_personaje" style="width:100%;"> <!-- sin name -->
+            <select id="select_personaje" class="adm-w-full"> <!-- sin name -->
                 <?php while ($row = $personajes->fetch_assoc()): ?>
                     <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
                 <?php endwhile; ?>
             </select><br><br>
         </div>
 
-        <div id="selectorTemporada" style="display:none;">
+        <div id="selectorTemporada" class="adm-hidden">
             <label>Temporada:</label><br>
-            <select id="select_temporada" style="width:100%;">
+            <select id="select_temporada" class="adm-w-full">
                 <?php while ($row = $temporadas->fetch_assoc()): ?>
                     <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
                 <?php endwhile; ?>
             </select><br><br>
         </div>
 
-        <div id="selectorEpisodio" style="display:none;">
+        <div id="selectorEpisodio" class="adm-hidden">
             <label>Episodio:</label><br>
-            <select id="select_episodio" style="width:100%;">
+            <select id="select_episodio" class="adm-w-full">
                 <?php while ($row = $episodios->fetch_assoc()): ?>
                     <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
                 <?php endwhile; ?>
@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+
 
 
 

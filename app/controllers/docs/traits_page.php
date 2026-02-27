@@ -43,6 +43,7 @@ if ($result->num_rows > 0) {
     setMetaFromPage($traitName . " | Rasgos | Heaven's Gate", meta_excerpt($traitDescription), null, 'article');
 
     include("app/partials/main_nav_bar.php");
+    echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
     ob_start();
 
@@ -53,7 +54,7 @@ if ($result->num_rows > 0) {
 
     echo "  <div class='power-card__body'>";
     echo "    <div class='power-card__media'>";
-    echo "      <img class='power-card__img' style='border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5)' src='img/inv/no-photo.gif' alt='{$traitName}'/>";
+    echo "      <img class='power-card__img power-card__img--framed' src='img/inv/no-photo.gif' alt='{$traitName}'/>";
     echo "    </div>";
     echo "    <div class='power-card__stats'>";
 
@@ -174,7 +175,7 @@ if ($result->num_rows > 0) {
             $puntos = ($value == 1) ? "1 punto" : "{$value} puntos";
 
             echo "<div class='power-card__desc'>";
-            echo "  <div class='power-card__desc-title'><img class='bioAttCircle' src='{$gemSrc}' alt='{$puntos}' style='margin-right:6px;vertical-align:middle;'/>&nbsp;</div>"; /* Personajes con {$puntos} */
+            echo "  <div class='power-card__desc-title'><img class='bioAttCircle bio-att-circle-inline' src='{$gemSrc}' alt='{$puntos}'/>&nbsp;</div>"; /* Personajes con {$puntos} */
             echo "  <div class='power-card__desc-body'>";
             echo "    <div class='grupoBioClan'><div class='contenidoAfiliacion'>";
 
@@ -204,18 +205,6 @@ if ($result->num_rows > 0) {
         echo "<p align='right'>Personajes: {$totalOwners}</p>";
         echo "</section>";
 
-        echo "<script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const tabs = Array.from(document.querySelectorAll('.hgTabBtn'));
-                const panels = Array.from(document.querySelectorAll('.hg-tab-panel'));
-                function activate(key){
-                    panels.forEach(p => p.classList.toggle('active', p.dataset.tab === key));
-                    tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === key));
-                }
-                if (tabs.length) activate(tabs[0].dataset.tab);
-                tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
-            });
-        </script>";
     } else {
         echo $infoHtml;
     }

@@ -41,15 +41,14 @@ $resultOwners = $stmtOwners->get_result();
 
 if ($resultOwners->num_rows === 0) {
 
-    //echo "<p style='text-align:center;'>Ning&uacute;n personaje posee actualmente este objeto.</p>";
+    //echo "<p >Ning&uacute;n personaje posee actualmente este objeto.</p>";
 
 } else {
 
-    echo "<style>.contenidoAfiliacion{ display:flex; flex-wrap:wrap; gap:6px; padding:8px 0 12px 0; }</style>";
     echo "<div class='renglonDonData'>";
     echo "<b>En posesi&oacute;n de:</b>";
     echo "</div>";
-    echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+    echo "<div class='grupoBioClan'><div class='contenidoAfiliacion hg-affiliation-content'>";
     $totalOwners = 0;
 
     while ($rowOwner = $resultOwners->fetch_assoc()) {

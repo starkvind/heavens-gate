@@ -20,7 +20,7 @@
     $stmt->execute();
     $result = $stmt->get_result();
 
-    // 👉 SI HAY OBJETOS
+    // ðŸ‘‰ SI HAY OBJETOS
     if ($result->num_rows > 0) {
         echo "<div class='bioSheetPowers'>"; // Objetos y Fetiches de la Hoja ~~ #SEC13
 		echo "<fieldset class='bioSeccion'><legend>$titleItems</legend>";
@@ -30,7 +30,7 @@
             $tipoItemSelect    = (int)$row['item_type_id'];
 
             // ================================================= //
-            // Elección de icono
+            // ElecciÃ³n de icono
             switch ($tipoItemSelect) {
                 case 1:
                     $iconoItemSelect = "img/ui/icons/icon_machete.png";
@@ -56,7 +56,7 @@
             echo "
                 <a href='" . htmlspecialchars(('/inventory/' . ($row['tipo_pretty'] ?? $tipoItemSelect) . '/' . (get_pretty_id($link, 'fact_items', (int)$itemIdSelect) ?: $itemIdSelect))) . "' target='_blank' class='hg-tooltip' data-tip='item' data-id='{$itemIdSelect}'>
                     <div class='bioSheetPower'>
-                        <img class='valign' style='width:13px; height:13px;' src='{$iconoItemSelect}'>
+                        <img class='valign bio-inline-icon' src='{$iconoItemSelect}'>
                         {$nombreItemSelect}
                     </div>
                 </a>
@@ -68,4 +68,5 @@
     }
     $stmt->close();
 ?>
+
 

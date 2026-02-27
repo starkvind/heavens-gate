@@ -1,75 +1,68 @@
 <?php
-    // Consulta directa al bridge
-    $sql = "
-        SELECT
-            nmd.id,
-            nmd.name,
-            nmd.kind,
-            nmd.cost,
-            b.level
-        FROM bridge_characters_merits_flaws b
-        JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
-        WHERE b.character_id = ?
-        ORDER BY nmd.kind DESC, nmd.cost, nmd.name
-    ";
+// Consulta directa al bridge
+$sql = "
+    SELECT
+        nmd.id,
+        nmd.name,
+        nmd.kind,
+        nmd.cost,
+        b.level
+    FROM bridge_characters_merits_flaws b
+    JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
+    WHERE b.character_id = ?
+    ORDER BY nmd.kind DESC, nmd.cost, nmd.name
+";
 
-    $stmt = $link->prepare($sql);
-    $stmt->bind_param('i', $characterId);
-    $stmt->execute();
-    $result = $stmt->get_result();
+$stmt = $link->prepare($sql);
+$stmt->bind_param('i', $characterId);
+$stmt->execute();
+$result = $stmt->get_result();
 
-    echo "<div class='bioSheetMeritFlaws'>";
-    echo "<fieldset class='bioSeccion'><legend>$titleMerits</legend>";
+echo "<div class='bioSheetMeritFlaws'>";
+echo "<fieldset class='bioSeccion'><legend>$titleMerits</legend>";
 
-    // 👉 SI NO HAY MÉRITOS / DEFECTOS
-    if ($result->num_rows === 0) {
+if ($result->num_rows === 0) {
+    echo "<p class='bio-empty-note'>Este personaje no posee Meritos o Defectos</p>";
+} else {
+    while ($row = $result->fetch_assoc()) {
+        $meritId = (int)$row['id'];
+        $nameMerit = htmlspecialchars((string)$row['name'], ENT_QUOTES, 'UTF-8');
+        $typeMeritRaw = (string)($row['kind'] ?? '');
+        $costMerit = $row['cost'];
+        $lvlMerit = $row['level'];
 
-        echo "<p style='text-align:center;'>Este personaje no posee Méritos o Defectos</p>";
+        $labelNivel = ($lvlMerit !== null) ? $lvlMerit : $costMerit;
 
-    } else {
-
-        // 👉 SI HAY MÉRITOS / DEFECTOS
-        while ($row = $result->fetch_assoc()) {
-            $meritId   = (int)$row['id'];
-            $nameMerit = htmlspecialchars($row['name']);
-            $typeMerit = htmlspecialchars($row['kind']);
-            $costMerit = $row['cost'];
-            $lvlMerit  = $row['level'];
-
-            if ($lvlMerit !== null) {
-                $labelNivel = $lvlMerit;
-            } else {
-                $labelNivel = $costMerit;
-            }
-
-            switch ($typeMerit) {
-                case "Méritos":
-                    $meritIcon = "img/ui/icons/icon_merit.png";
-                    break;
-                case "Defectos":
-                    $meritIcon = "img/ui/icons/icon_flaw.png";
-                    break;
-                default:
-                    $meritIcon = "img/ui/icons/default.jpg";
-                    break;
-            }
-
-            echo "
-                <a href='/rules/merits-flaws/{$meritId}' target='_blank' class='hg-tooltip' data-tip='merit' data-id='{$meritId}'>
-                    <div class='bioSheetMeritFlaw'>
-                        <img class='valign' style='width:13px; height:13px;' src='{$meritIcon}'>
-                        {$nameMerit}
-                        <div style='float:right;font-size:8px;padding-top:2px;'>{$labelNivel}</div>
-                    </div>
-                </a>
-            ";
+        // Normaliza el tipo para evitar problemas de encoding.
+        $kindKey = strtolower(trim($typeMeritRaw));
+        if (function_exists('iconv')) {
+            $tmp = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $kindKey);
+            if ($tmp !== false) $kindKey = strtolower($tmp);
         }
+        $kindKey = preg_replace('/[^a-z]+/', '', $kindKey);
+
+        if ($kindKey === 'mritos' || strpos($kindKey, 'merit') !== false) {
+            $meritIcon = "img/ui/icons/icon_merit.png";
+        } elseif ($kindKey === 'defectos' || strpos($kindKey, 'defect') !== false || strpos($kindKey, 'flaw') !== false) {
+            $meritIcon = "img/ui/icons/icon_flaw.png";
+        } else {
+            $meritIcon = "img/ui/icons/default.jpg";
+        }
+
+        echo "
+            <a href='/rules/merits-flaws/{$meritId}' target='_blank' class='hg-tooltip' data-tip='merit' data-id='{$meritId}'>
+                <div class='bioSheetMeritFlaw'>
+                    <img class='valign bio-inline-icon' src='{$meritIcon}' alt='Tipo de merito'>
+                    {$nameMerit}
+                    <div class='bio-inline-level'>{$labelNivel}</div>
+                </div>
+              </a>
+        ";
     }
+}
 
-    $stmt->close();
+$stmt->close();
 
-    echo "</fieldset>";
-    echo "</div>";
+echo "</fieldset>";
+echo "</div>";
 ?>
-
-

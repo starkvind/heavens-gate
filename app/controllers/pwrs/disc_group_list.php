@@ -43,7 +43,7 @@ while ($row = $result->fetch_assoc()) {
            title='" . htmlspecialchars($row["name"]) . ", Nivel " . htmlspecialchars($row["level"]) . " de $routeLabel'>
             <div class='renglon2col'>
                 <div class='renglon2colIz'>
-                    <img class='valign' src='img/ui/powers/fangs.png'> " . htmlspecialchars($row["name"]) . "
+                    <img class='valign' src='img/ui/icons/icon_fangs.png'> " . htmlspecialchars($row["name"]) . "
                 </div>
                 <div class='renglon2colDe'>" . htmlspecialchars($row["level"]) . "</div>
             </div>

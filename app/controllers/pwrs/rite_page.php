@@ -201,18 +201,6 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
             echo "</section>";
         }
 
-        echo "<script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const tabs = Array.from(document.querySelectorAll('.hgTabBtn'));
-                const panels = Array.from(document.querySelectorAll('.hg-tab-panel'));
-                function activate(key){
-                    panels.forEach(p => p.classList.toggle('active', p.dataset.tab === key));
-                    tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === key));
-                }
-                if (tabs.length) activate(tabs[0].dataset.tab);
-                tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
-            });
-        </script>";
     } else {
         echo $infoHtml;
     }

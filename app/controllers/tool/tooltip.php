@@ -256,10 +256,10 @@ if ($type === 'don') {
 
 if ($outTitle === '') { echo '<div class="hg-tip">No disponible</div>'; exit; }
 
-echo "<div class='hg-tip' style='display:flex; gap:8px; align-items:flex-start;'>";
+echo "<div class='hg-tip hg-tip-row'>";
 	if ($outImg !== '') {
 		$imgSrc = h($outImg);
-		echo "<div class='hg-tip-media'><img src=\"{$imgSrc}\" alt=\"" . h($outImgAlt) . "\" style=\"width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #003399;\"></div>";
+		echo "<div class='hg-tip-media'><img src=\"{$imgSrc}\" alt=\"" . h($outImgAlt) . "\" class=\"hg-tip-thumb\"></div>";
 	}
 	echo "<div class='hg-tip-body'>";
 	echo "<div class='hg-tip-title'>" . h($outTitle) . "</div>";
@@ -279,4 +279,3 @@ echo "<div class='hg-tip' style='display:flex; gap:8px; align-items:flex-start;'
 	echo "</div>";
 echo "</div>";
 ?>
-

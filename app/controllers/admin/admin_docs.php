@@ -381,98 +381,6 @@ function ui_short(string $s, int $n=120): string {
     return mb_substr($s,0,$n).'…';
 }
 ?>
-<style>
-.panel-wrap { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.hdr { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-.hdr h2 { margin:0; color:#33FFFF; font-size:16px; }
-.tabs { display:flex; gap:8px; flex-wrap:wrap; }
-.tablnk{ display:inline-block; padding:6px 10px; border:1px solid #000088; background:#050b36; color:#cfe; border-radius:999px; text-decoration:none; font-size:12px; }
-.tablnk.active{ background:#001199; color:#33FFFF; }
-.btn { background:#0d3a7a; color:#fff; border:1px solid #1b4aa0; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-.btn:hover { filter:brightness(1.1); }
-.btn-green { background:#0d5d37; border-color:#168f59; }
-.btn-red { background:#6b1c1c; border-color:#993333; }
-.inp { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; border-radius:6px; }
-.select { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; border-radius:6px; }
-.table { width:100%; border-collapse:collapse; font-size:11px; font-family:Verdana,Arial,sans-serif; }
-.table th, .table td { border:1px solid #000088; padding:6px 8px; background:#05014E; white-space:nowrap; vertical-align:top; }
-.table th { background:#050b36; color:#33CCCC; text-align:left; }
-.table tr:hover td { background:#000066; color:#33FFFF; }
-.flash { margin:6px 0; }
-.flash .ok{ color:#7CFC00; } .flash .err{ color:#FF6B6B; } .flash .info{ color:#33FFFF; }
-.pager{ display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; }
-.pager a, .pager span { display:inline-block; padding:4px 8px; border:1px solid #000088; background:#05014E; color:#eee; text-decoration:none; border-radius:6px; }
-.pager .cur { background:#001199; }
-.small{ font-size:10px; color:#9dd; }
-.badge{ display:inline-block; padding:2px 8px; border:1px solid #1b4aa0; background:#00135a; color:#cfe; border-radius:999px; font-size:10px; }
-.modal-back { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:9999; padding:14px; box-sizing:border-box; }
-.modal { width:min(1100px,96vw); max-height:92vh; overflow:hidden; background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; display:flex; flex-direction:column; }
-.modal h3{ margin:0 0 8px; color:#33FFFF; }
-
-.modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
-#formCrud{ display:flex; flex-direction:column; flex:1; min-height:0; }
-
-/* âœ… Grid del modal: 2 columnas + campo "full width" */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2, minmax(280px, 1fr));
-  gap:10px 12px;
-}
-.grid .field-full{ grid-column:1 / -1; }
-
-.grid label{ font-size:12px; color:#cfe; display:block; text-align:left; }
-.grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
-textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
-.ta-source{ min-height:48px; }
-.modal-actions{ position:sticky; bottom:0; display:flex; gap:10px; justify-content:flex-end; padding:10px 0 0; margin-top:10px; background:linear-gradient(to top, rgba(5,1,78,1), rgba(5,1,78,0)); border-top:1px solid #000088; }
-
-@media (max-width:750px){ .grid{ grid-template-columns:1fr; } }
-
-/* ---- Quill (adaptado a tu tema oscuro) ---- */
-.ql-toolbar.ql-snow{
-  border:1px solid #000088 !important;
-  background:#050b36 !important;
-  border-radius:8px 8px 0 0;
-}
-.ql-container.ql-snow{
-  border:1px solid #000088 !important;
-  border-top:none !important;
-  background:#000033 !important;
-  color:#fff !important;
-  border-radius:0 0 8px 8px;
-}
-.ql-editor{ min-height:260px; font-size:12px; }
-.ql-snow .ql-stroke{ stroke:#cfe !important; }
-.ql-snow .ql-fill{ fill:#cfe !important; }
-.ql-snow .ql-picker{ color:#cfe !important; }
-
-.ql-snow .ql-picker-options{
-  background:#050b36 !important;
-  border:1px solid #000088 !important;
-}
-.ql-snow .ql-picker-item{
-  color:#cfe !important;
-}
-
-
-/* ✅ Toolbar útil: scroll dentro del editor (no dependemos del scroll del modal) */
-.wys-wrap { width:100%; }
-.wys-wrap .ql-toolbar.ql-snow{
-  position: static !important;
-  top: auto !important;
-  z-index: 1;
-}
-.wys-wrap .ql-container.ql-snow{
-  height: min(60vh, 560px);
-  overflow: hidden;
-}
-.wys-wrap .ql-editor{
-  height:100%;
-  overflow-y:auto;
-  padding-bottom:80px;
-}
-</style>
-
 <div class="panel-wrap">
   <div class="hdr">
     <h2>🧩 CRUD — <?= h(ui_title($tab)) ?></h2>
@@ -488,14 +396,14 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 
     <button class="btn btn-green" id="btnNew">➕ Nuevo</button>
 
-    <form method="get" style="display:flex; gap:8px; align-items:center; margin-left:auto;">
+    <form method="get" class="adm-flex-right-8">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_docs_crud') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
         <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título…':'Sección…' ?>">
       </label>
-      <label class="small" style="margin-left:auto; text-align:left;">Filtro rápido
+      <label class="small adm-ml-auto-left">Filtro rápido
         <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta página...">
       </label>
       <label class="small">Por p&aacute;g
@@ -522,9 +430,9 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
-          <th style="width:<?= (int)($c['w'] ?? 120) ?>px;"><?= h($c['label']) ?></th>
+          <th width="<?= (int)($c['w'] ?? 120) ?>"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
-        <th style="width:190px;">Acciones</th>
+        <th class="adm-w-190">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -544,7 +452,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
           ?>
             <td>
               <?php if ($k === 'id'): ?>
-                <strong style="color:#33FFFF;"><?= (int)$r[$pk] ?></strong>
+                <strong class="adm-color-accent"><?= (int)$r[$pk] ?></strong>
               <?php elseif (str_has($k,'_name')): ?>
                 <?= $val !== '' ? h($val) : '<span class="small">(—)</span>' ?>
               <?php else: ?>
@@ -559,7 +467,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
         </tr>
       <?php endforeach; ?>
       <?php if (empty($rows)): ?>
-        <tr><td colspan="<?= count($META['list_cols'])+1 ?>" style="color:#bbb;">(Sin resultados)</td></tr>
+        <tr><td colspan="<?= count($META['list_cols'])+1 ?>" class="adm-color-muted">(Sin resultados)</td></tr>
       <?php endif; ?>
     </tbody>
   </table>
@@ -578,7 +486,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
     <a href="<?= $base ?>&pg=<?= $pages ?>">Último »</a>
   </div>
 
-  <div class="small" style="margin-top:8px;">
+  <div class="small adm-mt-8">
     Nota: el campo Texto (Documentos) guarda HTML. El listado recorta para no romper la tabla.
   </div>
 </div>
@@ -588,7 +496,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle">Nuevo</h3>
 
-    <form method="post" id="formCrud" style="margin:0;">
+    <form method="post" id="formCrud" class="adm-m-0">
       <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="crud_tab" id="crud_tab" value="<?= h($tab) ?>">
       <input type="hidden" name="crud_action" id="crud_action" value="create">
@@ -608,15 +516,15 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 
 <!-- Modal Delete -->
 <div class="modal-back" id="mbDel">
-  <div class="modal" style="width:min(560px,96vw);">
+  <div class="modal adm-modal-sm">
     <h3>Confirmar borrado</h3>
-    <div style="color:#cfe; font-size:12px; line-height:1.4; margin-bottom:10px;">
+    <div class="adm-help-text">
       Esto eliminará el registro definitivamente.
       <?php if ($tab==='sections'): ?>
       <div class="small">Si la sección contiene documentos, el sistema lo impedirá.</div>
       <?php endif; ?>
     </div>
-    <form method="post" id="formDel" style="margin:0;">
+    <form method="post" id="formDel" class="adm-m-0">
       <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="crud_tab" value="<?= h($tab) ?>">
       <input type="hidden" name="crud_action" value="delete">
@@ -970,6 +878,9 @@ function syncEditorsToTextarea(){
   });
 })();
 </script>
+
+
+
 
 
 

@@ -328,64 +328,8 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
 <link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css">
 <link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css">
 <script src="/assets/vendor/leaflet/markercluster/leaflet.markercluster.1.5.3.js"></script>
-
-<link rel="stylesheet" href="/assets/vendor/datatables/jquery.dataTables.min.css">
-<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
-
-<style>
-	#hg-map { 
-		box-shadow: 0 3px 6px rgba(0,0,0,0.05); 
-		height: 70vh; 
-		width: 100%; 
-		border: none; 
-		background-color: #05014E; 
-		position: relative; 
-	}
-
-	.map-toolbar { float: right; margin-bottom: 6px; }
-	.map-toolbar .boton2 { margin-left: 4px; }
-
-	.map-toolbar {
-	  display: flex;
-	  flex-wrap: wrap;
-	  align-items: center;
-	  gap: 6px;
-	  margin-bottom: 6px;
-	}
-
-	.map-toolbar input[type="text"]{ 
-		background:#000066; 
-		color:#fff; 
-		border:1px solid #000099; 
-		padding:2px; 
-		flex: 0 0 180px;
-	}
-
-	.map-thumb { 
-		width: 200px; 
-		height: auto; 
-		border:1px solid #009; 
-		margin: 6px 0; 
-		display:block; 
-		background:#000055;
-	}
-
-	.leaflet-container a { color:#66CCFF; }
-
-	.emoji-marker { 
-		font-size:16px; 
-		line-height:16px; 
-		width:18px; 
-		height:18px; 
-		display:flex; 
-		align-items:center; 
-		justify-content:center; 
-		filter: drop-shadow(0 0 4px rgba(0,255,200,.6)); 
-	}
-
-	#btnClear { display: none; }
-</style>
+<link rel="stylesheet" href="/assets/css/hg-maps.css">
+<?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2>Mapas interactivos</h2>
 
@@ -397,15 +341,15 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
       <button class="boton2" id="btnFullscreen">🖥️ Aumentar</button>
       <button class="boton2" id="btnRecenter">🎯 Centrar</button>
       <button class="boton2" id="btnSearch">🔎</button>
-      <input type="text" id="poiSearch" placeholder="nombre, descripción..." style="width:180px;">
+      <input type="text" id="poiSearch" class="map-search-input" placeholder="nombre, descripción...">
       <button class="boton2" id="btnClear">♻️ Limpiar</button>
     </div>
 
     <div id="hg-map"></div>
 	
-	<h3 style="margin-top:1em;">Lista de lugares</h3>
-	<div style="overflow-x:auto;">
-	  <table id="tabla-pois" class="display" style="width:100%">
+	<h3 class="map-poi-title">Lista de lugares</h3>
+	<div class="map-table-wrap">
+	  <table id="tabla-pois" class="display map-poi-table">
 		<thead>
 		  <tr>
 			<th>Nombre</th>
@@ -418,8 +362,8 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
 	</div>
 
 	
-    <div class="map-toolbar" style="margin-top:2em; margin-bottom:6px;">
-      <form method="get" style="display:inline;">
+    <div class="map-toolbar map-toolbar-spaced">
+      <form method="get" class="map-form-inline">
         <input type="hidden" name="p" value="maps">
         <label for="mapSel">Mapa:</label>
         <select name="map" id="mapSel">
@@ -432,7 +376,7 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
             </option>
           <?php endforeach; ?>
         </select>
-        <button style="display: none;" type="submit" class="boton2" id="btnGo">Ir</button>
+        <button class="boton2 map-go-hidden" type="submit" id="btnGo">Ir</button>
 
         <?php if ($cats): ?>
           &nbsp;&nbsp;<label for="catSel">Categoría:</label>
@@ -493,7 +437,7 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
       const p = feature.properties || {};
       const name = escapeHtml(p.name || 'Área');
       const cat  = escapeHtml(p.category_name || '');
-      const desc = p.description ? `<div style="max-width:260px;">${escapeHtml(p.description)}</div>` : '';
+      const desc = p.description ? `<div class="map-popup-desc">${escapeHtml(p.description)}</div>` : '';
       layer.bindPopup(`<b>${name}</b><br><small>${cat}</small><br>${desc}`);
       layer.on('mouseover', () => layer.setStyle({ weight:3, fillOpacity:0.28 }));
       layer.on('mouseout',  () => layer.setStyle({ weight:2, fillOpacity:0.20 }));
@@ -543,8 +487,8 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
 
 		const m  = L.marker(ll, { icon });
 		const thumb = p.thumbnail ? `<img class="map-thumb" src="${p.thumbnail}" alt="">` : '';
-		const desc  = p.description ? `<div style="max-width:260px;">${escapeHtml(p.description)}</div>` : '';
-		const link  = `<div style="margin-top:6px;display:none;"><a class="infoLink" href="/maps/poi/${p.id}" target="_blank" rel="noopener">➡️ Ver detalle</a></div>`;
+		const desc  = p.description ? `<div class="map-popup-desc">${escapeHtml(p.description)}</div>` : '';
+		const link  = `<div class="map-popup-link"><a class="infoLink" href="/maps/poi/${p.id}" target="_blank" rel="noopener">➡️ Ver detalle</a></div>`;
 		m.bindPopup(`<b>${escapeHtml(p.name)}</b><br><small>${escapeHtml(p.category_name||'')}</small><br>${thumb}${desc}${link}`);
 		m.on('click', () => map.flyTo(ll, Math.max(map.getZoom(), 14), { duration: 0.6 }));
 
@@ -717,3 +661,4 @@ $initialAreasJson = json_encode($initialAreas, JSON_UNESCAPED_UNICODE | JSON_UNE
 
 })();
 </script>
+

@@ -1,15 +1,6 @@
 <?php
 // NUEVO (bridge_characters_traits)
 // Habilidades por columnas: Talentos, Técnicas, Conocimientos
-echo "<style>
-.bioSkillNameCell{
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.bioSheetAttrLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
-.bioSheetAttrLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
-</style>";
 $tal = array_values(array_filter($bioSkillCols['Talentos'] ?? [], function($t){
     return isset($t['name']) && $t['name'] !== '';
 }));
@@ -163,7 +154,7 @@ if (!isset($bioSkilImg)) {
 }
 
 // LEGACY (backup)
-// echo "<div style='clear:both; height:8px;'></div>";
-// echo "<div class='bioSheetSectionLeft' style='width:100%; text-align:left; color:#9ff;'>Legacy</div>";
+// echo "<div ></div>";
+// echo "<div class='bioSheetSectionLeft' >Legacy</div>";
 // include __DIR__ . '/bio_page_section_06_skills.php.bak';
 ?>

@@ -1,0 +1,181 @@
+:root {
+    --palette: #222;
+}
+
+body.hg-embed-message {
+    margin: 0;
+}
+
+.msg_main_box {
+    display: flex;
+    align-items: start;
+    border-radius: 12px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 14px;
+    max-width: 750px;
+    margin: 1em;
+    gap: 0.2em;
+}
+
+.img_link {
+    z-index: 12;
+}
+
+.msg_face {
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border: 2px solid #333;
+    margin-right: -3em;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.msg_face:hover {
+    border-color: #aaa;
+    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.msg_body {
+    flex: 1;
+    background: var(--palette);
+    border-radius: 8px;
+    border: 1px solid #333;
+    padding: 0.75em 1em;
+    position: relative;
+    box-shadow: 2px 2px 6px rgba(221, 221, 221, 0.5);
+    color: #000;
+}
+
+.dark-text {
+    color: #fff;
+}
+
+.light-text {
+    color: #000;
+}
+
+.msg_name_box {
+    position: absolute;
+    top: -1em;
+    left: 3em;
+    border: 1px solid #333;
+    background: #444;
+    color: #fff;
+    padding: 0.25em 0.5em;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.msg_container {
+    margin: 0;
+    padding-left: 2.5em;
+    padding-top: 0.5em;
+    line-height: 1.5em;
+    min-height: calc(1.5em * 2.5);
+}
+
+.msg_container--plain {
+    padding-top: 0;
+}
+
+.msg_container a {
+    color: #0055cc;
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px dashed #aaa;
+    transition: all 0.25s ease-in-out;
+}
+
+.msg_container a:hover {
+    color: #003399;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid #ccc;
+    box-shadow: 0 0 6px rgba(100, 100, 255, 0.4);
+    padding: 0.1em 0.2em;
+    border-radius: 4px;
+}
+
+.hg-bb-align-left {
+    text-align: left;
+}
+
+.hg-bb-align-center {
+    text-align: center;
+}
+
+.hg-bb-align-right {
+    text-align: right;
+}
+
+body.hg-embed-roll {
+    font-family: 'Quicksand', sans-serif;
+    color: #fff;
+    margin: 0;
+    padding: 1em;
+    box-sizing: border-box;
+}
+
+.roll-box {
+    background-color: var(--palette);
+    padding: 1em;
+    max-width: 600px;
+    border: 1px solid #666;
+    text-align: center;
+}
+
+.roll-box-name {
+    position: absolute;
+    top: 0;
+    left: 3em;
+    border: 1px solid #333;
+    background: #444;
+    color: #fff;
+    padding: 0.25em 0.5em;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.roll-head {
+    margin-top: 1.5em;
+}
+
+.roll-results {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 1em;
+}
+
+.dado {
+    --die-color: #5ff;
+    width: 40px;
+    height: 40px;
+    background: url('../../img/ui/dice/dado_d10.png') center/contain no-repeat;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: bold;
+    border-radius: 4px;
+    filter: drop-shadow(0 0 3px var(--die-color));
+}
+
+.dado span {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-weight: bold;
+    color: var(--die-color);
+}
+
+.roll-botch {
+    color: #f55;
+}
+

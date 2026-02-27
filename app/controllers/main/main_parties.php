@@ -107,8 +107,9 @@ mysqli_free_result($resChanges);
 ?>
 
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="/assets/css/hg-main.css">
 
-<h2 style="text-align:right;">Grupos en activo</h2>
+<h2 class="main-right-title">Grupos en activo</h2>
 
 <?php foreach ($parties as $party): ?>
 <div class="plot-box">
@@ -217,122 +218,3 @@ mysqli_free_result($resChanges);
     });
   });
 </script>
-
-<style>
-	.plot-box {
-		margin-bottom: 1.5em;
-		border: 1px solid #004;
-		border-radius: 8px;
-		padding: 0.5em;
-		background: #111133;
-	}
-	.plot-title {
-		cursor: pointer;
-		margin: 0;
-		padding: 0.5em;
-		background: #222266;
-		color: #fff;
-		border-radius: 6px;
-	}
-	.characters-grid {
-		display: flex;
-		flex-wrap: wrap;       /* permite que salten de línea */
-		gap: 1em;              /* espacio entre tarjetas */
-		padding: 0.25em;
-	}
-	.plot-info {
-		color:#ccc;
-		padding-left: 1em;
-		padding-right: 1em;
-		text-align: left;
-	}
-
-	.char-hud {
-		display: flex;
-		flex-direction: row;
-		align-items: flex-start;
-		background: #222244;
-		border: 1px solid #004;
-		border-radius: 10px;
-		padding: 0.5em;
-		width: 45%;            /* ~mitad del ancho para 2 por fila */
-		box-sizing: border-box; /* padding/border no rompan el % */
-	}
-	.char-left {
-		margin-right: 1em;
-	}
-	.char-avatar {
-		width: 80px;
-		height: 80px;
-		border-radius: 50%;
-		border: 1px solid #000;
-		object-fit: cover;
-	}
-	.char-avatar:hover {
-		border: 1px solid #028;
-	}
-	.char-right {
-		flex: 1;
-	}
-	.char-name {
-		font-weight: bold;
-		color: #eee;
-		margin-bottom: 0.5em;
-	}
-	.bar {
-		background: #333;
-		border-radius: 5px;
-		height: 14px;
-		margin: 0.3em 0;
-		position: relative;
-		overflow: hidden;
-	}
-	.bar-label {
-		position: absolute;
-		left: 5px;
-		top: 2px;
-		font-size: 0.7em;
-		color: #fff;
-		z-index: 2;
-		text-shadow: 0 0 3px #000;
-	}
-	.bar-value {
-		position: absolute;
-		right: 5px;
-		top: 2px;
-		font-size: 0.7em;
-		color: #fff;
-		z-index: 2;
-		text-shadow: 0 0 3px #000;  
-	}
-	.bar-fill {
-		height: 100%;
-		border-radius: 5px;
-		transition: width .25s ease; /* animación suave */
-		z-index: 1;
-		position: relative;
-	}
-	.hp { background: #cc3333; }
-	.rage { background: #ff5555; }
-	.gnosis { background: #34B48F; }
-	.blood { background: #990000; }
-	.willpower {
-		margin-top: 0.5em;
-	}
-	.glamour { background:#cc66ff; }
-	.mana { background:#44bbff; }
-	.wp-dot {
-		display: inline-block;
-		width: 8px;
-		height: 8px;
-		margin: 2px 1px;
-		border-radius: 50%;
-		background: #3399ff; /* puntos activos (azules) */
-		border: 1px solid #0066dd;
-	}
-	.wp-dot.empty {
-		background: #000; /* puntos gastados (negros) */
-		border: 1px solid #222; /* opcional, para que se distingan mejor */
-	}
-
-</style>

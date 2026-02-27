@@ -230,7 +230,7 @@ while ($r = $rsL->fetch_assoc()) {
 }
 $stL->close();
 
-$actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
+$actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" id="btnNewTrait">+ Nuevo trait</button>'
     . '</span>';
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
@@ -246,7 +246,7 @@ admin_panel_open('Traits', $actions);
 </div>
 <?php endif; ?>
 
-<form method="get" id="traitsFilterForm" style="display:flex; gap:8px; align-items:center; margin:10px 0;">
+<form method="get" id="traitsFilterForm" class="adm-flex-8-m10">
     <input type="hidden" name="s" value="admin_traits">
     <label class="small">Búsqueda
         <input class="inp" type="text" name="q" id="quickFilterTraits" value="<?= h($q) ?>" placeholder="Nombre, tipo o clasificacion (realtime en todo el set)">
@@ -264,12 +264,12 @@ admin_panel_open('Traits', $actions);
 <table class="table" id="tablaTraits">
     <thead>
         <tr>
-            <th style="width:70px;">ID</th>
-            <th style="width:260px;">Nombre</th>
-            <th style="width:180px;">Tipo</th>
-            <th style="width:180px;">Clasificacion</th>
-            <th style="width:180px;">Origen</th>
-            <th style="width:170px;">Acciones</th>
+            <th class="adm-w-70">ID</th>
+            <th class="adm-w-260">Nombre</th>
+            <th class="adm-w-180">Tipo</th>
+            <th class="adm-w-180">Clasificacion</th>
+            <th class="adm-w-180">Origen</th>
+            <th class="adm-w-170">Acciones</th>
         </tr>
     </thead>
     <tbody id="traitsTbody">
@@ -279,7 +279,7 @@ admin_panel_open('Traits', $actions);
             else { $search = strtolower($search); }
         ?>
         <tr data-search="<?= h($search) ?>">
-            <td><strong style="color:#33FFFF;"><?= (int)$r['id'] ?></strong></td>
+            <td><strong class="adm-color-accent"><?= (int)$r['id'] ?></strong></td>
             <td><?= h((string)$r['name']) ?></td>
             <td><?= h((string)$r['kind']) ?></td>
             <td><?= h((string)$r['classification']) ?></td>
@@ -291,7 +291,7 @@ admin_panel_open('Traits', $actions);
         </tr>
         <?php endforeach; ?>
         <?php if (empty($rows)): ?>
-        <tr><td colspan="6" style="color:#bbb;">(Sin resultados)</td></tr>
+        <tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
     </tbody>
 </table>
@@ -312,7 +312,7 @@ admin_panel_open('Traits', $actions);
 <div class="modal-back" id="mbTrait">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="traitModalTitle">
         <h3 id="traitModalTitle">Nuevo trait</h3>
-        <form method="post" id="traitForm" style="margin:0;">
+        <form method="post" id="traitForm" class="adm-m-0">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="crud_action" id="trait_action" value="create">
             <input type="hidden" name="id" id="trait_id" value="0">
@@ -368,12 +368,12 @@ admin_panel_open('Traits', $actions);
 </div>
 
 <div class="modal-back" id="mbTraitDel">
-    <div class="modal" style="width:min(560px,96vw);">
+    <div class="modal adm-modal-sm">
         <h3>Confirmar borrado</h3>
-        <div style="color:#cfe; font-size:12px; line-height:1.4; margin-bottom:10px;">
+        <div class="adm-help-text">
             Se eliminara el trait definitivamente.
         </div>
-        <form method="post" id="traitDelForm" style="margin:0;">
+        <form method="post" id="traitDelForm" class="adm-m-0">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="crud_action" value="delete">
             <input type="hidden" name="id" id="trait_del_id" value="0">
@@ -384,48 +384,6 @@ admin_panel_open('Traits', $actions);
         </form>
     </div>
 </div>
-
-<style>
-.grid{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(280px, 1fr));
-    gap:10px 12px;
-}
-.grid label{ font-size:12px; color:#cfe; display:block; text-align:left; }
-.grid input, .grid select, .grid textarea{ width:100%; box-sizing:border-box; }
-.field-full{ grid-column:1 / -1; }
-.ta-lg{ min-height:180px; resize:vertical; }
-.ta-md{ min-height:120px; resize:vertical; }
-#mbTrait.modal-back,
-#mbTraitDel.modal-back{
-    position:fixed; inset:0; background:rgba(0,0,0,.6);
-    display:none; align-items:center; justify-content:center;
-    z-index:9999; padding:14px; box-sizing:border-box;
-}
-#mbTrait .modal{
-    position:relative; inset:auto;
-    width:min(1100px,96vw); max-height:92vh; overflow:auto;
-    background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px;
-}
-#mbTraitDel .modal{
-    position:relative; inset:auto;
-    width:min(560px,96vw); max-height:92vh; overflow:auto;
-    background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px;
-}
-.badge{
-    display:inline-block; padding:2px 8px; border:1px solid #1b4aa0;
-    background:#00135a; color:#cfe; border-radius:999px; font-size:10px;
-}
-.pager{ display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; }
-.pager a, .pager span{
-    display:inline-block; padding:4px 8px; border:1px solid #000088;
-    background:#05014E; color:#eee; text-decoration:none; border-radius:6px;
-}
-.pager .cur{ background:#001199; }
-@media (max-width: 760px){
-    .grid{ grid-template-columns:1fr; }
-}
-</style>
 
 <script>
 var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -584,13 +542,13 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
     function renderRows(rows, rowMap){
         TRAITS = rowMap || {};
         if (!rows || !rows.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="color:#bbb;">(Sin resultados)</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>';
             return;
         }
         var html = '';
         rows.forEach(function(r){
             html += '<tr>'
-                + '<td><strong style="color:#33FFFF;">'+(parseInt(r.id || 0, 10) || 0)+'</strong></td>'
+                + '<td><strong class="adm-color-accent">'+(parseInt(r.id || 0, 10) || 0)+'</strong></td>'
                 + '<td>'+esc(r.name)+'</td>'
                 + '<td>'+esc(r.kind)+'</td>'
                 + '<td>'+esc(r.classification)+'</td>'
@@ -647,3 +605,6 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
 })();
 </script>
 <?php admin_panel_close(); ?>
+
+
+

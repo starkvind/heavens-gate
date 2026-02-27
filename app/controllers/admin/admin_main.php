@@ -17,6 +17,10 @@
 		if (isset($_GET['ajax']) && $_GET['ajax'] === '1' && isset($_GET['s'])) {
 			$seccionAjax = htmlspecialchars($_GET['s']);
 			switch ($seccionAjax) {
+				case 'admin_pjs': // legacy alias
+				case 'admin_characters':
+					include("admin_characters.php");
+					break;
 				case 'admin_epis': // legacy alias
 				case 'admin_chapters':
 					include("admin_chapters.php");
@@ -46,14 +50,16 @@
 		}
 
 		/* MODERNO NUEVO */
-		include(__DIR__ . "/../../partials/main_nav_bar.php");	// Barra Navegación
+		include(__DIR__ . "/../../partials/main_nav_bar.php");	// Barra Navegacion
+		echo '<link rel="stylesheet" href="/assets/css/hg-admin.css">';
 		// Si hay parámetro "s", incluimos la sección correspondiente
 		if (isset($_GET['s'])) {
 			$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
 
 			switch ($seccion) {
-				case 'admin_pjs':
-					include("admin_pjs.php");
+				case 'admin_pjs': // legacy alias
+				case 'admin_characters':
+					include("admin_characters.php");
 					break;
 				case 'admin_avatar_mass':
 					include("admin_avatar_mass.php");
@@ -87,8 +93,9 @@
 				case 'admin_gallery':
 					include("admin_gallery.php");
 					break;
-				case 'admin_plots':
-					include("admin_plots_crud.php");
+				case 'admin_plots': // legacy alias
+				case 'admin_parties':
+					include("admin_parties.php");
 					break;
 				case 'admin_powers':
 					include("admin_powers.php");
@@ -145,7 +152,7 @@
 					include("admin_logout.php");
 					break;
 				default:
-					echo "<p style='color:red;'>⚠ Sección no reconocida.</p>";
+					echo "<p class='adm-admin-error'>⚠ Sección no reconocida.</p>";
 					break;
 			}
 
@@ -158,39 +165,45 @@
 				// PERSONAJES
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Personajes&nbsp;</legend>";
 				echo "
-					<a href='/talim?s=admin_pjs&pp=500'>
-					  <div class='bioSheetPower' style='width:47.5%;'>
+					<a href='/talim?s=admin_characters&pp=500'>
+					  <div class='bioSheetPower adm-admin-tile'>
 						Gestionar Personajes
 					  </div>
 					</a>
+					<a href='/talim?s=admin_groups'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Grupos
+						</div>
+					</a>
+					<a href='/talim?s=admin_parties'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Grupos en activo
+						</div>
+					</a>
+					";
+				echo "</fieldset>";
+					echo "<br />";
+				// RELACIONES & BRIDGES
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Relaciones & Bridges&nbsp;</legend>";
+					echo "
 					<a href='/talim?s=admin_avatar_mass'>
-					  <div class='bioSheetPower' style='width:47.5%;'>
+					  <div class='bioSheetPower adm-admin-tile'>
 						Avatares Masivos
 					  </div>
 					</a>
 					<a href='/talim?s=admin_characters_worlds'>
-					  <div class='bioSheetPower' style='width:47.5%;'>
+					  <div class='bioSheetPower adm-admin-tile'>
 						Crónicas y Realidades
 					  </div>
 					</a>
-					<a href='/talim?s=admin_groups'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Gestionar Grupos
-						</div>
-					</a>
 					<a href='/talim?s=admin_bridges'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Editar Bridges
 						</div>
 					</a>
 					<a href='/talim?s=admin_relations'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Editar Relaciones
-						</div>
-					</a>
-					<a href='/talim?s=admin_plots'>
-						<div class='bioSheetPower' style='width:47.5%;'>
-							Gestionar Grupos en activo
 						</div>
 					</a>
 					";
@@ -200,22 +213,22 @@
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Contenido&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_news'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Noticias
 						</div>
 					</a>
 					<a href='/talim?s=admin_seasons'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Temporadas
 						</div>
 					</a>
 					<a href='/talim?s=admin_chapters'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Episodios
 						</div>
 					</a>
 					<a href='/talim?s=admin_docs'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Documentaci&oacute;n
 						</div>
 					</a>
@@ -226,22 +239,22 @@
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Mundo&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_pois'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Mapas
 						</div>
 					</a>
 					<a href='/talim?s=admin_timelines'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar L&iacute;nea temporal
 						</div>
 					</a>
 					<a href='/talim?s=admin_gallery'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Galer&iacute;a
 						</div>
 					</a>
 					<a href='/talim?s=admin_bso'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Banda Sonora
 						</div>
 					</a>
@@ -252,12 +265,12 @@
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Objetos y Poderes&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_items'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Objetos
 						</div>
 					</a>
 					<a href='/talim?s=admin_powers'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Poderes
 						</div>
 					</a>
@@ -268,37 +281,37 @@
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Reglamento&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_traits'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Rasgos
 						</div>
 					</a>
 					<a href='/talim?s=admin_systems'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Sistemas
 						</div>
 					</a>
 					<a href='/talim?s=admin_system_details'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Razas / Auspicios / Tribus
 						</div>
 					</a>
 					<a href='/talim?s=admin_trait_sets'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Asignar Rasgos por Sistema
 						</div>
 					</a>
 					<a href='/talim?s=admin_systems_resources'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Asginar Recursos por Sistema
 						</div>
 					</a>
 					<a href='/talim?s=admin_resources'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Recursos (Catalogo)
 						</div>
 					</a>
 					<a href='/talim?s=admin_forms'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Formas
 						</div>
 					</a>
@@ -309,22 +322,22 @@
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Sistema&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_menu'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Editar Men&uacute;
 						</div>
 					</a>
 					<a href='/talim?s=admin_inspect_db'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Inspeccionar BDD
 						</div>
 					</a>
 					<a href='/talim?s=admin_mentions_help'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Ayuda Mentions
 						</div>
 					</a>
 					<a href='/talim?s=logout'>
-						<div class='bioSheetPower' style='width:47.5%;'>
+						<div class='bioSheetPower adm-admin-tile'>
 							Cerrar sesi&oacute;n
 						</div>
 					</a>
@@ -335,3 +348,4 @@
 		}
 	}
 ?>
+

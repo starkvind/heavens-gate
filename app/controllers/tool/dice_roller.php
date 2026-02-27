@@ -1,114 +1,8 @@
 <?php setMetaFromPage("Tiradados | Heaven's Gate", "Herramienta para tirar dados d10 y registrar tiradas.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); ?>
+<?php include_once("app/partials/datatable_assets.php"); ?>
 
-<link rel="stylesheet" href="/assets/vendor/datatables/jquery.dataTables.min.css">
-<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
-
-<style>
-  .hg-dice-wrap{ max-width:980px; margin:0 auto; }
-  .hg-dice-grid{ display:grid; grid-template-columns:1fr; gap:14px; }
-  .hg-dice-card{ background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; box-shadow:0 8px 18px rgba(0,0,0,.28); }
-  .hg-dice-title{ margin:0 0 10px; color:#d7e8ff; font-weight:700; border-bottom:1px solid #001a55; padding-bottom:6px; }
-  .hg-dice-form{ display:grid; gap:10px; }
-  .hg-dice-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
-  .hg-dice-tab-btn{ border:1px solid #003399; background:#000033; color:#9fd2ff; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-  .hg-dice-tab-btn.active{ background:#001a55; color:#fff; border-color:#00ccff; }
-  .hg-roll-panel{ display:none; }
-  .hg-roll-panel.active{ display:block; }
-  .hg-dice-help{ color:#9fd2ff; font-size:11px; margin:3px 0 0; }
-  .hg-dice-total{ font-weight:700; color:#d7e8ff; }
-  .hg-dice-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .hg-dice-label{ display:block; margin-bottom:4px; color:#cfe; font-size:12px; }
-  .hg-dice-inp, .hg-dice-sel{ width:100%; box-sizing:border-box; background:#000033; color:#fff; border:1px solid #003399; border-radius:8px; padding:8px 10px; }
-  .hg-dice-actions{ text-align:center; }
-  .hg-dice-actions .boton2{ min-width:160px; padding:10px 18px; font-size:14px; }
-  .hg-dice-actions .boton2.is-disabled{ opacity:.55; cursor:not-allowed; }
-  .hg-dice-note{ color:#89a; font-size:11px; margin-top:2px; }
-  .hg-dice-error{ color:#ff9797; margin:0 0 8px; }
-
-  .hg-roll-head{ color:#cfe; margin:0 0 8px; }
-  .hg-dice-list{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 10px; }
-  .hg-die{ width:44px; height:44px; background:url('/img/ui/dice/dado_d10.png') center/contain no-repeat; position:relative; filter: drop-shadow(0 0 3px #5ff); }
-  .hg-die span{ position:absolute; top:9px; left:0; right:0; text-align:center; font-size:9px; font-weight:700; color:#5ff; }
-  .hg-die--one{ filter: drop-shadow(0 0 3px #ff6969); }
-  .hg-die--one span{ color:#ff6969; }
-  .hg-die--ok{ filter: drop-shadow(0 0 3px #6cff8f); }
-  .hg-die--ok span{ color:#6cff8f; }
-
-  .hg-roll-result{ margin:8px 0 0; color:#cfe; }
-  .hg-roll-result b{ color:#fff; }
-  .hg-roll-result--botch{ color:#ff8a8a; font-weight:700; }
-  .hg-roll-code{ background:#000022; border:1px solid #003399; border-radius:8px; color:#9cf7a6; padding:8px; overflow:auto; margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .hg-roll-code code{ color:#9cf7a6; }
-  .hg-roll-copy-emoji{ border:1px solid #666; background:#111; color:#fff; border-radius:6px; width:32px; height:32px; line-height:1; cursor:pointer; }
-
-  .hg-forum-roll-box{
-    --roll-palette:#222;
-    background-color: var(--roll-palette);
-    border: 0;
-    text-align: center;
-    position: relative;
-    padding: 1em;
-    margin-top: 10px;
-  }
-  .hg-forum-roll-box-name{
-    position: absolute;
-    top: -0.8em;
-    left: 1em;
-    border: 0;
-    background: #444;
-    color: #fff;
-    padding: 0.25em 0.5em;
-    font-weight: bold;
-    border-radius: 4px;
-    max-width: calc(100% - 2em);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hg-forum-roll-results{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-bottom:1em; }
-  .hg-forum-die{
-    width:40px; height:40px; background:url('/img/ui/dice/dado_d10.png') center/contain no-repeat;
-    position:relative; display:flex; align-items:center; justify-content:center; font-size:0.8em; font-weight:bold;
-  }
-  .hg-forum-die span{ position:absolute; top:8px; left:0; right:0; text-align:center; font-weight:bold; }
-  .hg-forum-roll-code{
-    margin-top:10px; border:0; background:rgba(0,0,0,.35); border-radius:8px;
-    padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:8px;
-  }
-  .hg-forum-roll-code code{ color:#9cf7a6; font-family:monospace; }
-
-  .hg-table-wrap table.dataTable{ border:1px solid #000099; background:transparent; color:#eee; }
-  .hg-table-wrap table.dataTable th{ background:#000066; color:#fff; }
-  .hg-table-wrap table.dataTable td{ border-top:1px solid #000099; border-bottom:1px solid #000099; }
-  .hg-table-wrap table.dataTable tbody tr:hover{ background:#111177; }
-  .hg-roll-link{ color:#8fd3ff; text-decoration:none; font-weight:700; }
-  .hg-roll-link:hover{ color:#b9e6ff; text-decoration:underline; }
-  .hg-pill{ display:inline-block; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700; border:1px solid transparent; }
-  .hg-pill--ok{ background:#153f24; border-color:#2aa154; color:#9dffbf; }
-  .hg-pill--fail{ background:#4a3c12; border-color:#b9921f; color:#ffe08a; }
-  .hg-pill--botch{ background:#4f161a; border-color:#cf4b55; color:#ffacb2; }
-  .hg-table-wrap .dataTables_filter input,
-  .hg-table-wrap .dataTables_length select{ font-family:verdana; font-size:10px; background:#000066; color:#fff; border:1px solid #000099 !important; padding:0.5em; }
-  .hg-table-wrap .dataTables_paginate .paginate_button{ color:#fff !important; background:#000066 !important; border:1px solid #000099 !important; margin:2px; }
-  .hg-table-wrap .dataTables_paginate .paginate_button:hover{ color:#00CCFF !important; border:1px solid #000088 !important; }
-  .hg-table-wrap .dataTables_paginate .paginate_button.current{ background:#000044 !important; }
-  .hg-last-rolls a{ display:block; }
-  .hg-last-rolls .bioSheetPower{
-    display:block;
-    width:100%;
-    box-sizing:border-box;
-    float:none;
-    min-height:30px;
-    padding:6px 10px;
-    line-height:1.25;
-  }
-  .hg-last-rolls-title{ display:inline-block; max-width:72%; vertical-align:top; }
-  .hg-last-rolls-name{ float:right; font-size:10px; color:#9fd2ff; text-align:right; max-width:26%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-  @media (max-width:700px){ .hg-dice-row{ grid-template-columns:1fr; } }
-</style>
+<link rel="stylesheet" href="/assets/css/hg-tools.css">
 
 <?php
 if (!$link) {
@@ -161,7 +55,7 @@ function roll_d10_pool(int $dados, int $dificultad, array $forced = []): array {
 
 function normalize_kind_key(string $kind): string {
     $k = function_exists('mb_strtolower') ? mb_strtolower(trim($kind), 'UTF-8') : strtolower(trim($kind));
-    return strtr($k, ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u']);
+    return strtr($k, ['Ã¡'=>'a','Ã©'=>'e','Ã­'=>'i','Ã³'=>'o','Ãº'=>'u','Ã'=>'a','Ã‰'=>'e','Ã'=>'i','Ã“'=>'o','Ãš'=>'u']);
 }
 
 function sanitize_int_csv(string $csv): string {
@@ -225,7 +119,7 @@ function fetch_pj_roll_profiles(mysqli $link, array $pjs): array {
                   FROM bridge_characters_traits b
                   JOIN dim_traits t ON t.id = b.trait_id
                   WHERE b.character_id IN ($idSql)
-                    AND t.kind IN ('Atributos','Talentos','Técnicas','Tecnicas','Conocimientos','Trasfondos')
+                    AND t.kind IN ('Atributos','Talentos','TÃ©cnicas','Tecnicas','Conocimientos','Trasfondos')
                   ORDER BY t.name";
     if ($rs = mysqli_query($link, $sqlTraits)) {
         while ($r = mysqli_fetch_assoc($rs)) {
@@ -290,18 +184,18 @@ function render_roll_card(array $tirada, int $id): void {
     echo "<article class='hg-dice-card'>";
     echo "<div class='hg-forum-roll-box' style='--roll-palette: {$palette};'>";
     echo "<div class='hg-forum-roll-box-name'>{$rollName}</div>";
-    echo "<p style='margin-top:1.5em;'><strong>{$name}</strong> lanzó {$dicePool}d10 a Dificultad <strong>{$dificultad}</strong>.</p>";
+    echo "<p class='hg-forum-roll-head'><strong>{$name}</strong> lanzÃ³ {$dicePool}d10 a Dificultad <strong>{$dificultad}</strong>.</p>";
     echo "<div class='hg-forum-roll-results'>";
 
     foreach ($resultados as $dadoRaw) {
         $dado = (int)$dadoRaw;
         $color = ($dado === 1) ? '#f55' : (($dado >= $dificultad) ? '#5f5' : '#5ff');
-        echo "<div class='hg-forum-die' style='filter: drop-shadow(0 0 3px {$color});'><span style='color:{$color};'>{$dado}</span></div>";
+        echo "<div class='hg-forum-die' style='--die-color: {$color};'><span>{$dado}</span></div>";
     }
 
     echo "</div>";
-    echo "<p><strong>Éxitos</strong>: {$successes}</p>";
-    if ($isBotch) echo "<p style='color:#f55;'><strong>¡PIFIA!</strong></p>";
+    echo "<p><strong>Ã‰xitos</strong>: {$successes}</p>";
+    if ($isBotch) echo "<p class='hg-forum-roll-botch'><strong>Â¡PIFIA!</strong></p>";
     echo "<div class='hg-forum-roll-code'><code>{$safeCodeText}</code><button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$safeCodeText}' title='Copiar codigo'>&#128203;</button></div>";
     echo "</div>";
     echo "</article>";
@@ -518,7 +412,7 @@ if (!isset($_GET['see'])) {
 
     echo "<article class='hg-dice-card hg-table-wrap'>";
     echo "<h3 class='hg-dice-title'>Historial completo de tiradas</h3>";
-    echo "<table id='tabla-tiradas' class='display' style='width:100%'><thead><tr>";
+    echo "<table id='tabla-tiradas' class='display hg-dice-table'><thead><tr>";
     echo "<th>Tirada</th><th>Jugador</th><th>Resultado</th><th>Fecha</th>";
     echo "</tr></thead><tbody>";
     foreach ($rolls as $r) {
@@ -763,3 +657,5 @@ $(function(){
     });
 });
 </script>
+
+

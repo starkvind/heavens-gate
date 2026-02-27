@@ -1,74 +1,8 @@
 <?php
 setMetaFromPage("Cronicas | Heaven's Gate", "Cronicas del universo Heaven's Gate.", null, 'website');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 ?>
-<style>
-    .chron-grid{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(280px, 1fr));
-      gap:14px;
-      margin-top:10px;
-    }
-    .chron-card{
-      display:grid;
-      grid-template-columns: 140px 1fr;
-      gap:10px;
-      align-items:stretch;
-      border:1px solid #000088;
-      background:#05014e;
-      padding:8px;
-      text-decoration:none;
-      color:#fff;
-    }
-    .chron-card:hover{ background:#000066; border-color:#0000bb; }
-    .chron-card img{
-      width:140px; height:86px; object-fit:cover; border:1px solid #1b4aa0; background:#000022;
-    }
-    .chron-card h3{ margin:0 0 6px 0; color:#7ef7ff; font-size:1.05em; text-align: left; }
-    .chron-card p{
-      margin:0;
-      color:#dbe7ff;
-      line-height:1.35;
-      font-size:.95em;
-      text-align:left;
-    }
-    .toggleAfiliacion {
-      background: #05014e;
-      color: #fff;
-      border: 1px solid #000088;
-      padding: 6px 10px;
-      margin: 8px 0 0 0;
-      font-size: 1.1em;
-      cursor: pointer;
-      width: 85%;
-      text-align: left;
-    }
-    .toggleAfiliacion:hover {
-      background: #000066;
-      border: 1px solid #0000BB;
-    }
-    .contenidoAfiliacion {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 0 12px 0;
-    }
-    .chronicleIntro {
-      margin-bottom: 12px;
-      padding: 8px 12px;
-    }
-    .chronicleIntroTitle { margin:0 0 8px 0; font-size:1.35em; }
-    .chronicleIntroDesc {
-      margin:0;
-      max-width:980px;
-      line-height:1.45;
-      text-align:left;
-      white-space:normal;
-      overflow-wrap:anywhere;
-    }
-    .oculto { display: none; }
-    @media (max-width:860px){ .chron-grid{ grid-template-columns:1fr; } }
-</style>
 
 <?php
 if (!$link) {
@@ -312,9 +246,9 @@ foreach ($keys as $k) {
     $groupName = (string)$grp['name'];
     $fieldsetId = ($chronicleFilterId > 0 ? 'org_' : 'chronicle_') . ($groupId > 0 ? $groupId : 'none');
 
-    echo "<h3 class='toggleAfiliacion' data-target='" . hg_ch_h($fieldsetId) . "'>" . hg_ch_h($groupName) . "</h3>";
+    echo "<h3 class='main-toggle-affiliation' data-target='" . hg_ch_h($fieldsetId) . "'>" . hg_ch_h($groupName) . "</h3>";
     echo "<fieldset class='grupoBioClan'>";
-    echo "<div id='" . hg_ch_h($fieldsetId) . "' class='contenidoAfiliacion'>";
+    echo "<div id='" . hg_ch_h($fieldsetId) . "' class='main-affiliation-content'>";
 
     foreach ($grp['items'] as $rowPJ) {
         $idPJ = (int)($rowPJ['id'] ?? 0);
@@ -327,15 +261,15 @@ foreach ($keys as $k) {
         if ($aliasPJ === '') $aliasPJ = $nombrePJ;
 
         $fondoFoto = '';
-        $estiloLink = '';
+        $linkClass = '';
         $isMonster = ($claseRaw === 'mon' || $claseRaw === 'monster');
         $isPj = ($claseRaw === 'pj');
         if ($isMonster) {
             $fondoFoto = "Monster";
-            $estiloLink = "color: #FFD54A;";
+            $linkClass = 'chron-link-monster';
         } elseif (!$isPj && $claseRaw !== '') {
             $fondoFoto = "NoSheet";
-            $estiloLink = "color: #EE0000;";
+            $linkClass = 'chron-link-nosheet';
         }
 
         $mapEstado = [
@@ -348,7 +282,8 @@ foreach ($keys as $k) {
         $simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
         $hrefPJ = pretty_url($link, 'fact_characters', '/characters', $idPJ);
-        echo "<a href='" . hg_ch_h($hrefPJ) . "' title='" . $nombrePJ . "' style='" . hg_ch_h($estiloLink) . "'>";
+        $linkAttr = ($linkClass !== '') ? " class='" . hg_ch_h($linkClass) . "'" : '';
+        echo "<a href='" . hg_ch_h($hrefPJ) . "' title='" . $nombrePJ . "'" . $linkAttr . ">";
             echo "<div class='marcoFotoBio" . hg_ch_h($fondoFoto) . "'>";
                 echo "<div class='textoDentroFotoBio" . hg_ch_h($fondoFoto) . "'>$aliasPJ $simboloEstado</div>";
                 echo "<div class='dentroFotoBio'><img class='fotoBioList' src='$imgPJ' alt='$nombrePJ'></div>";
@@ -365,13 +300,13 @@ echo "<p align='right'>Personajes: " . hg_ch_h($countAll) . "</p>";
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    var toggles = document.querySelectorAll('.toggleAfiliacion');
+    var toggles = document.querySelectorAll('.main-toggle-affiliation');
     for (var i = 0; i < toggles.length; i++) {
         toggles[i].addEventListener('click', function(){
             var targetId = this.getAttribute('data-target');
             var el = document.getElementById(targetId);
             if (!el) return;
-            el.classList.toggle('oculto');
+            el.classList.toggle('main-hidden');
         });
     }
 });

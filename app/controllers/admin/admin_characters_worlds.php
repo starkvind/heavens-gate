@@ -145,42 +145,6 @@ if ($hasRealitySchema) {
 }
 ?>
 
-<style>
-.worlds-wrap{ background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.worlds-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-.worlds-head h2{ margin:0; color:#33FFFF; font-size:16px; }
-.worlds-note{ color:#9dd; font-size:11px; }
-.worlds-filter{ margin:10px 0; display:grid; grid-template-columns: repeat(3, minmax(180px,1fr)); gap:8px; }
-.worlds-filter input{
-  width:100%; background:#000033; color:#fff; border:1px solid #333; border-radius:6px; padding:6px 8px; font-size:12px;
-}
-.worlds-filter select{
-  width:100%; background:#000033; color:#fff; border:1px solid #333; border-radius:6px; padding:6px 8px; font-size:12px;
-}
-.worlds-table-wrap{ max-height:72vh; overflow:auto; border:1px solid #000088; border-radius:8px; }
-.worlds-table{ width:100%; border-collapse:collapse; font-size:11px; }
-.worlds-table th,.worlds-table td{ border:1px solid #000088; padding:6px 8px; vertical-align:middle; background:#05014E; }
-.worlds-table th{ background:#050b36; color:#33CCCC; text-align:left; position:sticky; top:0; z-index:2; }
-.worlds-table tr:hover td{ background:#000066; }
-.worlds-table select{
-  width:100%; background:#000033; color:#fff; border:1px solid #333; border-radius:6px; padding:4px 6px; font-size:12px;
-}
-.row-msg{ font-size:11px; color:#9dd; }
-.row-msg.ok{ color:#7CFC00; }
-.row-msg.err{ color:#FF6B6B; }
-.warn-box{
-  background:#2c1f00;
-  border:1px solid #8a5a00;
-  color:#ffd58a;
-  padding:10px;
-  border-radius:8px;
-  font-size:12px;
-}
-@media (max-width:980px){
-  .worlds-filter{ grid-template-columns: 1fr; }
-}
-</style>
-
 <div class="worlds-wrap">
   <div class="worlds-head">
     <h2>Asignacion masiva de cronica y realidad</h2>
@@ -218,13 +182,13 @@ if ($hasRealitySchema) {
       <table class="worlds-table" id="worlds-table">
         <thead>
           <tr>
-            <th style="width:80px;">ID</th>
-            <!--<th style="width:190px;">Pretty ID</th>-->
+            <th class="adm-w-80">ID</th>
+            <!--<th class="adm-w-190">Pretty ID</th>-->
             <th>Personaje</th>
-            <th style="width:220px;">Organizacion</th>
-            <th style="width:280px;">Cronica</th>
-            <th style="width:280px;">Realidad</th>
-            <th style="width:140px;">Estado</th>
+            <th class="adm-w-220">Organizacion</th>
+            <th class="adm-w-280">Cronica</th>
+            <th class="adm-w-280">Realidad</th>
+            <th class="adm-w-140">Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -244,8 +208,8 @@ if ($hasRealitySchema) {
             data-search="<?= hg_acw_h(strtolower($name.' '.$id.' '.$pretty)) ?>">
             <td>#<?= $id ?></td>
             <!--<td> //$pretty !== '' ? hg_acw_h($pretty) : '-' </td>-->
-            <td style='text-align:left;'><?= hg_acw_h($name) ?></td>
-            <td style='text-align:left;'><?= $organizationName !== '' ? hg_acw_h($organizationName) : '-' ?></td>
+            <td class='adm-text-left'><?= hg_acw_h($name) ?></td>
+            <td class='adm-text-left'><?= $organizationName !== '' ? hg_acw_h($organizationName) : '-' ?></td>
             <td>
               <select data-chronicle-id>
                 <?php foreach ($chronicles as $o):
@@ -372,3 +336,5 @@ if ($hasRealitySchema) {
 })();
 </script>
 <?php endif; ?>
+
+

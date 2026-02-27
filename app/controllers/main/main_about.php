@@ -1,7 +1,8 @@
 <?php setMetaFromPage("Acerca de | Heaven's Gate", "Archivo y crónica alternativa de Hombre Lobo: El Apocalipsis iniciada en 2006.", null, 'website'); ?>
+<link rel="stylesheet" href="/assets/css/hg-main.css">
 <div>
 	<h2>Acerca de Heaven's Gate</h2>
-	<hr style="border: 1px solid #006"/>
+	<hr class="main-about-sep"/>
 	
 	<p><b>Heaven's Gate</b> es el archivo vivo de una cr&oacute;nica de <b><a href="http://es.wikipedia.org/wiki/Werewolf:_The_Apocalypse" target="_blank">Hombre Lobo: El Apocalipsis</a></b> iniciada en 2006. Esta web nace con un prop&oacute;sito claro: reunir, ordenar y preservar todo el trasfondo, personajes y acontecimientos surgidos durante a&ntilde;os de juego.</p>
 	<p>El escenario parte del catastr&oacute;fico <b><a href="http://es.wikipedia.org/wiki/Mundo_de_Tinieblas" target="_blank">Mundo de Tinieblas</a></b>, donde vampiros, garou, magos, changelings y otras criaturas sobrenaturales luchan por sobrevivir en una realidad al borde del colapso. Sin embargo, esta cr&oacute;nica no pretende reproducir de forma estricta la metatrama oficial, sino explorar sus posibilidades narrativas desde una continuidad propia.</p>
@@ -18,18 +19,18 @@
 
 	<p>Gracias por visitar este rinc&oacute;n del Apocalipsis.</p>
 
-	<hr style="border: 1px solid #006"/>
+	<hr class="main-about-sep"/>
 
 	<p>Todas las situaciones, personajes y hechos descritos en esta web son <b>ficticios</b>. Cualquier semejanza con la realidad es mera coincidencia.</p>
 
-	<hr style="border: 1px solid #006"/>
+	<hr class="main-about-sep"/>
 
 	<center>
 		<p><b>Hombre Lobo: El Apocalipsis</b>, <b>Vampiro: La Mascarada</b>, <b>Changeling: El Ensue&ntilde;o</b> y <b>Mago: La Ascensi&oacute;n</b> son marcas registradas de <a href="http://www.white-wolf.com/" target="_blank"><b>White Wolf</b></a>.</p>
 		<p>El contenido de esta web es meramente informativo y sin &aacute;nimo de lucro.</p>
 
 		<a href="http://creativecommons.org/licenses/by-nc-sa/2.5/es/">
-			<img alt="Creative Commons License" style="border-width:0" src="img/ui/badges/cc-by-nc-sa-88x31.png" />
+			<img alt="Creative Commons License" class="main-about-cc-img" src="img/ui/badges/cc-by-nc-sa-88x31.png" />
 		</a>
 
 		<p>Heaven's Gate by <a href="<?php echo $baseURL; ?>">Maurick Starkvind</a> se publica bajo una <a href="http://creativecommons.org/licenses/by-nc-sa/2.5/es/">Creative Commons Reconocimiento-No Comercial-Compartir Igual 2.5 Espa&ntilde;a</a>.</p>

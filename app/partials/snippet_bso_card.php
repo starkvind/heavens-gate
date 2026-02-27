@@ -33,9 +33,9 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 					echo "<fieldset class='bso-card bioSeccion'>";
 					echo "<legend>&nbsp;🎵 {$tema['context_title']}&nbsp;</legend>";
 					echo "<div class='video-wrapper'>";
-					echo "<iframe width='550' height='315' style='clear:both;' src='https://www.youtube-nocookie.com/embed/{$youtubeID}' frameborder='0' allowfullscreen></iframe>";
+					echo "<iframe width='550' height='315' class='bso-card-iframe' src='https://www.youtube-nocookie.com/embed/{$youtubeID}' frameborder='0' allowfullscreen></iframe>";
 					echo "</div>";
-					echo "<p style='text-align:center;'><strong>{$tema['titulo_real']}</strong> — {$tema['artist']}</p>";
+					echo "<p class='bso-card-caption'><strong>{$tema['titulo_real']}</strong> — {$tema['artist']}</p>";
 					echo "</fieldset>";
 				echo "</div>";
 			}
@@ -43,5 +43,4 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	}
 }
 ?>
-
 

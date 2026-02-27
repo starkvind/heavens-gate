@@ -28,6 +28,8 @@ $rulesTypes = [
 ];
 ?>
 
+<link rel="stylesheet" href="/assets/css/hg-docs.css">
+
 <h2>Reglamento</h2>
 <fieldset class="grupoBioClan">
     <?php
@@ -38,13 +40,12 @@ $rulesTypes = [
 
             echo "
                 <a href='$href' title='$name'>
-                    <div class='renglon2col' style='height:52px;text-align:left;padding:1em;'>
+                    <div class='renglon2col rules-card'>
                         <strong>$name</strong>
-                        <p><span style='font-size:12px; opacity:.8;'>$desc</span></p>
+                        <p><span class='rules-card-desc'>$desc</span></p>
                     </div>
                 </a>
             ";
         }
     ?>
 </fieldset>
-

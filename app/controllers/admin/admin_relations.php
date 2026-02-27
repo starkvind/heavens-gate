@@ -1,21 +1,16 @@
 <?php
-// admin_relations.php — Editor de relaciones entre personajes
-if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
+// admin_relations.php - Editor de relaciones entre personajes
+if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
-admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" onclick="openRelModal()">➕ Nueva relación</button>');
+admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" onclick="openRelModal()">+ Nueva relacion</button>');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-$tipos = ['Amigo','Aliado','Mentor','Protegido','Salvador','Amante','Pareja','Rival','Traidor','Extorsionador','Enemigo','Asesino','Padre','Madre','Hijo','Hermano','Abuelo','Tío','Primo','Superior','Subordinado','Amo','Creación','Vínculo'];
+$tipos = ['Amigo','Aliado','Mentor','Protegido','Salvador','Amante','Pareja','Rival','Traidor','Extorsionador','Enemigo','Asesino','Padre','Madre','Hijo','Hermano','Abuelo','Tio','Primo','Superior','Subordinado','Amo','Creacion','Vinculo'];
 $tags  = ['amistad','conflicto','familia','alianza','otro'];
-$arrows = ["to" => "➡️ Origen → Destino","from" => "⬅️ Destino → Origen","to,from" => "🔁 Doble dirección","" => "🚫 Sin flechas"];
-
-?>
-<link rel="stylesheet" href="/assets/css/admin/admin.relations.css">
-
-<?php
+$arrows = ["to" => "Origen -> Destino","from" => "Destino -> Origen","to,from" => "Doble direccion","" => "Sin flechas"];
 
 // Datos
 $personajes = [];
@@ -26,18 +21,18 @@ foreach ($personajes as $p) { $personajesById[(int)$p['id']] = (string)$p['name'
 
 $flash = [];
 
-// Eliminar relación
+// Eliminar relacion
 if (isset($_GET['delete'])) {
 	$id = (int)$_GET['delete'];
 	if ($id > 0 && ($st = $link->prepare("DELETE FROM bridge_characters_relations WHERE id = ?"))) {
 		$st->bind_param("i", $id);
 		$st->execute();
 		$st->close();
-		$flash[] = ['type'=>'ok','msg'=>'Relación eliminada.'];
+		$flash[] = ['type'=>'ok','msg'=>'Relacion eliminada.'];
 	}
 }
 
-// Crear / editar relación (modal)
+// Crear / editar relacion (modal)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_POST['rel'])) {
 	$mode = (string)($_POST['rel']['mode'] ?? '');
 	$id = (int)($_POST['rel']['id'] ?? 0);
@@ -56,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 				$st->bind_param("iississ", $source, $target, $type, $tag, $importance, $description, $ar);
 				$st->execute();
 				$st->close();
-				$flash[] = ['type'=>'ok','msg'=>'Relación creada.'];
+				$flash[] = ['type'=>'ok','msg'=>'Relacion creada.'];
 			}
 		} elseif ($mode === 'edit' && $id > 0) {
 			$st = $link->prepare("UPDATE bridge_characters_relations SET source_id=?, target_id=?, relation_type=?, tag=?, importance=?, description=?, arrows=? WHERE id=?");
@@ -64,13 +59,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 				$st->bind_param("iississi", $source, $target, $type, $tag, $importance, $description, $ar, $id);
 				$st->execute();
 				$st->close();
-				$flash[] = ['type'=>'ok','msg'=>'Relación actualizada.'];
+				$flash[] = ['type'=>'ok','msg'=>'Relacion actualizada.'];
 			}
 		}
 	}
 }
 
-// Paginación simple
+// Paginacion simple
 // Relaciones completas (paginaci?n en cliente)
 $relaciones = [];
 $rs = $link->query("SELECT * FROM bridge_characters_relations ORDER BY id DESC");
@@ -86,20 +81,20 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close();
 	</div>
 <?php endif; ?>
 
-<div class="bar" style="display:flex; gap:8px; align-items:center; margin:8px 0 12px;">
+<div class="bar adm-u-021">
 	<input class="inp" id="quickFilterRelations" type="text" placeholder="Buscar relacion...">
 </div>
 
 <table class="table">
 	<thead>
 		<tr>
-			<th style="width:60px;">ID</th>
+			<th class="adm-w-60">ID</th>
 			<th>Origen</th>
 			<th>Destino</th>
 			<th>Tipo</th>
 			<th>Tag</th>
 			<th>Flechas</th>
-			<th style="width:160px;">Acciones</th>
+			<th class="adm-w-160">Acciones</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -132,26 +127,26 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close();
 					data-description="<?= h((string)($r['description'] ?? '')) ?>"
 					onclick="openRelModal(this)"
 				>Editar</button>
-				<a class="btn btn-red" href="/talim?s=admin_relations&delete=<?= (int)$r['id'] ?>" onclick="return confirm('¿Eliminar relación?');">Borrar</a>
+				<a class="btn btn-red" href="/talim?s=admin_relations&delete=<?= (int)$r['id'] ?>" onclick="return confirm('Eliminar relacion?');">Borrar</a>
 			</td>
 		</tr>
 	<?php endforeach; ?>
 	<?php if (empty($relaciones)): ?>
-		<tr><td colspan="7" style="color:#bbb;">(Sin relaciones)</td></tr>
+		<tr><td colspan="7" class="adm-color-muted">(Sin relaciones)</td></tr>
 	<?php endif; ?>
 	</tbody>
 </table>
 
 <div class="pager" id="relPager"></div>
 
-<!-- Modal nueva relación -->
-<div class="modal-back" id="relModal" style="display:none;">
-	<div class="modal" style="width:min(720px,96vw);">
-		<h3 id="relModalTitle">➕ Nueva relación</h3>
+<!-- Modal nueva relacion -->
+<div class="modal-back" id="relModal">
+	<div class="modal adm-u-070">
+		<h3 id="relModalTitle">+ Nueva relacion</h3>
 		<form method="post" id="relForm">
 			<input type="hidden" name="rel[mode]" id="rel_mode" value="create">
 			<input type="hidden" name="rel[id]" id="rel_id" value="0">
-			<div class="grid" style="grid-template-columns:repeat(2, minmax(220px,1fr));">
+			<div class="grid adm-u-032">
 				<label>Origen
 					<select class="select" name="rel[source_id]" id="rel_source">
 						<?php foreach ($personajes as $p): ?>
@@ -190,7 +185,7 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close();
 				<label>Importancia (0-10)
 					<input class="inp" type="number" name="rel[importance]" id="rel_importance" min="0" max="10" value="1">
 				</label>
-				<label style="grid-column:1 / -1;">Descripción
+				<label class="adm-grid-full">Descripcion
 					<textarea class="ta" name="rel[description]" id="rel_description" rows="3"></textarea>
 				</label>
 			</div>
@@ -217,7 +212,7 @@ function openRelModal(btn){
 	const desc = document.getElementById('rel_description');
 
 	if (btn && btn.dataset && btn.dataset.id) {
-		title.textContent = 'Editar relación';
+		title.textContent = 'Editar relacion';
 		mode.value = 'edit';
 		id.value = btn.dataset.id || '0';
 		if (src) src.value = btn.dataset.source || '0';
@@ -228,7 +223,7 @@ function openRelModal(btn){
 		if (imp) imp.value = btn.dataset.importance || '0';
 		if (desc) desc.value = btn.dataset.description || '';
 	} else {
-		title.textContent = '➕ Nueva relación';
+		title.textContent = '+ Nueva relacion';
 		mode.value = 'create';
 		id.value = '0';
 		if (src) src.value = '0';

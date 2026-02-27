@@ -21,22 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
     }
 }
 ?>
-
-    <style>
-        .admin-login form { display: inline-block; padding: 20px; background: #336699; border: 1px solid #ccc; border-radius: 6px; }
-        .admin-login input[type="password"] {
-            padding: 6px;
-            font-size: 16px;
-            width: 200px;
-        }
-        .admin-login button {
-            padding: 6px 12px;
-            font-size: 16px;
-            margin-top: 10px;
-            cursor: pointer;
-        }
-        .admin-login .error { color: red; margin-bottom: 10px; }
-    </style>
+<link rel="stylesheet" href="/assets/css/hg-admin.css">
 
 <div class="admin-login">
     <h2>&#128274; Acceso restringido</h2>
@@ -44,11 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
     <?php if (!empty($error)): ?>
         <div class="error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
-    <div style="clear:both;text-align: center;">
-    	<form method="post" style="text-align:center;">
+    <div class="adm-login-wrap">
+    	<form method="post" class="adm-text-center">
     		<label>Introduce la contrase&ntilde;a:</label><br><br>
     		<input type="password" name="admin_pass" required><br><br>
     		<button type="submit">Entrar</button>
     	</form>
     </div>
 </div>
+

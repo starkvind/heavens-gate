@@ -1,0 +1,170 @@
+#hg-map {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+    height: 70vh;
+    width: 100%;
+    border: none;
+    background-color: #05014e;
+    position: relative;
+}
+
+#hg-map-detail {
+    height: 70vh;
+    width: 100%;
+    background: #05014e;
+    position: relative;
+}
+
+.map-toolbar {
+    float: right;
+    margin-bottom: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.map-toolbar .boton2 {
+    margin-left: 4px;
+}
+
+.map-search-input {
+    background: #000066;
+    color: #fff;
+    border: 1px solid #000099;
+    padding: 2px;
+    flex: 0 0 180px;
+}
+
+.map-thumb {
+    width: 200px;
+    height: auto;
+    border: 1px solid #009;
+    margin: 6px 0;
+    display: block;
+    background: #000055;
+}
+
+.map-thumb-detail {
+    width: 220px;
+}
+
+.leaflet-container a {
+    color: #66ccff;
+}
+
+.emoji-marker {
+    font-size: 16px;
+    line-height: 16px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 4px rgba(0,255,200,.6));
+}
+
+#btnClear,
+.map-go-hidden {
+    display: none;
+}
+
+.map-poi-title {
+    margin-top: 1em;
+}
+
+.map-table-wrap {
+    overflow-x: auto;
+}
+
+.map-poi-table {
+    width: 100%;
+}
+
+.map-toolbar-spaced {
+    margin-top: 2em;
+    margin-bottom: 6px;
+}
+
+.map-form-inline {
+    display: inline;
+}
+
+.map-detail-summary {
+    margin-bottom: 8px;
+}
+
+.map-detail-description {
+    max-width: 600px;
+    margin-top: 4px;
+    text-align: justify;
+}
+
+.map-detail-others {
+    margin-top: 8px;
+}
+
+.map-detail-others-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.map-detail-others-item {
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.map-popup-desc {
+    max-width: 260px;
+}
+
+.map-popup-link {
+    margin-top: 6px;
+    display: none;
+}
+
+.ping-wrap {
+    position: relative;
+    width: 18px;
+    height: 18px;
+}
+
+.ping-core {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #00d4ff;
+    border: 2px solid rgba(255,255,255,.8);
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 0 0 10px rgba(0,255,200,.8);
+}
+
+.ping-wave {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,255,200,.45);
+    animation: ping 1.8s ease-out infinite;
+}
+
+@keyframes ping {
+    0% {
+        transform: scale(0.4);
+        opacity: .9;
+    }
+
+    80% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+}

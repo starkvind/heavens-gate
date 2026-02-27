@@ -76,19 +76,7 @@ $lat = (float)$poi['latitude']; $lng = (float)$poi['longitude'];
 
 <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
 <script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
-
-<style>
-  #hg-map-detail { height: 70vh; width: 100%; background:#05014E; position:relative; }
-  .map-toolbar { float: right; margin-bottom: 6px; }
-  .map-toolbar .boton2 { margin-left: 4px; }
-  .ping-wrap { position: relative; width: 18px; height: 18px; }
-  .ping-core { width: 14px; height: 14px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,255,255,.8);
-               position:absolute; top:0; left:0; box-shadow:0 0 10px rgba(0,255,200,.8); }
-  .ping-wave { position:absolute; top:-5px; left:-5px; width:24px; height:24px; border-radius:50%;
-               border:2px solid rgba(0,255,200,.45); animation: ping 1.8s ease-out infinite; }
-  @keyframes ping { 0%{ transform:scale(0.4); opacity:.9;} 80%{ transform:scale(1.8); opacity:0;} 100%{ transform:scale(1.8); opacity:0;} }
-  .map-thumb { width: 220px; border:1px solid #009; background:#000055; margin:6px 0; display:block; }
-</style>
+<link rel="stylesheet" href="/assets/css/hg-maps.css">
 
 <h2>Mapa · <?= htmlspecialchars($poi['map_name']) ?></h2>
 
@@ -101,25 +89,25 @@ $lat = (float)$poi['latitude']; $lng = (float)$poi['longitude'];
       <button class="boton2" id="btnFullscreen">🔍 Pantalla completa</button>
     </div>
 
-    <div style="margin-bottom:8px;">
+    <div class="map-detail-summary">
       <b>Categoría:</b> <?= htmlspecialchars($poi['category_name']) ?><br>
       <?php if (!empty($poi['thumbnail'])): ?>
-        <img class="map-thumb" src="<?= htmlspecialchars($poi['thumbnail']) ?>" alt="">
+        <img class="map-thumb map-thumb-detail" src="<?= htmlspecialchars($poi['thumbnail']) ?>" alt="">
       <?php endif; ?>
       <?php if (!empty($poi['description'])): ?>
-        <div style="max-width:600px; margin-top:4px; text-align:justify;"><?= nl2br(htmlspecialchars($poi['description'])) ?></div>
+        <div class="map-detail-description"><?= nl2br(htmlspecialchars($poi['description'])) ?></div>
       <?php endif; ?>
     </div>
 
     <div id="hg-map-detail"></div>
 
     <?php if ($others): ?>
-      <div style="margin-top:8px;">
+      <div class="map-detail-others">
         <fieldset class="bioSeccion">
           <legend>&nbsp;Otros puntos en <?= htmlspecialchars($poi['map_name']) ?>&nbsp;</legend>
-          <ul class="listaManadas" style="list-style-type:none; margin:0; padding:0;">
+          <ul class="listaManadas map-detail-others-list">
             <?php foreach ($others as $o): ?>
-              <li class="listaManadas" style="width:100%; margin-bottom:4px;">
+              <li class="listaManadas map-detail-others-item">
                 <a href="/maps/poi/<?= (int)$o['id'] ?>" class="infoLink">➡️ <?= htmlspecialchars($o['name']) ?></a>
               </li>
             <?php endforeach; ?>

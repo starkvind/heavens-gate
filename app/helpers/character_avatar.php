@@ -18,10 +18,12 @@ if (!function_exists('hg_character_avatar_url')) {
     function hg_character_avatar_url($imageUrl, $gender): string
     {
         $img = trim((string)$imageUrl);
-        if ($img !== '') {
+        if ($img !== '' && strtolower($img) !== 'null') {
+            if (strpos($img, '/public/') === 0) {
+                return substr($img, 7);
+            }
             return $img;
         }
         return hg_character_avatar_fallback_by_gender($gender);
     }
 }
-

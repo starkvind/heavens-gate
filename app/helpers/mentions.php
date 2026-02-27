@@ -3,6 +3,26 @@
 
 require_once(__DIR__ . '/pretty.php');
 
+function hg_mentions_table_columns(mysqli $link, string $table): array {
+    static $cache = [];
+    $key = strtolower(trim($table));
+    if ($key === '') return [];
+    if (isset($cache[$key])) return $cache[$key];
+
+    $cols = [];
+    if ($st = $link->prepare("SHOW COLUMNS FROM `$table`")) {
+        $st->execute();
+        $rs = $st->get_result();
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $field = strtolower((string)($row['Field'] ?? ''));
+            if ($field !== '') $cols[$field] = true;
+        }
+        $st->close();
+    }
+    $cache[$key] = $cols;
+    return $cols;
+}
+
 function hg_mentions_config(): array {
     return [
         'character' => [
@@ -178,11 +198,19 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
     $table = $c['table'];
     $labelCol = $c['label'];
     $prettyCol = $c['pretty'];
+    $columns = hg_mentions_table_columns($link, $table);
+    $hasLabel = isset($columns[strtolower($labelCol)]);
+    $hasPretty = isset($columns[strtolower($prettyCol)]);
+    if (!$hasLabel) return [];
     $where = $c['where'] ?? '';
     $searchCols = $c['search'] ?? [];
     if (empty($searchCols)) $searchCols = [$labelCol, $prettyCol];
-    if (!in_array($prettyCol, $searchCols, true)) $searchCols[] = $prettyCol;
+    if ($hasPretty && !in_array($prettyCol, $searchCols, true)) $searchCols[] = $prettyCol;
     if (!in_array($labelCol, $searchCols, true)) $searchCols[] = $labelCol;
+    $searchCols = array_values(array_filter($searchCols, function($col) use ($columns) {
+        return isset($columns[strtolower((string)$col)]);
+    }));
+    if (empty($searchCols)) $searchCols = [$labelCol];
 
     $params = [];
     $types = '';
@@ -197,14 +225,15 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
         $join .= " LEFT JOIN dim_systems ds ON ds.id = $tableAlias.system_id";
         $extraSelect .= ", ds.name AS system_name";
     }
-    $sql = "SELECT $tableAlias.id, $tableAlias.`$labelCol` AS label, $tableAlias.`$prettyCol` AS pretty_id$extraSelect FROM `$table` $tableAlias$join";
+    $prettySelect = $hasPretty ? "$tableAlias.`$prettyCol` AS pretty_id" : "'' AS pretty_id";
+    $sql = "SELECT $tableAlias.id, $tableAlias.`$labelCol` AS label, $prettySelect$extraSelect FROM `$table` $tableAlias$join";
     $conds = [];
     if ($where !== '') $conds[] = $where;
     if ($q !== '') {
         $like = '%' . $q . '%';
         $orParts = [];
         foreach ($searchCols as $col) {
-            $colRef = ($type === 'character') ? "$tableAlias.`$col`" : "`$col`";
+            $colRef = "$tableAlias.`$col`";
             $orParts[] = $colRef . " LIKE ?";
             $params[] = $like;
             $types .= 's';
@@ -212,7 +241,7 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
         $conds[] = '(' . implode(' OR ', $orParts) . ')';
     }
     if (!empty($conds)) $sql .= " WHERE " . implode(' AND ', $conds);
-    $orderCol = ($type === 'character') ? "$tableAlias.`$labelCol`" : "`$labelCol`";
+    $orderCol = "$tableAlias.`$labelCol`";
     $sql .= " ORDER BY $orderCol ASC LIMIT " . (int)$limit;
 
     $out = [];
@@ -259,6 +288,10 @@ function hg_mentions_lookup(mysqli $link, string $type, string $value): ?array {
     $table = $c['table'];
     $labelCol = $c['label'];
     $prettyCol = $c['pretty'];
+    $columns = hg_mentions_table_columns($link, $table);
+    $hasLabel = isset($columns[strtolower($labelCol)]);
+    $hasPretty = isset($columns[strtolower($prettyCol)]);
+    if (!$hasLabel) return null;
     $where = $c['where'] ?? '';
 
     $id = null;
@@ -269,8 +302,9 @@ function hg_mentions_lookup(mysqli $link, string $type, string $value): ?array {
     }
     if (!$id) return null;
 
-    $sql = "SELECT id, `$labelCol` AS label, `$prettyCol` AS pretty_id FROM `$table` WHERE id=? LIMIT 1";
-    if ($where !== '') $sql = "SELECT id, `$labelCol` AS label, `$prettyCol` AS pretty_id FROM `$table` WHERE id=? AND $where LIMIT 1";
+    $prettySelect = $hasPretty ? "`$prettyCol` AS pretty_id" : "'' AS pretty_id";
+    $sql = "SELECT id, `$labelCol` AS label, $prettySelect FROM `$table` WHERE id=? LIMIT 1";
+    if ($where !== '') $sql = "SELECT id, `$labelCol` AS label, $prettySelect FROM `$table` WHERE id=? AND $where LIMIT 1";
 
     if ($st = $link->prepare($sql)) {
         $st->bind_param('i', $id);

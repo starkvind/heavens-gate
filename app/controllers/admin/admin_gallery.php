@@ -350,40 +350,6 @@ $allDirs     = getAllDirsRecursive($GALLERY_BASE_FS, ''); // para selects de mov
 array_unshift($allDirs, ''); // raíz al principio
 ?>
 
-<style>
-
-.container { padding:18px 20px; }
-.msg { background:#0f1724; border:1px solid #1f2a44; padding:10px 12px; margin:10px 0; border-radius:8px; }
-.breadcrumbs a, .breadcrumbs span { color:#a7c0ff; text-decoration:none; margin-right:6px; }
-.grid { display:flex; flex-wrap:wrap; gap:12px; }
-.card { background:#0f1724; border:1px solid #1f2a44; border-radius:12px; padding:12px; }
-.card h3 { margin:0 0 8px 0; font-size:14px; }
-.folder { width:220px; }
-.folder .name { font-weight:600; }
-.folder-actions form { display:inline-block; margin-right:6px; }
-.folder-list { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; }
-.folder-icon { font-size:28px; margin-right:6px; }
-.btn { background:#1f2a44; color:#e6e9ef; border:1px solid #2a3a62; padding:6px 10px; border-radius:8px; cursor:pointer; }
-.btn:hover { background:#23304f; }
-.input, select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
-.small { font-size:12px; color:#9fb1d9; }
-.img-grid { display:flex; flex-wrap:wrap; gap:10px; }
-.img-item { width:170px; text-align:center; }
-.img-item .thumb { width:150px; height:150px; object-fit:cover; border:2px solid #2a3a62; border-radius:10px; background:#000; }
-.img-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
-hr.sep { border:0; border-top:1px solid #1f2a44; margin:16px 0; }
-form.inline { display:inline-block; }
-label { display:block; margin-bottom:4px; }
-
-/* Progreso */
-#uploadProgress { margin-top:10px; }
-.progress-row { margin:8px 0; }
-.progress-row .name { font-size:12px; margin-bottom:4px; color:#cfd8ff; }
-.progress { width:100%; background:#222; border:1px solid #555; height:18px; border-radius:4px; overflow:hidden; }
-.progress-bar { height:100%; width:0%; background:#4caf50; text-align:center; font-size:12px; color:white; transition:width .2s; }
-.progress-row.done .progress-bar { background:#28a745; }
-.progress-row.error .progress-bar { background:#c0392b; }
-</style>
 <script>
 function confirmDeleteDir(name){ return confirm("¿Eliminar la carpeta '" + name + "' y todo su contenido?"); }
 function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name + "'?"); }
@@ -432,7 +398,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
             <span class="folder-icon">📁</span>
             <a class="name" href="<?= $link ?>"><?= htmlspecialchars($d) ?></a>
           </div>
-          <div class="folder-actions" style="margin-top:8px;">
+          <div class="folder-actions adm-mt-8">
             <form class="inline" method="post" onsubmit="return confirm('¿Renombrar carpeta <?= htmlspecialchars($d) ?>?');">
               <input type="hidden" name="action" value="rename_dir">
               <input type="hidden" name="relDir" value="<?= htmlspecialchars($relDir) ?>">
@@ -462,7 +428,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
       <input type="hidden" name="relDir" value="<?= htmlspecialchars($relDir) ?>">
       <input class="input" type="file" id="imagesInput" name="images[]" accept=".jpg,.jpeg,.png,.gif,.webp" multiple required>
       <button class="btn" type="submit">Subir</button>
-      <div class="small" style="margin-top:6px;">Se comprimen automáticamente (JPG/WEBP ~80%, PNG compresión 8) y se crean thumbnails (200×200).</div>
+      <div class="small adm-mt-6">Se comprimen automáticamente (JPG/WEBP ~80%, PNG compresión 8) y se crean thumbnails (200×200).</div>
       <div id="uploadProgress"></div>
     </form>
   </div>
@@ -481,7 +447,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
         <a href="<?= htmlspecialchars($imgWeb) ?>" target="_blank" title="Ver original">
           <img class="thumb" src="<?= htmlspecialchars($thumbWeb) ?>" alt="<?= htmlspecialchars($title) ?>">
         </a>
-        <div class="small" style="margin-top:4px;"><?= htmlspecialchars($title) ?></div>
+        <div class="small adm-mt-4"><?= htmlspecialchars($title) ?></div>
         <div class="img-actions">
           <form method="post" class="inline" onsubmit="return confirmDeleteImg('<?= htmlspecialchars($img) ?>');">
             <input type="hidden" name="action" value="delete_image">
@@ -593,7 +559,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
                 <a href="${resp.url}${cacheBust}" target="_blank" title="Ver original">
                   <img class="thumb" src="${resp.thumb}${cacheBust}" alt="${resp.title}">
                 </a>
-                <div class="small" style="margin-top:4px;">${resp.title}</div>
+                <div class="small adm-mt-4">${resp.title}</div>
               `;
               imgGrid.appendChild(item);
             }
@@ -615,3 +581,6 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
   });
 })();
 </script>
+
+
+

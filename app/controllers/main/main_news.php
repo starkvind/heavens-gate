@@ -1,49 +1,8 @@
 <?php setMetaFromPage("Noticias | Heaven's Gate", "Últimas novedades de la campaña Heaven's Gate.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
+<link rel="stylesheet" href="/assets/css/hg-main.css">
 <h2> Noticias </h2>
 
-<style>
-	.news-pagination-wrap{
-		display:flex;
-		justify-content:center;
-		margin: 16px 0 8px;
-	}
-	.news-pagination{
-		display:flex;
-		align-items:center;
-		gap:6px;
-		flex-wrap:wrap;
-		justify-content:center;
-	}
-	.news-pagination .paginate_button{
-		display:inline-block;
-		min-width: 28px;
-		text-align:center;
-		padding: 3px 8px;
-		border: 1px solid #000099;
-		background:#000066;
-		color:#fff;
-		text-decoration:none;
-		font-family: verdana;
-		font-size: 10px;
-		cursor:pointer;
-	}
-	.news-pagination .paginate_button:hover{
-		border-color:#003399;
-		background:#000099;
-		color:#01b3fa;
-	}
-	.news-pagination .paginate_button.current{
-		background:#001199;
-		color:#01b3fa;
-		border-color:#003399;
-		cursor:default;
-	}
-	.news-pagination-info{
-		text-align:right;
-		margin-top: 6px;
-	}
-</style>
 
 <table class="notix">
 	<?php

@@ -11,7 +11,7 @@ function traducirRelacion($tipo, $direccion, $generoRelacionado, $generoBio) {
 
     if ($direccion === 'outgoing') {
         switch ($tipo) {
-            case "Asesino":        return "Víctima";			
+            case "Asesino":        return "Víctima";
             case "Amo":            return "Dueño";
             case "Padre":
             case "Madre":          return g($generoRelacionado, "Hijo", "Hija", "Hije");
@@ -25,7 +25,7 @@ function traducirRelacion($tipo, $direccion, $generoRelacionado, $generoBio) {
 			case "Amigo":          return g($generoBio, "Amigo", "Amiga", "Amigue");
 			case "Enemigo":        return g($generoBio, "Enemigo", "Enemiga", "Enemigue");
 			case "Extorsionador":  return g($generoRelacionado, "Extorsionado", "Extorsionada", "Extorsionade");
-			case "Traidor":		   return g($generoRelacionado, "Traicionado", "Traicionada", "Traicionade");
+			case "Traidor":        return g($generoRelacionado, "Traicionado", "Traicionada", "Traicionade");
 			case "Mentor":         return g($generoRelacionado, "Mentor", "Mentora", "Mentore");
 			case "Superior":       return g($generoRelacionado, "Subordinado", "Subordinada", "Subordinade");
             default:               return $tipo;
@@ -42,7 +42,7 @@ function traducirRelacion($tipo, $direccion, $generoRelacionado, $generoBio) {
             case "Hermano":        return g($generoBio, "Hermano", "Hermana", "Hermane");
 			case "Tío":            return g($generoRelacionado, "Tío", "Tía", "Tíe");
 			case "Primo":          return g($generoRelacionado, "Primo", "Prima", "Prime");
-            case "Creación":	   return g($generoRelacionado, "Creador", "Creadora", "Creadore");
+            case "Creación":       return g($generoRelacionado, "Creador", "Creadora", "Creadore");
             case "Protegido":      return g($generoRelacionado, "Protector", "Protectora", "Protectore");
             case "Subordinado":    return g($generoRelacionado, "Subordinado", "Subordinada", "Subordinade");
             case "Salvador":       return g($generoRelacionado, "Héroe", "Heroína", "Heroe");
@@ -85,7 +85,7 @@ $etiquetas = [
 // Imprimir cada grupo
 foreach ($grupos as $categoria => $lista) {
     if (count($lista) === 0) continue;
-    echo "<h4 style='margin: 1em 0.2em; font-weight: bold;'>{$etiquetas[$categoria]}</h4>";
+    echo "<h4 class='bio-rel-group-title'>{$etiquetas[$categoria]}</h4>";
 		foreach ($lista as $rel) {
 			$relId     = htmlspecialchars($rel['direction'] === 'outgoing' ? $rel['target_id'] : $rel['source_id']);
 			$relNombre = htmlspecialchars($rel['name']);
@@ -99,13 +99,13 @@ foreach ($grupos as $categoria => $lista) {
             $hrefRel = pretty_url($link, 'fact_characters', $relLink, (int)$relId);
 			echo "<a href='" . htmlspecialchars($hrefRel) . "' target='_blank'>
 					<div class='bioSheetPower'>
-						<img class='valign' style='width:13px; height:13px;' src='$relImg'>
+						<img class='valign bio-inline-icon' src='$relImg'>
 						$relNombre
-						<div style='float:right;font-size:9px;padding-top:0px;'>$tipoLegible</div>
+						<div class='bio-inline-type'>$tipoLegible</div>
 					</div>
 				  </a>";
 		}
-    echo "<br style='width: 100%; display: block;' />";
+    echo "<div class='bio-rel-break'></div>";
 
 }
 

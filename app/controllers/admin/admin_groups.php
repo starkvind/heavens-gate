@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * admin_groups.php — Modales + creación/renombrado + HTML server-side
  *
@@ -11,13 +11,22 @@
  */
 
 if (!isset($link) || !$link) {
-  echo "<div style='color:#f88'>Error: conexión DB no disponible.</div>";
+  echo "<div class='adm-color-error'>Error: conexión DB no disponible.</div>";
   return;
 }
+if (method_exists($link, 'set_charset')) {
+  $link->set_charset('utf8mb4');
+} else {
+  mysqli_set_charset($link, 'utf8mb4');
+}
+if (!headers_sent()) {
+  header('Content-Type: text/html; charset=UTF-8');
+}
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 /* ----------------------- helpers ----------------------- */
-function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function q($link,$sql,$types='',$params=[]){
   $st = mysqli_prepare($link,$sql);
   if(!$st){ return [false,mysqli_error($link),null,null]; }
@@ -135,7 +144,7 @@ function render_clan_detail($link,$organization_id){
         <div>
           <h4>Añadir manada</h4>
           <div class='toolbar'>
-            <select id='packsAvailable' style='flex:1; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+            <select id='packsAvailable' class='adm-input-dark-flex'>";
   foreach($avail as $p){ echo "<option value='".e($p['id'])."'>".e($p['name'])."</option>"; }
   echo     "</select>
             <button class='btn btn-ok' id='btnAddPack' data-clan='$organization_id' ".(empty($avail)?'disabled':'').">Añadir</button>
@@ -177,9 +186,9 @@ function render_group_detail($link,$group_id){
           <input id='newPosition' type='text' placeholder='Posición (opcional)'>
           <button class='btn btn-ok' id='btnAddMember' data-group='$group_id'>Añadir a la manada</button>
         </div>
-        <div id='searchResults' class='grid' style='display:none'></div>
+        <div id='searchResults' class='grid adm-hidden'></div>
 
-        <div class='card' style='margin-top:8px'>
+        <div class='card adm-mt-8'>
           <h4>Miembros activos <span class='count'>".count($a)."</span></h4>
           <div id='membersActive' class='chips'>";
   foreach($a as $m){
@@ -193,7 +202,7 @@ function render_group_detail($link,$group_id){
   }
   echo   "</div></div>
 
-        <div class='card' style='margin-top:8px'>
+        <div class='card adm-mt-8'>
           <h4>Miembros inactivos</h4>
           <div id='membersInactive' class='chips'>";
   foreach($i as $m){
@@ -229,21 +238,21 @@ function render_clan_modal($link,$organization_id){
             <h4>Datos del clan</h4>
             <div class='toolbar'>
               <input id='clanName' type='text' value='".e($clan['name'])."'>
-              <select id='clanTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+              <select id='clanTotem' class='adm-select-dark-240'>";
   foreach($totems as $tid=>$tname){
     echo "<option value='".e($tid)."' ".($tid===$totemSel?'selected':'').">".e($tname)."</option>";
   }
   echo      "</select>
               <input id='clanColor' type='color' value='".e($clanColor)."' title='Color'>
-              <select id='clanIsNpc' style='max-width:140px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>
+              <select id='clanIsNpc' class='adm-select-dark-140'>
                 <option value='0' ".($clanIsNpc===0?'selected':'').">is_npc: 0</option>
                 <option value='1' ".($clanIsNpc===1?'selected':'').">is_npc: 1</option>
               </select>
               <button class='btn btn-ok' id='btnClanSave' data-id='".e($clan['id'])."'>Guardar</button>
               <button class='btn' id='btnOpenGroupCreate' data-clan='".e($clan['id'])."'>Nueva manada</button>
             </div>
-            <div class='toolbar' style='margin-top:8px'>
-              <textarea id='clanDescription' rows='4' style='width:100%; resize:vertical;' placeholder='Descripción'>".e($clanDesc)."</textarea>
+            <div class='toolbar adm-mt-8'>
+              <textarea id='clanDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripción'>".e($clanDesc)."</textarea>
             </div>
           </div>
           <div class='hr'></div>
@@ -270,13 +279,13 @@ function render_group_modal($link,$group_id){
             <h4>Datos básicos</h4>
             <div class='toolbar'>
               <input id='groupName' type='text' value='".e($g['name'])."' placeholder='Nombre'>
-              <input id='groupCronica' type='number' min='1' step='1' value='".e($g['cronica'])."' style='max-width:120px' title='Crónica'>
-              <select id='groupTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+              <input id='groupCronica' type='number' min='1' step='1' value='".e($g['cronica'])."' class='adm-maxw-120' title='Crónica'>
+              <select id='groupTotem' class='adm-select-dark-240'>";
   foreach($totems as $tid=>$tname){
     echo "<option value='".e($tid)."' ".($tid===$totemSel?'selected':'').">".e($tname)."</option>";
   }
   echo      "</select>
-              <label style='display:flex;align-items:center;gap:6px'>
+              <label class='adm-flex-6-center'>
                 <input id='groupActiva' type='checkbox' ".((int)$g['activa']===1?'checked':'')."> Activa
               </label>
               <button class='btn btn-ok' id='btnSaveGroupBasic' data-id='".e($g['id'])."'>Guardar</button>
@@ -306,14 +315,14 @@ function render_clan_create_form($link){
             <input id='newClanName' type='text' placeholder='Nombre del clan'>
             <input id='newClanSortOrder' type='number' min='0' step='1' value='".e($nextSort)."' placeholder='Orden'>
             <input id='newClanColor' type='color' value='#ffffff' title='Color'>
-            <select id='newClanIsNpc' style='max-width:140px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>
+            <select id='newClanIsNpc' class='adm-select-dark-140'>
               <option value='0' selected>is_npc: 0</option>
               <option value='1'>is_npc: 1</option>
             </select>
             <button class='btn btn-ok' id='btnCreateClan'>Crear</button>
           </div>
-          <div class='toolbar' style='margin-top:8px'>
-            <textarea id='newClanDescription' rows='4' style='width:100%; resize:vertical;' placeholder='Descripción'></textarea>
+          <div class='toolbar adm-mt-8'>
+            <textarea id='newClanDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripción'></textarea>
           </div>
           <div class='small'>Se creará con valores por defecto. Podrás completar más campos en otras pantallas si es necesario.</div>
         </div>";
@@ -333,13 +342,13 @@ function render_group_create_form($link,$prefill_clan_id=0){
               <h4>Datos básicos</h4>
               <div class='toolbar'>
                 <input id='newGroupName' type='text' placeholder='Nombre de la manada'>
-                <input id='newGroupCronica' type='number' min='1' step='1' value='1' style='max-width:120px' title='Crónica'>
-                <select id='newGroupTotem' style='max-width:240px; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>";
+                <input id='newGroupCronica' type='number' min='1' step='1' value='1' class='adm-maxw-120' title='Crónica'>
+                <select id='newGroupTotem' class='adm-select-dark-240'>";
   foreach($totems as $tid=>$tname){
     echo "<option value='".e($tid)."'>".e($tname)."</option>";
   }
   echo      "</select>
-                <label style='display:flex;align-items:center;gap:6px'>
+                <label class='adm-flex-6-center'>
                   <input id='newGroupActiva' type='checkbox' checked> Activa
                 </label>
               </div>
@@ -347,7 +356,7 @@ function render_group_create_form($link,$prefill_clan_id=0){
             <div class='card'>
               <h4>Asignación inicial</h4>
               <div class='toolbar'>
-                <select id='newGroupClan' style='flex:1; padding:8px; border-radius:8px; background:#0c1b40; border:1px solid var(--border); color:var(--text)'>
+                <select id='newGroupClan' class='adm-input-dark-flex'>
                   <option value='0' ".($prefill_clan_id===0?'selected':'').">— Sin asignar —</option>";
   if($ok){ while($c=mysqli_fetch_assoc($rs)){
     echo "<option value='".e($c['id'])."' ".($prefill_clan_id===(int)$c['id']?'selected':'').">".e($c['name'])."</option>";
@@ -520,7 +529,7 @@ if(!empty($_POST['action'])){
     while($r=mysqli_fetch_assoc($rs)){
       $lab = $r['nombre'].( $r['alias'] ? " ({$r['alias']})" : "" );
       echo "<div class='card'>
-              <div style='display:flex;justify-content:space-between;gap:8px;align-items:center'>
+              <div class='adm-flex-between-8'>
                 <div>".e($lab)."</div>
                 <button class='btn btn-pick-char' data-id='".e($r['id'])."'>Añadir</button>
               </div>
@@ -533,50 +542,14 @@ if(!empty($_POST['action'])){
 }
 
 /* ----------------------- Estilos + UI ----------------------- */ ?>
-<style>
-:root{ --panel:#0f1f49; --border:#27408b; --text:#e9f1ff; --muted:#a9b6db; }
-.box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.toolbar input[type="text"], .toolbar input[type="number"], .toolbar select{
-  flex:1; padding:8px;border-radius:8px;border:1px solid var(--border);background:#0c1b40;color:var(--text)
-}
-.table{width:100%;border-collapse:separate;border-spacing:0 6px}
-.table th,.table td{padding:6px 8px;text-align:left}
-.row{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px}
-.btn{cursor:pointer;border:1px solid var(--border);background:#0c1b40;color:var(--text);padding:6px 10px;border-radius:8px}
-.btn:hover{filter:brightness(1.1)} .btn-ok{border-color:#2b8a5a} .btn-bad{border-color:#8a2b2b}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
-.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;gap:6px;align-items:center;border-radius:999px;background:#1b2f63;padding:4px 8px}
-.chip.off{opacity:.7;text-decoration:line-through}
-.hr{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
-.small{font-size:.85rem;color:var(--muted)}
-.tabbar{display:flex;gap:8px;margin:4px 0;}
-.tabbar .tab{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#0c1b40;cursor:pointer;color:white;}
-.tabbar .tab.active{background:#15306b}
-.count{color:var(--muted);font-weight:600}
-.err{color:#ff9a9a}
+<?php
+$ADMIN_GROUPS_ENDPOINT = '/talim?s=admin_groups&ajax=1';
+admin_panel_open('Grupos (Manadas y Clanes)');
+?>
 
-/* Modal */
-.modal.hidden{display:none}
-.modal{position:fixed;inset:0;z-index:9999}
-.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
-.modal-dialog{position:absolute;inset:auto;top:5%;left:50%;transform:translateX(-50%);
-  width:min(100%, 960px); max-height:90%; overflow:auto; background:var(--panel);
-  border:1px solid var(--border); border-radius:12px; box-shadow:0 20px 80px rgba(0,0,0,.5)}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:12px 12px 0 12px}
-.modal-header h3{margin:0}
-.modal-close{background:transparent;border:0;color:var(--text);font-size:24px;cursor:pointer}
-.modal-body{padding:12px}
-</style>
-
-<?php $ADMIN_GROUPS_ENDPOINT = $_SERVER['REQUEST_URI']; ?>
-
-<div class="tabbar">
-  <button class="tab active" data-tab="clans">Clanes</button>
-  <button class="tab" data-tab="groups">Manadas</button>
+<div class="tabs">
+  <a href="#" class="tablink active" data-tab="clans">Clanes</a>
+  <a href="#" class="tablink" data-tab="groups">Manadas</a>
 </div>
 
 <div id="tab-clans" class="box">
@@ -589,7 +562,7 @@ if(!empty($_POST['action'])){
   <div id="clansTableWrap"><?php render_clans_table($link); ?></div>
 </div>
 
-<div id="tab-groups" class="box" style="display:none">
+<div id="tab-groups" class="box" style="display:none;">
   <h3>Manadas</h3>
   <div class="toolbar">
     <input id="filterGroups" type="text" placeholder="Filtrar manadas...">
@@ -599,11 +572,10 @@ if(!empty($_POST['action'])){
   <div id="groupsTableWrap"><?php render_groups_table($link); ?></div>
 </div>
 
-<!-- Modal global -->
-<div id="agModal" class="modal hidden">
-  <div class="modal-backdrop"></div>
-  <div class="modal-dialog">
-    <div id="modalContent"></div>
+<!-- Modal global (mismo patron que admin_relations) -->
+<div id="agModal" class="modal-back" style="display:none;">
+  <div class="modal adm-u-070">
+    <div id="modalContent" class="modal-body"></div>
   </div>
 </div>
 
@@ -625,26 +597,32 @@ async function htmlPost(action, data={}){
 
 /* ----- Modal helpers ----- */
 function openModal(html){
-  $('#modalContent').innerHTML = html;
-  $('#agModal').classList.remove('hidden');
-  const closeBtn = $('.modal-close', $('#modalContent'));
-  $('.modal-backdrop').onclick = closeModal;
-  if(closeBtn) closeBtn.onclick = closeModal;
+  const modal = $('#agModal');
+  const content = $('#modalContent');
+  content.innerHTML = html;
+  modal.style.display = 'flex';
+  const closeBtn = $('.modal-close', content);
+  if (closeBtn) closeBtn.onclick = closeModal;
   bindModalInside(); // enlaza eventos internos según contenido
 }
 function closeModal(){
-  $('#agModal').classList.add('hidden');
-  $('#modalContent').innerHTML = '';
+  const modal = $('#agModal');
+  const content = $('#modalContent');
+  modal.style.display = 'none';
+  content.innerHTML = '';
 }
 
 /* ----- Tabs ----- */
-$$('.tab').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    $$('.tab').forEach(x=>x.classList.remove('active'));
+$$('.tablink').forEach(b=>{
+  b.addEventListener('click', (ev)=>{
+    ev.preventDefault();
+    $$('.tablink').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     const tab = b.dataset.tab;
-    $('#tab-clans').style.display = tab==='clans' ? '' : 'none';
-    $('#tab-groups').style.display = tab==='groups' ? '' : 'none';
+    const clans = $('#tab-clans');
+    const groups = $('#tab-groups');
+    if (clans) clans.style.display = (tab==='clans') ? '' : 'none';
+    if (groups) groups.style.display = (tab==='groups') ? '' : 'none';
   });
 });
 
@@ -804,12 +782,20 @@ function bindModalInside(){
         inSearch.oninput = ()=>{
           clearTimeout(t);
           const q = inSearch.value.trim();
-          if(!q){ results.style.display='none'; results.innerHTML=''; return; }
+          if(!q){
+            results.classList.add('adm-hidden');
+            results.innerHTML='';
+            return;
+          }
           t=setTimeout(async ()=>{
             results.innerHTML = await htmlPost('search_characters',{q});
-            results.style.display='';
+            results.classList.remove('adm-hidden');
             $$('.btn-pick-char', results).forEach(b=>{
-              b.onclick = ()=>{ inSearch.value = b.parentElement.firstElementChild.textContent.trim(); inSearch.dataset.charId = b.dataset.id; results.style.display='none'; };
+              b.onclick = ()=>{
+                inSearch.value = b.parentElement.firstElementChild.textContent.trim();
+                inSearch.dataset.charId = b.dataset.id;
+                results.classList.add('adm-hidden');
+              };
             });
           },300);
         };
@@ -859,6 +845,17 @@ function bindModalInside(){
 
 /* Bind inicial de filas tras carga */
 bindRowButtons();
+
+// Cerrar modal al pulsar fuera / ESC (como en admin_relations)
+const agDialog = $('#agModal .modal');
+if (agDialog) {
+  agDialog.addEventListener('click', function(e){ e.stopPropagation(); });
+}
+$('#agModal').addEventListener('click', function(e){
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeModal();
+});
 </script>
-
-
+<?php admin_panel_close(); ?>

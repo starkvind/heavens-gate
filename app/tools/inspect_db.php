@@ -4,7 +4,7 @@
  * Explorador de esquema para saneado de BDD
  */
 
-include_once(__DIR__ . "/../helpers/heroes.php");
+include_once(__DIR__ . "/../helpers/db_connection.php");
 
 /* ---------- CONFIGURACIÓN ---------- */
 
@@ -98,15 +98,6 @@ if ($rsEnc = $link->query("SELECT @@character_set_connection AS cs_conn, @@colla
     $rsEnc->close();
 }
 
-echo "<style>
-.inspect-db-wrap{max-width:600px;width:90%;}
-.inspect-db-actions{margin:6px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.inspect-db-btn{background:#0d3a7a;color:#fff;border:1px solid #1b4aa0;border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;}
-.inspect-db-btn:hover{filter:brightness(1.1);}
-.inspect-db-btn.active{background:#001199;color:#01b3fa;border-color:#003399;}
-.inspect-db-output{background:#000033;color:#cfe;border:1px solid #000088;border-radius:8px;padding:10px;max-height:45vh;overflow:auto;white-space:pre-wrap;font-size:11px;line-height:1.35;}
-.inspect-db-hint{font-size:10px;color:#9dd;}
-</style>";
 echo "<div class='inspect-db-wrap'>";
 echo "<div class='inspect-db-actions'>
   <a class='inspect-db-btn ".($mode==='full'?'active':'')."' href='?p=talim&s=admin_inspect_db&mode=full'>Modo completo</a>
@@ -236,3 +227,4 @@ echo "<script>
     });
   })();
 </script>";
+

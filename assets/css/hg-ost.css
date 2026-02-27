@@ -1,0 +1,67 @@
+.ost-title {
+    text-align: right;
+}
+
+.ost-intro {
+    color: #eee;
+}
+
+.ost-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.ost-inner {
+    flex: 1;
+    max-width: 600px;
+    min-width: 600px;
+}
+
+.ost-table {
+    width: 100%;
+}
+
+.ost-play-cell {
+    text-align: center;
+}
+
+#popupPlayer {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    height: 235px;
+    background-color: #000055;
+    border: 1px solid #009;
+    z-index: 9999;
+    padding: 5px;
+}
+
+.ost-popup-top {
+    width: 100%;
+    padding-bottom: 2em;
+    padding-top: 0.5em;
+    text-align: left !important;
+}
+
+.ost-popup-title-wrap {
+    width: 85%;
+    float: left;
+}
+
+#titleSong {
+    margin-left: 1em;
+}
+
+.ost-popup-close-wrap {
+    width: 10%;
+    float: right;
+    text-align: right;
+}
+
+.ost-popup-close {
+    color: #66ccff;
+    margin-right: 0.5em;
+}

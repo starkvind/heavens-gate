@@ -1,0 +1,43 @@
+.layout-btn-top {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid #009;
+    background: #005;
+    color: #00bbff;
+    font-size: 18px;
+    cursor: pointer;
+    display: none;
+    z-index: 9999;
+    box-shadow: 0 6px 18px #007;
+}
+
+.layout-btn-top:hover {
+    background: #006;
+    transform: translateY(-2px);
+}
+
+.layout-footer-table {
+    margin: auto;
+}
+
+.layout-render-time {
+    text-align: center;
+}
+
+.main-footer-links {
+    font-size: 10px;
+}
+
+.menu-season-label {
+    float: left !important;
+    margin-left: 6px;
+}
+
+.menu-season-status {
+    float: right !important;
+}
+

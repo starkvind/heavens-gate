@@ -276,14 +276,6 @@ $pageSect = "Lista de personajes - Biografías";
 
 
 
-<link rel="stylesheet" href="assets/vendor/datatables/jquery.dataTables.min.css">
-
-<script src="assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-
-<script src="assets/vendor/datatables/jquery.dataTables.min.js"></script>
-
-
-
 <style>
 
 /* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
@@ -438,28 +430,6 @@ $pageSect = "Lista de personajes - Biografías";
 
 
 
-/* DataTables filter alineado */
-
-.dataTables_wrapper .dataTables_filter{ margin:0 !important; }
-
-.dataTables_wrapper .dataTables_filter label{
-
-	display:flex;
-
-	align-items:center;
-
-	gap:8px;
-
-	margin:0;
-
-	white-space:nowrap;
-
-}
-
-.dataTables_wrapper .dataTables_filter input{ margin-left:0 !important; }
-
-
-
 @media (max-width: 720px){
 
 	.dt-toolbar{ flex-direction:column; align-items:stretch; }
@@ -473,8 +443,7 @@ $pageSect = "Lista de personajes - Biografías";
 }
 
 </style>
-
-
+<?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2 style="text-align:right;">Lista de personajes</h2>
 
@@ -1158,6 +1127,7 @@ $(document).ready(function () {
 });
 
 </script>
+
 
 
 

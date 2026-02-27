@@ -2,7 +2,7 @@
 // Generate pretty_id for selected tables.
 // Usage: /sep/tools/generate_pretty_ids.php?force=1
 
-include(__DIR__ . "/../helpers/heroes.php");
+include(__DIR__ . "/../helpers/db_connection.php");
 include(__DIR__ . "/../helpers/pretty.php");
 
 if (!$link) {
@@ -144,3 +144,4 @@ foreach ($tables as $t) {
 
 echo "DONE\n";
 echo "</pre>";
+

@@ -38,31 +38,13 @@ if ($result->num_rows > 0) {
         setMetaFromPage($nameWereForm . " | Formas | Heaven's Gate", meta_excerpt($infoDesc), $imageWereForm, 'article'); 
 
         include ("app/helpers/system_category_helper.php");
-        include("app/partials/main_nav_bar.php"); // Barra Navegación
+        include("app/partials/main_nav_bar.php"); // Barra Navegacion
+        echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
 
         if ($returnType === "Bastet") {
             $nameWereForm = "$nameWereForm ($nameWereBreed)";
         }
 ?>
-<style>
-.form-detail { display:grid; gap:12px; }
-.form-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
-.form-banner::before { content:''; display:block; padding-top:28%; }
-.form-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-.form-banner-title { position:absolute; top:10px; right:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; }
-.form-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.form-box h3 { margin-top:0; color:#33FFFF; }
-.mod-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
-.mod-card { background:#00135a; border:1px solid #1b4aa0; border-radius:8px; padding:8px; text-align:center; color:#cfe; }
-.mod-card .mod-label{ font-size:12px; color:#9dd; margin-bottom:4px; }
-.mod-card .mod-value{ font-size:16px; color:#33FFFF; font-weight:bold; }
-@media (max-width:720px){ .mod-grid{ grid-template-columns:1fr; } }
-.cap-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:10px; justify-items:center; }
-.cap-item{ display:flex; flex-direction:column; align-items:center; text-align:center; color:#cfe; }
-.cap-icon{ width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid #000088; background:#000033; box-shadow:0 4px 10px rgba(0,0,0,0.45); }
-.cap-label{ margin-top:6px; font-size:12px; color:#9dd; }
-.cap-value{ font-size:13px; color:#fff; font-weight:bold; }
-</style>
 <div class="form-detail">
   <div class="form-banner">
     <?php if ($imageWereForm !== ''): ?>
@@ -122,14 +104,8 @@ if ($result->num_rows > 0) {
     $stmtMan->execute();
     $rsMan = $stmtMan->get_result();
     if ($rsMan && $rsMan->num_rows > 0) {
-      echo "<div class='form-box' style='padding-bottom: 2.5em;'>";
+      echo "<div class='form-box form-box-maneuvers'>";
       echo "<h3>Maniobras de combate</h3>";
-      echo "<style>
-        .maneuvers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:12px;justify-items:center;padding:6px 0;}
-        .maneuver-item{display:flex;flex-direction:column;align-items:center;text-decoration:none;color:#fff;min-width:120px;}
-        .maneuver-icon{width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid #000088;background:#000033;box-shadow:0 4px 10px rgba(0,0,0,0.45);}
-        .maneuver-label{margin-top:6px;font-size:12px;line-height:1.1;text-align:center;max-width:140px;}
-      </style>";
       echo "<div class='maneuvers-grid'>";
       while ($m = $rsMan->fetch_assoc()) {
         $maneId = (int)$m['id'];
@@ -160,4 +136,5 @@ if ($result->num_rows > 0) {
 //$stmt->close();
 
 ?>
+
 

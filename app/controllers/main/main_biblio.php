@@ -1,5 +1,6 @@
 <?php setMetaFromPage("Bibliografía | Heaven's Gate", "Bibliografía y referencias de la campaña.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegación ?>
+<link rel="stylesheet" href="/assets/css/hg-main.css">
 <h2>Bibliograf&iacute;a</h2>
 <fieldset class="grupoHabilidad">
     <?php
@@ -27,11 +28,10 @@
         $descBook = htmlspecialchars($ResultQuery["description"]);
         $goodYearBook = $yearBook != 0 ? $yearBook : "";
 
-        echo "<div class='renglonBiblio' style='text-align: left;' title='$descBook'>$nameBook <div style='float:right;'>$goodYearBook</div></div>";
+        echo "<div class='renglonBiblio main-biblio-row' title='$descBook'>$nameBook <div class='main-biblio-year'>$goodYearBook</div></div>";
     }
 
     // Liberar el resultado de la consulta
     mysqli_free_result($IdConsulta);
     ?>
 </fieldset>
-

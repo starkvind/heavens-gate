@@ -31,6 +31,7 @@
 					echo "<a href='/talim' title='Administración'>Administración</a>";
 					switch ($seccion) {
 						case 'admin_pjs':
+						case 'admin_characters':
 							echo " $pillSeparator Personajes";
 							break;
 						case 'admin_pjs_text':
@@ -64,6 +65,7 @@
 							echo " $pillSeparator Galería";
 							break;
 						case 'admin_plots':
+						case 'admin_parties':
 							echo " $pillSeparator Tramas";
 							break;
 						case 'admin_powers':

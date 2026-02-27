@@ -20,14 +20,28 @@
   }
 
   function fetchMentions(type, q) {
-    var url = '/ajax/mentions?type=' + encodeURIComponent(type) + '&q=' + encodeURIComponent(q || '');
-    return fetch(url, { credentials: 'same-origin' })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if (data && data.ok && Array.isArray(data.items)) return data.items;
-        return [];
-      })
-      .catch(function(){ return []; });
+    var query = encodeURIComponent(q || '');
+    var kind = encodeURIComponent(type || '');
+    var endpoints = [
+      '/ajax/mentions?type=' + kind + '&q=' + query,
+      '/index.php?p=mentions&type=' + kind + '&q=' + query
+    ];
+
+    function tryFetch(idx) {
+      if (idx >= endpoints.length) return Promise.resolve([]);
+      return fetch(endpoints[idx], { credentials: 'same-origin' })
+        .then(function(r){
+          if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 0));
+          return r.json();
+        })
+        .then(function(data){
+          if (data && data.ok && Array.isArray(data.items)) return data.items;
+          throw new Error('Invalid payload');
+        })
+        .catch(function(){ return tryFetch(idx + 1); });
+    }
+
+    return tryFetch(0);
   }
 
   function renderList(box, items, onPick) {
@@ -117,7 +131,7 @@
       var range = quill.getSelection();
       if (!range) return closeBox();
       var text = quill.getText(0, range.index);
-      var match = text.match(/@([a-z_]+)\s([^@\n]*)$/i);
+      var match = text.match(/@([a-z_]+)(?:\s+([^@\n]*))?$/i);
       if (!match) return closeBox();
       var type = (match[1] || '').toLowerCase();
       if (types.indexOf(type) === -1) return closeBox();
@@ -181,7 +195,7 @@
     textarea.addEventListener('keyup', function(){
       var pos = textarea.selectionStart || 0;
       var text = textarea.value.slice(0, pos);
-      var match = text.match(/@([a-z_]+)\s([^@\n]*)$/i);
+      var match = text.match(/@([a-z_]+)(?:\s+([^@\n]*))?$/i);
       if (!match) return closeBox();
       var type = (match[1] || '').toLowerCase();
       if (types.indexOf(type) === -1) return closeBox();

@@ -1,45 +1,6 @@
 <?php
 // Recursos desde bridge_characters_system_resources + dim_systems_resources.
 // Fallback opcional a bridge_characters_resources si en algun entorno existe ese nombre.
-echo "<style>
-.bio-renown-row{
-    display:flex;
-    align-items:stretch;
-    margin-bottom:2px;
-}
-.bio-renown-right{
-    border:1px solid #009;
-    background-color:#000055;
-    color:#FFF;
-    font-size:9px;
-    text-align:left;
-    width:136px;
-    min-height:28px;
-    height:auto;
-    padding:2px;
-    margin-bottom:0;
-    box-sizing:border-box;
-}
-.bio-renown-left{
-    border:1px solid #009;
-    background-color:#000066;
-    color:cyan;
-    font-size:9px;
-    text-align:right;
-    width:122px;
-    min-height:28px;
-    height:auto;
-    padding:2px;
-    margin-bottom:0;
-    box-sizing:border-box;
-    display:flex;
-    align-items:center;
-    justify-content:flex-end;
-}
-.bio-renown-line{ display:flex; align-items:center; gap:4px; line-height:1.1; }
-.bio-renown-line + .bio-renown-line{ margin-top:2px; }
-.bio-renown-tag{ min-width:10px; color:#9fd; font-weight:bold; font-size:8px; }
-</style>";
 $isMonsterBio = !empty($bioIsMonster);
 
 $resourcesByKind = [
@@ -158,7 +119,7 @@ $renderEstadoValue = function(array $res) use ($renderPwrPip): string {
     $temp = (int)($res['temp'] ?? 0);
     $html = $renderPwrPip($temp);
     if ($temp !== $perm) {
-        $html .= " <span style='font-size:10px;color:#9fd;'>(" . h((string)$temp) . "/" . h((string)$perm) . ")</span>";
+        $html .= " <span class='bio-renown-temp'>(" . h((string)$temp) . "/" . h((string)$perm) . ")</span>";
     }
     return $html;
 };
@@ -173,7 +134,7 @@ echo "<div class='bioSheetSociaWhole'>"; // Caja de la Seccion SOCIAL y VENTAJAS
                 $rid = (int)($res['id'] ?? 0);
                 $nameHtml = h($nm);
                 if ($rid > 0) {
-                    $nameHtml = "<span class='hg-tooltip' data-tip='resource' data-id='" . $rid . "' style='cursor:help;'>" . h($nm) . "</span>";
+                    $nameHtml = "<span class='hg-tooltip hg-tooltip--help' data-tip='resource' data-id='" . $rid . "'>" . h($nm) . "</span>";
                 }
                 $perm = (int)($res['perm'] ?? 0);
                 $temp = (int)($res['temp'] ?? 0);
@@ -188,7 +149,7 @@ echo "<div class='bioSheetSociaWhole'>"; // Caja de la Seccion SOCIAL y VENTAJAS
             if ($bioRange != "") { // Rango del Personaje
                 echo "<div class='bio-renown-row'>";
                 echo "<div class='bio-renown-left'>Rango:</div>";
-                echo "<div class='bio-renown-right' style='display:flex;align-items:center;justify-content:center;'>" . h($bioRange) . "</div>";
+                echo "<div class='bio-renown-right bio-renown-right-center'>" . h($bioRange) . "</div>";
                 echo "</div>";
             }
         echo "</fieldset>";
@@ -203,7 +164,7 @@ echo "<div class='bioSheetSociaWhole'>"; // Caja de la Seccion SOCIAL y VENTAJAS
             $rid = (int)($res['id'] ?? 0);
             $nameHtml = h($nm);
             if ($rid > 0) {
-                $nameHtml = "<span class='hg-tooltip' data-tip='resource' data-id='" . $rid . "' style='cursor:help;'>" . h($nm) . "</span>";
+                $nameHtml = "<span class='hg-tooltip hg-tooltip--help' data-tip='resource' data-id='" . $rid . "'>" . h($nm) . "</span>";
             }
             echo "<div class='bioSheetSocialPowerLeft'>" . $nameHtml . ":</div>";
             echo "<div class='bioSheetSocialPowerRight'>" . $renderEstadoValue($res) . "</div>";

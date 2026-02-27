@@ -430,11 +430,11 @@ foreach ($opts_systems as $srow) {
     $sel = ($sid === $sys) ? ' selected' : '';
     $sysOptions .= '<option value="'.$sid.'"'.$sel.'>'.h($sname).'</option>';
 }
-$actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
-    . '<label style="text-align:left;">Sistema '
+$actions = '<span class="adm-flex-right-8">'
+    . '<label class="adm-text-left">Sistema '
     . '<select class="select" id="filterSystemDetails">'.$sysOptions.'</select></label>'
     . '<button class="btn btn-green" id="btnNew" type="button">+ Nuevo</button>'
-    . '<label style="text-align:left;">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rapido '
     . '<input class="inp" type="text" id="quickFilterSystemDetails" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Detalles de sistemas', $actions);
@@ -449,45 +449,7 @@ admin_panel_open('Detalles de sistemas', $actions);
     </div>
 <?php endif; ?>
 
-<style>
-.tabs { display:flex; gap:8px; flex-wrap:wrap; }
-.tablnk{ display:inline-block; padding:6px 10px; border:1px solid #000088; background:#050b36; color:#cfe; border-radius:999px; text-decoration:none; font-size:12px; }
-.tablnk.active{ background:#001199; color:#33FFFF; }
-.modal-back{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:9999; padding:14px; box-sizing:border-box; }
-.modal{ width:min(1100px,96vw); max-height:92vh; overflow:hidden; background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; position:relative; display:flex; flex-direction:column; }
-.modal h3{ margin:0 0 8px; color:#33FFFF; }
-.modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
-.modal-actions{ position:sticky; bottom:0; display:flex; gap:10px; justify-content:flex-end; padding:10px 0 0; margin-top:10px; background:linear-gradient(to top, rgba(5,1,78,1), rgba(5,1,78,0)); border-top:1px solid #000088; }
-.grid{ display:grid; grid-template-columns:repeat(2, minmax(280px, 1fr)); gap:10px 12px; }
-.grid .field-full{ grid-column:1 / -1; }
-.grid label{ font-size:12px; color:#cfe; display:block; text-align:left; }
-.grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
-textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
-.image_url-row{ display:flex; gap:12px; align-items:center; }
-.image_url-preview{ width:32px; height:32px; border-radius:50%; background:#001188; border:1px solid #000088; display:flex; align-items:center; justify-content:center; overflow:hidden; flex:0 0 32px; }
-.image_url-preview img{ width:100%; height:100%; object-fit:cover; display:none; }
-.image_url-preview .ph{ font-size:9px; color:#88a; }
-.image_url-controls{ flex:1; display:grid; gap:6px; }
-.image_url-controls input[type="file"]{ font-size:12px; color:#cfe; }
-.image_url-controls .row{ display:flex; align-items:center; gap:10px; }
-.image_url-controls .row label{ margin:0; font-size:11px; color:#cfe; }
-.image_url-controls .row input[type="checkbox"]{ transform:scale(1.05); }
-.ql-toolbar.ql-snow{ border:1px solid #000088 !important; background:#050b36 !important; border-radius:8px 8px 0 0; }
-.ql-container.ql-snow{ border:1px solid #000088 !important; border-top:none !important; background:#000033 !important; color:#fff !important; border-radius:0 0 8px 8px; }
-.ql-editor{ min-height:220px; font-size:12px; }
-.ql-snow .ql-stroke{ stroke:#cfe !important; }
-.ql-snow .ql-fill{ fill:#cfe !important; }
-.ql-snow .ql-picker{ color:#cfe !important; }
-.ql-snow .ql-picker-options{
-  background:#050b36 !important;
-  border:1px solid #000088 !important;
-}
-.ql-snow .ql-picker-item{
-  color:#cfe !important;
-}
-</style>
-
-<div class="tabs" style="margin:6px 0 10px;">
+<div class="tabs adm-m-6-0-10">
   <?php
     $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_system_details');
     $baseTabs .= "&pp=".$perPage."&q=".urlencode($q)."&sys=".urlencode($sys);
@@ -502,9 +464,9 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
-          <th style="width:<?= (int)($c['w'] ?? 120) ?>px;"><?= h($c['label']) ?></th>
+          <th width="<?= (int)($c['w'] ?? 120) ?>"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
-        <th style="width:190px;">Acciones</th>
+        <th class="adm-w-190">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -524,7 +486,7 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
           ?>
             <td>
               <?php if ($k === 'id'): ?>
-                <strong style="color:#33FFFF;"><?= (int)$r[$pk] ?></strong>
+                <strong class="adm-color-accent"><?= (int)$r[$pk] ?></strong>
               <?php else: ?>
                 <?= h(ui_short($val, 140)) ?>
               <?php endif; ?>
@@ -537,7 +499,7 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
         </tr>
       <?php endforeach; ?>
       <?php if (empty($rows)): ?>
-        <tr><td colspan="<?= count($META['list_cols'])+1 ?>" style="color:#bbb;">(Sin resultados)</td></tr>
+        <tr><td colspan="<?= count($META['list_cols'])+1 ?>" class="adm-color-muted">(Sin resultados)</td></tr>
       <?php endif; ?>
     </tbody>
 </table>
@@ -559,7 +521,7 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
 <div class="modal-back" id="mb">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle">Nuevo</h3>
-    <form method="post" id="formCrud" enctype="multipart/form-data" style="margin:0;">
+    <form method="post" id="formCrud" enctype="multipart/form-data" class="adm-m-0">
       <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="crud_tab" id="crud_tab" value="<?= h($tab) ?>">
       <input type="hidden" name="crud_action" id="crud_action" value="create">
@@ -576,12 +538,12 @@ textarea.inp { min-height:120px; resize:vertical; white-space:pre-wrap; }
 </div>
 
 <div class="modal-back" id="mbDel">
-  <div class="modal" style="width:min(560px,96vw);">
+  <div class="modal adm-modal-sm">
     <h3>Confirmar borrado</h3>
-    <div style="color:#cfe; font-size:12px; line-height:1.4; margin-bottom:10px;">
+    <div class="adm-help-text">
       Esto eliminara el registro definitivamente.
     </div>
-    <form method="post" id="formDel" style="margin:0;">
+    <form method="post" id="formDel" class="adm-m-0">
       <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="crud_tab" value="<?= h($tab) ?>">
       <input type="hidden" name="crud_action" value="delete">
@@ -969,4 +931,7 @@ function syncEditorsToTextarea(){
 </script>
 
 <?php admin_panel_close(); ?>
+
+
+
 

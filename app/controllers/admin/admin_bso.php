@@ -17,58 +17,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_tema'])) {
     $stmt->execute();
     $newId = (int)$link->insert_id;
     hg_update_pretty_id_if_exists($link, 'dim_soundtracks', $newId, $titulo);
-    echo "<p style='color:green;'>✅ Tema añadido correctamente.</p>";
+    echo "<p class='adm-admin-ok'>Tema anadido correctamente.</p>";
 }
 
 // Obtener lista de temas existentes
 $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY added_at DESC");
 ?>
 
-<style>
-	.bso_table {
-		background-color: #000066;
-		color: #fff;
-		border: 1px solid #000099;
-		border-collapse: collapse;
-	}
-	
-	.bso_table td, .bso_table th {
-		padding: 0.25em;
-		text-align: left;
-	}
-	
-	.bso_table th {
-		background-color: #000055;
-	}
-</style>
-
 <h2>🎵 Gestión de Banda Sonora</h2>
 
 <div class='bioSheetPowers'>
-	<fieldset class='bioSeccion' style="border:0px;">
+	<fieldset class='bioSeccion adm-border-none'>
 		<a href='/talim?s=admin_bso_link'>
-			<div class='bioSheetPower' style='width:47.5%;'>
+			<div class='bioSheetPower adm-admin-tile'>
 				Vincular temas
 			</div>
 		</a>
 	</fieldset>
 </div>
 
-<form method="POST" style="margin-bottom:30px;">
+<form method="POST" class="adm-mb-30">
     <input type="hidden" name="nuevo_tema" value="1" />
-    <fieldset style="max-width:600px;" id="renglonArchivos" style="padding:1em;">
+    <fieldset id="renglonArchivos" class="adm-bso-form-fieldset">
         <legend id="archivosLegend">➕ Añadir nuevo tema</legend>
         <label>Título:</label><br>
-        <input type="text" name="titulo" required style="width:100%;"><br><br>
+        <input type="text" name="titulo" required class="adm-w-full"><br><br>
 
         <label>Artista:</label><br>
-        <input type="text" name="artista" style="width:100%;"><br><br>
+        <input type="text" name="artista" class="adm-w-full"><br><br>
 
         <label>Enlace YouTube (ID o URL completa):</label><br>
-        <input type="text" name="youtube_url" style="width:100%;"><br><br>
+        <input type="text" name="youtube_url" class="adm-w-full"><br><br>
 
         <label>Nombre simbólico (ej. "Tema de Aránzazu"):</label><br>
-        <input type="text" name="context_title" style="width:100%;"><br><br>
+        <input type="text" name="context_title" class="adm-w-full"><br><br>
 
         <button class="boton2" type="submit">Guardar tema</button>
     </fieldset>
@@ -103,6 +85,7 @@ $temas = $link->query("SELECT * FROM dim_soundtracks ORDER BY added_at DESC");
     </tr>
     <?php endwhile; ?>
 </table>
+
 
 
 

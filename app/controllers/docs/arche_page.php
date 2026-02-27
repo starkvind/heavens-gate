@@ -46,6 +46,7 @@ $pageSect = 'Arquetipo';
 $pageTitle2 = $archeName;
 setMetaFromPage($archeName . " | Arquetipos | Heaven's Gate", meta_excerpt($archeDesc), null, 'article');
 include("app/partials/main_nav_bar.php");
+echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
 $itemImg = 'img/inv/no-photo.gif';
 
@@ -146,25 +147,6 @@ if ($hasOwnersTabs) {
     include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
     hg_render_owner_tabs_styles(true, 28);
 
-    echo "<style>
-        .hg-tab-panel[data-tab='owners'] .grupoBioClan{ display:flex; justify-content:flex-start !important; }
-        .hg-tab-panel[data-tab='owners'] .contenidoAfiliacion{
-            display:flex;
-            flex-wrap:wrap;
-            gap:6px;
-            padding:8px 0 12px 0 !important;
-            margin-left:28px !important;
-            justify-content:flex-start !important;
-        }
-        .owners-section-title{
-            color:#66CCFF;
-            font-weight:bold;
-            margin:4px 0 6px 28px;
-            text-transform:uppercase;
-            letter-spacing:.04em;
-        }
-    </style>";
-
     echo "<div class='hg-tabs'>";
     echo "<button class='boton2 hgTabBtn' data-tab='info'>Informacion</button>";
     echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
@@ -229,18 +211,6 @@ if ($hasOwnersTabs) {
     }
     echo "</section>";
 
-    echo "<script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabs = Array.from(document.querySelectorAll('.hgTabBtn'));
-            const panels = Array.from(document.querySelectorAll('.hg-tab-panel'));
-            function activate(key){
-                panels.forEach(p => p.classList.toggle('active', p.dataset.tab === key));
-                tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === key));
-            }
-            if (tabs.length) activate(tabs[0].dataset.tab);
-            tabs.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
-        });
-    </script>";
 } else {
     echo $infoHtml;
 }

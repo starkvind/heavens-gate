@@ -1,5 +1,5 @@
 <?php
-	include(__DIR__ . "/../helpers/heroes.php");
+	include(__DIR__ . "/../helpers/db_connection.php");
 
 	// Obtener si queremos mostrar errores.
 	$stmt = mysqli_prepare($link, "SELECT config_value FROM dim_web_configuration WHERE config_name = 'error_reporting' LIMIT 1");
@@ -34,3 +34,4 @@
 
 	mysqli_stmt_close($stmt);
 ?>
+

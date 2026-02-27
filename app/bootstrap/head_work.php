@@ -33,7 +33,8 @@
 	<link rel="icon" type="image/png" sizes="16x16" href="img/favicon//favicon-16x16.png">
 	<link rel="manifest" href="img/favicon/site.webmanifest">
 	
-	<link rel="stylesheet" href="assets/css/nemesis.css">
+	<link rel="stylesheet" href="assets/css/hg-core.css">
+	<link rel="stylesheet" href="assets/css/hg-layout.css">
 	
 	<!-- Sonidos -->
 	<audio id="clickSound" src="sounds/ui/click.ogg" preload="auto"></audio>
@@ -42,4 +43,5 @@
 	<audio id="closeSound" src="sounds/ui/close.ogg" preload="auto"></audio>
 	<!-- Javascript -->
 	<script type="text/javascript" src="assets/js/permutloading.js"></script>
+	<script type="text/javascript" src="assets/js/hg-tabs.js"></script>
 </head>

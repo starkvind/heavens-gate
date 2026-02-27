@@ -1,0 +1,390 @@
+.bioLayout {
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.bio-tab-panel {
+    display: none;
+}
+
+.bio-tab-panel.active {
+    display: block;
+}
+
+#hg-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 320px;
+    background: #0b0b2b;
+    border: 1px solid #003399;
+    color: #e6f0ff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    font-size: 12px;
+    display: none;
+    pointer-events: none;
+    text-align: left;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+#hg-tooltip .hg-tip-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #8fd7ff;
+}
+
+#hg-tooltip .hg-tip-meta {
+    font-size: 11px;
+    color: #9fb2d9;
+}
+
+#hg-tooltip .hg-tip-label {
+    font-weight: bold;
+    margin-top: 6px;
+    color: #cfd9ff;
+}
+
+#hg-tooltip .hg-tip-text {
+    font-size: 12px;
+    color: #e6f0ff;
+}
+
+.power-card--bio .power-card__body {
+    grid-template-columns: 160px 1fr;
+    column-gap: 12px;
+}
+
+.power-card--bio .power-card__media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.power-card--bio .power-card__img-wrap {
+    width: 140px;
+    height: 140px;
+    padding: 6px;
+    border-radius: 50%;
+    background: #001188;
+    border: 1px solid #000088;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.power-card--bio .power-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid #001a55;
+    box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0, 0, 0, 0.5);
+}
+
+.bioSheetBackgroundLeft a.hg-tooltip,
+.bioSheetAttrLeft a.hg-tooltip {
+    color: cyan;
+    text-decoration: none;
+}
+
+.bioSheetBackgroundLeft a.hg-tooltip:hover,
+.bioSheetAttrLeft a.hg-tooltip:hover {
+    color: #33ffff;
+    text-decoration: underline;
+}
+
+.bioSkillNameCell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bio-renown-row {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 2px;
+}
+
+.bioCommentsWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bioCommentItem {
+    border: 1px solid #003399;
+    background: rgba(0, 17, 119, 0.25);
+    padding: 8px 10px;
+}
+
+.bioCommentMeta {
+    font-size: 11px;
+    color: #9fc9ff;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bioCommentAuthor {
+    font-weight: bold;
+    color: #d8ecff;
+}
+
+.bioCommentMsg {
+    color: #f5f8ff;
+    line-height: 1.35;
+    white-space: pre-wrap;
+}
+
+.listaParticipacion {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+}
+
+.capitulosTemporada {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px 12px;
+    width: 100%;
+}
+
+.capitulosTemporada a {
+    text-decoration: none;
+    display: block;
+}
+
+.bioChapterLink {
+    display: block;
+}
+
+.capitulosTemporada .bioSheetPower {
+    min-height: 34px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    border: 1px solid #0044aa;
+    background: linear-gradient(180deg, #00156a 0%, #000d4d 100%);
+    color: #eaf3ff;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.capitulosTemporada .bioSheetPower:hover {
+    background: linear-gradient(180deg, #001d88 0%, #001266 100%);
+    font-weight: normal;
+}
+
+.bioChaptersSeasonFieldset {
+    margin: 0;
+}
+
+.bioChaptersSeasonLegend {
+    border: 0;
+    margin: 0;
+}
+
+.bioChapterEntry {
+    width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.bioChapterDate {
+    float: none;
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: #9fd4ff;
+    padding-top: 0;
+}
+
+.bio-empty-note {
+    text-align: center;
+}
+
+.bio-inline-icon {
+    width: 13px;
+    height: 13px;
+}
+
+.bio-inline-level {
+    float: right;
+    font-size: 8px;
+    padding-top: 2px;
+}
+
+.bio-gem-wrap {
+    float: right;
+}
+
+.bio-gem {
+    padding-top: 2px;
+}
+
+.bio-inline-type {
+    float: right;
+    font-size: 9px;
+    padding-top: 0;
+}
+
+.bio-rel-group-title {
+    margin: 1em 0.2em;
+    font-weight: bold;
+}
+
+.bio-rel-break {
+    width: 100%;
+    display: block;
+    clear: both;
+}
+
+.bio-rel-error {
+    padding: 1em;
+}
+
+.bio-rel-mini-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    height: 600px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #05014e;
+}
+
+.bio-rel-mini-network {
+    width: 100%;
+    height: 100%;
+}
+
+.bio-renown-right {
+    border: 1px solid #009;
+    background-color: #000055;
+    color: #fff;
+    font-size: 9px;
+    text-align: left;
+    width: 136px;
+    min-height: 28px;
+    height: auto;
+    padding: 2px;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+
+.bio-renown-left {
+    border: 1px solid #009;
+    background-color: #000066;
+    color: cyan;
+    font-size: 9px;
+    text-align: right;
+    width: 122px;
+    min-height: 28px;
+    height: auto;
+    padding: 2px;
+    margin-bottom: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.bio-renown-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.1;
+}
+
+.bio-renown-line + .bio-renown-line {
+    margin-top: 2px;
+}
+
+.bio-renown-tag {
+    min-width: 10px;
+    color: #9fd;
+    font-weight: bold;
+    font-size: 8px;
+}
+
+.bio-renown-temp {
+    font-size: 10px;
+    color: #9fd;
+}
+
+.bio-renown-right-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hg-forum-roll-code {
+    margin-top: 10px;
+    border: 1px solid #444;
+    background: #111;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    overflow: auto;
+}
+
+.hg-forum-roll-code code {
+    color: #0f0;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.hg-roll-copy-emoji {
+    border: 1px solid #666;
+    background: #111;
+    color: #fff;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    line-height: 1;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.bio-rel-toggle {
+    float: right;
+    margin-right: 0.3em;
+}
+
+.bio-hidden {
+    display: none;
+}
+
+.bio-error-msg {
+    text-align: center;
+}
+
+.bio-debug-box {
+    margin: 8px 0;
+    padding: 8px;
+    border: 1px dashed #0ff;
+    color: #0ff;
+    background: #001a2a;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.hg-tooltip--help {
+    cursor: help;
+}

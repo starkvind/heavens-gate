@@ -1,5 +1,5 @@
 <?php
-	include("app/helpers/heroes.php");
+	include("app/helpers/db_connection.php");
 	include_once("app/helpers/character_avatar.php");
 	
 	$char_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -10,7 +10,7 @@
 	$msg = filter_input(INPUT_GET, 'msg');
 
 	if (!$char_id || !$msg) {
-		die("Parámetros incorrectos.");
+		die("ParÃ¡metros incorrectos.");
 	}
 	
 	$defaultImgPath = "public/img/ui/avatar/";
@@ -18,7 +18,7 @@
 		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
 		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
 		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.png'],
-		-4 => ['name' => 'Espíritu', 'img' => 'avatar_nadie_4.png'],
+		-4 => ['name' => 'EspÃ­ritu', 'img' => 'avatar_nadie_4.png'],
 	];
 
 	if (array_key_exists($char_id, $defaultAvatars)) {
@@ -48,12 +48,12 @@
 
 	$decoded_msg = htmlspecialchars_decode($msg);
 	
-	// Normaliza saltos de línea entre etiquetas de lista para evitar <br> entre <li>
+	// Normaliza saltos de lÃ­nea entre etiquetas de lista para evitar <br> entre <li>
 	$decoded_msg = preg_replace('/\[\s*\/li\s*\]\s*\n\s*\[\s*li\s*\]/i', '[/li][li]', $decoded_msg);
 	$decoded_msg = preg_replace('/\[\s*\/list\s*\]\s*\n/i', '[/list]', $decoded_msg);
 	$decoded_msg = preg_replace('/\[\s*list\s*\]\s*\n/i', '[list]', $decoded_msg);
 
-	// Reemplazo de BBCode básico (formato)
+	// Reemplazo de BBCode bÃ¡sico (formato)
 	$parsed_msg = preg_replace([
 		'/\[b\](.*?)\[\/b\]/is',
 		'/\[i\](.*?)\[\/i\]/is',
@@ -71,9 +71,9 @@
 		'<strong>$1</strong>',
 		'<em>$1</em>',
 		'<u>$1</u>',
-		'<div style="text-align:left;">$1</div>',
-		'<div style="text-align:center;">$1</div>',
-		'<div style="text-align:right;">$1</div>',
+		'<div class="hg-bb-align-left">$1</div>',
+		'<div class="hg-bb-align-center">$1</div>',
+		'<div class="hg-bb-align-right">$1</div>',
 		'<ul>$1</ul>',
 		'<li>$1</li>',
 		'<a href="$1" target="_blank">$2</a>',
@@ -82,14 +82,14 @@
 
 	], $decoded_msg);
 	
-	// Elimina <br> antes de <div>, después de </div>, y similares
+	// Elimina <br> antes de <div>, despuÃ©s de </div>, y similares
 	$parsed_msg = preg_replace([
 		'/<br\s*\/?>\s*(<div[^>]*>)/i',   // <br> antes de <div>
-		'/(<\/div>)\s*<br\s*\/?>/i',      // <br> después de </div>
+		'/(<\/div>)\s*<br\s*\/?>/i',      // <br> despuÃ©s de </div>
 		'/<br\s*\/?>\s*(<ul[^>]*>)/i',    // <br> antes de <ul>
-		'/(<\/ul>)\s*<br\s*\/?>/i',       // <br> después de </ul>
+		'/(<\/ul>)\s*<br\s*\/?>/i',       // <br> despuÃ©s de </ul>
 		'/<br\s*\/?>\s*(<li[^>]*>)/i',    // <br> antes de <li>
-		'/(<\/li>)\s*<br\s*\/?>/i',       // <br> después de </li>
+		'/(<\/li>)\s*<br\s*\/?>/i',       // <br> despuÃ©s de </li>
 	], [
 		'$1',
 		'$1',
@@ -112,89 +112,9 @@
 		<meta charset="UTF-8">
 		<title><?= $nombre ?></title>
 		<link href="/assets/vendor/fonts/quicksand/quicksand.css" rel="stylesheet">
-		<style>
-			:root {
-				--palette: <?= $palette ?>;
-			}
-			.msg_main_box {
-				display: flex;
-				align-items: start;
-				border-radius: 12px;
-				font-family: 'Quicksand', sans-serif;
-				font-size: 14px;
-				max-width: 750px;
-				margin: 1em;
-				gap: 0.2em;
-			}
-			.img_link {
-				z-index: 12;
-			}
-			.msg_face {
-				border-radius: 50%;
-				width: 80px;
-				height: 80px;
-				object-fit: cover;
-				border: 2px solid #333;
-				margin-right: -3em;
-				transition: all 0.3s ease;
-				z-index: 10;
-			}
-			.msg_face:hover {
-				border-color: #aaa;
-				box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.3);
-				transform: scale(1.05);
-			}
-			.msg_body {
-				flex: 1;
-				background: var(--palette);
-				border-radius: 8px;
-				border: 1px solid #333;
-				padding: 0.75em 1em;
-				position: relative;
-				box-shadow: 2px 2px 6px rgba(221, 221, 221, 0.5);
-				color: black;
-			}
-			.dark-text { color: white; }
-			.light-text { color: black; }
-			.msg_name_box {
-				position: absolute;
-				top: -1em;
-				left: 3em;
-				border: 1px solid #333;
-				background: #444;
-				color: white;
-				padding: 0.25em 0.5em;
-				font-weight: bold;
-				border-radius: 4px;
-			}
-			.msg_container {
-				margin: 0;
-				padding-left: 2.5em;
-				padding-top: 0.5em;
-				line-height: 1.5em;
-				min-height: calc(1.5em * 2.5);
-			}
-
-			.msg_container a {
-				color: #0055cc;
-				text-decoration: none;
-				font-weight: 600;
-				border-bottom: 1px dashed #aaa;
-				transition: all 0.25s ease-in-out;
-			}
-
-			.msg_container a:hover {
-				color: #003399;
-				background-color: rgba(255, 255, 255, 0.1);
-				border-bottom: 1px solid #ccc;
-				box-shadow: 0 0 6px rgba(100, 100, 255, 0.4);
-				padding: 0.1em 0.2em;
-				border-radius: 4px;
-			}
-
-		</style>
+		<link rel="stylesheet" href="/assets/css/hg-embeds.css">
 	</head>
-	<body>
+	<body class="hg-embed-message" style="--palette: <?= $palette ?>;">
 		<div class="msg_main_box">
 			<?php if ($char_id > 0): ?>
 				<a class="img_link" href="https://naufragio-heavensgate.duckdns.org/characters/<?= rawurlencode($char_pretty) ?>" target="_blank">
@@ -208,7 +128,7 @@
 				<div class="msg_name_box"><?= $nombre ?></div>
 				<div class="msg_container"><?= $parsed_msg ?></div>
 				<?php else: ?>
-				<div class="msg_container" style="padding-top: 0;"><?= $parsed_msg ?></div>
+				<div class="msg_container msg_container--plain"><?= $parsed_msg ?></div>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -247,4 +167,6 @@
 		</script>
 	</body>
 </html>
+
+
 

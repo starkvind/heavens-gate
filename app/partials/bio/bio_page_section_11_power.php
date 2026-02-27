@@ -1,13 +1,13 @@
 <?php
 
 /* --------------------------------------------------------------- */
-// Requiere: $link = conexión mysqli y $idPersonaje definido
+// Requiere: $link = conexiÃ³n mysqli y $idPersonaje definido
 
 $iconos = [
     'dones' => 'img/ui/icons/icon_claws.png',
     'disciplinas' => 'img/ui/icons/icon_fangs.png',
     'rituales' => 'img/ui/icons/icon_book.png',
-    // Puedes añadir más tipos aquí si aparecen (como taumaturgia, etc)
+    // Puedes aÃ±adir mÃ¡s tipos aquÃ­ si aparecen (como taumaturgia, etc)
 ];
 
 // Consulta los poderes desde el bridge
@@ -90,7 +90,7 @@ if (count($listaPoderes) > 0) {
 
 			if ($result->num_rows > 0) {
 				$data = $result->fetch_assoc();
-				// Nombre del poder según tipo
+				// Nombre del poder segÃºn tipo
 				$nombre = isset($data['name']) ? $data['name'] : (isset($data['name']) ? $data['name'] : '???');
 				$level = isset($data['level']) ? $data['level'] : null;
 				$rango = isset($data['rank']) ? $data['rank'] : (isset($data['rango']) ? $data['rango'] : null);
@@ -120,17 +120,17 @@ if (count($listaPoderes) > 0) {
 				}
 				echo "<a href='$href' target='_blank'$tipAttr>
 						<div class='bioSheetPower'>
-							<img class='valign' style='width:13px; height:13px;' src='" . htmlspecialchars($icono) . "' title='" . ucfirst(htmlspecialchars($tipo)) . "'>
+							<img class='valign bio-inline-icon' src='" . htmlspecialchars($icono) . "' title='" . ucfirst(htmlspecialchars($tipo)) . "'>
 							" . htmlspecialchars($nombre);
 
 					if ($tipo == "disciplinas" or $tipo == "rituales") {
 						if ($levelFinal !== null) {
-							echo "<div style='float:right'>
-									<img src='img/ui/gems/attr/gem-attr-0" . $levelFinal . ".png' style='padding-top: 2px;' />
+							echo "<div class='bio-gem-wrap'>
+									<img src='img/ui/gems/attr/gem-attr-0" . $levelFinal . ".png' class='bio-gem' />
 								  </div>";
 						}
 					} else {
-						echo "<div style='float:right;font-size: 8px;padding-top: 2px;'>{$levelFinal}</div>";
+						echo "<div class='bio-inline-level'>{$levelFinal}</div>";
 					}
 				echo "  </div>
 					  </a>";
@@ -143,5 +143,6 @@ if (count($listaPoderes) > 0) {
 	echo "</div>"; // Cerramos Poderes ~~
 }
 ?>
+
 
 

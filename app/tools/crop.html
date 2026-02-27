@@ -4,126 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Recortador 1:1 (JPG/PNG)</title>
-<style>
-  :root{
-    --bg:#0a0d1a;
-    --panel:#101633;
-    --accent:#33FFFF;
-    --muted:#7aa0b5;
-    --warn:#ff6b6b;
-    --ok:#7cfc00;
-  }
-  html,body{height:100%;}
-  body{
-    margin:0; background:linear-gradient(180deg,#070b18,#0a1030);
-    color:#e8f2ff; font:14px/1.4 system-ui,Segoe UI,Roboto,Arial,sans-serif;
-    display:flex; flex-direction:column; align-items:center; padding:22px 12px; gap:16px;
-  }
-  h1{font-size:18px; margin:0 0 8px; letter-spacing:.2px;}
-  .card{
-    width:min(1000px,95vw); background:var(--panel); border:1px solid #000a66;
-    border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.35);
-  }
-  .row{display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;}
-  .controls{
-    display:flex; gap:12px; flex-wrap:wrap; align-items:center;
-    background:#0d1430; border:1px solid #001055; border-radius:12px; padding:10px 12px;
-  }
-  .controls label{color:#cfe7ff; font-size:13px;}
-  .btn{
-    background:#082b6e; color:#e8f2ff; border:1px solid #1b3f8f;
-    padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s;
-  }
-  .btn:hover{filter:brightness(1.1);}
-  .btn:disabled{opacity:.5; cursor:not-allowed;}
-  .btn-ok{background:#0d5d37; border-color:#168f59;}
-  .btn-red{background:#611d1d; border-color:#9b2e2e;}
-  input[type="file"]{display:none;}
-  .file-label{
-    display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:10px;
-    background:#113a98; border:1px solid #2759cc; cursor:pointer;
-  }
-  .hint{color:var(--muted); font-size:12px;}
-  .warn{color:var(--warn);}
-  .ok{color:var(--ok);}
-
-  /* Lienzo y cropping */
-  .stage-wrap{
-    background:#03061a; border:1px solid #001055; border-radius:12px; padding:10px;
-    width:100%; overflow:auto;
-  }
-  .stage{
-    position:relative; display:inline-block; /* se ajusta al tamaño rendereado de la imagen */
-    max-width:100%;
-  }
-  .stage img{
-    display:block; max-width:100%; height:auto; user-select:none; -webkit-user-drag:none;
-  }
-  .overlay-dim{
-    position:absolute; inset:0; pointer-events:none;
-    background:rgba(0,0,0,.35);
-  }
-  .crop{
-    position:absolute; border:2px solid var(--accent);
-    box-shadow:0 0 0 9999px rgba(0,0,0,.45); /* oscurece fuera del recorte */
-    cursor:move; touch-action:none;
-  }
-  .handle{
-    position:absolute; width:16px; height:16px; border:2px solid #fff;
-    background:rgba(51,255,255,.9); border-radius:50%; box-shadow:0 1px 6px rgba(0,0,0,.5);
-  }
-  .handle.nw{left:-10px; top:-10px; cursor:nwse-resize;}
-  .handle.ne{right:-10px; top:-10px; cursor:nesw-resize;}
-  .handle.sw{left:-10px; bottom:-10px; cursor:nesw-resize;}
-  .handle.se{right:-10px; bottom:-10px; cursor:nwse-resize;}
-
-  .out{
-    background:#03061a; border:1px solid #001055; border-radius:12px; padding:10px;
-    flex:1 1 280px; min-width:260px;
-  }
-  .out canvas{max-width:100%; height:auto; display:block; background:#000;}
-  .kv{display:inline-block; background:#07133a; border:1px solid #0b2a77; padding:6px 8px; border-radius:8px; margin-right:8px; color:#d0e7ff;}
-  .spacer{flex:1;}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-  @media (max-width:900px){ .grid{grid-template-columns:1fr;} }
-</style>
+<link rel="stylesheet" href="/assets/css/hg-tools.css">
 </head>
-<body>
+<body class="hg-crop-page">
   <div class="card">
     <h1>Recortar imagen 1:1 (cuadrado)</h1>
     <div class="row controls">
       <label class="file-label" for="file">
-        📁 Elegir imagen (JPG/PNG)
+        ðŸ“ Elegir imagen (JPG/PNG)
       </label>
       <input id="file" type="file" accept="image/jpeg,image/png">
       <button id="btnCenter" class="btn" disabled>Centra marco</button>
-      <label> Tamaño
-        <input id="sizeRange" type="range" min="50" max="1000" value="300" style="vertical-align:middle;">
+      <label> TamaÃ±o
+        <input id="sizeRange" type="range" min="50" max="1000" value="300">
       </label>
-      <span class="hint">Rueda del ratón sobre el marco para cambiar tamaño. Mueve con arrastre o flechas (⇧×10 px).</span>
+      <span class="hint">Rueda del ratÃ³n sobre el marco para cambiar tamaÃ±o. Mueve con arrastre o flechas (â‡§Ã—10 px).</span>
       <span id="msg" class="hint"></span>
       <span class="spacer"></span>
-      <button id="dlPNG" class="btn btn-ok" disabled>⬇ Descargar PNG</button>
-      <button id="dlJPG" class="btn" disabled>⬇ Descargar JPG</button>
+      <button id="dlPNG" class="btn btn-ok" disabled>â¬‡ Descargar PNG</button>
+      <button id="dlJPG" class="btn" disabled>â¬‡ Descargar JPG</button>
       <button id="reset" class="btn btn-red" disabled>Reiniciar</button>
     </div>
 
-    <div class="row" style="margin-top:12px;">
+    <div class="row hg-crop-main-row">
       <div class="stage-wrap">
         <div id="stage" class="stage" aria-live="polite">
-          <!-- imagen y crop se inyectan aquí -->
+          <!-- imagen y crop se inyectan aquÃ­ -->
         </div>
       </div>
 
       <div class="out">
-        <div style="margin-bottom:8px;">
+        <div class="hg-crop-meta-row">
           <span id="infoIn" class="kv">Imagen: -</span>
-          <span id="infoSel" class="kv">Selección: -</span>
+          <span id="infoSel" class="kv">SelecciÃ³n: -</span>
           <span id="infoOut" class="kv">Salida: -</span>
         </div>
         <canvas id="preview" width="0" height="0"></canvas>
-        <div class="hint" style="margin-top:8px;">
-          La previsualización muestra el recorte exacto. El archivo de salida usa la misma resolución del área seleccionada en la imagen original.
+        <div class="hint hg-crop-hint-top">
+          La previsualizaciÃ³n muestra el recorte exacto. El archivo de salida usa la misma resoluciÃ³n del Ã¡rea seleccionada en la imagen original.
         </div>
       </div>
     </div>
@@ -166,7 +84,7 @@
     natural = { w:0, h:0 };
     preview.width = preview.height = 0;
     infoIn.textContent = 'Imagen: -';
-    infoSel.textContent = 'Selección: -';
+    infoSel.textContent = 'SelecciÃ³n: -';
     infoOut.textContent = 'Salida: -';
     dlPNG.disabled = dlJPG.disabled = btnCenter.disabled = resetBtn.disabled = true;
     sizeRange.disabled = true;
@@ -181,12 +99,12 @@
 
   function renderUI(){
     if (!imgEl || !cropEl) return;
-    const rect = imgEl.getBoundingClientRect(); // tamaño mostrado
-    // Ajusta el contenedor stage a igual tamaño que la imagen mostrada
+    const rect = imgEl.getBoundingClientRect(); // tamaÃ±o mostrado
+    // Ajusta el contenedor stage a igual tamaÃ±o que la imagen mostrada
     stage.style.width = rect.width + 'px';
     stage.style.height = rect.height + 'px';
 
-    // Enforce límites
+    // Enforce lÃ­mites
     crop.size = clamp(crop.size, 20, Math.min(rect.width, rect.height));
     crop.x = clamp(crop.x, 0, rect.width - crop.size);
     crop.y = clamp(crop.y, 0, rect.height - crop.size);
@@ -203,11 +121,11 @@
     sizeRange.value = Math.round(crop.size);
 
     // Info
-    const scale = natural.w / rect.width; // píxeles reales por píxel mostrado
+    const scale = natural.w / rect.width; // pÃ­xeles reales por pÃ­xel mostrado
     const selPx = Math.round(crop.size * scale);
-    infoIn.textContent  = `Imagen: ${natural.w}×${natural.h}px`;
-    infoSel.textContent = `Selección en original: ${selPx}×${selPx}px`;
-    infoOut.textContent = `Salida: ${selPx}×${selPx}px`;
+    infoIn.textContent  = `Imagen: ${natural.w}Ã—${natural.h}px`;
+    infoSel.textContent = `SelecciÃ³n en original: ${selPx}Ã—${selPx}px`;
+    infoOut.textContent = `Salida: ${selPx}Ã—${selPx}px`;
 
     // Render preview (recorte real)
     preview.width = selPx;
@@ -223,7 +141,7 @@
     if (ssz > maxPreview){
       const r = maxPreview / ssz;
       preview.width = preview.height = Math.round(ssz * r);
-      // Creamos un canvas temporal del tamaño original del recorte y luego escalamos al preview
+      // Creamos un canvas temporal del tamaÃ±o original del recorte y luego escalamos al preview
       const temp = document.createElement('canvas');
       temp.width = temp.height = ssz;
       const tctx = temp.getContext('2d', { willReadFrequently: true });
@@ -276,7 +194,7 @@
       stage.appendChild(cropEl);
 
       enableUI();
-      // Ajusta a tamaño mostrado real
+      // Ajusta a tamaÃ±o mostrado real
       requestAnimationFrame(()=>{
         // Inicial: marco centrado
         centerCrop();
@@ -331,7 +249,7 @@
       if (drag.corner === 'sw') s = clamp(drag.baseSize + Math.max(-dx,dy), 20, Math.min(rect.width, rect.height));
       if (drag.corner === 'se') s = clamp(drag.baseSize + Math.max(dx,dy), 20, Math.min(rect.width, rect.height));
 
-      // Re-posiciona para que la esquina “fija” se mantenga
+      // Re-posiciona para que la esquina â€œfijaâ€ se mantenga
       const delta = s - drag.baseSize;
       let nx = drag.baseX, ny = drag.baseY;
       if (drag.corner === 'nw'){ nx = drag.baseX - delta; ny = drag.baseY - delta; }
@@ -354,7 +272,7 @@
 
   function onWheelResize(e){
     if (!cropEl) return;
-    if (!e.ctrlKey){ // sin Ctrl: ajusta tamaño
+    if (!e.ctrlKey){ // sin Ctrl: ajusta tamaÃ±o
       const delta = -Math.sign(e.deltaY) * 12; // paso
       crop.size += delta;
       renderUI();
@@ -378,7 +296,7 @@
     cropEl.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-    // Rueda para tamaño
+    // Rueda para tamaÃ±o
     cropEl.addEventListener('wheel', onWheelResize, { passive:false });
     // Slider
     sizeRange.addEventListener('input', ()=>{ crop.size = parseInt(sizeRange.value,10)||crop.size; renderUI(); });
@@ -390,7 +308,7 @@
 
   function download(type){ // 'image/png' o 'image/jpeg'
     if (!imgEl) return;
-    // Calcula recorte en píxeles reales
+    // Calcula recorte en pÃ­xeles reales
     const rect = imgEl.getBoundingClientRect();
     const scale = natural.w / rect.width;
     const ssz = Math.round(crop.size * scale);
@@ -433,3 +351,4 @@
 </script>
 </body>
 </html>
+

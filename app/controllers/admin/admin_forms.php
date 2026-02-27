@@ -57,11 +57,11 @@ foreach ($systems as $sname) {
     $sysOptions .= '<option value="'.h($sname).'"'.$sel.'>'.h($sname).'</option>';
 }
 
-$actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
-    . '<label style="text-align:left;">Sistema '
+$actions = '<span class="adm-flex-right-8">'
+    . '<label class="adm-text-left">Sistema '
     . '<select class="select" id="filterSystemForms">'.$sysOptions.'</select></label>'
     . '<button class="btn btn-green" type="button" onclick="openFormModal()">+ Nueva forma</button>'
-    . '<label style="text-align:left;">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rapido '
     . '<input class="inp" type="text" id="quickFilterForms" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Formas', $actions);
@@ -165,52 +165,6 @@ if ($sys !== '') {
     </div>
 <?php endif; ?>
 
-<style>
-.modal-back{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.6);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999; padding:14px; box-sizing:border-box;
-}
-.modal{
-  width:min(980px, 96vw);
-  max-height:92vh;
-  overflow:hidden;
-  background:#05014E;
-  border:1px solid #000088;
-  border-radius:12px;
-  padding:12px;
-  position:relative;
-  display:flex;
-  flex-direction:column;
-}
-.modal form{ display:flex; flex-direction:column; flex:1; }
-.modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
-.ql-toolbar.ql-snow{
-  border:1px solid #000088 !important;
-  background:#050b36 !important;
-  border-radius:8px 8px 0 0;
-}
-.ql-container.ql-snow{
-  border:1px solid #000088 !important;
-  border-top:none !important;
-  background:#000033 !important;
-  color:#fff !important;
-  border-radius:0 0 8px 8px;
-}
-.ql-editor{ min-height:220px; font-size:12px; }
-.ql-snow .ql-stroke{ stroke:#cfe !important; }
-.ql-snow .ql-fill{ fill:#cfe !important; }
-.ql-snow .ql-picker{ color:#cfe !important; }
-.ql-snow .ql-picker-options{
-  background:#050b36 !important;
-  border:1px solid #000088 !important;
-}
-.ql-snow .ql-picker-item{
-  color:#cfe !important;
-}
-</style>
-
 <div class="modal-back" id="formModal">
     <div class="modal">
         <h3 id="formModalTitle">Nueva forma</h3>
@@ -218,7 +172,7 @@ if ($sys !== '') {
             <input type="hidden" name="save_form" value="1">
             <input type="hidden" name="id" id="form_id" value="">
             <div class="modal-body">
-                <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; align-items:center;">
+                <div class="adm-grid-1-2">
                     <label>Afiliacion</label>
                     <input class="inp" type="text" name="afiliacion" id="form_afiliacion" required>
 
@@ -275,7 +229,7 @@ if ($sys !== '') {
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="form_editor" class="ql-container ql-snow"></div>
-                        <textarea class="ta" name="desc" id="form_desc" rows="8" style="display:none;"></textarea>
+                        <textarea class="ta adm-hidden" name="desc" id="form_desc" rows="8"></textarea>
                     </div>
                 </div>
             </div>
@@ -290,12 +244,12 @@ if ($sys !== '') {
 <table class="table" id="tablaForms">
     <thead>
         <tr>
-            <th style="width:60px;">ID</th>
+            <th class="adm-w-60">ID</th>
             <th>Afiliacion</th>
             <th>Raza</th>
             <th>Forma</th>
             <th>Origen</th>
-            <th style="width:160px;">Acciones</th>
+            <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -318,7 +272,7 @@ if ($sys !== '') {
         </tr>
     <?php endforeach; ?>
     <?php if (empty($rows)): ?>
-        <tr><td colspan="6" style="color:#bbb;">(Sin formas)</td></tr>
+        <tr><td colspan="6" class="adm-color-muted">(Sin formas)</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
@@ -430,4 +384,7 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <?php admin_panel_close(); ?>
+
+
+
 

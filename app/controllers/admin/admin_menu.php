@@ -204,9 +204,6 @@ foreach ($rows as $r) {
 }
 ?>
 
-<link rel="stylesheet" href="/assets/css/admin/admin.menu.css">
-
-
 <div class="menu-admin">
     <div class="menu-cards" id="menuCards">
         <?php foreach ($parents as $p):

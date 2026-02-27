@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin_bridges.php - Panel para ver/editar Bridges
 // - PJ -> Manada (bridge_characters_groups)
 // - PJ -> Clan   (bridge_characters_organizations)
@@ -10,6 +10,7 @@
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) $link->set_charset('utf8mb4'); else mysqli_set_charset($link,'utf8mb4');
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function sanitize_int_csv($csv){
@@ -269,6 +270,7 @@ $sqlChars = "
     p.id,
     p.name,
     p.image_url,
+    p.gender,
     p.status,
 
     cg.id  AS char_group_bridge_id,
@@ -323,82 +325,6 @@ if ($rs = $link->query($sqlCG)) {
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 
-<style>
-.panel-wrap { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.hdr { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-.hdr h2 { margin:0; color:#33FFFF; font-size:16px; }
-.btn { background:#0d3a7a; color:#fff; border:1px solid #1b4aa0; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-.btn:hover { filter:brightness(1.1); }
-.btn-green { background:#0d5d37; border-color:#168f59; }
-.btn-red { background:#6b1c1c; border-color:#993333; }
-.btn-gray { background:#3b3b3b; border-color:#666; }
-.inp { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; }
-.select { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; }
-.table { width:100%; border-collapse:collapse; font-size:11px; font-family:Verdana,Arial,sans-serif; }
-.table th, .table td { border:1px solid #000088; padding:6px 8px; background:#05014E; white-space:nowrap; vertical-align:middle; }
-.table th { background:#050b36; color:#33CCCC; text-align:left; }
-.table tr:hover td { background:#000066; color:#33FFFF; }
-.flash { margin:8px 0; }
-.flash .ok{ color:#7CFC00; } .flash .err{ color:#FF6B6B; } .flash .info{ color:#33FFFF; }
-
-.tabs { display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
-.tablink { padding:6px 10px; border:1px solid #000088; border-radius:999px; text-decoration:none; background:#05014E; color:#eee; }
-.tablink.active { background:#001199; color:#fff; }
-
-.small { font-size:10px; color:#9dd; }
-.badge { display:inline-block; padding:2px 6px; border-radius:999px; border:1px solid #1b4aa0; background:#00135a; color:#fff; font-size:10px; }
-.badge.off { background:#2b2b2b; border-color:#666; color:#ddd; }
-
-.modal-back{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.6);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999;
-  padding:14px;
-}
-.modal{
-  width:min(900px, 96vw);
-  max-height:92vh;
-  overflow:hidden;
-  background:#05014E;
-  border:1px solid #000088;
-  border-radius:12px;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-}
-.modal h3{ margin:0 0 8px; color:#33FFFF; }
-.modal-body{ flex:1; overflow:auto; padding-right:6px; }
-.modal-actions{
-  position:sticky;
-  bottom:0;
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-  padding:10px 0 0;
-  margin-top:10px;
-  background:linear-gradient(to top, rgba(5,1,78,1), rgba(5,1,78,0));
-  border-top:1px solid #000088;
-}
-.grid { display:grid; grid-template-columns:repeat(2, minmax(240px,1fr)); gap:10px 12px; }
-.grid label{ font-size:12px; color:#cfe; display:block; }
-.avatar-mini{ width:18px; height:18px; object-fit:cover; border-radius:50%; border:1px solid #1b4aa0; vertical-align:middle; margin-right:6px; background:#000022; }
-
-.select2-container{ width:100% !important; font-size:12px; }
-.select2-container--default .select2-selection--single{
-  background:#000033; border:1px solid #333; color:#fff;
-  height:28px; border-radius:6px;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered{
-  color:#fff; line-height:26px;
-}
-.select2-dropdown{
-  background:#000033; border:1px solid #333; color:#fff;
-}
-.select2-results__option{ color:#fff; }
-.select2-container--open{ z-index: 20000; }
-</style>
-
 <div class="panel-wrap">
   <div class="hdr">
     <h2>Bridges - Relaciones</h2>
@@ -421,8 +347,8 @@ if ($rs = $link->query($sqlCG)) {
 
   <?php if ($tab === 'chars'): ?>
 
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
-      <label style="color:#cfe; font-size:12px;">Filtro rapido
+    <div class="adm-flex-wrap-10-mb10">
+      <label class="adm-text-12-cfe">Filtro rapido
         <input class="inp" type="text" id="qChars" placeholder="Nombre del PJ...">
       </label>
       <span class="small">Doble click en el nombre abre la bio</span>
@@ -431,19 +357,19 @@ if ($rs = $link->query($sqlCG)) {
     <table class="table" id="tblChars">
       <thead>
         <tr>
-          <th style="width:60px;">ID</th>
+          <th class="adm-w-60">ID</th>
           <th>Personaje</th>
           <th>Estado</th>
           <th>Clan activo</th>
           <th>Manada activa</th>
-          <th style="width:140px;">Acciones</th>
+          <th class="adm-w-140">Acciones</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach($chars as $c):
           $cid = (int)$c['id'];
           $nm  = (string)($c['name'] ?? '');
-          $img = (string)($c['image_url'] ?? '');
+          $img = hg_character_avatar_url((string)($c['image_url'] ?? ''), (string)($c['gender'] ?? ''));
           $est = (string)($c['status'] ?? '');
           $cln = (string)($c['active_clan_name'] ?? '');
           $grp = (string)($c['active_group_name'] ?? '');
@@ -451,10 +377,10 @@ if ($rs = $link->query($sqlCG)) {
           $groupId= (int)($c['active_group_id'] ?? 0);
         ?>
         <tr data-nombre="<?= strtolower(h($nm)) ?>">
-          <td><strong style="color:#33FFFF;"><?= $cid ?></strong></td>
+          <td><strong class="adm-color-accent"><?= $cid ?></strong></td>
           <td>
-            <a href="/characters/<?= $cid ?>" target="_blank" style="color:#fff;text-decoration:none;">
-              <?php if ($img): ?><img class="avatar-mini" src="<?= h($img) ?>" alt=""><?php endif; ?>
+            <a href="/characters/<?= $cid ?>" target="_blank" class="adm-link-white">
+              <img class="avatar-mini" src="<?= h($img) ?>" alt="">
               <?= h($nm) ?>
             </a>
           </td>
@@ -478,16 +404,16 @@ if ($rs = $link->query($sqlCG)) {
         </tr>
         <?php endforeach; ?>
         <?php if (empty($chars)): ?>
-          <tr><td colspan="6" style="color:#bbb;">(Sin resultados)</td></tr>
+          <tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
       </tbody>
     </table>
 
   <?php else: /* tab clans */ ?>
 
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+    <div class="adm-flex-wrap-10-mb10">
       <button class="btn btn-green" id="btnNewClanGroup">Nueva relacion Clan->Manada</button>
-      <label style="color:#cfe; font-size:12px;">Filtro rapido
+      <label class="adm-text-12-cfe">Filtro rapido
         <input class="inp" type="text" id="qClanGroups" placeholder="Clan o Manada...">
       </label>
       <span class="small">Activa=1 es la relacion vigente. Desactivar conserva historico.</span>
@@ -496,11 +422,11 @@ if ($rs = $link->query($sqlCG)) {
     <table class="table" id="tblClanGroups">
       <thead>
         <tr>
-          <th style="width:70px;">ID</th>
+          <th class="adm-w-70">ID</th>
           <th>Clan</th>
           <th>Manada</th>
           <th>Estado</th>
-          <th style="width:160px;">Acciones</th>
+          <th class="adm-w-160">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -513,7 +439,7 @@ if ($rs = $link->query($sqlCG)) {
           $act = (int)($r['is_active'] ?? 0);
         ?>
         <tr data-text="<?= strtolower(h($cln.' '.$grp)) ?>">
-          <td><strong style="color:#33FFFF;"><?= $rid ?></strong></td>
+          <td><strong class="adm-color-accent"><?= $rid ?></strong></td>
           <td><?= $cln ? h($cln) : "<span class='badge off'>(sin clan)</span>" ?> <span class="small">#<?= $cid ?></span></td>
           <td><?= $grp ? h($grp) : "<span class='badge off'>(sin manada)</span>" ?> <span class="small">#<?= $gid ?></span></td>
           <td><?= $act ? "<span class='badge'>Activo</span>" : "<span class='badge off'>Inactivo</span>" ?></td>
@@ -525,7 +451,7 @@ if ($rs = $link->query($sqlCG)) {
               data-active="<?= $act ?>"
             >Editar</button>
 
-            <form method="post" style="display:inline;">
+            <form method="post" class="adm-inline">
               <input type="hidden" name="tab" value="clans">
               <input type="hidden" name="action" value="deactivate_row">
               <input type="hidden" name="table" value="<?= h($T_CLAN_GROUP) ?>">
@@ -534,7 +460,7 @@ if ($rs = $link->query($sqlCG)) {
             </form>
 
             <!-- Borrado duro (desaconsejado): activa si lo necesitas
-            <form method="post" style="display:inline;">
+            <form method="post" class="adm-inline">
               <input type="hidden" name="tab" value="clans">
               <input type="hidden" name="action" value="delete_row">
               <input type="hidden" name="table" value="<?= h($T_CLAN_GROUP) ?>">
@@ -546,7 +472,7 @@ if ($rs = $link->query($sqlCG)) {
         </tr>
         <?php endforeach; ?>
         <?php if (empty($clanGroups)): ?>
-          <tr><td colspan="5" style="color:#bbb;">(Sin resultados)</td></tr>
+          <tr><td colspan="5" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
       </tbody>
     </table>
@@ -558,7 +484,7 @@ if ($rs = $link->query($sqlCG)) {
 <div class="modal-back" id="mbChar">
   <div class="modal" role="dialog" aria-modal="true">
     <h3>Editar relaciones del PJ</h3>
-    <form method="post" id="formChar" style="margin:0;">
+    <form method="post" id="formChar" class="adm-m-0">
       <input type="hidden" name="tab" value="chars">
       <input type="hidden" name="action" value="save_char_links">
       <input type="hidden" name="character_id" id="f_char_id" value="0">
@@ -595,7 +521,7 @@ if ($rs = $link->query($sqlCG)) {
           </div>
         </div>
 
-        <div style="margin-top:10px;">
+        <div class="adm-mt-10">
           <span class="small">
             Regla aplicada al guardar: 1) activa la relacion elegida; 2) desactiva el resto del mismo PJ.
           </span>
@@ -615,7 +541,7 @@ if ($rs = $link->query($sqlCG)) {
   <div class="modal" role="dialog" aria-modal="true">
     <h3>Editar Clan <-> Manada</h3>
 
-    <form method="post" id="formCG" style="margin:0;">
+    <form method="post" id="formCG" class="adm-m-0">
       <input type="hidden" name="tab" value="clans">
       <input type="hidden" name="action" value="save_clan_group">
 
@@ -761,5 +687,8 @@ if ($rs = $link->query($sqlCG)) {
 
 })();
 </script>
+
+
+
 
 

@@ -1,36 +1,11 @@
-﻿<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
-<style>
-/* Ajustes Select2 para tu tema oscuro */
-.select2-container{ width:100% !important; font-size:12px; }
-.select2-container--default .select2-selection--single{
-  background:#000033; border:1px solid #333; color:#fff;
-  height:28px; border-radius:6px;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered{
-  color:#fff; line-height:26px;
-}
-.select2-container--default .select2-selection--single .select2-selection__placeholder{ color:#9dd; }
-.select2-container--default .select2-selection--single .select2-selection__arrow{ height:26px; }
-
-.select2-dropdown{
-  background:#000033; border:1px solid #333; color:#fff;
-  box-sizing:border-box;
-}
-.select2-results__option{ color:#fff; }
-.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
-  background:#001199;
-}
-.select2-results>.select2-results__options{ max-height:260px; } /* evita dropdown infinito */
-.select2-container--open{ z-index: 20000; } /* por encima de tu modal-back (9999) */
-</style>
-
 <?php
-// admin_pjs.php — CRUD Personajes (Clan→Manada + Sistema→Raza/Auspicio/Tribu + Avatar + Afiliación + Poderes + Méritos/Defectos + Inventario + Campos complejos)
+// admin_characters.php - CRUD Personajes (Clan/Manada + Sistema/Raza/Auspicio/Tribu + Avatar + Afiliacion + Poderes + Meritos/Defectos + Inventario + Campos complejos)
 
 if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
 
@@ -855,18 +830,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
     $totem_id = isset($_POST['totem_id']) ? (int)$_POST['totem_id'] : 0;
-    $kind_raw = strtolower(trim((string)($_POST['kind'] ?? 'pj')));
+    $kind_raw = strtolower(trim((string)($_POST['kind'] ?? 'pnj')));
     if ($kind_raw === 'monster' || $kind_raw === 'mon') {
-        $kind = 'monster';
+        $kind = 'mon';
     } elseif ($kind_raw === 'pj') {
         $kind = 'pj';
     } else {
         $kind = 'pnj';
     }
-    if ($kind === 'monster' && $character_kind_maxlen > 0 && $character_kind_maxlen < 7) {
-        $kind = 'mon';
-    }
-    $isMonsterKind = ($kind === 'monster' || $kind === 'mon');
+    $isMonsterKind = ($kind === 'mon');
     $isPlayableKind = ($kind !== 'pnj');
     $allowMydForKind = ($isPlayableKind && !$isMonsterKind);
     $rm_avatar   = isset($_POST['avatar_remove']) && $_POST['avatar_remove'] ? true : false;
@@ -949,7 +921,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     // Validaciones
     if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
-    if (!isset($estado_set[$status])) $flash[] = ['type'=>'error','msg'=>'⚠ El status no es válido.'];
+    if (!isset($estado_set[$status])) $flash[] = ['type'=>'error','msg'=>'? El status no es válido.'];
     if ($manada > 0) {
         $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
         if ($clan_of_manada !== $clan) {
@@ -1031,7 +1003,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                                 $st2->bind_param("si", $res['url'], $newId);
                                 $st2->execute(); $st2->close();
                             }
-                            $flash[] = ['type'=>'ok','msg'=>'🖼 Avatar subido.'];
+                            $flash[] = ['type'=>'ok','msg'=>'Avatar subido.'];
                         } elseif ($res['msg']!=='no_file') {
                             $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                         }
@@ -1046,13 +1018,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     // Méritos/Defectos
                     if ($allowMydForKind) {
                         $resultMyd = save_character_merits_flaws($link, (int)$newId, $myd_id, $myd_lvl_raw);
-                        if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
+                        if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'Meritos/Defectos vinculados: '.$resultMyd['inserted']]; }
                         if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped']. ')']; }
                     }
 
                     // Inventario
                     $resultIt = save_character_items($link, (int)$newId, $items_id);
-                    if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🎒 Objetos vinculados: '.$resultIt['inserted']]; }
+                    if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'Objetos vinculados: '.$resultIt['inserted']]; }
                     if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                     
@@ -1099,7 +1071,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
 
     if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
 
-          // ✅ OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
+          // ? OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
           $sql = "UPDATE fact_characters SET
                   name=?, alias=?, garou_name=?, gender=?, concept=?,
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
@@ -1133,7 +1105,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                           $st2->execute();
                           $st2->close();
                       }
-                      $flash[] = ['type'=>'ok','msg'=>'🗑 Avatar eliminado.'];
+                      $flash[] = ['type'=>'ok','msg'=>'Avatar eliminado.'];
                       $current_img = '';
                   }
 
@@ -1146,13 +1118,13 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                               $st3->execute();
                               $st3->close();
                           }
-                          $flash[] = ['type'=>'ok','msg'=>'🖼 Avatar actualizado.'];
+                          $flash[] = ['type'=>'ok','msg'=>'Avatar actualizado.'];
                       } elseif ($res['msg']!=='no_file') {
                           $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                       }
                   }
 
-                  // ✅ Bridges: aquí sí guardas clan/manada (fuente de verdad)
+                  // Bridges: aqui si guardas clan/manada (fuente de verdad)
                   sync_character_bridges($link, (int)$id, (int)$manada, (int)$clan);
 
                   if ($isPlayableKind) {
@@ -1164,13 +1136,13 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   // Méritos/Defectos
                   if ($allowMydForKind) {
                       $resultMyd = save_character_merits_flaws($link, (int)$id, $myd_id, $myd_lvl_raw);
-                      if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🏷️ Méritos/Defectos vinculados: '.$resultMyd['inserted']]; }
+                      if ($resultMyd['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'Meritos/Defectos vinculados: '.$resultMyd['inserted']]; }
                       if ($resultMyd['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Méritos/Defectos omitidos: '.$resultMyd['skipped']. ')']; }
                   }
 
                   // Inventario
                   $resultIt = save_character_items($link, (int)$id, $items_id);
-                  if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'🎒 Objetos vinculados: '.$resultIt['inserted']]; }
+                  if ($resultIt['inserted']>0) { $flash[]=['type'=>'ok','msg'=>'Objetos vinculados: '.$resultIt['inserted']]; }
                   if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                   
@@ -1470,113 +1442,18 @@ if ($has_bridge_char_resources && $has_dim_systems_resources && !empty($ids_page
 }
 
 // Base AJAX (misma página)
-$AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
+$AJAX_BASE = "/talim?s=admin_characters&ajax=1";
 ?>
-
-<style>
-.panel-wrap { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.hdr { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-.hdr h2 { margin:0; color:#33FFFF; font-size:16px; }
-.btn { background:#0d3a7a; color:#fff; border:1px solid #1b4aa0; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-.btn:hover { filter:brightness(1.1); }
-.btn-green { background:#0d5d37; border-color:#168f59; }
-.btn-red { background:#6b1c1c; border-color:#993333; }
-.inp { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; }
-.select { background:#000033; color:#fff; border:1px solid #333; padding:4px 6px; font-size:12px; }
-.select:disabled { opacity:0.6; cursor:not-allowed; }
-.ta { background:#000033; color:#fff; border:1px solid #333; padding:6px 8px; font-size:12px; width:100%; box-sizing:border-box; }
-.table { width:100%; border-collapse:collapse; font-size:11px; font-family:Verdana,Arial,sans-serif; }
-.table th, .table td { border:1px solid #000088; padding:6px 8px; background:#05014E; white-space:nowrap; }
-.table th { background:#050b36; color:#33CCCC; text-align:left; }
-.table tr:hover td { background:#000066; color:#33FFFF; }
-.pager{ display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; }
-.pager a, .pager span { display:inline-block; padding:4px 8px; border:1px solid #000088; background:#05014E; color:#eee; text-decoration:none; border-radius:6px; }
-.pager .cur { background:#001199; }
-.flash { margin:6px 0; }
-.flash .ok{ color:#7CFC00; } .flash .err{ color:#FF6B6B; } .flash .info{ color:#33FFFF; }
-.modal h3{ margin:0 0 8px; color:#33FFFF; }
-.grid { display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:8px 12px; }
-.grid label{ font-size:12px; color:#cfe; display:block; }
-.grid input, .grid select, .grid textarea { width:100%; box-sizing:border-box; }
-.avatar-wrap{ display:flex; gap:10px; align-items:flex-start; }
-.avatar-wrap img{ width:96px; height:96px; object-fit:cover; border-radius:10px; border:1px solid #1b4aa0; background:#000022; }
-.small-note{ font-size:10px; color:#9dd; display:block; margin-top:4px; }
-.traits-grid{ display:grid; grid-template-columns:repeat(2, minmax(260px,1fr)); gap:10px; }
-.traits-group{ background:#04023b; border:1px solid #000088; border-radius:10px; padding:8px; }
-.traits-title{ font-weight:700; color:#9ff; margin-bottom:6px; }
-.traits-items{ display:grid; grid-template-columns:repeat(2, minmax(120px,1fr)); gap:6px 8px; }
-.trait-item{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
-.trait-item span{ font-size:11px; color:#cfe; }
-.trait-item input{ width:64px; }
-
-.modal-back{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.6);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999;
-  padding:14px;
-  box-sizing:border-box;
-}
-
-/* Modal: altura máxima y scroll interno */
-.modal{
-  width:min(1000px, 96vw);
-  max-height:92vh;
-  overflow:hidden;
-  background:#05014E;
-  border:1px solid #000088;
-  border-radius:12px;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-}
-
-/* Contenido scrolleable */
-#formCrud{
-  flex:1;
-  overflow:auto;
-  padding-right:6px;
-}
-
-/* Acciones sticky */
-.modal-actions{
-  position:sticky;
-  bottom:0;
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-  padding:10px 0 0;
-  margin-top:10px;
-  background:linear-gradient(to top, rgba(5,1,78,1), rgba(5,1,78,0));
-  border-top:1px solid #000088;
-}
-
-@media (max-width:750px){
-  .modal{ max-height:94vh; padding:10px; }
-  .btn{ padding:8px 10px; }
-}
-
-/* Chips */
-.chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-.chip{ display:inline-flex; align-items:center; gap:6px; background:#00135a; border:1px solid #1b4aa0; border-radius:999px; padding:4px 8px; }
-.chip .tag{ font-weight:bold; color:#9dd; }
-.chip .pname{ color:#fff; }
-.chip input.power-lvl{ width:48px; text-align:center; }
-.chip input.myd-lvl{ width:70px; text-align:center; }
-
-@media (max-width:1100px){ .grid{ grid-template-columns:repeat(2, minmax(240px,1fr)); } }
-@media (max-width:750px){ .grid{ grid-template-columns:1fr; } }
-</style>
 
 <br />
 <div class="panel-wrap">
   <div class="hdr">
-    <h2>👤 Personajes — Lista & CRUD</h2>
+    <h2>Personajes - Lista y CRUD</h2>
     <button class="btn btn-green" id="btnNew">+ Nuevo personaje</button>
 
-    <form method="get" style="display:flex; gap:8px; align-items:center;">
+    <form method="get" class="adm-flex-8-center-spaced">
       <input type="hidden" name="p" value="talim">
-      <input type="hidden" name="s" value="admin_pjs">
+      <input type="hidden" name="s" value="admin_characters">
       <label>Crónica
         <select class="select" name="fil_cr" onchange="this.form.submit()">
           <option value="0">Todas</option>
@@ -1593,7 +1470,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           <?php endforeach; ?>
         </select>
       </label>
-      <label style="margin-left:auto;text-align:left;">Filtro rápido
+      <label class="adm-ml-auto-left">Filtro rápido
         <input class="inp" type="text" id="quickFilter" placeholder="En esta página…">
       </label>
       <label>Pág
@@ -1618,18 +1495,18 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
   <table class="table" id="tablaPjs">
     <thead>
       <tr>
-        <th style="width:60px;">ID</th>
+        <th class="adm-w-60">ID</th>
         <th>Nombre</th>
         <th>Jugador</th>
         <th>Crónica</th>
         <th>Sistema</th>
-        <th style="width:120px;">Acciones</th>
+        <th class="adm-w-120">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($rows as $r): ?>
         <tr data-nombre="<?= strtolower(h($r['name'])) ?>">
-          <td><strong style="color:#33FFFF;"><?= (int)$r['id'] ?></strong></td>
+          <td><strong class="adm-color-accent"><?= (int)$r['id'] ?></strong></td>
           <td><?= h($r['name']) ?></td>
           <td><?= h($r['jugador_'] ?? $r['player_id']) ?></td>
           <td><?= h($r['cronica_'] ?? $r['chronicle_id']) ?></td>
@@ -1656,20 +1533,20 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
               data-clan="<?= (int)$r['clan'] ?>"
               data-img="<?= h($r['image_url']) ?>"
               data-afiliacion="<?= (int)$r['character_type_id'] ?>"
-              data-kind="<?= h((string)($r['kind'] ?? 'pj')) ?>"
+              data-kind="<?= h((string)($r['kind'] ?? 'pnj')) ?>"
             >Editar</button>
           </td>
         </tr>
       <?php endforeach; ?>
       <?php if (empty($rows)): ?>
-        <tr><td colspan="6" style="color:#bbb;">(Sin resultados)</td></tr>
+        <tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>
       <?php endif; ?>
     </tbody>
   </table>
 
   <div class="pager">
     <?php
-      $base = "/talim?s=admin_pjs&pp=".$perPage."&fil_cr=".$fil_cr."&fil_ma=".$fil_ma."&q=".urlencode($q);
+      $base = "/talim?s=admin_characters&pp=".$perPage."&fil_cr=".$fil_cr."&fil_ma=".$fil_ma."&q=".urlencode($q);
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
     ?>
@@ -1685,7 +1562,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
 <div class="modal-back" id="mb">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <h3 id="modalTitle">Nuevo personaje</h3>
-    <form method="post" id="formCrud" enctype="multipart/form-data" style="margin:0;">
+    <form method="post" id="formCrud" enctype="multipart/form-data" class="adm-m-0">
       <input type="hidden" name="crud_action" id="crud_action" value="create">
       <input type="hidden" name="id" id="f_id" value="0">
 
@@ -1701,7 +1578,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
         <div>
-          <label style="text-align:left;">Nombre Garou
+          <label class="adm-text-left">Nombre Garou
             <input class="inp" type="text" name="nombregarou" id="f_nombregarou" maxlength="100">
           </label>
         </div>
@@ -1717,7 +1594,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
         <div>
-          <label style="text-align:left;">Color texto
+          <label class="adm-text-left">Color texto
             <input class="inp" type="text" name="text_color" id="f_colortexto" placeholder="SkyBlue">
           </label>
         </div>
@@ -1765,7 +1642,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
         <div>
-          <label style="text-align:left;">¿Qué es?
+          <label class="adm-text-left">¿Qué es?
             <select class="select" name="afiliacion" id="f_afiliacion">
               <option value="0">—</option>
               <?php foreach($opts_afili as $id=>$name): ?>
@@ -1775,11 +1652,11 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
         <div>
-          <label style="text-align:left;">kind
+          <label class="adm-text-left">kind
             <select class="select" name="kind" id="f_kind">
               <option value="pj">pj</option>
-              <option value="monster">monster</option>
-              <option value="pnj">pnj</option>
+              <option value="pnj" selected>pnj</option>
+              <option value="mon">mon</option>
             </select>
           </label>
         </div>
@@ -1883,7 +1760,7 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         <div>
           <label>Avatar
             <div class="avatar-wrap">
-              <img id="f_avatar_preview" src="" alt="avatar" style="display:none;">
+              <img id="f_avatar_preview" src="" alt="avatar" class="adm-hidden">
               <div>
                 <input class="inp" type="file" name="avatar" id="f_avatar" accept="image/*">
                 <label class="small-note"><input type="checkbox" name="avatar_remove" id="f_avatar_remove" value="1"> Quitar avatar</label>
@@ -1893,20 +1770,20 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
           </label>
         </div>
 
-        <div style="grid-column:1/-1;">
-          <label style="text-align:left;">Causa de muerte
+        <div class="adm-grid-full">
+          <label class="adm-text-left">Causa de muerte
             <textarea class="ta" name="causamuerte" id="f_causamuerte" rows="3" placeholder="Texto libre…"></textarea>
           </label>
         </div>
 
-        <div style="grid-column:1/-1;">
-          <label style="text-align:left;">Información sobre el personaje
+        <div class="adm-grid-full">
+          <label class="adm-text-left">Información sobre el personaje
             <textarea class="ta hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="infotext" id="f_infotext" rows="6" placeholder="Texto largo…"></textarea>
           </label>
         </div>
 
         <!-- TRAITS -->
-        <div class="kind-pj-only" style="grid-column:1/-1;">
+        <div class="kind-pj-only adm-grid-full">
           <label><strong>Traits</strong></label>
           <div class="traits-grid">
             <?php foreach ($trait_types as $tipo): $list = $traits_by_type[$tipo] ?? []; if (!$list) continue; ?>
@@ -1930,9 +1807,9 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- RECURSOS -->
-        <div class="kind-pj-only" style="grid-column:1/-1;">
+        <div class="kind-pj-only adm-grid-full">
           <label><strong>Recursos</strong></label>
-          <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
+          <div class="grid adm-grid-2-auto">
             <select class="select" id="res_sel"></select>
             <button class="btn" type="button" id="res_add">Añadir</button>
           </div>
@@ -1941,9 +1818,9 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- PODERES -->
-        <div class="kind-pj-only" style="grid-column:1/-1;">
+        <div class="kind-pj-only adm-grid-full">
           <label><strong>Poderes</strong></label>
-          <div class="grid" style="grid-template-columns: 1fr 2fr 120px auto; gap:8px;">
+          <div class="grid adm-grid-1-2-120-auto">
             <select class="select" id="pow_tipo">
               <option value="dones">Dones</option>
               <option value="disciplinas">Disciplinas</option>
@@ -1958,9 +1835,9 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- MÉRITOS Y DEFECTOS -->
-        <div class="kind-pj-only kind-no-monster" style="grid-column:1/-1;">
+        <div class="kind-pj-only kind-no-monster adm-grid-full">
           <label><strong>Méritos &amp; Defectos</strong></label>
-          <div class="grid" style="grid-template-columns: 2fr 140px auto; gap:8px;">
+          <div class="grid adm-grid-2-140-auto">
             <select class="select" id="myd_sel"></select>
             <input class="inp" id="myd_lvl" type="number" min="-99" max="999" placeholder="nivel (opcional)">
             <button class="btn" type="button" id="myd_add">Añadir</button>
@@ -1970,9 +1847,9 @@ $AJAX_BASE = "/talim?s=admin_pjs&ajax=1";
         </div>
 
         <!-- INVENTARIO -->
-        <div class="kind-pj-only" style="grid-column:1/-1;">
+        <div class="kind-pj-only adm-grid-full">
           <label><strong>Inventario</strong></label>
-          <div class="grid" style="grid-template-columns: 2fr auto; gap:8px;">
+          <div class="grid adm-grid-2-auto">
             <select class="select" id="inv_sel"></select>
             <button class="btn" type="button" id="inv_add">Añadir</button>
           </div>
@@ -2444,10 +2321,10 @@ var CHAR_DETAILS     = <?= json_encode(
     chip.innerHTML =
       '<span class="tag">'+(kind || 'res')+'</span>' +
       '<span class="pname">'+(name || ('#'+id))+'</span>' +
-      '<span class="res-default-badge" style="display:none;font-size:10px;color:#8fd7ff;">SYS</span>' +
+      '<span class="res-default-badge adm-hidden-sys-badge">SYS</span>' +
       '<input type="hidden" name="resource_ids[]" value="'+id+'">' +
-      '<input class="inp" type="number" min="0" name="resource_perm[]" value="'+perm+'" title="Permanente" style="width:90px;">' +
-      '<input class="inp" type="number" min="0" name="resource_temp[]" value="'+temp+'" title="Temporal" style="width:90px;">' +
+      '<input class="inp adm-w-90" type="number" min="0" name="resource_perm[]" value="'+perm+'" title="Permanente">' +
+      '<input class="inp adm-w-90" type="number" min="0" name="resource_temp[]" value="'+temp+'" title="Temporal">' +
       '<button type="button" class="btn btn-red btn-del-res">X</button>';
 
     resList.appendChild(chip);
@@ -2497,7 +2374,7 @@ var CHAR_DETAILS     = <?= json_encode(
     });
     if (selTotem) selTotem.value = '0';
     selAfili.value = '0';
-    if (selKind) selKind.value = 'pj';
+    if (selKind) selKind.value = 'pnj';
 
     ensureEstadoOption('En activo');
 
@@ -2538,7 +2415,7 @@ var CHAR_DETAILS     = <?= json_encode(
     // reset traits
     resetTraits();
     applyTraitOrder(0);
-    applyKindVisibility(selKind ? selKind.value : 'pj');
+    applyKindVisibility(selKind ? selKind.value : 'pnj');
 
     mb.style.display='flex';
     initSelect2Modal();
@@ -2563,8 +2440,8 @@ var CHAR_DETAILS     = <?= json_encode(
     document.getElementById('f_jugador').value     = btn.getAttribute('data-jugador') || '0';
     document.getElementById('f_afiliacion').value  = btn.getAttribute('data-afiliacion') || '0';
     if (selKind) {
-      var k = (btn.getAttribute('data-kind') || 'pj').toLowerCase();
-      if (k === 'monster' || k === 'mon') selKind.value = 'monster';
+      var k = (btn.getAttribute('data-kind') || 'pnj').toLowerCase();
+      if (k === 'monster' || k === 'mon') selKind.value = 'mon';
       else selKind.value = (k === 'pj') ? 'pj' : 'pnj';
     }
 
@@ -2631,7 +2508,7 @@ var CHAR_DETAILS     = <?= json_encode(
 
     // Traits: cargar
     fillTraits(CHAR_TRAITS[cid] || {});
-    applyKindVisibility(selKind ? selKind.value : 'pj');
+    applyKindVisibility(selKind ? selKind.value : 'pnj');
 
     fCausa.value  = '';
     fInfo.value   = '';
@@ -2684,9 +2561,9 @@ var CHAR_DETAILS     = <?= json_encode(
   });
 
   onSelectChange(selKind, function(){
-    applyKindVisibility(selKind ? selKind.value : 'pj');
+    applyKindVisibility(selKind ? selKind.value : 'pnj');
   });
-  applyKindVisibility(selKind ? selKind.value : 'pj');
+  applyKindVisibility(selKind ? selKind.value : 'pnj');
 
   // Avatar preview / remove
   avatar.addEventListener('change', function(){
@@ -2800,6 +2677,10 @@ var CHAR_DETAILS     = <?= json_encode(
 
 })();
 </script>
+
+
+
+
 
 
 

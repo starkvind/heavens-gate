@@ -55,8 +55,7 @@ if ($inicio && isset($finalPlayer)) {
 		$temporadas_por_mes[$row['mes']] = $row['season_number'];
 	}
 
-    // 3. Obtener todos los capítulos de esas temporadas para contar “esperados”
-    //$temporadas_in = implode(',', array_keys($temporadas_validas));
+    // 3. Obtener todos los capítulos de esas temporadas para contar "esperados"
     $query_esperados = "
         SELECT DATE_FORMAT(played_date, '%Y-%m') AS mes, COUNT(*) AS total
         FROM dim_chapters
@@ -130,15 +129,12 @@ let chart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: labels,
-		
         datasets: [
             {
                 label: 'Participación',
                 data: jugados,
                 borderColor: 'rgba(86, 240, 120, 1)',
-				//'rgba(75, 192, 192, 1)',
                 backgroundColor: 'rgba(13, 150, 43, 0.5)',
-				//'rgba(75, 192, 192, 0.2)',
                 tension: 0.3
             },
             {
@@ -169,7 +165,7 @@ let chart = new Chart(ctx, {
 						const index = tooltipItems[0].dataIndex;
 						const label = labels[index];
 						const temporada = temporadas[index];
-						return temporada ? `${label} – ${temporada}` : label;
+						return temporada ? `${label} - ${temporada}` : label;
 					},
 					label: function(context) {
 						return `${context.dataset.label}: ${context.formattedValue}`;
@@ -196,4 +192,3 @@ let chart = new Chart(ctx, {
 </script>
 
 <?php endif; ?>
-

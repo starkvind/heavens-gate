@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin_avatar_mass.php - Actualizacion masiva de avatares de personajes (sin paginacion)
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
@@ -196,36 +196,10 @@ asort($orgOpts, SORT_NATURAL | SORT_FLAG_CASE);
 asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
 ?>
 
-<style>
-.avatar-mass-wrap{ background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.avatar-mass-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-.avatar-mass-head h2{ margin:0; color:#33FFFF; font-size:16px; }
-.avatar-mass-filters{ margin:10px 0; display:grid; grid-template-columns: repeat(3, minmax(190px,1fr)); gap:8px; }
-.avatar-mass-filters select,
-.avatar-mass-filters input{
-  width:100%; background:#000033; color:#fff; border:1px solid #333; border-radius:6px; padding:6px 8px; font-size:12px;
-}
-.avatar-mass-list{ width:100%; border-collapse:collapse; font-size:11px; }
-.avatar-mass-list th,.avatar-mass-list td{ border:1px solid #000088; padding:6px 8px; vertical-align:middle; background:#05014E; }
-.avatar-mass-list th{ background:#050b36; color:#33CCCC; text-align:left; position:sticky; top:0; z-index:2; }
-.avatar-mass-list tr:hover td{ background:#000066; }
-.avatar-cell{ display:flex; align-items:center; gap:10px; }
-.avatar-cell img{ width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #1b4aa0; background:#000022; }
-.btn-upload{ background:#0d5d37; border:1px solid #168f59; color:#fff; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-.btn-upload[disabled]{ opacity:.55; cursor:not-allowed; }
-.row-msg{ font-size:11px; color:#9dd; }
-.row-msg.ok{ color:#7CFC00; }
-.row-msg.err{ color:#FF6B6B; }
-.table-scroll{ max-height:72vh; overflow:auto; border:1px solid #000088; border-radius:8px; }
-@media (max-width:980px){
-  .avatar-mass-filters{ grid-template-columns: 1fr; }
-}
-</style>
-
 <div class="avatar-mass-wrap">
   <div class="avatar-mass-head">
     <h2>Avatares masivos de personajes</h2>
-    <div style="color:#9dd;font-size:11px;">Sin paginacion - actualiza por fila via Ajax</div>
+    <div class="adm-text-9dd-11">Sin paginacion - actualiza por fila via Ajax</div>
   </div>
 
   <div class="avatar-mass-filters">
@@ -247,19 +221,19 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
         <option value="<?= (int)$id ?>"><?= h($name) ?></option>
       <?php endforeach; ?>
     </select>
-    <input id="f-search" type="text" placeholder="Buscar por nombre, id o pretty_id..." style="grid-column:1 / -1;">
+    <input id="f-search" type="text" placeholder="Buscar por nombre, id o pretty_id..." class="adm-grid-full">
   </div>
 
   <div class="table-scroll">
     <table class="avatar-mass-list" id="avatar-table">
       <thead>
         <tr>
-          <th style="width:90px;">ID</th>
-          <th style="width:170px;">Pretty ID</th>
+          <th class="adm-w-90">ID</th>
+          <th class="adm-w-170">Pretty ID</th>
           <th>Personaje</th>
-          <th style="width:120px;">Avatar</th>
-          <th style="width:360px;">Nuevo avatar</th>
-          <th style="width:160px;">Estado</th>
+          <th class="adm-w-120">Avatar</th>
+          <th class="adm-w-360">Nuevo avatar</th>
+          <th class="adm-w-160">Estado</th>
         </tr>
       </thead>
       <tbody>
@@ -282,7 +256,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
             </div>
           </td>
           <td>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div class="adm-flex-wrap-8">
               <input type="file" accept="image/*" data-avatar-file>
               <button class="btn-upload" data-upload-btn disabled>Subir</button>
             </div>
@@ -432,4 +406,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
   });
 })();
 </script>
+
+
+
 

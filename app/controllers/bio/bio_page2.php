@@ -295,14 +295,14 @@
 
 	$characterId = isset($_GET['b']) ? (int)$_GET['b'] : 0; // Cogemos datos del GET "b"
 	if ($characterId <= 0) {
-		echo "<p style='text-align:center;'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
+		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
 		exit;
 	}
 
 	$orderData ="SELECT p.*, s.name AS system_label FROM fact_characters p LEFT JOIN dim_systems s ON p.system_id = s.id WHERE p.id = ? LIMIT 1;"; // Elegimos al PJ de la Base de Datos
 	$stmtMain = mysqli_prepare($link, $orderData);
 	if (!$stmtMain) {
-		echo "<p style='text-align:center;'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
+		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
 		exit;
 	}
 
@@ -482,7 +482,7 @@
 		$bioAttrList = $bioTraitsByType['Atributos'] ?? [];
 		$bioDebugTraitsEnabled = isset($_GET['debug_traits']) && (string)$_GET['debug_traits'] === '1';
 		if ($bioDebugTraitsEnabled && $bioIsMonster) {
-			echo "<div style='margin:8px 0;padding:8px;border:1px dashed #0ff;color:#0ff;background:#001a2a;font-family:monospace;font-size:12px;'>";
+			echo "<div class='bio-debug-box'>";
 			echo "<strong>DEBUG TRAITS (monster)</strong><br>";
 			echo "system_id=" . (int)($dataResult['system_id'] ?? 0) . "<br>";
 			foreach ($bioAttrList as $ix => $t) {
@@ -643,94 +643,7 @@
 		/* MODERNO NUEVO */
 		include("app/partials/main_nav_bar.php");	// Barra Navegación
 		// ================================================================== //
-		echo "<style>
-		.bioLayout{ max-width:980px; margin:0 auto; }
-		.hg-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; justify-content:flex-end; }
-		.hgTabBtn{
-			font-family: verdana;
-			font-size: 10px;
-			background-color: #000066;
-			color: #fff;
-			padding: 0.5em 0.8em;
-			border: 1px solid #003399;
-			border-radius: 6px;
-			cursor: pointer;
-			display: inline-flex;
-			align-items: center;
-			gap: 6px;
-		}
-		.hgTabBtn:hover{ border-color:#003399; background:#000099; color:#01b3fa; }
-		.hgTabBtn.active{ background:#001199; color:#01b3fa; border-color:#003399; }
-		.hgTabBtn .hgTabEmoji{
-			font-size: 13px;
-			line-height: 1;
-		}
-		.hgTabBtn .hgTabLabel{
-			max-width: 0;
-			opacity: 0;
-			overflow: hidden;
-			white-space: nowrap;
-			transition: max-width .16s ease, opacity .12s ease;
-		}
-		.hgTabBtn:hover .hgTabLabel,
-		.hgTabBtn:focus-visible .hgTabLabel{
-			max-width: 180px;
-			opacity: 1;
-		}
-		.bio-tab-panel{ display:none; }
-		.bio-tab-panel.active{ display:block; }
-		#hg-tooltip{
-			position: fixed;
-			z-index: 9999;
-			max-width: 320px;
-			background: #0b0b2b;
-			border: 1px solid #003399;
-			color: #e6f0ff;
-			padding: 8px 10px;
-			border-radius: 6px;
-			box-shadow: 0 6px 20px rgba(0,0,0,0.45);
-			font-size: 12px;
-			display: none;
-			pointer-events: none;
-			text-align: left;
-			max-height: 60vh;
-			overflow: auto;
-		}
-		#hg-tooltip .hg-tip-title{ font-weight: bold; margin-bottom: 4px; color:#8fd7ff; }
-		#hg-tooltip .hg-tip-meta{ font-size: 11px; color:#9fb2d9; }
-		#hg-tooltip .hg-tip-label{ font-weight: bold; margin-top: 6px; color:#cfd9ff; }
-		#hg-tooltip .hg-tip-text{ font-size: 12px; color:#e6f0ff; }
-		.power-card--bio .power-card__body{ grid-template-columns: 160px 1fr; column-gap:12px; }
-		.power-card--bio .power-card__media{ display:flex; align-items:center; justify-content:center; }
-		.power-card--bio .power-card__img-wrap{ width:140px; height:140px; padding:6px; border-radius:50%; background:#001188; border:1px solid #000088; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-		.power-card--bio .power-card__img{ width:100%; height:100%; object-fit:cover; border-radius:50%; border:1px solid #001a55; box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5); }
-		.bioSheetBackgroundLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
-		.bioSheetBackgroundLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
-		.hg-forum-roll-code{
-			margin-top:10px;
-			border:1px solid #444;
-			background:#111;
-			border-radius:8px;
-			padding:8px 10px;
-			display:flex;
-			align-items:center;
-			justify-content:space-between;
-			gap:8px;
-			overflow:auto;
-		}
-		.hg-forum-roll-code code{ color:#0f0; font-family:monospace; white-space:nowrap; }
-		.hg-roll-copy-emoji{
-			border:1px solid #666;
-			background:#111;
-			color:#fff;
-			border-radius:6px;
-			width:32px;
-			height:32px;
-			line-height:1;
-			cursor:pointer;
-			flex:0 0 auto;
-		}
-		</style>";
+		echo "<link rel='stylesheet' href='/assets/css/hg-bio.css'>";
 
 		echo "<div class='bioLayout'>";
 		echo "<section class='bioContextHeader'>";
@@ -774,9 +687,10 @@
 		
 		<div class="bioTextData">
 			<fieldset class='bioSeccion'>
-				<legend>Embeber personaje en el foro</legend>
+				<legend>Embeber en el foro</legend>
 		<?php
-			$embedCodeRaw = "[hg_avatar=" . (int)$characterId . "]Mensaje de " . (string)$bioName . "[/hg_avatar]";
+			// Mensaje de " . (string)$bioName . "
+			$embedCodeRaw = "[hg_avatar=" . (int)$characterId . "]Mensaje[/hg_avatar]";
 			$embedCodeEsc = h($embedCodeRaw);
 			$html = "<div class='hg-forum-roll-code'><code>{$embedCodeEsc}</code><button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$embedCodeEsc}' title='Copiar codigo'>&#128203;</button></div>";
 			echo $html;
@@ -865,11 +779,11 @@
 			<div class="bioTextData">
 				<fieldset class='bioSeccion'>
 					<legend><?= ($titleSameBio) ?></legend>
-					<button id="toggleRelaciones" class="boton2" style="float: right; margin-right:0.3em;" type="button">Cambiar vista</button>
+					<button id="toggleRelaciones" class="boton2 bio-rel-toggle" type="button">Cambiar vista</button>
 					<div id="seccion2">
 						<?php include("app/partials/bio/bio_page_section_17_rel_graph.php"); ?>
 					</div>
-					<div id="seccion1" style='display: none;'>
+					<div id="seccion1" class="bio-hidden">
 						<?php include("app/partials/bio/bio_page_section_14_family.php"); ?>
 					</div>
 				</fieldset>
@@ -882,7 +796,7 @@
 			<section id="sec-part" class="bio-tab-panel" data-tab="part">
 			<div class="bioTextData">
 				<fieldset class='bioSeccion'>
-					<legend><?= ($titleParticp) ?></legend>
+					<legend>&nbsp;<?= ($titleParticp) ?>&nbsp;</legend>
 					<?php include("app/partials/bio/bio_page_section_18_chapters.php"); ?>
 				</fieldset>
 			</div>
@@ -900,7 +814,7 @@
 	echo "</div>"; // FIN DE CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
 		echo "</div>"; // bioLayout
 	} else {
-		echo "<p style='text-align:center;'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
+		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
 	}
 
 	// Limpieza del stmt principal
@@ -962,7 +876,8 @@
 		if (!btnToggle || !seccion1 || !seccion2) return;
 
 		btnToggle.addEventListener('click', () => {
-			if (seccion1.style.display === 'none') {
+			const hidden = window.getComputedStyle(seccion1).display === 'none';
+			if (hidden) {
 				seccion1.style.display = 'block';
 				seccion2.style.display = 'none';
 			} else {
@@ -1079,5 +994,3 @@
 			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
-
-

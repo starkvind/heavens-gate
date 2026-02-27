@@ -166,14 +166,6 @@ if ($systemId > 0) {
 	$st->close();
 }
 ?>
-<style>
-.asr-box { margin-bottom: 14px; }
-.asr-grid { width:100%; border-collapse: collapse; }
-.asr-grid th, .asr-grid td { border:1px solid #003399; padding:6px 8px; }
-.asr-grid th { background:#001a66; color:#aee7ff; }
-.asr-muted { color:#8fb4ff; font-size:11px; }
-</style>
-
 <div class="bioTextData asr-box">
 	<fieldset class="bioSeccion">
 		<legend>&nbsp;Sistema objetivo&nbsp;</legend>
@@ -223,7 +215,7 @@ if ($systemId > 0) {
 						<td><input type="checkbox" name="selected[]" value="<?= $rid ?>" <?= $isLinked ? 'checked' : '' ?>></td>
 						<td><?= h($r['name']) ?> <span class="asr-muted">#<?= $rid ?></span></td>
 						<td><?= h($r['kind']) ?></td>
-						<td><input type="number" name="rows[<?= $rid ?>][sort_order]" value="<?= $curSort ?>" style="width:70px;"></td>
+						<td><input type="number" name="rows[<?= $rid ?>][sort_order]" value="<?= $curSort ?>" class="adm-w-70"></td>
 						<?php if (isset($bridgeCols['position'])): ?>
 							<td><input type="text" name="rows[<?= $rid ?>][position]" value="<?= h($curPos) ?>" placeholder="main / reputation"></td>
 						<?php endif; ?>
@@ -233,10 +225,12 @@ if ($systemId > 0) {
 				<?php endforeach; ?>
 				</tbody>
 			</table>
-			<div style="margin-top:10px;">
+			<div class="adm-mt-10">
 				<button type="submit" class="boton2">Guardar mapeo</button>
 			</div>
 		</form>
 	</fieldset>
 </div>
 <?php endif; ?>
+
+

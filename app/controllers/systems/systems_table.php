@@ -32,131 +32,17 @@ $pageSect   = null;
 $pageTitle2 = "Sistemas";
 ?>
 
-<link rel="stylesheet" href="assets/vendor/datatables/jquery.dataTables.min.css">
-<script src="assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="assets/vendor/datatables/jquery.dataTables.min.js"></script>
-
-<style>
-/* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
-.dt-toolbar{
-	display:flex;
-	align-items:center;
-	justify-content:space-between;
-	gap:10px;
-	margin: 0 0 10px 0;
-}
-.dt-toolbar .left{
-	flex: 0 0 auto;
-	display:flex;
-	align-items:center;
-	gap:10px;
-}
-.dt-toolbar .right{ flex: 1 1 auto; display:flex; justify-content:flex-end; }
-
-/* ===== Multi-select con checks ===== */
-.ms-wrap{ position:relative; width: 190px; }
-.ms-btn{
-	width:100%;
-	box-sizing:border-box;
-	cursor:pointer;
-	display:flex;
-	justify-content:space-between;
-	align-items:center;
-	background:#fff;
-}
-.ms-btn .ms-label{ opacity:.9; }
-.ms-btn .ms-summary{ opacity:.8; margin-left:10px; }
-
-.ms-panel{
-	text-align:left;
-	position:absolute;
-	z-index:9999;
-	top: calc(100% + 6px);
-	left:0; right:0;
-	border:1px solid rgb(0, 0, 153);
-	background: rgb(0, 0, 102);
-	border-radius:6px;
-	box-shadow:0 8px 24px rgba(0,0,0,.12);
-	padding:4px;
-	display:none;
-	max-height:280px;
-	overflow:auto;
-}
-.ms-row{
-	display:flex;
-	align-items:center;
-	background: rgb(0, 0, 102);
-	gap:10px;
-	padding:6px 8px;
-	border-radius:4px;
-	cursor:pointer;
-	margin:0;
-}
-.ms-row:hover{ background: rgba(0,0,0,.04); }
-.ms-row input{ width:16px; height:16px; }
-
-.ms-row span{ text-align:left; }
-
-.ms-actions{ display:flex; gap:8px; }
-.ms-actions button{
-	font-family: verdana;
-	font-size: 10px;
-	background-color: #000066;
-	color: #fff;
-	padding: 0.5em;
-	border: 1px solid #000099;
-}
-.ms-actions button:hover{ border-color: #003399; background: #000099; color: #01b3fa; cursor: pointer; }
-
-/* DataTables filter alineado */
-.dataTables_wrapper .dataTables_filter{ margin:0 !important; }
-.dataTables_wrapper .dataTables_filter label{
-	display:flex;
-	align-items:center;
-	gap:8px;
-	margin:0;
-	white-space:nowrap;
-}
-.dataTables_wrapper .dataTables_filter input{ margin-left:0 !important; }
-
-.badge-yes{
-	display:inline-block;
-	padding:2px 6px;
-	border-radius:6px;
-	border:1px solid #000099;
-	background:#000066;
-	color:#fff;
-	font-size:11px;
-}
-.badge-no{
-	display:inline-block;
-	padding:2px 6px;
-	border-radius:6px;
-	border:1px solid #333;
-	background:#111;
-	color:#ddd;
-	font-size:11px;
-	opacity:.85;
-}
-
-/* Responsive */
-@media (max-width: 980px){
-	.dt-toolbar{ flex-direction:column; align-items:stretch; }
-	.dt-toolbar .left{ justify-content:flex-start; }
-	.dt-toolbar .right{ justify-content:flex-start; }
-	.ms-wrap{ width: 100%; }
-}
-</style>
-
 <?php 
 	$selectAll = "&nbsp;&nbsp;Todo&nbsp;&nbsp;";
 	$clearAll  = "&nbsp;Limpiar&nbsp;";
 ?>
+<link rel="stylesheet" href="/assets/css/hg-systems.css">
+<?php include_once("app/partials/datatable_assets.php"); ?>
 
-<h2 style="text-align:right;">Seres sobrenaturales</h2>
+<h2 class="syst-table-title">Seres sobrenaturales</h2>
 
-<div style="display:flex; justify-content:center; width: 100%;">
-	<div style="flex: 1; max-width:650px; min-width:650px;">
+<div class="syst-table-wrap">
+	<div class="syst-table-inner">
 
 		<div class="dt-toolbar">
 			<div class="left">
@@ -197,7 +83,7 @@ $pageTitle2 = "Sistemas";
 			<div class="right" id="dt-search-slot"></div>
 		</div>
 
-		<table id="tabla-systems" class="display" style="width:100%">
+		<table id="tabla-systems" class="display syst-table">
 			<thead>
 				<tr>
 					<th>Sistema</th>
@@ -453,4 +339,6 @@ $(document).ready(function () {
 	updateSummaryOrigins(null);
 });
 </script>
+
+
 

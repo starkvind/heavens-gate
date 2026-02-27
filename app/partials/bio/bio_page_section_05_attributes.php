@@ -1,9 +1,5 @@
 <?php
 // Atributos en 3 columnas (1-3, 4-6, 7-9)
-echo "<style>
-.bioSheetAttrLeft a.hg-tooltip{ color:cyan; text-decoration:none; }
-.bioSheetAttrLeft a.hg-tooltip:hover{ color:#33FFFF; text-decoration:underline; }
-</style>";
 $cols = $bioAttrCols ?? [[],[],[]];
 $imgs = $bioAttrColImgs ?? [[],[],[]];
 $maxRows = 0;

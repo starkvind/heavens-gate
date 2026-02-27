@@ -1,0 +1,155 @@
+.pwrs-table-title {
+    text-align: right;
+}
+
+.pwrs-table-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.pwrs-table-inner {
+    flex: 1;
+    max-width: 640px;
+    min-width: 640px;
+}
+
+.pwrs-table {
+    width: 100%;
+}
+
+.pwrs-toolbar-third {
+    width: 33%;
+}
+
+.dt-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 10px;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .left {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .right {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ms-wrap {
+    position: relative;
+    width: 150px;
+}
+
+.ms-btn {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.ms-btn .ms-label {
+    opacity: .9;
+}
+
+.ms-btn .ms-summary {
+    opacity: .8;
+    margin-left: 10px;
+    text-align: left !important;
+}
+
+.ms-panel {
+    text-align: left;
+    position: absolute;
+    z-index: 9999;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    border: 1px solid rgb(0, 0, 153);
+    background: rgb(0, 0, 102);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: 4px;
+    display: none;
+    max-height: 280px;
+    overflow: auto;
+}
+
+.ms-row {
+    display: flex;
+    align-items: center;
+    background: rgb(0, 0, 102);
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.ms-row:hover {
+    background: rgba(0,0,0,.04);
+}
+
+.ms-row input {
+    width: 16px;
+    height: 16px;
+}
+
+.ms-row span {
+    text-align: left;
+}
+
+.ms-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ms-actions button {
+    font-family: verdana, sans-serif;
+    font-size: 10px;
+    background-color: #000066;
+    color: #fff;
+    padding: 0.5em;
+    border: 1px solid #000099;
+}
+
+.ms-actions button:hover {
+    border-color: #003399;
+    background: #000099;
+    color: #01b3fa;
+    cursor: pointer;
+}
+
+@media (max-width: 720px) {
+    .dt-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dt-toolbar .left,
+    .dt-toolbar .right {
+        justify-content: flex-start;
+    }
+
+    .ms-wrap,
+    .pwrs-table-inner {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .pwrs-toolbar-third {
+        width: 100%;
+    }
+}

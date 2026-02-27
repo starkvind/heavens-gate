@@ -1,6 +1,6 @@
 <?php
 /**
- * admin_plots_crud.php — GUI autocontenida para:
+ * admin_parties.php - GUI autocontenida para:
  *  - dim_parties
  *  - fact_party_members
  *  - fact_party_members_changes (log, solo INSERT + LIST)
@@ -9,12 +9,13 @@
  *  - Debe existir $link (mysqli) ya conectado (como en vuestro panel).
  *  - Tabla base de personajes: fact_characters (id, nombre, alias) -> para base_char_id.
  *
- * Integración:
- *  - Inclúyelo en tu zona admin (por ejemplo /talim?s=admin_plots_crud).
+ * Integracion:
+ *  - Incluyelo en tu zona admin (por ejemplo /talim?s=admin_parties).
  */
 
-if (!isset($link) || !$link) die("Sin conexión BD");
+if (!isset($link) || !$link) die("Sin conexion BD");
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -245,13 +246,13 @@ $plotCharsFlat   = []; // por id
 $q = $link->query("
     SELECT pc.*,
            p.name AS plot_name,
-           p.`order` AS plot_order,
+           p.sort_order AS plot_sort_order,
            b.name AS base_nombre,
            b.alias  AS base_alias
     FROM fact_party_members pc
     JOIN dim_parties p ON p.id = pc.plot_id
     LEFT JOIN fact_characters b ON b.id = pc.base_char_id
-    ORDER BY p.`order` DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
+    ORDER BY p.sort_order DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
 ");
 $plotCharIds = [];
 if ($q) {
@@ -318,58 +319,13 @@ foreach ($plots as $p) $plotsMap[(int)$p['id']] = $p;
 
 $csrf = $_SESSION['csrf'];
 ?>
-<style>
-/* Estética Heaven’s Gate-ish (oscuro, legible, sin dependencias) */
-.hg-wrap{ background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; font-family:Verdana,Arial,sans-serif; }
-.hg-hdr{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-.hg-hdr h2{ margin:0; color:#33FFFF; font-size:16px; }
-.hg-sub{ color:#9dd; font-size:11px; margin-top:2px; }
-.btn{ background:#0d3a7a; color:#fff; border:1px solid #1b4aa0; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-.btn:hover{ filter:brightness(1.1); }
-.btn-green{ background:#0d5d37; border-color:#168f59; }
-.btn-red{ background:#6b1c1c; border-color:#993333; }
-.btn-ghost{ background:#05014E; }
-.inp, .sel, textarea{ background:#000033; color:#fff; border:1px solid #333; padding:6px 8px; font-size:12px; border-radius:8px; }
-textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
-.table{ width:100%; border-collapse:collapse; font-size:11px; }
-.table th, .table td{ border:1px solid #000088; padding:6px 8px; background:#05014E; white-space:nowrap; vertical-align:top; }
-.table th{ background:#050b36; color:#33CCCC; text-align:left; }
-.table tr:hover td{ background:#000066; color:#33FFFF; }
-.badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #1b4aa0; background:#00135a; color:#cfe; font-size:10px; }
-.badge.off{ opacity:.6; }
-.flash{ margin:8px 0; }
-.flash .ok{ color:#7CFC00; }
-.flash .err{ color:#FF6B6B; }
-.flash .info{ color:#33FFFF; }
-
-.section{ margin-top:14px; border-top:1px solid #000088; padding-top:12px; }
-.plot-head{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:10px 0 6px; }
-.plot-head h3{ margin:0; color:#33FFFF; font-size:14px; }
-.small{ font-size:10px; color:#9dd; }
-
-.modal-back{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:9999; }
-.modal{ width:min(980px,96vw); background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.modal h3{ margin:0 0 10px; color:#33FFFF; font-size:14px; }
-.grid{ display:grid; grid-template-columns:repeat(3, minmax(220px,1fr)); gap:10px; }
-.grid label{ display:block; color:#cfe; font-size:12px; }
-.grid .full{ grid-column:1/-1; }
-.modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
-
-.kpi{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
-.kpi .chip{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #1b4aa0; background:#00135a; color:#fff; font-size:11px; }
-.kpi .chip b{ color:#9dd; }
-
-@media (max-width:900px){ .grid{ grid-template-columns:repeat(2, minmax(240px,1fr)); } }
-@media (max-width:700px){ .grid{ grid-template-columns:1fr; } .table th, .table td{ white-space:normal; } }
-</style>
-
 <div class="hg-wrap">
   <div class="hg-hdr">
     <div>
       <h2>📚 Tramas & Personajes en Trama</h2>
       <div class="hg-sub">dim_parties · fact_party_members · fact_party_members_changes</div>
     </div>
-    <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+    <div class="adm-row-right">
       <button class="btn btn-green" type="button" id="btnNewPlot">➕ Nueva trama</button>
       <button class="btn" type="button" onclick="window.location.href='<?= h(build_redirect_url(['open_plot'=>null,'open_char'=>null,'open_changes'=>null,'plot'=>null])) ?>'">🔄 Limpiar modales</button>
     </div>
@@ -388,21 +344,21 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
   <table class="table" id="plotsTable">
     <thead>
       <tr>
-        <th style="width:60px;">ID</th>
+        <th class="adm-w-60">ID</th>
         <th>Nombre</th>
-        <th style="width:90px;">Activa</th>
-        <th style="width:80px;">Orden</th>
-        <th style="width:260px;">Acciones</th>
+        <th class="adm-w-90">Activa</th>
+        <th class="adm-w-80">Orden</th>
+        <th class="adm-w-260">Acciones</th>
       </tr>
     </thead>
     <tbody>
     <?php foreach ($plots as $p): ?>
       <?php $pid=(int)$p['id']; ?>
       <tr id="plot-row-<?= $pid ?>">
-        <td><b style="color:#33FFFF;"><?= $pid ?></b></td>
+        <td><b class="adm-color-accent"><?= $pid ?></b></td>
         <td><?= h($p['name']) ?></td>
         <td><?= ((int)$p['active']===1) ? '<span class="badge">Sí</span>' : '<span class="badge off">No</span>' ?></td>
-        <td><?= (int)($p['order'] ?? 0) ?></td>
+        <td><?= (int)($p['sort_order'] ?? 0) ?></td>
         <td>
           <button class="btn" type="button" onclick='openPlotEdit(<?= json_encode($p, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
           <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
@@ -411,14 +367,14 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
       </tr>
     <?php endforeach; ?>
     <?php if (empty($plots)): ?>
-      <tr><td colspan="5" style="color:#bbb;">(No hay tramas aún)</td></tr>
+      <tr><td colspan="5" class="adm-color-muted">(No hay tramas aún)</td></tr>
     <?php endif; ?>
     </tbody>
   </table>
 
   <!-- PERSONAJES POR TRAMA -->
   <div class="section" id="charsSection">
-    <h2 style="margin:0 0 8px; color:#33FFFF; font-size:14px;">🎭 Personajes por Trama</h2>
+    <h2 class="adm-title-sm">🎭 Personajes por Trama</h2>
     <div class="small">Tip: “📜 Cambios” abre el log y permite registrar un cambio nuevo.</div>
 
     <?php foreach ($plots as $p): ?>
@@ -426,19 +382,19 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
       <div class="plot-head" id="plot-<?= $pid ?>">
         <h3><?= h($p['name']) ?></h3>
         <span class="badge"><?= ((int)$p['active']===1) ? 'Activa' : 'Inactiva' ?></span>
-        <span class="badge">Orden: <?= (int)($p['order'] ?? 0) ?></span>
+        <span class="badge">Orden: <?= (int)($p['sort_order'] ?? 0) ?></span>
         <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
       </div>
 
       <table class="table">
         <thead>
           <tr>
-            <th style="width:60px;">ID</th>
+            <th class="adm-w-60">ID</th>
             <th>Alias</th>
             <th>Base</th>
-            <th style="width:80px;">Act.</th>
-            <th style="width:420px;">Stats (base)</th>
-            <th style="width:220px;">Acciones</th>
+            <th class="adm-w-80">Act.</th>
+            <th class="adm-w-420">Stats (base)</th>
+            <th class="adm-w-220">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -451,11 +407,11 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
             $baseLabel = $baseName . ($baseAlias ? ' · '.$baseAlias : '');
           ?>
           <tr id="pc-row-<?= $cid ?>">
-            <td><b style="color:#33FFFF;"><?= $cid ?></b></td>
+            <td><b class="adm-color-accent"><?= $cid ?></b></td>
             <td><?= h($alias !== '' ? $alias : '(sin alias)') ?></td>
             <td><?= h($baseLabel !== '' ? $baseLabel : ('#'.(int)$pc['base_char_id'])) ?></td>
             <td><?= ((int)$pc['active']===1) ? '<span class="badge">Sí</span>' : '<span class="badge off">No</span>' ?></td>
-            <td style="white-space:normal;">
+            <td class="adm-ws-normal">
               <span class="badge">HP <?= (int)$pc['m_hp'] ?></span>
               <span class="badge">Rabia <?= (int)$pc['m_rage'] ?></span>
               <span class="badge">Gnosis <?= (int)$pc['m_gnosis'] ?></span>
@@ -471,7 +427,7 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
           </tr>
         <?php endforeach; ?>
         <?php if (empty($pcs)): ?>
-          <tr><td colspan="6" style="color:#bbb;">(No hay personajes en esta trama)</td></tr>
+          <tr><td colspan="6" class="adm-color-muted">(No hay personajes en esta trama)</td></tr>
         <?php endif; ?>
         </tbody>
       </table>
@@ -483,7 +439,7 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
 <div class="modal-back" id="mbPlot">
   <div class="modal" role="dialog" aria-modal="true">
     <h3 id="plotTitle">Nueva trama</h3>
-    <form method="post" id="plotForm" style="margin:0;">
+    <form method="post" id="plotForm" class="adm-m-0">
       <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
       <input type="hidden" name="action" value="save_plot">
       <input type="hidden" name="id" id="plot_id" value="0">
@@ -508,7 +464,7 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
         </div>
 
         <div>
-          <label style="padding-top:6px;">
+          <label class="adm-pt-6">
             <input type="checkbox" name="active" id="plot_active" value="1"> Activa
           </label>
         </div>
@@ -526,7 +482,7 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
 <div class="modal-back" id="mbChar">
   <div class="modal" role="dialog" aria-modal="true">
     <h3 id="charTitle">Añadir personaje a trama</h3>
-    <form method="post" id="charForm" style="margin:0;">
+    <form method="post" id="charForm" class="adm-m-0">
       <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
       <input type="hidden" name="action" value="save_plot_char">
       <input type="hidden" name="id" id="char_id" value="0">
@@ -613,7 +569,7 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
         </div>
 
         <div>
-          <label style="padding-top:6px;">
+          <label class="adm-pt-6">
             <input type="checkbox" name="active" id="char_active" value="1" checked> Activo en trama
           </label>
         </div>
@@ -636,14 +592,14 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
 
     <div class="kpi" id="chgTotals"></div>
 
-    <div style="border-top:1px solid #000088; padding-top:10px; margin-top:10px;">
-      <h3 style="margin:0 0 8px;">Registrar cambio</h3>
-      <form method="post" id="chgForm" style="margin:0;">
+    <div class="adm-top-sep">
+      <h3 class="adm-mb-8">Registrar cambio</h3>
+      <form method="post" id="chgForm" class="adm-m-0">
         <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
         <input type="hidden" name="action" value="add_change">
         <input type="hidden" name="plot_char_id" id="chg_char_id" value="0">
 
-        <div class="grid" style="grid-template-columns: 1fr 1fr 2fr;">
+        <div class="grid adm-grid-112">
           <div>
             <label>Recurso
               <select class="sel" name="resource" id="chg_res">
@@ -669,16 +625,16 @@ textarea{ width:100%; min-height:90px; resize:vertical; box-sizing:border-box; }
           </div>
         </div>
 
-        <div class="modal-actions" style="margin-top:8px;">
+        <div class="modal-actions adm-mt-8">
           <button class="btn btn-red" type="button" onclick="closeModal('mbChg')">Cerrar</button>
           <button class="btn btn-green" type="submit">Registrar</button>
         </div>
       </form>
     </div>
 
-    <div style="border-top:1px solid #000088; padding-top:10px; margin-top:10px;">
-      <h3 style="margin:0 0 8px;">Historial</h3>
-      <div id="chgHistory" style="max-height:320px; overflow:auto; border:1px solid #000088; border-radius:10px; padding:8px;"></div>
+    <div class="adm-top-sep">
+      <h3 class="adm-mb-8">Historial</h3>
+      <div id="chgHistory" class="adm-scrollbox"></div>
     </div>
 
   </div>
@@ -716,7 +672,7 @@ function openPlotEdit(p){
   $('plot_id').value = p.id || 0;
   $('plot_name').value = p.name || '';
   $('plot_desc').value = p.description || '';
-  $('plot_order').value = p.order || 0;
+  $('plot_order').value = p.sort_order || p.order || 0;
   $('plot_active').checked = (String(p.active) === '1');
   openModal('mbPlot');
 }
@@ -838,14 +794,14 @@ function openChanges(plotCharId){
   if (!list.length){
     $('chgHistory').innerHTML = '<div class="small">(Sin cambios registrados)</div>';
   } else {
-    var html = '<table class="table" style="margin:0;">' +
-      '<tr><th style="width:140px;">Fecha</th><th style="width:90px;">Recurso</th><th style="width:70px;">Valor</th><th>Notas</th></tr>';
+    var html = '<table class="table adm-m-0">' +
+      '<tr><th class="adm-w-140">Fecha</th><th class="adm-w-90">Recurso</th><th class="adm-w-70">Valor</th><th>Notas</th></tr>';
     list.forEach(function(c){
       html += '<tr>' +
         '<td>'+ (fmtDate(c.created_at) || '') +'</td>' +
         '<td>'+ (c.resource || '') +'</td>' +
-        '<td><b style="color:#33FFFF;">'+ (c.value || 0) +'</b></td>' +
-        '<td style="white-space:normal;">'+ (c.notes ? String(c.notes).replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<span class="small">—</span>') +'</td>' +
+        '<td><b class="adm-color-accent">'+ (c.value || 0) +'</b></td>' +
+        '<td class="adm-ws-normal">'+ (c.notes ? String(c.notes).replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<span class="small">—</span>') +'</td>' +
       '</tr>';
     });
     html += '</table>';

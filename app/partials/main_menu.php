@@ -1,6 +1,6 @@
 <?php 
 	//global $link; // Asegúrate de que $link sea accesible en el ámbito global
-	include("app/helpers/heroes.php"); // Archivo de la base de datos
+	include("app/helpers/db_connection.php"); // Archivo de la base de datos
 ?>
 
 
@@ -231,8 +231,8 @@
 						: ('/seasons/' . (int)$idTemporada);
 					echo "<a href='" . h($hrefTemporada) . "' title='" . h($tituloTemp) . "'>";
 					echo "<div class='renglonMenu {$claseTemporada}'>";
-					echo "<div style='float:left!important;margin-left:6px;'>" . h($nombreTemporada) . "</div>";
-					echo "<div style='float:right!important;'>" . $historiaCheck . "</div>";
+					echo "<div class='menu-season-label'>" . h($nombreTemporada) . "</div>";
+					echo "<div class='menu-season-status'>" . $historiaCheck . "</div>";
 					echo "</div></a>";
 				}
 				mysqli_stmt_close($stmt);
@@ -413,8 +413,8 @@
 							: ('/seasons/' . (int)$idTemporada);
                         echo "<a href='" . h($hrefTemporada) . "' title='{$tituloTemp}'>
 							<div class='renglonMenu {$claseTemporada}'>
-								<div style='float:left!important;margin-left:6px;'>{$nombreTemporada}</div>
-								<div style='float:right!important;'>{$historiaCheck}</div>
+								<div class='menu-season-label'>{$nombreTemporada}</div>
+								<div class='menu-season-status'>{$historiaCheck}</div>
 							</div>
 						</a>";
                     }
@@ -460,8 +460,8 @@
 							? pretty_url($link, 'dim_seasons', '/seasons', (int)$idHistoria)
 							: ('/seasons/' . (int)$idHistoria);
                         echo "<a href='" . h($hrefHistoria) . "'><div class='renglonMenu'>
-							<div style='float:left!important;margin-left:6px;'>{$nombreHistoria}</div>
-							<div style='float:right!important;'>{$historiaCheck}</div>
+							<div class='menu-season-label'>{$nombreHistoria}</div>
+							<div class='menu-season-status'>{$historiaCheck}</div>
 						</div></a>";
                     }
 
@@ -553,3 +553,4 @@
 	<!-- ============================================================================ !-->
     <!-- Pie del menú -->
 </table>
+

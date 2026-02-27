@@ -12,6 +12,7 @@ if (!headers_sent()) { @ob_start(); }
 if (!$link) { die("Error de conexión a la base de datos: " . mysqli_connect_error()); }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 /* ---------------------------
    Helpers PHP
@@ -386,17 +387,17 @@ $pageTitle2 = "Mapas, POIs y Áreas";
 <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
 <script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
 
-<div style="clear:both;"></div>
+<div class="adm-clear-both"></div>
 <h2>🗺️ Administración de Mapas & POIs & Áreas</h2>
 
 <div class="bioTextData">
   <fieldset class="bioSeccion">
     <legend>&nbsp;POIs&nbsp;</legend>
 
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+    <div class="adm-row-toolbar">
       <button class="boton2" id="btnNewPoi">➕ Nuevo POI</button>
       <span>Filtro:</span>
-      <input type="text" id="filterText" placeholder="buscar por nombre..." style="width:180px;">
+      <input type="text" id="filterText" class="adm-w-180" placeholder="buscar por nombre...">
       <span>Mapa:</span>
       <select id="filterMap"><option value="">(todos)</option></select>
       <span>Categoría:</span>
@@ -424,14 +425,14 @@ $pageTitle2 = "Mapas, POIs y Áreas";
   </fieldset>
 
   <!-- ==================== ÁREAS ==================== -->
-  <fieldset class="bioSeccion" style="margin-top:12px;">
+  <fieldset class="bioSeccion adm-mt-12">
     <legend>&nbsp;Áreas&nbsp;</legend>
 
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+    <div class="adm-row-toolbar">
       <button class="boton2" id="btnNewArea">➕ Nueva área</button>
       <span>Mapa:</span>
       <select id="filterAreaMap"><option value="">(todos)</option></select>
-      <input type="text" id="filterAreaText" placeholder="buscar por nombre..." style="width:180px;">
+      <input type="text" id="filterAreaText" class="adm-w-180" placeholder="buscar por nombre...">
     </div>
 
     <table class="tabla-pj" id="areasTable">
@@ -453,9 +454,9 @@ $pageTitle2 = "Mapas, POIs y Áreas";
     </table>
   </fieldset>
 
-  <fieldset class="bioSeccion" style="margin-top:12px;">
+  <fieldset class="bioSeccion adm-mt-12">
     <legend>&nbsp;Mapas&nbsp;</legend>
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+    <div class="adm-row-toolbar">
       <button class="boton2" id="btnNewMap">➕ Nuevo mapa</button>
     </div>
     <table class="tabla-pj" id="mapsTable">
@@ -475,9 +476,9 @@ $pageTitle2 = "Mapas, POIs y Áreas";
     </table>
   </fieldset>
 
-  <fieldset class="bioSeccion" style="margin-top:12px;">
+  <fieldset class="bioSeccion adm-mt-12">
     <legend>&nbsp;Categorías&nbsp;</legend>
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+    <div class="adm-row-toolbar">
       <button class="boton2" id="btnNewCat">➕ Nueva categoría</button>
     </div>
     <table class="tabla-pj" id="catsTable">
@@ -499,20 +500,20 @@ $pageTitle2 = "Mapas, POIs y Áreas";
 
 <!-- ===================== MODALES ===================== -->
 <!-- Modal POI -->
-<div id="modalPoi" class="popup-edit" style="display:none;">
+<div id="modalPoi" class="popup-edit adm-hidden">
   <form id="formPoi" onsubmit="return savePoi(event)">
     <input type="hidden" name="id" id="poi_id">
-    <h3 style="margin-top:0;">POI</h3>
+    <h3 class="adm-mt-0">POI</h3>
 
     <label>Nombre</label>
     <input type="text" name="name" id="poi_name" required>
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Mapa</label>
         <select name="map_id" id="poi_map_id" required></select>
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Categoría</label>
         <select name="category_id" id="poi_category_id" required></select>
       </div>
@@ -524,27 +525,27 @@ $pageTitle2 = "Mapas, POIs y Áreas";
     <label>Miniatura (URL)</label>
     <input type="text" name="thumbnail" id="poi_thumbnail" placeholder="http(s)://...">
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Latitud</label>
         <input type="text" name="latitude" id="poi_lat" required>
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Longitud</label>
         <input type="text" name="longitude" id="poi_lng" required>
       </div>
     </div>
 
-    <div style="margin:8px 0;">
-      <div id="poiPickerMap" style="height:220px; border:1px solid #000088;"></div>
-      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+    <div class="adm-my-8">
+      <div id="poiPickerMap" class="adm-box-220"></div>
+      <div class="adm-row-wrap-6-mt6">
         <button type="button" class="boton2" onclick="poiMapToCenter()">➕ Usar centro del mapa</button>
         <button type="button" class="boton2" onclick="poiFitToBounds()">⬛ Ajustar a límites del mapa</button>
-        <small style="opacity:.8;">Consejo: haz clic en el mapa para fijar coordenadas del POI</small>
+        <small class="adm-opacity-80">Consejo: haz clic en el mapa para fijar coordenadas del POI</small>
       </div>
     </div>
 
-    <div style="margin-top:10px;">
+    <div class="adm-mt-10">
       <button class="boton2" type="submit">💾 Guardar</button>
       <button class="boton2" type="button" onclick="closeModal('modalPoi')">Cancelar</button>
     </div>
@@ -552,35 +553,35 @@ $pageTitle2 = "Mapas, POIs y Áreas";
 </div>
 
 <!-- Modal AREA -->
-<div id="modalArea" class="popup-edit" style="display:none;">
+<div id="modalArea" class="popup-edit adm-hidden">
   <form id="formArea" onsubmit="return saveArea(event)">
     <input type="hidden" name="id" id="area_id">
-    <h3 style="margin-top:0;">Área</h3>
+    <h3 class="adm-mt-0">Área</h3>
 
     <label>Nombre</label>
     <input type="text" name="name" id="area_name" required>
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Mapa</label>
         <select name="map_id" id="area_map_id" required></select>
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Color relleno</label>
         <input type="color" name="color_hex" id="area_color" value="#2ecc71">
       </div>
     </div>
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Opacidad (0–1)</label>
         <input type="number" step="0.05" min="0" max="1" name="fill_opacity" id="area_fill_opacity" value="0.35">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Stroke color</label>
         <input type="color" name="stroke_color" id="area_stroke_color" value="#27ae60">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Stroke px</label>
         <input type="number" min="0" max="10" name="stroke_weight" id="area_stroke_weight" value="2">
       </div>
@@ -589,20 +590,20 @@ $pageTitle2 = "Mapas, POIs y Áreas";
     <label>Descripción</label>
     <textarea name="description" id="area_description" rows="4"></textarea>
 
-    <div style="margin:8px 0;">
-      <div id="areaPickerMap" style="height:260px; border:1px solid #000088;"></div>
-      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+    <div class="adm-my-8">
+      <div id="areaPickerMap" class="adm-box-260"></div>
+      <div class="adm-row-wrap-6-mt6-center">
         <button type="button" class="boton2" id="btnAreaStart">🖊️ Añadir vértices</button>
         <button type="button" class="boton2" id="btnAreaUndo">↩️ Deshacer vértice</button>
         <button type="button" class="boton2" id="btnAreaClose">✅ Cerrar polígono</button>
         <button type="button" class="boton2" id="btnAreaClear">🧹 Limpiar</button>
-        <label style="margin-left:8px;"><input type="checkbox" id="area_json_toggle"> Editar GeoJSON</label>
+        <label class="adm-ml-8"><input type="checkbox" id="area_json_toggle"> Editar GeoJSON</label>
       </div>
     </div>
 
-    <textarea name="geometry_json" id="area_geometry_json" rows="6" style="display:none; font-family:monospace;"></textarea>
+    <textarea name="geometry_json" id="area_geometry_json" rows="6" class="adm-hidden-mono"></textarea>
 
-    <div style="margin-top:10px;">
+    <div class="adm-mt-10">
       <button class="boton2" type="submit">💾 Guardar</button>
       <button class="boton2" type="button" onclick="closeModal('modalArea')">Cancelar</button>
     </div>
@@ -610,10 +611,10 @@ $pageTitle2 = "Mapas, POIs y Áreas";
 </div>
 
 <!-- Modal MAP -->
-<div id="modalMap" class="popup-edit" style="display:none;">
+<div id="modalMap" class="popup-edit adm-hidden">
   <form id="formMap" onsubmit="return saveMap(event)">
     <input type="hidden" name="id" id="map_id">
-    <h3 style="margin-top:0;">Mapa</h3>
+    <h3 class="adm-mt-0">Mapa</h3>
 
     <label>Nombre</label>
     <input type="text" name="name" id="map_name" required oninput="syncSlug(this,'map_slug')">
@@ -621,31 +622,31 @@ $pageTitle2 = "Mapas, POIs y Áreas";
     <label>Slug</label>
     <input type="text" name="slug" id="map_slug" placeholder="(auto)">
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Centro lat</label>
         <input type="text" name="center_lat" id="map_center_lat" required>
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Centro lng</label>
         <input type="text" name="center_lng" id="map_center_lng" required>
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Zoom por defecto</label>
         <input type="number" name="default_zoom" id="map_default_zoom" required min="1" max="22">
       </div>
     </div>
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Min zoom</label>
         <input type="number" name="min_zoom" id="map_min_zoom" min="1" max="22">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Max zoom</label>
         <input type="number" name="max_zoom" id="map_max_zoom" min="1" max="22">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Tile</label>
         <select name="default_tile" id="map_default_tile">
           <option value="carto-dark">carto-dark</option>
@@ -655,34 +656,34 @@ $pageTitle2 = "Mapas, POIs y Áreas";
       </div>
     </div>
 
-    <div style="margin-top:6px;">
-      <div id="mapEditMap" style="height:220px; border:1px solid #000088;"></div>
-      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+    <div class="adm-mt-6">
+      <div id="mapEditMap" class="adm-box-220"></div>
+      <div class="adm-row-wrap-6-mt6">
         <button type="button" class="boton2" onclick="useViewAsCenter()">🎯 Usar vista como centro</button>
         <button type="button" class="boton2" onclick="useViewAsBounds()">⬛ Usar vista como límites</button>
       </div>
     </div>
 
-    <div style="display:flex; gap:6px; margin-top:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6-mt6">
+      <div class="adm-flex-1">
         <label>SW lat</label>
         <input type="text" name="bounds_sw_lat" id="map_sw_lat">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>SW lng</label>
         <input type="text" name="bounds_sw_lng" id="map_sw_lng">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>NE lat</label>
         <input type="text" name="bounds_ne_lat" id="map_ne_lat">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>NE lng</label>
         <input type="text" name="bounds_ne_lng" id="map_ne_lng">
       </div>
     </div>
 
-    <div style="margin-top:10px;">
+    <div class="adm-mt-10">
       <button class="boton2" type="submit">💾 Guardar</button>
       <button class="boton2" type="button" onclick="closeModal('modalMap')">Cancelar</button>
     </div>
@@ -690,10 +691,10 @@ $pageTitle2 = "Mapas, POIs y Áreas";
 </div>
 
 <!-- Modal CAT -->
-<div id="modalCat" class="popup-edit" style="display:none;">
+<div id="modalCat" class="popup-edit adm-hidden">
   <form id="formCat" onsubmit="return saveCat(event)">
     <input type="hidden" name="id" id="cat_id">
-    <h3 style="margin-top:0;">Categoría</h3>
+    <h3 class="adm-mt-0">Categoría</h3>
 
     <label>Nombre</label>
     <input type="text" name="name" id="cat_name" required oninput="syncSlug(this,'cat_slug')">
@@ -701,22 +702,22 @@ $pageTitle2 = "Mapas, POIs y Áreas";
     <label>Slug</label>
     <input type="text" name="slug" id="cat_slug" placeholder="(auto)">
 
-    <div style="display:flex; gap:6px;">
-      <div style="flex:1;">
+    <div class="adm-row-gap-6">
+      <div class="adm-flex-1">
         <label>Color</label>
         <input type="color" name="color_hex" id="cat_color" value="#95a5a6">
       </div>
-      <div style="flex:2;">
+      <div class="adm-flex-2">
         <label>Icono (URL opcional)</label>
         <input type="text" name="icon" id="cat_icon" placeholder="http(s)://...">
       </div>
-      <div style="flex:1;">
+      <div class="adm-flex-1">
         <label>Orden</label>
         <input type="number" name="sort_order" id="cat_sort" value="0">
       </div>
     </div>
 
-    <div style="margin-top:10px;">
+    <div class="adm-mt-10">
       <button class="boton2" type="submit">💾 Guardar</button>
       <button class="boton2" type="button" onclick="closeModal('modalCat')">Cancelar</button>
     </div>
@@ -787,17 +788,18 @@ function renderPois(){
         <td>${esc(p.name)}</td>
         <td>${esc(p.map_name)}</td>
         <td>${esc(p.category_name)}</td>
-        <td>${p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="" style="height:26px;border:1px solid #009;">` : ''}</td>
+        <td>${p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="" class="adm-thumb-26">` : ''}</td>
         <td>${p.latitude}</td>
         <td>${p.longitude}</td>
         <td>${esc(p.created_at||'')}</td>
         <td>${esc(p.updated_at||'')}</td>
         <td>
           <button class="boton2" onclick="openPoi(${p.id})">✏️</button>
-          <button class="boton2" style="background:#700;color:#fff;" onclick="delPoi(${p.id})">🗑️</button>
+          <button class="boton2 adm-btn-danger" onclick="delPoi(${p.id})">🗑️</button>
         </td>`;
       tbody.appendChild(tr);
    });
+  applySwatchBackgrounds(tbody);
 }
 renderPois();
 
@@ -973,6 +975,14 @@ function verticesCountFromGeo(gj){
   } catch(e){ return 0; }
 }
 
+function applySwatchBackgrounds(root){
+  const scope = root || document;
+  scope.querySelectorAll('[data-bg]').forEach(el => {
+    const bg = el.getAttribute('data-bg') || '';
+    if (bg) el.style.background = bg;
+  });
+}
+
 function renderAreas(){
   const tbody = $('#areasTable tbody'); tbody.innerHTML='';
   const q = ($('#filterAreaText').value||'').toLowerCase().trim();
@@ -988,18 +998,19 @@ function renderAreas(){
         <td>${a.id}</td>
         <td>${esc(a.name)}</td>
         <td>${esc(a.map_name||'')}</td>
-        <td><span style="display:inline-block;width:18px;height:18px;background:${esc(a.color_hex||'#2ecc71')};border:1px solid #000;"></span> ${esc(a.color_hex||'#2ecc71')}</td>
+        <td><span class="adm-swatch-18" data-bg="${esc(a.color_hex||'#2ecc71')}"></span> ${esc(a.color_hex||'#2ecc71')}</td>
         <td>${a.fill_opacity ?? ''}</td>
-        <td><span style="display:inline-block;width:18px;height:2px;background:${esc(a.stroke_color||'#27ae60')};"></span> ${esc(a.stroke_color||'#27ae60')} × ${a.stroke_weight ?? 2}px</td>
+        <td><span class="adm-line-18x2" data-bg="${esc(a.stroke_color||'#27ae60')}"></span> ${esc(a.stroke_color||'#27ae60')} × ${a.stroke_weight ?? 2}px</td>
         <td>${verts}</td>
         <td>${esc(a.created_at||'')}</td>
         <td>${esc(a.updated_at||'')}</td>
         <td>
           <button class="boton2" onclick="openArea(${a.id})">✏️</button>
-          <button class="boton2" style="background:#700;color:#fff;" onclick="delArea(${a.id})">🗑️</button>
+          <button class="boton2 adm-btn-danger" onclick="delArea(${a.id})">🗑️</button>
         </td>`;
       tbody.appendChild(tr);
     });
+  applySwatchBackgrounds(tbody);
 }
 fillMapSelect(document.getElementById('filterAreaMap'), true);
 renderAreas();
@@ -1216,7 +1227,7 @@ function renderMaps(){
       <td>${esc(m.default_tile||'')}</td>
       <td>
         <button class="boton2" onclick="openMap(${m.id})">✏️</button>
-        <button class="boton2" style="background:#700;color:#fff;" onclick="delMap(${m.id})">🗑️</button>
+        <button class="boton2 adm-btn-danger" onclick="delMap(${m.id})">🗑️</button>
       </td>`;
     tbody.appendChild(tr);
   });
@@ -1342,15 +1353,16 @@ function renderCats(){
       <td>${c.id}</td>
       <td>${esc(c.name)}</td>
       <td>${esc(c.slug)}</td>
-      <td><span style="display:inline-block;width:18px;height:18px;background:${esc(c.color_hex)};border:1px solid #000;"></span> ${esc(c.color_hex)}</td>
-      <td>${c.icon ? `<img src="${esc(c.icon)}" style="height:22px;border:1px solid #009;">` : ''}</td>
+      <td><span class="adm-swatch-18" data-bg="${esc(c.color_hex)}"></span> ${esc(c.color_hex)}</td>
+      <td>${c.icon ? `<img src="${esc(c.icon)}" class="adm-thumb-22">` : ''}</td>
       <td>${c.sort_order}</td>
       <td>
         <button class="boton2" onclick="openCat(${c.id})">✏️</button>
-        <button class="boton2" style="background:#700;color:#fff;" onclick="delCat(${c.id})">🗑️</button>
+        <button class="boton2 adm-btn-danger" onclick="delCat(${c.id})">🗑️</button>
       </td>`;
     tbody.appendChild(tr);
   });
+  applySwatchBackgrounds(tbody);
 }
 renderCats();
 
@@ -1430,39 +1442,3 @@ async function init() {
 init();
 </script>
 
-<style>
-/* Modales acorde a tu tema */
-.popup-edit {
-  background: #05014E;
-  border: 2px solid #000088;
-  position: fixed;
-  top: 6%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 16px;
-  z-index: 9999;
-  width: 720px; /* un pelín más ancho para el editor de áreas */
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-}
-.popup-edit input,
-.popup-edit textarea,
-.popup-edit select {
-  width: 100%;
-  background: #000033;
-  color: #fff;
-  border: 1px solid #000099;
-  padding: 6px;
-  margin: 4px 0 8px 0;
-  font-size: 11px;
-}
-.popup-edit h3 { margin: 0 0 8px 0; color:#33CCCC; }
-
-/* Tablas (hereda de tu CSS base) */
-.tabla-pj { width:100%; background:#05014E; border:1px solid #000088; border-collapse:collapse; }
-.pj-row-head th { background:#050b36; color:#33CCCC; font-weight:bold; border-bottom:2px solid #000088; padding:6px 10px; text-align:left; white-space:nowrap; }
-.tabla-pj td, .tabla-pj th { border:1px solid #000088; background:#05014E; padding:6px 10px; vertical-align:middle; white-space:nowrap; }
-.tabla-pj tr.pj-row:hover td { background:#000066; color:#33FFFF; }
-
-.boton2 { margin: 0 2px; }
-</style>

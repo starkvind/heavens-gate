@@ -1,12 +1,12 @@
-﻿<?php
+<?php
 
-// Obtener parámetros de manera segura
+// Obtener parametros de manera segura
 $systemIdDocument = isset($_GET['b']) ? (string)$_GET['b'] : '';  // ID o pretty_id
 $systemTypeDocument = isset($_GET['tc']) ? (int)$_GET['tc'] : 0;  // Tipo de contenido
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacio, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -24,30 +24,29 @@ function sanitize_int_csv($csv){
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
 $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChronicles)" : "1=1";
 
-// Preparar Queries
+// Preparar queries
 switch ($systemTypeDocument) {
-	case 1:
-		$table = "dim_breeds";
-		$energy = "Gnosis";
-		break;
-	case 2:
-		$table = "dim_auspices";
-		$energy = "Rabia";
-		break;
-	case 3:
-		$table = "dim_tribes";
-		$energy = "Fuerza de voluntad";
-		break;
-	case 4:
-		$table = "fact_misc_systems";
-		break;
-	default:
-		$table = "";
-		break;
+    case 1:
+        $table = "dim_breeds";
+        $energy = "Gnosis";
+        break;
+    case 2:
+        $table = "dim_auspices";
+        $energy = "Rabia";
+        break;
+    case 3:
+        $table = "dim_tribes";
+        $energy = "Fuerza de voluntad";
+        break;
+    case 4:
+        $table = "fact_misc_systems";
+        break;
+    default:
+        $table = "";
+        break;
 }
 
 if ($table !== "") {
-
     $infoDataCheck = 0;
 
     $resolvedId = 0;
@@ -75,53 +74,33 @@ if ($table !== "") {
     $result = $stmt->get_result();
 
     while ($ResultQuery = $result->fetch_assoc()) {
-        // Datos del Sistema
+        // Datos del sistema
         $returnType = htmlspecialchars($ResultQuery["system_name"]);
         $typeOfSystem = $returnType;
         $nameSyst = htmlspecialchars($ResultQuery["name"]);
-        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["description"] ?? "");
+        $infoDesc = ($ResultQuery["description"] ?? "");
         $systemId = (int)($ResultQuery["system_id"] ?? 0);
-        if (isset($ResultQuery["image_url"])) {
-			$imageSyst = htmlspecialchars($ResultQuery["image_url"]);
-		} else {
-			$imageSyst = "";
-		}
+        $imageSyst = isset($ResultQuery["image_url"]) ? htmlspecialchars($ResultQuery["image_url"]) : "";
 
-        $pageSect = $returnType; // PARA CAMBIAR EL TITULO A LA PAGINA
+        $pageSect = $returnType;
         $pageTitle2 = $nameSyst;
-        setMetaFromPage($nameSyst . " | Sistemas | Heaven's Gate", meta_excerpt($infoDesc), $imageSyst, 'article'); 
-        
+        setMetaFromPage($nameSyst . " | Sistemas | Heaven's Gate", meta_excerpt($infoDesc), $imageSyst, 'article');
+
         include("app/helpers/system_category_helper.php");
-        include("app/partials/main_nav_bar.php"); // Barra Navegación
+        include("app/partials/main_nav_bar.php"); // Barra navegacion
+        echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
 
-        // Comprobar si los datos tienen energía para mostrarla
-        if (isset($ResultQuery["energy"])) {
-			$checkEnergy = htmlspecialchars($ResultQuery["energy"]);
-		} else {
-			$checkEnergy = 0;
-		}
+        // Comprobar si los datos tienen energia para mostrarla
+        $checkEnergy = isset($ResultQuery["energy"]) ? htmlspecialchars($ResultQuery["energy"]) : 0;
 
-        if ($returnType == "Ícaros") {
+        if ($returnType === "Icaros" || $returnType === "Ícaros") {
             $energy = "Fuerza de Voluntad";
         }
 
-        if ($returnType == "Mokolé" && $systemTypeDocument == 2) {
+        if (($returnType === "Mokole" || $returnType === "Mokolé") && $systemTypeDocument == 2) {
             $energy = "Fuerza de Voluntad";
         }
 ?>
-<style>
-.syst-detail { display:grid; gap:12px; }
-.syst-banner { position:relative; background:#000033; border:1px solid #000088; border-radius:12px; overflow:hidden; min-height:140px; margin-top:1em; }
-.syst-banner::before { content:''; display:block; padding-top:28%; }
-.syst-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(1.05); }
-.syst-banner-title { position:absolute; top:10px; left:12px; color:#33FFFF; background:rgba(0,0,0,0.55); border:1px solid #1b4aa0; padding:6px 10px; border-radius:8px; font-weight:bold; text-align:left; }
-.syst-box { background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; }
-.syst-box h3 { margin-top:0; color:#33FFFF; }
-.syst-meta { color:#cfe; }
-.syst-detail, .syst-box, .syst-box h3, .syst-box p, .syst-box div, .renglon2col, .renglon2colIz, .renglon2colDe { text-align:left !important; }
-.syst-box fieldset, .syst-box fieldset * { text-align:left !important; }
-.syst-box a, .syst-box a * { text-align:left !important; }
-</style>
 <div class="syst-detail">
   <div class="syst-banner">
     <?php if ($imageSyst !== ''): ?>
@@ -135,19 +114,18 @@ if ($table !== "") {
         if ($checkEnergy != 0) {
             $infoDataCheck++;
             $metaHtml .= "<p><b>$energy inicial:</b> $checkEnergy</p>";
-
         } elseif ($systemTypeDocument == 4) {
             $miscInfoData = ($ResultQuery["extra_info"]);
             $miscNameEnergy = htmlspecialchars($ResultQuery["energy_name"]);
             $miscValuEnergy = htmlspecialchars($ResultQuery["energy_value"]);
 
-            if ($miscInfoData != "") { 
-                $metaHtml .= "<p>$miscInfoData</p>"; 
+            if ($miscInfoData != "") {
+                $metaHtml .= "<p>$miscInfoData</p>";
                 $infoDataCheck++;
             }
 
-            if ($miscNameEnergy != "") { 
-                $metaHtml .= "<p><b>$miscNameEnergy:</b> $miscValuEnergy</p>"; 
+            if ($miscNameEnergy != "") {
+                $metaHtml .= "<p><b>$miscNameEnergy:</b> $miscValuEnergy</p>";
                 $infoDataCheck++;
             }
         }
@@ -158,12 +136,12 @@ if ($table !== "") {
 ?>
 
   <div class="syst-box">
-    <h3>Descripción</h3>
+    <h3>Descripci&oacute;n</h3>
     <div><?= $infoDesc ?></div>
   </div>
 
 <?php
-        // Don Query para obtener dones basados en el sistema
+        // Don query para obtener dones basados en el sistema
         $donGroup = $nameSyst;
         $donQuery = "SELECT id, name, rank FROM fact_gifts WHERE gift_group = ? AND system_id = ? ORDER BY rank;";
         $stmtDon = $link->prepare($donQuery);
@@ -186,7 +164,7 @@ if ($table !== "") {
                         target='_blank'>
                         <div class='renglon2col'>
                             <div class='renglon2colIz'>
-                                <img class='valign' src='img/ui/powers/claws.png'> " . htmlspecialchars($resultDonQuery['name']) . "
+                                <img class='valign' src='img/ui/icons/icon_claws.png'> " . htmlspecialchars($resultDonQuery['name']) . "
                             </div>
                             <div class='renglon2colDe'>" . htmlspecialchars($resultDonQuery['rank']) . "</div>
                         </div>
@@ -209,7 +187,7 @@ if ($table !== "") {
 
         if ($charField !== '') {
             $charsWithoutPackQuery = "
-                SELECT 
+                SELECT
                     p.id,
                     p.name,
                     GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS grupos,
@@ -235,7 +213,7 @@ if ($table !== "") {
 
         if ($charsWithoutPackFilas > 0 && $charField !== '') {
             $members = [];
-            while ($charsWithoutPackResult = $resultChars->fetch_assoc()) { 
+            while ($charsWithoutPackResult = $resultChars->fetch_assoc()) {
                 $members[] = [
                     'id' => (int)$charsWithoutPackResult["id"],
                     'nombre' => (string)$charsWithoutPackResult["name"],
@@ -247,8 +225,8 @@ if ($table !== "") {
             $pjCount = count($members);
             echo "<div class='syst-box'>";
             echo "<h3>Miembros</h3>";
-            echo "<table id='tabla-miembros' class='display' style='width:100%'>";
-            echo "<thead><tr><th>Nombre</th><th>Grupo</th><th>Organización</th></tr></thead><tbody>";
+            echo "<table id='tabla-miembros' class='display syst-members-table'>";
+            echo "<thead><tr><th>Nombre</th><th>Grupo</th><th>Organizaci&oacute;n</th></tr></thead><tbody>";
             foreach ($members as $m) {
                 $charHref = pretty_url($link, 'fact_characters', '/characters', (int)$m['id']);
                 $charName = htmlspecialchars($m['nombre']);
@@ -257,12 +235,10 @@ if ($table !== "") {
                 echo "<tr><td><a href='" . htmlspecialchars($charHref) . "' target='_blank'>$charName</a></td><td>$charGroup</td><td>$charOrg</td></tr>";
             }
             echo "</tbody></table>";
-            //echo "<p style='text-align:left;'>$nameSyst: $pjCount</p>";
+            //echo "<p >$nameSyst: $pjCount</p>";
             echo "</div>";
 
-            echo "<link rel='stylesheet' href='/assets/vendor/datatables/jquery.dataTables.min.css'>";
-            echo "<script src='/assets/vendor/jquery/jquery-3.7.1.min.js'></script>";
-            echo "<script src='/assets/vendor/datatables/jquery.dataTables.min.js'></script>";
+            include_once("app/partials/datatable_assets.php");
             echo "<script>
             (function(){
               if (typeof jQuery === 'undefined' || !jQuery.fn || !jQuery.fn.DataTable) return;
@@ -277,7 +253,7 @@ if ($table !== "") {
                     info: 'Mostrando _START_ a _END_ de _TOTAL_ personajes',
                     infoEmpty: 'No hay personajes disponibles',
                     emptyTable: 'No hay datos en la tabla',
-                    paginate: { first: 'Primero', last: 'Último', next: '▶', previous: '◀' }
+                    paginate: { first: 'Primero', last: 'Ultimo', next: '&#9654;', previous: '&#9664;' }
                   }
                 });
               });
@@ -292,29 +268,6 @@ if ($table !== "") {
     }
 }
 ?>
-<style>
-#hg-tooltip{
-	position: fixed;
-	z-index: 999999;
-	max-width: 380px;
-	background: #050b36;
-	border: 1px solid #0b3a7a;
-	color: #e6f0ff;
-	border-radius: 8px;
-	padding: 10px 12px;
-	box-shadow: 0 8px 24px rgba(0,0,0,.45);
-	display: none;
-	pointer-events: none;
-	font-size: 12px;
-	line-height: 1.35;
-	text-align: left !important;
-}
-#hg-tooltip *{ text-align: left !important; }
-#hg-tooltip .hg-tip-title{ font-weight: bold; margin-bottom: 4px; color:#8fd7ff; }
-#hg-tooltip .hg-tip-meta{ font-size: 11px; color:#9fb2d9; }
-#hg-tooltip .hg-tip-label{ font-weight: bold; margin-top: 6px; color:#cfd9ff; }
-#hg-tooltip .hg-tip-text{ font-size: 12px; color:#e6f0ff; }
-</style>
 <script>
 (function(){
 	const nodes = document.querySelectorAll('.hg-tooltip[data-tip="don"]');

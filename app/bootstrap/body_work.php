@@ -313,9 +313,9 @@ $routes = [
 	'error404'   => ['app/controllers/main/error404.php', 'Error'],
 
 	// 🗃️ Temporadas
-	'temp'            => ['app/controllers/chapt/chapt_archivo.php', 'Temporadas'],
-	'seechapter'      => ['app/controllers/chapt/chapt_archivo_page.php', 'Capítulos'],
-	'temp_analisis'   => ['app/controllers/chapt/chapt_archivo_analisis.php', 'Análisis asistencia'],
+	'temp'            => ['app/controllers/chapters/season_archive.php', 'Temporadas'],
+	'seechapter'      => ['app/controllers/chapters/chapter_page.php', 'Capítulos'],
+	'temp_analisis'   => ['app/controllers/chapters/season_attendance_analysis.php', 'Análisis asistencia'],
 
 	// Plots
 	'party'		   => ['app/controllers/main/main_parties.php', 'Equipos activos'],
@@ -349,10 +349,10 @@ $routes = [
 	'verobj'  => ['app/controllers/docs/item_page.php', null],
 
 	// ⚙️ Sistemas
-	'listasistemas'  => ['app/controllers/syst/system_table.php', null],
-	'sistemas'  	 => ['app/controllers/syst/system_page.php', null],
-	'versistdetalle' => ['app/controllers/syst/system_page_specific.php', null],
-	'verforma'  	 => ['app/controllers/syst/system_form.php', null],
+	'listasistemas'  => ['app/controllers/systems/systems_table.php', null],
+	'sistemas'  	 => ['app/controllers/systems/system_overview_page.php', null],
+	'versistdetalle' => ['app/controllers/systems/system_detail_page.php', null],
+	'verforma'  	 => ['app/controllers/systems/system_form_page.php', null],
 
 	// 🧠 Rasgos
 	'listarasgos' => ['app/controllers/docs/traits_table.php', null],
@@ -392,9 +392,9 @@ $routes = [
 
 	// 🛠️ Herramientas
 	'csp'     		   => ['app/controllers/tool/csp_board.php', null],
-	'dados'   		   => ['app/controllers/tool/dice_dados.php', 'Tiradados'],
-	'garou_name_gen'   => ['app/controllers/tool/garou_name_gen.php', 'Generador de nombres Garou'],
-	'keygen'           => ['app/tools/generador_claves.php', 'Generador de claves'],
+	'dados'   		   => ['app/controllers/tool/dice_roller.php', 'Tiradados'],
+	'garou_name_gen'   => ['app/controllers/tool/garou_name_generator.php', 'Generador de nombres Garou'],
+	'keygen'           => ['app/tools/key_generator.php', 'Generador de claves'],
 	'crop'             => ['app/tools/crop.html', 'Recortador de imágenes'],
 	
 	// 🎼 Banda sonora
@@ -417,8 +417,8 @@ $routes = [
 	'seeplayer' => ['app/controllers/playr/playr_page.php', 'Jugador'],
 
 	// Test
-	'forum_message'   => ['app/partials/snippet_forum_hg.php', null],
-	'forum_diceroll'  => ['app/partials/snippet_forum_hg_dice.php', null],
+	'forum_message'   => ['app/partials/forum_message_snippet.php', null],
+	'forum_diceroll'  => ['app/partials/forum_diceroll_snippet.php', null],
 
 ];
 
@@ -442,3 +442,4 @@ if (isset($routes[$routeKey])) {
 if (empty($metaTitle)) {
 $metaTitle = trim(($pageTitle2 ?? '') . ' | ' . ($pageSect ?? '') . ' | ' . $pageTitle, ' |');
 }
+

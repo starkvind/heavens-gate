@@ -45,9 +45,9 @@ if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name AS
     $rs->close();
 }
 
-$actions = '<span style="margin-left:auto; display:flex; gap:8px; align-items:center;">'
+$actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSystemModal()">+ Nuevo sistema</button>'
-    . '<label style="text-align:left;">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rapido '
     . '<input class="inp" type="text" id="quickFilterSystems" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Sistemas', $actions);
@@ -131,54 +131,6 @@ if ($rs = $link->query($sql)) {
     </div>
 <?php endif; ?>
 
-<style>
-.modal-back{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.6);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999; padding:14px; box-sizing:border-box;
-}
-.modal{
-  width:min(980px, 96vw);
-  max-height:92vh;
-  overflow:hidden;
-  background:#05014E;
-  border:1px solid #000088;
-  border-radius:12px;
-  padding:12px;
-  position:relative;
-  display:flex;
-  flex-direction:column;
-}
-.modal form{ display:flex; flex-direction:column; flex:1; }
-.modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
-.ql-toolbar.ql-snow{
-  border:1px solid #000088 !important;
-  background:#050b36 !important;
-  border-radius:8px 8px 0 0;
-}
-.ql-container.ql-snow{
-  border:1px solid #000088 !important;
-  border-top:none !important;
-  background:#000033 !important;
-  color:#fff !important;
-  border-radius:0 0 8px 8px;
-}
-.ql-editor{ min-height:220px; font-size:12px; }
-.ql-snow .ql-stroke{ stroke:#cfe !important; }
-.ql-snow .ql-fill{ fill:#cfe !important; }
-.ql-snow .ql-picker{ color:#cfe !important; }
-
-.ql-snow .ql-picker-options{
-  background:#050b36 !important;
-  border:1px solid #000088 !important;
-}
-.ql-snow .ql-picker-item{
-  color:#cfe !important;
-}
-
-</style>
-
 <div class="modal-back" id="systemModal">
     <div class="modal">
         <h3 id="systemModalTitle">Nuevo sistema</h3>
@@ -186,7 +138,7 @@ if ($rs = $link->query($sql)) {
             <input type="hidden" name="save_system" value="1">
             <input type="hidden" name="id" id="system_id" value="">
             <div class="modal-body">
-                <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px; align-items:center;">
+                <div class="adm-grid-1-2">
                     <label>Orden</label>
                     <input class="inp" type="number" name="orden" id="system_orden">
 
@@ -216,7 +168,7 @@ if ($rs = $link->query($sql)) {
                             <?= admin_quill_toolbar_inner(); ?>
                         </div>
                         <div id="system_editor" class="ql-container ql-snow"></div>
-                        <textarea class="ta" name="descripcion" id="system_desc" rows="8" style="display:none;"></textarea>
+                        <textarea class="ta adm-hidden" name="descripcion" id="system_desc" rows="8"></textarea>
                     </div>
                 </div>
             </div>
@@ -231,12 +183,12 @@ if ($rs = $link->query($sql)) {
 <table class="table" id="tablaSystems">
     <thead>
         <tr>
-            <th style="width:60px;">ID</th>
+            <th class="adm-w-60">ID</th>
             <th>Nombre</th>
             <th>Orden</th>
             <th>Formas</th>
             <th>Origen</th>
-            <th style="width:160px;">Acciones</th>
+            <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -259,7 +211,7 @@ if ($rs = $link->query($sql)) {
         </tr>
     <?php endforeach; ?>
     <?php if (empty($rows)): ?>
-        <tr><td colspan="6" style="color:#bbb;">(Sin sistemas)</td></tr>
+        <tr><td colspan="6" class="adm-color-muted">(Sin sistemas)</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
@@ -342,4 +294,7 @@ document.addEventListener('keydown', function(e){
 </script>
 
 <?php admin_panel_close(); ?>
+
+
+
 

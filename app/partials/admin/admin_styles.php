@@ -18,4 +18,3 @@ if (!function_exists('admin_panel_open')) {
     }
 }
 ?>
-<link rel="stylesheet" href="/assets/css/admin.css">

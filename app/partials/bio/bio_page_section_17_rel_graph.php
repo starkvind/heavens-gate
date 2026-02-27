@@ -3,7 +3,7 @@
    Mini grafo de relaciones para la pagina de biografia */
 
 if (!isset($characterId) || !$characterId || !isset($relaciones) || !is_array($relaciones)) {
-    echo "<div style='padding:1em;'>Error: datos insuficientes para mostrar la grafica.</div>";
+    echo "<div class='bio-rel-error'>Error: datos insuficientes para mostrar la grafica.</div>";
     return;
 }
 
@@ -55,8 +55,8 @@ foreach ($relaciones as $r) {
 }
 ?>
 
-<div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
-    <div id="mini-network" style="width:100%; height:100%;"></div>
+<div class="bio-rel-mini-wrap">
+    <div id="mini-network" class="bio-rel-mini-network"></div>
 </div>
 
 <script src="/assets/vendor/vis/vis-network.min.10.0.2.js"></script>
@@ -170,4 +170,5 @@ foreach ($relaciones as $r) {
     });
 })();
 </script>
+
 
