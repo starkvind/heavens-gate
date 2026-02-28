@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // admin_bridges.php - Panel para ver/editar Bridges
 // - PJ -> Manada (bridge_characters_groups)
 // - PJ -> Clan   (bridge_characters_organizations)
@@ -271,7 +271,7 @@ $sqlChars = "
     p.name,
     p.image_url,
     p.gender,
-    p.status,
+    COALESCE(dcs.label, p.status) AS status, p.status_id,
 
     cg.id  AS char_group_bridge_id,
     cg.group_id AS active_group_id,
@@ -281,6 +281,7 @@ $sqlChars = "
     cc.organization_id AS active_clan_id,
     c.name AS active_clan_name
   FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
   LEFT JOIN {$T_CHAR_GROUP} cg
     ON cg.character_id = p.id AND (cg.is_active=1 OR cg.is_active IS NULL)
   LEFT JOIN dim_groups m
@@ -687,6 +688,8 @@ if ($rs = $link->query($sqlCG)) {
 
 })();
 </script>
+
+
 
 
 

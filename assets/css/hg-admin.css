@@ -188,7 +188,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .ql-snow .ql-fill{ fill:#cfe !important; }
 .ql-snow .ql-picker{ color:#cfe !important; }
 
-/* âœ… Toolbar Ãºtil: scroll dentro del editor (no dependemos del scroll del modal) */
+/* âœ… Toolbar util: scroll dentro del editor (no dependemos del scroll del modal) */
 .wys-wrap { width:100%; }
 .wys-wrap .ql-toolbar.ql-snow{
   position: static !important;
@@ -557,7 +557,7 @@ label { display:block; margin-bottom:4px; }
   box-sizing:border-box;
 }
 
-/* Modal: altura mÃ¡xima y scroll interno */
+/* Modal: altura maxima y scroll interno */
 .modal{
   width:min(1000px, 96vw);
   max-height:92vh;
@@ -607,7 +607,7 @@ label { display:block; margin-bottom:4px; }
 @media (max-width:750px){ .grid{ grid-template-columns:1fr; } }
 
 /* ==== admin.plots_crud.css ==== */
-/* EstÃ©tica Heavenâ€™s Gate-ish (oscuro, legible, sin dependencias) */
+/* Estetica Heavens Gate-ish (oscuro, legible, sin dependencias) */
 .hg-wrap{ background:#05014E; border:1px solid #000088; border-radius:12px; padding:12px; font-family:Verdana,Arial,sans-serif; }
 .hg-hdr{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
 .hg-hdr h2{ margin:0; color:#33FFFF; font-size:16px; }
@@ -696,7 +696,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
   transform: translateX(-50%);
   padding: 16px;
   z-index: 9999;
-  width: 720px; /* un pelÃ­n mÃ¡s ancho para el editor de Ã¡reas */
+  width: 720px; /* un pelin mas ancho para el editor de areas */
   color: #fff;
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
@@ -1148,7 +1148,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .modal-body{ flex:1; overflow:auto; padding-right:6px; min-height:0; }
 #formCrud{ display:flex; flex-direction:column; flex:1; min-height:0; }
 
-/* Ã¢Å“â€¦ Grid del modal: 2 columnas + campo "full width" */
+/* Grid del modal: 2 columnas + campo "full width" */
 .grid{
   display:grid;
   grid-template-columns:repeat(2, minmax(280px, 1fr));
@@ -1191,7 +1191,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 }
 
 
-/* âœ… Toolbar Ãºtil: scroll dentro del editor (no dependemos del scroll del modal) */
+/* Toolbar util: scroll dentro del editor (no dependemos del scroll del modal) */
 .wys-wrap { width:100%; }
 .wys-wrap .ql-toolbar.ql-snow{
   position: static !important;

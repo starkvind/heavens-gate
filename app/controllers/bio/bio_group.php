@@ -57,7 +57,7 @@
 		exit;
 	}
 
-	$valuePJ = "p.id, p.name, p.alias, p.status, p.image_url, p.gender, p.character_kind, p.character_type_id,
+	$valuePJ = "p.id, p.name, p.alias, COALESCE(dcs.label, p.status) AS status, p.status_id, p.image_url, p.gender, p.character_kind, p.character_type_id,
 						COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
 						COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
 						COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name,
@@ -93,6 +93,8 @@
 		$queryPJBase = "
 			SELECT $valuePJ
 			FROM fact_characters p
+
+                LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
 
 				-- Bridge: personaje -> manada
 				LEFT JOIN bridge_characters_groups hcg
@@ -186,23 +188,11 @@
 						$idPJ     = (int)$rowPJ["id"];
 						$nombrePJ = h($rowPJ["name"] ?? '');
 						$aliasPJ  = h($rowPJ["alias"] ?? '');
-						$imgPJ    = h(hg_character_avatar_url($rowPJ["image_url"] ?? '', $rowPJ["gender"] ?? ''));
-						$claseRaw = strtolower(trim((string)($rowPJ["character_kind"] ?? $rowPJ["kind"] ?? '')));
+						$imgPJ    = (string)hg_character_avatar_url($rowPJ["image_url"] ?? '', $rowPJ["gender"] ?? '');
+						$claseRaw = (string)($rowPJ["character_kind"] ?? $rowPJ["kind"] ?? '');
 						$estadoPJ = h($rowPJ["status"] ?? '');
 
 						if ($aliasPJ === "") { $aliasPJ = $nombrePJ; }
-
-						$fondoFoto = "";
-						$estiloLink = "";
-						$isMonster = ($claseRaw === "mon" || $claseRaw === "monster");
-						$isPj = ($claseRaw === "pj");
-						if ($isMonster) {
-							$fondoFoto = "Monster";
-							$estiloLink = "color: #FFD54A;";
-						} elseif (!$isPj && $claseRaw !== "") {
-							$fondoFoto = "NoSheet";
-							$estiloLink = "color: #EE0000;";
-						}
 
 						$mapEstado = [
 							"Aún por aparecer"     => "(&#64;)",
@@ -212,13 +202,16 @@
 						$simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
 						$hrefPJ = pretty_url($link, 'fact_characters', '/characters', $idPJ);
-						echo "<a href='" . h($hrefPJ) . "' title='" . $nombrePJ . "' style='" . h($estiloLink) . "'>";
-							echo "<div class='marcoFotoBio" . h($fondoFoto) . "'>";
-								echo "<div class='textoDentroFotoBio" . h($fondoFoto) . "'>$aliasPJ $simboloEstado</div>";
-
-								echo "<div class='dentroFotoBio'><img class='fotoBioList' src='$imgPJ' alt='$nombrePJ'></div>";
-							echo "</div>";
-						echo "</a>";
+						hg_render_character_avatar_tile([
+							'href' => $hrefPJ,
+							'title' => html_entity_decode($nombrePJ, ENT_QUOTES, 'UTF-8'),
+							'name' => html_entity_decode($nombrePJ, ENT_QUOTES, 'UTF-8'),
+							'alias' => html_entity_decode($aliasPJ, ENT_QUOTES, 'UTF-8'),
+							'character_id' => $idPJ,
+							'avatar_url' => $imgPJ,
+							'status' => html_entity_decode($estadoPJ, ENT_QUOTES, 'UTF-8'),
+							'character_kind' => $claseRaw,
+						]);
 					}
 
 					echo "</div>"; // contenidoAfiliacion
@@ -257,3 +250,5 @@
 		}
 	});
 </script>
+
+

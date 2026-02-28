@@ -61,3 +61,18 @@ tmp/
 img/
 
 bdd_structure.txt
+app/tools/migrate_character_indexes_phase1.php
+app/tools/migrate_character_status_phase1.php
+app/tools/migrate_character_status_slug_rename.php
+app/tools/migrate_charset_utf8mb4.php
+app/tools/migrate_column_typing_phase1.php
+app/tools/migrate_fact_characters_defaults_phase1.php
+app/tools/migrate_fact_gifts_semantics.php
+app/tools/migrate_fk_phase1.php
+app/tools/migrate_party_index_names.php
+app/tools/migrate_redundant_indexes_phase1.php
+app/tools/migrate_system_fk_phase2.php
+app/tools/migrate_system_name_phase1.php
+app/tools/migrate_timestamps_phase1.php
+app/tools/migrate_timestamps_phase2_excluding_logs.php
+upgrade_plan.txt

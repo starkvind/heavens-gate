@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 setMetaFromPage("Grupos y sociedades | Heaven's Gate", "Listado de grupos, manadas y clanes.", null, 'website');
 // Verificar la conexión a la base de datos
 if (!$link) {

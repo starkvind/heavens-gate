@@ -81,7 +81,8 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $riteOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, c.status FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    $characterKindSql = hg_character_kind_select($link, 'c');
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, c.status) AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $ritePageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -189,12 +190,18 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-                echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='" . htmlspecialchars($name) . "'>";
-                    echo "<div class='marcoFotoBio'>";
-                        echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                        echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
-                    echo "</div>";
-                echo "</a>";
+                hg_render_character_avatar_tile([
+                    'href' => $href,
+                    'title' => $name,
+                    'name' => $name,
+                    'alias' => $alias,
+                    'character_id' => $oid,
+                    'image_url' => (string)($o['image_url'] ?? ''),
+                    'gender' => (string)($o['gender'] ?? ''),
+                    'status' => (string)($o['status'] ?? ''),
+                    'character_kind' => hg_character_kind_from_row($o),
+                    'target_blank' => true,
+                ]);
             }
             echo "</div></div>";
             echo "<p align='right'>Personajes: " . count($riteOwners) . "</p>";
@@ -209,3 +216,6 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     echo "<p>Error: Ritual no encontrado.</p>";
 }
 ?>
+
+
+

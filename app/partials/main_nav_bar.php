@@ -116,6 +116,12 @@
 					case 'admin_inspect_db':
 						echo " $pillSeparator Inspeccionar BDD";
 						break;
+					case 'admin_characters_worlds':
+						echo " $pillSeparator Asignación crónicas y realidades";
+						break;
+					case 'admin_character_deaths':
+						echo " $pillSeparator Muertes de personajes";
+						break;
 					case 'admin_mentions_help':
 						echo " $pillSeparator Ayuda mentions";
 						break;

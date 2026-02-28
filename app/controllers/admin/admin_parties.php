@@ -20,6 +20,23 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function is_post(){ return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'; }
+function has_table(mysqli $db, string $table): bool {
+    $table = str_replace('`', '', $table);
+    $rs = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'");
+    if (!$rs) return false;
+    $ok = ($rs->num_rows > 0);
+    $rs->close();
+    return $ok;
+}
+function has_column(mysqli $db, string $table, string $column): bool {
+    $table = str_replace('`', '', $table);
+    $column = str_replace('`', '', $column);
+    $rs = $db->query("SHOW COLUMNS FROM `".$db->real_escape_string($table)."` LIKE '".$db->real_escape_string($column)."'");
+    if (!$rs) return false;
+    $ok = ($rs->num_rows > 0);
+    $rs->close();
+    return $ok;
+}
 function cur_url(): string {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     return $uri ?: '';
@@ -57,6 +74,25 @@ function csrf_check(): bool {
     $t = $_POST['csrf'] ?? '';
     return is_string($t) && hash_equals($_SESSION['csrf'] ?? '', $t);
 }
+
+/* -----------------------------
+   Compatibilidad de esquema
+----------------------------- */
+$partyMembersTable = '';
+foreach (['fact_party_members', 'party_members'] as $t) {
+    if (has_table($link, $t)) { $partyMembersTable = $t; break; }
+}
+$partyChangesTable = '';
+foreach (['fact_party_members_changes', 'party_members_changes'] as $t) {
+    if (has_table($link, $t)) { $partyChangesTable = $t; break; }
+}
+$partyFkCol = ($partyMembersTable !== '' && has_column($link, $partyMembersTable, 'plot_id'))
+    ? 'plot_id'
+    : (($partyMembersTable !== '' && has_column($link, $partyMembersTable, 'party_id')) ? 'party_id' : '');
+$changesFkCol = ($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'plot_char_id'))
+    ? 'plot_char_id'
+    : (($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'party_member_id')) ? 'party_member_id' : '');
+$hasPartiesSchema = ($partyMembersTable !== '' && $partyFkCol !== '' && $partyChangesTable !== '' && $changesFkCol !== '');
 
 /* -----------------------------
    Seguridad básica POST
@@ -126,6 +162,10 @@ if ($action === 'save_plot') {
 }
 
 if ($action === 'save_plot_char') {
+    if (!$hasPartiesSchema) {
+        flash_add('error', '❌ Esquema de tramas/personajes no compatible.');
+        header("Location: ".build_redirect_url()); exit;
+    }
     $id     = (int)($_POST['id'] ?? 0);
     $plot   = (int)($_POST['plot_id'] ?? 0);
     $base   = (int)($_POST['base_char_id'] ?? 0);
@@ -144,8 +184,8 @@ if ($action === 'save_plot_char') {
 
     if ($id === 0) {
         $st = $link->prepare("
-            INSERT INTO fact_party_members
-            (plot_id, base_char_id, alias, m_hp, m_rage, m_gnosis, m_glamour, m_mana, m_blood, m_wp, notes, active, updated_at)
+            INSERT INTO `{$partyMembersTable}`
+            (`{$partyFkCol}`, base_char_id, alias, m_hp, m_rage, m_gnosis, m_glamour, m_mana, m_blood, m_wp, notes, active, updated_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?, ?, NOW())
         ");
         if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
@@ -169,8 +209,8 @@ if ($action === 'save_plot_char') {
         }
     } else {
         $st = $link->prepare("
-            UPDATE fact_party_members SET
-            plot_id=?, base_char_id=?, alias=?,
+            UPDATE `{$partyMembersTable}` SET
+            `{$partyFkCol}`=?, base_char_id=?, alias=?,
             m_hp=?, m_rage=?, m_gnosis=?, m_glamour=?, m_mana=?, m_blood=?, m_wp=?,
             notes=?, active=?, updated_at=NOW()
             WHERE id=?
@@ -195,6 +235,10 @@ if ($action === 'save_plot_char') {
 }
 
 if ($action === 'add_change') {
+    if (!$hasPartiesSchema) {
+        flash_add('error', '❌ Esquema de cambios no compatible.');
+        header("Location: ".build_redirect_url()); exit;
+    }
     $cid  = (int)($_POST['plot_char_id'] ?? 0);
     $res  = (string)($_POST['resource'] ?? '');
     $val  = (int)($_POST['value'] ?? 0);
@@ -211,8 +255,8 @@ if ($action === 'add_change') {
     }
 
     $st = $link->prepare("
-        INSERT INTO fact_party_members_changes
-        (plot_char_id, resource, value, notes, created_at)
+        INSERT INTO `{$partyChangesTable}`
+        (`{$changesFkCol}`, resource, value, notes, created_at)
         VALUES (?, ?, ?, ?, NOW())
     ");
     if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
@@ -237,23 +281,41 @@ if ($q) { while ($r = $q->fetch_assoc()) $plots[] = $r; $q->close(); }
 
 // Personajes base (fact_characters)
 $baseChars = [];
-$q = $link->query("SELECT id, name AS nombre, alias FROM fact_characters ORDER BY name ASC");
+$statusCol = has_column($link, 'fact_characters', 'status') ? 'status' : (has_column($link, 'fact_characters', 'character_status') ? 'character_status' : '');
+$hasStatusId = has_column($link, 'fact_characters', 'status_id');
+$hasStatusDim = has_table($link, 'dim_character_status');
+$baseCharsSql = "SELECT fc.id, fc.name AS nombre, fc.alias FROM fact_characters fc";
+if ($hasStatusId && $hasStatusDim) {
+    $legacyActiveExpr = ($statusCol !== '')
+        ? "IF(LOWER(TRIM(COALESCE(fc.`{$statusCol}`, '')))='en activo',1,0)"
+        : "0";
+    $baseCharsSql .= " LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id";
+    $baseCharsSql .= " WHERE COALESCE(dcs.is_active, {$legacyActiveExpr}) = 1";
+} elseif ($statusCol !== '') {
+    $baseCharsSql .= " WHERE LOWER(TRIM(COALESCE(fc.`{$statusCol}`, ''))) = 'en activo' ";
+}
+$baseCharsSql .= " ORDER BY fc.name ASC";
+$q = $link->query($baseCharsSql);
 if ($q) { while ($r = $q->fetch_assoc()) $baseChars[] = $r; $q->close(); }
 
 // Plot characters (bridge)
 $plotCharsByPlot = [];
 $plotCharsFlat   = []; // por id
-$q = $link->query("
-    SELECT pc.*,
-           p.name AS plot_name,
-           p.sort_order AS plot_sort_order,
-           b.name AS base_nombre,
-           b.alias  AS base_alias
-    FROM fact_party_members pc
-    JOIN dim_parties p ON p.id = pc.plot_id
-    LEFT JOIN fact_characters b ON b.id = pc.base_char_id
-    ORDER BY p.sort_order DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
-");
+$q = null;
+if ($hasPartiesSchema) {
+    $q = $link->query("
+        SELECT pc.*,
+               pc.`{$partyFkCol}` AS plot_id,
+               p.name AS plot_name,
+               p.sort_order AS plot_sort_order,
+               b.name AS base_nombre,
+               b.alias  AS base_alias
+        FROM `{$partyMembersTable}` pc
+        JOIN dim_parties p ON p.id = pc.`{$partyFkCol}`
+        LEFT JOIN fact_characters b ON b.id = pc.base_char_id
+        ORDER BY p.sort_order DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
+    ");
+}
 $plotCharIds = [];
 if ($q) {
     while ($r = $q->fetch_assoc()) {
@@ -271,9 +333,9 @@ $changesByPlotChar = [];
 if (!empty($plotCharIds)) {
     $in = implode(',', array_map('intval', $plotCharIds));
     $q = $link->query("
-        SELECT id, plot_char_id, resource, value, notes, created_at
-        FROM fact_party_members_changes
-        WHERE plot_char_id IN ($in)
+        SELECT id, `{$changesFkCol}` AS plot_char_id, resource, value, notes, created_at
+        FROM `{$partyChangesTable}`
+        WHERE `{$changesFkCol}` IN ($in)
         ORDER BY created_at DESC
     ");
     if ($q) {
@@ -337,6 +399,16 @@ $csrf = $_SESSION['csrf'];
         $cl = $m['type']==='ok'?'ok':($m['type']==='error'?'err':'info'); ?>
         <div class="<?= $cl ?>"><?= h($m['msg']) ?></div>
       <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!$hasPartiesSchema): ?>
+    <div class="flash">
+      <div class="err">
+        ❌ Esquema no compatible para miembros/cambios de trama.
+        Se esperaba `fact_party_members.plot_id` o `party_members.party_id`,
+        y `fact_party_members_changes.plot_char_id` o `party_members_changes.party_member_id`.
+      </div>
     </div>
   <?php endif; ?>
 
@@ -695,6 +767,13 @@ function resetCharForm(){
   $('char_notes').value = '';
   $('char_active').checked = true;
   $('baseFilter').value = '';
+  // Restablece visibilidad de todas las opciones del selector base.
+  var sel = $('char_base');
+  if (sel) {
+    for (var i = 0; i < sel.options.length; i++) {
+      sel.options[i].hidden = false;
+    }
+  }
 }
 
 function openCharCreate(plotId){

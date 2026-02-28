@@ -44,4 +44,5 @@
 	<!-- Javascript -->
 	<script type="text/javascript" src="assets/js/permutloading.js"></script>
 	<script type="text/javascript" src="assets/js/hg-tabs.js"></script>
+	<script type="text/javascript" src="assets/js/hg-tooltip.js"></script>
 </head>

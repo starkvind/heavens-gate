@@ -79,18 +79,21 @@ if (!$hasTable || !$hasColumn) {
     return;
 }
 
+$kindSql = hg_character_kind_select($link, 'p');
 $sql = "
     SELECT
         p.id,
         p.name,
         p.alias,
-        p.status,
+        COALESCE(dcs.label, p.status) AS status,
+        p.status_id,
         p.image_url,
         p.gender,
-        p.character_kind,
+        {$kindSql} AS character_kind,
         p.reality_id,
         COALESCE(r.name, 'Sin realidad') AS reality_name
     FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     LEFT JOIN dim_realities r ON r.id = p.reality_id
     WHERE 1=1
       $chronicleNotInSQL
@@ -144,23 +147,11 @@ foreach ($keys as $k) {
         $idPJ = (int)($rowPJ['id'] ?? 0);
         $nombrePJ = hg_bwr_h($rowPJ['name'] ?? '');
         $aliasPJ = hg_bwr_h($rowPJ['alias'] ?? '');
-        $imgPJ = hg_bwr_h(hg_character_avatar_url($rowPJ['image_url'] ?? '', $rowPJ['gender'] ?? ''));
-        $claseRaw = strtolower(trim((string)($rowPJ['character_kind'] ?? '')));
+        $imgPJ = (string)hg_character_avatar_url($rowPJ['image_url'] ?? '', $rowPJ['gender'] ?? '');
+        $claseRaw = (string)($rowPJ['character_kind'] ?? '');
         $estadoPJ = hg_bwr_h($rowPJ['status'] ?? '');
 
         if ($aliasPJ === '') $aliasPJ = $nombrePJ;
-
-        $fondoFoto = '';
-        $estiloLink = '';
-        $isMonster = ($claseRaw === 'mon' || $claseRaw === 'monster');
-        $isPj = ($claseRaw === 'pj');
-        if ($isMonster) {
-            $fondoFoto = "Monster";
-            $estiloLink = "color: #FFD54A;";
-        } elseif (!$isPj && $claseRaw !== '') {
-            $fondoFoto = "NoSheet";
-            $estiloLink = "color: #EE0000;";
-        }
 
         $mapEstado = [
             "Aún por aparecer"     => "(&#64;)",
@@ -171,12 +162,16 @@ foreach ($keys as $k) {
         $simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
         $hrefPJ = pretty_url($link, 'fact_characters', '/characters', $idPJ);
-        echo "<a href='" . hg_bwr_h($hrefPJ) . "' title='" . $nombrePJ . "' style='" . hg_bwr_h($estiloLink) . "'>";
-            echo "<div class='marcoFotoBio" . hg_bwr_h($fondoFoto) . "'>";
-                echo "<div class='textoDentroFotoBio" . hg_bwr_h($fondoFoto) . "'>$aliasPJ $simboloEstado</div>";
-                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='$imgPJ' alt='$nombrePJ'></div>";
-            echo "</div>";
-        echo "</a>";
+        hg_render_character_avatar_tile([
+            'href' => $hrefPJ,
+            'title' => html_entity_decode($nombrePJ, ENT_QUOTES, 'UTF-8'),
+            'name' => html_entity_decode($nombrePJ, ENT_QUOTES, 'UTF-8'),
+            'alias' => html_entity_decode($aliasPJ, ENT_QUOTES, 'UTF-8'),
+            'character_id' => $idPJ,
+            'avatar_url' => $imgPJ,
+            'status' => html_entity_decode($estadoPJ, ENT_QUOTES, 'UTF-8'),
+            'character_kind' => $claseRaw,
+        ]);
     }
 
     echo "</div>";

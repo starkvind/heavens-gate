@@ -10,7 +10,7 @@
 	$msg = filter_input(INPUT_GET, 'msg');
 
 	if (!$char_id || !$msg) {
-		die("ParÃ¡metros incorrectos.");
+		die("Parametros incorrectos.");
 	}
 	
 	$defaultImgPath = "public/img/ui/avatar/";
@@ -18,7 +18,7 @@
 		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
 		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
 		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.png'],
-		-4 => ['name' => 'EspÃ­ritu', 'img' => 'avatar_nadie_4.png'],
+		-4 => ['name' => 'Espiritu', 'img' => 'avatar_nadie_4.png'],
 	];
 
 	if (array_key_exists($char_id, $defaultAvatars)) {
@@ -48,12 +48,12 @@
 
 	$decoded_msg = htmlspecialchars_decode($msg);
 	
-	// Normaliza saltos de lÃ­nea entre etiquetas de lista para evitar <br> entre <li>
+	// Normaliza saltos de linea entre etiquetas de lista para evitar <br> entre <li>
 	$decoded_msg = preg_replace('/\[\s*\/li\s*\]\s*\n\s*\[\s*li\s*\]/i', '[/li][li]', $decoded_msg);
 	$decoded_msg = preg_replace('/\[\s*\/list\s*\]\s*\n/i', '[/list]', $decoded_msg);
 	$decoded_msg = preg_replace('/\[\s*list\s*\]\s*\n/i', '[list]', $decoded_msg);
 
-	// Reemplazo de BBCode bÃ¡sico (formato)
+	// Reemplazo de BBCode basico (formato)
 	$parsed_msg = preg_replace([
 		'/\[b\](.*?)\[\/b\]/is',
 		'/\[i\](.*?)\[\/i\]/is',
@@ -82,14 +82,14 @@
 
 	], $decoded_msg);
 	
-	// Elimina <br> antes de <div>, despuÃ©s de </div>, y similares
+	// Elimina <br> antes de <div>, despues de </div>, y similares
 	$parsed_msg = preg_replace([
 		'/<br\s*\/?>\s*(<div[^>]*>)/i',   // <br> antes de <div>
-		'/(<\/div>)\s*<br\s*\/?>/i',      // <br> despuÃ©s de </div>
+		'/(<\/div>)\s*<br\s*\/?>/i',      // <br> despues de </div>
 		'/<br\s*\/?>\s*(<ul[^>]*>)/i',    // <br> antes de <ul>
-		'/(<\/ul>)\s*<br\s*\/?>/i',       // <br> despuÃ©s de </ul>
+		'/(<\/ul>)\s*<br\s*\/?>/i',       // <br> despues de </ul>
 		'/<br\s*\/?>\s*(<li[^>]*>)/i',    // <br> antes de <li>
-		'/(<\/li>)\s*<br\s*\/?>/i',       // <br> despuÃ©s de </li>
+		'/(<\/li>)\s*<br\s*\/?>/i',       // <br> despues de </li>
 	], [
 		'$1',
 		'$1',

@@ -107,6 +107,16 @@ function fetchPairs(mysqli $link, string $sql): array {
     $q->close();
     return $out;
 }
+function ap_has_column(mysqli $link, string $table, string $column): bool {
+    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+    $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+    if ($table === '' || $column === '') return false;
+    $rs = @$link->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+    if (!$rs) return false;
+    $ok = ($rs->num_rows > 0);
+    $rs->close();
+    return $ok;
+}
 
 /* -----------------------------
    CSRF (simple)
@@ -147,11 +157,13 @@ if (!$opts_tipo_rit) { // por si no existe determinant
 }
 $opts_tipo_tot   = fetchPairs($link, "SELECT id, name FROM dim_totem_types ORDER BY id");
 $opts_tipo_disc  = fetchPairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY id");
+$giftMechanicsCol = ap_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+$giftSystemLabelCol = ap_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
 
 /* -----------------------------
    Metadatos CRUD
 ------------------------------ */
-function meta_for(string $tab, array $opts_origen, array $opts_systems, array $opts_tipo_dones, array $opts_tipo_rit, array $opts_tipo_tot, array $opts_tipo_disc): array {
+function meta_for(string $tab, array $opts_origen, array $opts_systems, array $opts_tipo_dones, array $opts_tipo_rit, array $opts_tipo_tot, array $opts_tipo_disc, string $giftMechanicsCol, string $giftSystemLabelCol): array {
     if ($tab === 'dones') {
         return [
             'title' => 'Dones',
@@ -169,9 +181,9 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
                 ['k'=>'ability_name',   'label'=>'Habilidad',    'ui'=>'text',     'db'=>'s', 'req'=>false, 'max'=>50],
                 ['k'=>'description', 'label'=>'Descripción',  'ui'=>'textarea', 'db'=>'s', 'req'=>true],
                 // FIX: ahora puede ir vacío
-                ['k'=>'system_name', 'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
+                ['k'=>$giftMechanicsCol, 'label'=>'Sistema (texto)',      'ui'=>'textarea', 'db'=>'s', 'req'=>false],
                 ['k'=>'system_id',   'label'=>'Sistema',     'ui'=>'select_int','db'=>'i','req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'shifter_system_name', 'label'=>'Fera-sistema (legacy)', 'ui'=>'text',     'db'=>'s', 'req'=>false,  'max'=>100],
+                ['k'=>$giftSystemLabelCol, 'label'=>'Sistema (clasificacion)', 'ui'=>'text',     'db'=>'s', 'req'=>false,  'max'=>100],
                 ['k'=>'image_url',   'label'=>'Imagen',      'ui'=>'image_upload', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen',   'ui'=>'select_int','db'=>'i','req'=>true,  'opts'=>$opts_origen],
             ],
@@ -270,7 +282,7 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
     ];
 }
 
-$META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+$META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
 
 /* -----------------------------
    Guardado (POST)
@@ -282,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     } elseif (!csrf_ok()) {
         $flash[] = ['type'=>'error','msg'=>'? CSRF inválido. Recarga la página.'];
     } else {
-        $M = meta_for($postTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+        $M = meta_for($postTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         $action = (string)$_POST['crud_action'];
         $id = (int)($_POST['id'] ?? 0);
 
@@ -325,11 +337,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         if (isset($vals['system_id']) && (int)$vals['system_id'] > 0) {
             $sysName = $opts_systems[(int)$vals['system_id']] ?? '';
             if ($sysName !== '') {
-                if (array_key_exists('shifter_system_name', $vals) && trim((string)$vals['shifter_system_name']) === '') {
-                    $vals['shifter_system_name'] = $sysName;
-                }
-                if (array_key_exists('system_name', $vals) && trim((string)$vals['system_name']) === '') {
-                    $vals['system_name'] = $sysName;
+                if ($postTab === 'dones') {
+                    if (array_key_exists($giftSystemLabelCol, $vals) && trim((string)$vals[$giftSystemLabelCol]) === '') {
+                        $vals[$giftSystemLabelCol] = $sysName;
+                    }
+                } else {
+                    if (array_key_exists('system_name', $vals) && trim((string)$vals['system_name']) === '') {
+                        $vals['system_name'] = $sysName;
+                    }
                 }
             }
         }
@@ -433,7 +448,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
             // Mantener tab actual tras POST
             $tab = $postTab;
-            $META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+            $META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         }
     }
 }
@@ -445,7 +460,7 @@ if (($_GET['ajax'] ?? '') === 'search') {
     $tabAjax = (string)($_GET['tab'] ?? $tab);
     $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'dones';
     $qAjax   = trim((string)($_GET['q'] ?? ''));
-    $MAjax   = meta_for($tabAjax, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc);
+    $MAjax   = meta_for($tabAjax, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
 
     $tableAjax   = $MAjax['table'];
     $pkAjax      = $MAjax['pk'];

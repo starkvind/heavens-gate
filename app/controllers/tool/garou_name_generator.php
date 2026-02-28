@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rÃ¡pido de nombres Garou.", null, 'website'); ?>
+<?php setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rapido de nombres Garou.", null, 'website'); ?>
 <link rel="stylesheet" href="/assets/css/hg-tools.css">
 
 <div id="garou-name-gen">
@@ -16,7 +16,7 @@
 		</div>
 
 		<p class="hg-garou-hint">
-			Estilo Â«deed nameÂ» con guiones: <code>Salta-sobre-el-Abismo</code>, <code>Aullido-FÃºnebre</code>, <code>Lanza-de-Sangre</code>
+			Estilo «deed name» con guiones: <code>Salta-sobre-el-Abismo</code>, <code>Aullido-Funebre</code>, <code>Lanza-de-Sangre</code>
 		</p>
 
 		<p class="hg-garou-small hg-garou-note-hidden" data-role="note"></p>
@@ -39,7 +39,6 @@
         const $list  = root.querySelector('[data-role="list"]');
         const $note  = root.querySelector('[data-role="note"]');
 
-        // ---- Pools (mismo contenido que en PHP) ----
         const connectors = [
             "de", "del", "de-la", "de-los", "de-las",
             "en", "en-el", "en-la",
@@ -55,30 +54,30 @@
         const keepAsIs = new Set(["Gaia", "Wyrm", "Kaos", "Umbra", "Helios", "Selene"]);
 
         const verbs = [
-            "Salta", "Camina", "Corre", "Acecha", "AÃºlla", "Caza", "Muerde", "Rasga",
-            "Vigila", "Guarda", "Rompe", "Quiebra", "Hierve", "DesafÃ­a", "Persigue",
+            "Salta", "Camina", "Corre", "Acecha", "Aulla", "Caza", "Muerde", "Rasga",
+            "Vigila", "Guarda", "Rompe", "Quiebra", "Hierve", "Desafia", "Persigue",
             "Arranca", "Sostiene", "Invoca", "Enciende", "Apaga", "Talla", "Siembra",
-            "Despierta", "Cruza", "Resiste", "SeÃ±ala", "Alza", "Hunde",
+            "Despierta", "Cruza", "Resiste", "Senala", "Alza", "Hunde",
         ];
 
         const roles = [
-            "Custodio", "GuardiÃ¡n", "Centinela", "Azote", "Martillo", "Colmillo", "Garra",
+            "Custodio", "Guardian", "Centinela", "Azote", "Martillo", "Colmillo", "Garra",
             "Lanza", "Filo", "Eco", "Sombra", "Luz", "Ojo", "Paso", "Sendero", "Voz",
-            "Aullido", "Canto", "Murmullo", "LÃ­mite", "Ãšltima", "Primera",
+            "Aullido", "Canto", "Murmullo", "Limite", "Ultima", "Primera",
         ];
 
         const things = [
             "Abismo", "Tormenta", "Sangre", "Hueso", "Ceniza", "Luna", "Rayo", "Trueno",
-            "Umbral", "Bosque", "PÃ¡ramo", "RÃ­o", "Lirio", "Acero", "Hierro", "Cristal",
-            "Sal", "Humo", "Nieve", "Fuego", "Sombra", "Viento", "CrÃ¡neo", "RaÃ­z",
-            "RelÃ¡mpago", "Silencio", "Eco", "Puerta",
+            "Umbral", "Bosque", "Paramo", "Rio", "Lirio", "Acero", "Hierro", "Cristal",
+            "Sal", "Humo", "Nieve", "Fuego", "Sombra", "Viento", "Craneo", "Raiz",
+            "Relampago", "Silencio", "Eco", "Puerta",
         ];
 
         const adjectives = [
-            "Inquebrantable", "FÃºnebre", "Lunar", "SombrÃ­o", "Sangriento", "Hambriento",
-            "Antiguo", "FrÃ­o", "Ciego", "Implacable", "Sereno", "Torcido", "Gris",
-            "Rojo", "Negro", "Blanco", "Herrumbroso", "VacÃ­o", "Vigilante",
-            "Ãšltimo", "Primordial",
+            "Inquebrantable", "Funebre", "Lunar", "Sombrio", "Sangriento", "Hambriento",
+            "Antiguo", "Frio", "Ciego", "Implacable", "Sereno", "Torcido", "Gris",
+            "Rojo", "Negro", "Blanco", "Herrumbroso", "Vacio", "Vigilante",
+            "Ultimo", "Primordial",
         ];
 
         const places = [
@@ -87,14 +86,12 @@
             "En-el-Fondo", "Encima-de-la-Umbra",
         ];
 
-        // ---- Random robusto con Crypto.getRandomValues (rejection sampling) ----
-        // (Mejor que Math.random; aquÃ­ el sesgo queda controlado.) :contentReference[oaicite:2]{index=2}
         function randInt(max) {
             if (max <= 0) throw new Error("max must be > 0");
 
             if (window.crypto && crypto.getRandomValues) {
                 const buf = new Uint32Array(1);
-                const limit = Math.floor(0x100000000 / max) * max; // 2^32
+                const limit = Math.floor(0x100000000 / max) * max;
                 let x;
                 do {
                     crypto.getRandomValues(buf);
@@ -103,7 +100,6 @@
                 return x % max;
             }
 
-            // Fallback (por si acaso)
             return Math.floor(Math.random() * max);
         }
 
@@ -120,13 +116,8 @@
             const raw = String(seg).trim();
             if (!raw) return "";
 
-            // conectores se quedan en minÃºscula
             if (connectors.includes(raw)) return raw;
-
-            // excepciones se respetan
             if (keepAsIs.has(raw)) return raw;
-
-            // normal: capitalizar, resto en minÃºscula
             return ucFirst(raw.toLowerCase());
         }
 
@@ -143,30 +134,24 @@
             const connector = pick(connectors);
 
             switch (which) {
-                case 1: { // Verbo + conector + cosa
+                case 1:
                     return glueHyphens([pick(verbs), connector, pick(things)]);
-                }
-                case 2: { // Rol + conector + cosa
+                case 2:
                     return glueHyphens([pick(roles), connector, pick(things)]);
-                }
-                case 3: { // Cosa + Adjetivo
+                case 3:
                     return glueHyphens([pick(things), pick(adjectives)]);
-                }
-                case 4: { // Rol + Adjetivo
+                case 4:
                     return glueHyphens([pick(roles), pick(adjectives)]);
-                }
-                case 5: { // Rol + conector + cosa + adjetivo
+                case 5:
                     return glueHyphens([pick(roles), connector, pick(things), pick(adjectives)]);
-                }
-                default: { // Verbo + lugar prefijado
-                    const place = pick(places); // ya viene con guiones
+                default: {
+                    const place = pick(places);
                     return glueHyphens([pick(verbs), ...place.split("-")]);
                 }
             }
         }
 
         function setUrlCount(n) {
-            // Mantiene actualiza n sin recargar. :contentReference[oaicite:3]{index=3}
             const url = new URL(window.location.href);
             url.searchParams.set("n", String(n));
             history.replaceState(null, "", url.toString());
@@ -191,14 +176,14 @@
 
             $list.innerHTML = "";
             for (const name of names) {
-                const li = document.createElement("li"); // :contentReference[oaicite:4]{index=4}
+                const li = document.createElement("li");
                 li.textContent = name;
                 $list.appendChild(li);
             }
 
             if (names.length < n) {
                 $note.style.display = "";
-                $note.textContent = `Nota: se generaron ${names.length} nombres Ãºnicos (se agotaron combinaciones/intentos).`;
+                $note.textContent = `Nota: se generaron ${names.length} nombres unicos (se agotaron combinaciones/intentos).`;
             } else {
                 $note.style.display = "none";
                 $note.textContent = "";
@@ -213,7 +198,6 @@
             return allowedCounts.includes(n) ? n : 10;
         }
 
-        // Eventos :contentReference[oaicite:5]{index=5}
         $btn.addEventListener("click", () => {
             render(parseInt($count.value, 10));
         });
@@ -222,9 +206,9 @@
             render(parseInt($count.value, 10));
         });
 
-        // Init: respeta ?n=...
         const initial = currentCountFromUrl();
         $count.value = String(initial);
         render(initial);
     })();
 </script>
+

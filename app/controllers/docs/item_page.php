@@ -216,6 +216,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
+    $characterKindSql = hg_character_kind_select($link, 'p');
     $queryOwners = "
         SELECT
             p.id,
@@ -223,9 +224,11 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             p.alias,
             p.image_url,
             p.gender,
-            p.status
+            COALESCE(dcs.label, p.status) AS status, p.status_id,
+            {$characterKindSql} AS character_kind
         FROM bridge_characters_items b
         JOIN fact_characters p ON p.id = b.character_id
+        LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
         WHERE b.item_id = ? $cronicaNotInSQL
         ORDER BY p.name
     ";
@@ -251,26 +254,23 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 
         echo "<section class='hg-tab-panel' data-tab='owners'>";
         echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
-        $mapEstado = [
-            "A?n por aparecer"     => "(&#64;)",
-            "Paradero desconocido" => "(&#63;)",
-            "Cad?ver"              => "(&#8224;)"
-        ];
         foreach ($itemOwners as $o) {
             $oid = (int)($o['id'] ?? 0);
-            $name = htmlspecialchars($o['name'] ?? '');
-            $alias = htmlspecialchars($o['alias'] ?? '');
-            $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
-            $estado = (string)($o['status'] ?? '');
-            $label = $alias !== '' ? $alias : $name;
-            $simboloEstado = $mapEstado[$estado] ?? "";
+            $name = (string)($o['name'] ?? '');
+            $alias = (string)($o['alias'] ?? '');
             $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-            echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
-                echo "<div class='marcoFotoBio'>";
-                    echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                    echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-                echo "</div>";
-            echo "</a>";
+            hg_render_character_avatar_tile([
+                'href' => $href,
+                'title' => $name,
+                'name' => $name,
+                'alias' => $alias,
+                'character_id' => $oid,
+                'image_url' => (string)($o['image_url'] ?? ''),
+                'gender' => (string)($o['gender'] ?? ''),
+                'status' => (string)($o['status'] ?? ''),
+                'character_kind' => hg_character_kind_from_row($o),
+                'target_blank' => true,
+            ]);
         }
         echo "</div></div>";
         echo "<p align='right'>Personajes: " . count($itemOwners) . "</p>";
@@ -285,3 +285,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 $stmt->close();
 
 ?>
+
+
+
+

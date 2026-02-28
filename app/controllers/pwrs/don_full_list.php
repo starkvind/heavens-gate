@@ -24,6 +24,17 @@ function anchor_id_gift($id) {
     return "gift_" . (int)$id;
 }
 
+function gift_mechanics_col(mysqli $link): string {
+    $rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
+    if ($rs && mysqli_num_rows($rs) > 0) {
+        mysqli_free_result($rs);
+        return 'mechanics_text';
+    }
+    if ($rs) mysqli_free_result($rs);
+    return 'system_name';
+}
+$giftRulesCol = gift_mechanics_col($link);
+
 // =======================
 // 1) Query principal (LA TUYA)
 // =======================
@@ -37,7 +48,7 @@ select
     d.attribute_name as gift_roll_attribute,
     d.ability_name as gift_roll_skill,
     d.description as gift_description,
-    d.system_name as gift_roll_description,
+    d.`$giftRulesCol` as gift_roll_description,
     s.name as gift_fera_system,
     d.system_id as gift_system_id,
     nb.name as gift_origin
@@ -503,4 +514,3 @@ foreach ($gifts as $g) {
 
   </div>
 </div>
-

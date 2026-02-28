@@ -3,9 +3,24 @@ include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar si se recibe el parámetro 'b' y sanitizarlo
 $donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
+if (!function_exists('gift_has_column')) {
+    function gift_has_column(mysqli $link, string $table, string $column): bool {
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($table === '' || $column === '') return false;
+        $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$column'");
+        if (!$rs) return false;
+        $ok = (mysqli_num_rows($rs) > 0);
+        mysqli_free_result($rs);
+        return $ok;
+    }
+}
+$giftSystemCol = gift_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
+$giftRulesCol = gift_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+
 // Consulta para obtener información del Don
 $queryDon = "
-    SELECT g.*, s.name AS system_name, g.name AS nombre, g.kind AS tipo, g.rank AS rango, g.description AS descripcion, g.system_name AS sistema, g.shifter_system_name AS ferasistema
+    SELECT g.*, s.name AS system_name, g.name AS nombre, g.kind AS tipo, g.rank AS rango, g.description AS descripcion, g.`$giftRulesCol` AS sistema, g.`$giftSystemCol` AS ferasistema
     FROM fact_gifts g
     LEFT JOIN dim_systems s ON g.system_id = s.id
     WHERE g.id = ? LIMIT 1;
@@ -83,7 +98,8 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $donOwners = [];
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, c.status FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    $characterKindSql = hg_character_kind_select($link, 'c');
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, c.status) AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $donPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -193,12 +209,18 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-                echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='" . htmlspecialchars($name) . "'>";
-                    echo "<div class='marcoFotoBio'>";
-                        echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                        echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
-                    echo "</div>";
-                echo "</a>";
+                hg_render_character_avatar_tile([
+                    'href' => $href,
+                    'title' => $name,
+                    'name' => $name,
+                    'alias' => $alias,
+                    'character_id' => $oid,
+                    'image_url' => (string)($o['image_url'] ?? ''),
+                    'gender' => (string)($o['gender'] ?? ''),
+                    'status' => (string)($o['status'] ?? ''),
+                    'character_kind' => hg_character_kind_from_row($o),
+                    'target_blank' => true,
+                ]);
             }
             echo "</div></div>";
             echo "<p align='right'>Personajes: " . count($donOwners) . "</p>";
@@ -213,3 +235,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     echo "<p>Error: Don no encontrado.</p>";
 }
 ?>
+
+
+
+

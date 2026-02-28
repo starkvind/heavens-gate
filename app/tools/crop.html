@@ -11,37 +11,37 @@
     <h1>Recortar imagen 1:1 (cuadrado)</h1>
     <div class="row controls">
       <label class="file-label" for="file">
-        ðŸ“ Elegir imagen (JPG/PNG)
+        📁 Elegir imagen (JPG/PNG)
       </label>
       <input id="file" type="file" accept="image/jpeg,image/png">
       <button id="btnCenter" class="btn" disabled>Centra marco</button>
-      <label> TamaÃ±o
+      <label> Tamaño
         <input id="sizeRange" type="range" min="50" max="1000" value="300">
       </label>
-      <span class="hint">Rueda del ratÃ³n sobre el marco para cambiar tamaÃ±o. Mueve con arrastre o flechas (â‡§Ã—10 px).</span>
+      <span class="hint">Rueda del ratón sobre el marco para cambiar tamaño. Mueve con arrastre o flechas (⇧×10 px).</span>
       <span id="msg" class="hint"></span>
       <span class="spacer"></span>
-      <button id="dlPNG" class="btn btn-ok" disabled>â¬‡ Descargar PNG</button>
-      <button id="dlJPG" class="btn" disabled>â¬‡ Descargar JPG</button>
+      <button id="dlPNG" class="btn btn-ok" disabled>⬇ Descargar PNG</button>
+      <button id="dlJPG" class="btn" disabled>⬇ Descargar JPG</button>
       <button id="reset" class="btn btn-red" disabled>Reiniciar</button>
     </div>
 
     <div class="row hg-crop-main-row">
       <div class="stage-wrap">
         <div id="stage" class="stage" aria-live="polite">
-          <!-- imagen y crop se inyectan aquÃ­ -->
+          <!-- imagen y crop se inyectan aquí -->
         </div>
       </div>
 
       <div class="out">
         <div class="hg-crop-meta-row">
           <span id="infoIn" class="kv">Imagen: -</span>
-          <span id="infoSel" class="kv">SelecciÃ³n: -</span>
+          <span id="infoSel" class="kv">Selección: -</span>
           <span id="infoOut" class="kv">Salida: -</span>
         </div>
         <canvas id="preview" width="0" height="0"></canvas>
         <div class="hint hg-crop-hint-top">
-          La previsualizaciÃ³n muestra el recorte exacto. El archivo de salida usa la misma resoluciÃ³n del Ã¡rea seleccionada en la imagen original.
+          La previsualización muestra el recorte exacto. El archivo de salida usa la misma resolución del área seleccionada en la imagen original.
         </div>
       </div>
     </div>
@@ -84,7 +84,7 @@
     natural = { w:0, h:0 };
     preview.width = preview.height = 0;
     infoIn.textContent = 'Imagen: -';
-    infoSel.textContent = 'SelecciÃ³n: -';
+    infoSel.textContent = 'Selección: -';
     infoOut.textContent = 'Salida: -';
     dlPNG.disabled = dlJPG.disabled = btnCenter.disabled = resetBtn.disabled = true;
     sizeRange.disabled = true;
@@ -99,12 +99,12 @@
 
   function renderUI(){
     if (!imgEl || !cropEl) return;
-    const rect = imgEl.getBoundingClientRect(); // tamaÃ±o mostrado
-    // Ajusta el contenedor stage a igual tamaÃ±o que la imagen mostrada
+    const rect = imgEl.getBoundingClientRect(); // tamaño mostrado
+    // Ajusta el contenedor stage a igual tamaño que la imagen mostrada
     stage.style.width = rect.width + 'px';
     stage.style.height = rect.height + 'px';
 
-    // Enforce lÃ­mites
+    // Enforce límites
     crop.size = clamp(crop.size, 20, Math.min(rect.width, rect.height));
     crop.x = clamp(crop.x, 0, rect.width - crop.size);
     crop.y = clamp(crop.y, 0, rect.height - crop.size);
@@ -121,11 +121,11 @@
     sizeRange.value = Math.round(crop.size);
 
     // Info
-    const scale = natural.w / rect.width; // pÃ­xeles reales por pÃ­xel mostrado
+    const scale = natural.w / rect.width; // píxeles reales por píxel mostrado
     const selPx = Math.round(crop.size * scale);
-    infoIn.textContent  = `Imagen: ${natural.w}Ã—${natural.h}px`;
-    infoSel.textContent = `SelecciÃ³n en original: ${selPx}Ã—${selPx}px`;
-    infoOut.textContent = `Salida: ${selPx}Ã—${selPx}px`;
+    infoIn.textContent  = `Imagen: ${natural.w}×${natural.h}px`;
+    infoSel.textContent = `Selección en original: ${selPx}×${selPx}px`;
+    infoOut.textContent = `Salida: ${selPx}×${selPx}px`;
 
     // Render preview (recorte real)
     preview.width = selPx;
@@ -141,7 +141,7 @@
     if (ssz > maxPreview){
       const r = maxPreview / ssz;
       preview.width = preview.height = Math.round(ssz * r);
-      // Creamos un canvas temporal del tamaÃ±o original del recorte y luego escalamos al preview
+      // Creamos un canvas temporal del tamaño original del recorte y luego escalamos al preview
       const temp = document.createElement('canvas');
       temp.width = temp.height = ssz;
       const tctx = temp.getContext('2d', { willReadFrequently: true });
@@ -194,7 +194,7 @@
       stage.appendChild(cropEl);
 
       enableUI();
-      // Ajusta a tamaÃ±o mostrado real
+      // Ajusta a tamaño mostrado real
       requestAnimationFrame(()=>{
         // Inicial: marco centrado
         centerCrop();
@@ -249,7 +249,7 @@
       if (drag.corner === 'sw') s = clamp(drag.baseSize + Math.max(-dx,dy), 20, Math.min(rect.width, rect.height));
       if (drag.corner === 'se') s = clamp(drag.baseSize + Math.max(dx,dy), 20, Math.min(rect.width, rect.height));
 
-      // Re-posiciona para que la esquina â€œfijaâ€ se mantenga
+      // Re-posiciona para que la esquina “fija” se mantenga
       const delta = s - drag.baseSize;
       let nx = drag.baseX, ny = drag.baseY;
       if (drag.corner === 'nw'){ nx = drag.baseX - delta; ny = drag.baseY - delta; }
@@ -272,7 +272,7 @@
 
   function onWheelResize(e){
     if (!cropEl) return;
-    if (!e.ctrlKey){ // sin Ctrl: ajusta tamaÃ±o
+    if (!e.ctrlKey){ // sin Ctrl: ajusta tamaño
       const delta = -Math.sign(e.deltaY) * 12; // paso
       crop.size += delta;
       renderUI();
@@ -296,7 +296,7 @@
     cropEl.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-    // Rueda para tamaÃ±o
+    // Rueda para tamaño
     cropEl.addEventListener('wheel', onWheelResize, { passive:false });
     // Slider
     sizeRange.addEventListener('input', ()=>{ crop.size = parseInt(sizeRange.value,10)||crop.size; renderUI(); });
@@ -308,7 +308,7 @@
 
   function download(type){ // 'image/png' o 'image/jpeg'
     if (!imgEl) return;
-    // Calcula recorte en pÃ­xeles reales
+    // Calcula recorte en píxeles reales
     const rect = imgEl.getBoundingClientRect();
     const scale = natural.w / rect.width;
     const ssz = Math.round(crop.size * scale);

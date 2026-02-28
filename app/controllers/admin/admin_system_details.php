@@ -39,6 +39,19 @@ function sanitize_utf8_text(string $s): string {
     }
     return $s ?? '';
 }
+if (!function_exists('has_column')) {
+    function has_column(mysqli $link, string $table, string $column): bool {
+        $table = trim($table);
+        $column = trim($column);
+        if ($table === '' || $column === '') return false;
+        $sql = "SHOW COLUMNS FROM `".$link->real_escape_string($table)."` LIKE '".$link->real_escape_string($column)."'";
+        $rs = $link->query($sql);
+        if (!$rs) return false;
+        $ok = $rs->num_rows > 0;
+        $rs->close();
+        return $ok;
+    }
+}
 
 // CSRF simple
 if (empty($_SESSION['csrf_admin_system_details'])) {
@@ -70,6 +83,10 @@ $opts_systems = [];
 if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
     while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
     $rs->close();
+}
+$systemsById = [];
+foreach ($opts_systems as $sysRow) {
+    $systemsById[(int)$sysRow['id']] = (string)$sysRow['name'];
 }
 
 $sys = isset($_GET['sys']) ? (int)$_GET['sys'] : 0;
@@ -198,6 +215,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
             $rs->close();
         }
+        $systemsById = [];
+        foreach ($opts_systems as $sysRow) {
+            $systemsById[(int)$sysRow['id']] = (string)$sysRow['name'];
+        }
         $M = meta_for($postTab, $opts_origins, $opts_systems);
         $action = (string)$_POST['crud_action'];
         $id = (int)($_POST['id'] ?? 0);
@@ -232,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 if (!empty($f['req'])) {
                     $k = $f['k'];
                     if (($f['db'] ?? 's') === 'i') {
-                        if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'Campo '.$f['label'].' invalido.'];
+                        if ((int)$vals[$k] <= 0) $flash[] = ['type'=>'error','msg'=>'Campo '.$f['label'].' obligatorio.'];
                     } else {
                         if (trim((string)$vals[$k]) === '') $flash[] = ['type'=>'error','msg'=>'Campo '.$f['label'].' obligatorio.'];
                     }
@@ -246,6 +267,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         if (!$hasErr) {
             $table = $M['table'];
             $pk = $M['pk'];
+            $fieldKeys = array_map(fn($f)=>(string)$f['k'], $M['fields']);
+            $extraWrite = [];
+            if (has_column($link, $table, 'system_name') && !in_array('system_name', $fieldKeys, true)) {
+                $sid = (int)($vals['system_id'] ?? 0);
+                $extraWrite['system_name'] = (string)($systemsById[$sid] ?? '');
+            }
             $hasImage = false;
             foreach ($M['fields'] as $f) { if (($f['k'] ?? '') === 'image_url') { $hasImage = true; break; } }
 
@@ -299,6 +326,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
                     $bind[] = $vals[$f['k']];
                 }
+                foreach ($extraWrite as $k => $v) {
+                    $cols[] = $k;
+                    $ph[] = '?';
+                    $types .= 's';
+                    $bind[] = (string)$v;
+                }
                 $sql = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`", $cols)).") VALUES (".implode(',', $ph).")";
                 if (!empty($M['has_timestamps'])) {
                     $sql = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`", $cols)).", created_at, updated_at) VALUES (".implode(',', $ph).", NOW(), NOW())";
@@ -329,6 +362,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $sets[] = "`".$f['k']."`=?";
                         $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
                         $bind[] = $vals[$f['k']];
+                    }
+                    foreach ($extraWrite as $k => $v) {
+                        $sets[] = "`".$k."`=?";
+                        $types .= 's';
+                        $bind[] = (string)$v;
                     }
                     $sql = "UPDATE `$table` SET ".implode(', ', $sets);
                     if (!empty($M['has_timestamps'])) $sql .= ", updated_at=NOW()";

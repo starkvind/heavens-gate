@@ -80,6 +80,11 @@ function build_pretty_search_url(string $rutu, string $id): string {
 }
 
     // Determinar la tabla y los campos de búsqueda basados en $skz
+    $giftRulesField = 'system_name';
+    if ($rsGiftCol = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'")) {
+        if (mysqli_num_rows($rsGiftCol) > 0) $giftRulesField = 'mechanics_text';
+        mysqli_free_result($rsGiftCol);
+    }
     switch ($skz) {
         case 'biografias':
             $tabla = 'fact_characters';
@@ -104,7 +109,7 @@ function build_pretty_search_url(string $rutu, string $id): string {
 
         case 'dones':
             $tabla = 'fact_gifts';
-            $campos = 'name, description, system_name';
+            $campos = 'name, description, ' . $giftRulesField;
             $searchField = 'name';
             $rutu = 'muestradon';
             break;

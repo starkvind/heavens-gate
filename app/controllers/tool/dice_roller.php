@@ -55,7 +55,13 @@ function roll_d10_pool(int $dados, int $dificultad, array $forced = []): array {
 
 function normalize_kind_key(string $kind): string {
     $k = function_exists('mb_strtolower') ? mb_strtolower(trim($kind), 'UTF-8') : strtolower(trim($kind));
-    return strtr($k, ['Ã¡'=>'a','Ã©'=>'e','Ã­'=>'i','Ã³'=>'o','Ãº'=>'u','Ã'=>'a','Ã‰'=>'e','Ã'=>'i','Ã“'=>'o','Ãš'=>'u']);
+    if (function_exists('iconv')) {
+        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $k);
+        if ($converted !== false) {
+            $k = $converted;
+        }
+    }
+    return strtolower($k);
 }
 
 function sanitize_int_csv(string $csv): string {
@@ -119,7 +125,7 @@ function fetch_pj_roll_profiles(mysqli $link, array $pjs): array {
                   FROM bridge_characters_traits b
                   JOIN dim_traits t ON t.id = b.trait_id
                   WHERE b.character_id IN ($idSql)
-                    AND t.kind IN ('Atributos','Talentos','TÃ©cnicas','Tecnicas','Conocimientos','Trasfondos')
+                    AND t.kind IN ('Atributos','Talentos','Técnicas','Tecnicas','Conocimientos','Trasfondos')
                   ORDER BY t.name";
     if ($rs = mysqli_query($link, $sqlTraits)) {
         while ($r = mysqli_fetch_assoc($rs)) {
@@ -184,7 +190,7 @@ function render_roll_card(array $tirada, int $id): void {
     echo "<article class='hg-dice-card'>";
     echo "<div class='hg-forum-roll-box' style='--roll-palette: {$palette};'>";
     echo "<div class='hg-forum-roll-box-name'>{$rollName}</div>";
-    echo "<p class='hg-forum-roll-head'><strong>{$name}</strong> lanzÃ³ {$dicePool}d10 a Dificultad <strong>{$dificultad}</strong>.</p>";
+    echo "<p class='hg-forum-roll-head'><strong>{$name}</strong> lanzó {$dicePool}d10 a Dificultad <strong>{$dificultad}</strong>.</p>";
     echo "<div class='hg-forum-roll-results'>";
 
     foreach ($resultados as $dadoRaw) {
@@ -194,8 +200,8 @@ function render_roll_card(array $tirada, int $id): void {
     }
 
     echo "</div>";
-    echo "<p><strong>Ã‰xitos</strong>: {$successes}</p>";
-    if ($isBotch) echo "<p class='hg-forum-roll-botch'><strong>Â¡PIFIA!</strong></p>";
+    echo "<p><strong>Éxitos</strong>: {$successes}</p>";
+    if ($isBotch) echo "<p class='hg-forum-roll-botch'><strong>¡PIFIA!</strong></p>";
     echo "<div class='hg-forum-roll-code'><code>{$safeCodeText}</code><button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$safeCodeText}' title='Copiar codigo'>&#128203;</button></div>";
     echo "</div>";
     echo "</article>";
@@ -657,5 +663,7 @@ $(function(){
     });
 });
 </script>
+
+
 
 

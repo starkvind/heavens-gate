@@ -1281,88 +1281,21 @@ div.renglonDonData {
 
 /* -------------------------------- */
 
+a.hg-avatar-link {
+	display: inline-block;
+	text-decoration: none;
+}
+
 div.marcoFotoBio {
-	float: left;
-	position: relative; 
-	height: 96px; 
-	width: 96px;
-	margin: 2px;
-	margin-bottom: 8px;
-	/* -- */
-	border: 1px solid #000099;
-}
-
-div.marcoFotoBio:hover {
-	border: 1px solid #0000BB;
-	cursor: pointer;
-}
-
-div.textoDentroFotoBio {
-	position: absolute;
-	top: 81px; 
-	right: 0px;
-	overflow: hidden; 
-	line-height: 12px; 
-	z-index: 4; 
-	text-align: right;
-	padding: 2px;
-	padding-top: 1px;
-	/* -- */
-	background: #000066;	
-	font-size: 9px;
-}
-
-/* ------------------------------------ */
-
-div.marcoFotoBioNoSheet {
-	float: left;
-	position: relative; 
-	height: 96px; 
-	width: 96px;
-	margin: 2px;
-	margin-bottom: 8px;
-	/* -- */
-	border: 1px solid #990000;
-	background: #660000;
-}
-
-div.marcoFotoBioNoSheet:hover {
-	border: 1px solid #BB0000;
-	cursor: pointer;
-}
-
-div.textoDentroFotoBioNoSheet {
-	position: absolute;
-	top: 81px; 
-	right: 0px;
-	overflow: hidden; 
-	line-height: 12px; 
-	z-index: 4; 
-	text-align: right;
-	padding: 2px;
-	padding-top: 1px;
-	/* -- */
-	background: #660000;	
-	font-size: 9px;
-}
-
-div.marcoFotoBioMonster {
 	float: left;
 	position: relative;
 	height: 96px;
 	width: 96px;
 	margin: 2px;
 	margin-bottom: 8px;
-	border: 1px solid #D4AF37;
-	background: #5A4A00;
 }
 
-div.marcoFotoBioMonster:hover {
-	border: 1px solid #FFD54A;
-	cursor: pointer;
-}
-
-div.textoDentroFotoBioMonster {
+div.textoDentroFotoBio {
 	position: absolute;
 	top: 81px;
 	right: 0px;
@@ -1372,9 +1305,68 @@ div.textoDentroFotoBioMonster {
 	text-align: right;
 	padding: 2px;
 	padding-top: 1px;
-	background: #7A6400;
 	font-size: 9px;
-	color: #FFF2B3;
+	transition: color 0.15s ease;
+}
+
+div.marcoFotoBio--pj,
+div.marcoFotoBio {
+	border: 1px solid #000099;
+}
+
+div.textoDentroFotoBio--pj,
+div.textoDentroFotoBio {
+	background: #000066;
+	color: #8fb2ff;
+}
+
+a.hg-avatar-link--pj:hover div.marcoFotoBio--pj,
+a.hg-avatar-link:hover div.marcoFotoBio {
+	border: 1px solid #0000BB;
+	cursor: pointer;
+}
+
+a.hg-avatar-link--pj:hover div.textoDentroFotoBio--pj,
+a.hg-avatar-link:hover div.textoDentroFotoBio {
+	color: #c7d7ff;
+}
+
+div.marcoFotoBio--pnj {
+	border: 1px solid #990000;
+	background: #660000;
+}
+
+div.textoDentroFotoBio--pnj {
+	background: #660000;
+	color: #ff9898;
+}
+
+a.hg-avatar-link--pnj:hover div.marcoFotoBio--pnj {
+	border: 1px solid #BB0000;
+	cursor: pointer;
+}
+
+a.hg-avatar-link--pnj:hover div.textoDentroFotoBio--pnj {
+	color: #ffcaca;
+}
+
+div.marcoFotoBio--mon {
+	border: 1px solid #D4AF37;
+	background: #5A4A00;
+}
+
+div.textoDentroFotoBio--mon {
+	background: #7A6400;
+	color: #e8c55a;
+}
+
+a.hg-avatar-link--mon:hover div.marcoFotoBio--mon {
+	border: 1px solid #FFD54A;
+	cursor: pointer;
+}
+
+a.hg-avatar-link--mon:hover div.textoDentroFotoBio--mon {
+	color: #ffe39a;
 }
 
 div.dentroFotoBio {
@@ -1842,6 +1834,46 @@ header img {
 	display: flex;
 	gap: 8px;
 	align-items: flex-start;
+}
+
+#hg-tooltip {
+	position: fixed;
+	z-index: 9999;
+	max-width: 320px;
+	background: #0b0b2b;
+	border: 1px solid #003399;
+	color: #e6f0ff;
+	padding: 8px 10px;
+	border-radius: 6px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+	font-size: 12px;
+	display: none;
+	pointer-events: none;
+	text-align: left;
+	max-height: 60vh;
+	overflow: auto;
+}
+
+#hg-tooltip .hg-tip-title {
+	font-weight: bold;
+	margin-bottom: 4px;
+	color: #8fd7ff;
+}
+
+#hg-tooltip .hg-tip-meta {
+	font-size: 11px;
+	color: #9fb2d9;
+}
+
+#hg-tooltip .hg-tip-label {
+	font-weight: bold;
+	margin-top: 6px;
+	color: #cfd9ff;
+}
+
+#hg-tooltip .hg-tip-text {
+	font-size: 12px;
+	color: #e6f0ff;
 }
 
 .hg-tip-thumb {

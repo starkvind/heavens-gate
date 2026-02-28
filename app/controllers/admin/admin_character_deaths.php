@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // admin_character_deaths.php - Gestion de muertes de personajes con guardado Ajax por fila.
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
@@ -197,7 +197,7 @@ if ($hasSchema) {
       p.id,
       p.pretty_id,
       p.name,
-      p.status,
+      COALESCE(dcs.label, p.status) AS status, p.status_id,
       p.chronicle_id,
       COALESCE(bo.organization_id, 0) AS organization_id,
       d.id AS death_id,
@@ -208,6 +208,7 @@ if ($hasSchema) {
       d.death_description,
       d.narrative_weight
     FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     LEFT JOIN (
       SELECT character_id, MIN(organization_id) AS organization_id
       FROM bridge_characters_organizations
@@ -610,3 +611,5 @@ if ($hasSchema) {
 })();
 </script>
 <?php endif; ?>
+
+

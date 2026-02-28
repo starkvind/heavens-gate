@@ -37,9 +37,12 @@ $charactersSql = "
         p.id,
         p.name,
         p.image_url,
-        p.status,
+        COALESCE(dcs.label, p.status) AS status,
+        p.status_id,
         COALESCE(nc.name, '') AS clan_name
     FROM fact_characters p
+        LEFT JOIN dim_character_status dcs
+            ON dcs.id = p.status_id
         LEFT JOIN bridge_characters_organizations hccb
             ON hccb.character_id = p.id
            AND (hccb.is_active = 1 OR hccb.is_active IS NULL)

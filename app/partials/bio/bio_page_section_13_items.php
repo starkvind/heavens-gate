@@ -19,8 +19,7 @@
     $stmt->bind_param('i', $characterId);
     $stmt->execute();
     $result = $stmt->get_result();
-
-    // ðŸ‘‰ SI HAY OBJETOS
+    // SI HAY OBJETOS
     if ($result->num_rows > 0) {
         echo "<div class='bioSheetPowers'>"; // Objetos y Fetiches de la Hoja ~~ #SEC13
 		echo "<fieldset class='bioSeccion'><legend>$titleItems</legend>";
@@ -30,7 +29,7 @@
             $tipoItemSelect    = (int)$row['item_type_id'];
 
             // ================================================= //
-            // ElecciÃ³n de icono
+            // Eleccion de icono
             switch ($tipoItemSelect) {
                 case 1:
                     $iconoItemSelect = "img/ui/icons/icon_machete.png";

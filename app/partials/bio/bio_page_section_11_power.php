@@ -1,13 +1,13 @@
 <?php
 
 /* --------------------------------------------------------------- */
-// Requiere: $link = conexiÃ³n mysqli y $idPersonaje definido
+// Requiere: $link = conexion mysqli y $idPersonaje definido
 
 $iconos = [
     'dones' => 'img/ui/icons/icon_claws.png',
     'disciplinas' => 'img/ui/icons/icon_fangs.png',
     'rituales' => 'img/ui/icons/icon_book.png',
-    // Puedes aÃ±adir mÃ¡s tipos aquÃ­ si aparecen (como taumaturgia, etc)
+    // Puedes anadir mas tipos aqui si aparecen (como taumaturgia, etc)
 ];
 
 // Consulta los poderes desde el bridge
@@ -90,7 +90,7 @@ if (count($listaPoderes) > 0) {
 
 			if ($result->num_rows > 0) {
 				$data = $result->fetch_assoc();
-				// Nombre del poder segÃºn tipo
+				// Nombre del poder segun tipo
 				$nombre = isset($data['name']) ? $data['name'] : (isset($data['name']) ? $data['name'] : '???');
 				$level = isset($data['level']) ? $data['level'] : null;
 				$rango = isset($data['rank']) ? $data['rank'] : (isset($data['rango']) ? $data['rango'] : null);

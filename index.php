@@ -1,4 +1,12 @@
 <?php
+    if (!headers_sent()) {
+        header('Content-Type: text/html; charset=UTF-8');
+    }
+    ini_set('default_charset', 'UTF-8');
+    if (function_exists('mb_internal_encoding')) {
+        mb_internal_encoding('UTF-8');
+    }
+
     $T_inicio = microtime(true);
 
     //include("ip.php");
@@ -58,7 +66,7 @@
                     </td>
                 </tr>
             </table>
-            <button id="btnTop" class="layout-btn-top" aria-label="Volver arriba">&#8679;</button>
+            <button id="btnTop" class="layout-btn-top" aria-label="Volver arriba">&#x1F845;</button>
             <!-- PIE DE PAGINA -->
             <table class="todou layout-footer-table">
                 <tr>
@@ -82,7 +90,7 @@
     // Mostrar / ocultar
     window.addEventListener('scroll', function(){
         if (window.scrollY > 300) {
-        btn.style.display = 'block';
+        btn.style.display = 'flex';
         } else {
         btn.style.display = 'none';
         }

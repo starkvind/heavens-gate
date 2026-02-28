@@ -94,9 +94,10 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
 
           a.id AS type_id, a.pretty_id AS type_pretty_id, a.kind AS type_name,
 
-          s.name AS system_name, p.status
+          s.name AS system_name, COALESCE(dcs.label, p.status) AS status, p.status_id
 
       FROM fact_characters p
+        LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
 
 
 
@@ -836,7 +837,7 @@ $(document).ready(function () {
 
 		language: {
 
-			search: "🔍 Buscar:&nbsp;",
+			search: "ðŸ” Buscar:&nbsp;",
 
 			lengthMenu: "Mostrar _MENU_ personajes",
 
@@ -1127,6 +1128,8 @@ $(document).ready(function () {
 });
 
 </script>
+
+
 
 
 

@@ -20,6 +20,7 @@ if (!function_exists('sanitize_int_csv')) {
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
+$characterKindSql = hg_character_kind_select($link, 'p');
 $queryOwners = "
     SELECT
         p.id,
@@ -27,9 +28,11 @@ $queryOwners = "
         p.alias,
         p.image_url,
         p.gender,
-        p.status
+        COALESCE(dcs.label, p.status) AS status, p.status_id,
+        {$characterKindSql} AS character_kind
     FROM bridge_characters_items b
     JOIN fact_characters p ON p.id = b.character_id
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     WHERE b.item_id = ? $cronicaNotInSQL
     ORDER BY p.name
 ";
@@ -67,12 +70,18 @@ if ($resultOwners->num_rows === 0) {
         $simboloEstado = $mapEstado[$pjState] ?? "";
 
         $href = pretty_url($link, 'fact_characters', '/characters', (int)$pjId);
-        echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$pjName}'>";
-            echo "<div class='marcoFotoBio'>";
-                echo "<div class='textoDentroFotoBio'>{$pjLabel} {$simboloEstado}</div>";
-                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$pjImg}' alt='{$pjName}'></div>";
-            echo "</div>";
-        echo "</a>";
+        hg_render_character_avatar_tile([
+            'href' => $href,
+            'title' => html_entity_decode($pjName, ENT_QUOTES, 'UTF-8'),
+            'name' => html_entity_decode($pjName, ENT_QUOTES, 'UTF-8'),
+            'alias' => html_entity_decode($pjAlias, ENT_QUOTES, 'UTF-8'),
+            'character_id' => $pjId,
+            'image_url' => (string)($rowOwner['image_url'] ?? ''),
+            'gender' => (string)($rowOwner['gender'] ?? ''),
+            'status' => (string)($rowOwner['status'] ?? ''),
+            'character_kind' => hg_character_kind_from_row($rowOwner),
+            'target_blank' => true,
+        ]);
 
         $totalOwners++;
     }
@@ -83,3 +92,4 @@ if ($resultOwners->num_rows === 0) {
 
 $stmtOwners->close();
 ?>
+

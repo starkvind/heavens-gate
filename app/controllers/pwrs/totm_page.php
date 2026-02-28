@@ -74,7 +74,8 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
     $totemCharOwners = [];
-    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.gender, p.status FROM fact_characters p WHERE p.totem_id = ? $cronicaNotInSQL ORDER BY p.name")) {
+    $characterKindSql = hg_character_kind_select($link, 'p');
+    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind FROM fact_characters p LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id WHERE p.totem_id = ? $cronicaNotInSQL ORDER BY p.name")) {
         $stOwners->bind_param('i', $totemPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -230,12 +231,18 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-                echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='" . htmlspecialchars($name) . "'>";
-                    echo "<div class='marcoFotoBio'>";
-                        echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                        echo "<div class='dentroFotoBio'><img class='fotoBioList' src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($name) . "'></div>";
-                    echo "</div>";
-                echo "</a>";
+                hg_render_character_avatar_tile([
+                    'href' => $href,
+                    'title' => $name,
+                    'name' => $name,
+                    'alias' => $alias,
+                    'character_id' => $oid,
+                    'image_url' => (string)($o['image_url'] ?? ''),
+                    'gender' => (string)($o['gender'] ?? ''),
+                    'status' => (string)($o['status'] ?? ''),
+                    'character_kind' => hg_character_kind_from_row($o),
+                    'target_blank' => true,
+                ]);
             }
             echo "</div></div>";
             echo "<p align='right'>Personajes: " . count($totemCharOwners) . "</p>";
@@ -278,3 +285,5 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     echo "<p>Error: Tótem no encontrado.</p>";
 }
 ?>
+
+

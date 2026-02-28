@@ -2,6 +2,17 @@
 setMetaFromPage("Dones | Heaven's Gate", "Listado completo de dones.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
+function gift_mechanics_col(mysqli $link): string {
+	$rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
+	if ($rs && mysqli_num_rows($rs) > 0) {
+		mysqli_free_result($rs);
+		return 'mechanics_text';
+	}
+	if ($rs) mysqli_free_result($rs);
+	return 'system_name';
+}
+$giftRulesCol = gift_mechanics_col($link);
+
 // Cargar dones con la query indicada
 $query = "
 	select
@@ -14,7 +25,7 @@ $query = "
 		d.attribute_name as gift_roll_attribute,
 		d.ability_name as gift_roll_skill,
 		d.description as gift_description,
-		d.system_name as gift_roll_description,
+		d.`$giftRulesCol` as gift_roll_description,
 		s.name as gift_fera_system,
 		d.system_id as gift_system_id,
 		nb.name as gift_origin

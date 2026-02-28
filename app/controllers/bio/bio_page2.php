@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 	include_once(__DIR__ . '/../../helpers/character_avatar.php');
 	/*  Índice de secciones
 			1.- Query en Base de Datos 		[#SEC01]
@@ -915,6 +915,7 @@
 </script>
 	<script>
 		document.addEventListener('DOMContentLoaded', () => {
+			if (window.__hgTooltipBound) return;
 			const tooltip = document.createElement('div');
 			tooltip.id = 'hg-tooltip';
 			document.body.appendChild(tooltip);

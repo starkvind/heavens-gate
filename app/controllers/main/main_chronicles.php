@@ -55,6 +55,7 @@ $chronicleFilterId = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 $chronicleFilterSQL = ($chronicleFilterId > 0) ? " AND p.chronicle_id = " . $chronicleFilterId . " " : "";
 $kindColumn = hg_ch_has_column($link, 'fact_characters', 'character_kind') ? 'character_kind' : 'kind';
 $statusColumn = hg_ch_has_column($link, 'fact_characters', 'status') ? 'status' : 'character_status';
+$statusExpr = "COALESCE(dcs.label, p.`$statusColumn`)";
 
 include("app/partials/main_nav_bar.php");
 
@@ -147,7 +148,8 @@ $sql = "
         p.id,
         p.name,
         p.alias,
-        p.`$statusColumn` AS status,
+        {$statusExpr} AS status,
+        p.status_id,
         p.image_url,
         p.gender,
         p.`$kindColumn` AS character_kind,
@@ -157,6 +159,7 @@ $sql = "
         COALESCE(nc2.name, nc_from_pack.name, 'Sin organizacion') AS organization_name,
         COALESCE(nc2.sort_order, nc_from_pack.sort_order, 999999) AS organization_sort_order
     FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id
     LEFT JOIN bridge_characters_groups hcg
         ON hcg.character_id = p.id
@@ -186,11 +189,13 @@ $sql = "
         WHEN 'mon' THEN 3
         ELSE 99
       END ASC,
-      CASE LOWER(TRIM(p.`$statusColumn`))
+      CASE LOWER(TRIM({$statusExpr}))
         WHEN 'en activo' THEN 1
         WHEN 'paradero desconocido' THEN 2
         WHEN 'cadáver' THEN 3
+        WHEN 'cadáver' THEN 3
         WHEN 'cadaver' THEN 3
+        WHEN 'aún por aparecer' THEN 4
         WHEN 'aún por aparecer' THEN 4
         WHEN 'aun por aparecer' THEN 4
         ELSE 99
@@ -254,23 +259,11 @@ foreach ($keys as $k) {
         $idPJ = (int)($rowPJ['id'] ?? 0);
         $nombrePJ = hg_ch_h($rowPJ['name'] ?? '');
         $aliasPJ = hg_ch_h($rowPJ['alias'] ?? '');
-        $imgPJ = hg_ch_h(hg_character_avatar_url($rowPJ['image_url'] ?? '', $rowPJ['gender'] ?? ''));
-        $claseRaw = strtolower(trim((string)($rowPJ['character_kind'] ?? '')));
+        $imgPJ = (string)hg_character_avatar_url($rowPJ['image_url'] ?? '', $rowPJ['gender'] ?? '');
+        $claseRaw = (string)($rowPJ['character_kind'] ?? '');
         $estadoPJ = hg_ch_h($rowPJ['status'] ?? '');
 
         if ($aliasPJ === '') $aliasPJ = $nombrePJ;
-
-        $fondoFoto = '';
-        $linkClass = '';
-        $isMonster = ($claseRaw === 'mon' || $claseRaw === 'monster');
-        $isPj = ($claseRaw === 'pj');
-        if ($isMonster) {
-            $fondoFoto = "Monster";
-            $linkClass = 'chron-link-monster';
-        } elseif (!$isPj && $claseRaw !== '') {
-            $fondoFoto = "NoSheet";
-            $linkClass = 'chron-link-nosheet';
-        }
 
         $mapEstado = [
             "Aún por aparecer"     => "(&#64;)",
@@ -282,13 +275,16 @@ foreach ($keys as $k) {
         $simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
         $hrefPJ = pretty_url($link, 'fact_characters', '/characters', $idPJ);
-        $linkAttr = ($linkClass !== '') ? " class='" . hg_ch_h($linkClass) . "'" : '';
-        echo "<a href='" . hg_ch_h($hrefPJ) . "' title='" . $nombrePJ . "'" . $linkAttr . ">";
-            echo "<div class='marcoFotoBio" . hg_ch_h($fondoFoto) . "'>";
-                echo "<div class='textoDentroFotoBio" . hg_ch_h($fondoFoto) . "'>$aliasPJ $simboloEstado</div>";
-                echo "<div class='dentroFotoBio'><img class='fotoBioList' src='$imgPJ' alt='$nombrePJ'></div>";
-            echo "</div>";
-        echo "</a>";
+        hg_render_character_avatar_tile([
+            'href' => $hrefPJ,
+            'title' => html_entity_decode($nombrePJ, ENT_QUOTES, 'UTF-8'),
+            'name' => html_entity_decode($nombrePJ, ENT_QUOTES, 'UTF-8'),
+            'alias' => html_entity_decode($aliasPJ, ENT_QUOTES, 'UTF-8'),
+            'character_id' => $idPJ,
+            'avatar_url' => $imgPJ,
+            'status' => html_entity_decode($estadoPJ, ENT_QUOTES, 'UTF-8'),
+            'character_kind' => $claseRaw,
+        ]);
     }
 
     echo "</div>";
@@ -311,3 +307,6 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 });
 </script>
+
+
+

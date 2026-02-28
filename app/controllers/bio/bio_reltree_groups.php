@@ -29,9 +29,12 @@ $charsSql = "
         p.id,
         p.name,
         p.image_url,
-        p.status,
+        COALESCE(dcs.label, p.status) AS status,
+        p.status_id,
         gbc.group_id
     FROM fact_characters p
+        LEFT JOIN dim_character_status dcs
+            ON dcs.id = p.status_id
         LEFT JOIN bridge_characters_groups gbc
             ON gbc.character_id = p.id
            AND (gbc.is_active = 1 OR gbc.is_active IS NULL)
@@ -185,5 +188,4 @@ const options = {
 
 new vis.Network(container, data, options);
 </script>
-
 

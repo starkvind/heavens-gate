@@ -65,13 +65,15 @@ if (!function_exists('sanitize_int_csv')) {
 
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $excludeChronicles = ($excludeChronicles === '') ? '2,7' : $excludeChronicles;
-$chronicleNotInSQL = ($excludeChronicles !== '') ? " AND chronicle_id NOT IN ($excludeChronicles) " : "";
+$chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
+$characterKindSql = hg_character_kind_select($link, 'p');
 $queryCharacters = "
-    SELECT id, name, alias, image_url, gender, status
-    FROM fact_characters
-    WHERE player_id = ? $chronicleNotInSQL
-    ORDER BY name ASC
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind
+    FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
+    WHERE p.player_id = ? $chronicleNotInSQL
+    ORDER BY p.name ASC
 ";
 $stmtCharacters = mysqli_prepare($link, $queryCharacters);
 if (!$stmtCharacters) {
@@ -120,21 +122,22 @@ $mapEstado = [
                     <?php foreach ($characters as $char): ?>
                         <?php
                             $charId = (int)($char['id'] ?? 0);
-                            $charName = htmlspecialchars((string)($char['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+                            $charName = (string)($char['name'] ?? '');
                             $charAliasRaw = (string)($char['alias'] ?? '');
-                            $charAlias = htmlspecialchars($charAliasRaw !== '' ? $charAliasRaw : (string)($char['name'] ?? ''), ENT_QUOTES, 'UTF-8');
-                            $charImgRaw = (string)($char['image_url'] ?? '');
-                            $charImg = htmlspecialchars(hg_character_avatar_url($charImgRaw, (string)($char['gender'] ?? '')), ENT_QUOTES, 'UTF-8');
-                            $charStatus = (string)($char['status'] ?? '');
-                            $charState = $mapEstado[$charStatus] ?? '';
-                            $charHref = htmlspecialchars(pretty_url($link, 'fact_characters', '/characters', $charId), ENT_QUOTES, 'UTF-8');
+                            $charAlias = $charAliasRaw !== '' ? $charAliasRaw : (string)($char['name'] ?? '');
+                            $charHref = pretty_url($link, 'fact_characters', '/characters', $charId);
                         ?>
-                        <a href="<?= $charHref ?>" title="<?= $charName ?>">
-                            <div class="marcoFotoBio">
-                                <div class="textoDentroFotoBio"><?= $charAlias ?> <?= $charState ?></div>
-                                <div class="dentroFotoBio"><img class="fotoBioList" src="<?= $charImg ?>" alt="<?= $charName ?>"></div>
-                            </div>
-                        </a>
+                        <?php hg_render_character_avatar_tile([
+                            'href' => $charHref,
+                            'title' => $charName,
+                            'name' => $charName,
+                            'alias' => $charAlias,
+                            'character_id' => $charId,
+                            'image_url' => (string)($char['image_url'] ?? ''),
+                            'gender' => (string)($char['gender'] ?? ''),
+                            'status' => (string)($char['status'] ?? ''),
+                            'character_kind' => hg_character_kind_from_row($char),
+                        ]); ?>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -144,3 +147,4 @@ $mapEstado = [
         <?php endif; ?>
     </section>
 </div>
+

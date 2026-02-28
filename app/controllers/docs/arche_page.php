@@ -107,9 +107,11 @@ $chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN (
 $natureOwners = [];
 $demeanorOwners = [];
 
+$characterKindSql = hg_character_kind_select($link, 'p');
 $queryOwnersNature = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind
     FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     WHERE p.nature_id = ? {$chronicleNotInSQL}
     ORDER BY p.name
 ";
@@ -124,8 +126,9 @@ if ($stNature = $link->prepare($queryOwnersNature)) {
 }
 
 $queryOwnersDemeanor = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind
     FROM fact_characters p
+    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     WHERE p.demeanor_id = ? {$chronicleNotInSQL}
     ORDER BY p.name
 ";
@@ -169,19 +172,21 @@ if ($hasOwnersTabs) {
         echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
         foreach ($natureOwners as $o) {
             $oid = (int)($o['id'] ?? 0);
-            $name = htmlspecialchars((string)($o['name'] ?? ''));
-            $alias = htmlspecialchars((string)($o['alias'] ?? ''));
-            $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
-            $estado = (string)($o['status'] ?? '');
-            $label = $alias !== '' ? $alias : $name;
-            $simboloEstado = $mapEstado[$estado] ?? '';
+            $name = (string)($o['name'] ?? '');
+            $alias = (string)($o['alias'] ?? '');
             $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-            echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
-            echo "<div class='marcoFotoBio'>";
-            echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-            echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-            echo "</div>";
-            echo "</a>";
+            hg_render_character_avatar_tile([
+                'href' => $href,
+                'title' => $name,
+                'name' => $name,
+                'alias' => $alias,
+                'character_id' => $oid,
+                'image_url' => (string)($o['image_url'] ?? ''),
+                'gender' => (string)($o['gender'] ?? ''),
+                'status' => (string)($o['status'] ?? ''),
+                'character_kind' => hg_character_kind_from_row($o),
+                'target_blank' => true,
+            ]);
         }
         echo "</div></div>";
         echo "<p align='right'>Personajes (Naturaleza): " . count($natureOwners) . "</p>";
@@ -192,19 +197,21 @@ if ($hasOwnersTabs) {
         echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
         foreach ($demeanorOwners as $o) {
             $oid = (int)($o['id'] ?? 0);
-            $name = htmlspecialchars((string)($o['name'] ?? ''));
-            $alias = htmlspecialchars((string)($o['alias'] ?? ''));
-            $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
-            $estado = (string)($o['status'] ?? '');
-            $label = $alias !== '' ? $alias : $name;
-            $simboloEstado = $mapEstado[$estado] ?? '';
+            $name = (string)($o['name'] ?? '');
+            $alias = (string)($o['alias'] ?? '');
             $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-            echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
-            echo "<div class='marcoFotoBio'>";
-            echo "<div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-            echo "<div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-            echo "</div>";
-            echo "</a>";
+            hg_render_character_avatar_tile([
+                'href' => $href,
+                'title' => $name,
+                'name' => $name,
+                'alias' => $alias,
+                'character_id' => $oid,
+                'image_url' => (string)($o['image_url'] ?? ''),
+                'gender' => (string)($o['gender'] ?? ''),
+                'status' => (string)($o['status'] ?? ''),
+                'character_kind' => hg_character_kind_from_row($o),
+                'target_blank' => true,
+            ]);
         }
         echo "</div></div>";
         echo "<p align='right'>Personajes (Conducta): " . count($demeanorOwners) . "</p>";
@@ -217,3 +224,4 @@ if ($hasOwnersTabs) {
 
 $stmtArche->close();
 ?>
+

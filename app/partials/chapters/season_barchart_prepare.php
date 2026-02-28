@@ -3,11 +3,11 @@
 	$id_temporada = $_GET['t'] ?? null;
 
 	if (!$id_temporada || !is_numeric($id_temporada)) {
-		echo "<p class='chapt-error'>âŒ Temporada no vÃ¡lida.</p>";
+		echo "<p class='chapt-error'>Temporada no valida.</p>";
 		return;
 	}
 
-	// Paso 1: obtener el nÃºmero de temporada real (ej: 2, 3...) desde el ID
+	// Paso 1: obtener el numero de temporada real (ej: 2, 3...) desde el ID
 	$query_num_temporada = "
 		SELECT season_number FROM dim_seasons WHERE id = ?
 	";
@@ -18,7 +18,7 @@
 	$numero_temporada = $result->fetch_assoc()['season_number'] ?? null;
 
 	if (!$numero_temporada) {
-		echo "<p class='chapt-error'>âŒ No se encontrÃ³ la temporada solicitada.</p>";
+		echo "<p class='chapt-error'>No se encontro la temporada solicitada.</p>";
 		return;
 	}
 
@@ -28,7 +28,7 @@
 	}
 */
 
-	// 1. Obtener total de capÃ­tulos en la temporada (con fecha vÃ¡lida)
+	// 1. Obtener total de capitulos en la temporada (con fecha valida)
 	$query_total = "
 		SELECT COUNT(*) AS total
 		FROM dim_chapters
@@ -40,13 +40,13 @@
 	$result = $stmt->get_result();
 	$total_capitulos = $result->fetch_assoc()['total'] ?? 0;
 
-	// Si no hay capÃ­tulos, salir
+	// Si no hay capitulos, salir
 	if ($total_capitulos == 0) {
-		//echo "<p >âš ï¸ Esta temporada no tiene capÃ­tulos registrados.</p>";
+		//echo "<p>Esta temporada no tiene capitulos registrados.</p>";
 		return;
 	}
 
-	// 2. Obtener participaciÃ³n por personaje
+	// 2. Obtener participacion por personaje
 	$query_participacion = "
 		SELECT fact_characters.name, fact_characters.id AS pj_id, COUNT(*) AS jugados
 		FROM bridge_chapters_characters acp

@@ -270,6 +270,7 @@ if ($table !== "") {
 ?>
 <script>
 (function(){
+	if (window.__hgTooltipBound) return;
 	const nodes = document.querySelectorAll('.hg-tooltip[data-tip="don"]');
 	if (!nodes.length) return;
 

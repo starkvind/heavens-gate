@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar la conexión a la base de datos
 if (!$link) {
@@ -179,17 +179,22 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     if ($typePack == 1) {
 
         $packsOfSeptQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
+            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
             WHERE bg.group_id = ?
               AND (bg.is_active = 1 OR bg.is_active IS NULL)
               $cronicaNotInSQL
             ORDER BY
-                CASE p.status
-                    WHEN 'Paradero desconocido' THEN 1
-                    WHEN 'Cadáver' THEN 2
-                    WHEN 'Aún por aparecer' THEN 9999
+                CASE LOWER(TRIM(COALESCE(dcs.label, p.status)))
+                    WHEN 'paradero desconocido' THEN 1
+                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadaver' THEN 2
+                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aun por aparecer' THEN 9999
                     ELSE 0
                 END,
                 p.name
@@ -210,8 +215,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataAlias  = ($packRow["alias"] !== '' && $packRow["alias"] !== null) ? (string)$packRow["alias"] : $packDataName;
                     $packDataImg    = hg_character_avatar_url((string)$packRow["image_url"], (string)($packRow["gender"] ?? ''));
                     $packDataStatus = (string)$packRow["status"];
-                    $packDataKind   = strtolower(trim((string)($packRow["character_kind"] ?? '')));
-                    $packFotoClass  = ($packDataKind === 'mon' || $packDataKind === 'monster') ? "Monster" : "";
+                    $packDataKind   = (string)($packRow["character_kind"] ?? '');
 
                     switch ($packDataStatus) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -220,16 +224,16 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                         default:                       $simboloEstado = ""; break;
                     }
 
-                    echo "
-                    <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$packDataId)) . "' title='" . h($packDataName) . "'>
-                        <div class='marcoFotoBio" . h($packFotoClass) . "'>
-                            <div class='textoDentroFotoBio" . h($packFotoClass) . "'>" . h($packDataAlias) . " $simboloEstado</div>
-                            <div class='dentroFotoBio'>
-                                <img class='fotoBioList' src='" . h($packDataImg) . "'>
-                            </div>
-                        </div>
-                    </a>
-                    ";
+                    hg_render_character_avatar_tile([
+                        'href' => pretty_url($link, 'fact_characters', '/characters', (int)$packDataId),
+                        'title' => $packDataName,
+                        'name' => $packDataName,
+                        'alias' => $packDataAlias,
+                        'character_id' => $packDataId,
+                        'avatar_url' => $packDataImg,
+                        'status' => $packDataStatus,
+                        'character_kind' => $packDataKind,
+                    ]);
                 }
                 echo "</div>";
                 echo "</td></tr>";
@@ -240,17 +244,22 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         }
 
         $oldMembersQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
+            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
             WHERE bg.group_id = ?
               AND bg.is_active = 0
               $cronicaNotInSQL
             ORDER BY
-                CASE p.status
-                    WHEN 'Paradero desconocido' THEN 1
-                    WHEN 'Cadáver' THEN 2
-                    WHEN 'Aún por aparecer' THEN 9999
+                CASE LOWER(TRIM(COALESCE(dcs.label, p.status)))
+                    WHEN 'paradero desconocido' THEN 1
+                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadaver' THEN 2
+                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aun por aparecer' THEN 9999
                     ELSE 0
                 END,
                 p.name
@@ -271,8 +280,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $oldMemberAlias  = ($oldMemberRow["alias"] !== '' && $oldMemberRow["alias"] !== null) ? (string)$oldMemberRow["alias"] : $oldMemberName;
                     $oldMemberImg    = hg_character_avatar_url((string)$oldMemberRow["image_url"], (string)($oldMemberRow["gender"] ?? ''));
                     $oldMemberStatus = (string)$oldMemberRow["status"];
-                    $oldMemberKind   = strtolower(trim((string)($oldMemberRow["character_kind"] ?? '')));
-                    $oldFotoClass    = ($oldMemberKind === 'mon' || $oldMemberKind === 'monster') ? "Monster" : "";
+                    $oldMemberKind   = (string)($oldMemberRow["character_kind"] ?? '');
 
                     switch ($oldMemberStatus) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -281,16 +289,16 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                         default:                       $simboloEstado = ""; break;
                     }
 
-                    echo "
-                    <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$oldMemberId)) . "' title='" . h($oldMemberName) . "'>
-                        <div class='marcoFotoBio" . h($oldFotoClass) . "'>
-                            <div class='textoDentroFotoBio" . h($oldFotoClass) . "'>" . h($oldMemberAlias) . " $simboloEstado</div>
-                            <div class='dentroFotoBio'>
-                                <img class='fotoBioList' src='" . h($oldMemberImg) . "'>
-                            </div>
-                        </div>
-                    </a>
-                    ";
+                    hg_render_character_avatar_tile([
+                        'href' => pretty_url($link, 'fact_characters', '/characters', (int)$oldMemberId),
+                        'title' => $oldMemberName,
+                        'name' => $oldMemberName,
+                        'alias' => $oldMemberAlias,
+                        'character_id' => $oldMemberId,
+                        'avatar_url' => $oldMemberImg,
+                        'status' => $oldMemberStatus,
+                        'character_kind' => $oldMemberKind,
+                    ]);
                 }
                 echo "</div>";
                 echo "</td></tr>";
@@ -387,9 +395,10 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         //  - Clan: bridge_characters_organizations
         //  - Sin manada: NO existe enlace activo en bridge_characters_groups
         $charsWithoutPackQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, p.status, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_organizations bc
             INNER JOIN fact_characters p ON p.id = bc.character_id
+            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
             LEFT JOIN bridge_characters_groups bg
                 ON bg.character_id = p.id
                AND (bg.is_active = 1 OR bg.is_active IS NULL)
@@ -398,10 +407,14 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
               AND bg.character_id IS NULL
               $cronicaNotInSQL
             ORDER BY
-                CASE p.status
-                    WHEN 'Paradero desconocido' THEN 1
-                    WHEN 'Cadáver' THEN 2
-                    WHEN 'Aún por aparecer' THEN 9999
+                CASE LOWER(TRIM(COALESCE(dcs.label, p.status)))
+                    WHEN 'paradero desconocido' THEN 1
+                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadaver' THEN 2
+                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aun por aparecer' THEN 9999
                     ELSE 0
                 END,
                 p.name
@@ -422,8 +435,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $calias = ($charRow["alias"] !== '' && $charRow["alias"] !== null) ? (string)$charRow["alias"] : $cname;
                     $cimg  = hg_character_avatar_url((string)$charRow["image_url"], (string)($charRow["gender"] ?? ''));
                     $cst   = (string)$charRow["status"];
-                    $ckind = strtolower(trim((string)($charRow["character_kind"] ?? '')));
-                    $charFotoClass = ($ckind === 'mon' || $ckind === 'monster') ? "Monster" : "";
+                    $ckind = (string)($charRow["character_kind"] ?? '');
 
                     switch ($cst) {
                         case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
@@ -432,16 +444,16 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                         default:                       $simboloEstado = ""; break;
                     }
 
-                    echo "
-                        <a href='" . h(pretty_url($link, 'fact_characters', '/characters', (int)$cid)) . "' title='" . h($cname) . "'>
-                            <div class='marcoFotoBio" . h($charFotoClass) . "'>
-                                <div class='textoDentroFotoBio" . h($charFotoClass) . "'>" . h($calias) . " $simboloEstado</div>
-                                <div class='dentroFotoBio'>
-                                    <img class='fotoBioList' src='" . h($cimg) . "'>
-                                </div>
-                            </div>
-                        </a>
-                    ";
+                    hg_render_character_avatar_tile([
+                        'href' => pretty_url($link, 'fact_characters', '/characters', (int)$cid),
+                        'title' => $cname,
+                        'name' => $cname,
+                        'alias' => $calias,
+                        'character_id' => $cid,
+                        'avatar_url' => $cimg,
+                        'status' => $cst,
+                        'character_kind' => $ckind,
+                    ]);
                 }
                 echo "</div>";
                 echo "</td></tr>";
@@ -458,3 +470,6 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 mysqli_free_result($result);
 mysqli_stmt_close($stmtMain);
 ?>
+
+
+

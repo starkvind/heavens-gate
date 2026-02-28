@@ -4,7 +4,16 @@ header('Content-Type: text/html; charset=UTF-8');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function short_text($html, $limit=520){
-    $txt = trim(strip_tags((string)$html));
+    $raw = (string)$html;
+    // Quill suele guardar bloques HTML; convertimos saltos útiles antes de limpiar.
+    $raw = preg_replace('/<\s*br\s*\/?>/i', "\n", $raw);
+    $raw = preg_replace('/<\s*\/p\s*>/i', "\n", $raw);
+    $raw = preg_replace('/<\s*li\s*>/i', " - ", $raw);
+    $txt = trim(strip_tags($raw));
+    // Evita mostrar entidades tipo &aacute; en bruto en el tooltip.
+    $txt = html_entity_decode($txt, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $txt = preg_replace('/[ \t]+/', ' ', $txt);
+    $txt = preg_replace('/\n{3,}/', "\n\n", $txt);
     if ($txt === '') return '';
     if (function_exists('mb_substr')) {
         if (mb_strlen($txt,'UTF-8') > $limit) return mb_substr($txt,0,$limit,'UTF-8') . '...';
@@ -12,6 +21,25 @@ function short_text($html, $limit=520){
     }
     if (strlen($txt) > $limit) return substr($txt,0,$limit) . '...';
     return $txt;
+}
+
+function tt_has_column(mysqli $link, string $table, string $column): bool {
+    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+    $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+    if ($table === '' || $column === '') return false;
+    $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$column'");
+    if (!$rs) return false;
+    $ok = (mysqli_num_rows($rs) > 0);
+    mysqli_free_result($rs);
+    return $ok;
+}
+function tt_join_meta(array $parts): string {
+    $safe = [];
+    foreach ($parts as $p) {
+        $v = trim((string)$p);
+        if ($v !== '') $safe[] = h($v);
+    }
+    return implode(' - ', $safe);
 }
 
 $type = $_GET['type'] ?? '';
@@ -28,32 +56,59 @@ $outExtraLabel = '';
 $outExtra = '';
 
 if ($type === 'don') {
-    if ($st = $link->prepare("SELECT name, rank, shifter_system_name, system_name, description FROM fact_gifts WHERE id=? LIMIT 1")) {
+    $giftSystemCol = tt_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
+    $giftRulesCol = tt_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+    $sqlDon = "SELECT name, rank, `{$giftSystemCol}` AS gift_system_name, `{$giftRulesCol}` AS gift_rules, description FROM fact_gifts WHERE id=? LIMIT 1";
+    if ($st = $link->prepare($sqlDon)) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
             $rango = $r['rank'] ?? '';
-            $fera = $r['shifter_system_name'] ?? '';
+            $fera = $r['gift_system_name'] ?? '';
             $outMeta = "Rango " . h($rango);
             if ($fera !== '') $outMeta .= " - " . h($fera);
-            $outSystem = short_text($r['system_name'] ?? '');
+            $outSystem = short_text($r['gift_rules'] ?? '');
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
     }
 } elseif ($type === 'rite') {
-    if ($st = $link->prepare("SELECT name, level, race, system_text, description AS descr FROM fact_rites WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("
+        SELECT
+            r.name,
+            r.kind,
+            r.level,
+            r.race,
+            r.system_text,
+            r.description AS descr,
+            rt.name AS rite_type_name
+        FROM fact_rites r
+        LEFT JOIN dim_rite_types rt
+            ON rt.id = CASE
+                WHEN r.kind REGEXP '^[0-9]+$' THEN CAST(r.kind AS UNSIGNED)
+                ELSE NULL
+            END
+        WHERE r.id = ?
+        LIMIT 1
+    ")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
+            $tipo = trim((string)($r['rite_type_name'] ?? ''));
+            if ($tipo === '') {
+                $tipo = trim((string)($r['kind'] ?? ''));
+            }
             $nivel = $r['level'] ?? '';
             $raza = $r['race'] ?? '';
-            $outMeta = "Nivel " . h($nivel);
-            if ($raza !== '') $outMeta .= " - " . h($raza);
+            $meta = [];
+            if ($tipo !== '') $meta[] = $tipo;
+            $meta[] = "Nivel " . $nivel;
+            if ($raza !== '') $meta[] = $raza;
+            $outMeta = tt_join_meta($meta);
             $outSystem = short_text($r['system_text'] ?? '');
             $outDesc = short_text($r['descr'] ?? '', 360);
         }
@@ -144,7 +199,12 @@ if ($type === 'don') {
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $outMeta = '';
+            $parts = [];
+            $system = trim((string)($r['system_name'] ?? ''));
+            $energy = (int)($r['energy'] ?? 0);
+            if ($system !== '') $parts[] = $system;
+            if ($energy > 0) $parts[] = 'Gnosis ' . $energy;
+            $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
@@ -156,7 +216,12 @@ if ($type === 'don') {
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $outMeta = '';
+            $parts = [];
+            $system = trim((string)($r['system_name'] ?? ''));
+            $energy = (int)($r['energy'] ?? 0);
+            if ($system !== '') $parts[] = $system;
+            if ($energy > 0) $parts[] = 'Rabia ' . $energy;
+            $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
@@ -168,7 +233,12 @@ if ($type === 'don') {
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $outMeta = '';
+            $parts = [];
+            $system = trim((string)($r['system_name'] ?? ''));
+            $energy = (int)($r['energy'] ?? 0);
+            if ($system !== '') $parts[] = $system;
+            if ($energy > 0) $parts[] = 'Fuerza de Voluntad ' . $energy;
+            $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
@@ -180,6 +250,7 @@ if ($type === 'don') {
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
+            $outMeta = 'Arquetipo de personalidad';
             $outDesc = short_text($r['description'] ?? '', 280);
             $wp = short_text($r['willpower_text'] ?? '', 220);
             if ($wp !== '') {
@@ -190,14 +261,18 @@ if ($type === 'don') {
         $st->close();
     }
 } elseif ($type === 'totem') {
-    if ($st = $link->prepare("SELECT name, cost, description FROM dim_totems WHERE id=? LIMIT 1")) {
+    if ($st = $link->prepare("SELECT t.name, t.cost, t.description, tt.name AS type_name FROM dim_totems t LEFT JOIN dim_totem_types tt ON tt.id=t.totem_type_id WHERE t.id=? LIMIT 1")) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
-            $cost = (string)($r['cost'] ?? '');
-            if ($cost !== '') $outMeta = 'Coste ' . h($cost);
+            $parts = [];
+            $typeName = trim((string)($r['type_name'] ?? ''));
+            $cost = (int)($r['cost'] ?? 0);
+            if ($typeName !== '') $parts[] = $typeName;
+            if ($cost > 0) $parts[] = 'Coste ' . $cost;
+            $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
@@ -209,6 +284,7 @@ if ($type === 'don') {
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
+            $outMeta = 'Grupo';
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
@@ -220,6 +296,7 @@ if ($type === 'don') {
         $rs = $st->get_result();
         if ($r = $rs->fetch_assoc()) {
             $outTitle = $r['name'] ?? '';
+            $outMeta = 'Organización';
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
@@ -249,6 +326,51 @@ if ($type === 'don') {
                 if ($kindNorm !== '') $outMeta = h($kindNorm);
                 $outDesc = short_text($r['description'] ?? '', 320);
             }
+        }
+        $st->close();
+    }
+} elseif ($type === 'character' || $type === 'bio' || $type === 'pj') {
+    $kindCol = tt_has_column($link, 'fact_characters', 'character_kind') ? 'character_kind' : (tt_has_column($link, 'fact_characters', 'kind') ? 'kind' : '');
+    $descExpr = "COALESCE(NULLIF(c.info_text,''), NULLIF(c.notes,''), '')";
+    if (tt_has_column($link, 'fact_characters', 'description')) {
+        $descExpr = "COALESCE(NULLIF(c.description,''), NULLIF(c.info_text,''), NULLIF(c.notes,''), '')";
+    }
+    $kindSelect = ($kindCol !== '') ? "c.`$kindCol` AS character_kind," : "";
+    $sql = "
+        SELECT
+            c.name,
+            c.alias,
+            {$kindSelect}
+            {$descExpr} AS char_desc,
+            b.name AS breed_name,
+            a.name AS auspice_name,
+            t.name AS tribe_name
+        FROM fact_characters c
+        LEFT JOIN dim_breeds b   ON b.id = c.breed_id
+        LEFT JOIN dim_auspices a ON a.id = c.auspice_id
+        LEFT JOIN dim_tribes t   ON t.id = c.tribe_id
+        WHERE c.id = ?
+        LIMIT 1
+    ";
+    if ($st = $link->prepare($sql)) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $name = (string)($r['name'] ?? '');
+            $alias = trim((string)($r['alias'] ?? ''));
+            $outTitle = ($alias !== '' ? $alias . ' (' . $name . ')' : $name);
+
+            $meta = [];
+            $breed = trim((string)($r['breed_name'] ?? ''));
+            $auspice = trim((string)($r['auspice_name'] ?? ''));
+            $tribe = trim((string)($r['tribe_name'] ?? ''));
+            if ($breed !== '') $meta[] = h($breed);
+            if ($auspice !== '') $meta[] = h($auspice);
+            if ($tribe !== '') $meta[] = h($tribe);
+            if (!empty($meta)) $outMeta = implode(' - ', $meta);
+
+            $outDesc = short_text((string)($r['char_desc'] ?? ''), 440);
         }
         $st->close();
     }

@@ -1,6 +1,39 @@
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
+<style>
+/* Override local: evita texto blanco sobre fondo blanco en Select2 */
+#mb{
+  --adm-s2-bg: #000033;
+  --adm-s2-color: #ffffff;
+  --adm-s2-border: #333333;
+  --adm-s2-hover: #001199;
+  --adm-s2-selected: #00105f;
+}
+#mb .select2-dropdown{
+  background: var(--adm-s2-bg) !important;
+  border: 1px solid var(--adm-s2-border) !important;
+  color: var(--adm-s2-color) !important;
+}
+#mb .select2-results__option{
+  background: transparent !important;
+  color: var(--adm-s2-color) !important;
+}
+#mb .select2-container--default .select2-results__option--selected{
+  background: var(--adm-s2-selected) !important;
+  color: var(--adm-s2-color) !important;
+}
+#mb .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
+  background: var(--adm-s2-hover) !important;
+  color: #ffffff !important;
+}
+#mb .select2-container--default .select2-selection--single .select2-selection__arrow b{
+  border-color: #9fd8ff transparent transparent transparent !important;
+}
+#mb .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b{
+  border-color: transparent transparent #9fd8ff transparent !important;
+}
+</style>
 
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
@@ -21,505 +54,538 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-
-/* -------------------------------------------------
-   Helpers (texto “complejo”)
-------------------------------------------------- */
-function preview_text(string $s, int $len = 180): string {
-  $s = strip_tags($s);
-  $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-  $s = preg_replace('/\s+/u', ' ', $s);
-  $s = trim($s);
-  if (function_exists('mb_strlen') && mb_strlen($s, 'UTF-8') > $len) $s = mb_substr($s, 0, $len - 1, 'UTF-8') . '…';
-  return $s;
-}
-
-/* -------------------------------------------------
-   Subidas (avatar): rutas y utilidades
-------------------------------------------------- */
-$DOCROOT      = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
-$AV_UPLOADDIR = $DOCROOT . '/public/img/characters';
-$AV_URLBASE   = '/img/characters';
-if (!is_dir($AV_UPLOADDIR)) { @mkdir($AV_UPLOADDIR, 0775, true); }
-
-function slugify($text){
-    $text = trim((string)$text);
-    if (function_exists('iconv')) { $text = @iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$text); }
-    $text = preg_replace('~[^\\pL\\d]+~u','-',$text);
-    $text = trim($text,'-');
-    $text = strtolower($text);
-    $text = preg_replace('~[^-a-z0-9]+~','',$text);
-    return $text ?: 'pj';
-}
-function save_avatar_file(array $file, int $pjId, string $displayName, string $uploadDir, string $urlBase){
-    if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
-    if ($file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Error de subida (#'.$file['error'].')'];
-    if ($file['size'] > 5*1024*1024)     return ['ok'=>false,'msg'=>'El archivo supera 5 MB'];
-    $tmp = $file['tmp_name'];
-    if (!is_uploaded_file($tmp))         return ['ok'=>false,'msg'=>'Subida no válida'];
-
-    $mime = '';
-    if (function_exists('finfo_open')) { $fi = finfo_open(FILEINFO_MIME_TYPE); if ($fi) { $mime = finfo_file($fi, $tmp); finfo_close($fi); } }
-    if (!$mime) { $gi = @getimagesize($tmp); $mime = $gi['mime'] ?? ''; }
-
-    $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'];
-    if (!isset($allowed[$mime])) return ['ok'=>false,'msg'=>'Formato no permitido (JPG/PNG/GIF/WebP)'];
-
-    $ext  = $allowed[$mime];
-    $slug = slugify($displayName ?: 'pj');
-    $name = sprintf('pj-%d-%s-%s.%s', $pjId, $slug, date('YmdHis'), $ext);
-    $dst  = rtrim($uploadDir,'/').'/'.$name;
-
-    if (!@move_uploaded_file($tmp, $dst)) return ['ok'=>false,'msg'=>'No se pudo mover el archivo subido'];
-    @chmod($dst, 0644);
-    return ['ok'=>true,'url'=>rtrim($urlBase,'/').'/'.$name, 'path'=>$dst];
-}
-function safe_unlink_avatar(string $relUrl, string $uploadDir){
-    if ($relUrl==='') return;
-    $docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__,'/');
-    $rel = '/'.ltrim($relUrl,'/');
-    // Public URL remains /img/... but physical files live under /public/img/...
-    if (strpos($rel, '/img/') === 0) {
-        $abs = $docroot . '/public' . $rel;
-    } else {
-        $abs = $docroot . $rel;
+if (!function_exists('fetchPairs')) {
+    function fetchPairs(mysqli $link, string $sql): array {
+        $out = [];
+        if (!$rs = $link->query($sql)) return $out;
+        while ($row = $rs->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) continue;
+            $out[$id] = (string)($row['name'] ?? '');
+        }
+        $rs->close();
+        return $out;
     }
-    $base= realpath($uploadDir);
-    $absr= @realpath($abs);
-    if ($absr && $base && strpos($absr,$base)===0 && is_file($absr)) { @unlink($absr); }
 }
+if (!function_exists('pjs_table_exists')) {
+    function pjs_table_exists(mysqli $link, string $table): bool {
+        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        if ($t === '') return false;
+        $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' LIMIT 1";
+        $rs = $link->query($sql);
+        if (!$rs) return false;
+        $ok = ($rs->num_rows > 0);
+        $rs->close();
+        return $ok;
+    }
+}
+if (!function_exists('pjs_table_has_column')) {
+    function pjs_table_has_column(mysqli $link, string $table, string $column): bool {
+        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($t === '' || $c === '') return false;
+        $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
+        $rs = $link->query($sql);
+        if (!$rs) return false;
+        $ok = ($rs->num_rows > 0);
+        $rs->close();
+        return $ok;
+    }
+}
+if (!function_exists('pjs_column_char_maxlen')) {
+    function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
+        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($t === '' || $c === '') return 0;
+        $sql = "SELECT COALESCE(CHARACTER_MAXIMUM_LENGTH, 0) AS m FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
+        $rs = $link->query($sql);
+        if (!$rs) return 0;
+        $row = $rs->fetch_assoc();
+        $rs->close();
+        return (int)($row['m'] ?? 0);
+    }
+}
+if (!function_exists('sync_character_bridges')) {
+    function sync_character_bridges(mysqli $link, int $characterId, int $groupId, int $organizationId): void {
+        if ($characterId <= 0) return;
 
-/**
- * Sincroniza bridges de pertenencia al guardar un PJ (manada/clan).
- */
-/**
- * Sincroniza bridges de pertenencia al guardar un PJ (manada/clan).
- * - Siempre deja activo el clan (si clanId > 0)
- * - Siempre deja activa la manada (si groupId > 0)
- * - Desactiva el resto de registros del personaje en cada bridge
- */
-function sync_character_bridges(mysqli $link, int $charId, int $groupId, int $clanId): void {
+        $hasGroups = pjs_table_exists($link, 'bridge_characters_groups');
+        $hasOrgs = pjs_table_exists($link, 'bridge_characters_organizations');
+        $groupsHasActive = $hasGroups && pjs_table_has_column($link, 'bridge_characters_groups', 'is_active');
+        $orgsHasActive = $hasOrgs && pjs_table_has_column($link, 'bridge_characters_organizations', 'is_active');
 
-    // -------------------------
-    // 1) GROUP BRIDGE (manada)
-    // -------------------------
-    if ($groupId > 0) {
-        // upsert "activo" para (charId, groupId)
-        if ($st = $link->prepare("SELECT id FROM bridge_characters_groups WHERE character_id=? AND group_id=? LIMIT 1")) {
-            $st->bind_param("ii", $charId, $groupId);
-            $st->execute();
-            $rs = $st->get_result();
-
-            if ($rs && ($row = $rs->fetch_assoc())) {
-                $idrow = (int)$row['id'];
-                if ($st2 = $link->prepare("UPDATE bridge_characters_groups SET is_active=1 WHERE id=?")) {
-                    $st2->bind_param("i", $idrow);
-                    $st2->execute();
-                    $st2->close();
+        if ($hasGroups) {
+            if ($groupsHasActive) {
+                if ($groupId > 0) {
+                    if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=? AND group_id<>?")) {
+                        $st->bind_param("ii", $characterId, $groupId);
+                        $st->execute();
+                        $st->close();
+                    }
+                    if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, is_active, position) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
+                        $st->bind_param("ii", $characterId, $groupId);
+                        $st->execute();
+                        $st->close();
+                    }
+                } else {
+                    if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=?")) {
+                        $st->bind_param("i", $characterId);
+                        $st->execute();
+                        $st->close();
+                    }
                 }
             } else {
-                if ($st2 = $link->prepare("INSERT INTO bridge_characters_groups (character_id,group_id,is_active) VALUES (?,?,1)")) {
-                    $st2->bind_param("ii", $charId, $groupId);
-                    $st2->execute();
-                    $st2->close();
+                if ($st = $link->prepare("DELETE FROM bridge_characters_groups WHERE character_id=?")) {
+                    $st->bind_param("i", $characterId);
+                    $st->execute();
+                    $st->close();
                 }
+                if ($groupId > 0) {
+                    if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, position) VALUES (?, ?, '')")) {
+                        $st->bind_param("ii", $characterId, $groupId);
+                        $st->execute();
+                        $st->close();
+                    }
+                }
+            }
+        }
+
+        if ($hasOrgs) {
+            if ($orgsHasActive) {
+                if ($organizationId > 0) {
+                    if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
+                        $st->bind_param("ii", $characterId, $organizationId);
+                        $st->execute();
+                        $st->close();
+                    }
+                    if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, is_active, role) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
+                        $st->bind_param("ii", $characterId, $organizationId);
+                        $st->execute();
+                        $st->close();
+                    }
+                } else {
+                    if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=?")) {
+                        $st->bind_param("i", $characterId);
+                        $st->execute();
+                        $st->close();
+                    }
+                }
+            } else {
+                if ($st = $link->prepare("DELETE FROM bridge_characters_organizations WHERE character_id=?")) {
+                    $st->bind_param("i", $characterId);
+                    $st->execute();
+                    $st->close();
+                }
+                if ($organizationId > 0) {
+                    if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, role) VALUES (?, ?, '')")) {
+                        $st->bind_param("ii", $characterId, $organizationId);
+                        $st->execute();
+                        $st->close();
+                    }
+                }
+            }
+        }
+    }
+}
+if (!function_exists('save_character_powers')) {
+    function save_character_powers(mysqli $link, int $characterId, array $types, array $ids, array $levels): array {
+        $res = ['inserted' => 0, 'skipped' => 0];
+        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_powers')) return $res;
+
+        $allowed = ['dones' => true, 'disciplinas' => true, 'rituales' => true];
+        $n = min(count($types), count($ids), count($levels));
+        $rows = [];
+        for ($i = 0; $i < $n; $i++) {
+            $type = strtolower(trim((string)$types[$i]));
+            $pid = (int)$ids[$i];
+            $lvl = (int)$levels[$i];
+            if (!isset($allowed[$type]) || $pid <= 0) { $res['skipped']++; continue; }
+            if ($lvl < 0) $lvl = 0;
+            if ($lvl > 9) $lvl = 9;
+            $rows[$type . ':' . $pid] = ['type' => $type, 'id' => $pid, 'lvl' => $lvl];
+        }
+
+        if ($st = $link->prepare("DELETE FROM bridge_characters_powers WHERE character_id=?")) {
+            $st->bind_param("i", $characterId);
+            $st->execute();
+            $st->close();
+        }
+
+        if (!empty($rows) && ($st = $link->prepare("INSERT INTO bridge_characters_powers (character_id, power_kind, power_id, power_level) VALUES (?,?,?,?)"))) {
+            foreach ($rows as $r) {
+                $type = $r['type'];
+                $pid = $r['id'];
+                $lvl = $r['lvl'];
+                $st->bind_param("isii", $characterId, $type, $pid, $lvl);
+                if ($st->execute()) $res['inserted']++; else $res['skipped']++;
+            }
+            $st->close();
+        }
+        return $res;
+    }
+}
+if (!function_exists('save_character_merits_flaws')) {
+    function save_character_merits_flaws(mysqli $link, int $characterId, array $ids, array $levelsRaw): array {
+        $res = ['inserted' => 0, 'skipped' => 0];
+        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_merits_flaws')) return $res;
+
+        $n = max(count($ids), count($levelsRaw));
+        $rows = [];
+        for ($i = 0; $i < $n; $i++) {
+            $mid = isset($ids[$i]) ? (int)$ids[$i] : 0;
+            if ($mid <= 0) { $res['skipped']++; continue; }
+            $lvlRaw = $levelsRaw[$i] ?? '';
+            $lvlRaw = is_string($lvlRaw) ? trim($lvlRaw) : $lvlRaw;
+            $lvl = null;
+            if ($lvlRaw !== '' && $lvlRaw !== null) {
+                $lvl = (int)$lvlRaw;
+                if ($lvl < -99) $lvl = -99;
+                if ($lvl > 99) $lvl = 99;
+            }
+            $rows[$mid] = $lvl;
+        }
+
+        if ($st = $link->prepare("DELETE FROM bridge_characters_merits_flaws WHERE character_id=?")) {
+            $st->bind_param("i", $characterId);
+            $st->execute();
+            $st->close();
+        }
+
+        $stLvl = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?,?,?)");
+        $stNull = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?, ?, NULL)");
+        if (!empty($rows) && ($stLvl || $stNull)) {
+            foreach ($rows as $mid => $lvl) {
+                if ($lvl === null) {
+                    if ($stNull) {
+                        $stNull->bind_param("ii", $characterId, $mid);
+                        if ($stNull->execute()) $res['inserted']++; else $res['skipped']++;
+                    } else {
+                        $res['skipped']++;
+                    }
+                } else {
+                    if ($stLvl) {
+                        $stLvl->bind_param("iii", $characterId, $mid, $lvl);
+                        if ($stLvl->execute()) $res['inserted']++; else $res['skipped']++;
+                    } else {
+                        $res['skipped']++;
+                    }
+                }
+            }
+            if ($stLvl) $stLvl->close();
+            if ($stNull) $stNull->close();
+        }
+        return $res;
+    }
+}
+if (!function_exists('save_character_items')) {
+    function save_character_items(mysqli $link, int $characterId, array $ids): array {
+        $res = ['inserted' => 0, 'skipped' => 0];
+        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_items')) return $res;
+
+        $rows = [];
+        foreach ($ids as $id) {
+            $iid = (int)$id;
+            if ($iid <= 0) { $res['skipped']++; continue; }
+            $rows[$iid] = true;
+        }
+
+        if ($st = $link->prepare("DELETE FROM bridge_characters_items WHERE character_id=?")) {
+            $st->bind_param("i", $characterId);
+            $st->execute();
+            $st->close();
+        }
+
+        if (!empty($rows) && ($st = $link->prepare("INSERT INTO bridge_characters_items (character_id, item_id) VALUES (?,?)"))) {
+            foreach (array_keys($rows) as $iid) {
+                $st->bind_param("ii", $characterId, $iid);
+                if ($st->execute()) $res['inserted']++; else $res['skipped']++;
+            }
+            $st->close();
+        }
+        return $res;
+    }
+}
+if (!function_exists('save_character_traits')) {
+    function save_character_traits(mysqli $link, int $characterId, array $traits, string $source = 'admin', ?string $createdBy = null): array {
+        $res = ['updated' => 0];
+        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_traits')) return $res;
+
+        $hasLog = pjs_table_exists($link, 'bridge_characters_traits_log');
+        $existing = [];
+        if ($st = $link->prepare("SELECT trait_id, value FROM bridge_characters_traits WHERE character_id=?")) {
+            $st->bind_param("i", $characterId);
+            $st->execute();
+            if ($rs = $st->get_result()) {
+                while ($r = $rs->fetch_assoc()) $existing[(int)$r['trait_id']] = (int)$r['value'];
             }
             $st->close();
         }
 
-        // desactivar otras manadas del PJ
-        if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=? AND group_id<>?")) {
-            $st->bind_param("ii", $charId, $groupId);
-            $st->execute();
-            $st->close();
+        $normalized = [];
+        foreach ($traits as $tid => $v) {
+            $tid = (int)$tid;
+            if ($tid <= 0) continue;
+            $nv = (int)$v;
+            if ($nv < 0) $nv = 0;
+            if ($nv > 10) $nv = 10;
+            $normalized[$tid] = $nv;
         }
-    } else {
-        // si no hay manada, desactiva todas
-        if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=?")) {
-            $st->bind_param("i", $charId);
-            $st->execute();
-            $st->close();
+
+        $ins = $link->prepare("INSERT INTO bridge_characters_traits (character_id, trait_id, value) VALUES (?,?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)");
+        $del = $link->prepare("DELETE FROM bridge_characters_traits WHERE character_id=? AND trait_id=?");
+        $log = null;
+        if ($hasLog) {
+            $log = $link->prepare("INSERT INTO bridge_characters_traits_log (character_id, trait_id, old_value, new_value, delta, reason, source, created_by) VALUES (?,?,?,?,?,?,?,?)");
         }
-    }
 
-    // -------------------------
-    // 2) CLAN BRIDGE
-    // -------------------------
-    if ($clanId > 0) {
-        // upsert "activo" para (charId, clanId)
-        if ($st = $link->prepare("SELECT id FROM bridge_characters_organizations WHERE character_id=? AND organization_id=? LIMIT 1")) {
-            $st->bind_param("ii", $charId, $clanId);
-            $st->execute();
-            $rs = $st->get_result();
+        foreach ($normalized as $tid => $nv) {
+            $ov = array_key_exists($tid, $existing) ? (int)$existing[$tid] : null;
+            $delta = ($ov === null) ? $nv : ($nv - $ov);
+            if ($ov !== null && $ov === $nv) continue;
 
-            if ($rs && ($row = $rs->fetch_assoc())) {
-                $idrow = (int)$row['id'];
-                if ($st2 = $link->prepare("UPDATE bridge_characters_organizations SET is_active=1 WHERE id=?")) {
-                    $st2->bind_param("i", $idrow);
-                    $st2->execute();
-                    $st2->close();
-                }
-            } else {
-                if ($st2 = $link->prepare("INSERT INTO bridge_characters_organizations (character_id,organization_id,is_active) VALUES (?,?,1)")) {
-                    $st2->bind_param("ii", $charId, $clanId);
-                    $st2->execute();
-                    $st2->close();
-                }
+            if ($ins) {
+                $ins->bind_param("iii", $characterId, $tid, $nv);
+                if ($ins->execute()) $res['updated']++;
             }
-            $st->close();
-        }
-
-        // desactivar otros clanes del PJ
-        if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
-            $st->bind_param("ii", $charId, $clanId);
-            $st->execute();
-            $st->close();
-        }
-    } else {
-        // si no hay clan, desactiva todos
-        if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=?")) {
-            $st->bind_param("i", $charId);
-            $st->execute();
-            $st->close();
-        }
-    }
-}
-
-/* --- PODERES: helper para guardar poderes del formulario --- */
-function save_character_powers(mysqli $link, int $charId, array $types, array $ids, array $lvls): array {
-    $n = min(count($types), count($ids), count($lvls));
-    $inserted = 0; $skipped = 0;
-
-    if ($st = $link->prepare("DELETE FROM bridge_characters_powers WHERE character_id=?")) {
-        $st->bind_param("i", $charId); $st->execute(); $st->close();
-    }
-    if ($n<=0) return ['inserted'=>0,'skipped'=>0];
-
-    $seen = [];
-    if ($ins = $link->prepare("INSERT INTO bridge_characters_powers (character_id, power_kind, power_id, power_level) VALUES (?,?,?,?)")) {
-        for ($i=0; $i<$n; $i++){
-            $t = (string)$types[$i];
-            $id = (int)$ids[$i];
-            $lvl = max(0, min(9, (int)$lvls[$i]));
-
-            if (!in_array($t, ['dones','disciplinas','rituales'], true)) { $skipped++; continue; }
-            if ($id <= 0) { $skipped++; continue; }
-
-            $key = $t.':'.$id;
-            if (isset($seen[$key])) { $skipped++; continue; }
-            $seen[$key] = true;
-
-            $ins->bind_param("isii", $charId, $t, $id, $lvl);
-            if ($ins->execute()) { $inserted++; } else { $skipped++; }
-        }
-        $ins->close();
-    }
-    return ['inserted'=>$inserted,'skipped'=>$skipped];
-}
-
-/* --- MÉRITOS/DEFECTOS: helper guardar bridge (nivel NULL o int) --- */
-function save_character_merits_flaws(mysqli $link, int $charId, array $ids, array $lvls_raw): array {
-    $n = min(count($ids), count($lvls_raw));
-    $inserted = 0; $skipped = 0;
-
-    if ($st = $link->prepare("DELETE FROM bridge_characters_merits_flaws WHERE character_id=?")) {
-        $st->bind_param("i", $charId); $st->execute(); $st->close();
-    }
-    if ($n<=0) return ['inserted'=>0,'skipped'=>0];
-
-    $seen = [];
-    // 3er parámetro lo bindeamos como string para que NULL viaje como NULL sin convertirse a 0
-    if ($ins = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?,?,?)")) {
-        for ($i=0; $i<$n; $i++){
-            $mid = (int)$ids[$i];
-            if ($mid <= 0) { $skipped++; continue; }
-
-            $key = (string)$mid;
-            if (isset($seen[$key])) { $skipped++; continue; }
-            $seen[$key] = true;
-
-            $raw = $lvls_raw[$i];
-            $raw = is_string($raw) ? trim($raw) : $raw;
-            if ($raw === '' || $raw === null) {
-                $lvl = null; // NULL real
-            } else {
-                $lvl = (string)max(-99, min(999, (int)$raw)); // tope razonable
+            if ($log) {
+                $reason = ($ov === null) ? 'admin initial' : 'admin update';
+                $log->bind_param("iiiiisss", $characterId, $tid, $ov, $nv, $delta, $reason, $source, $createdBy);
+                $log->execute();
             }
-
-            $ins->bind_param("iis", $charId, $mid, $lvl);
-            if ($ins->execute()) { $inserted++; } else { $skipped++; }
+            unset($existing[$tid]);
         }
-        $ins->close();
+
+        foreach ($existing as $tid => $ov) {
+            if ($del) {
+                $del->bind_param("ii", $characterId, $tid);
+                if ($del->execute()) $res['updated']++;
+            }
+            if ($log) {
+                $nv = null;
+                $delta = -((int)$ov);
+                $reason = 'admin update';
+                $log->bind_param("iiiiisss", $characterId, $tid, $ov, $nv, $delta, $reason, $source, $createdBy);
+                $log->execute();
+            }
+        }
+
+        if ($ins) $ins->close();
+        if ($del) $del->close();
+        if ($log) $log->close();
+        return $res;
     }
-    return ['inserted'=>$inserted,'skipped'=>$skipped];
 }
-
-/* --- INVENTARIO: helper guardar bridge --- */
-function save_character_items(mysqli $link, int $charId, array $itemIds): array {
-    $inserted = 0; $skipped = 0;
-
-    if ($st = $link->prepare("DELETE FROM bridge_characters_items WHERE character_id=?")) {
-        $st->bind_param("i", $charId); $st->execute(); $st->close();
-    }
-    if (empty($itemIds)) return ['inserted'=>0,'skipped'=>0];
-
-    $seen = [];
-    if ($ins = $link->prepare("INSERT INTO bridge_characters_items (character_id, item_id) VALUES (?,?)")) {
-        foreach ($itemIds as $iid){
-            $iid = (int)$iid;
-            if ($iid <= 0) { $skipped++; continue; }
-            if (isset($seen[$iid])) { $skipped++; continue; }
-            $seen[$iid] = true;
-
-            $ins->bind_param("ii", $charId, $iid);
-            if ($ins->execute()) { $inserted++; } else { $skipped++; }
-        }
-        $ins->close();
-    }
-    return ['inserted'=>$inserted,'skipped'=>$skipped];
-}
-
-/* --- TRAITS: helper guardar valores + log --- */
-function save_character_traits(mysqli $link, int $charId, array $traits, string $source = 'admin', ?string $createdBy = null): array {
-    if (empty($traits)) return ['updated'=>0,'logged'=>0,'skipped'=>0];
-
-    $old = [];
-    if ($st = $link->prepare("SELECT trait_id, value FROM bridge_characters_traits WHERE character_id=?")) {
-        $st->bind_param("i", $charId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $old[(int)$row['trait_id']] = (int)$row['value'];
-        }
-        $st->close();
-    }
-
-    $updated = 0; $logged = 0; $skipped = 0;
-
-    $ins = $link->prepare("INSERT INTO bridge_characters_traits (character_id, trait_id, value)
-                           VALUES (?,?,?)
-                           ON DUPLICATE KEY UPDATE value=VALUES(value), updated_at=NOW()");
-    $log = $link->prepare("INSERT INTO bridge_characters_traits_log
-                           (character_id, trait_id, old_value, new_value, delta, reason, source, created_at, created_by)
-                           VALUES (?,?,?,?,?,?,?,NOW(),?)");
-
-    foreach ($traits as $tid => $val) {
-        $tid = (int)$tid;
-        if ($tid <= 0) { $skipped++; continue; }
-        $v = (int)$val;
-        if ($v < 0) $v = 0;
-        if ($v > 10) $v = 10;
-
-        if ($ins) {
-            $ins->bind_param("iii", $charId, $tid, $v);
-            if ($ins->execute()) { $updated++; } else { $skipped++; }
+if (!function_exists('save_character_resources')) {
+    function save_character_resources(
+        mysqli $link,
+        int $characterId,
+        int $systemId,
+        array $rows,
+        array $resourcesBySystem,
+        bool $hasBridge,
+        bool $hasLog,
+        string $source = 'admin',
+        ?string $createdBy = null
+    ): array {
+        $res = ['saved' => 0, 'forced' => 0, 'disabled' => false, 'error' => null];
+        if ($characterId <= 0 || !$hasBridge || !pjs_table_exists($link, 'bridge_characters_system_resources')) {
+            $res['disabled'] = true;
+            return $res;
         }
 
-        $hadOld = array_key_exists($tid, $old);
-        $oldVal = $hadOld ? (int)$old[$tid] : null;
-        if (!$hadOld && $v === 0) {
-            continue; // no log for implicit zero
-        }
-        if ($hadOld && $oldVal === $v) {
-            continue; // no changes
-        }
-
-        $oldStr = $hadOld ? (string)$oldVal : null;
-        $newStr = (string)$v;
-        $delta  = $hadOld ? (string)($v - $oldVal) : $newStr;
-        $reason = $hadOld ? 'admin update' : 'admin initial';
-        $src    = $source;
-        $cb     = $createdBy;
-
-        if ($log) {
-            $log->bind_param("iissssss", $charId, $tid, $oldStr, $newStr, $delta, $reason, $src, $cb);
-            if ($log->execute()) { $logged++; } else { $skipped++; }
-        }
-    }
-
-    if ($ins) $ins->close();
-    if ($log) $log->close();
-
-    return ['updated'=>$updated,'logged'=>$logged,'skipped'=>$skipped];
-}
-
-function pjs_table_exists(mysqli $link, string $table): bool {
-    $st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-    if (!$st) return false;
-    $st->bind_param("s", $table);
-    $st->execute();
-    $st->bind_result($c);
-    $st->fetch();
-    $st->close();
-    return ((int)$c > 0);
-}
-
-function pjs_table_has_column(mysqli $link, string $table, string $column): bool {
-    $st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
-    if (!$st) return false;
-    $st->bind_param("ss", $table, $column);
-    $st->execute();
-    $st->bind_result($c);
-    $st->fetch();
-    $st->close();
-    return ((int)$c > 0);
-}
-
-function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
-    $st = $link->prepare("SELECT COALESCE(CHARACTER_MAXIMUM_LENGTH, 0) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
-    if (!$st) return 0;
-    $st->bind_param("ss", $table, $column);
-    $st->execute();
-    $st->bind_result($len);
-    $st->fetch();
-    $st->close();
-    return (int)$len;
-}
-
-function save_character_resources(
-    mysqli $link,
-    int $charId,
-    int $systemId,
-    array $submittedRows,
-    array $systemResourcesBySystem,
-    bool $hasStateTable,
-    bool $hasLogTable,
-    string $source = 'admin',
-    ?string $createdBy = null
-): array {
-    if (!$hasStateTable || $charId <= 0) {
-        return ['saved'=>0,'logged'=>0,'skipped'=>count($submittedRows),'disabled'=>true];
-    }
-
-    $old = [];
-    if ($st = $link->prepare("SELECT resource_id, value_permanent, value_temporary FROM bridge_characters_system_resources WHERE character_id=?")) {
-        $st->bind_param("i", $charId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $rid = (int)$row['resource_id'];
-            $old[$rid] = [
-                'perm' => (int)($row['value_permanent'] ?? 0),
-                'temp' => (int)($row['value_temporary'] ?? 0),
-            ];
-        }
-        $st->close();
-    }
-
-    $final = [];
-    foreach ($submittedRows as $rid => $vals) {
-        $rid = (int)$rid;
-        if ($rid <= 0) continue;
-        $perm = max(0, (int)($vals['perm'] ?? 0));
-        $temp = max(0, (int)($vals['temp'] ?? 0));
-        $final[$rid] = ['perm'=>$perm, 'temp'=>$temp];
-    }
-
-    $forcedRows = 0;
-    $defaultRows = $systemResourcesBySystem[$systemId] ?? [];
-    foreach ($defaultRows as $r) {
-        $rid = (int)($r['id'] ?? 0);
-        if ($rid <= 0 || isset($final[$rid])) continue;
-        if (isset($old[$rid])) {
-            $final[$rid] = ['perm'=>$old[$rid]['perm'], 'temp'=>$old[$rid]['temp']];
-        } else {
-            $final[$rid] = ['perm'=>0, 'temp'=>0];
-        }
-        $forcedRows++;
-    }
-
-    $saved = 0; $logged = 0; $skipped = 0;
-    $logStmt = null;
-
-    $link->begin_transaction();
-    try {
-        if ($stDel = $link->prepare("DELETE FROM bridge_characters_system_resources WHERE character_id=?")) {
-            $stDel->bind_param("i", $charId);
-            $stDel->execute();
-            $stDel->close();
-        }
-
-        $ins = $link->prepare("INSERT INTO bridge_characters_system_resources (character_id, resource_id, value_permanent, value_temporary) VALUES (?,?,?,?)");
-        if (!$ins) throw new RuntimeException("No se pudo preparar INSERT de recursos.");
-
-        if ($hasLogTable) {
-            $logStmt = $link->prepare("
-                INSERT INTO bridge_characters_system_resources_log
-                (character_id, resource_id, old_permanent, new_permanent, old_temporary, new_temporary, delta_permanent, delta_temporary, reason, source, created_at, created_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?,NOW(),?)
-            ");
-        }
-
-        foreach ($final as $rid => $vals) {
+        $target = [];
+        foreach ($rows as $rid => $vals) {
             $rid = (int)$rid;
-            $perm = (int)$vals['perm'];
-            $temp = (int)$vals['temp'];
+            if ($rid <= 0) continue;
+            $perm = (int)($vals['perm'] ?? 0);
+            $temp = (int)($vals['temp'] ?? 0);
+            if ($perm < 0) $perm = 0;
+            if ($temp < 0) $temp = 0;
+            $target[$rid] = ['perm' => $perm, 'temp' => $temp];
+        }
 
-            $ins->bind_param("iiii", $charId, $rid, $perm, $temp);
-            if ($ins->execute()) $saved++; else $skipped++;
-
-            if ($logStmt) {
-                $had = isset($old[$rid]);
-                $oldPerm = $had ? (string)$old[$rid]['perm'] : null;
-                $oldTemp = $had ? (string)$old[$rid]['temp'] : null;
-                $newPerm = (string)$perm;
-                $newTemp = (string)$temp;
-                $dPerm = $had ? (string)($perm - $old[$rid]['perm']) : $newPerm;
-                $dTemp = $had ? (string)($temp - $old[$rid]['temp']) : $newTemp;
-                if ($had && $oldPerm === $newPerm && $oldTemp === $newTemp) {
-                    continue;
+        if ($systemId > 0 && !empty($resourcesBySystem[$systemId])) {
+            foreach ($resourcesBySystem[$systemId] as $r) {
+                $rid = (int)($r['id'] ?? 0);
+                if ($rid <= 0) continue;
+                if (!isset($target[$rid])) {
+                    $target[$rid] = ['perm' => 0, 'temp' => 0];
+                    $res['forced']++;
                 }
-                $reason = $had ? 'admin update' : 'admin initial';
-                $src = $source;
-                $cb = $createdBy;
-                $logStmt->bind_param("iisssssssss", $charId, $rid, $oldPerm, $newPerm, $oldTemp, $newTemp, $dPerm, $dTemp, $reason, $src, $cb);
-                if ($logStmt->execute()) $logged++;
             }
         }
 
-        $ins->close();
-        if ($logStmt) $logStmt->close();
+        $existing = [];
+        if ($st = $link->prepare("SELECT resource_id, value_permanent, value_temporary FROM bridge_characters_system_resources WHERE character_id=?")) {
+            $st->bind_param("i", $characterId);
+            $st->execute();
+            if ($rs = $st->get_result()) {
+                while ($r = $rs->fetch_assoc()) {
+                    $rid = (int)$r['resource_id'];
+                    $existing[$rid] = ['perm' => (int)$r['value_permanent'], 'temp' => (int)$r['value_temporary']];
+                }
+            }
+            $st->close();
+        }
 
-        $link->commit();
-    } catch (Throwable $e) {
-        $link->rollback();
-        return ['saved'=>0,'logged'=>0,'skipped'=>count($final),'error'=>$e->getMessage(),'forced'=>$forcedRows];
+        $up = $link->prepare("INSERT INTO bridge_characters_system_resources (character_id, resource_id, value_permanent, value_temporary) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE value_permanent=VALUES(value_permanent), value_temporary=VALUES(value_temporary)");
+        $del = $link->prepare("DELETE FROM bridge_characters_system_resources WHERE character_id=? AND resource_id=?");
+        $lg = null;
+        if ($hasLog && pjs_table_exists($link, 'bridge_characters_system_resources_log')) {
+            $lg = $link->prepare("INSERT INTO bridge_characters_system_resources_log (character_id, resource_id, old_permanent, new_permanent, old_temporary, new_temporary, delta_permanent, delta_temporary, reason, source, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+        }
+
+        foreach ($target as $rid => $vals) {
+            $np = (int)$vals['perm'];
+            $nt = (int)$vals['temp'];
+            $ep = $existing[$rid]['perm'] ?? null;
+            $et = $existing[$rid]['temp'] ?? null;
+            if ($ep !== null && $ep === $np && $et === $nt) { unset($existing[$rid]); continue; }
+
+            if ($up) {
+                $up->bind_param("iiii", $characterId, $rid, $np, $nt);
+                if ($up->execute()) $res['saved']++;
+            }
+            if ($lg) {
+                $dp = ($ep === null) ? $np : ($np - $ep);
+                $dt = ($et === null) ? $nt : ($nt - $et);
+                $reason = ($ep === null && $et === null) ? 'admin initial' : 'admin update';
+                $lg->bind_param("iiiiiiiisss", $characterId, $rid, $ep, $np, $et, $nt, $dp, $dt, $reason, $source, $createdBy);
+                $lg->execute();
+            }
+            unset($existing[$rid]);
+        }
+
+        foreach ($existing as $rid => $old) {
+            if ($del) {
+                $del->bind_param("ii", $characterId, $rid);
+                if ($del->execute()) $res['saved']++;
+            }
+            if ($lg) {
+                $ep = (int)$old['perm']; $et = (int)$old['temp'];
+                $np = null; $nt = null; $dp = -$ep; $dt = -$et;
+                $reason = 'admin update';
+                $lg->bind_param("iiiiiiiisss", $characterId, $rid, $ep, $np, $et, $nt, $dp, $dt, $reason, $source, $createdBy);
+                $lg->execute();
+            }
+        }
+
+        if ($up) $up->close();
+        if ($del) $del->close();
+        if ($lg) $lg->close();
+        return $res;
     }
+}
+if (!function_exists('slugify')) {
+    function slugify($text): string {
+        $text = trim((string)$text);
+        if (function_exists('iconv')) {
+            $tmp = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+            if ($tmp !== false) $text = (string)$tmp;
+        }
+        $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
+        $text = trim((string)$text, '-');
+        $text = strtolower((string)$text);
+        $text = preg_replace('~[^-a-z0-9]+~', '', (string)$text);
+        return $text !== '' ? $text : 'pj';
+    }
+}
+if (!function_exists('save_avatar_file')) {
+    function save_avatar_file(array $file, int $pjId, string $displayName, string $uploadDir, string $urlBase): array {
+        if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
+        if ((int)$file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Upload error (#'.(int)$file['error'].')'];
+        if ((int)($file['size'] ?? 0) > 5 * 1024 * 1024) return ['ok'=>false,'msg'=>'File exceeds 5 MB'];
 
-    return ['saved'=>$saved,'logged'=>$logged,'skipped'=>$skipped,'forced'=>$forcedRows,'disabled'=>false];
+        $tmp = (string)($file['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) return ['ok'=>false,'msg'=>'Invalid upload'];
+
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $fi = finfo_open(FILEINFO_MIME_TYPE);
+            if ($fi) {
+                $mime = (string)finfo_file($fi, $tmp);
+                finfo_close($fi);
+            }
+        }
+        if ($mime === '') {
+            $gi = @getimagesize($tmp);
+            $mime = (string)($gi['mime'] ?? '');
+        }
+
+        $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'];
+        if (!isset($allowed[$mime])) return ['ok'=>false,'msg'=>'Unsupported format (JPG/PNG/GIF/WebP only)'];
+
+        if (!is_dir($uploadDir)) @mkdir($uploadDir, 0775, true);
+        $ext = $allowed[$mime];
+        $slug = slugify($displayName !== '' ? $displayName : 'pj');
+        $name = sprintf('pj-%d-%s-%s.%s', $pjId, $slug, date('YmdHis'), $ext);
+        $dst = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $name;
+        if (!@move_uploaded_file($tmp, $dst)) return ['ok'=>false,'msg'=>'Could not move uploaded file'];
+        @chmod($dst, 0644);
+
+        return ['ok'=>true,'url'=>rtrim($urlBase, '/').'/'.$name,'path'=>$dst];
+    }
+}
+if (!function_exists('safe_unlink_avatar')) {
+    function safe_unlink_avatar(string $relUrl, string $uploadDir): void {
+        if ($relUrl === '') return;
+        $docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
+        $rel = '/' . ltrim($relUrl, '/');
+        $abs = (strpos($rel, '/img/') === 0) ? ($docroot . '/public' . $rel) : ($docroot . $rel);
+        $base = realpath($uploadDir);
+        $real = @realpath($abs);
+        if ($base && $real && strpos($real, $base) === 0 && is_file($real)) {
+            @unlink($real);
+        }
+    }
 }
 
 /* -------------------------------------------------
-   Helpers generales
-------------------------------------------------- */
-function fetchPairs($link, $sql, $bindTypes = "", $bindValues = []) {
-    $out = [];
-    $stmt = $link->prepare($sql);
-    if(!$stmt){ return $out; }
-    if ($bindTypes && $bindValues) { $stmt->bind_param($bindTypes, ...$bindValues); }
-    $stmt->execute();
-    $res = $stmt->get_result();
-    while ($r = $res->fetch_assoc()) {
-        $key = isset($r['id']) ? (int)$r['id'] : (string)$r['name'];
-        $out[$key] = $r['name'];
-    }
-    $stmt->close();
-    return $out;
-}
-
-/* -------------------------------------------------
-   Estado (lista válida desde BD)
+   Estado (catalogo + fallback legacy)
 ------------------------------------------------- */
 $estado_opts = [];
-if ($rs = $link->query("SELECT status FROM fact_characters GROUP BY 1 ORDER BY 1")) {
-  while ($row = $rs->fetch_assoc()) {
-    $val = (string)($row['status'] ?? '');
-    $estado_opts[$val] = $val;
-  }
-  $rs->close();
+$estado_set = [];
+$status_label_to_id = [];
+$default_status_label = 'En activo';
+$has_status_id_col = false;
+if ($rsChk = $link->query("SHOW COLUMNS FROM fact_characters LIKE 'status_id'")) {
+    $has_status_id_col = ($rsChk->num_rows > 0);
+    $rsChk->close();
 }
-if (!isset($estado_opts['En activo'])) $estado_opts['En activo'] = 'En activo';
-$estado_set = array_fill_keys(array_keys($estado_opts), true);
+$has_status_dim = false;
+if ($rsTbl = $link->query("SHOW TABLES LIKE 'dim_character_status'")) {
+    $has_status_dim = ($rsTbl->num_rows > 0);
+    $rsTbl->close();
+}
+if ($has_status_dim) {
+  if ($qst = $link->query("SELECT id, label, is_active FROM dim_character_status ORDER BY sort_order ASC, label ASC")) {
+    while ($row = $qst->fetch_assoc()) {
+      $sid = (int)($row['id'] ?? 0);
+      $label = (string)($row['label'] ?? '');
+      if ($label === '') continue;
+      $estado_opts[$label] = $label;
+      $estado_set[$label] = true;
+      $status_label_to_id[$label] = $sid;
+      if ((int)($row['is_active'] ?? 0) === 1 && $default_status_label === 'En activo') {
+        $default_status_label = $label;
+      }
+    }
+    $qst->close();
+  }
+}
+if (empty($estado_opts)) {
+  if ($rs = $link->query("SELECT status FROM fact_characters GROUP BY 1 ORDER BY 1")) {
+    while ($row = $rs->fetch_assoc()) {
+      $val = (string)($row['status'] ?? '');
+      if ($val === '') continue;
+      $estado_opts[$val] = $val;
+      $estado_set[$val] = true;
+    }
+    $rs->close();
+  }
+}
+if (!isset($estado_opts[$default_status_label])) $estado_opts[$default_status_label] = $default_status_label;
+if (!isset($estado_set[$default_status_label])) $estado_set[$default_status_label] = true;
 
 /* -------------------------------------------------
    Endpoint AJAX (se mantiene)
@@ -537,7 +603,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $id = max(0, (int)($_GET['id'] ?? 0));
         if ($id <= 0) { echo json_encode(['ok'=>false,'msg'=>'bad_id'], $jsonFlags); exit; }
 
-        if ($st = $link->prepare("SELECT status, birthdate_text, rank, info_text FROM fact_characters WHERE id=? LIMIT 1")) {
+        if ($st = $link->prepare("SELECT COALESCE(dcs.label, fc.status) AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id=? LIMIT 1")) {
             $st->bind_param("i", $id);
             $st->execute();
             $rs = $st->get_result();
@@ -546,6 +612,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 echo json_encode([
                     'ok'          => true,
                     'status'      => (string)($row['status'] ?? ''),
+                    'status_id'   => (int)($row['status_id'] ?? 0),
                     'causamuerte' => '',
                     'cumple'      => (string)($row['birthdate_text'] ?? ''),
                     'rango'       => (string)($row['rank'] ?? ''),
@@ -916,11 +983,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     if ($gender === '')  $gender = 'f';
     if ($text_color === '') $text_color = 'SkyBlue';
-    if ($status === '')     $status = 'En activo';
+    if ($status === '') $status = $default_status_label;
+    $status_id = isset($status_label_to_id[$status]) ? (int)$status_label_to_id[$status] : 0;
 
     // Validaciones
     if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
-    if (!isset($estado_set[$status])) $flash[] = ['type'=>'error','msg'=>'? El status no es válido.'];
+    if (!isset($estado_set[$status]) && $status_id <= 0) $flash[] = ['type'=>'error','msg'=>'? El status no es válido.'];
     if ($manada > 0) {
         $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
         if ($clan_of_manada !== $clan) {
@@ -974,17 +1042,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, `$character_kind_column`, system_id,
-                 totem_id, status, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 totem_id, status, status_id, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img='';
                 $stmt->bind_param(
-                    "sssssiiissssiissssiiiii",
+                    "sssssiiissssiisisssiiiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
                     $img, $notas, $text_color, $kind, $system_id,
                     $totem_id,
-                    $status, $cumple, $rango, $infotext,
+                    $status, $status_id, $cumple, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
                 );
                 if ($stmt->execute()) {
@@ -1076,20 +1144,20 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
                   breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
-                  status=?, birthdate_text=?, rank=?, info_text=?
+                  status=?, status_id=?, birthdate_text=?, rank=?, info_text=?
                   WHERE id=?";
 
           if ($stmt = $link->prepare($sql)) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiissiiiiiissssi",
+                  "sssssiiiissiiiiiisisssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
                   $kind,
                   $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
-                  $status, $cumple, $rango, $infotext,
+                  $status, $status_id, $cumple, $rango, $infotext,
                   $id
               );
 
@@ -1305,13 +1373,14 @@ $stmt->close();
 $char_details = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT id, status, birthdate_text, rank, info_text FROM fact_characters WHERE id IN ($in)");
+    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, fc.status) AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
     if ($qdet) {
         while ($d = $qdet->fetch_assoc()) {
             $cid = (int)($d['id'] ?? 0);
             if ($cid <= 0) continue;
             $char_details[$cid] = [
                 'status'      => (string)($d['status'] ?? ''),
+                'status_id'   => (int)($d['status_id'] ?? 0),
                 'causamuerte' => '',
                 'cumple'      => (string)($d['birthdate_text'] ?? ''),
                 'rango'       => (string)($d['rank'] ?? ''),
@@ -1606,7 +1675,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
                 <option value="<?= h($val) ?>"><?= h($label==='' ? '(vacío)' : $label) ?></option>
               <?php endforeach; ?>
             </select>
-            <span class="small-note">Lista desde: SELECT status FROM fact_characters GROUP BY 1</span>
+            <span class="small-note">Lista desde: dim_character_status (fallback: fact_characters.status)</span>
           </label>
         </div>
         <div>
@@ -1861,9 +1930,24 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
 </div>
 
 <script>
+function syncSelect2Palette(){
+  var mbEl = document.getElementById('mb');
+  if (!mbEl) return;
+  var probe = mbEl.querySelector('select.select, select');
+  if (!probe) return;
+  var cs = window.getComputedStyle(probe);
+  var bg = (cs.backgroundColor || '').trim() || '#000033';
+  var fg = (cs.color || '').trim() || '#ffffff';
+  var bd = (cs.borderColor || '').trim() || '#333333';
+  mbEl.style.setProperty('--adm-s2-bg', bg);
+  mbEl.style.setProperty('--adm-s2-color', fg);
+  mbEl.style.setProperty('--adm-s2-border', bd);
+}
+
 /* ------------ Select2 init (dentro del modal) ------------ */
 function initSelect2Modal(){
   if (!window.jQuery || !jQuery.fn || !jQuery.fn.select2) return;
+  syncSelect2Palette();
 
   var $parent = jQuery('#mb');
   // Sólo selects del modal
@@ -2666,6 +2750,7 @@ var CHAR_DETAILS     = <?= json_encode(
 
 })();
 </script>
+
 
 
 

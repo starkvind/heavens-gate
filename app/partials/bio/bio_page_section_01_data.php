@@ -1,7 +1,7 @@
-﻿<?php
-// Aseguramos que $link ya estÃ© definido y sea una conexiÃ³n vÃ¡lida de mysqli.
+<?php
+// Aseguramos que $link ya este definido y sea una conexion valida de mysqli.
 
-// FunciÃ³n para obtener el nombre y otros detalles basados en el ID
+// Funcion para obtener el nombre y otros detalles basados en el ID
 function getSingleRecord($link, $table, $id, $fields = ['name']) {
     $fieldList = implode(', ', $fields);
     $stmt = $link->prepare("SELECT $fieldList FROM $table WHERE id = ? LIMIT 1");
@@ -11,7 +11,7 @@ function getSingleRecord($link, $table, $id, $fields = ['name']) {
     return $result->fetch_assoc();
 }
 
-// FunciÃ³n para crear enlaces seguros
+// Funcion para crear enlaces seguros
 function createLink($href, $text, $target = '_blank', $title = '', $extraAttrs = '') {
     $titleAttr = $title ? "title='$title'" : '';
     $extra = trim((string)$extraAttrs);
@@ -111,7 +111,7 @@ $characterId = isset($characterId) ? (int)$characterId : (int)($_GET['b'] ?? 0);
 $bioPack = 0;  // dim_groups.id
 $bioClan = 0;  // dim_organizations.id
 
-/* 1) PACK activo (bridge personajeâ‡„manada) */
+/* 1) PACK activo (bridge personaje-manada) */
 $sql = "
   SELECT cgb.group_id
   FROM bridge_characters_groups AS cgb
@@ -133,9 +133,9 @@ if ($bioPack === 0) {
     if ($res && ($row = mysqli_fetch_assoc($res))) $bioPack = (int)$row['manada'];
 }
 
-/* 2) CLAN: prioridad por packâ†’clan, si no hay pack mirar vÃ­nculo directo personajeâ†’clan */
+/* 2) CLAN: prioridad por pack-clan, si no hay pack mirar vinculo directo personaje-clan */
 if ($bioPack > 0) {
-    // clan vÃ­a manada activa
+    // clan via manada activa
     $sql = "
       SELECT cgb2.organization_id
       FROM bridge_organizations_groups AS cgb2
@@ -172,7 +172,7 @@ if ($bioClan === 0) {
 
 /* Fallbacks de legado */
 if ($bioClan === 0 && $bioPack > 0) {
-    // packâ†’clan por nombre (solo mientras conviva nm.clan texto)
+    // pack-clan por nombre (solo mientras conviva nm.clan texto)
     $sql = "
       SELECT c.id
       FROM dim_organizations c
@@ -192,7 +192,7 @@ if ($bioClan === 0) {
     if ($res && ($row = mysqli_fetch_assoc($res))) $bioClan = (int)$row['clan'];
 }
 
-/* Enlaces finales como ya tenÃ­as */
+/* Enlaces finales como ya tenias */
 $idPack = $bioPack;
 $resultPack = $idPack ? getSingleRecord($link, 'dim_groups', $idPack) : null;
 $packLink = $resultPack
@@ -277,7 +277,7 @@ if ($resultDemeanor) {
     $demeanorLink = htmlspecialchars($idDemeanor ? $idDemeanor : 'Sin especificar');
 }
 
-// TÃ“TEM
+// TOTEM
 $totemLink = '';
 if (!empty($bioTotemId) && $bioTotemId > 0) {
     $totemName = '';
@@ -300,7 +300,7 @@ if (!empty($bioTotemId) && $bioTotemId > 0) {
     $totemLink = htmlspecialchars($bioTotem);
 }
 
-// CÃ¡lculo de cÃ­rculos de habilidad, atributos, etc.
+// Calculo de circulos de habilidad, atributos, etc.
 if (!function_exists('createSkillCircle')) {
     function createSkillCircle($array, $prefix) {
         $result = [];

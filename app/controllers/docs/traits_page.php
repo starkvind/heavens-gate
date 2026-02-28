@@ -115,6 +115,7 @@ if ($result->num_rows > 0) {
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
 
     $traitOwners = [];
+    $characterKindSql = hg_character_kind_select($link, 'c');
     $queryOwners = "
         SELECT
             c.id,
@@ -122,10 +123,12 @@ if ($result->num_rows > 0) {
             c.alias,
             c.image_url,
             c.gender,
-            c.status,
+            COALESCE(dcs.label, c.status) AS status, c.status_id,
+            {$characterKindSql} AS character_kind,
             b.value
         FROM bridge_characters_traits b
         JOIN fact_characters c ON c.id = b.character_id
+        LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id
         WHERE b.trait_id = ? AND b.value >= 1 $cronicaNotInSQL
         ORDER BY b.value ASC, c.name ASC
     ";
@@ -181,20 +184,21 @@ if ($result->num_rows > 0) {
 
             foreach ($owners as $o) {
                 $oid = (int)($o['id'] ?? 0);
-                $name = htmlspecialchars((string)($o['name'] ?? ''));
-                $alias = htmlspecialchars((string)($o['alias'] ?? ''));
-                $img = htmlspecialchars(hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? '')));
-                $estado = (string)($o['status'] ?? '');
-                $label = $alias !== '' ? $alias : $name;
-                $simboloEstado = $mapEstado[$estado] ?? "";
+                $name = (string)($o['name'] ?? '');
+                $alias = (string)($o['alias'] ?? '');
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-
-                echo "<a href='" . htmlspecialchars($href) . "' target='_blank' title='{$name}'>";
-                echo "  <div class='marcoFotoBio'>";
-                echo "    <div class='textoDentroFotoBio'>{$label} {$simboloEstado}</div>";
-                echo "    <div class='dentroFotoBio'><img class='fotoBioList' src='{$img}' alt='{$name}'></div>";
-                echo "  </div>";
-                echo "</a>";
+                hg_render_character_avatar_tile([
+                    'href' => $href,
+                    'title' => $name,
+                    'name' => $name,
+                    'alias' => $alias,
+                    'character_id' => $oid,
+                    'image_url' => (string)($o['image_url'] ?? ''),
+                    'gender' => (string)($o['gender'] ?? ''),
+                    'status' => (string)($o['status'] ?? ''),
+                    'character_kind' => hg_character_kind_from_row($o),
+                    'target_blank' => true,
+                ]);
             }
 
             echo "    </div></div>";
@@ -213,3 +217,7 @@ if ($result->num_rows > 0) {
 $stmt->close();
 
 ?>
+
+
+
+
