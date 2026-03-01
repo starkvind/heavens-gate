@@ -1867,3 +1867,58 @@ body { font-family: Verdana, Arial, sans-serif; }
   background: var(--panel);
 }
 #agModal #modalContent { padding: 0; }
+
+/* ==== admin.shared.http.css ==== */
+.adm-loading {
+  opacity: 0.65;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.adm-toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.adm-toast {
+  min-width: 220px;
+  max-width: 420px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #1b4aa0;
+  background: #031545;
+  color: #d9f7ff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.adm-toast.out {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.adm-toast-success {
+  border-color: #1d874f;
+  background: #063a24;
+  color: #d7ffe7;
+}
+
+.adm-toast-error {
+  border-color: #9b2b2b;
+  background: #4c1515;
+  color: #ffdede;
+}
+
+.adm-toast-info {
+  border-color: #1b4aa0;
+  background: #031545;
+  color: #d9f7ff;
+}

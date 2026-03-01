@@ -3,7 +3,7 @@ if (!headers_sent()) {
     header('Content-Type: text/html; charset=UTF-8');
 }
 /**
- * admin_docs_crud.php — CRUD autocontenido (Documentos + Secciones)
+ * admin_docs.php — CRUD autocontenido (Documentos + Secciones)
  * WYSIWYG SIN CKEDITOR: Quill (CDN) — sin API key, sin carpetas de plugins.
  *
  * Tablas:
@@ -16,6 +16,7 @@ if (!headers_sent()) {
 
 if (!isset($link) || !$link) { die("Sin conexión BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
@@ -39,12 +40,20 @@ function fetchPairs(mysqli $link, string $sql): array {
 /* -----------------------------
    CSRF (simple)
 ------------------------------ */
-if (empty($_SESSION['csrf_admin_docs'])) {
-    $_SESSION['csrf_admin_docs'] = bin2hex(random_bytes(16));
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_docs';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+    if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+        $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+    }
+    $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
 }
-$CSRF = $_SESSION['csrf_admin_docs'];
 function csrf_ok(): bool {
-    $t = $_POST['csrf'] ?? '';
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $t = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_docs']) && hash_equals($_SESSION['csrf_admin_docs'], $t);
 }
 
@@ -118,6 +127,14 @@ function meta_for(string $tab, array $opts_sections, array $opts_origins): array
 }
 
 $META = meta_for($tab, $opts_sections, $opts_origins);
+$isAjaxCrudRequest = (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['crud_action'], $_POST['crud_tab'])
+    && (
+        ((string)($_POST['ajax'] ?? '') === '1')
+        || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+    )
+);
 
 $quillToolbarInner = admin_quill_toolbar_inner();
 
@@ -125,6 +142,9 @@ $quillToolbarInner = admin_quill_toolbar_inner();
    Guardado (POST)
 ------------------------------ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && isset($_POST['crud_tab'])) {
+    if ($isAjaxCrudRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
         $flash[] = ['type'=>'error','msg'=>'❌ Pestaña inválida.'];
@@ -200,6 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 if ($id <= 0) {
                     $flash[] = ['type'=>'error','msg'=>'âš  Falta ID para borrar.'];
                 } else {
+                    $canDelete = true;
                     if ($postTab === 'sections') {
                         $stChk = $link->prepare("SELECT COUNT(*) AS c FROM fact_docs WHERE section_id=?");
                         $stChk->bind_param("i", $id);
@@ -208,13 +229,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $cnt = ($rs && ($r=$rs->fetch_assoc())) ? (int)$r['c'] : 0;
                         $stChk->close();
                         if ($cnt > 0) {
+                            $canDelete = false;
                             $flash[] = ['type'=>'error','msg'=>'❌ No se puede borrar: hay documentos en esa sección ('.$cnt.').'];
-                            $tab = $postTab;
-                            $META = meta_for($tab, $opts_sections, $opts_origins);
-                            goto RENDER;
+                            // evita borrar secciones con documentos vinculados
                         }
                     }
 
+                    if ($canDelete) {
                     $sql = "DELETE FROM `$table` WHERE `$pk`=?";
                     $st = $link->prepare($sql);
                     if (!$st) {
@@ -224,6 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'🗑 Eliminado correctamente.'];
                         else $flash[] = ['type'=>'error','msg'=>'âŒ Error al borrar: '.$st->error];
                         $st->close();
+                    }
                     }
                 }
             }
@@ -312,7 +334,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     }
 }
 
-RENDER:
+if ($isAjaxCrudRequest) {
+    $errors = [];
+    $messages = [];
+    foreach ($flash as $m) {
+        $type = (string)($m['type'] ?? '');
+        $msg = (string)($m['msg'] ?? '');
+        if ($msg === '') continue;
+        if ($type === 'error') $errors[] = $msg;
+        else $messages[] = $msg;
+    }
+    if (!empty($errors)) {
+        if (function_exists('hg_admin_json_error')) {
+            hg_admin_json_error($errors[0], 400, ['flash' => $errors], ['messages' => $messages]);
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'message' => $errors[0],
+            'error' => $errors[0],
+            'errors' => $errors,
+            'data' => ['messages' => $messages],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    $okMsg = !empty($messages) ? $messages[count($messages)-1] : 'Guardado';
+    if (function_exists('hg_admin_json_success')) {
+        hg_admin_json_success(['messages' => $messages], $okMsg);
+    }
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'message' => $okMsg,
+        'msg' => $okMsg,
+        'data' => ['messages' => $messages],
+        'errors' => [],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
+$ajaxMode = (string)($_GET['ajax_mode'] ?? ($_GET['ajax'] ?? ''));
+if ($ajaxMode === 'list') {
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $tabAjax = (string)($_GET['tab'] ?? $tab);
+    $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'docs';
+    $qAjax = trim((string)($_GET['q'] ?? ''));
+    $MAjax = meta_for($tabAjax, $opts_sections, $opts_origins);
+
+    $tableAjax = $MAjax['table'];
+    $pkAjax = $MAjax['pk'];
+    $nameColAjax = $MAjax['name_col'];
+
+    $whereAjax = "WHERE 1=1";
+    $paramsAjax = [];
+    $typesAjax = '';
+    if ($qAjax !== '') {
+        $whereAjax .= " AND `$nameColAjax` LIKE ?";
+        $typesAjax .= "s";
+        $paramsAjax[] = "%".$qAjax."%";
+    }
+
+    $colsAllAjax = array_map(fn($f)=>"`".$f['k']."`", $MAjax['fields']);
+    $colsAllAjax[] = "`$pkAjax`";
+    $colsAllAjax = array_values(array_unique($colsAllAjax));
+
+    $sqlAjax = "SELECT ".implode(',', $colsAllAjax)." FROM `$tableAjax` $whereAjax ORDER BY ".$MAjax['order_by'];
+    $stAjax = $link->prepare($sqlAjax);
+    if (!$stAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok'=>false,'message'=>'Error al preparar listado AJAX','error'=>$link->error], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
+    if (!$stAjax->execute()) {
+        $stAjax->close();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok'=>false,'message'=>'Error al ejecutar listado AJAX','error'=>$link->error], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+    $rsAjax = $stAjax->get_result();
+    $rowsAjax = [];
+    $rowMapAjax = [];
+    while ($r = $rsAjax->fetch_assoc()) {
+        $idv = (int)$r[$pkAjax];
+        if ($tabAjax === 'docs') {
+            $r['seccion_name'] = ($opts_sections[(int)($r['section_id'] ?? 0)] ?? '');
+            $r['origin_name'] = ($opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '');
+        }
+        $rowsAjax[] = $r;
+        $rowMapAjax[$idv] = $r;
+    }
+    $stAjax->close();
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'tab' => $tabAjax,
+        'rows' => $rowsAjax,
+        'rowMap' => $rowMapAjax,
+        'total' => count($rowsAjax),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
 
 /* -----------------------------
    Listado + paginación
@@ -387,7 +513,7 @@ function ui_short(string $s, int $n=120): string {
 
     <div class="tabs">
       <?php
-        $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_docs_crud');
+        $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_docs');
         $baseTabs .= "&pp=".$perPage."&q=".urlencode($q);
       ?>
       <a class="tablnk <?= $tab==='docs'?'active':'' ?>" href="<?= $baseTabs ?>&tab=docs">Documentos</a>
@@ -396,12 +522,12 @@ function ui_short(string $s, int $n=120): string {
 
     <button class="btn btn-green" id="btnNew">➕ Nuevo</button>
 
-    <form method="get" class="adm-flex-right-8">
+    <form method="get" class="adm-flex-right-8" id="docsFilterForm">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
-      <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_docs_crud') ?>">
+      <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_docs') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
-        <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título…':'Sección…' ?>">
+        <input class="inp" type="text" id="quickSearchDocs" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título…':'Sección…' ?>">
       </label>
       <label class="small adm-ml-auto-left">Filtro rápido
         <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta página...">
@@ -435,7 +561,7 @@ function ui_short(string $s, int $n=120): string {
         <th class="adm-w-190">Acciones</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="docsTbody">
       <?php foreach ($rows as $r): ?>
         <?php
         $searchParts = [];
@@ -474,7 +600,7 @@ function ui_short(string $s, int $n=120): string {
 
   <div class="pager">
     <?php
-      $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_docs_crud');
+      $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_docs');
       $base .= "&tab=".urlencode($tab)."&pp=".$perPage."&q=".urlencode($q);
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
@@ -541,8 +667,14 @@ function ui_short(string $s, int $n=120): string {
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
 <script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var META = <?= json_encode($META, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var HG_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc','system','breed','auspice','tribe'];
@@ -624,6 +756,65 @@ function syncEditorsToTextarea(){
   var mbDel = document.getElementById('mbDel');
   var btnDelCancel = document.getElementById('btnDelCancel');
   var delId = document.getElementById('del_id');
+  var formCrud = document.getElementById('formCrud');
+  var formDel = document.getElementById('formDel');
+  var tbody = document.getElementById('docsTbody') || document.querySelector('#tablaDocs tbody');
+  var pagerCur = document.querySelector('.pager .cur');
+  var filterForm = document.getElementById('docsFilterForm');
+  var quickSearch = document.getElementById('quickSearchDocs');
+  var quickFilter = document.getElementById('quickFilterDocs');
+  var typingTimer = 0;
+
+  function adminUrl(){
+    var url = new URL(window.location.href);
+    url.searchParams.set('s', 'admin_docs');
+    url.searchParams.set('ajax', '1');
+    return url;
+  }
+
+  function listUrl(){
+    var url = adminUrl();
+    url.searchParams.set('ajax_mode', 'list');
+    url.searchParams.set('tab', TAB);
+    url.searchParams.set('_ts', Date.now());
+    if (quickSearch) {
+      var qv = String(quickSearch.value || '').trim();
+      if (qv) url.searchParams.set('q', qv);
+      else url.searchParams.delete('q');
+    }
+    return url;
+  }
+
+  function request(url, opts){
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+      return window.HGAdminHttp.request(url, opts || {});
+    }
+    var cfg = Object.assign({
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }, opts || {});
+    return fetch(url, cfg).then(function(resp){
+      return resp.text().then(function(text){
+        var payload = {};
+        if (text) {
+          try {
+            payload = JSON.parse(text);
+          } catch (e) {
+            payload = { ok: false, message: 'Respuesta no JSON', raw: text };
+          }
+        }
+        if (!resp.ok || (payload && payload.ok === false)) {
+          var err = new Error((payload && (payload.message || payload.error || payload.msg)) || ('HTTP ' + resp.status));
+          err.status = resp.status;
+          err.payload = payload;
+          throw err;
+        }
+        return payload;
+      });
+    });
+  }
 
   function el(tag, attrs, html){
     var e = document.createElement(tag);
@@ -643,6 +834,11 @@ function syncEditorsToTextarea(){
       .replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;')
       .replace(/'/g,'&#039;');
+  }
+
+  function shortText(str, n){
+    var s = String(str || '').replace(/\s+/g, ' ').trim();
+    return s.length <= n ? s : (s.slice(0, n) + '...');
   }
 
   function buildSelect(name, opts, includeZero, id){
@@ -809,73 +1005,206 @@ function syncEditorsToTextarea(){
     delId.value = '0';
   }
 
+  function bindRowButtons(root){
+    Array.prototype.forEach.call((root || document).querySelectorAll('button[data-edit]'), function(b){
+      b.onclick = function(){
+        var id = parseInt(b.getAttribute('data-edit') || '0', 10) || 0;
+        openEdit(id);
+      };
+    });
+    Array.prototype.forEach.call((root || document).querySelectorAll('button[data-del]'), function(b){
+      b.onclick = function(){
+        var id = parseInt(b.getAttribute('data-del') || '0', 10) || 0;
+        openDelete(id);
+      };
+    });
+  }
+
+  function applyLocalQuickFilter(){
+    if (!tbody || !quickFilter) return;
+    var q = String(quickFilter.value || '').toLowerCase();
+    Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function(tr){
+      var hay = String(tr.getAttribute('data-search') || tr.textContent || '').toLowerCase();
+      tr.style.display = hay.indexOf(q) !== -1 ? '' : 'none';
+    });
+  }
+
+  function renderRows(rows, rowMap){
+    if (!tbody) return;
+    ROWMAP = rowMap || {};
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="' + (META.list_cols.length + 1) + '" class="adm-color-muted">(Sin resultados)</td></tr>';
+      if (pagerCur) pagerCur.textContent = 'Total 0 (vista AJAX)';
+      return;
+    }
+
+    var html = '';
+    rows.forEach(function(r){
+      var searchParts = [];
+      (META.list_cols || []).forEach(function(c){
+        searchParts.push(String(r[c.k] || ''));
+      });
+      var search = searchParts.join(' ').toLowerCase();
+      html += '<tr data-search="' + escapeHtml(search) + '">';
+      (META.list_cols || []).forEach(function(c){
+        var k = c.k;
+        var val = (r[k] === null || r[k] === undefined) ? '' : String(r[k]);
+        if (k === 'id') {
+          html += '<td><strong class="adm-color-accent">' + (parseInt(r.id || 0, 10) || 0) + '</strong></td>';
+          return;
+        }
+        if (/_name$/.test(k)) {
+          html += '<td>' + (val ? escapeHtml(val) : '<span class="small">(—)</span>') + '</td>';
+          return;
+        }
+        html += '<td>' + escapeHtml(shortText(val, 140)) + '</td>';
+      });
+      var rid = (parseInt(r.id || 0, 10) || 0);
+      html += '<td><button class="btn" type="button" data-edit="' + rid + '">Editar</button> ';
+      html += '<button class="btn btn-red" type="button" data-del="' + rid + '">Borrar</button></td>';
+      html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+    bindRowButtons(tbody);
+    applyLocalQuickFilter();
+    if (pagerCur) pagerCur.textContent = 'Total ' + rows.length + ' (vista AJAX)';
+  }
+
+  function currentValidationErrors(){
+    var errs = [];
+    syncEditorsToTextarea();
+    (META.fields || []).forEach(function(f){
+      if (!f.req) return;
+      var k = f.k;
+      var e = document.getElementById('f_' + k);
+      var v = e ? e.value : '';
+      if ((f.ui || '') === 'wysiwyg') {
+        var plain = String(v || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        if (!plain) errs.push(f.label + ' es obligatorio');
+        return;
+      }
+      if (String(v).trim() === '') errs.push(f.label + ' es obligatorio');
+    });
+    return errs;
+  }
+
+  async function reloadList(updateUrl, replaceHistory){
+    var url = listUrl();
+    var payload = await request(url.toString(), { method: 'GET' });
+    var data = payload && payload.data ? payload.data : payload;
+    if (!payload || payload.ok === false || !data) {
+      throw new Error((payload && (payload.message || payload.error || payload.msg)) || 'Error al cargar listado');
+    }
+    renderRows(data.rows || [], data.rowMap || {});
+    if (updateUrl) {
+      var targetUrl = new URL(window.location.href);
+      targetUrl.searchParams.set('s', 'admin_docs');
+      targetUrl.searchParams.set('tab', TAB);
+      if (quickSearch) {
+        var qv = String(quickSearch.value || '').trim();
+        if (qv) targetUrl.searchParams.set('q', qv);
+        else targetUrl.searchParams.delete('q');
+      }
+      targetUrl.searchParams.delete('ajax');
+      targetUrl.searchParams.delete('ajax_mode');
+      targetUrl.searchParams.delete('_ts');
+      if (replaceHistory) history.replaceState({ q: quickSearch ? quickSearch.value : '' }, '', targetUrl.pathname + '?' + targetUrl.searchParams.toString());
+      else history.pushState({ q: quickSearch ? quickSearch.value : '' }, '', targetUrl.pathname + '?' + targetUrl.searchParams.toString());
+    }
+  }
+
+  function handleError(err, fallback){
+    var msg = fallback || 'Error';
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.errorMessage === 'function') {
+      msg = window.HGAdminHttp.errorMessage(err);
+    } else if (err && (err.message || err.error)) {
+      msg = err.message || err.error;
+    }
+    alert(msg);
+  }
+
   btnNew.addEventListener('click', openCreate);
   btnCancel.addEventListener('click', closeModal);
   mb.addEventListener('click', function(e){ if (e.target === mb) closeModal(); });
-
   btnDelCancel.addEventListener('click', closeDelete);
   mbDel.addEventListener('click', function(e){ if (e.target === mbDel) closeDelete(); });
+  bindRowButtons(document);
 
-  Array.prototype.forEach.call(document.querySelectorAll('button[data-edit]'), function(b){
-    b.addEventListener('click', function(){
-      var id = parseInt(b.getAttribute('data-edit')||'0',10)||0;
-      openEdit(id);
+  if (quickFilter) {
+    quickFilter.addEventListener('input', applyLocalQuickFilter);
+  }
+
+  if (filterForm) {
+    filterForm.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      reloadList(true, false).catch(function(err){ handleError(err, 'Error aplicando filtro'); });
     });
-  });
+  }
 
-  Array.prototype.forEach.call(document.querySelectorAll('button[data-del]'), function(b){
-    b.addEventListener('click', function(){
-      var id = parseInt(b.getAttribute('data-del')||'0',10)||0;
-      openDelete(id);
+  if (quickSearch) {
+    quickSearch.addEventListener('input', function(){
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(function(){
+        reloadList(true, true).catch(function(err){ handleError(err, 'Error en búsqueda'); });
+      }, 220);
     });
-  });
+  }
 
-    document.getElementById('formCrud').addEventListener('submit', function(ev){
+  if (formCrud) {
+    formCrud.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var errs = currentValidationErrors();
+      if (errs.length) {
+        alert(errs.join('\n'));
+        return;
+      }
 
-        var action = document.getElementById('crud_action').value;
-
-        // 🔄 sincroniza Quill -> textarea
-        syncEditorsToTextarea();
-
-        var errs = [];
-        (META.fields||[]).forEach(function(f){
-            if (!f.req) return;
-
-            var k = f.k;
-            var e = document.getElementById('f_'+k);
-            var v = e ? e.value : '';
-
-            if ((f.ui||'') === 'wysiwyg') {
-            var plain = String(v||'')
-                .replace(/<[^>]*>/g,'')
-                .replace(/\s+/g,' ')
-                .trim();
-            if (!plain) errs.push(f.label+' es obligatorio');
-            } else {
-            if (String(v).trim() === '') errs.push(f.label+' es obligatorio');
-            }
-        });
-
-        if (errs.length){
-            alert(errs.join("\n"));
-            ev.preventDefault();
+      var fd = new FormData(formCrud);
+      fd.set('ajax', '1');
+      request(adminUrl().toString(), {
+        method: 'POST',
+        body: fd,
+        loadingEl: document.getElementById('btnSave') || formCrud
+      }).then(function(payload){
+        closeModal();
+        if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
+          window.HGAdminHttp.notify((payload && (payload.message || payload.msg)) || 'Guardado', 'ok');
         }
+        return reloadList(false, true);
+      }).catch(function(err){
+        handleError(err, 'Error al guardar');
+      });
     });
+  }
 
-})();
-</script>
-
-<script>
-(function(){
-  var quick = document.getElementById('quickFilterDocs');
-  if (!quick) return;
-  quick.addEventListener('input', function(){
-    var q = (this.value || '').toLowerCase();
-    document.querySelectorAll('#tablaDocs tbody tr').forEach(function(tr){
-      var hay = (tr.getAttribute('data-search') || tr.textContent || '').toLowerCase();
-      tr.style.display = hay.indexOf(q) !== -1 ? '' : 'none';
+  if (formDel) {
+    formDel.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var fd = new FormData(formDel);
+      fd.set('ajax', '1');
+      request(adminUrl().toString(), {
+        method: 'POST',
+        body: fd,
+        loadingEl: formDel
+      }).then(function(payload){
+        closeDelete();
+        if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
+          window.HGAdminHttp.notify((payload && (payload.message || payload.msg)) || 'Eliminado', 'ok');
+        }
+        return reloadList(false, true);
+      }).catch(function(err){
+        handleError(err, 'Error al borrar');
+      });
     });
+  }
+
+  window.addEventListener('popstate', function(){
+    var url = new URL(window.location.href);
+    if (quickSearch) quickSearch.value = url.searchParams.get('q') || '';
+    reloadList(false, true).catch(function(){});
   });
+
 })();
 </script>
 

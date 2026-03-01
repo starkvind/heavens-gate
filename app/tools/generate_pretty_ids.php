@@ -18,7 +18,7 @@ $tables = [
     ['table' => 'dim_players', 'id' => 'id', 'expr' => "CONCAT(name, ' ', surname)"],
     ['table' => 'dim_character_types', 'id' => 'id', 'expr' => 'kind'],
     ['table' => 'dim_systems', 'id' => 'id', 'expr' => 'name'],
-    ['table' => 'dim_forms', 'id' => 'id', 'expr' => "CONCAT(affiliation, ' ', race, ' ', form)"],
+    ['table' => 'dim_forms', 'id' => 'id', 'expr' => "CONCAT(COALESCE((SELECT name FROM dim_systems ds WHERE ds.id = dim_forms.system_id LIMIT 1), ''), ' ', COALESCE(race, ''), ' ', COALESCE(form, ''))"],
     ['table' => 'dim_breeds', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'dim_auspices', 'id' => 'id', 'expr' => 'name'],
     ['table' => 'dim_tribes', 'id' => 'id', 'expr' => 'name'],

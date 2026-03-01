@@ -1,3 +1,16 @@
+<?php
+$isAjaxRequest = (
+    (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
+    || (
+        $_SERVER['REQUEST_METHOD'] === 'POST'
+        && (
+            ((string)($_POST['ajax'] ?? '') === '1')
+            || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+        )
+    )
+);
+if (!$isAjaxRequest):
+?>
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
@@ -34,8 +47,8 @@
   border-color: transparent transparent #9fd8ff transparent !important;
 }
 </style>
-
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
+<?php endif; ?>
 
 <?php
 // admin_characters.php - CRUD Personajes (Clan/Manada + Sistema/Raza/Auspicio/Tribu + Avatar + Afiliacion + Poderes + Meritos/Defectos + Inventario + Campos complejos)
@@ -54,491 +67,24 @@ include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-if (!function_exists('fetchPairs')) {
-    function fetchPairs(mysqli $link, string $sql): array {
-        $out = [];
-        if (!$rs = $link->query($sql)) return $out;
-        while ($row = $rs->fetch_assoc()) {
-            $id = (int)($row['id'] ?? 0);
-            if ($id <= 0) continue;
-            $out[$id] = (string)($row['name'] ?? '');
-        }
-        $rs->close();
-        return $out;
-    }
+include_once(__DIR__ . '/admin_characters_service.php');
+include_once(__DIR__ . '/admin_characters_ajax.php');
+
+// Rutas de avatar (usadas por create/update/delete en CRUD).
+// Fallback a raiz de proyecto si DOCUMENT_ROOT no viene definido por el servidor.
+$DOCROOT = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+if ($DOCROOT === '' || !is_dir($DOCROOT)) {
+    $rootGuess = realpath(__DIR__ . '/../../../');
+    $DOCROOT = $rootGuess ? rtrim((string)$rootGuess, '/') : rtrim(__DIR__, '/');
 }
-if (!function_exists('pjs_table_exists')) {
-    function pjs_table_exists(mysqli $link, string $table): bool {
-        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($t === '') return false;
-        $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' LIMIT 1";
-        $rs = $link->query($sql);
-        if (!$rs) return false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $ok;
-    }
-}
-if (!function_exists('pjs_table_has_column')) {
-    function pjs_table_has_column(mysqli $link, string $table, string $column): bool {
-        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($t === '' || $c === '') return false;
-        $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
-        $rs = $link->query($sql);
-        if (!$rs) return false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $ok;
-    }
-}
-if (!function_exists('pjs_column_char_maxlen')) {
-    function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
-        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($t === '' || $c === '') return 0;
-        $sql = "SELECT COALESCE(CHARACTER_MAXIMUM_LENGTH, 0) AS m FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
-        $rs = $link->query($sql);
-        if (!$rs) return 0;
-        $row = $rs->fetch_assoc();
-        $rs->close();
-        return (int)($row['m'] ?? 0);
-    }
-}
-if (!function_exists('sync_character_bridges')) {
-    function sync_character_bridges(mysqli $link, int $characterId, int $groupId, int $organizationId): void {
-        if ($characterId <= 0) return;
+$AV_UPLOADDIR = $DOCROOT . '/public/img/characters';
+$AV_URLBASE = '/img/characters';
+if (!is_dir($AV_UPLOADDIR)) { @mkdir($AV_UPLOADDIR, 0775, true); }
 
-        $hasGroups = pjs_table_exists($link, 'bridge_characters_groups');
-        $hasOrgs = pjs_table_exists($link, 'bridge_characters_organizations');
-        $groupsHasActive = $hasGroups && pjs_table_has_column($link, 'bridge_characters_groups', 'is_active');
-        $orgsHasActive = $hasOrgs && pjs_table_has_column($link, 'bridge_characters_organizations', 'is_active');
-
-        if ($hasGroups) {
-            if ($groupsHasActive) {
-                if ($groupId > 0) {
-                    if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=? AND group_id<>?")) {
-                        $st->bind_param("ii", $characterId, $groupId);
-                        $st->execute();
-                        $st->close();
-                    }
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, is_active, position) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
-                        $st->bind_param("ii", $characterId, $groupId);
-                        $st->execute();
-                        $st->close();
-                    }
-                } else {
-                    if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=?")) {
-                        $st->bind_param("i", $characterId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
-            } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_groups WHERE character_id=?")) {
-                    $st->bind_param("i", $characterId);
-                    $st->execute();
-                    $st->close();
-                }
-                if ($groupId > 0) {
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, position) VALUES (?, ?, '')")) {
-                        $st->bind_param("ii", $characterId, $groupId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
-            }
-        }
-
-        if ($hasOrgs) {
-            if ($orgsHasActive) {
-                if ($organizationId > 0) {
-                    if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
-                        $st->bind_param("ii", $characterId, $organizationId);
-                        $st->execute();
-                        $st->close();
-                    }
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, is_active, role) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
-                        $st->bind_param("ii", $characterId, $organizationId);
-                        $st->execute();
-                        $st->close();
-                    }
-                } else {
-                    if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=?")) {
-                        $st->bind_param("i", $characterId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
-            } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_organizations WHERE character_id=?")) {
-                    $st->bind_param("i", $characterId);
-                    $st->execute();
-                    $st->close();
-                }
-                if ($organizationId > 0) {
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, role) VALUES (?, ?, '')")) {
-                        $st->bind_param("ii", $characterId, $organizationId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
-            }
-        }
-    }
-}
-if (!function_exists('save_character_powers')) {
-    function save_character_powers(mysqli $link, int $characterId, array $types, array $ids, array $levels): array {
-        $res = ['inserted' => 0, 'skipped' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_powers')) return $res;
-
-        $allowed = ['dones' => true, 'disciplinas' => true, 'rituales' => true];
-        $n = min(count($types), count($ids), count($levels));
-        $rows = [];
-        for ($i = 0; $i < $n; $i++) {
-            $type = strtolower(trim((string)$types[$i]));
-            $pid = (int)$ids[$i];
-            $lvl = (int)$levels[$i];
-            if (!isset($allowed[$type]) || $pid <= 0) { $res['skipped']++; continue; }
-            if ($lvl < 0) $lvl = 0;
-            if ($lvl > 9) $lvl = 9;
-            $rows[$type . ':' . $pid] = ['type' => $type, 'id' => $pid, 'lvl' => $lvl];
-        }
-
-        if ($st = $link->prepare("DELETE FROM bridge_characters_powers WHERE character_id=?")) {
-            $st->bind_param("i", $characterId);
-            $st->execute();
-            $st->close();
-        }
-
-        if (!empty($rows) && ($st = $link->prepare("INSERT INTO bridge_characters_powers (character_id, power_kind, power_id, power_level) VALUES (?,?,?,?)"))) {
-            foreach ($rows as $r) {
-                $type = $r['type'];
-                $pid = $r['id'];
-                $lvl = $r['lvl'];
-                $st->bind_param("isii", $characterId, $type, $pid, $lvl);
-                if ($st->execute()) $res['inserted']++; else $res['skipped']++;
-            }
-            $st->close();
-        }
-        return $res;
-    }
-}
-if (!function_exists('save_character_merits_flaws')) {
-    function save_character_merits_flaws(mysqli $link, int $characterId, array $ids, array $levelsRaw): array {
-        $res = ['inserted' => 0, 'skipped' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_merits_flaws')) return $res;
-
-        $n = max(count($ids), count($levelsRaw));
-        $rows = [];
-        for ($i = 0; $i < $n; $i++) {
-            $mid = isset($ids[$i]) ? (int)$ids[$i] : 0;
-            if ($mid <= 0) { $res['skipped']++; continue; }
-            $lvlRaw = $levelsRaw[$i] ?? '';
-            $lvlRaw = is_string($lvlRaw) ? trim($lvlRaw) : $lvlRaw;
-            $lvl = null;
-            if ($lvlRaw !== '' && $lvlRaw !== null) {
-                $lvl = (int)$lvlRaw;
-                if ($lvl < -99) $lvl = -99;
-                if ($lvl > 99) $lvl = 99;
-            }
-            $rows[$mid] = $lvl;
-        }
-
-        if ($st = $link->prepare("DELETE FROM bridge_characters_merits_flaws WHERE character_id=?")) {
-            $st->bind_param("i", $characterId);
-            $st->execute();
-            $st->close();
-        }
-
-        $stLvl = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?,?,?)");
-        $stNull = $link->prepare("INSERT INTO bridge_characters_merits_flaws (character_id, merit_flaw_id, level) VALUES (?, ?, NULL)");
-        if (!empty($rows) && ($stLvl || $stNull)) {
-            foreach ($rows as $mid => $lvl) {
-                if ($lvl === null) {
-                    if ($stNull) {
-                        $stNull->bind_param("ii", $characterId, $mid);
-                        if ($stNull->execute()) $res['inserted']++; else $res['skipped']++;
-                    } else {
-                        $res['skipped']++;
-                    }
-                } else {
-                    if ($stLvl) {
-                        $stLvl->bind_param("iii", $characterId, $mid, $lvl);
-                        if ($stLvl->execute()) $res['inserted']++; else $res['skipped']++;
-                    } else {
-                        $res['skipped']++;
-                    }
-                }
-            }
-            if ($stLvl) $stLvl->close();
-            if ($stNull) $stNull->close();
-        }
-        return $res;
-    }
-}
-if (!function_exists('save_character_items')) {
-    function save_character_items(mysqli $link, int $characterId, array $ids): array {
-        $res = ['inserted' => 0, 'skipped' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_items')) return $res;
-
-        $rows = [];
-        foreach ($ids as $id) {
-            $iid = (int)$id;
-            if ($iid <= 0) { $res['skipped']++; continue; }
-            $rows[$iid] = true;
-        }
-
-        if ($st = $link->prepare("DELETE FROM bridge_characters_items WHERE character_id=?")) {
-            $st->bind_param("i", $characterId);
-            $st->execute();
-            $st->close();
-        }
-
-        if (!empty($rows) && ($st = $link->prepare("INSERT INTO bridge_characters_items (character_id, item_id) VALUES (?,?)"))) {
-            foreach (array_keys($rows) as $iid) {
-                $st->bind_param("ii", $characterId, $iid);
-                if ($st->execute()) $res['inserted']++; else $res['skipped']++;
-            }
-            $st->close();
-        }
-        return $res;
-    }
-}
-if (!function_exists('save_character_traits')) {
-    function save_character_traits(mysqli $link, int $characterId, array $traits, string $source = 'admin', ?string $createdBy = null): array {
-        $res = ['updated' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_traits')) return $res;
-
-        $hasLog = pjs_table_exists($link, 'bridge_characters_traits_log');
-        $existing = [];
-        if ($st = $link->prepare("SELECT trait_id, value FROM bridge_characters_traits WHERE character_id=?")) {
-            $st->bind_param("i", $characterId);
-            $st->execute();
-            if ($rs = $st->get_result()) {
-                while ($r = $rs->fetch_assoc()) $existing[(int)$r['trait_id']] = (int)$r['value'];
-            }
-            $st->close();
-        }
-
-        $normalized = [];
-        foreach ($traits as $tid => $v) {
-            $tid = (int)$tid;
-            if ($tid <= 0) continue;
-            $nv = (int)$v;
-            if ($nv < 0) $nv = 0;
-            if ($nv > 10) $nv = 10;
-            $normalized[$tid] = $nv;
-        }
-
-        $ins = $link->prepare("INSERT INTO bridge_characters_traits (character_id, trait_id, value) VALUES (?,?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)");
-        $del = $link->prepare("DELETE FROM bridge_characters_traits WHERE character_id=? AND trait_id=?");
-        $log = null;
-        if ($hasLog) {
-            $log = $link->prepare("INSERT INTO bridge_characters_traits_log (character_id, trait_id, old_value, new_value, delta, reason, source, created_by) VALUES (?,?,?,?,?,?,?,?)");
-        }
-
-        foreach ($normalized as $tid => $nv) {
-            $ov = array_key_exists($tid, $existing) ? (int)$existing[$tid] : null;
-            $delta = ($ov === null) ? $nv : ($nv - $ov);
-            if ($ov !== null && $ov === $nv) continue;
-
-            if ($ins) {
-                $ins->bind_param("iii", $characterId, $tid, $nv);
-                if ($ins->execute()) $res['updated']++;
-            }
-            if ($log) {
-                $reason = ($ov === null) ? 'admin initial' : 'admin update';
-                $log->bind_param("iiiiisss", $characterId, $tid, $ov, $nv, $delta, $reason, $source, $createdBy);
-                $log->execute();
-            }
-            unset($existing[$tid]);
-        }
-
-        foreach ($existing as $tid => $ov) {
-            if ($del) {
-                $del->bind_param("ii", $characterId, $tid);
-                if ($del->execute()) $res['updated']++;
-            }
-            if ($log) {
-                $nv = null;
-                $delta = -((int)$ov);
-                $reason = 'admin update';
-                $log->bind_param("iiiiisss", $characterId, $tid, $ov, $nv, $delta, $reason, $source, $createdBy);
-                $log->execute();
-            }
-        }
-
-        if ($ins) $ins->close();
-        if ($del) $del->close();
-        if ($log) $log->close();
-        return $res;
-    }
-}
-if (!function_exists('save_character_resources')) {
-    function save_character_resources(
-        mysqli $link,
-        int $characterId,
-        int $systemId,
-        array $rows,
-        array $resourcesBySystem,
-        bool $hasBridge,
-        bool $hasLog,
-        string $source = 'admin',
-        ?string $createdBy = null
-    ): array {
-        $res = ['saved' => 0, 'forced' => 0, 'disabled' => false, 'error' => null];
-        if ($characterId <= 0 || !$hasBridge || !pjs_table_exists($link, 'bridge_characters_system_resources')) {
-            $res['disabled'] = true;
-            return $res;
-        }
-
-        $target = [];
-        foreach ($rows as $rid => $vals) {
-            $rid = (int)$rid;
-            if ($rid <= 0) continue;
-            $perm = (int)($vals['perm'] ?? 0);
-            $temp = (int)($vals['temp'] ?? 0);
-            if ($perm < 0) $perm = 0;
-            if ($temp < 0) $temp = 0;
-            $target[$rid] = ['perm' => $perm, 'temp' => $temp];
-        }
-
-        if ($systemId > 0 && !empty($resourcesBySystem[$systemId])) {
-            foreach ($resourcesBySystem[$systemId] as $r) {
-                $rid = (int)($r['id'] ?? 0);
-                if ($rid <= 0) continue;
-                if (!isset($target[$rid])) {
-                    $target[$rid] = ['perm' => 0, 'temp' => 0];
-                    $res['forced']++;
-                }
-            }
-        }
-
-        $existing = [];
-        if ($st = $link->prepare("SELECT resource_id, value_permanent, value_temporary FROM bridge_characters_system_resources WHERE character_id=?")) {
-            $st->bind_param("i", $characterId);
-            $st->execute();
-            if ($rs = $st->get_result()) {
-                while ($r = $rs->fetch_assoc()) {
-                    $rid = (int)$r['resource_id'];
-                    $existing[$rid] = ['perm' => (int)$r['value_permanent'], 'temp' => (int)$r['value_temporary']];
-                }
-            }
-            $st->close();
-        }
-
-        $up = $link->prepare("INSERT INTO bridge_characters_system_resources (character_id, resource_id, value_permanent, value_temporary) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE value_permanent=VALUES(value_permanent), value_temporary=VALUES(value_temporary)");
-        $del = $link->prepare("DELETE FROM bridge_characters_system_resources WHERE character_id=? AND resource_id=?");
-        $lg = null;
-        if ($hasLog && pjs_table_exists($link, 'bridge_characters_system_resources_log')) {
-            $lg = $link->prepare("INSERT INTO bridge_characters_system_resources_log (character_id, resource_id, old_permanent, new_permanent, old_temporary, new_temporary, delta_permanent, delta_temporary, reason, source, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-        }
-
-        foreach ($target as $rid => $vals) {
-            $np = (int)$vals['perm'];
-            $nt = (int)$vals['temp'];
-            $ep = $existing[$rid]['perm'] ?? null;
-            $et = $existing[$rid]['temp'] ?? null;
-            if ($ep !== null && $ep === $np && $et === $nt) { unset($existing[$rid]); continue; }
-
-            if ($up) {
-                $up->bind_param("iiii", $characterId, $rid, $np, $nt);
-                if ($up->execute()) $res['saved']++;
-            }
-            if ($lg) {
-                $dp = ($ep === null) ? $np : ($np - $ep);
-                $dt = ($et === null) ? $nt : ($nt - $et);
-                $reason = ($ep === null && $et === null) ? 'admin initial' : 'admin update';
-                $lg->bind_param("iiiiiiiisss", $characterId, $rid, $ep, $np, $et, $nt, $dp, $dt, $reason, $source, $createdBy);
-                $lg->execute();
-            }
-            unset($existing[$rid]);
-        }
-
-        foreach ($existing as $rid => $old) {
-            if ($del) {
-                $del->bind_param("ii", $characterId, $rid);
-                if ($del->execute()) $res['saved']++;
-            }
-            if ($lg) {
-                $ep = (int)$old['perm']; $et = (int)$old['temp'];
-                $np = null; $nt = null; $dp = -$ep; $dt = -$et;
-                $reason = 'admin update';
-                $lg->bind_param("iiiiiiiisss", $characterId, $rid, $ep, $np, $et, $nt, $dp, $dt, $reason, $source, $createdBy);
-                $lg->execute();
-            }
-        }
-
-        if ($up) $up->close();
-        if ($del) $del->close();
-        if ($lg) $lg->close();
-        return $res;
-    }
-}
-if (!function_exists('slugify')) {
-    function slugify($text): string {
-        $text = trim((string)$text);
-        if (function_exists('iconv')) {
-            $tmp = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-            if ($tmp !== false) $text = (string)$tmp;
-        }
-        $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-        $text = trim((string)$text, '-');
-        $text = strtolower((string)$text);
-        $text = preg_replace('~[^-a-z0-9]+~', '', (string)$text);
-        return $text !== '' ? $text : 'pj';
-    }
-}
-if (!function_exists('save_avatar_file')) {
-    function save_avatar_file(array $file, int $pjId, string $displayName, string $uploadDir, string $urlBase): array {
-        if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
-        if ((int)$file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Upload error (#'.(int)$file['error'].')'];
-        if ((int)($file['size'] ?? 0) > 5 * 1024 * 1024) return ['ok'=>false,'msg'=>'File exceeds 5 MB'];
-
-        $tmp = (string)($file['tmp_name'] ?? '');
-        if ($tmp === '' || !is_uploaded_file($tmp)) return ['ok'=>false,'msg'=>'Invalid upload'];
-
-        $mime = '';
-        if (function_exists('finfo_open')) {
-            $fi = finfo_open(FILEINFO_MIME_TYPE);
-            if ($fi) {
-                $mime = (string)finfo_file($fi, $tmp);
-                finfo_close($fi);
-            }
-        }
-        if ($mime === '') {
-            $gi = @getimagesize($tmp);
-            $mime = (string)($gi['mime'] ?? '');
-        }
-
-        $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'];
-        if (!isset($allowed[$mime])) return ['ok'=>false,'msg'=>'Unsupported format (JPG/PNG/GIF/WebP only)'];
-
-        if (!is_dir($uploadDir)) @mkdir($uploadDir, 0775, true);
-        $ext = $allowed[$mime];
-        $slug = slugify($displayName !== '' ? $displayName : 'pj');
-        $name = sprintf('pj-%d-%s-%s.%s', $pjId, $slug, date('YmdHis'), $ext);
-        $dst = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $name;
-        if (!@move_uploaded_file($tmp, $dst)) return ['ok'=>false,'msg'=>'Could not move uploaded file'];
-        @chmod($dst, 0644);
-
-        return ['ok'=>true,'url'=>rtrim($urlBase, '/').'/'.$name,'path'=>$dst];
-    }
-}
-if (!function_exists('safe_unlink_avatar')) {
-    function safe_unlink_avatar(string $relUrl, string $uploadDir): void {
-        if ($relUrl === '') return;
-        $docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
-        $rel = '/' . ltrim($relUrl, '/');
-        $abs = (strpos($rel, '/img/') === 0) ? ($docroot . '/public' . $rel) : ($docroot . $rel);
-        $base = realpath($uploadDir);
-        $real = @realpath($abs);
-        if ($base && $real && strpos($real, $base) === 0 && is_file($real)) {
-            @unlink($real);
-        }
-    }
-}
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_characters';
+$ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
+    ? hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY)
+    : '';
 
 /* -------------------------------------------------
    Estado (catalogo + fallback legacy)
@@ -587,51 +133,89 @@ if (empty($estado_opts)) {
 if (!isset($estado_opts[$default_status_label])) $estado_opts[$default_status_label] = $default_status_label;
 if (!isset($estado_set[$default_status_label])) $estado_set[$default_status_label] = true;
 
-/* -------------------------------------------------
-   Endpoint AJAX (se mantiene)
-------------------------------------------------- */
-if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
-    header('Content-Type: application/json; charset=UTF-8');
-
-    $jsonFlags = JSON_UNESCAPED_UNICODE;
-    if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
-        $jsonFlags |= JSON_INVALID_UTF8_SUBSTITUTE;
-    }
-
-    $mode = $_GET['mode'] ?? '';
-    if ($mode === 'details') {
-        $id = max(0, (int)($_GET['id'] ?? 0));
-        if ($id <= 0) { echo json_encode(['ok'=>false,'msg'=>'bad_id'], $jsonFlags); exit; }
-
-        if ($st = $link->prepare("SELECT COALESCE(dcs.label, fc.status) AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id=? LIMIT 1")) {
-            $st->bind_param("i", $id);
-            $st->execute();
-            $rs = $st->get_result();
-
-            if ($rs && ($row = $rs->fetch_assoc())) {
-                echo json_encode([
-                    'ok'          => true,
-                    'status'      => (string)($row['status'] ?? ''),
-                    'status_id'   => (int)($row['status_id'] ?? 0),
-                    'causamuerte' => '',
-                    'cumple'      => (string)($row['birthdate_text'] ?? ''),
-                    'rango'       => (string)($row['rank'] ?? ''),
-                    'infotext'    => (string)($row['info_text'] ?? ''),
-                ], $jsonFlags);
-            } else {
-                echo json_encode(['ok'=>false,'msg'=>'not_found'], $jsonFlags);
+// Estado usado para desactivar en "delete" (soft delete).
+$inactive_status_label = '';
+$inactive_status_id = 0;
+if ($has_status_dim) {
+    if ($stIn = $link->prepare("SELECT id, label FROM dim_character_status WHERE is_active=0 ORDER BY sort_order ASC, label ASC LIMIT 1")) {
+        $stIn->execute();
+        if ($rsIn = $stIn->get_result()) {
+            if ($rIn = $rsIn->fetch_assoc()) {
+                $inactive_status_id = (int)($rIn['id'] ?? 0);
+                $inactive_status_label = trim((string)($rIn['label'] ?? ''));
             }
-
-            $st->close();
-            exit;
         }
+        $stIn->close();
+    }
+}
+if ($inactive_status_label === '') {
+    $preferred_inactive = ['inactivo','inactiva','desactivado','desactivada','retirado','retirada','baja','fallecido','fallecida','muerto','muerta'];
+    foreach (array_keys($estado_opts) as $lbl) {
+        $norm = function_exists('mb_strtolower') ? mb_strtolower((string)$lbl, 'UTF-8') : strtolower((string)$lbl);
+        if (in_array($norm, $preferred_inactive, true)) {
+            $inactive_status_label = (string)$lbl;
+            break;
+        }
+    }
+}
+if ($inactive_status_label === '') $inactive_status_label = 'Inactivo';
+if (!isset($estado_opts[$inactive_status_label])) $estado_opts[$inactive_status_label] = $inactive_status_label;
+if (!isset($estado_set[$inactive_status_label])) $estado_set[$inactive_status_label] = true;
+if ($inactive_status_id <= 0 && isset($status_label_to_id[$inactive_status_label])) {
+    $inactive_status_id = (int)$status_label_to_id[$inactive_status_label];
+}
 
-        echo json_encode(['ok'=>false,'msg'=>'prep_fail'], $jsonFlags);
-        exit;
+if (hg_admin_characters_handle_ajax($link)) {
+    return;
+}
+
+// Guard defensivo: en AJAX POST, si falta crud_action (p.ej. post_max_size excedido),
+// devolver JSON en lugar de HTML para evitar "Respuesta no JSON" en frontend.
+$isXmlHttpRequest = (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest');
+$isAjaxPostFlag = ((string)($_POST['ajax'] ?? '') === '1');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($isXmlHttpRequest || $isAjaxPostFlag) && !isset($_POST['crud_action'])) {
+    $parseIniSize = static function ($value): int {
+        $s = trim((string)$value);
+        if ($s === '') return 0;
+        if (!preg_match('/^(\d+)\s*([KMG])?$/i', $s, $m)) return (int)$s;
+        $n = (int)$m[1];
+        $u = strtoupper((string)($m[2] ?? ''));
+        if ($u === 'G') return $n * 1024 * 1024 * 1024;
+        if ($u === 'M') return $n * 1024 * 1024;
+        if ($u === 'K') return $n * 1024;
+        return $n;
+    };
+
+    $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+    $postMaxRaw = (string)ini_get('post_max_size');
+    $uploadMaxRaw = (string)ini_get('upload_max_filesize');
+    $postMaxBytes = $parseIniSize($postMaxRaw);
+
+    $errors = ['crud_action' => 'missing'];
+    $data = [
+        'content_length' => $contentLength,
+        'post_max_size' => $postMaxRaw,
+        'upload_max_filesize' => $uploadMaxRaw,
+    ];
+
+    if ($contentLength > 0 && empty($_POST) && empty($_FILES) && $postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+        $errors['upload'] = 'post_max_size_exceeded';
+        hg_admin_json_error(
+            'El archivo supera el limite permitido por el servidor (post_max_size).',
+            413,
+            $errors,
+            $data,
+            ['hint' => 'reduce_file_size_or_raise_post_max_size']
+        );
     }
 
-    echo json_encode(['ok'=>false,'msg'=>'bad_mode'], $jsonFlags);
-    exit;
+    hg_admin_json_error(
+        'Peticion AJAX invalida: falta crud_action.',
+        400,
+        $errors,
+        $data,
+        ['hint' => 'ensure_formdata_contains_crud_action']
+    );
 }
 
 /* -------------------------------------------------
@@ -877,7 +461,18 @@ if ($stmtM = $link->prepare($sqlMap)) {
    Crear / Editar (POST) + avatar + validaciones + PODERES + MÉRITOS/DEFECTOS + INVENTARIO + CAMPOS COMPLEJOS
 ------------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
+    $is_ajax_crud = ((string)($_POST['ajax'] ?? '') === '1')
+        || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest');
+    if ($is_ajax_crud) {
+        hg_admin_require_session(true);
+        $csrf = hg_admin_extract_csrf_token($_POST);
+        if (!hg_admin_csrf_valid($csrf, $ADMIN_CSRF_SESSION_KEY)) {
+            hg_admin_json_error('CSRF invalido', 403, ['csrf' => 'invalid'], null, ['action' => (string)($_POST['crud_action'] ?? '')]);
+        }
+    }
+
     $action      = $_POST['crud_action'];
+    $saved_character_id = 0;
     $id          = intval($_POST['id'] ?? 0);
     $nombre      = trim($_POST['nombre'] ?? '');
     $alias       = trim($_POST['alias'] ?? '');
@@ -1027,12 +622,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $totem_id = null; // NULL para evitar FK con 0
     }
 
-    // Avatar actual (para update)
+    // Avatar actual (para update/delete) + existencia
     $current_img = '';
-    if ($action === 'update' && $id > 0) {
+    $character_exists = false;
+    if (($action === 'update' || $action === 'delete') && $id > 0) {
         if ($st = $link->prepare("SELECT image_url FROM fact_characters WHERE id=?")) {
             $st->bind_param("i",$id); $st->execute();
-            $rs = $st->get_result(); if ($row=$rs->fetch_assoc()) $current_img = (string)($row['image_url'] ?? '');
+            $rs = $st->get_result();
+            if ($row = $rs->fetch_assoc()) {
+                $character_exists = true;
+                $current_img = (string)($row['image_url'] ?? '');
+            }
             $st->close();
         }
     }
@@ -1057,6 +657,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 );
                 if ($stmt->execute()) {
                     $newId = $stmt->insert_id;
+                    $saved_character_id = (int)$newId;
                     hg_update_pretty_id_if_exists($link, 'fact_characters', (int)$newId, $nombre);
 
                     // Bridges manada/clan
@@ -1162,6 +763,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
               );
 
               if ($stmt->execute()) {
+                  $saved_character_id = (int)$id;
                   hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
 
                   // Avatar
@@ -1253,6 +855,80 @@ $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
       }
   }
 
+  if ($action === 'delete') {
+      if ($id <= 0) {
+          $flash[] = ['type'=>'error','msg'=>'[WARN] Falta el ID para desactivar.'];
+      } elseif (!$character_exists) {
+          $flash[] = ['type'=>'error','msg'=>'[WARN] El personaje no existe o ya no esta disponible.'];
+      } else {
+          $status_to_set = (string)$inactive_status_label;
+          $okDelete = false;
+
+          if ($has_status_id_col) {
+              if ($inactive_status_id > 0) {
+                  if ($stmt = $link->prepare("UPDATE fact_characters SET status=?, status_id=? WHERE id=?")) {
+                      $status_id_to_set = (int)$inactive_status_id;
+                      $stmt->bind_param("sii", $status_to_set, $status_id_to_set, $id);
+                      $okDelete = (bool)$stmt->execute();
+                      $stmt->close();
+                  }
+              } else {
+                  if ($stmt = $link->prepare("UPDATE fact_characters SET status=? WHERE id=?")) {
+                      $stmt->bind_param("si", $status_to_set, $id);
+                      $okDelete = (bool)$stmt->execute();
+                      $stmt->close();
+                  }
+              }
+          } else {
+              if ($stmt = $link->prepare("UPDATE fact_characters SET status=? WHERE id=?")) {
+                  $stmt->bind_param("si", $status_to_set, $id);
+                  $okDelete = (bool)$stmt->execute();
+                  $stmt->close();
+              }
+          }
+
+          if ($okDelete) {
+              $saved_character_id = (int)$id;
+              $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje desactivado.'];
+          } else {
+              $flash[] = ['type'=>'error','msg'=>'[ERROR] No se pudo desactivar el personaje.'];
+          }
+      }
+  }
+
+  if ($action !== 'create' && $action !== 'update' && $action !== 'delete') {
+      $flash[] = ['type'=>'error','msg'=>'[WARN] Accion CRUD no soportada.'];
+  }
+
+  if (!empty($is_ajax_crud)) {
+      $okMessages = [];
+      $errMessages = [];
+      foreach ($flash as $m) {
+          $msgText = trim((string)($m['msg'] ?? ''));
+          if ($msgText === '') continue;
+          if (($m['type'] ?? '') === 'error') {
+              $errMessages[] = $msgText;
+          } else {
+              $okMessages[] = $msgText;
+          }
+      }
+
+      $hasError = !empty($errMessages);
+      $payloadData = [
+          'id' => ($saved_character_id > 0 ? $saved_character_id : (int)$id),
+          'action' => (string)$action,
+          'messages' => $okMessages,
+          'errors' => $errMessages,
+      ];
+
+      if ($hasError) {
+          $msg = $errMessages[0] ?? 'Error al guardar personaje';
+          hg_admin_json_error($msg, 400, ['form' => $errMessages], $payloadData, ['action' => (string)$action, 'id' => (int)$payloadData['id']]);
+      }
+
+      $msg = !empty($okMessages) ? end($okMessages) : 'OK';
+      hg_admin_json_success($payloadData, $msg, ['action' => (string)$action, 'id' => (int)$payloadData['id']]);
+  }
 }
 
 /* -------------------------------------------------
@@ -1519,11 +1195,11 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
     <h2>Personajes - Lista y CRUD</h2>
     <button class="btn btn-green" id="btnNew">+ Nuevo personaje</button>
 
-    <form method="get" class="adm-flex-8-center-spaced">
+    <form method="get" id="charactersFilterForm" action="/talim" class="adm-flex-8-center-spaced">
       <input type="hidden" name="p" value="talim">
       <input type="hidden" name="s" value="admin_characters">
       <label>Crónica
-        <select class="select" name="fil_cr" onchange="this.form.submit()">
+        <select class="select" name="fil_cr">
           <option value="0">Todas</option>
           <?php foreach($opts_cronicas as $id=>$name): ?>
             <option value="<?= (int)$id ?>" <?= $fil_cr==$id?'selected':'' ?>><?= h($name) ?></option>
@@ -1531,18 +1207,18 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
         </select>
       </label>
       <label>Manada
-        <select class="select" name="fil_ma" onchange="this.form.submit()">
+        <select class="select" name="fil_ma">
           <option value="0">Todas</option>
           <?php foreach($opts_manadas_flat as $id=>$name): ?>
             <option value="<?= (int)$id ?>" <?= $fil_ma==$id?'selected':'' ?>><?= h($name) ?></option>
           <?php endforeach; ?>
         </select>
       </label>
-      <label class="adm-ml-auto-left">Filtro rápido
-        <input class="inp" type="text" id="quickFilter" placeholder="En esta página…">
+      <label class="adm-ml-auto-left">Buscar
+        <input class="inp" type="text" name="q" id="quickFilter" value="<?= h($q) ?>" placeholder="Nombre...">
       </label>
       <label>Pág
-        <select class="select" name="pp" onchange="this.form.submit()">
+        <select class="select" name="pp">
           <?php foreach([25,50,100,250,500,1000] as $pp): ?>
             <option value="<?= $pp ?>" <?= $perPage==$pp?'selected':'' ?>><?= $pp ?></option>
           <?php endforeach; ?>
@@ -1568,10 +1244,10 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
         <th>Jugador</th>
         <th>Crónica</th>
         <th>Sistema</th>
-        <th class="adm-w-120">Acciones</th>
+        <th class="adm-w-170">Acciones</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="tablaPjsBody">
       <?php foreach ($rows as $r): ?>
         <tr data-nombre="<?= strtolower(h($r['name'])) ?>">
           <td><strong class="adm-color-accent"><?= (int)$r['id'] ?></strong></td>
@@ -1603,6 +1279,11 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
               data-afiliacion="<?= (int)$r['character_type_id'] ?>"
               data-kind="<?= h((string)($r['kind'] ?? 'pnj')) ?>"
             >Editar</button>
+            <button class="btn btn-small btn-red" type="button"
+              data-delete="1"
+              data-id="<?= (int)$r['id'] ?>"
+              data-nombre="<?= h($r['name']) ?>"
+            >Desactivar</button>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -1612,7 +1293,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
     </tbody>
   </table>
 
-  <div class="pager">
+  <div class="pager" id="charactersPager">
     <?php
       $base = "/talim?s=admin_characters&pp=".$perPage."&fil_cr=".$fil_cr."&fil_ma=".$fil_ma."&q=".urlencode($q);
       $prev = max(1, $page-1);
@@ -1633,6 +1314,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
     <form method="post" id="formCrud" enctype="multipart/form-data" class="adm-m-0">
       <input type="hidden" name="crud_action" id="crud_action" value="create">
       <input type="hidden" name="id" id="f_id" value="0">
+      <input type="hidden" name="csrf" id="f_csrf" value="<?= h($ADMIN_CSRF_TOKEN) ?>">
 
       <div class="grid">
         <div>
@@ -1929,827 +1611,48 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
   </div>
 </div>
 
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+$adminCharactersJs = '/assets/js/admin/admin-characters.js';
+$adminCharactersJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminCharactersJs) ?: time();
+$jsBoot = [
+  'AJAX_BASE' => $AJAX_BASE,
+  'CSRF_TOKEN' => $ADMIN_CSRF_TOKEN,
+  'MANADAS_BY_CLAN' => $manadas_by_clan,
+  'MANADA_ID_TO_CLAN' => $manadas_map_id_to_clan,
+  'RAZAS_BY_SYS' => $razas_by_sys,
+  'RAZA_ID_TO_SYS' => $raza_id_to_sys,
+  'AUSP_BY_SYS' => $ausp_by_sys,
+  'AUSP_ID_TO_SYS' => $ausp_id_to_sys,
+  'TRIBUS_BY_SYS' => $tribus_by_sys,
+  'TRIBU_ID_TO_SYS' => $tribu_id_to_sys,
+  'DONES_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_dones), array_values($opts_dones)),
+  'DISC_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_disciplinas), array_values($opts_disciplinas)),
+  'RITU_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_rituales), array_values($opts_rituales)),
+  'CHAR_POWERS' => $char_powers,
+  'MYD_OPTS' => $opts_myd_full,
+  'CHAR_MYD' => $char_myd,
+  'ITEMS_OPTS' => $opts_items_full,
+  'CHAR_ITEMS' => $char_items,
+  'RESOURCE_OPTS' => $opts_resources_full,
+  'SYS_RESOURCES_BY_SYS' => $sys_resources_by_system,
+  'CHAR_RESOURCES' => $char_resources,
+  'CHAR_TRAITS' => $char_traits,
+  'TRAIT_SET_ORDER' => $trait_set_order,
+  'CHAR_DETAILS' => $char_details,
+];
+$jsBootFlags = JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE;
+if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+    $jsBootFlags |= JSON_INVALID_UTF8_SUBSTITUTE;
+}
+?>
 <script>
-function syncSelect2Palette(){
-  var mbEl = document.getElementById('mb');
-  if (!mbEl) return;
-  var probe = mbEl.querySelector('select.select, select');
-  if (!probe) return;
-  var cs = window.getComputedStyle(probe);
-  var bg = (cs.backgroundColor || '').trim() || '#000033';
-  var fg = (cs.color || '').trim() || '#ffffff';
-  var bd = (cs.borderColor || '').trim() || '#333333';
-  mbEl.style.setProperty('--adm-s2-bg', bg);
-  mbEl.style.setProperty('--adm-s2-color', fg);
-  mbEl.style.setProperty('--adm-s2-border', bd);
-}
-
-/* ------------ Select2 init (dentro del modal) ------------ */
-function initSelect2Modal(){
-  if (!window.jQuery || !jQuery.fn || !jQuery.fn.select2) return;
-  syncSelect2Palette();
-
-  var $parent = jQuery('#mb');
-  // Sólo selects del modal
-  $parent.find('select').each(function(){
-  if (window.hgMentions) { window.hgMentions.attachAuto(); }
-    var $s = jQuery(this);
-    if ($s.data('select2')) $s.select2('destroy');
-
-    $s.select2({
-      width: 'style',
-      dropdownParent: $parent,
-      minimumResultsForSearch: 0
-    });
-  });
-}
-
-// Reinit individual (cuando se cambian options por JS)
-function reinitSelect2(el){
-  if (!window.jQuery || !jQuery.fn || !jQuery.fn.select2) return;
-  if (!el) return;
-  var $s = jQuery(el);
-  if ($s.data('select2')) $s.select2('destroy');
-  $s.select2({
-    width: 'style',
-    dropdownParent: jQuery('#mb'),
-    minimumResultsForSearch: 0
-  });
-}
-
-// Bind change que funciona con Select2 (jQuery) y sin él
-function onSelectChange(el, handler){
-  if (!el) return;
-  if (window.jQuery) {
-    jQuery(el).off('change.hg').on('change.hg', handler);
-  } else {
-    el.addEventListener('change', handler);
-  }
-}
-
-var AJAX_BASE = <?= json_encode($AJAX_BASE, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-// Dependencias
-var MANADAS_BY_CLAN   = <?= json_encode($manadas_by_clan, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var MANADA_ID_TO_CLAN = <?= json_encode($manadas_map_id_to_clan, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-var RAZAS_BY_SYS      = <?= json_encode($razas_by_sys, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var RAZA_ID_TO_SYS    = <?= json_encode($raza_id_to_sys, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-var AUSP_BY_SYS       = <?= json_encode($ausp_by_sys, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var AUSP_ID_TO_SYS    = <?= json_encode($ausp_id_to_sys, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-var TRIBUS_BY_SYS     = <?= json_encode($tribus_by_sys, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var TRIBU_ID_TO_SYS   = <?= json_encode($tribu_id_to_sys, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-// PODERES
-var DONES_OPTS       = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_dones), array_values($opts_dones)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var DISC_OPTS        = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_disciplinas), array_values($opts_disciplinas)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var RITU_OPTS        = <?= json_encode(array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_rituales), array_values($opts_rituales)), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var CHAR_POWERS      = <?= json_encode($char_powers, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-// MÉRITOS/DEFECTOS
-var MYD_OPTS         = <?= json_encode($opts_myd_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var CHAR_MYD         = <?= json_encode($char_myd, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-// INVENTARIO
-var ITEMS_OPTS       = <?= json_encode($opts_items_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var CHAR_ITEMS       = <?= json_encode($char_items, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-// RECURSOS
-var RESOURCE_OPTS    = <?= json_encode($opts_resources_full, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var SYS_RESOURCES_BY_SYS = <?= json_encode($sys_resources_by_system, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-var CHAR_RESOURCES   = <?= json_encode($char_resources, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-
-// TRAITS
-var CHAR_TRAITS      = <?= json_encode(
-    $char_traits,
-    JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE
-    | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0)
-); ?>;
-var TRAIT_SET_ORDER  = <?= json_encode(
-    $trait_set_order,
-    JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE
-    | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0)
-); ?>;
-
-var CHAR_DETAILS     = <?= json_encode(
-    $char_details,
-    JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE
-    | (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0)
-); ?>;
-
-(function(){
-  // Filtro rápido (cliente)
-  var quick = document.getElementById('quickFilter');
-  if (quick) {
-    quick.addEventListener('input', function(){
-      var q = (this.value || '').toLowerCase();
-      document.querySelectorAll('#tablaPjs tbody tr').forEach(function(tr){
-        var nom = tr.getAttribute('data-nombre') || '';
-        tr.style.display = nom.indexOf(q) !== -1 ? '' : 'none';
-      });
-    });
-  }
-
-  var mb = document.getElementById('mb');
-  var btnNew = document.getElementById('btnNew');
-  var btnCancel = document.getElementById('btnCancel');
-
-  var selSistema = document.getElementById('f_system_id');
-	  var selRaza    = document.getElementById('f_raza');
-	  var selAusp    = document.getElementById('f_auspicio');
-	  var selTribu   = document.getElementById('f_tribu');
-	  var selNature  = document.getElementById('f_nature_id');
-	  var selDemeanor= document.getElementById('f_demeanor_id');
-
-  var selClan    = document.getElementById('f_clan');
-  var selManada  = document.getElementById('f_manada');
-  var selTotem   = document.getElementById('f_totem_id');
-
-  var selAfili   = document.getElementById('f_afiliacion');
-  var selKind    = document.getElementById('f_kind');
-
-  var avatar      = document.getElementById('f_avatar');
-  var avatarPrev  = document.getElementById('f_avatar_preview');
-  var avatarRm    = document.getElementById('f_avatar_remove');
-
-  // Campos complejos
-  var fEstado     = document.getElementById('f_estado');
-  var fCumple     = document.getElementById('f_cumple');
-  var fRango      = document.getElementById('f_rango');
-  var fInfo       = document.getElementById('f_infotext');
-
-  // PODERES
-  var powTipo  = document.getElementById('pow_tipo');
-  var powPoder = document.getElementById('pow_poder');
-  var powLvl   = document.getElementById('pow_lvl');
-  var powAdd   = document.getElementById('pow_add');
-  var powList  = document.getElementById('powersList');
-
-  // MYD
-  var mydSel   = document.getElementById('myd_sel');
-  var mydLvl   = document.getElementById('myd_lvl');
-  var mydAdd   = document.getElementById('myd_add');
-  var mydList  = document.getElementById('mydList');
-
-  // INVENTARIO
-  var invSel   = document.getElementById('inv_sel');
-  var invAdd   = document.getElementById('inv_add');
-  var invList  = document.getElementById('invList');
-
-  // RECURSOS
-  var resSel   = document.getElementById('res_sel');
-  var resAdd   = document.getElementById('res_add');
-  var resList  = document.getElementById('resourceList');
-  var traitInputs = document.querySelectorAll('.trait-input');
-  var pjOnlyBlocks = document.querySelectorAll('.kind-pj-only');
-  var noMonsterBlocks = document.querySelectorAll('.kind-no-monster');
-
-  function normalizeText(v){
-    v = String(v || '').toLowerCase();
-    if (v.normalize) {
-      v = v.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    }
-    return v;
-  }
-
-  function applyMonsterTraitFilter(kind){
-    var isMonster = (normalizeText(kind) === 'monster' || normalizeText(kind) === 'mon');
-    document.querySelectorAll('.trait-item').forEach(function(item){
-      var k = normalizeText(item.getAttribute('data-trait-kind') || '');
-      var c = normalizeText(item.getAttribute('data-trait-classification') || '');
-      var hide = false;
-      if (isMonster) {
-        hide = (k === 'trasfondos') || (
-          (k === 'talentos' || k === 'tecnicas' || k === 'conocimientos') &&
-          c.indexOf('002 secundarias') === 0
-        );
-      }
-      item.style.display = hide ? 'none' : '';
-      if (hide) {
-        var inp = item.querySelector('.trait-input');
-        if (inp) inp.value = '0';
-      }
-    });
-  }
-
-  function applyKindVisibility(kind){
-    var k = String(kind || '').toLowerCase();
-    var isPj = (k !== 'pnj');
-    var isMonster = (normalizeText(k) === 'monster' || normalizeText(k) === 'mon');
-    pjOnlyBlocks.forEach(function(block){
-      block.style.display = isPj ? '' : 'none';
-    });
-    noMonsterBlocks.forEach(function(block){
-      block.style.display = (isPj && !isMonster) ? '' : 'none';
-    });
-    applyMonsterTraitFilter(kind);
-  }
-
-  function clearSelect(sel, keepFirst){
-    while (sel.options.length > (keepFirst?1:0)) sel.remove(keepFirst?1:0);
-  }
-
-  function fillSelectFrom(list, sel, placeholder, preselect){
-    clearSelect(sel,false);
-
-    if (!list || !list.length){
-      sel.disabled = true;
-      var o=document.createElement('option'); o.value='0'; o.textContent=placeholder;
-      sel.appendChild(o);
-      sel.value='0';
-      reinitSelect2(sel);
-      return false;
-    }
-
-    sel.disabled = false;
-    var ph=document.createElement('option'); ph.value='0'; ph.textContent='— Elige —';
-    sel.appendChild(ph);
-
-    var found=false;
-    list.forEach(function(it){
-      var o=document.createElement('option'); o.value=String(it.id); o.textContent=it.name;
-      sel.appendChild(o);
-      if (preselect && String(preselect)===String(it.id)) found=true;
-    });
-
-    sel.value = found ? String(preselect) : '0';
-    reinitSelect2(sel);
-    return found;
-  }
-
-  function updateManadas(clanId, preselect){
-    var list = MANADAS_BY_CLAN[String(clanId||0)] || [];
-    fillSelectFrom(list, selManada, '— Sin manadas en este Clan —', preselect);
-  }
-
-  function updateSistemaSets(sys, preRaza, preAusp, preTribu){
-    if (!sys){
-      clearSelect(selRaza,false); var a1=document.createElement('option'); a1.value='0'; a1.textContent='— Elige un Sistema —'; selRaza.appendChild(a1); selRaza.disabled=true; reinitSelect2(selRaza);
-      clearSelect(selAusp,false); var a2=document.createElement('option'); a2.value='0'; a2.textContent='— Elige un Sistema —'; selAusp.appendChild(a2); selAusp.disabled=true; reinitSelect2(selAusp);
-      clearSelect(selTribu,false); var a3=document.createElement('option'); a3.value='0'; a3.textContent='— Elige un Sistema —'; selTribu.appendChild(a3); selTribu.disabled=true; reinitSelect2(selTribu);
-      return;
-    }
-
-    var okR = fillSelectFrom(RAZAS_BY_SYS[sys]||[], selRaza, '— Sin razas para este Sistema —', preRaza);
-    var okA = fillSelectFrom(AUSP_BY_SYS[sys]||[],  selAusp, '— Sin auspicios para este Sistema —', preAusp);
-    var okT = fillSelectFrom(TRIBUS_BY_SYS[sys]||[], selTribu,'— Sin tribus para este Sistema —', preTribu);
-
-    if (preRaza && !okR){
-      var w=document.createElement('option'); w.value=String(preRaza); w.textContent='[WARN] (Fuera del Sistema) ID '+preRaza;
-      selRaza.appendChild(w); selRaza.value=String(preRaza); selRaza.disabled=false;
-      reinitSelect2(selRaza);
-    }
-    if (preAusp && !okA){
-      var w2=document.createElement('option'); w2.value=String(preAusp); w2.textContent='[WARN] (Fuera del Sistema) ID '+preAusp;
-      selAusp.appendChild(w2); selAusp.value=String(preAusp); selAusp.disabled=false;
-      reinitSelect2(selAusp);
-    }
-    if (preTribu && !okT){
-      var w3=document.createElement('option'); w3.value=String(preTribu); w3.textContent='[WARN] (Fuera del Sistema) ID '+preTribu;
-      selTribu.appendChild(w3); selTribu.value=String(preTribu); selTribu.disabled=false;
-      reinitSelect2(selTribu);
-    }
-  }
-
-  function resetAvatarUI(){
-    avatar.value = '';
-    avatarRm.checked = false;
-    avatarPrev.src = '';
-    avatarPrev.style.display = 'none';
-  }
-
-  function resetTraits(){
-    if (!traitInputs) return;
-    traitInputs.forEach(function(inp){ inp.value = '0'; });
-  }
-
-  function fillTraits(map){
-    resetTraits();
-    if (!map) return;
-    traitInputs.forEach(function(inp){
-      var tid = inp.getAttribute('data-trait-id');
-      if (tid && map[tid] !== undefined) {
-        inp.value = String(map[tid]);
-      }
-    });
-  }
-
-  function applyTraitOrder(systemId){
-    var orderMap = (TRAIT_SET_ORDER && systemId && TRAIT_SET_ORDER[String(systemId)]) ? TRAIT_SET_ORDER[String(systemId)] : {};
-    document.querySelectorAll('.traits-group').forEach(function(group){
-      var items = Array.prototype.slice.call(group.querySelectorAll('.trait-item'));
-      items.sort(function(a,b){
-        var aid = a.querySelector('[data-trait-id]')?.getAttribute('data-trait-id') || '';
-        var bid = b.querySelector('[data-trait-id]')?.getAttribute('data-trait-id') || '';
-        var ao = orderMap[aid] !== undefined ? parseInt(orderMap[aid],10) : 9999;
-        var bo = orderMap[bid] !== undefined ? parseInt(orderMap[bid],10) : 9999;
-        if (ao !== bo) return ao - bo;
-        var an = (a.getAttribute('data-trait-name') || '').toLowerCase();
-        var bn = (b.getAttribute('data-trait-name') || '').toLowerCase();
-        return an.localeCompare(bn);
-      });
-      items.forEach(function(it){ group.appendChild(it); });
-    });
-  }
-
-  // PODERES
-  function powersCatalogFor(type){
-    if (type==='dones') return DONES_OPTS;
-    if (type==='disciplinas') return DISC_OPTS;
-    return RITU_OPTS;
-  }
-  function refreshPowerSelect(){
-    var t = powTipo.value;
-    fillSelectFrom(powersCatalogFor(t), powPoder, '— Sin poderes —', 0);
-  }
-  function addPowerChip(type, id, name, lvl){
-    var exists = Array.prototype.some.call(powList.querySelectorAll('.power-chip'), function(c){
-      return c.dataset.type===type && c.dataset.id===String(id);
-    });
-    if (exists) return;
-
-    var chip = document.createElement('span');
-    chip.className = 'chip power-chip';
-    chip.dataset.type = type;
-    chip.dataset.id = String(id);
-    chip.innerHTML =
-      '<span class="tag">'+(type.charAt(0).toUpperCase()+type.slice(1))+'</span>' +
-      '<span class="pname">'+name+'</span>' +
-      '<input class="inp power-lvl" type="number" name="powers_lvl[]" min="0" max="9" value="'+(lvl||0)+'">' +
-      '<input type="hidden" name="powers_type[]" value="'+type+'">' +
-      '<input type="hidden" name="powers_id[]" value="'+id+'">' +
-      '<button type="button" class="btn btn-red btn-del-power">X</button>';
-    powList.appendChild(chip);
-    chip.querySelector('.btn-del-power').addEventListener('click', function(){ chip.remove(); });
-  }
-
-  // MYD
-  function refreshMydSelect(){
-    // Construimos un name amigable: "Nombre — Tipo (Coste)"
-    var list = (MYD_OPTS||[]).map(function(it){
-      var extra = '';
-      if (it.tipo) extra += ' — ' + it.tipo;
-      if (it.coste!==undefined && it.coste!==null && String(it.coste)!=='') extra += ' ('+it.coste+')';
-      return { id: it.id, name: (it.name || ('#'+it.id)) + extra, tipo: it.tipo, coste: it.coste };
-    });
-    fillSelectFrom(list, mydSel, '— Sin méritos/defectos —', 0);
-  }
-
-  function addMydChip(id, baseName, tipo, coste, nivel){
-    var exists = Array.prototype.some.call(mydList.querySelectorAll('.myd-chip'), function(c){
-      return c.dataset.id===String(id);
-    });
-    if (exists) return;
-
-    var tag = (tipo || 'MYD');
-    var name = baseName || ('#'+id);
-
-    var chip = document.createElement('span');
-    chip.className = 'chip myd-chip';
-    chip.dataset.id = String(id);
-    chip.dataset.tipo = tag;
-
-    var lvlVal = (nivel===null || nivel===undefined) ? '' : String(nivel);
-
-    chip.innerHTML =
-      '<span class="tag">'+tag+'</span>' +
-      '<span class="pname">'+name+'</span>' +
-      '<input type="hidden" name="myd_id[]" value="'+id+'">' +
-      '<input class="inp myd-lvl" type="number" name="myd_lvl[]" min="-99" max="999" placeholder="nivel" value="'+lvlVal+'">' +
-      '<button type="button" class="btn btn-red btn-del-myd">X</button>';
-
-    mydList.appendChild(chip);
-    chip.querySelector('.btn-del-myd').addEventListener('click', function(){ chip.remove(); });
-  }
-
-  // INVENTARIO
-  function refreshInvSelect(){
-    var list = (ITEMS_OPTS||[]).map(function(it){
-      return { id: it.id, name: (it.name || ('#'+it.id)), tipo: it.tipo };
-    });
-    fillSelectFrom(list, invSel, '— Sin objetos —', 0);
-  }
-
-  function addInvChip(id, name, tipo){
-    var exists = Array.prototype.some.call(invList.querySelectorAll('.inv-chip'), function(c){
-      return c.dataset.id===String(id);
-    });
-    if (exists) return;
-
-    var chip = document.createElement('span');
-    chip.className = 'chip inv-chip';
-    chip.dataset.id = String(id);
-    chip.innerHTML =
-      '<span class="tag">OBJ</span>' +
-      '<span class="pname">'+(name || ('#'+id))+'</span>' +
-      '<input type="hidden" name="items_id[]" value="'+id+'">' +
-      '<button type="button" class="btn btn-red btn-del-inv">X</button>';
-
-    invList.appendChild(chip);
-    chip.querySelector('.btn-del-inv').addEventListener('click', function(){ chip.remove(); });
-  }
-
-  // RECURSOS
-  function refreshResourceSelect(){
-    var list = (RESOURCE_OPTS||[]).map(function(it){
-      return { id: it.id, name: (it.name || ('#'+it.id)) + ' [' + (it.kind || '') + ']' };
-    });
-    fillSelectFrom(list, resSel, '— Sin recursos —', 0);
-  }
-
-  function getResourceMeta(rid){
-    rid = parseInt(rid, 10) || 0;
-    for (var i=0; i<(RESOURCE_OPTS||[]).length; i++) {
-      var r = RESOURCE_OPTS[i];
-      if ((parseInt(r.id,10)||0) === rid) return r;
-    }
-    return null;
-  }
-
-  function setResourceChipDefault(chip, isDefault){
-    if (!chip) return;
-    chip.dataset.sysDefault = isDefault ? '1' : '0';
-    var badge = chip.querySelector('.res-default-badge');
-    var btnDel = chip.querySelector('.btn-del-res');
-    if (badge) badge.style.display = isDefault ? '' : 'none';
-    if (btnDel) btnDel.style.display = isDefault ? 'none' : '';
-  }
-
-  function addResourceChip(id, name, kind, perm, temp, isSystemDefault){
-    id = parseInt(id,10)||0;
-    if (!id) return;
-    var exists = Array.prototype.find.call(resList.querySelectorAll('.res-chip'), function(c){
-      return c.dataset.id === String(id);
-    });
-    if (exists) {
-      if (isSystemDefault) setResourceChipDefault(exists, true);
-      return;
-    }
-
-    perm = parseInt(perm,10); if (isNaN(perm) || perm < 0) perm = 0;
-    temp = parseInt(temp,10); if (isNaN(temp) || temp < 0) temp = 0;
-
-    var chip = document.createElement('span');
-    chip.className = 'chip res-chip';
-    chip.dataset.id = String(id);
-    chip.innerHTML =
-      '<span class="tag">'+(kind || 'res')+'</span>' +
-      '<span class="pname">'+(name || ('#'+id))+'</span>' +
-      '<span class="res-default-badge adm-hidden-sys-badge">SYS</span>' +
-      '<input type="hidden" name="resource_ids[]" value="'+id+'">' +
-      '<input class="inp adm-w-90" type="number" min="0" name="resource_perm[]" value="'+perm+'" title="Permanente">' +
-      '<input class="inp adm-w-90" type="number" min="0" name="resource_temp[]" value="'+temp+'" title="Temporal">' +
-      '<button type="button" class="btn btn-red btn-del-res">X</button>';
-
-    resList.appendChild(chip);
-    chip.querySelector('.btn-del-res').addEventListener('click', function(){ chip.remove(); });
-    setResourceChipDefault(chip, !!isSystemDefault);
-  }
-
-  function ensureSystemResources(systemId){
-    systemId = parseInt(systemId,10)||0;
-    var defaults = SYS_RESOURCES_BY_SYS[String(systemId)] || [];
-    defaults.forEach(function(r){
-      addResourceChip(r.id, r.name, r.kind, 0, 0, true);
-    });
-    // Re-marca defaults de este sistema y desmarca el resto
-    var defaultMap = {};
-    defaults.forEach(function(r){ defaultMap[String(r.id)] = true; });
-    Array.prototype.forEach.call(resList.querySelectorAll('.res-chip'), function(ch){
-      setResourceChipDefault(ch, !!defaultMap[ch.dataset.id]);
-    });
-  }
-
-  function ensureEstadoOption(val){
-    if (!val) return;
-    var sel = fEstado;
-    var ok = Array.prototype.some.call(sel.options, function(o){ return o.value === val; });
-    if (!ok) {
-      var opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = '[WARN] ' + val + ' (no en lista)';
-      sel.appendChild(opt);
-      reinitSelect2(sel);
-    }
-    sel.value = val;
-    reinitSelect2(sel);
-  }
-
-  function openCreate(){
-    document.getElementById('modalTitle').textContent = 'Nuevo personaje';
-    document.getElementById('crud_action').value = 'create';
-    document.getElementById('f_id').value = '0';
-
-    ['nombre','alias','nombregarou','gender','concept','text_color','cumple','rango'].forEach(function(k){
-      var el=document.getElementById('f_'+k); if(el) el.value='';
-    });
-    ['cronica','jugador','system_id'].forEach(function(k){
-      var el=document.getElementById('f_'+k); if(el) el.value='0';
-    });
-    if (selTotem) selTotem.value = '0';
-    selAfili.value = '0';
-    if (selKind) selKind.value = 'pnj';
-
-    ensureEstadoOption('En activo');
-
-    fInfo.value  = '';
-
-	    updateSistemaSets('', 0,0,0);
-	    if (selNature) selNature.value = '0';
-	    if (selDemeanor) selDemeanor.value = '0';
-
-    selClan.value='0';
-    clearSelect(selManada,false);
-    var o=document.createElement('option'); o.value='0'; o.textContent='— Selecciona primero un Clan —';
-    selManada.appendChild(o); selManada.disabled=true;
-    reinitSelect2(selManada);
-
-    resetAvatarUI();
-
-    // reset poderes
-    powList.innerHTML = '';
-    powTipo.value = 'dones';
-    refreshPowerSelect();
-
-    // reset myd
-    mydList.innerHTML = '';
-    mydLvl.value = '';
-    refreshMydSelect();
-
-    // reset inv
-    invList.innerHTML = '';
-    refreshInvSelect();
-
-    // reset recursos
-    resList.innerHTML = '';
-    refreshResourceSelect();
-    ensureSystemResources(parseInt(selSistema.value,10)||0);
-
-    // reset traits
-    resetTraits();
-    applyTraitOrder(0);
-    applyKindVisibility(selKind ? selKind.value : 'pnj');
-
-    mb.style.display='flex';
-    initSelect2Modal();
-
-    document.getElementById('f_nombre').focus();
-  }
-
-  function openEdit(btn){
-    document.getElementById('modalTitle').textContent = 'Editar personaje';
-    document.getElementById('crud_action').value = 'update';
-    var cid = btn.getAttribute('data-id') || '0';
-    document.getElementById('f_id').value = cid;
-
-    document.getElementById('f_nombre').value      = btn.getAttribute('data-nombre') || '';
-    document.getElementById('f_alias').value       = btn.getAttribute('data-alias') || '';
-    document.getElementById('f_nombregarou').value = btn.getAttribute('data-nombregarou') || '';
-    document.getElementById('f_genero_pj').value   = btn.getAttribute('data-gender') || '';
-    document.getElementById('f_concepto').value    = btn.getAttribute('data-concept') || '';
-    document.getElementById('f_colortexto').value  = btn.getAttribute('data-text_color') || '';
-
-    document.getElementById('f_cronica').value     = btn.getAttribute('data-cronica') || '0';
-    document.getElementById('f_jugador').value     = btn.getAttribute('data-jugador') || '0';
-    document.getElementById('f_afiliacion').value  = btn.getAttribute('data-afiliacion') || '0';
-    if (selKind) {
-      var k = (btn.getAttribute('data-kind') || 'pnj').toLowerCase();
-      if (k === 'monster' || k === 'mon') selKind.value = 'mon';
-      else selKind.value = (k === 'pj') ? 'pj' : 'pnj';
-    }
-
-    var sistId = parseInt(btn.getAttribute('data-system_id')||'0',10)||0;
-    var selS = document.getElementById('f_system_id');
-    if (selS) selS.value = String(sistId||0);
-
-    if (selTotem) {
-      var tId = parseInt(btn.getAttribute('data-totem_id')||'0',10)||0;
-      selTotem.value = String(tId||0);
-    }
-
-	    var razaId = parseInt(btn.getAttribute('data-raza')||'0',10)||0;
-	    var ausId  = parseInt(btn.getAttribute('data-auspice_id')||'0',10)||0;
-	    var triId  = parseInt(btn.getAttribute('data-tribe_id')||'0',10)||0;
-	    var natId  = parseInt(btn.getAttribute('data-nature_id')||'0',10)||0;
-	    var demId  = parseInt(btn.getAttribute('data-demeanor_id')||'0',10)||0;
-	    updateSistemaSets(sistId, razaId, ausId, triId);
-	    applyTraitOrder(sistId);
-	    if (selNature) selNature.value = String(natId||0);
-	    if (selDemeanor) selDemeanor.value = String(demId||0);
-
-    var clanId   = parseInt(btn.getAttribute('data-clan') || '0',10) || 0;
-    var manadaId = parseInt(btn.getAttribute('data-manada') || '0',10) || 0;
-    selClan.value = String(clanId||0);
-    updateManadas(clanId, manadaId);
-
-    resetAvatarUI();
-    var img = btn.getAttribute('data-img') || '';
-    if (img) { avatarPrev.src = img; avatarPrev.style.display='block'; }
-
-    // Poderes: cargar
-    powList.innerHTML = '';
-    var list = CHAR_POWERS[cid] || [];
-    list.forEach(function(p){ addPowerChip(p.t, p.id, p.name, p.lvl); });
-    powTipo.value = 'dones';
-    refreshPowerSelect();
-
-    // MYD: cargar
-    mydList.innerHTML = '';
-    mydLvl.value = '';
-    refreshMydSelect();
-    var ml = CHAR_MYD[cid] || [];
-    ml.forEach(function(m){
-      addMydChip(m.id, m.name, m.tipo, m.coste, m.nivel);
-    });
-
-    // INV: cargar
-    invList.innerHTML = '';
-    refreshInvSelect();
-    var il = CHAR_ITEMS[cid] || [];
-    il.forEach(function(it){
-      addInvChip(it.id, it.name, it.tipo);
-    });
-
-    // RECURSOS: cargar (existentes) + defaults del sistema
-    resList.innerHTML = '';
-    refreshResourceSelect();
-    var rl = CHAR_RESOURCES[cid] || [];
-    rl.forEach(function(rr){
-      addResourceChip(rr.id, rr.name, rr.kind, rr.perm, rr.temp, false);
-    });
-    ensureSystemResources(sistId);
-
-    // Traits: cargar
-    fillTraits(CHAR_TRAITS[cid] || {});
-    applyKindVisibility(selKind ? selKind.value : 'pnj');
-
-    fInfo.value   = '';
-    fCumple.value = '';
-    fRango.value  = '';
-    ensureEstadoOption('En activo');
-
-    var d = CHAR_DETAILS[cid];
-    if (d) {
-      ensureEstadoOption(d.status || 'En activo');
-      fCumple.value = d.cumple || '';
-      fRango.value  = d.rango || '';
-      fInfo.value   = d.infotext || '';
-    }
-
-    mb.style.display='flex';
-    initSelect2Modal();
-
-    document.getElementById('f_nombre').focus();
-  }
-
-  // Modal binds
-  btnNew.addEventListener('click', openCreate);
-  btnCancel.addEventListener('click', function(){ mb.style.display='none'; });
-  mb.addEventListener('click', function(e){ if (e.target === mb) mb.style.display='none'; });
-  Array.prototype.forEach.call(document.querySelectorAll('button[data-edit="1"]'), function(b){
-    b.addEventListener('click', function(){ openEdit(b); });
-  });
-
-  // Sistema change
-  onSelectChange(selSistema, function(){
-    var sys = parseInt(selSistema.value,10)||0;
-    updateSistemaSets(sys, 0,0,0);
-    applyTraitOrder(sys);
-    ensureSystemResources(sys);
-  });
-
-  // Clan -> manadas
-  onSelectChange(selClan, function(){
-    var c = parseInt(selClan.value,10)||0;
-    if (!c){
-      clearSelect(selManada,false);
-      var o=document.createElement('option'); o.value='0'; o.textContent='— Selecciona primero un Clan —';
-      selManada.appendChild(o); selManada.disabled=true;
-      reinitSelect2(selManada);
-      return;
-    }
-    updateManadas(c, 0);
-  });
-
-  onSelectChange(selKind, function(){
-    applyKindVisibility(selKind ? selKind.value : 'pnj');
-  });
-  applyKindVisibility(selKind ? selKind.value : 'pnj');
-
-  // Avatar preview / remove
-  avatar.addEventListener('change', function(){
-    if (avatar.files && avatar.files[0]) {
-      avatarPrev.src = URL.createObjectURL(avatar.files[0]);
-      avatarPrev.style.display = 'block';
-      avatarRm.checked = false;
-    } else if (!avatarRm.checked && !avatarPrev.src) {
-      avatarPrev.style.display = 'none';
-    }
-  });
-  avatarRm.addEventListener('change', function(){
-    if (avatarRm.checked) {
-      avatar.value = '';
-      avatarPrev.src = '';
-      avatarPrev.style.display = 'none';
-    }
-  });
-
-  // Validación rápida cliente
-  document.getElementById('formCrud').addEventListener('submit', function(ev){
-    var c = parseInt(selClan.value,10)||0;
-    var m = parseInt(selManada.value,10)||0;
-    if (!c) { alert('Debes seleccionar un Clan.'); ev.preventDefault(); return; }
-    if (m && MANADA_ID_TO_CLAN[String(m)] && parseInt(MANADA_ID_TO_CLAN[String(m)],10)!==c) {
-      alert('La Manada seleccionada no pertenece al Clan elegido.');
-      ev.preventDefault(); return;
-    }
-    var sys = parseInt(selSistema.value,10)||0;
-    var rz = parseInt(selRaza.value,10)||0;
-    var au = parseInt(selAusp.value,10)||0;
-    var tr = parseInt(selTribu.value,10)||0;
-    if (sys){
-      if (rz && RAZA_ID_TO_SYS[String(rz)]   && parseInt(RAZA_ID_TO_SYS[String(rz)],10)   !== sys){ alert('La Raza no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
-      if (au && AUSP_ID_TO_SYS[String(au)]   && parseInt(AUSP_ID_TO_SYS[String(au)],10)   !== sys){ alert('El Auspicio no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
-      if (tr && TRIBU_ID_TO_SYS[String(tr)]  && parseInt(TRIBU_ID_TO_SYS[String(tr)],10)  !== sys){ alert('La Tribu no pertenece al Sistema elegido.'); ev.preventDefault(); return; }
-    }
-    if (!fEstado.value) { alert('Debes seleccionar un Estado.'); ev.preventDefault(); return; }
-  });
-
-  // PODERES UI
-  onSelectChange(powTipo, function(){ refreshPowerSelect(); });
-  refreshPowerSelect();
-  reinitSelect2(powTipo);
-  reinitSelect2(powPoder);
-
-  powAdd.addEventListener('click', function(){
-    var t = powTipo.value;
-    var pid = parseInt(powPoder.value,10)||0;
-    if (!pid){ alert('Elige un poder.'); return; }
-    var nm = powPoder.options[powPoder.selectedIndex].textContent;
-    var lvl = parseInt(powLvl.value,10); if (isNaN(lvl)) lvl=0; lvl=Math.max(0,Math.min(9,lvl));
-    addPowerChip(t, pid, nm, lvl);
-  });
-
-  // MYD UI
-  refreshMydSelect();
-  reinitSelect2(mydSel);
-
-  mydAdd.addEventListener('click', function(){
-    var mid = parseInt(mydSel.value,10)||0;
-    if (!mid){ alert('Elige un Mérito o Defecto.'); return; }
-
-    var base = null, tipo=null, coste=null;
-    for (var i=0;i<MYD_OPTS.length;i++){
-      if (parseInt(MYD_OPTS[i].id,10)===mid){
-        base = MYD_OPTS[i].name;
-        tipo = MYD_OPTS[i].tipo;
-        coste= MYD_OPTS[i].coste;
-        break;
-      }
-    }
-
-    var raw = (mydLvl.value||'').trim();
-    var nivel = (raw==='') ? null : parseInt(raw,10);
-    if (raw!=='' && isNaN(nivel)) nivel = null;
-
-    addMydChip(mid, base, tipo, coste, nivel);
-    mydLvl.value = '';
-  });
-
-  // INVENTARIO UI
-  refreshInvSelect();
-  reinitSelect2(invSel);
-
-  invAdd.addEventListener('click', function(){
-    var iid = parseInt(invSel.value,10)||0;
-    if (!iid){ alert('Elige un objeto.'); return; }
-
-    var nm=null, tp=0;
-    for (var i=0;i<ITEMS_OPTS.length;i++){
-      if (parseInt(ITEMS_OPTS[i].id,10)===iid){
-        nm = ITEMS_OPTS[i].name;
-        tp = ITEMS_OPTS[i].tipo || 0;
-        break;
-      }
-    }
-    addInvChip(iid, nm, tp);
-  });
-
-  // RECURSOS UI
-  refreshResourceSelect();
-  reinitSelect2(resSel);
-  resAdd.addEventListener('click', function(){
-    var rid = parseInt(resSel.value,10)||0;
-    if (!rid){ alert('Elige un recurso.'); return; }
-    var meta = getResourceMeta(rid);
-    addResourceChip(rid, meta ? meta.name : ('#'+rid), meta ? meta.kind : 'res', 0, 0, false);
-    ensureSystemResources(parseInt(selSistema.value,10)||0);
-  });
-
-})();
+window.ADMIN_CSRF_TOKEN = <?= json_encode($ADMIN_CSRF_TOKEN, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+window.HG_ADMIN_CHARACTERS_BOOT = <?= json_encode($jsBoot, $jsBootFlags); ?>;
 </script>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
+<script src="<?= h($adminCharactersJs) ?>?v=<?= (int)$adminCharactersJsVer ?>"></script>
 
 
 

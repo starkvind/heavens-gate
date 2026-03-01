@@ -4,6 +4,7 @@ if (!isset($link) || !$link) { die("Sin conexion BD"); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
@@ -21,12 +22,23 @@ function fetchPairs(mysqli $link, string $sql): array {
     return $out;
 }
 
-if (empty($_SESSION['csrf_admin_traits'])) {
-    $_SESSION['csrf_admin_traits'] = bin2hex(random_bytes(16));
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_traits';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+    if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+        $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+    }
+    $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
 }
-$CSRF = $_SESSION['csrf_admin_traits'];
 function csrf_ok(): bool {
-    $t = $_POST['csrf'] ?? '';
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $t = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
+    if (function_exists('hg_admin_csrf_valid')) {
+        return hg_admin_csrf_valid($t, 'csrf_admin_traits');
+    }
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_traits']) && hash_equals($_SESSION['csrf_admin_traits'], $t);
 }
 
@@ -52,7 +64,19 @@ if ($rs = $link->query("SELECT DISTINCT classification FROM dim_traits WHERE cla
     $rs->close();
 }
 
+$isAjaxCrudRequest = (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['crud_action'])
+    && (
+        ((string)($_POST['ajax'] ?? '') === '1')
+        || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+    )
+);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
+    if ($isAjaxCrudRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     if (!csrf_ok()) {
         $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
     } else {
@@ -141,7 +165,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 }
 
-if (($_GET['ajax'] ?? '') === 'search' || ($_GET['ajax'] ?? '') === '1') {
+if ($isAjaxCrudRequest) {
+    $errors = [];
+    $messages = [];
+    foreach ($flash as $m) {
+        $type = (string)($m['type'] ?? '');
+        $msg = (string)($m['msg'] ?? '');
+        if ($msg === '') continue;
+        if ($type === 'error') $errors[] = $msg;
+        else $messages[] = $msg;
+    }
+    if (!empty($errors)) {
+        if (function_exists('hg_admin_json_error')) {
+            hg_admin_json_error($errors[0], 400, ['flash' => $errors], ['messages' => $messages]);
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'message' => $errors[0],
+            'error' => $errors[0],
+            'errors' => $errors,
+            'data' => ['messages' => $messages],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    $okMsg = !empty($messages) ? $messages[count($messages)-1] : 'Guardado';
+    if (function_exists('hg_admin_json_success')) {
+        hg_admin_json_success(['messages' => $messages], $okMsg);
+    }
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'message' => $okMsg,
+        'msg' => $okMsg,
+        'data' => ['messages' => $messages],
+        'errors' => [],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
+$ajaxMode = (string)($_GET['ajax_mode'] ?? ($_GET['ajax'] ?? ''));
+if ($ajaxMode === 'search' || $ajaxMode === '1') {
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     $qAjax = trim((string)($_GET['q'] ?? ''));
     $whereAjax = "WHERE 1=1";
     $typesAjax = "";
@@ -385,20 +453,78 @@ admin_panel_open('Traits', $actions);
     </div>
 </div>
 
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 (function(){
     var modal = document.getElementById('mbTrait');
     var delModal = document.getElementById('mbTraitDel');
+    var form = document.getElementById('traitForm');
+    var delForm = document.getElementById('traitDelForm');
+    var input = document.getElementById('quickFilterTraits');
+    var filterForm = document.getElementById('traitsFilterForm');
+    var filterBtn = document.getElementById('btnApplyTraitsFilter');
+    var tbody = document.getElementById('traitsTbody');
+    var pager = document.getElementById('traitsPager');
+    var pagerCur = pager ? pager.querySelector('.cur') : null;
     var kindSelect = document.getElementById('trait_kind');
     var classificationSelect = document.getElementById('trait_classification');
+    if (!input || !tbody || !form || !delForm || !modal || !delModal) return;
+
+    var defaultQuery = input.value || '';
+    var initialHtml = tbody.innerHTML;
+    var reqSeq = 0;
+    var timer = null;
+
+    function esc(s){
+        return String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function endpointUrl(mode, term){
+        var url = new URL(window.location.href);
+        url.searchParams.set('s', 'admin_traits');
+        url.searchParams.set('ajax', '1');
+        if (mode) url.searchParams.set('ajax_mode', mode);
+        if (typeof term === 'string') {
+            if (term.trim()) url.searchParams.set('q', term.trim());
+            else url.searchParams.delete('q');
+        }
+        url.searchParams.set('_ts', Date.now());
+        return url.toString();
+    }
+
+    function errorMessage(err){
+        if (window.HGAdminHttp && typeof window.HGAdminHttp.errorMessage === 'function') {
+            return window.HGAdminHttp.errorMessage(err);
+        }
+        return (err && (err.message || err.error)) ? (err.message || err.error) : 'Error';
+    }
+
+    function request(url, opts){
+        if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+            return window.HGAdminHttp.request(url, opts || {});
+        }
+        return fetch(url, Object.assign({
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }, opts || {})).then(function(r){ return r.json(); });
+    }
 
     function ensureKindOption(value){
         var v = String(value || '').trim();
         if (!kindSelect || v === '') return;
-        var exists = Array.prototype.some.call(kindSelect.options, function(opt){
-            return String(opt.value) === v;
-        });
+        var exists = Array.prototype.some.call(kindSelect.options, function(opt){ return String(opt.value) === v; });
         if (!exists) {
             var opt = document.createElement('option');
             opt.value = v;
@@ -410,9 +536,7 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
     function ensureClassificationOption(value){
         var v = String(value || '').trim();
         if (!classificationSelect || v === '') return;
-        var exists = Array.prototype.some.call(classificationSelect.options, function(opt){
-            return String(opt.value) === v;
-        });
+        var exists = Array.prototype.some.call(classificationSelect.options, function(opt){ return String(opt.value) === v; });
         if (!exists) {
             var opt = document.createElement('option');
             opt.value = v;
@@ -467,75 +591,12 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
         delModal.style.display = 'none';
     }
 
-    document.getElementById('btnNewTrait').addEventListener('click', openCreate);
-    document.getElementById('btnTraitCancel').addEventListener('click', closeAll);
-    document.getElementById('btnTraitDelCancel').addEventListener('click', closeAll);
-
-    modal.addEventListener('click', function(e){ if (e.target === modal) closeAll(); });
-    delModal.addEventListener('click', function(e){ if (e.target === delModal) closeAll(); });
-
-    Array.prototype.forEach.call(document.querySelectorAll('button[data-edit]'), function(btn){
-        btn.addEventListener('click', function(){
-            openEdit(parseInt(btn.getAttribute('data-edit') || '0', 10) || 0);
+    function bindRowButtons(scope){
+        Array.prototype.forEach.call((scope || document).querySelectorAll('button[data-edit]'), function(btn){
+            btn.onclick = function(){ openEdit(parseInt(btn.getAttribute('data-edit') || '0', 10) || 0); };
         });
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('button[data-del]'), function(btn){
-        btn.addEventListener('click', function(){
-            openDelete(parseInt(btn.getAttribute('data-del') || '0', 10) || 0);
-        });
-    });
-})();
-
-(function(){
-    var input = document.getElementById('quickFilterTraits');
-    var filterForm = document.getElementById('traitsFilterForm');
-    var filterBtn = document.getElementById('btnApplyTraitsFilter');
-    var tbody = document.getElementById('traitsTbody');
-    var pager = document.getElementById('traitsPager');
-    if (!input || !tbody) return;
-
-    var initialHtml = tbody.innerHTML;
-    var initialMap = TRAITS;
-    var reqSeq = 0;
-    var timer = null;
-
-    function esc(s){
-        return String(s || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function bindRowButtons(){
-        Array.prototype.forEach.call(document.querySelectorAll('button[data-edit]'), function(btn){
-            btn.addEventListener('click', function(){
-                var id = parseInt(btn.getAttribute('data-edit') || '0', 10) || 0;
-                var row = TRAITS[String(id)];
-                if (!row) return;
-                document.getElementById('traitModalTitle').textContent = 'Editar trait';
-                document.getElementById('trait_action').value = 'update';
-                document.getElementById('trait_id').value = String(id);
-                document.getElementById('trait_name').value = row.name || '';
-                ensureKindOption(row.kind || '');
-                document.getElementById('trait_kind').value = row.kind || '';
-                ensureClassificationOption(row.classification || '');
-                document.getElementById('trait_classification').value = row.classification || '';
-                document.getElementById('trait_bibliography_id').value = String(parseInt(row.bibliography_id || 0, 10) || 0);
-                document.getElementById('trait_description').value = row.description || '';
-                document.getElementById('trait_levels').value = row.levels || '';
-                document.getElementById('trait_posse').value = row.posse || '';
-                document.getElementById('trait_special').value = row.special || '';
-                document.getElementById('mbTrait').style.display = 'flex';
-            });
-        });
-        Array.prototype.forEach.call(document.querySelectorAll('button[data-del]'), function(btn){
-            btn.addEventListener('click', function(){
-                var id = parseInt(btn.getAttribute('data-del') || '0', 10) || 0;
-                document.getElementById('trait_del_id').value = String(id);
-                document.getElementById('mbTraitDel').style.display = 'flex';
-            });
+        Array.prototype.forEach.call((scope || document).querySelectorAll('button[data-del]'), function(btn){
+            btn.onclick = function(){ openDelete(parseInt(btn.getAttribute('data-del') || '0', 10) || 0); };
         });
     }
 
@@ -543,6 +604,7 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
         TRAITS = rowMap || {};
         if (!rows || !rows.length) {
             tbody.innerHTML = '<tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>';
+            if (pagerCur) pagerCur.textContent = 'Total 0 (vista AJAX)';
             return;
         }
         var html = '';
@@ -560,32 +622,75 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
                 + '</tr>';
         });
         tbody.innerHTML = html;
-        bindRowButtons();
+        bindRowButtons(tbody);
+        if (pagerCur) pagerCur.textContent = 'Total ' + rows.length + ' (vista AJAX)';
     }
 
-    function runSearch(){
+    function runSearch(forceAjax){
         var term = (input.value || '').trim();
-        if (term === '') {
-            TRAITS = initialMap;
+        if (!forceAjax && term === '') {
             tbody.innerHTML = initialHtml;
-            bindRowButtons();
             if (pager) pager.style.display = '';
-            return;
+            bindRowButtons(tbody);
+            return Promise.resolve();
         }
-
         var mySeq = ++reqSeq;
         if (pager) pager.style.display = 'none';
-        fetch('/talim?s=admin_traits&ajax=1&q=' + encodeURIComponent(term), { credentials: 'same-origin' })
-            .then(function(r){ return r.json(); })
+        return request(endpointUrl('search', term), { method: 'GET' })
             .then(function(data){
                 if (mySeq !== reqSeq) return;
                 if (!data || data.ok !== true) return;
                 renderRows(data.rows || [], data.rowMap || {});
             })
             .catch(function(){
-                if (pager) pager.style.display = '';
+                if (!forceAjax && term === '' && pager) pager.style.display = '';
             });
     }
+
+    document.getElementById('btnNewTrait').addEventListener('click', openCreate);
+    document.getElementById('btnTraitCancel').addEventListener('click', closeAll);
+    document.getElementById('btnTraitDelCancel').addEventListener('click', closeAll);
+    modal.addEventListener('click', function(e){ if (e.target === modal) closeAll(); });
+    delModal.addEventListener('click', function(e){ if (e.target === delModal) closeAll(); });
+    bindRowButtons(document);
+
+    form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var fd = new FormData(form);
+        fd.set('ajax', '1');
+        request(endpointUrl('', ''), {
+            method: 'POST',
+            body: fd,
+            loadingEl: form
+        }).then(function(payload){
+            closeAll();
+            if (window.HGAdminHttp && window.HGAdminHttp.notify) {
+                window.HGAdminHttp.notify((payload && (payload.message || payload.msg)) || 'Guardado', 'ok');
+            }
+            return runSearch(true);
+        }).catch(function(err){
+            alert(errorMessage(err));
+        });
+    });
+
+    delForm.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var fd = new FormData(delForm);
+        fd.set('ajax', '1');
+        request(endpointUrl('', ''), {
+            method: 'POST',
+            body: fd,
+            loadingEl: delForm
+        }).then(function(payload){
+            closeAll();
+            if (window.HGAdminHttp && window.HGAdminHttp.notify) {
+                window.HGAdminHttp.notify((payload && (payload.message || payload.msg)) || 'Eliminado', 'ok');
+            }
+            return runSearch(true);
+        }).catch(function(err){
+            alert(errorMessage(err));
+        });
+    });
 
     input.addEventListener('input', function(){
         clearTimeout(timer);
@@ -602,6 +707,12 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
             runSearch();
         });
     }
+
+    window.addEventListener('popstate', function(){
+        var usp = new URLSearchParams(window.location.search || '');
+        input.value = usp.get('q') || defaultQuery || '';
+        runSearch(true);
+    });
 })();
 </script>
 <?php admin_panel_close(); ?>

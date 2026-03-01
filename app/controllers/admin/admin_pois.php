@@ -12,7 +12,13 @@ if (!headers_sent()) { @ob_start(); }
 if (!$link) { die("Error de conexión a la base de datos: " . mysqli_connect_error()); }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
+
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_pois';
+$ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
+  ? hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY)
+  : '';
 
 /* ---------------------------
    Helpers PHP
@@ -24,17 +30,47 @@ function slugify($s) {
   $s = trim($s, '-');
   return $s ?: substr(md5(uniqid('', true)), 0, 8);
 }
-function jres($arr){
-  // Limpiar TODO lo que se haya enviado al buffer para que no haya HTML antes del JSON
+function jres($arr, $status=200){
+  if (function_exists('hg_admin_json_response')) {
+    hg_admin_json_response((array)$arr, (int)$status);
+  }
+  // Fallback si helper compartido no esta disponible
   while (ob_get_level()) { @ob_end_clean(); }
   if (function_exists('header_remove')) { @header_remove(); }
   header('Content-Type: application/json; charset=utf-8');
   header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+  http_response_code((int)$status);
   echo json_encode($arr, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
   exit;
 }
-function ok($data=[]){ jres(['ok'=>true]+$data); }
-function jerr($msg, $code=400){ http_response_code($code); jres(['ok'=>false,'error'=>$msg]); }
+function ok($data=[], $message='OK'){
+  $payload = [
+    'ok' => true,
+    'message' => $message,
+    'msg' => $message,
+    'error' => null,
+    'data' => $data,
+    'errors' => [],
+    'meta' => [],
+  ];
+  if (is_array($data)) {
+    // Compatibilidad legacy: exponer maps/cats/pois/areas en top-level
+    $payload = array_merge($payload, $data);
+  }
+  jres($payload, 200);
+}
+function jerr($msg, $code=400, $errors=[], $data=null){
+  $payload = [
+    'ok' => false,
+    'error' => $msg,
+    'message' => $msg,
+    'msg' => $msg,
+    'data' => $data,
+    'errors' => (array)$errors,
+    'meta' => [],
+  ];
+  jres($payload, (int)$code);
+}
 
 /**
  * Normaliza una fila de fact_map_areas para el payload JS:
@@ -69,6 +105,19 @@ function area_row_to_payload(array $row): array {
    --------------------------- */
 if (isset($_GET['ajax'])) {
   $a = $_GET['ajax'];
+
+  if (function_exists('hg_admin_require_session')) {
+    hg_admin_require_session(true);
+  }
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && function_exists('hg_admin_csrf_valid')) {
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $csrf = function_exists('hg_admin_extract_csrf_token')
+      ? hg_admin_extract_csrf_token($payload)
+      : trim((string)($_POST['csrf'] ?? ''));
+    if (!hg_admin_csrf_valid($csrf, $ADMIN_CSRF_SESSION_KEY)) {
+      jerr('Token CSRF invalido', 403, ['csrf' => 'invalid']);
+    }
+  }
 
   // --- Listados
   if ($a === 'list_all') {
@@ -386,6 +435,14 @@ $pageTitle2 = "Mapas, POIs y Áreas";
 
 <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
 <script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($ADMIN_CSRF_TOKEN, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+</script>
+<script src="<?= htmlspecialchars($adminHttpJs, ENT_QUOTES, 'UTF-8') ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
 <div class="adm-clear-both"></div>
 <h2>🗺️ Administración de Mapas & POIs & Áreas</h2>
@@ -809,22 +866,36 @@ $('#filterCat').addEventListener('change', renderPois);
 
 // ----------- Helper robusto para JSON (recorta HTML accidental) -----------
 async function fetchJson(url, opts={}) {
+  if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+    try {
+      const requestOpts = Object.assign({ method: 'GET' }, opts || {});
+      return await window.HGAdminHttp.request(url, requestOpts);
+    } catch (err) {
+      if (err && err.payload) return err.payload;
+      throw err;
+    }
+  }
+
+  if (opts && opts.method && String(opts.method).toUpperCase() === 'POST' && opts.body instanceof FormData) {
+    const hasCsrf = opts.body.has('csrf');
+    if (!hasCsrf && window.ADMIN_CSRF_TOKEN) opts.body.set('csrf', window.ADMIN_CSRF_TOKEN);
+  }
+
   const res = await fetch(url, opts);
   const text = await res.text();
 
   try { return JSON.parse(text); } catch(_e) {}
 
-  // Preferimos la respuesta JSON estándar {"ok":...}
-  let start = text.indexOf('{"ok"');
+  // Fallback legacy: intentar recortar ruido HTML/warnings alrededor del JSON
+  let start = text.indexOf('{\"ok\"');
   if (start === -1) {
     const iBrace = text.indexOf('{');
     const iBracket = text.indexOf('[');
     if (iBrace !== -1 && iBracket !== -1) start = Math.min(iBrace, iBracket);
     else start = (iBrace !== -1) ? iBrace : iBracket;
   }
-  if (start === -1) throw new Error('No se encontró JSON en la respuesta del servidor');
+  if (start === -1) throw new Error('No se encontro JSON en la respuesta del servidor');
 
-  // Intentar recortar al último cierre para evitar restos HTML/avisos
   const endObj = text.lastIndexOf('}');
   const endArr = text.lastIndexOf(']');
   const end = Math.max(endObj, endArr);
@@ -834,7 +905,6 @@ async function fetchJson(url, opts={}) {
   }
   return JSON.parse(text.slice(start));
 }
-
 // Botón Recargar
 $('#btnRefresh').addEventListener('click', async ()=>{
   try {

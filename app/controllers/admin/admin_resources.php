@@ -7,6 +7,11 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+$isAjaxRequest = (
+    ((string)($_GET['ajax'] ?? '') === '1')
+    || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+);
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_resource_pretty(string $text): string {
@@ -41,7 +46,13 @@ if (empty($_SESSION['csrf_admin_resources'])) {
 }
 $CSRF = $_SESSION['csrf_admin_resources'];
 function csrf_ok(): bool {
-    $t = $_POST['csrf'] ?? '';
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $t = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
+    if (function_exists('hg_admin_csrf_valid')) {
+        return hg_admin_csrf_valid($t, 'csrf_admin_resources');
+    }
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_resources']) && hash_equals($_SESSION['csrf_admin_resources'], $t);
 }
 
@@ -50,11 +61,16 @@ $actions = '<span class="adm-flex-right-8">'
     . '<label class="adm-text-left">Filtro rapido '
     . '<input class="inp" type="text" id="quickFilterResources" placeholder="En esta pagina..."></label>'
     . '</span>';
-admin_panel_open('Recursos (catalogo)', $actions);
+if (!$isAjaxRequest) {
+    admin_panel_open('Recursos (catalogo)', $actions);
+}
 
 $flash = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
+    if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     if (!csrf_ok()) {
         $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
     } else {
@@ -138,6 +154,68 @@ if ($rs) {
     }
     $rs->close();
 }
+
+if ($isAjaxRequest && (string)($_GET['ajax_mode'] ?? '') === 'list') {
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    if (function_exists('hg_admin_json_success')) {
+        hg_admin_json_success(['rows' => $rows, 'rowsFull' => $rowsFull, 'total' => count($rows)], 'Listado');
+    }
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'ok' => true,
+        'rows' => $rows,
+        'rowsFull' => $rowsFull,
+        'total' => count($rows),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
+$ajaxSaveDelete = (
+    $isAjaxRequest
+    && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['crud_action'])
+);
+if ($ajaxSaveDelete) {
+    $errors = [];
+    $messages = [];
+    foreach ($flash as $m) {
+        $msg = (string)($m['msg'] ?? '');
+        if ($msg === '') continue;
+        if ((string)($m['type'] ?? '') === 'error') $errors[] = $msg;
+        else $messages[] = $msg;
+    }
+    if (!empty($errors)) {
+        if (function_exists('hg_admin_json_error')) {
+            hg_admin_json_error($errors[0], 400, ['flash' => $errors], ['messages' => $messages]);
+        }
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode([
+            'ok' => false,
+            'message' => $errors[0],
+            'errors' => $errors,
+            'data' => ['messages' => $messages],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+    $okMsg = !empty($messages) ? $messages[count($messages)-1] : 'Guardado';
+    if (function_exists('hg_admin_json_success')) {
+        hg_admin_json_success(['rows' => $rows, 'rowsFull' => $rowsFull, 'messages' => $messages], $okMsg);
+    }
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'ok' => true,
+        'message' => $okMsg,
+        'msg' => $okMsg,
+        'data' => [
+            'rows' => $rows,
+            'rowsFull' => $rowsFull,
+            'messages' => $messages,
+        ],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
 ?>
 
 <?php if (!empty($flash)): ?>
@@ -212,7 +290,7 @@ if ($rs) {
             <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="resourcesTbody">
     <?php foreach ($rows as $r): ?>
         <?php
             $search = trim((string)($r['name'] ?? '') . ' ' . (string)($r['kind'] ?? '') . ' ' . (string)($r['pretty_id'] ?? '') . ' ' . (string)($r['description'] ?? ''));
@@ -227,8 +305,8 @@ if ($rs) {
             <td><?= h((string)($r['pretty_id'] ?? '')) ?></td>
             <td><?= h(short_txt(strip_tags((string)($r['description'] ?? '')), 20)) ?></td>
             <td>
-                <button class="btn" type="button" onclick="openResourceModal(<?= (int)$r['id'] ?>)">Editar</button>
-                <button class="btn btn-red" type="button" onclick="openResourceDeleteModal(<?= (int)$r['id'] ?>)">Borrar</button>
+                <button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
+                <button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
             </td>
         </tr>
     <?php endforeach; ?>
@@ -238,15 +316,71 @@ if ($rs) {
     </tbody>
 </table>
 
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;</script>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <script>
-const resourcesData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+let resourcesData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+
+function request(url, opts){
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+        return window.HGAdminHttp.request(url, opts || {});
+    }
+    const cfg = Object.assign({
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }, opts || {});
+    return fetch(url, cfg).then(async function(resp){
+        const text = await resp.text();
+        let payload = {};
+        if (text) {
+            try { payload = JSON.parse(text); }
+            catch (e) { payload = { ok:false, message:'Respuesta no JSON', raw:text }; }
+        }
+        if (!resp.ok || (payload && payload.ok === false)) {
+            const err = new Error((payload && (payload.message || payload.error || payload.msg)) || ('HTTP ' + resp.status));
+            err.status = resp.status;
+            err.payload = payload;
+            throw err;
+        }
+        return payload;
+    });
+}
+
+function endpointUrl(mode){
+    const url = new URL(window.location.href);
+    url.searchParams.set('s', 'admin_resources');
+    url.searchParams.set('ajax', '1');
+    if (mode) url.searchParams.set('ajax_mode', mode);
+    else url.searchParams.delete('ajax_mode');
+    url.searchParams.set('_ts', Date.now());
+    return url.toString();
+}
+
+function esc(s){
+    return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function shortTxt(s, n){
+    const txt = String(s || '').replace(/\s+/g, ' ').trim();
+    return txt.length <= n ? txt : (txt.slice(0, n) + '...');
+}
 
 function openResourceModal(id = null){
     const modal = document.getElementById('resourceModal');
     document.getElementById('resource_id').value = '0';
     document.getElementById('resource_action').value = 'create';
     document.getElementById('resource_name').value = '';
-    document.getElementById('resource_kind').value = '';
+    document.getElementById('resource_kind').value = 'renombre';
     document.getElementById('resource_sort_order').value = '0';
     document.getElementById('resource_description').value = '';
 
@@ -280,26 +414,107 @@ function closeResourceDeleteModal(){
     document.getElementById('resourceDeleteModal').style.display = 'none';
 }
 
+function bindRows(){
+    document.querySelectorAll('#resourcesTbody [data-edit]').forEach(function(btn){
+        btn.onclick = function(){
+            openResourceModal(parseInt(btn.getAttribute('data-edit') || '0', 10) || 0);
+        };
+    });
+    document.querySelectorAll('#resourcesTbody [data-del]').forEach(function(btn){
+        btn.onclick = function(){
+            openResourceDeleteModal(parseInt(btn.getAttribute('data-del') || '0', 10) || 0);
+        };
+    });
+}
+
+function renderRows(rows){
+    const tbody = document.getElementById('resourcesTbody');
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="adm-color-muted">(Sin recursos)</td></tr>';
+        bindRows();
+        return;
+    }
+    let html = '';
+    rows.forEach(function(r){
+        const id = parseInt(r.id || 0, 10) || 0;
+        const name = String(r.name || '');
+        const kind = String(r.kind || '');
+        const sortOrder = parseInt(r.sort_order || 0, 10) || 0;
+        const pretty = String(r.pretty_id || '');
+        const desc = String(r.description || '');
+        const search = (name + ' ' + kind + ' ' + pretty + ' ' + desc).toLowerCase();
+        html += '<tr data-search="' + esc(search) + '">'
+            + '<td>' + id + '</td>'
+            + '<td>' + esc(name) + '</td>'
+            + '<td>' + esc(kind) + '</td>'
+            + '<td>' + sortOrder + '</td>'
+            + '<td>' + esc(pretty) + '</td>'
+            + '<td>' + esc(shortTxt(desc.replace(/<[^>]*>/g, ''), 20)) + '</td>'
+            + '<td><button class="btn" type="button" data-edit="' + id + '">Editar</button> '
+            + '<button class="btn btn-red" type="button" data-del="' + id + '">Borrar</button></td>'
+            + '</tr>';
+    });
+    tbody.innerHTML = html;
+    bindRows();
+}
+
+function applyQuickFilter(){
+    const input = document.getElementById('quickFilterResources');
+    if (!input) return;
+    const q = (input.value || '').toLowerCase();
+    document.querySelectorAll('#resourcesTbody tr').forEach(function(tr){
+        const hay = (tr.getAttribute('data-search') || tr.textContent || '').toLowerCase();
+        tr.style.display = hay.indexOf(q) !== -1 ? '' : 'none';
+    });
+}
+
+document.getElementById('resourceForm').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    const fd = new FormData(this);
+    fd.set('ajax', '1');
+    request(endpointUrl(''), { method:'POST', body: fd, loadingEl: this }).then(function(payload){
+        const data = payload && payload.data ? payload.data : {};
+        if (Array.isArray(data.rows)) renderRows(data.rows);
+        if (Array.isArray(data.rowsFull)) resourcesData = data.rowsFull;
+        closeResourceModal();
+        applyQuickFilter();
+        if (window.HGAdminHttp && window.HGAdminHttp.notify) {
+            window.HGAdminHttp.notify((payload && (payload.message || payload.msg)) || 'Guardado', 'ok');
+        }
+    }).catch(function(err){
+        const msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error al guardar');
+        alert(msg);
+    });
+});
+
+document.getElementById('resourceDeleteForm').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    const fd = new FormData(this);
+    fd.set('ajax', '1');
+    request(endpointUrl(''), { method:'POST', body: fd, loadingEl: this }).then(function(payload){
+        const data = payload && payload.data ? payload.data : {};
+        if (Array.isArray(data.rows)) renderRows(data.rows);
+        if (Array.isArray(data.rowsFull)) resourcesData = data.rowsFull;
+        closeResourceDeleteModal();
+        applyQuickFilter();
+        if (window.HGAdminHttp && window.HGAdminHttp.notify) {
+            window.HGAdminHttp.notify((payload && (payload.message || payload.msg)) || 'Eliminado', 'ok');
+        }
+    }).catch(function(err){
+        const msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error al borrar');
+        alert(msg);
+    });
+});
+
 document.addEventListener('keydown', function(e){
     if (e.key === 'Escape') {
         closeResourceModal();
         closeResourceDeleteModal();
     }
 });
-</script>
-
-<script>
-(function(){
-    const input = document.getElementById('quickFilterResources');
-    if (!input) return;
-    input.addEventListener('input', function(){
-        const q = (this.value || '').toLowerCase();
-        document.querySelectorAll('#tablaResources tbody tr').forEach(function(tr){
-            const hay = (tr.getAttribute('data-search') || tr.textContent || '').toLowerCase();
-            tr.style.display = hay.indexOf(q) !== -1 ? '' : 'none';
-        });
-    });
-})();
+document.getElementById('quickFilterResources').addEventListener('input', applyQuickFilter);
+bindRows();
 </script>
 
 <?php admin_panel_close(); ?>

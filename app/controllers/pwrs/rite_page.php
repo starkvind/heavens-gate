@@ -124,7 +124,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($riteLevel > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$riteLevel.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/attr/gem-attr-0$riteLevel.png'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";
@@ -145,15 +145,10 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         echo "  </div>";
     }
 
-    if ($riteSystemName !== "" || !empty($riteSystemRules)) {
+    if (!empty($riteSystemRules)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
-        if ($riteSystemName !== "") {
-            echo "    <div class='power-card__desc-body'><strong>$riteSystemName</strong></div>";
-        }
-        if (!empty($riteSystemRules)) {
-            echo "    <div class='power-card__desc-body'>$riteSystemRules</div>";
-        }
+        echo "    <div class='power-card__desc-body'>$riteSystemRules</div>";
         echo "  </div>";
     }
 

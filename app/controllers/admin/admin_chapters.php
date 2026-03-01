@@ -1,9 +1,11 @@
 <?php
 // admin_chapters.php
 if (!isset($link) || !$link) { die('Error de conexion a la base de datos.'); }
+if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
@@ -49,11 +51,38 @@ function attach_chapter_characters(mysqli $link, int $chapterId, array $characte
     return $added;
 }
 
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_chapters';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+    if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+        $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+    }
+    $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
+}
+function chapter_csrf_ok(string $sessionKey): bool {
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $token = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
+    if (function_exists('hg_admin_csrf_valid')) {
+        return hg_admin_csrf_valid($token, $sessionKey);
+    }
+    return is_string($token) && $token !== '' && isset($_SESSION[$sessionKey]) && hash_equals($_SESSION[$sessionKey], $token);
+}
+
 // AJAX in same controller (standard admin pattern)
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     header('Content-Type: application/json; charset=UTF-8');
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         echo json_encode(['ok' => false, 'error' => 'Metodo invalido']);
+        exit;
+    }
+    if (!chapter_csrf_ok($ADMIN_CSRF_SESSION_KEY)) {
+        echo json_encode(['ok' => false, 'error' => 'CSRF invalido. Recarga la pagina.']);
         exit;
     }
 
@@ -123,6 +152,80 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         exit;
     }
 
+    if ($action === 'delete_chapter') {
+        $chapterId = (int)($_POST['chapter_id'] ?? 0);
+        if ($chapterId <= 0) {
+            echo json_encode(['ok' => false, 'error' => 'ID de capitulo invalido']);
+            exit;
+        }
+        $ok = false;
+        if ($st = $link->prepare('DELETE FROM dim_chapters WHERE id = ?')) {
+            $st->bind_param('i', $chapterId);
+            $ok = $st->execute();
+            $st->close();
+        }
+        echo json_encode(['ok' => (bool)$ok, 'message' => $ok ? 'Capitulo eliminado.' : 'No se pudo eliminar.']);
+        exit;
+    }
+
+    if ($action === 'save_chapter') {
+        $id = (int)($_POST['id'] ?? 0);
+        $name = trim((string)($_POST['name'] ?? ''));
+        $chapterNumber = (int)($_POST['chapter_number'] ?? 0);
+        $seasonNumber = (int)($_POST['season_number'] ?? 0);
+        $playedDate = norm_date($_POST['played_date'] ?? '');
+        $ingameDate = norm_date($_POST['in_game_date'] ?? '');
+        $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
+        $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+
+        if ($name === '' || $chapterNumber <= 0 || $seasonNumber <= 0) {
+            echo json_encode(['ok' => false, 'error' => 'Nombre, capitulo y temporada son obligatorios.']);
+            exit;
+        }
+
+        $savedId = 0;
+        $ok = false;
+        if ($id > 0) {
+            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_number=?, played_date=?, in_game_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
+            $st = $link->prepare($sql);
+            $st->bind_param('siisssi', $name, $chapterNumber, $seasonNumber, $playedDate, $ingameDate, $synopsis, $id);
+            $ok = $st->execute();
+            $savedId = $id;
+            $st->close();
+        } else {
+            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_number, played_date, in_game_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
+            $st = $link->prepare($sql);
+            $st->bind_param('siisss', $name, $chapterNumber, $seasonNumber, $playedDate, $ingameDate, $synopsis);
+            $ok = $st->execute();
+            $savedId = (int)$link->insert_id;
+            $st->close();
+        }
+
+        if (!$ok || $savedId <= 0) {
+            echo json_encode(['ok' => false, 'error' => 'No se pudo guardar el capitulo.']);
+            exit;
+        }
+
+        hg_update_pretty_id_if_exists($link, 'dim_chapters', $savedId, $name);
+        attach_chapter_characters($link, $savedId, $pendingCharacterIds);
+
+        $chapterRow = null;
+        if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, c.season_number, c.played_date, c.in_game_date, c.synopsis, s.name AS season_name FROM dim_chapters c LEFT JOIN dim_seasons s ON s.season_number = c.season_number WHERE c.id = ? LIMIT 1")) {
+            $st->bind_param('i', $savedId);
+            $st->execute();
+            $rs = $st->get_result();
+            $chapterRow = $rs ? $rs->fetch_assoc() : null;
+            $st->close();
+        }
+
+        echo json_encode([
+            'ok' => true,
+            'message' => $id > 0 ? 'Capitulo actualizado.' : 'Capitulo creado.',
+            'data' => $chapterRow,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     echo json_encode(['ok' => false, 'error' => 'Accion no valida']);
     exit;
 }
@@ -140,6 +243,9 @@ if (isset($_GET['delete'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
+    if (!chapter_csrf_ok($ADMIN_CSRF_SESSION_KEY)) {
+        $flash[] = ['type' => 'err', 'msg' => 'CSRF invalido. Recarga la pagina.'];
+    } else {
     $id = (int)($_POST['id'] ?? 0);
     $name = trim((string)($_POST['name'] ?? ''));
     $chapterNumber = (int)($_POST['chapter_number'] ?? 0);
@@ -176,6 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
                 $flash[] = ['type' => 'ok', 'msg' => 'Capitulo creado.'];
             }
         }
+    }
     }
 }
 
@@ -237,6 +344,7 @@ admin_panel_open('Capitulos', $actions);
     <div class="chap-modal adm-modal-980">
         <h3 id="chapterModalTitle">Capitulo</h3>
         <form method="post" action="/talim?s=admin_chapters" id="chapterForm">
+            <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="save_chapter" value="1">
             <input type="hidden" name="id" id="f_id" value="0">
             <input type="hidden" name="pending_character_ids" id="f_pending_character_ids" value="">
@@ -296,7 +404,13 @@ admin_panel_open('Capitulos', $actions);
 
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 const chapters = <?= json_encode($chapters, JSON_UNESCAPED_UNICODE); ?>;
 const charactersCatalog = <?= json_encode($personajes, JSON_UNESCAPED_UNICODE); ?>;
 const CHAPTER_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
@@ -342,7 +456,7 @@ function renderTable(){
             <td>${esc(c.played_date || '')}</td>
             <td>
                 <button class="btn" type="button" onclick="openChapterModal(${Number(c.id)})">Editar</button>
-                <a class="btn btn-red" href="/talim?s=admin_chapters&delete=${Number(c.id)}" onclick="return confirm('Eliminar este capitulo?')">Borrar</a>
+                <button class="btn btn-red" type="button" onclick="deleteChapter(${Number(c.id)})">Borrar</button>
             </td>`;
         tbody.appendChild(tr);
     }
@@ -363,6 +477,27 @@ function goPage(n){ page = n; renderTable(); }
 
 function chapterById(id){
     return chapters.find(c => Number(c.id) === Number(id)) || null;
+}
+
+function sortChaptersInPlace(){
+    chapters.sort((a, b) => {
+        const sa = Number(a.season_number || 0);
+        const sb = Number(b.season_number || 0);
+        if (sa !== sb) return sa - sb;
+        const ca = Number(a.chapter_number || 0);
+        const cb = Number(b.chapter_number || 0);
+        if (ca !== cb) return ca - cb;
+        return Number(a.id || 0) - Number(b.id || 0);
+    });
+}
+
+function upsertChapter(row){
+    if (!row || !row.id) return;
+    const id = Number(row.id);
+    const idx = chapters.findIndex(c => Number(c.id) === id);
+    if (idx >= 0) chapters[idx] = row;
+    else chapters.push(row);
+    sortChaptersInPlace();
 }
 
 function ensureChapterSynopsisEditor(){
@@ -428,13 +563,29 @@ function closeChapterModal(){
 
 async function postAjax(data){
     const body = new URLSearchParams(data);
-    const res = await fetch('/talim?s=admin_chapters&ajax=1', {
+    if (!body.has('csrf') && window.ADMIN_CSRF_TOKEN) body.set('csrf', String(window.ADMIN_CSRF_TOKEN));
+    const endpoint = '/talim?s=admin_chapters&ajax=1';
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+        return window.HGAdminHttp.request(endpoint, {
+            method: 'POST',
+            body
+        });
+    }
+    const res = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body
     });
-    return res.json();
+    const txt = await res.text();
+    const json = txt ? JSON.parse(txt) : {};
+    if (!res.ok || !json || json.ok === false) {
+        throw new Error((json && (json.message || json.error || json.msg)) || ('HTTP ' + res.status));
+    }
+    return json;
 }
 
 async function loadRelations(){
@@ -491,18 +642,59 @@ function removePendingRelation(characterId){
 }
 
 async function removeRelation(relId){
-    const data = await postAjax({ action: 'del_relation', rel_id: relId });
-    if (data.ok) loadRelations();
+    try {
+        const data = await postAjax({ action: 'del_relation', rel_id: relId });
+        if (data.ok) loadRelations();
+    } catch (e) {
+        // no-op
+    }
+}
+
+async function deleteChapter(chapterId){
+    const id = Number(chapterId || 0);
+    if (!id) return;
+    if (!confirm('Eliminar este capitulo?')) return;
+    try {
+        const data = await postAjax({ action: 'delete_chapter', chapter_id: id });
+        if (!data || !data.ok) throw new Error((data && (data.message || data.error || data.msg)) || 'No se pudo eliminar.');
+        const idx = chapters.findIndex(c => Number(c.id) === id);
+        if (idx >= 0) chapters.splice(idx, 1);
+        if (currentId === id) closeChapterModal();
+        renderTable();
+        if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
+            window.HGAdminHttp.notify(data.message || 'Capitulo eliminado.', 'ok');
+        }
+    } catch (e) {
+        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(e) : (e.message || 'Error al eliminar.'));
+    }
 }
 
 document.getElementById('quickFilter').addEventListener('input', () => { page = 1; renderTable(); });
 document.getElementById('seasonFilter').addEventListener('change', () => { page = 1; renderTable(); });
 document.getElementById('btnAddRel').addEventListener('click', addRelation);
-document.getElementById('chapterForm').addEventListener('submit', () => {
+document.getElementById('chapterForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
     if (chapterSynopsisEditor) {
         const html = chapterSynopsisEditor.root.innerHTML || '';
         const plain = (chapterSynopsisEditor.getText() || '').replace(/\s+/g, ' ').trim();
         document.getElementById('f_synopsis').value = plain ? html : '';
+    }
+    try {
+        const form = document.getElementById('chapterForm');
+        const fd = new FormData(form);
+        const payload = {};
+        fd.forEach((v, k) => { payload[k] = v; });
+        payload.action = 'save_chapter';
+        const data = await postAjax(payload);
+        if (!data || !data.ok) throw new Error((data && (data.message || data.error || data.msg)) || 'No se pudo guardar.');
+        if (data.data) upsertChapter(data.data);
+        renderTable();
+        closeChapterModal();
+        if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
+            window.HGAdminHttp.notify(data.message || 'Capitulo guardado.', 'ok');
+        }
+    } catch (e) {
+        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(e) : (e.message || 'Error al guardar.'));
     }
 });
 document.addEventListener('keydown', (e) => {

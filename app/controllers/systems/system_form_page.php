@@ -1,54 +1,119 @@
 <?php
 
-// Aseguramos que el parámetro GET 'b' esté definido de manera segura
-$systemIdWere = isset($_GET['b']) ? (string)$_GET['b'] : '';
+include_once(__DIR__ . '/../../helpers/pretty.php');
 
-// Preparamos la consulta para evitar inyecciones SQL
-$consulta = "SELECT * FROM dim_forms WHERE id = ? LIMIT 1";
-$stmt = $link->prepare($consulta);
-$stmt->bind_param('s', $systemIdWere);
+function sf_h($s): string {
+    return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+}
+
+function sf_has_column(mysqli $link, string $table, string $column): bool {
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1";
+    if (!$st = $link->prepare($sql)) return false;
+    $st->bind_param('ss', $table, $column);
+    $st->execute();
+    $rs = $st->get_result();
+    $ok = ($rs && $rs->num_rows > 0);
+    $st->close();
+    return $ok;
+}
+
+$formKey = trim((string)($_GET['b'] ?? ''));
+$formId = 0;
+if ($formKey !== '') {
+    if (preg_match('/^\d+$/', $formKey)) {
+        $formId = (int)$formKey;
+    } else {
+        $formId = (int)resolve_pretty_id($link, 'dim_forms', $formKey);
+    }
+}
+
+if ($formId <= 0) {
+    include("app/partials/main_nav_bar.php");
+    echo "<h2>Forma no encontrada</h2>";
+    echo "<div class='renglonDatosSistema'>La forma solicitada no existe.</div>";
+    return;
+}
+
+$hasBreedId = sf_has_column($link, 'dim_forms', 'breed_id');
+$hasRace = sf_has_column($link, 'dim_forms', 'race');
+
+$select = "
+    f.*,
+    COALESCE(NULLIF(ds.name, ''), '') AS system_name_resolved
+";
+$joins = " LEFT JOIN dim_systems ds ON ds.id = f.system_id ";
+if ($hasBreedId) {
+    $select .= ", " . ($hasRace
+        ? "COALESCE(NULLIF(db.name, ''), NULLIF(f.race, ''))"
+        : "COALESCE(NULLIF(db.name, ''), '')") . " AS breed_name_resolved ";
+    $joins .= " LEFT JOIN dim_breeds db ON db.id = f.breed_id ";
+} elseif ($hasRace) {
+    $select .= ", COALESCE(NULLIF(db.name, ''), NULLIF(f.race, '')) AS breed_name_resolved ";
+    $joins .= " LEFT JOIN dim_breeds db ON db.system_id = f.system_id AND db.name = f.race ";
+} else {
+    $select .= ", '' AS breed_name_resolved ";
+}
+
+$sql = "SELECT {$select} FROM dim_forms f {$joins} WHERE f.id = ? LIMIT 1";
+$stmt = $link->prepare($sql);
+if (!$stmt) {
+    include("app/partials/main_nav_bar.php");
+    echo "<h2>Error cargando forma</h2>";
+    echo "<div class='renglonDatosSistema'>No se pudo preparar la consulta.</div>";
+    return;
+}
+
+$stmt->bind_param('i', $formId);
 $stmt->execute();
 $result = $stmt->get_result();
+$row = ($result && $result->num_rows > 0) ? $result->fetch_assoc() : null;
+$stmt->close();
 
-// Comprueba si hay resultados
-if ($result->num_rows > 0) {
-    // Recupera los datos del sistema
-    while ($ResultQuery = $result->fetch_assoc()) {
-        $returnType = htmlspecialchars($ResultQuery["affiliation"]); // Definimos la variable para volver
-        $nameWereForm = htmlspecialchars($ResultQuery["form"]);
-        $nameWereBreed = htmlspecialchars($ResultQuery["race"]);
-        $infoDesc = ($ResultQuery["description"] ?? $ResultQuery["description"] ?? "");
-        $imageWereForm = htmlspecialchars($ResultQuery["image_url"]);
-        $bonusSTR = htmlspecialchars($ResultQuery["strength_bonus"]);
-        $bonusDEX = htmlspecialchars($ResultQuery["dexterity_bonus"]);
-        $bonusRES = htmlspecialchars($ResultQuery["stamina_bonus"]);
-        $useMelee = (int)$ResultQuery["weapons"];
-        $useGuns = (int)$ResultQuery["firearms"];
+if (!$row) {
+    include("app/partials/main_nav_bar.php");
+    echo "<h2>Forma no encontrada</h2>";
+    echo "<div class='renglonDatosSistema'>La forma solicitada no existe.</div>";
+    return;
+}
 
-        $canUseMelee = $useMelee === 1
-            ? "Esta forma es capaz de utilizar armas cuerpo a cuerpo."
-            : "Esta forma <b><u>no</u></b> puede utilizar armas cuerpo a cuerpo.";
+$systemNameRaw = trim((string)($row['system_name_resolved'] ?? ''));
+$breedNameRaw = trim((string)($row['breed_name_resolved'] ?? ''));
+$formNameRaw = trim((string)($row['form'] ?? ''));
 
-        $canUseGuns = $useGuns === 1
-            ? "Esta forma es capaz de utilizar armas de fuego."
-            : "Esta forma <b><u>no</u></b> puede utilizar armas de fuego.";
+$returnType = $systemNameRaw; // usado por system_category_helper.php
+$formDisplayRaw = $formNameRaw;
+if ($systemNameRaw === "Bastet" && $breedNameRaw !== '') {
+    $formDisplayRaw = $formNameRaw . " (" . $breedNameRaw . ")";
+}
+$nameWereForm = sf_h($formDisplayRaw);
+$infoDesc = (string)($row['description'] ?? '');
+$imageWereForm = trim((string)($row['image_url'] ?? ''));
+$bonusSTR = sf_h((string)($row['strength_bonus'] ?? ''));
+$bonusDEX = sf_h((string)($row['dexterity_bonus'] ?? ''));
+$bonusRES = sf_h((string)($row['stamina_bonus'] ?? ''));
+$useMelee = (int)($row['weapons'] ?? 0);
+$useGuns = (int)($row['firearms'] ?? 0);
 
-        $pageSect = "Forma"; // PARA CAMBIAR EL TITULO A LA PAGINA
-        $pageTitle2 = $nameWereForm;
-        setMetaFromPage($nameWereForm . " | Formas | Heaven's Gate", meta_excerpt($infoDesc), $imageWereForm, 'article'); 
+$canUseMelee = $useMelee === 1
+    ? "Esta forma es capaz de utilizar armas cuerpo a cuerpo."
+    : "Esta forma <b><u>no</u></b> puede utilizar armas cuerpo a cuerpo.";
 
-        include ("app/helpers/system_category_helper.php");
-        include("app/partials/main_nav_bar.php"); // Barra Navegacion
-        echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
+$canUseGuns = $useGuns === 1
+    ? "Esta forma es capaz de utilizar armas de fuego."
+    : "Esta forma <b><u>no</u></b> puede utilizar armas de fuego.";
 
-        if ($returnType === "Bastet") {
-            $nameWereForm = "$nameWereForm ($nameWereBreed)";
-        }
+$pageSect = "Forma";
+$pageTitle2 = sf_h($formNameRaw);
+setMetaFromPage($formDisplayRaw . " | Formas | Heaven's Gate", meta_excerpt($infoDesc), $imageWereForm, 'article');
+
+include("app/helpers/system_category_helper.php");
+include("app/partials/main_nav_bar.php");
+echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
 ?>
 <div class="form-detail">
   <div class="form-banner">
     <?php if ($imageWereForm !== ''): ?>
-      <img src="<?= htmlspecialchars($imageWereForm) ?>" alt="<?= htmlspecialchars($nameWereForm) ?>">
+      <img src="<?= sf_h($imageWereForm) ?>" alt="<?= $nameWereForm ?>">
     <?php endif; ?>
     <h2 class="form-banner-title"><?= $nameWereForm ?></h2>
   </div>
@@ -73,68 +138,59 @@ if ($result->num_rows > 0) {
       <div class="cap-item">
         <img class="cap-icon" src="/img/ui/icons/use_cc_weapons.jpg" alt="Armas cuerpo a cuerpo">
         <div class="cap-label">Armas Cuerpo a Cuerpo</div>
-        <div class="cap-value"><?= $useMelee === 1 ? 'Sí' : 'No' ?></div>
+        <div class="cap-value"><?= $useMelee === 1 ? 'Si' : 'No' ?></div>
       </div>
       <div class="cap-item">
         <img class="cap-icon" src="/img/ui/icons/use_firearms.jpg" alt="Armas de fuego">
         <div class="cap-label">Armas de Fuego</div>
-        <div class="cap-value"><?= $useGuns === 1 ? 'Sí' : 'No' ?></div>
+        <div class="cap-value"><?= $useGuns === 1 ? 'Si' : 'No' ?></div>
       </div>
       <div class="cap-item">
-        <img class="cap-icon" src="/img/ui/icons/use_regen.jpg" alt="Regeneración">
-        <div class="cap-label">Regeneración</div>
-        <div class="cap-value"><?= ($ResultQuery["hpregen"] ?? 0) > 0 ? ((int)$ResultQuery["hpregen"]) . " / turno" : "No" ?></div>
+        <img class="cap-icon" src="/img/ui/icons/use_regen.jpg" alt="Regeneracion">
+        <div class="cap-label">Regeneracion</div>
+        <div class="cap-value"><?= ((int)($row["hpregen"] ?? 0) > 0) ? ((int)$row["hpregen"]) . " / turno" : "No" ?></div>
       </div>
     </div>
   </div>
 
   <div class="form-box">
-    <h3>Descripción</h3>
+    <h3>Descripcion</h3>
     <div><?= $infoDesc ?></div>
   </div>
 
   <?php
-    // Maniobras de combate para esta forma
-    $formNameRaw = $ResultQuery["form"] ?? $ResultQuery["forma"] ?? '';
+    // Maniobras de combate para esta forma.
     $likeForm = '%' . $formNameRaw . '%';
-    $formSystemId = (int)($ResultQuery['system_id'] ?? 0);
+    $formSystemId = (int)($row['system_id'] ?? 0);
     $sqlMan = "SELECT id, pretty_id, name, image_url FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC";
     $stmtMan = $link->prepare($sqlMan);
-    $stmtMan->bind_param('is', $formSystemId, $likeForm);
-    $stmtMan->execute();
-    $rsMan = $stmtMan->get_result();
-    if ($rsMan && $rsMan->num_rows > 0) {
-      echo "<div class='form-box form-box-maneuvers'>";
-      echo "<h3>Maniobras de combate</h3>";
-      echo "<div class='maneuvers-grid'>";
-      while ($m = $rsMan->fetch_assoc()) {
-        $maneId = (int)$m['id'];
-        $maneName = htmlspecialchars($m['name']);
-        $maneImg = trim((string)($m['image_url'] ?? ''));
-        $thumb = "img/inv/no-photo.gif";
-        if ($maneImg !== '') {
-          $thumb = (strpos($maneImg, '/') !== false) ? $maneImg : "img/maneuvers/" . $maneImg;
+    if ($stmtMan) {
+      $stmtMan->bind_param('is', $formSystemId, $likeForm);
+      $stmtMan->execute();
+      $rsMan = $stmtMan->get_result();
+      if ($rsMan && $rsMan->num_rows > 0) {
+        echo "<div class='form-box form-box-maneuvers'>";
+        echo "<h3>Maniobras de combate</h3>";
+        echo "<div class='maneuvers-grid'>";
+        while ($m = $rsMan->fetch_assoc()) {
+          $maneId = (int)$m['id'];
+          $maneName = sf_h((string)($m['name'] ?? ''));
+          $maneImg = trim((string)($m['image_url'] ?? ''));
+          $thumb = "img/inv/no-photo.gif";
+          if ($maneImg !== '') {
+            $thumb = (strpos($maneImg, '/') !== false) ? $maneImg : "img/maneuvers/" . $maneImg;
+          }
+          $manePretty = (string)($m['pretty_id'] ?? '');
+          $href = "/rules/maneuvers/" . ($manePretty !== '' ? $manePretty : $maneId);
+          echo "<a class='maneuver-item' href='" . sf_h($href) . "'>
+                  <img class='maneuver-icon' src='" . sf_h($thumb) . "' alt='" . $maneName . "'>
+                  <div class='maneuver-label'>" . $maneName . "</div>
+                </a>";
         }
-        $manePretty = (string)($m['pretty_id'] ?? '');
-        $href = "/rules/maneuvers/" . ($manePretty !== '' ? $manePretty : $maneId);
-        echo "<a class='maneuver-item' href='" . htmlspecialchars($href) . "'>
-                <img class='maneuver-icon' src='" . htmlspecialchars($thumb) . "' alt='" . htmlspecialchars($maneName) . "'>
-                <div class='maneuver-label'>$maneName</div>
-              </a>";
+        echo "</div>";
+        echo "</div>";
       }
-      echo "</div>";
-      echo "</div>";
+      $stmtMan->close();
     }
-    $stmtMan->close();
   ?>
 </div>
-<?php
-    }
-}
-
-// Cierra el statement
-//$stmt->close();
-
-?>
-
-

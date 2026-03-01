@@ -25,14 +25,70 @@
 				case 'admin_chapters':
 					include("admin_chapters.php");
 					break;
+				case 'admin_temp': // legacy alias
+				case 'admin_seasons':
+					include("admin_seasons.php");
+					break;
 				case 'admin_menu':
 					include("admin_menu.php");
 					break;
 				case 'admin_groups':
 					include("admin_groups.php");
 					break;
+				case 'admin_pois':
+					include("admin_pois.php");
+					break;
+				case 'admin_plots': // legacy alias
+				case 'admin_parties':
+					include("admin_parties.php");
+					break;
+				case 'admin_system_details':
+					include("admin_system_details.php");
+					break;
 				case 'admin_traits':
 					include("admin_traits.php");
+					break;
+				case 'admin_powers':
+					include("admin_powers.php");
+					break;
+				case 'admin_docs':
+					include("admin_docs.php");
+					break;
+				case 'admin_gallery':
+					include("admin_gallery.php");
+					break;
+				case 'admin_items':
+					include("admin_items.php");
+					break;
+				case 'admin_news':
+					include("admin_news.php");
+					break;
+				case 'admin_systems':
+					include("admin_systems.php");
+					break;
+				case 'admin_resources':
+					include("admin_resources.php");
+					break;
+				case 'admin_forms':
+					include("admin_forms.php");
+					break;
+				case 'admin_timelines':
+					include("admin_timelines.php");
+					break;
+				case 'admin_bso':
+					include("admin_bso.php");
+					break;
+				case 'admin_bso_link':
+					include("admin_bso_link.php");
+					break;
+				case 'admin_bridges':
+					include("admin_bridges.php");
+					break;
+				case 'admin_trait_sets':
+					include("admin_trait_sets.php");
+					break;
+				case 'admin_systems_resources':
+					include("admin_systems_resources.php");
 					break;
 				case 'admin_avatar_mass':
 					include("admin_avatar_mass.php");
@@ -228,6 +284,11 @@
 							Gestionar Noticias
 						</div>
 					</a>
+					<a href='/talim?s=admin_docs'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Documentaci&oacute;n
+						</div>
+					</a>
 					<a href='/talim?s=admin_seasons'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Temporadas
@@ -236,11 +297,6 @@
 					<a href='/talim?s=admin_chapters'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Episodios
-						</div>
-					</a>
-					<a href='/talim?s=admin_docs'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Documentaci&oacute;n
 						</div>
 					</a>
 					";

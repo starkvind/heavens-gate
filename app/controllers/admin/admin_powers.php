@@ -23,6 +23,7 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 $quillToolbarInner = admin_quill_toolbar_inner();
 // Subidas de imagen (Dones)
@@ -121,12 +122,20 @@ function ap_has_column(mysqli $link, string $table, string $column): bool {
 /* -----------------------------
    CSRF (simple)
 ------------------------------ */
-if (empty($_SESSION['csrf_admin_poderes'])) {
-    $_SESSION['csrf_admin_poderes'] = bin2hex(random_bytes(16));
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_poderes';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+    if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+        $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+    }
+    $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
 }
-$CSRF = $_SESSION['csrf_admin_poderes'];
 function csrf_ok(): bool {
-    $t = $_POST['csrf'] ?? '';
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $t = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_poderes']) && hash_equals($_SESSION['csrf_admin_poderes'], $t);
 }
 
@@ -283,11 +292,22 @@ function meta_for(string $tab, array $opts_origen, array $opts_systems, array $o
 }
 
 $META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
+$isAjaxCrudRequest = (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['crud_action'], $_POST['crud_tab'])
+    && (
+        ((string)($_POST['ajax'] ?? '') === '1')
+        || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+    )
+);
 
 /* -----------------------------
    Guardado (POST)
 ------------------------------ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && isset($_POST['crud_tab'])) {
+    if ($isAjaxCrudRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
         $flash[] = ['type'=>'error','msg'=>'? Pestaña inválida.'];
@@ -297,22 +317,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         $M = meta_for($postTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         $action = (string)$_POST['crud_action'];
         $id = (int)($_POST['id'] ?? 0);
+        $isDeleteAction = ($action === 'delete');
 
-        // recoger valores
+        // recoger valores (solo create/update)
         $vals = [];
+        if (!$isDeleteAction) {
             foreach ($M['fields'] as $f) {
                 $k = $f['k'];
                 if (($f['db'] ?? 's') === 'i') {
                     $raw = $_POST[$k] ?? 0;
                     $vals[$k] = (int)$raw;
-            } else {
-                $vals[$k] = (string)($_POST[$k] ?? '');
-                if (($f['ui'] ?? '') !== 'textarea') $vals[$k] = trim($vals[$k]);
+                } else {
+                    $vals[$k] = (string)($_POST[$k] ?? '');
+                    if (($f['ui'] ?? '') !== 'textarea') $vals[$k] = trim($vals[$k]);
+                }
             }
         }
 
-                        // Subida de imagen (Dones y Totems)
-        if ($postTab === 'dones' || $postTab === 'totems') {
+        // Subida de imagen (Dones y Totems)
+        if (!$isDeleteAction && ($postTab === 'dones' || $postTab === 'totems')) {
             $currentImg = trim((string)($_POST['current_img'] ?? ''));
             $uploadDir = ($postTab === 'dones') ? $DON_IMG_UPLOAD_DIR : $TOTEM_IMG_UPLOAD_DIR;
             $urlBase   = ($postTab === 'dones') ? $DON_IMG_URL_BASE   : $TOTEM_IMG_URL_BASE;
@@ -325,16 +348,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 if (($vals['image_url'] ?? '') === '' && $currentImg !== '') $vals['image_url'] = $currentImg;
             }
         }
-// normalizaciones
-        foreach ($M['fields'] as $f) {
-            $k = $f['k'];
-            if (($f['db'] ?? 's') === 's') {
-                if (!isset($vals[$k]) || $vals[$k] === null) $vals[$k] = '';
+
+        // normalizaciones
+        if (!$isDeleteAction) {
+            foreach ($M['fields'] as $f) {
+                $k = $f['k'];
+                if (($f['db'] ?? 's') === 's') {
+                    if (!isset($vals[$k]) || $vals[$k] === null) $vals[$k] = '';
+                }
             }
         }
 
         // Relleno legacy desde system_id (si aplica)
-        if (isset($vals['system_id']) && (int)$vals['system_id'] > 0) {
+        if (!$isDeleteAction && isset($vals['system_id']) && (int)$vals['system_id'] > 0) {
             $sysName = $opts_systems[(int)$vals['system_id']] ?? '';
             if ($sysName !== '') {
                 if ($postTab === 'dones') {
@@ -349,17 +375,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
         }
 
-        // validaciones mínimas
-        foreach ($M['fields'] as $f) {
-            if (!empty($f['req'])) {
-                $k = $f['k'];
-                if (($f['db'] ?? 's') === 'i') {
-                    if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' inválido.'];
-                } else {
-                    if (trim((string)$vals[$k]) === '') $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' es obligatorio.'];
+        // validaciones m?nimas (solo create/update)
+        if (!$isDeleteAction) {
+            foreach ($M['fields'] as $f) {
+                if (!empty($f['req'])) {
+                    $k = $f['k'];
+                    if (($f['db'] ?? 's') === 'i') {
+                        if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' inv?lido.'];
+                    } else {
+                        if (trim((string)$vals[$k]) === '') $flash[] = ['type'=>'error','msg'=>'? '.$f['label'].' es obligatorio.'];
                     }
                 }
             }
+        }
         // bibliography_id ya viene del formulario
 
         $hasErr = false;
@@ -442,6 +470,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $st->close();
                     }
                 }
+            } elseif ($action === 'delete') {
+                if ($id <= 0) {
+                    $flash[] = ['type'=>'error','msg'=>'? Falta ID para borrar.'];
+                } else {
+                    $imgToDelete = '';
+                    $uploadDirForDelete = '';
+
+                    if ($postTab === 'dones' || $postTab === 'totems') {
+                        $uploadDirForDelete = ($postTab === 'dones') ? $DON_IMG_UPLOAD_DIR : $TOTEM_IMG_UPLOAD_DIR;
+                        $stImg = $link->prepare("SELECT `image_url` FROM `$table` WHERE `$pk`=? LIMIT 1");
+                        if ($stImg) {
+                            $stImg->bind_param('i', $id);
+                            if ($stImg->execute()) {
+                                $rsImg = $stImg->get_result();
+                                if ($rsImg && ($rwImg = $rsImg->fetch_assoc())) {
+                                    $imgToDelete = (string)($rwImg['image_url'] ?? '');
+                                }
+                            }
+                            $stImg->close();
+                        }
+                    }
+
+                    $st = $link->prepare("DELETE FROM `$table` WHERE `$pk`=?");
+                    if (!$st) {
+                        $flash[] = ['type'=>'error','msg'=>'? Error al preparar DELETE: '.$link->error];
+                    } else {
+                        $st->bind_param('i', $id);
+                        if ($st->execute()) {
+                            if ($st->affected_rows > 0) {
+                                if ($imgToDelete !== '' && $uploadDirForDelete !== '') {
+                                    safe_unlink_power_image($imgToDelete, $uploadDirForDelete);
+                                }
+                                $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' eliminado.'];
+                            } else {
+                                $flash[] = ['type'=>'error','msg'=>'? No existe el registro a borrar.'];
+                            }
+                        } else {
+                            $flash[] = ['type'=>'error','msg'=>'? Error al borrar: '.$st->error];
+                        }
+                        $st->close();
+                    }
+                }
             } else {
                 $flash[] = ['type'=>'error','msg'=>'? Acción inválida.'];
             }
@@ -451,12 +521,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $META = meta_for($tab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         }
     }
+
+    if ($isAjaxCrudRequest) {
+        $errors = [];
+        $messages = [];
+        foreach ($flash as $m) {
+            $type = (string)($m['type'] ?? '');
+            $msg = (string)($m['msg'] ?? '');
+            if ($msg === '') continue;
+            if ($type === 'error') $errors[] = $msg;
+            else $messages[] = $msg;
+        }
+        if (!empty($errors)) {
+            if (function_exists('hg_admin_json_error')) {
+                hg_admin_json_error($errors[0], 400, ['flash' => $errors], ['messages' => $messages]);
+            }
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'message' => $errors[0],
+                'error' => $errors[0],
+                'errors' => $errors,
+                'data' => ['messages' => $messages],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
+
+        $okMsg = !empty($messages) ? $messages[count($messages)-1] : 'Guardado';
+        if (function_exists('hg_admin_json_success')) {
+            hg_admin_json_success(['messages' => $messages], $okMsg);
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => true,
+            'message' => $okMsg,
+            'msg' => $okMsg,
+            'data' => ['messages' => $messages],
+            'errors' => [],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
 }
 
 /* -----------------------------
    Listado + paginación
 ------------------------------ */
-if (($_GET['ajax'] ?? '') === 'search') {
+$ajaxMode = (string)($_GET['ajax_mode'] ?? ($_GET['ajax'] ?? ''));
+if ($ajaxMode === 'search') {
     $tabAjax = (string)($_GET['tab'] ?? $tab);
     $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'dones';
     $qAjax   = trim((string)($_GET['q'] ?? ''));
@@ -685,7 +796,7 @@ function ui_short(string $s, int $n=120): string {
 
     <button class="btn btn-green" id="btnNew">&#x2795; Nuevo</button>
 
-    <form method="get" class="adm-flex-right-8">
+    <form method="get" id="powersFilterForm" class="adm-flex-right-8">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_powers') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
@@ -785,6 +896,7 @@ function ui_short(string $s, int $n=120): string {
 
       <div class="modal-actions">
         <button type="button" class="btn btn-red" id="btnCancel">Cancelar</button>
+        <button type="button" class="btn btn-red" id="btnDelete" style="display:none;">Borrar</button>
         <button type="submit" class="btn btn-green" id="btnSave">Guardar</button>
       </div>
     </form>
@@ -795,6 +907,14 @@ function ui_short(string $s, int $n=120): string {
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+</script>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
 <script>
 var HG_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc','system','breed','auspice','tribe'];
@@ -874,7 +994,10 @@ function syncEditorsToTextarea(){
   var mb = document.getElementById('mb');
   var btnNew = document.getElementById('btnNew');
   var btnCancel = document.getElementById('btnCancel');
+  var btnDelete = document.getElementById('btnDelete');
+  var formCrud = document.getElementById('formCrud');
   var grid = document.getElementById('formGrid');
+  var currentEditRow = null;
 
   function el(tag, attrs, html){
     var e = document.createElement(tag);
@@ -1032,6 +1155,11 @@ function syncEditorsToTextarea(){
     document.getElementById('modalTitle').textContent = 'Nuevo — '+(META.title||'');
     document.getElementById('crud_action').value = 'create';
     document.getElementById('f_id').value = '0';
+    currentEditRow = null;
+    if (btnDelete) {
+      btnDelete.style.display = 'none';
+      btnDelete.disabled = true;
+    }
 
     renderForm();
     wireImageUpload();
@@ -1072,10 +1200,15 @@ function syncEditorsToTextarea(){
   function openEdit(id){
     var row = ROWMAP[String(id)];
     if (!row) return;
+    currentEditRow = row;
 
     document.getElementById('modalTitle').textContent = 'Editar — '+(META.title||'');
     document.getElementById('crud_action').value = 'update';
     document.getElementById('f_id').value = String(id);
+    if (btnDelete) {
+      btnDelete.style.display = '';
+      btnDelete.disabled = false;
+    }
 
     renderForm();
     wireImageUpload();
@@ -1117,6 +1250,63 @@ function syncEditorsToTextarea(){
   btnCancel.addEventListener('click', function(){ mb.style.display='none'; });
   mb.addEventListener('click', function(e){ if (e.target === mb) mb.style.display='none'; });
 
+  function runDeleteCurrent(){
+    if (!currentEditRow) {
+      alert('No hay registro seleccionado para borrar.');
+      return;
+    }
+    var id = parseInt(currentEditRow.id || document.getElementById('f_id').value || '0', 10) || 0;
+    if (id <= 0) {
+      alert('ID inválido para borrar.');
+      return;
+    }
+
+    var powerName = String(currentEditRow.name || '').trim();
+    if (powerName === '') {
+      alert('No se puede verificar el nombre del poder. Recarga y prueba de nuevo.');
+      return;
+    }
+
+    var typed = window.prompt(
+      'Para borrar definitivamente este poder, escribe su nombre exacto:\\n\\n' + powerName,
+      ''
+    );
+    if (typed === null) return;
+    if (typed.trim() !== powerName) {
+      alert('El nombre no coincide. No se ha borrado.');
+      return;
+    }
+
+    var fd = new FormData();
+    var csrfEl = formCrud ? formCrud.querySelector('input[name=\"csrf\"]') : null;
+    fd.set('csrf', (csrfEl && csrfEl.value) ? csrfEl.value : (window.ADMIN_CSRF_TOKEN || ''));
+    fd.set('crud_tab', TAB);
+    fd.set('crud_action', 'delete');
+    fd.set('id', String(id));
+    fd.set('ajax', '1');
+
+    requestCrudAjax(fd).then(function(json){
+      if (!json || json.ok === false) {
+        var msg = (json && (json.message || json.msg || json.error)) || 'Error al borrar';
+        alert(msg);
+        return;
+      }
+      mb.style.display='none';
+      if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
+        window.HGAdminHttp.notify(json.message || 'Eliminado', 'ok');
+      }
+      if (window.runPowerSearch) window.runPowerSearch(true);
+    }).catch(function(err){
+      var msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage)
+        ? window.HGAdminHttp.errorMessage(err)
+        : (err && err.message ? err.message : 'Error al borrar');
+      alert(msg);
+    });
+  }
+  if (btnDelete) {
+    btnDelete.addEventListener('click', runDeleteCurrent);
+  }
+
   function bindEditButtons(){
     Array.prototype.forEach.call(document.querySelectorAll('#powersTbody button[data-edit]'), function(b){
       b.addEventListener('click', function(){
@@ -1129,7 +1319,22 @@ function syncEditorsToTextarea(){
   window.bindPowerEditButtons = bindEditButtons;
   window.openPowerEdit = openEdit;
 
-  document.getElementById('formCrud').addEventListener('submit', function(ev){
+  function requestCrudAjax(formData){
+    var postUrl = window.location.pathname + window.location.search;
+    var btnSave = document.getElementById('btnSave');
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+      return window.HGAdminHttp.request(postUrl, {
+        method: 'POST',
+        body: formData,
+        loadingEl: btnSave || formCrud
+      });
+    }
+    return fetch(postUrl, { method: 'POST', credentials: 'same-origin', body: formData })
+      .then(function(res){ return res.json(); });
+  }
+
+  formCrud.addEventListener('submit', function(ev){
+    ev.preventDefault();
     syncEditorsToTextarea();
     var errs = [];
     (META.fields||[]).forEach(function(f){
@@ -1151,8 +1356,28 @@ function syncEditorsToTextarea(){
 
     if (errs.length){
       alert(errs.join("\n"));
-      ev.preventDefault();
+      return;
     }
+
+    var fd = new FormData(formCrud);
+    fd.set('ajax', '1');
+    requestCrudAjax(fd).then(function(json){
+      if (!json || json.ok === false) {
+        var msg = (json && (json.message || json.msg || json.error)) || 'Error al guardar';
+        alert(msg);
+        return;
+      }
+      mb.style.display='none';
+      if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
+        window.HGAdminHttp.notify(json.message || 'Guardado', 'ok');
+      }
+      if (window.runPowerSearch) window.runPowerSearch(true);
+    }).catch(function(err){
+      var msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage)
+        ? window.HGAdminHttp.errorMessage(err)
+        : (err && err.message ? err.message : 'Error al guardar');
+      alert(msg);
+    });
   });
 
 })();
@@ -1163,6 +1388,7 @@ function syncEditorsToTextarea(){
   var input = document.getElementById('quickSearchPowers');
   var tbody = document.getElementById('powersTbody');
   var pager = document.getElementById('powersPager');
+  var searchForm = document.getElementById('powersFilterForm');
   if (!input || !tbody) return;
 
   var initialHtml = tbody.innerHTML;
@@ -1212,9 +1438,9 @@ function syncEditorsToTextarea(){
     if (window.bindPowerEditButtons) window.bindPowerEditButtons();
   }
 
-  function runSearch(){
+  function runSearch(forceFetch){
     var term = (input.value || '').trim();
-    if (term === ''){
+    if (term === '' && !forceFetch){
       ROWMAP = initialMap;
       tbody.innerHTML = initialHtml;
       if (window.bindPowerEditButtons) window.bindPowerEditButtons();
@@ -1233,31 +1459,65 @@ function syncEditorsToTextarea(){
     var url = '?p=' + encodeURIComponent(pVal)
       + '&s=admin_powers'
       + '&tab=' + encodeURIComponent(TAB)
-      + '&ajax=search'
-      + '&q=' + encodeURIComponent(term);
+      + '&ajax=1'
+      + '&ajax_mode=search'
+      + '&q=' + encodeURIComponent(term)
+      + '&_ts=' + Date.now();
 
-    fetch(url, { credentials:'same-origin' })
+    fetch(url, {
+      credentials:'same-origin',
+      cache: 'no-store'
+    })
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (mySeq !== reqSeq) return;
-        if (!data || data.ok !== true) return;
+        if (!data || data.ok !== true) {
+          console.warn('[admin_powers] busqueda AJAX no valida:', data);
+          if (forceFetch && searchForm) {
+            if (typeof searchForm.requestSubmit === 'function') searchForm.requestSubmit();
+            else searchForm.submit();
+          }
+          return;
+        }
         renderRows(data.rows || [], data.rowMap || {});
+        if (term === '') {
+          initialMap = ROWMAP;
+          initialHtml = tbody.innerHTML;
+          if (pager) pager.style.display = '';
+        }
       })
-      .catch(function(){});
+      .catch(function(err){
+        if (mySeq !== reqSeq) return;
+        console.warn('[admin_powers] fallo en busqueda AJAX:', err);
+        if (forceFetch && searchForm) {
+          if (typeof searchForm.requestSubmit === 'function') searchForm.requestSubmit();
+          else searchForm.submit();
+        }
+      });
   }
 
   input.addEventListener('input', function(){
     clearTimeout(timer);
     timer = setTimeout(runSearch, 180);
   });
+  input.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      runSearch(true);
+    }
+  });
+  if (searchForm) {
+    searchForm.addEventListener('submit', function(ev){
+      var active = document.activeElement;
+      if (active === input) {
+        ev.preventDefault();
+        runSearch(true);
+      }
+    });
+  }
+  window.runPowerSearch = runSearch;
 })();
 </script>
-
-
-
-
-
-
 
 
 

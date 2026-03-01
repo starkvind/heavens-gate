@@ -190,6 +190,34 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
         echo "    <div class='power-card__desc-body'>$itemInfo</div>";
+            $embedCodeRaw = "[hg_item]" . (int)$itemPageID . "[/hg_item]";
+            $embedCodeEsc = htmlspecialchars($embedCodeRaw, ENT_QUOTES, 'UTF-8');
+            echo "<style>
+                .item-embed-wrap{ margin-top:12px; }
+                .item-embed-title{ display:block; margin:0 0 6px; font-weight:700; color:#b9d2ff; }
+                .item-embed-wrap .hg-forum-roll-code{
+                    display:flex; align-items:center; gap:8px;
+                    border:1px solid #365eb8; border-radius:8px;
+                    background:#091b53; padding:8px 10px;
+                    width:fit-content; max-width:100%;
+                }
+                .item-embed-wrap .hg-forum-roll-code code{
+                    color:#f3f8ff; font-family:Consolas, Monaco, monospace;
+                    white-space:nowrap; overflow:auto;
+                }
+                .item-embed-wrap .hg-roll-copy-emoji{
+                    border:1px solid #3f68c4; border-radius:6px;
+                    background:#0f2a73; color:#e8f1ff; cursor:pointer;
+                    padding:3px 8px; line-height:1.2;
+                }
+            </style>";
+            echo "<div class='item-embed-wrap'>";
+            echo "<div class='power-card__desc-title' style='margin-bottom:1.5em;'>Embeber en el foro</div>";
+            echo "<div class='hg-forum-roll-code'>
+                <code>{$embedCodeEsc}</code>
+                <button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$embedCodeEsc}' title='Copiar codigo'>&#128203;</button>
+                </div>";
+            echo "</div>";
         echo "  </div>";
     }
 
@@ -289,3 +317,30 @@ $stmt->close();
 
 
 
+
+
+<script>
+document.addEventListener('click', async (event) => {
+    const btn = event.target.closest('.js-copy-roll');
+    if (!btn) return;
+    const text = String(btn.getAttribute('data-copy') || '');
+    if (!text) return;
+    const old = btn.innerHTML;
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        }
+        btn.innerHTML = '&#9989;';
+    } catch (e) {
+        btn.innerHTML = '&#10060;';
+    }
+    setTimeout(() => { btn.innerHTML = old; }, 1400);
+});
+</script>

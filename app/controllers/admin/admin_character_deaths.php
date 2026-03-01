@@ -3,6 +3,8 @@
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
+if (session_status() === PHP_SESSION_NONE) { @session_start(); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
 if (!function_exists('hg_acd_h')) {
     function hg_acd_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -28,6 +30,16 @@ $hasSchema = ($deathsTable !== '')
     && hg_acd_has_table($link, 'fact_characters')
     && hg_acd_has_table($link, 'fact_timeline_events');
 
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_character_deaths';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+    if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+        $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+    }
+    $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
+}
+
 $deathTypes = ['asesinato','catastrofe','suicidio','sacrificio','radiacion','absorcion','destruccion','desconexion','ritual','accidente','sobredosis','otros'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
@@ -44,6 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
 
     if (!$hasSchema) {
         $jsonExit(['ok' => false, 'msg' => 'Falta esquema para muertes de personajes']);
+    }
+
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $csrfPayload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $csrfToken = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($csrfPayload)
+        : (string)($_POST['csrf'] ?? '');
+    $csrfOk = function_exists('hg_admin_csrf_valid')
+        ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
+        : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
+    if (!$csrfOk) {
+        $jsonExit(['ok' => false, 'msg' => 'CSRF invalido. Recarga la pagina.']);
     }
 
     $ajaxMode = (string)($_POST['ajax'] ?? '');
@@ -385,7 +411,13 @@ if ($hasSchema) {
 </div>
 
 <?php if ($hasSchema): ?>
+<?php
+  $adminHttpJs = '/assets/js/admin/admin-http.js';
+  $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script src="<?= hg_acd_h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 (function(){
   var table = document.getElementById('deaths-table');
   var fSearch = document.getElementById('f-search-deaths');
@@ -434,6 +466,49 @@ if ($hasSchema) {
   fType.addEventListener('change', applyFilter);
   fOnlyWithDeath.addEventListener('change', applyFilter);
 
+  function endpointUrl(){
+    var url = new URL(window.location.href);
+    url.searchParams.set('s', 'admin_character_deaths');
+    url.searchParams.set('ajax', '1');
+    return url.toString();
+  }
+
+  async function postForm(fd, loadingEl){
+    if (!fd.has('csrf') && window.ADMIN_CSRF_TOKEN) {
+      fd.set('csrf', String(window.ADMIN_CSRF_TOKEN));
+    }
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+      return window.HGAdminHttp.request(endpointUrl(), {
+        method: 'POST',
+        body: fd,
+        loadingEl: loadingEl || null
+      });
+    }
+    var res = await fetch(endpointUrl(), {
+      method: 'POST',
+      body: fd,
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    var raw = await res.text();
+    var json = {};
+    try {
+      json = raw ? JSON.parse(raw) : {};
+    } catch (parseErr) {
+      var parseError = new Error('Respuesta no JSON');
+      parseError.payload = { message: 'Respuesta no JSON', raw: raw };
+      parseError.status = res.status;
+      throw parseError;
+    }
+    if (!res.ok || !json || json.ok === false) {
+      var err = new Error((json && (json.message || json.msg || json.error)) || ('HTTP ' + res.status));
+      err.payload = json;
+      err.status = res.status;
+      throw err;
+    }
+    return json;
+  }
+
   async function saveRow(mainTr){
     var editTr = getEditRow(mainTr);
     var charId = parseInt(mainTr.getAttribute('data-character-id') || '0', 10) || 0;
@@ -475,25 +550,9 @@ if ($hasSchema) {
     fd.append('death_description', String(desc.value || ''));
 
     try {
-      var endpoint = '/talim?s=admin_character_deaths&ajax=1';
-      var res = await fetch(endpoint, {
-        method: 'POST',
-        body: fd,
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
-      var raw = await res.text();
-      var json = null;
-      try {
-        json = raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        msg.textContent = 'Respuesta invalida (' + res.status + ')';
-        msg.className = 'row-msg err';
-        return;
-      }
-
-      if (!res.ok || !json || !json.ok) {
-        msg.textContent = (json && json.msg) ? json.msg : ('HTTP ' + res.status);
+      var json = await postForm(fd, mainTr);
+      if (!json || json.ok === false) {
+        msg.textContent = (json && (json.message || json.msg || json.error)) ? (json.message || json.msg || json.error) : 'Error al guardar';
         msg.className = 'row-msg err';
       } else {
         typeSel.value = deathType;
@@ -514,7 +573,9 @@ if ($hasSchema) {
         applyFilter();
       }
     } catch (e) {
-      msg.textContent = 'Error de red';
+      msg.textContent = (window.HGAdminHttp && typeof window.HGAdminHttp.errorMessage === 'function')
+        ? window.HGAdminHttp.errorMessage(e)
+        : ((e && e.message) ? e.message : 'Error de red');
       msg.className = 'row-msg err';
     } finally {
       typeSel.disabled = false;
@@ -542,25 +603,9 @@ if ($hasSchema) {
     fd.append('character_id', String(charId));
 
     try {
-      var endpoint = '/talim?s=admin_character_deaths&ajax=1';
-      var res = await fetch(endpoint, {
-        method: 'POST',
-        body: fd,
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
-      var raw = await res.text();
-      var json = null;
-      try {
-        json = raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        msg.textContent = 'Respuesta invalida (' + res.status + ')';
-        msg.className = 'row-msg err';
-        return;
-      }
-
-      if (!res.ok || !json || !json.ok) {
-        msg.textContent = (json && json.msg) ? json.msg : ('HTTP ' + res.status);
+      var json = await postForm(fd, mainTr);
+      if (!json || json.ok === false) {
+        msg.textContent = (json && (json.message || json.msg || json.error)) ? (json.message || json.msg || json.error) : 'Error al borrar';
         msg.className = 'row-msg err';
         return;
       }
@@ -585,7 +630,9 @@ if ($hasSchema) {
       msg.className = 'row-msg ok';
       applyFilter();
     } catch (e) {
-      msg.textContent = 'Error de red';
+      msg.textContent = (window.HGAdminHttp && typeof window.HGAdminHttp.errorMessage === 'function')
+        ? window.HGAdminHttp.errorMessage(e)
+        : ((e && e.message) ? e.message : 'Error de red');
       msg.className = 'row-msg err';
     }
   }

@@ -15,6 +15,7 @@
 
 if (!isset($link) || !$link) die("Sin conexion BD");
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
@@ -67,11 +68,16 @@ function flash_take(): array {
 /* -----------------------------
    CSRF
 ----------------------------- */
-if (empty($_SESSION['csrf'])) {
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $_SESSION['csrf'] = hg_admin_ensure_csrf_token('csrf_admin_parties');
+} elseif (empty($_SESSION['csrf'])) {
     $_SESSION['csrf'] = bin2hex(random_bytes(16));
 }
 function csrf_check(): bool {
-    $t = $_POST['csrf'] ?? '';
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $t = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
     return is_string($t) && hash_equals($_SESSION['csrf'] ?? '', $t);
 }
 
@@ -94,18 +100,49 @@ $changesFkCol = ($partyChangesTable !== '' && has_column($link, $partyChangesTab
     : (($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'party_member_id')) ? 'party_member_id' : '');
 $hasPartiesSchema = ($partyMembersTable !== '' && $partyFkCol !== '' && $partyChangesTable !== '' && $changesFkCol !== '');
 
+$isAjaxRequest = is_post() && (
+    ((string)($_POST['ajax'] ?? '') === '1')
+    || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+);
+function parties_fail(string $msg, array $redirectExtra = [], int $status = 400): void {
+    global $isAjaxRequest;
+    if ($isAjaxRequest) {
+        if (function_exists('hg_admin_json_error')) hg_admin_json_error($msg, $status);
+        header('Content-Type: application/json; charset=UTF-8');
+        http_response_code($status);
+        echo json_encode(['ok'=>false,'message'=>$msg,'error'=>$msg], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+    flash_add('error', $msg);
+    header("Location: ".build_redirect_url($redirectExtra));
+    exit;
+}
+function parties_ok(string $msg, array $redirectExtra = [], array $data = []): void {
+    global $isAjaxRequest;
+    if ($isAjaxRequest) {
+        if (function_exists('hg_admin_json_success')) hg_admin_json_success($data, $msg);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok'=>true,'message'=>$msg,'data'=>$data], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+    flash_add('ok', $msg);
+    header("Location: ".build_redirect_url($redirectExtra));
+    exit;
+}
+
 /* -----------------------------
-   Seguridad básica POST
+   Seguridad basica POST
 ----------------------------- */
 $action = is_post() ? (string)($_POST['action'] ?? '') : '';
 if (is_post()) {
+    if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     if (!$action) {
-        flash_add('error', '⚠ Falta action.');
-        header("Location: ".build_redirect_url()); exit;
+        parties_fail('Falta action.');
     }
     if (!csrf_check()) {
-        flash_add('error', '⚠ CSRF inválido (recarga la página).');
-        header("Location: ".build_redirect_url()); exit;
+        parties_fail('CSRF invalido (recarga la pagina).', [], 403);
     }
 }
 
@@ -120,51 +157,39 @@ if ($action === 'save_plot') {
     $act  = isset($_POST['active']) ? 1 : 0;
 
     if ($name === '') {
-        flash_add('error', '⚠ El nombre de la trama es obligatorio.');
-        header("Location: ".build_redirect_url(['open_plot'=>$id ?: 1])); exit;
+        parties_fail('El nombre de la trama es obligatorio.', ['open_plot'=>$id ?: 1]);
     }
 
     if ($id === 0) {
-        $st = $link->prepare("
-            INSERT INTO dim_parties (name, description, active, sort_order, created_at, updated_at)
-            VALUES (?, ?, ?, ?, NOW(), NOW())
-        ");
-        if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
-        $st->bind_param("ssii", $name, $desc, $act, $ord);
+        $st = $link->prepare("\n            INSERT INTO dim_parties (name, description, active, sort_order, created_at, updated_at)\n            VALUES (?, ?, ?, ?, NOW(), NOW())\n        ");
+        if (!$st) { parties_fail('Prepare failed: '.$link->error); }
+        $st->bind_param('ssii', $name, $desc, $act, $ord);
         if ($st->execute()) {
             $newId = (int)$st->insert_id;
             hg_update_pretty_id_if_exists($link, 'dim_parties', $newId, $name);
-            flash_add('ok', '✅ Trama creada (#'.$newId.').');
             $st->close();
-            header("Location: ".build_redirect_url(['open_plot'=>null, 'focus_plot'=>$newId])); exit;
-        } else {
-            flash_add('error', '❌ Error al crear: '.$st->error);
-            $st->close();
-            header("Location: ".build_redirect_url(['open_plot'=>1])); exit;
+            parties_ok('Trama creada (#'.$newId.').', ['open_plot'=>null, 'focus_plot'=>$newId], ['id'=>$newId, 'focus_plot'=>$newId]);
         }
-    } else {
-        $st = $link->prepare("
-            UPDATE dim_parties
-               SET name=?, description=?, active=?, sort_order=?, updated_at=NOW()
-            WHERE id=?
-        ");
-        if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
-        $st->bind_param("ssiii", $name, $desc, $act, $ord, $id);
-        if ($st->execute()) {
-            hg_update_pretty_id_if_exists($link, 'dim_parties', $id, $name);
-            flash_add('ok', '✏ Trama actualizada (#'.$id.').');
-        } else {
-            flash_add('error', '❌ Error al actualizar: '.$st->error);
-        }
+        $errCreate = 'Error al crear: '.$st->error;
         $st->close();
-        header("Location: ".build_redirect_url(['open_plot'=>null, 'focus_plot'=>$id])); exit;
+        parties_fail($errCreate, ['open_plot'=>1]);
     }
-}
 
+    $st = $link->prepare("\n        UPDATE dim_parties\n           SET name=?, description=?, active=?, sort_order=?, updated_at=NOW()\n        WHERE id=?\n    ");
+    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
+    $st->bind_param('ssiii', $name, $desc, $act, $ord, $id);
+    if ($st->execute()) {
+        hg_update_pretty_id_if_exists($link, 'dim_parties', $id, $name);
+        $st->close();
+        parties_ok('Trama actualizada (#'.$id.').', ['open_plot'=>null, 'focus_plot'=>$id], ['id'=>$id, 'focus_plot'=>$id]);
+    }
+    $errUpdate = 'Error al actualizar: '.$st->error;
+    $st->close();
+    parties_fail($errUpdate, ['open_plot'=>$id ?: 1]);
+}
 if ($action === 'save_plot_char') {
     if (!$hasPartiesSchema) {
-        flash_add('error', '❌ Esquema de tramas/personajes no compatible.');
-        header("Location: ".build_redirect_url()); exit;
+        parties_fail('Esquema de tramas/personajes no compatible.');
     }
     $id     = (int)($_POST['id'] ?? 0);
     $plot   = (int)($_POST['plot_id'] ?? 0);
@@ -173,25 +198,20 @@ if ($action === 'save_plot_char') {
     $notes  = trim((string)($_POST['notes'] ?? ''));
     $act    = isset($_POST['active']) ? 1 : 0;
 
-    if ($plot <= 0) { flash_add('error', '⚠ Debes seleccionar una trama.'); header("Location: ".build_redirect_url()); exit; }
-    if ($base <= 0) { flash_add('error', '⚠ Debes seleccionar un personaje base.'); header("Location: ".build_redirect_url(['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot])); exit; }
+    if ($plot <= 0) { parties_fail('Debes seleccionar una trama.'); }
+    if ($base <= 0) { parties_fail('Debes seleccionar un personaje base.', ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]); }
 
-    // Stats (m_hp NOT NULL). El resto, si tu DB permite NULL, aquí lo dejamos como int (0 por defecto).
     $stats = ['hp','rage','gnosis','glamour','mana','blood','wp'];
     $vals = [];
     foreach ($stats as $s) $vals[$s] = (int)($_POST["m_$s"] ?? 0);
     if ($vals['hp'] < 0) $vals['hp'] = 0;
 
     if ($id === 0) {
-        $st = $link->prepare("
-            INSERT INTO `{$partyMembersTable}`
-            (`{$partyFkCol}`, base_char_id, alias, m_hp, m_rage, m_gnosis, m_glamour, m_mana, m_blood, m_wp, notes, active, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?, ?, NOW())
-        ");
-        if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
+        $st = $link->prepare("\n            INSERT INTO `{$partyMembersTable}`\n            (`{$partyFkCol}`, base_char_id, alias, m_hp, m_rage, m_gnosis, m_glamour, m_mana, m_blood, m_wp, notes, active, updated_at)\n            VALUES (?,?,?,?,?,?,?,?,?,?,?, ?, NOW())\n        ");
+        if (!$st) { parties_fail('Prepare failed: '.$link->error); }
 
         $st->bind_param(
-            "iisiiiiiiisi",
+            'iisiiiiiiisi',
             $plot,$base,$alias,
             $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
             $notes,$act
@@ -199,45 +219,35 @@ if ($action === 'save_plot_char') {
 
         if ($st->execute()) {
             $newId = (int)$st->insert_id;
-            flash_add('ok', '✅ Personaje añadido a trama (#'.$newId.').');
             $st->close();
-            header("Location: ".build_redirect_url(['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null])); exit;
-        } else {
-            flash_add('error', '❌ Error al insertar: '.$st->error);
-            $st->close();
-            header("Location: ".build_redirect_url(['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot])); exit;
+            parties_ok('Personaje anadido a trama (#'.$newId.').', ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null], ['id'=>$newId, 'plot_id'=>$plot]);
         }
-    } else {
-        $st = $link->prepare("
-            UPDATE `{$partyMembersTable}` SET
-            `{$partyFkCol}`=?, base_char_id=?, alias=?,
-            m_hp=?, m_rage=?, m_gnosis=?, m_glamour=?, m_mana=?, m_blood=?, m_wp=?,
-            notes=?, active=?, updated_at=NOW()
-            WHERE id=?
-        ");
-        if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
-
-        $st->bind_param(
-            "iisiiiiiiisii",
-            $plot,$base,$alias,
-            $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
-            $notes,$act,$id
-        );
-
-        if ($st->execute()) {
-            flash_add('ok', '✏ Personaje en trama actualizado (#'.$id.').');
-        } else {
-            flash_add('error', '❌ Error al actualizar: '.$st->error);
-        }
+        $errIns = 'Error al insertar: '.$st->error;
         $st->close();
-        header("Location: ".build_redirect_url(['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null])); exit;
+        parties_fail($errIns, ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
     }
-}
 
+    $st = $link->prepare("\n        UPDATE `{$partyMembersTable}` SET\n        `{$partyFkCol}`=?, base_char_id=?, alias=?,\n        m_hp=?, m_rage=?, m_gnosis=?, m_glamour=?, m_mana=?, m_blood=?, m_wp=?,\n        notes=?, active=?, updated_at=NOW()\n        WHERE id=?\n    ");
+    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
+
+    $st->bind_param(
+        'iisiiiiiiisii',
+        $plot,$base,$alias,
+        $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
+        $notes,$act,$id
+    );
+
+    if ($st->execute()) {
+        $st->close();
+        parties_ok('Personaje en trama actualizado (#'.$id.').', ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null], ['id'=>$id, 'plot_id'=>$plot]);
+    }
+    $errUp = 'Error al actualizar: '.$st->error;
+    $st->close();
+    parties_fail($errUp, ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
+}
 if ($action === 'add_change') {
     if (!$hasPartiesSchema) {
-        flash_add('error', '❌ Esquema de cambios no compatible.');
-        header("Location: ".build_redirect_url()); exit;
+        parties_fail('Esquema de cambios no compatible.');
     }
     $cid  = (int)($_POST['plot_char_id'] ?? 0);
     $res  = (string)($_POST['resource'] ?? '');
@@ -246,30 +256,24 @@ if ($action === 'add_change') {
 
     $allowed = ['hp','rage','gnosis','blood','glamour','mana','wp'];
     if ($cid <= 0) {
-        flash_add('error', '⚠ Falta plot_char_id.');
-        header("Location: ".build_redirect_url()); exit;
+        parties_fail('Falta plot_char_id.');
     }
     if (!in_array($res, $allowed, true)) {
-        flash_add('error', '⚠ Recurso inválido.');
-        header("Location: ".build_redirect_url(['open_changes'=>$cid])); exit;
+        parties_fail('Recurso invalido.', ['open_changes'=>$cid]);
     }
 
-    $st = $link->prepare("
-        INSERT INTO `{$partyChangesTable}`
-        (`{$changesFkCol}`, resource, value, notes, created_at)
-        VALUES (?, ?, ?, ?, NOW())
-    ");
-    if (!$st) { flash_add('error', '❌ Prepare failed: '.$link->error); header("Location: ".build_redirect_url()); exit; }
-    $st->bind_param("isis", $cid, $res, $val, $note);
+    $st = $link->prepare("\n        INSERT INTO `{$partyChangesTable}`\n        (`{$changesFkCol}`, resource, value, notes, created_at)\n        VALUES (?, ?, ?, ?, NOW())\n    ");
+    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
+    $st->bind_param('isis', $cid, $res, $val, $note);
     if ($st->execute()) {
-        flash_add('ok', '🩸 Cambio registrado.');
-    } else {
-        flash_add('error', '❌ Error al registrar cambio: '.$st->error);
+        $newId = (int)$st->insert_id;
+        $st->close();
+        parties_ok('Cambio registrado.', ['open_changes'=>$cid], ['id'=>$newId, 'plot_char_id'=>$cid]);
     }
+    $errChg = 'Error al registrar cambio: '.$st->error;
     $st->close();
-    header("Location: ".build_redirect_url(['open_changes'=>$cid])); exit;
+    parties_fail($errChg, ['open_changes'=>$cid]);
 }
-
 /* -----------------------------
    Cargas de datos
 ----------------------------- */
@@ -347,6 +351,37 @@ if (!empty($plotCharIds)) {
     }
 }
 
+if (($_GET['ajax'] ?? '') === 'state') {
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $plotsMapOut = [];
+    foreach ($plots as $p) {
+        $plotsMapOut[(int)$p['id']] = $p;
+    }
+    if (function_exists('hg_admin_json_success')) {
+        hg_admin_json_success([
+            'plots' => $plots,
+            'plotsMap' => $plotsMapOut,
+            'plotCharsByPlot' => $plotCharsByPlot,
+            'plotChars' => $plotCharsFlat,
+            'changesByChar' => $changesByPlotChar,
+        ], 'OK');
+    }
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'ok' => true,
+        'data' => [
+            'plots' => $plots,
+            'plotsMap' => $plotsMapOut,
+            'plotCharsByPlot' => $plotCharsByPlot,
+            'plotChars' => $plotCharsFlat,
+            'changesByChar' => $changesByPlotChar,
+        ],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 // Helpers de totales (base + suma cambios)
 function compute_totals(array $pcRow, array $changes): array {
     $map = [
@@ -411,6 +446,11 @@ $csrf = $_SESSION['csrf'];
       </div>
     </div>
   <?php endif; ?>
+
+  <div class="toolbar adm-mb-8">
+    <input class="inp" type="text" id="filterPlots" placeholder="Filtrar tramas (nombre, activa, orden...)">
+    <input class="inp" type="text" id="filterPlotChars" placeholder="Filtrar personajes en trama (alias, base, stats...)">
+  </div>
 
   <!-- LISTADO DE TRAMAS -->
   <table class="table" id="plotsTable">
@@ -712,6 +752,15 @@ $csrf = $_SESSION['csrf'];
   </div>
 </div>
 
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($csrf, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+</script>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
+
 <script>
 var PLOTS_MAP = <?= json_encode($plotsMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var PLOT_CHARS = <?= json_encode($plotCharsFlat, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
@@ -720,6 +769,74 @@ var CHANGES_BY_CHAR = <?= json_encode($changesByPlotChar, JSON_HEX_TAG|JSON_HEX_
 function $(id){ return document.getElementById(id); }
 function openModal(id){ $(id).style.display='flex'; }
 function closeModal(id){ $(id).style.display='none'; }
+
+function textNorm(s){
+  var out = String(s || '').toLowerCase();
+  if (typeof out.normalize === 'function') {
+    out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  return out.trim();
+}
+
+var BASE_CHAR_OPTIONS = (function(){
+  var sel = $('char_base');
+  if (!sel) return [];
+  return Array.prototype.map.call(sel.options, function(opt){
+    return { value: String(opt.value || ''), text: String(opt.textContent || '') };
+  });
+})();
+
+function syncPlotSelect(selectedId){
+  var sel = $('char_plot');
+  if (!sel) return;
+
+  var plots = Object.keys(PLOTS_MAP || {}).map(function(k){ return PLOTS_MAP[k]; }).filter(Boolean);
+  plots.sort(function(a, b){
+    var ao = parseInt(a && a.sort_order ? a.sort_order : 0, 10) || 0;
+    var bo = parseInt(b && b.sort_order ? b.sort_order : 0, 10) || 0;
+    if (bo !== ao) return bo - ao;
+    var aid = parseInt(a && a.id ? a.id : 0, 10) || 0;
+    var bid = parseInt(b && b.id ? b.id : 0, 10) || 0;
+    return bid - aid;
+  });
+
+  var html = '<option value="0">— Selecciona —</option>';
+  plots.forEach(function(p){
+    var id = parseInt(p.id || 0, 10) || 0;
+    var name = String(p.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html += '<option value="' + id + '">' + name + '</option>';
+  });
+  sel.innerHTML = html;
+
+  var wanted = String(selectedId || '0');
+  sel.value = wanted;
+  if (sel.value !== wanted) sel.value = '0';
+}
+
+function applyBaseFilter(){
+  var sel = $('char_base');
+  var inFilter = $('baseFilter');
+  if (!sel || !inFilter) return;
+
+  var q = textNorm(inFilter.value);
+  var selected = String(sel.value || '0');
+  var html = '';
+
+  BASE_CHAR_OPTIONS.forEach(function(opt, idx){
+    if (idx === 0) {
+      html += '<option value="0">— Selecciona —</option>';
+      return;
+    }
+    var match = !q || textNorm(opt.text).indexOf(q) !== -1 || opt.value === selected;
+    if (!match) return;
+    var text = opt.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html += '<option value="' + opt.value + '">' + text + '</option>';
+  });
+
+  sel.innerHTML = html;
+  sel.value = selected;
+  if (sel.value !== selected) sel.value = '0';
+}
 
 function scrollToPlot(plotId){
   var el = document.getElementById('plot-'+plotId);
@@ -754,6 +871,7 @@ function openPlotEdit(p){
 ------------------------- */
 function resetCharForm(){
   $('char_id').value = 0;
+  syncPlotSelect(0);
   $('char_plot').value = '0';
   $('char_base').value = '0';
   $('char_alias').value = '';
@@ -767,19 +885,14 @@ function resetCharForm(){
   $('char_notes').value = '';
   $('char_active').checked = true;
   $('baseFilter').value = '';
-  // Restablece visibilidad de todas las opciones del selector base.
-  var sel = $('char_base');
-  if (sel) {
-    for (var i = 0; i < sel.options.length; i++) {
-      sel.options[i].hidden = false;
-    }
-  }
+  applyBaseFilter();
 }
 
 function openCharCreate(plotId){
   resetCharForm();
   $('charTitle').textContent = 'Añadir personaje a trama';
   $('char_id').value = 0;
+  syncPlotSelect(plotId || 0);
   if (plotId) $('char_plot').value = String(plotId);
   openModal('mbChar');
 }
@@ -788,7 +901,10 @@ function openCharEdit(pc){
   resetCharForm();
   $('charTitle').textContent = 'Editar personaje en trama';
   $('char_id').value = pc.id || 0;
+  syncPlotSelect(pc.plot_id || 0);
   $('char_plot').value = String(pc.plot_id || 0);
+  $('char_base').value = String(pc.base_char_id || 0);
+  applyBaseFilter();
   $('char_base').value = String(pc.base_char_id || 0);
   $('char_alias').value = pc.alias || '';
   $('m_hp').value = pc.m_hp || 0;
@@ -803,16 +919,9 @@ function openCharEdit(pc){
   openModal('mbChar');
 }
 
-// Filtro simple del select base (sin librerías)
+// Filtro simple del select base (sin librerias)
 $('baseFilter').addEventListener('input', function(){
-  var q = this.value.toLowerCase().trim();
-  var sel = $('char_base');
-  for (var i=0; i<sel.options.length; i++){
-    var opt = sel.options[i];
-    if (i===0){ opt.hidden = false; continue; }
-    var t = (opt.textContent || '').toLowerCase();
-    opt.hidden = (q && t.indexOf(q) === -1);
-  }
+  applyBaseFilter();
 });
 
 /* -------------------------
@@ -924,7 +1033,246 @@ function openChanges(plotCharId){
 })();
 </script>
 
+<script>
+(function(){
+  var plotsTbody = document.querySelector('#plotsTable tbody');
+  var charsSection = document.getElementById('charsSection');
+  var filterPlotsInput = document.getElementById('filterPlots');
+  var filterCharsInput = document.getElementById('filterPlotChars');
+  var plotForm = document.getElementById('plotForm');
+  var charForm = document.getElementById('charForm');
+  var chgForm = document.getElementById('chgForm');
+  if (!plotsTbody || !charsSection) return;
+
+  function esc(s){
+    return String(s || '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+  function baseUrlWithAjax(kind){
+    var u = new URL(window.location.href);
+    u.searchParams.set('ajax', kind);
+    u.searchParams.set('_ts', Date.now());
+    return u.toString();
+  }
+  function req(url, opts){
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+      return window.HGAdminHttp.request(url, Object.assign({
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      }, opts || {}));
+    }
+    return fetch(url, Object.assign({
+      credentials:'same-origin',
+      cache: 'no-store',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }, opts || {})).then(function(r){ return r.json(); });
+  }
+  function renderPlots(plots){
+    if (!plots || !plots.length) {
+      plotsTbody.innerHTML = '<tr><td colspan="5" class="adm-color-muted">(No hay tramas aun)</td></tr>';
+      return;
+    }
+    var html = '';
+    plots.forEach(function(p){
+      var id = parseInt(p.id || 0, 10) || 0;
+      var active = (parseInt(p.active || 0, 10) === 1);
+      html += '<tr id="plot-row-'+id+'">';
+      html += '<td><b class="adm-color-accent">'+id+'</b></td>';
+      html += '<td>'+esc(p.name || '')+'</td>';
+      html += '<td>'+(active ? '<span class="badge">Si</span>' : '<span class="badge off">No</span>')+'</td>';
+      html += '<td>'+esc(p.sort_order || 0)+'</td>';
+      html += '<td>';
+      html += '<button class="btn js-plot-edit" type="button" data-id="'+id+'">Editar</button> ';
+      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+id+'">Anadir personaje</button> ';
+      html += '<button class="btn btn-ghost js-plot-scroll" type="button" data-id="'+id+'">Ver personajes</button>';
+      html += '</td></tr>';
+    });
+    plotsTbody.innerHTML = html;
+  }
+  function renderChars(plots, byPlot){
+    var html = '<h2 class="adm-title-sm">Personajes por Trama</h2>'
+      + '<div class="small">Tip: \"Cambios\" abre el log y permite registrar un cambio nuevo.</div>';
+    (plots || []).forEach(function(p){
+      var pid = parseInt(p.id || 0, 10) || 0;
+      var pcs = (byPlot && byPlot[String(pid)]) ? byPlot[String(pid)] : [];
+      var active = (parseInt(p.active || 0, 10) === 1);
+      html += '<div class="plot-head" id="plot-'+pid+'">';
+      html += '<h3>'+esc(p.name || '')+'</h3>';
+      html += '<span class="badge">'+(active ? 'Activa' : 'Inactiva')+'</span>';
+      html += '<span class="badge">Orden: '+esc(p.sort_order || 0)+'</span>';
+      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+pid+'">Anadir personaje</button>';
+      html += '</div>';
+      html += '<table class="table"><thead><tr>'
+        + '<th class="adm-w-60">ID</th><th>Alias</th><th>Base</th><th class="adm-w-80">Act.</th><th class="adm-w-420">Stats (base)</th><th class="adm-w-220">Acciones</th>'
+        + '</tr></thead><tbody>';
+      if (!pcs.length) {
+        html += '<tr><td colspan="6" class="adm-color-muted">(No hay personajes en esta trama)</td></tr>';
+      } else {
+        pcs.forEach(function(pc){
+          var cid = parseInt(pc.id || 0, 10) || 0;
+          var alias = String(pc.alias || '').trim() || '(sin alias)';
+          var baseName = String(pc.base_nombre || '');
+          var baseAlias = String(pc.base_alias || '');
+          var baseLabel = baseName + (baseAlias ? ' · '+baseAlias : '');
+          html += '<tr id="pc-row-'+cid+'">';
+          html += '<td><b class="adm-color-accent">'+cid+'</b></td>';
+          html += '<td>'+esc(alias)+'</td>';
+          html += '<td>'+esc(baseLabel || ('#'+(parseInt(pc.base_char_id||0,10)||0)))+'</td>';
+          html += '<td>'+((parseInt(pc.active||0,10)===1) ? '<span class="badge">Si</span>' : '<span class="badge off">No</span>')+'</td>';
+          html += '<td class="adm-ws-normal">'
+            + '<span class="badge">HP '+(parseInt(pc.m_hp||0,10)||0)+'</span> '
+            + '<span class="badge">Rabia '+(parseInt(pc.m_rage||0,10)||0)+'</span> '
+            + '<span class="badge">Gnosis '+(parseInt(pc.m_gnosis||0,10)||0)+'</span> '
+            + '<span class="badge">Glamour '+(parseInt(pc.m_glamour||0,10)||0)+'</span> '
+            + '<span class="badge">Mana '+(parseInt(pc.m_mana||0,10)||0)+'</span> '
+            + '<span class="badge">Sangre '+(parseInt(pc.m_blood||0,10)||0)+'</span> '
+            + '<span class="badge">FV '+(parseInt(pc.m_wp||0,10)||0)+'</span>'
+            + '</td>';
+          html += '<td><button class="btn js-char-edit" type="button" data-id="'+cid+'">Editar</button> <button class="btn js-char-changes" type="button" data-id="'+cid+'">Cambios</button></td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table>';
+    });
+    charsSection.innerHTML = html;
+  }
+  function applyFilters(){
+    var qPlot = (filterPlotsInput && filterPlotsInput.value ? filterPlotsInput.value : '').toLowerCase().trim();
+    var qChar = (filterCharsInput && filterCharsInput.value ? filterCharsInput.value : '').toLowerCase().trim();
+
+    Array.prototype.forEach.call(plotsTbody.querySelectorAll('tr'), function(tr){
+      if (!qPlot) {
+        tr.style.display = '';
+        return;
+      }
+      var txt = (tr.textContent || '').toLowerCase();
+      tr.style.display = txt.indexOf(qPlot) !== -1 ? '' : 'none';
+    });
+
+    Array.prototype.forEach.call(charsSection.querySelectorAll('.plot-head'), function(head){
+      var table = head.nextElementSibling;
+      if (!table || String(table.tagName).toUpperCase() !== 'TABLE') return;
+      var rows = table.querySelectorAll('tbody tr');
+      var visibleCount = 0;
+
+      Array.prototype.forEach.call(rows, function(row){
+        var isEmptyRow = !!row.querySelector('td[colspan]');
+        if (!qChar) {
+          row.style.display = '';
+          if (!isEmptyRow) visibleCount++;
+          return;
+        }
+        if (isEmptyRow) {
+          row.style.display = 'none';
+          return;
+        }
+        var txt = (row.textContent || '').toLowerCase();
+        var show = txt.indexOf(qChar) !== -1;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+
+      if (!qChar) {
+        head.style.display = '';
+        table.style.display = '';
+        return;
+      }
+
+      var plotTxt = (head.textContent || '').toLowerCase();
+      var showSection = (plotTxt.indexOf(qChar) !== -1) || (visibleCount > 0);
+      head.style.display = showSection ? '' : 'none';
+      table.style.display = showSection ? '' : 'none';
+    });
+  }
+  function bindDynamicClicks(){
+    plotsTbody.addEventListener('click', function(ev){
+      var t = ev.target;
+      if (!t) return;
+      if (t.classList.contains('js-plot-edit')) {
+        var id = String(t.getAttribute('data-id') || '');
+        if (PLOTS_MAP[id]) openPlotEdit(PLOTS_MAP[id]);
+      } else if (t.classList.contains('js-plot-add-char')) {
+        openCharCreate(parseInt(t.getAttribute('data-id') || '0', 10) || 0);
+      } else if (t.classList.contains('js-plot-scroll')) {
+        scrollToPlot(parseInt(t.getAttribute('data-id') || '0', 10) || 0);
+      }
+    });
+    charsSection.addEventListener('click', function(ev){
+      var t = ev.target;
+      if (!t) return;
+      if (t.classList.contains('js-plot-add-char')) {
+        openCharCreate(parseInt(t.getAttribute('data-id') || '0', 10) || 0);
+      } else if (t.classList.contains('js-char-edit')) {
+        var id = String(t.getAttribute('data-id') || '');
+        if (PLOT_CHARS[id]) openCharEdit(PLOT_CHARS[id]);
+      } else if (t.classList.contains('js-char-changes')) {
+        openChanges(parseInt(t.getAttribute('data-id') || '0', 10) || 0);
+      }
+    });
+  }
+  async function refreshState(){
+    var payload = await req(baseUrlWithAjax('state'), { method:'GET' });
+    var data = payload && payload.data ? payload.data : payload;
+    if (!payload || payload.ok === false || !data) {
+      throw new Error((payload && (payload.message || payload.error)) || 'No se pudo refrescar el estado');
+    }
+    PLOTS_MAP = data.plotsMap || {};
+    PLOT_CHARS = data.plotChars || {};
+    CHANGES_BY_CHAR = data.changesByChar || {};
+    renderPlots(data.plots || []);
+    renderChars(data.plots || [], data.plotCharsByPlot || {});
+    if (document.getElementById('mbChar') && document.getElementById('mbChar').style.display === 'flex') {
+      syncPlotSelect($('char_plot') ? $('char_plot').value : 0);
+    } else {
+      syncPlotSelect(0);
+    }
+    applyFilters();
+  }
+  function submitAjaxForm(form, onSuccess){
+    form.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var fd = new FormData(form);
+      fd.set('ajax', '1');
+      req(window.location.pathname + window.location.search, { method:'POST', body: fd, loadingEl: form })
+        .then(function(payload){
+          if (!payload || payload.ok === false) throw payload || new Error('Error');
+          return refreshState().then(function(){
+            if (typeof onSuccess === 'function') onSuccess(payload);
+          });
+        })
+        .catch(function(err){
+          var msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage)
+            ? window.HGAdminHttp.errorMessage(err)
+            : ((err && (err.message || err.error)) || 'Error');
+          alert(msg);
+        });
+    });
+  }
+
+  bindDynamicClicks();
+  if (filterPlotsInput) filterPlotsInput.addEventListener('input', applyFilters);
+  if (filterCharsInput) filterCharsInput.addEventListener('input', applyFilters);
+  applyFilters();
+  if (plotForm) submitAjaxForm(plotForm, function(){ closeModal('mbPlot'); });
+  if (charForm) submitAjaxForm(charForm, function(){ closeModal('mbChar'); });
+  if (chgForm) {
+    submitAjaxForm(chgForm, function(){
+      var cid = parseInt((document.getElementById('chg_char_id') || {}).value || '0', 10) || 0;
+      if (cid > 0) openChanges(cid);
+    });
+  }
+})();
+</script>
+
 <?php
 // Si quieres, puedes imprimir un recordatorio de orden narrativo aquí,
 // pero lo dejo fuera para que este archivo sea puramente admin.
 ?>
+
+
+
+

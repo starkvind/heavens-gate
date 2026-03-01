@@ -7,6 +7,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_pretty(string $text): string {
@@ -53,13 +54,21 @@ if (!function_exists('has_column')) {
     }
 }
 
-// CSRF simple
-if (empty($_SESSION['csrf_admin_system_details'])) {
-    $_SESSION['csrf_admin_system_details'] = bin2hex(random_bytes(16));
+// CSRF simple + helper compartido
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_system_details';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+    $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+    if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+        $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+    }
+    $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
 }
-$CSRF = $_SESSION['csrf_admin_system_details'];
 function csrf_ok(): bool {
-    $t = $_POST['csrf'] ?? '';
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $t = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($payload)
+        : (string)($_POST['csrf'] ?? '');
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_system_details']) && hash_equals($_SESSION['csrf_admin_system_details'], $t);
 }
 
@@ -194,11 +203,22 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
 }
 
 $META = meta_for($tab, $opts_origins, $opts_systems);
+$isAjaxCrudRequest = (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['crud_action'], $_POST['crud_tab'])
+    && (
+        ((string)($_POST['ajax'] ?? '') === '1')
+        || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+    )
+);
 
 $quillToolbarInner = admin_quill_toolbar_inner();
 
 // Guardado
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && isset($_POST['crud_tab'])) {
+    if ($isAjaxCrudRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
         $flash[] = ['type'=>'error','msg'=>'Pestana invalida.'];
@@ -394,6 +414,128 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $META = meta_for($tab, $opts_origins, $opts_systems);
         }
     }
+
+    if ($isAjaxCrudRequest) {
+        $errors = [];
+        $messages = [];
+        foreach ($flash as $m) {
+            $type = (string)($m['type'] ?? '');
+            $msg = (string)($m['msg'] ?? '');
+            if ($msg === '') continue;
+            if ($type === 'error') $errors[] = $msg;
+            else $messages[] = $msg;
+        }
+        if (!empty($errors)) {
+            if (function_exists('hg_admin_json_error')) {
+                hg_admin_json_error($errors[0], 400, ['flash' => $errors], ['messages' => $messages]);
+            }
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'message' => $errors[0],
+                'error' => $errors[0],
+                'errors' => $errors,
+                'data' => ['messages' => $messages],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
+
+        $okMsg = !empty($messages) ? $messages[count($messages)-1] : 'Guardado';
+        if (function_exists('hg_admin_json_success')) {
+            hg_admin_json_success(['messages' => $messages], $okMsg);
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => true,
+            'message' => $okMsg,
+            'msg' => $okMsg,
+            'data' => ['messages' => $messages],
+            'errors' => [],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+}
+
+if (($_GET['ajax'] ?? '') === 'list') {
+    if (function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $tabAjax = (string)($_GET['tab'] ?? $tab);
+    $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'breeds';
+    $qAjax = trim((string)($_GET['q'] ?? ''));
+    $sysAjax = isset($_GET['sys']) ? (int)$_GET['sys'] : 0;
+    $MAjax = meta_for($tabAjax, $opts_origins, $opts_systems);
+
+    $tableAjax = $MAjax['table'];
+    $pkAjax = $MAjax['pk'];
+    $nameColAjax = $MAjax['name_col'];
+
+    $whereAjax = "WHERE 1=1";
+    $paramsAjax = [];
+    $typesAjax = '';
+    if ($qAjax !== '') {
+        $whereAjax .= " AND t.`$nameColAjax` LIKE ?";
+        $typesAjax .= 's';
+        $paramsAjax[] = "%".$qAjax."%";
+    }
+    if ($sysAjax > 0) {
+        $whereAjax .= " AND t.`system_id` = ?";
+        $typesAjax .= 'i';
+        $paramsAjax[] = $sysAjax;
+    }
+
+    $fromAjax = "`$tableAjax` t LEFT JOIN dim_systems s ON s.id = t.system_id";
+    $colsAjax = array_map(fn($f)=>"t.`".$f['k']."`", $MAjax['fields']);
+    $colsAjax[] = "t.`$pkAjax`";
+    $colsAjax[] = "s.name AS system_name";
+    $colsAjax = array_values(array_unique($colsAjax));
+    $sqlAjax = "SELECT ".implode(',', $colsAjax)." FROM $fromAjax $whereAjax ORDER BY ".$MAjax['order_by'];
+
+    $stAjax = $link->prepare($sqlAjax);
+    if (!$stAjax) {
+        if (function_exists('hg_admin_json_error')) {
+            hg_admin_json_error('Error al preparar listado: '.$link->error, 500);
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok'=>false,'error'=>'Error al preparar listado: '.$link->error], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
+    if (!$stAjax->execute()) {
+        $errMsg = 'Error al ejecutar listado: '.$stAjax->error;
+        $stAjax->close();
+        if (function_exists('hg_admin_json_error')) hg_admin_json_error($errMsg, 500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok'=>false,'error'=>$errMsg], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+    $rsAjax = $stAjax->get_result();
+    $rowsAjax = [];
+    $rowMapAjax = [];
+    while ($r = $rsAjax->fetch_assoc()) {
+        $idv = (int)($r[$pkAjax] ?? 0);
+        $rowsAjax[] = $r;
+        $rowMapAjax[$idv] = $r;
+    }
+    $stAjax->close();
+
+    if (function_exists('hg_admin_json_success')) {
+        hg_admin_json_success([
+            'rows' => $rowsAjax,
+            'rowMap' => $rowMapAjax,
+            'total' => count($rowsAjax),
+            'tab' => $tabAjax,
+        ], 'OK');
+    }
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'rows' => $rowsAjax,
+        'rowMap' => $rowMapAjax,
+        'total' => count($rowsAjax),
+        'tab' => $tabAjax,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
 }
 
 // Listado
@@ -597,6 +739,14 @@ admin_panel_open('Detalles de sistemas', $actions);
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+</script>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
 <script>
 var TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
@@ -825,8 +975,8 @@ function syncEditorsToTextarea(){
       grid.appendChild(field);
     });
 
-    if (action === 'update' && id && ROWMAP[id]) {
-      var row = ROWMAP[id];
+    if (action === 'update' && id && ROWMAP[String(id)]) {
+      var row = ROWMAP[String(id)];
       (META.fields||[]).forEach(function(f){
         var k = f.k;
         var ui = f.ui || 'text';
@@ -848,8 +998,8 @@ function syncEditorsToTextarea(){
       if ((f.ui || '') === 'image') {
         var k = f.k;
         var path = '';
-        if (action === 'update' && id && ROWMAP[id]) {
-          path = String(ROWMAP[id][k] ?? '');
+        if (action === 'update' && id && ROWMAP[String(id)]) {
+          path = String(ROWMAP[String(id)][k] ?? '');
         }
         updateImagePreview(k, path);
       }
@@ -873,18 +1023,27 @@ function syncEditorsToTextarea(){
   btnDelCancel.addEventListener('click', closeDelete);
   mbDel.addEventListener('click', function(e){ if (e.target === mbDel) closeDelete(); });
 
-  Array.prototype.forEach.call(document.querySelectorAll('button[data-edit]'), function(b){
-    b.addEventListener('click', function(){
-      var id = parseInt(b.getAttribute('data-edit')||'0',10)||0;
-      openEdit(id);
+  function bindRowButtons(scope){
+    var root = scope || document;
+    Array.prototype.forEach.call(root.querySelectorAll('button[data-edit]'), function(b){
+      b.addEventListener('click', function(){
+        var id = parseInt(b.getAttribute('data-edit')||'0',10)||0;
+        openEdit(id);
+      });
     });
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('button[data-del]'), function(b){
-    b.addEventListener('click', function(){
-      var id = parseInt(b.getAttribute('data-del')||'0',10)||0;
-      openDelete(id);
+    Array.prototype.forEach.call(root.querySelectorAll('button[data-del]'), function(b){
+      b.addEventListener('click', function(){
+        var id = parseInt(b.getAttribute('data-del')||'0',10)||0;
+        openDelete(id);
+      });
     });
-  });
+  }
+  bindRowButtons(document);
+  window.bindSystemDetailsRowButtons = bindRowButtons;
+  window.openSystemDetailsEdit = openEdit;
+  window.openSystemDetailsDelete = openDelete;
+  window.closeSystemDetailsModal = closeModal;
+  window.closeSystemDetailsDelete = closeDelete;
 
   document.getElementById('formCrud').addEventListener('submit', function(ev){
     syncEditorsToTextarea();
@@ -956,15 +1115,149 @@ function syncEditorsToTextarea(){
 <script>
 (function(){
   var sel = document.getElementById('filterSystemDetails');
-  if (!sel) return;
-  sel.addEventListener('change', function(){
+  var formCrud = document.getElementById('formCrud');
+  var formDel = document.getElementById('formDel');
+  var tbody = document.querySelector('#tablaDetails tbody');
+  var pagerCur = document.querySelector('.pager .cur');
+  if (!tbody) return;
+
+  function esc(str){
+    return String(str||'')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+  function shortText(str, n){
+    var s = String(str||'').replace(/\s+/g,' ').trim();
+    return s.length <= n ? s : (s.slice(0, n) + '...');
+  }
+  function currentListUrl(){
     var url = new URL(window.location.href);
-    var v = this.value || '';
-    if (v) url.searchParams.set('sys', v);
-    else url.searchParams.delete('sys');
-    var qs = url.searchParams.toString();
-    window.location.href = url.pathname + (qs ? ('?'+qs) : '');
-  });
+    url.searchParams.set('ajax', 'list');
+    url.searchParams.set('tab', TAB);
+    url.searchParams.set('_ts', Date.now());
+    if (sel) {
+      var v = sel.value || '';
+      if (v) url.searchParams.set('sys', v);
+      else url.searchParams.delete('sys');
+    }
+    return url;
+  }
+  function request(url, opts){
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+      return window.HGAdminHttp.request(url, Object.assign({ method: 'GET' }, opts || {}));
+    }
+    return fetch(url, Object.assign({
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }, opts || {})).then(function(r){ return r.json(); });
+  }
+  function renderRows(rows, rowMap){
+    ROWMAP = rowMap || {};
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="'+(META.list_cols.length+1)+'" class="adm-color-muted">(Sin resultados)</td></tr>';
+      if (pagerCur) pagerCur.textContent = 'Total 0';
+      return;
+    }
+    var html = '';
+    rows.forEach(function(r){
+      var searchParts = [];
+      (META.list_cols||[]).forEach(function(c){ searchParts.push(String(r[c.k] || '')); });
+      var search = searchParts.join(' ').toLowerCase();
+      html += '<tr data-search="'+esc(search)+'">';
+      (META.list_cols || []).forEach(function(c){
+        var k = c.k;
+        var val = (r[k]===null || r[k]===undefined) ? '' : String(r[k]);
+        if (k === 'id') {
+          html += '<td><strong class="adm-color-accent">'+(parseInt(r.id||0,10)||0)+'</strong></td>';
+        } else {
+          html += '<td>'+esc(shortText(val, 140))+'</td>';
+        }
+      });
+      var rid = (parseInt(r.id||0,10)||0);
+      html += '<td><button class="btn" type="button" data-edit="'+rid+'">Editar</button> <button class="btn btn-red" type="button" data-del="'+rid+'">Borrar</button></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+    if (pagerCur) pagerCur.textContent = 'Total ' + rows.length + ' (vista AJAX)';
+    if (window.bindSystemDetailsRowButtons) window.bindSystemDetailsRowButtons(document);
+  }
+  async function reloadList(pushState){
+    var listUrl = currentListUrl();
+    var payload = await request(listUrl.toString(), { method: 'GET' });
+    var data = payload && payload.data ? payload.data : payload;
+    if (!payload || payload.ok === false || !data) {
+      throw new Error((payload && (payload.message || payload.error)) || 'Error cargando listado');
+    }
+    renderRows(data.rows || [], data.rowMap || {});
+    if (pushState) {
+      listUrl.searchParams.delete('ajax');
+      history.pushState({ sys: sel ? (sel.value || '') : '' }, '', listUrl.pathname + '?' + listUrl.searchParams.toString());
+    }
+  }
+
+  if (sel) {
+    sel.addEventListener('change', function(){
+      reloadList(true).catch(function(err){
+        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error'));
+      });
+    });
+  }
+
+  if (formCrud) {
+    formCrud.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var fd = new FormData(formCrud);
+      fd.set('ajax', '1');
+      request(window.location.pathname + window.location.search, {
+        method: 'POST',
+        body: fd,
+        loadingEl: document.getElementById('btnSave') || formCrud
+      }).then(function(payload){
+        if (!payload || payload.ok === false) throw payload || new Error('Error al guardar');
+        if (window.closeSystemDetailsModal) window.closeSystemDetailsModal();
+        return reloadList(false).then(function(){
+          if (window.HGAdminHttp && window.HGAdminHttp.notify) {
+            window.HGAdminHttp.notify(payload.message || 'Guardado', 'ok');
+          }
+        });
+      }).catch(function(err){
+        var msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage)
+          ? window.HGAdminHttp.errorMessage(err)
+          : ((err && (err.message || err.error)) || 'Error al guardar');
+        alert(msg);
+      });
+    });
+  }
+
+  if (formDel) {
+    formDel.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var fd = new FormData(formDel);
+      fd.set('ajax', '1');
+      request(window.location.pathname + window.location.search, {
+        method: 'POST',
+        body: fd,
+        loadingEl: formDel
+      }).then(function(payload){
+        if (!payload || payload.ok === false) throw payload || new Error('Error al borrar');
+        if (window.closeSystemDetailsDelete) window.closeSystemDetailsDelete();
+        return reloadList(false).then(function(){
+          if (window.HGAdminHttp && window.HGAdminHttp.notify) {
+            window.HGAdminHttp.notify(payload.message || 'Eliminado', 'ok');
+          }
+        });
+      }).catch(function(err){
+        var msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage)
+          ? window.HGAdminHttp.errorMessage(err)
+          : ((err && (err.message || err.error)) || 'Error al borrar');
+        alert(msg);
+      });
+    });
+  }
 })();
 </script>
 

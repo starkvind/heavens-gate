@@ -19,11 +19,18 @@ if (method_exists($link, 'set_charset')) {
 } else {
   mysqli_set_charset($link, 'utf8mb4');
 }
+if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (!headers_sent()) {
   header('Content-Type: text/html; charset=UTF-8');
 }
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
+
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_groups';
+$ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
+  ? hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY)
+  : (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY]) ? ($_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16))) : $_SESSION[$ADMIN_CSRF_SESSION_KEY]);
 
 /* ----------------------- helpers ----------------------- */
 function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
@@ -374,6 +381,27 @@ function render_group_create_form($link,$prefill_clan_id=0){
 if(!empty($_POST['action'])){
   $act = $_POST['action'];
   header('Content-Type: text/html; charset=utf-8');
+  if (function_exists('hg_admin_require_session') && !hg_admin_require_session(false)) {
+    echo "<div class='err'>No autorizado.</div>";
+    exit;
+  }
+  $readOnlyActions = [
+    'load_clans_table','load_groups_table',
+    'clan_modal','group_modal',
+    'clan_create_form','group_create_form',
+    'search_characters'
+  ];
+  $requiresCsrf = !in_array($act, $readOnlyActions, true);
+  if ($requiresCsrf && function_exists('hg_admin_csrf_valid')) {
+    $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+    $csrf = function_exists('hg_admin_extract_csrf_token')
+      ? hg_admin_extract_csrf_token($payload)
+      : trim((string)($_POST['csrf'] ?? ''));
+    if (!hg_admin_csrf_valid($csrf, $ADMIN_CSRF_SESSION_KEY)) {
+      echo "<div class='err'>CSRF invalido. Recarga la pagina.</div>";
+      exit;
+    }
+  }
 
   // tablas básicas
   if($act==='load_clans_table'){ render_clans_table($link); exit; }
@@ -578,6 +606,14 @@ admin_panel_open('Grupos (Manadas y Clanes)');
     <div id="modalContent" class="modal-body"></div>
   </div>
 </div>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>
+window.ADMIN_CSRF_TOKEN = <?= json_encode($ADMIN_CSRF_TOKEN, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+</script>
+<script src="<?= e($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
 <script>
 const ADMIN_GROUPS_ENDPOINT = <?php echo json_encode($ADMIN_GROUPS_ENDPOINT); ?>;
@@ -590,8 +626,14 @@ function filterTable(input, tbodySel){
 }
 async function htmlPost(action, data={}){
   const fd = new FormData(); fd.append('action', action);
+  if (window.ADMIN_CSRF_TOKEN) fd.append('csrf', window.ADMIN_CSRF_TOKEN);
   Object.entries(data).forEach(([k,v])=>fd.append(k,v));
-  const r = await fetch(ADMIN_GROUPS_ENDPOINT,{method:'POST', body: fd});
+  const r = await fetch(ADMIN_GROUPS_ENDPOINT,{
+    method:'POST',
+    headers: {'X-Requested-With':'XMLHttpRequest'},
+    credentials: 'same-origin',
+    body: fd
+  });
   return r.text();
 }
 

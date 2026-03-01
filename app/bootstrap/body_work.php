@@ -419,6 +419,7 @@ $routes = [
 	// Test
 	'forum_message'   => ['app/partials/forum_message_snippet.php', null],
 	'forum_diceroll'  => ['app/partials/forum_diceroll_snippet.php', null],
+	'forum_item'      => ['app/partials/forum_item_snippet.php', null],
 
 ];
 
@@ -429,7 +430,7 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'keygen', 'crop', 'tooltip', 'mentions'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions'], true)) {
 		$isBarePage = true;
 	}
 	include($file);

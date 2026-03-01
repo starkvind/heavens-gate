@@ -55,6 +55,17 @@ function fetch_system_detail_labels(mysqli $link, int $systemId): array {
     return $labels;
 }
 
+function so_has_column(mysqli $link, string $table, string $column): bool {
+    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1";
+    if (!$st = $link->prepare($sql)) return false;
+    $st->bind_param('ss', $table, $column);
+    $st->execute();
+    $rs = $st->get_result();
+    $ok = ($rs && $rs->num_rows > 0);
+    $st->close();
+    return $ok;
+}
+
 // =========================================================== >
 // Preparamos la consulta para evitar inyecciones SQL
 $ordenQuery = "SELECT name, image_url, description, forms FROM dim_systems WHERE id = ? LIMIT 1";
@@ -83,7 +94,7 @@ if (!$ordenQueryResult) {
     if (!empty($systemName)) { 
         $pageSect = "Sistema"; 
         $pageTitle2 = $systemName;
-		setMetaFromPage("Sistemas | Heaven's Gate", meta_excerpt($systemDesc), $systemImg, 'article'); 
+		setMetaFromPage($systemName . " | Sistemas | Heaven's Gate", meta_excerpt($systemDesc), $systemImg, 'article'); 
     }
 
     // PONER IMAGEN "NADA" SI NO TIENE IMAGEN ASIGNADA
@@ -113,7 +124,26 @@ if (!$ordenQueryResult) {
 
     // CUADRO DE FORMAS
     if ($systemForm === 1) {
-        $queryForms = "SELECT * FROM dim_forms WHERE system_id = ?";
+        $hasFormBreedId = so_has_column($link, 'dim_forms', 'breed_id');
+        $hasFormRace = so_has_column($link, 'dim_forms', 'race');
+        $selectRace = $hasFormRace ? "f.race" : "''";
+        if ($hasFormBreedId) {
+            $selectBreed = $hasFormRace
+                ? "COALESCE(NULLIF(db.name,''), NULLIF(f.race,''))"
+                : "COALESCE(NULLIF(db.name,''), '')";
+        } else {
+            $selectBreed = $hasFormRace
+                ? "COALESCE(NULLIF(db.name,''), NULLIF(f.race,''))"
+                : "''";
+        }
+        $queryForms = "SELECT f.id, f.form, {$selectRace} AS race, {$selectBreed} AS breed_name
+                       FROM dim_forms f ";
+        if ($hasFormBreedId) {
+            $queryForms .= "LEFT JOIN dim_breeds db ON db.id = f.breed_id ";
+        } elseif ($hasFormRace) {
+            $queryForms .= "LEFT JOIN dim_breeds db ON db.system_id = f.system_id AND db.name = f.race ";
+        }
+        $queryForms .= "WHERE f.system_id = ? ORDER BY " . ($hasFormRace ? "f.race, " : "") . "f.form";
         $stmtForms = $link->prepare($queryForms);
         $stmtForms->bind_param('i', $systemCategoryId);
         $stmtForms->execute();
@@ -129,7 +159,8 @@ if (!$ordenQueryResult) {
             $formsByRace = [];
             while ($formQueryResult = $resultForms->fetch_assoc()) {
                 $formId = (int)$formQueryResult["id"];
-                $formAff = htmlspecialchars($formQueryResult["race"]);
+                $formAffRaw = trim((string)($formQueryResult["breed_name"] ?? $formQueryResult["race"] ?? ''));
+                $formAff = htmlspecialchars($formAffRaw !== '' ? $formAffRaw : '-');
                 $formName = htmlspecialchars($formQueryResult["form"]);
                 if ($systemName === "Bastet") {
                     $formsByRace[$formAff][] = ['id'=>$formId,'name'=>$formName];

@@ -11,6 +11,13 @@
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) $link->set_charset('utf8mb4'); else mysqli_set_charset($link,'utf8mb4');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (session_status() === PHP_SESSION_NONE) { @session_start(); }
+
+$isAjaxRequest = (
+  ((string)($_GET['ajax'] ?? '') === '1')
+  || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+);
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function sanitize_int_csv($csv){
@@ -37,13 +44,34 @@ function fetchPairs(mysqli $link, string $sql): array {
   return $out;
 }
 
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_bridges';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+  $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+  if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+    $_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+  }
+  $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
+}
+function bridges_csrf_ok(): bool {
+  $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+  $token = function_exists('hg_admin_extract_csrf_token')
+    ? hg_admin_extract_csrf_token($payload)
+    : (string)($_POST['csrf'] ?? '');
+  if (function_exists('hg_admin_csrf_valid')) {
+    return hg_admin_csrf_valid($token, 'csrf_admin_bridges');
+  }
+  return is_string($token) && $token !== '' && isset($_SESSION['csrf_admin_bridges']) && hash_equals($_SESSION['csrf_admin_bridges'], $token);
+}
+
 // ============================
 // Config / filtros
 // ============================
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL   = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
-$tab = isset($_GET['tab']) && $_GET['tab'] !== '' ? (string)$_GET['tab'] : 'chars'; // chars | clans
+$tab = isset($_GET['tab']) && $_GET['tab'] !== '' ? (string)$_GET['tab'] : ((string)($_POST['tab'] ?? 'chars')); // chars | clans
+if ($tab !== 'chars' && $tab !== 'clans') $tab = 'chars';
 $pageTitle2 = "Bridges - Relaciones";
 
 // IMPORTANTE: si tu tabla es hg_character_clan_bridge (singular), cambia aqui:
@@ -188,9 +216,22 @@ function set_clan_group(mysqli $link, string $T_CLAN_GROUP, int $clanId, int $gr
 // POST actions
 // ============================
 $flash = [];
+$lastMsg = '';
+$hasError = false;
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
+  if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
+    hg_admin_require_session(true);
+  }
+  if (!bridges_csrf_ok()) {
+    if ($isAjaxRequest && function_exists('hg_admin_json_error')) {
+      hg_admin_json_error('CSRF invalido. Recarga la pagina.', 400, ['csrf' => 'invalid']);
+    }
+    $flash[] = ['type'=>'error','msg'=>'CSRF invalido.'];
+  } else {
   $action = (string)$_POST['action'];
+  $lastMsg = '';
+  $hasError = false;
 
   // Nota: mejor en transaccion (si algo falla, no deja la BD a medias)
   $link->begin_transaction();
@@ -216,7 +257,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
       $finalClan = ($autoClan>0) ? $autoClan : $clanId;
       set_active_character_clan($link, $T_CHAR_CLAN, $charId, $finalClan);
 
-      $flash[] = ['type'=>'ok','msg'=>"[OK] Relacion actualizada (PJ #{$charId})."];
+      $lastMsg = "Relacion actualizada (PJ #{$charId}).";
+      $flash[] = ['type'=>'ok','msg'=>$lastMsg];
     }
 
     if ($action === 'save_clan_group') {
@@ -229,7 +271,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 
       set_clan_group($link, $T_CLAN_GROUP, $clanId, $groupId, $isAct, $enforce);
 
-      $flash[] = ['type'=>'ok','msg'=>"[OK] Clan->Manada actualizado (Clan #{$clanId} / Manada #{$groupId})."];
+      $lastMsg = "Clan->Manada actualizado (Clan #{$clanId} / Manada #{$groupId}).";
+      $flash[] = ['type'=>'ok','msg'=>$lastMsg];
       $tab = 'clans';
     }
 
@@ -241,18 +284,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE id=?")) {
           $st->bind_param("i",$id); $st->execute(); $st->close();
         }
-        $flash[] = ['type'=>'ok','msg'=>"[OK] Relacion desactivada (#{$id})."];
+        $lastMsg = "Relacion desactivada (#{$id}).";
+        $flash[] = ['type'=>'ok','msg'=>$lastMsg];
       }
     }
 
     $link->commit();
   } catch (Throwable $e) {
     $link->rollback();
+    $hasError = true;
+    $lastMsg = $e->getMessage();
     $flash[] = ['type'=>'error','msg'=>"[ERROR] ".$e->getMessage()];
   }
 
   // Mantener tab al volver
   if (isset($_POST['tab']) && $_POST['tab'] !== '') $tab = (string)$_POST['tab'];
+  if ($tab !== 'chars' && $tab !== 'clans') $tab = 'chars';
+  }
 }
 
 // ============================
@@ -295,7 +343,10 @@ $sqlChars = "
   ORDER BY p.name ASC
 ";
 if ($rs = $link->query($sqlChars)) {
-  while($r = $rs->fetch_assoc()) $chars[] = $r;
+  while($r = $rs->fetch_assoc()) {
+    $r['avatar_url'] = hg_character_avatar_url((string)($r['image_url'] ?? ''), (string)($r['gender'] ?? ''));
+    $chars[] = $r;
+  }
   $rs->close();
 }
 
@@ -319,12 +370,55 @@ if ($rs = $link->query($sqlCG)) {
   $rs->close();
 }
 
+if ($isAjaxRequest) {
+  if (function_exists('hg_admin_require_session')) {
+    hg_admin_require_session(true);
+  }
+  $payload = [
+    'tab' => $tab,
+    'chars' => $chars,
+    'clanGroups' => $clanGroups,
+  ];
+
+  if ((string)($_GET['ajax_mode'] ?? '') === 'state') {
+    if (function_exists('hg_admin_json_success')) {
+      hg_admin_json_success($payload, 'Estado');
+    }
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(['ok' => true, 'data' => $payload], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+  }
+
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($hasError) {
+      if (function_exists('hg_admin_json_error')) {
+        hg_admin_json_error($lastMsg !== '' ? $lastMsg : 'Error al guardar.', 400, [], $payload);
+      }
+      header('Content-Type: application/json; charset=UTF-8');
+      echo json_encode(['ok' => false, 'message' => ($lastMsg !== '' ? $lastMsg : 'Error al guardar.'), 'data' => $payload], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+      exit;
+    }
+    if (function_exists('hg_admin_json_success')) {
+      hg_admin_json_success($payload, $lastMsg !== '' ? $lastMsg : 'Guardado');
+    }
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(['ok' => true, 'message' => ($lastMsg !== '' ? $lastMsg : 'Guardado'), 'data' => $payload], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+  }
+}
+
 // Render
 //include("sep/main/main_nav_bar.php");
 ?>
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
+<?php
+$adminHttpJs = '/assets/js/admin/admin-http.js';
+$adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
+?>
+<script>window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;</script>
+<script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
 <div class="panel-wrap">
   <div class="hdr">
@@ -453,6 +547,7 @@ if ($rs = $link->query($sqlCG)) {
             >Editar</button>
 
             <form method="post" class="adm-inline">
+              <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
               <input type="hidden" name="tab" value="clans">
               <input type="hidden" name="action" value="deactivate_row">
               <input type="hidden" name="table" value="<?= h($T_CLAN_GROUP) ?>">
@@ -486,6 +581,7 @@ if ($rs = $link->query($sqlCG)) {
   <div class="modal" role="dialog" aria-modal="true">
     <h3>Editar relaciones del PJ</h3>
     <form method="post" id="formChar" class="adm-m-0">
+      <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="tab" value="chars">
       <input type="hidden" name="action" value="save_char_links">
       <input type="hidden" name="character_id" id="f_char_id" value="0">
@@ -543,6 +639,7 @@ if ($rs = $link->query($sqlCG)) {
     <h3>Editar Clan <-> Manada</h3>
 
     <form method="post" id="formCG" class="adm-m-0">
+      <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
       <input type="hidden" name="tab" value="clans">
       <input type="hidden" name="action" value="save_clan_group">
 
@@ -596,36 +693,144 @@ if ($rs = $link->query($sqlCG)) {
 
 <script>
 (function(){
-  // Select2 init
-  function initSelect2($parent){
-    if (!window.jQuery || !jQuery.fn || !jQuery.fn.select2) return;
-    $parent.find('select').each(function(){
-      var $s = jQuery(this);
-      if ($s.data('select2')) $s.select2('destroy');
-      $s.select2({ width:'style', dropdownParent: $parent, minimumResultsForSearch: 0 });
+  function esc(s){
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+  var TABLE_CLAN_GROUP = <?= json_encode($T_CLAN_GROUP, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+  var ACTIVE_TAB = <?= json_encode($tab, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>;
+
+  function endpointUrl(mode, tab){
+    var url = new URL(window.location.href);
+    url.searchParams.set('s', 'admin_bridges');
+    url.searchParams.set('ajax', '1');
+    if (mode) url.searchParams.set('ajax_mode', mode);
+    else url.searchParams.delete('ajax_mode');
+    if (tab) url.searchParams.set('tab', tab);
+    else url.searchParams.delete('tab');
+    url.searchParams.set('_ts', Date.now());
+    return url.toString();
+  }
+  function request(url, opts){
+    if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
+      return window.HGAdminHttp.request(url, opts || {});
+    }
+    var cfg = Object.assign({
+      method:'GET',
+      credentials:'same-origin',
+      headers:{'X-Requested-With':'XMLHttpRequest'}
+    }, opts || {});
+    return fetch(url, cfg).then(async function(resp){
+      var text = await resp.text();
+      var payload = {};
+      if (text) {
+        try { payload = JSON.parse(text); } catch(e){ payload = { ok:false, message:'Respuesta no JSON', raw:text }; }
+      }
+      if (!resp.ok || (payload && payload.ok === false)) {
+        var err = new Error((payload && (payload.message || payload.error || payload.msg)) || ('HTTP ' + resp.status));
+        err.status = resp.status;
+        err.payload = payload;
+        throw err;
+      }
+      return payload;
     });
   }
+  function notifyOk(msg){
+    if (window.HGAdminHttp && window.HGAdminHttp.notify) window.HGAdminHttp.notify(msg || 'Guardado', 'ok');
+  }
+  function notifyErr(err){
+    var msg = (window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err && err.message ? err.message : 'Error');
+    alert(msg);
+  }
 
-  // Filtro rapido
-  var qChars = document.getElementById('qChars');
-  if (qChars) {
-    qChars.addEventListener('input', function(){
-      var q = (this.value||'').toLowerCase();
+  function renderChars(rows){
+    var tbody = document.querySelector('#tblChars tbody');
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>';
+      bindRows();
+      return;
+    }
+    var html = '';
+    rows.forEach(function(c){
+      var cid = parseInt(c.id || 0, 10) || 0;
+      var nm = String(c.name || '');
+      var est = String(c.status || '');
+      var cln = String(c.active_clan_name || '');
+      var grp = String(c.active_group_name || '');
+      var clanId = parseInt(c.active_clan_id || 0, 10) || 0;
+      var groupId = parseInt(c.active_group_id || 0, 10) || 0;
+      var img = String(c.avatar_url || '');
+
+      html += '<tr data-nombre="' + esc(nm.toLowerCase()) + '">';
+      html += '<td><strong class="adm-color-accent">' + cid + '</strong></td>';
+      html += '<td><a href="/characters/' + cid + '" target="_blank" class="adm-link-white"><img class="avatar-mini" src="' + esc(img) + '" alt="">' + esc(nm) + '</a></td>';
+      html += '<td>' + esc(est) + '</td>';
+      html += '<td>' + (cln ? esc(cln) : "<span class=\"badge off\">-</span>") + (clanId > 0 ? ' <span class="small">#' + clanId + '</span>' : '') + '</td>';
+      html += '<td>' + (grp ? esc(grp) : "<span class=\"badge off\">-</span>") + (groupId > 0 ? ' <span class="small">#' + groupId + '</span>' : '') + '</td>';
+      html += '<td><button class="btn btn-green btnEditChar" data-id="' + cid + '" data-name="' + esc(nm) + '" data-group="' + groupId + '" data-clan="' + clanId + '" type="button">Editar</button></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+    bindRows();
+    applyQuickFilters();
+  }
+
+  function renderClanGroups(rows){
+    var tbody = document.querySelector('#tblClanGroups tbody');
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="adm-color-muted">(Sin resultados)</td></tr>';
+      bindRows();
+      return;
+    }
+    var html = '';
+    rows.forEach(function(r){
+      var rid = parseInt(r.id || 0, 10) || 0;
+      var cln = String(r.clan_name || '');
+      var grp = String(r.group_name || '');
+      var cid = parseInt(r.organization_id || 0, 10) || 0;
+      var gid = parseInt(r.group_id || 0, 10) || 0;
+      var act = parseInt(r.is_active || 0, 10) || 0;
+      html += '<tr data-text="' + esc((cln + ' ' + grp).toLowerCase()) + '">';
+      html += '<td><strong class="adm-color-accent">' + rid + '</strong></td>';
+      html += '<td>' + (cln ? esc(cln) : "<span class=\"badge off\">(sin clan)</span>") + ' <span class="small">#' + cid + '</span></td>';
+      html += '<td>' + (grp ? esc(grp) : "<span class=\"badge off\">(sin manada)</span>") + ' <span class="small">#' + gid + '</span></td>';
+      html += '<td>' + (act ? "<span class=\"badge\">Activo</span>" : "<span class=\"badge off\">Inactivo</span>") + '</td>';
+      html += '<td>';
+      html += '<button class="btn btn-green btnEditClanGroup" data-id="' + rid + '" data-clan="' + cid + '" data-group="' + gid + '" data-active="' + act + '" type="button">Editar</button> ';
+      html += '<button class="btn btn-gray btnDeactivateBridge" data-id="' + rid + '" type="button">Desactivar</button>';
+      html += '</td></tr>';
+    });
+    tbody.innerHTML = html;
+    bindRows();
+    applyQuickFilters();
+  }
+
+  function reloadState(tab){
+    request(endpointUrl('state', tab || ACTIVE_TAB), { method:'GET' }).then(function(payload){
+      var data = payload && payload.data ? payload.data : {};
+      if (Array.isArray(data.chars)) renderChars(data.chars);
+      if (Array.isArray(data.clanGroups)) renderClanGroups(data.clanGroups);
+    }).catch(notifyErr);
+  }
+
+  function applyQuickFilters(){
+    var qChars = document.getElementById('qChars');
+    if (qChars) {
+      var q = (qChars.value||'').toLowerCase();
       document.querySelectorAll('#tblChars tbody tr').forEach(function(tr){
         var nom = tr.getAttribute('data-nombre') || '';
         tr.style.display = nom.indexOf(q)!==-1 ? '' : 'none';
       });
-    });
-  }
-  var qCG = document.getElementById('qClanGroups');
-  if (qCG) {
-    qCG.addEventListener('input', function(){
-      var q = (this.value||'').toLowerCase();
+    }
+    var qCG = document.getElementById('qClanGroups');
+    if (qCG) {
+      var q = (qCG.value||'').toLowerCase();
       document.querySelectorAll('#tblClanGroups tbody tr').forEach(function(tr){
         var txt = tr.getAttribute('data-text') || '';
         tr.style.display = txt.indexOf(q)!==-1 ? '' : 'none';
       });
-    });
+    }
   }
 
   // Modal PJ
@@ -636,8 +841,9 @@ if ($rs = $link->query($sqlCG)) {
   var fCharClan = document.getElementById('f_char_clan');
   var fCharGroup= document.getElementById('f_char_group');
 
-  Array.prototype.forEach.call(document.querySelectorAll('.btnEditChar'), function(btn){
-    btn.addEventListener('click', function(){
+  function bindRows(){
+    Array.prototype.forEach.call(document.querySelectorAll('.btnEditChar'), function(btn){
+      btn.onclick = function(){
       var id = btn.getAttribute('data-id') || '0';
       var nm = btn.getAttribute('data-name') || '';
       var cl = btn.getAttribute('data-clan') || '0';
@@ -649,42 +855,108 @@ if ($rs = $link->query($sqlCG)) {
       fCharGroup.value = gr;
 
       mbChar.style.display = 'flex';
-      initSelect2(jQuery('#mbChar'));
+      };
     });
-  });
 
-  btnCharCancel && btnCharCancel.addEventListener('click', function(){ mbChar.style.display='none'; });
-  mbChar && mbChar.addEventListener('click', function(e){ if (e.target === mbChar) mbChar.style.display='none'; });
+    Array.prototype.forEach.call(document.querySelectorAll('.btnEditClanGroup'), function(btn){
+      btn.onclick = function(){
+        fCGClan.value = btn.getAttribute('data-clan') || '0';
+        fCGGroup.value= btn.getAttribute('data-group')|| '0';
+        fCGAct.value  = btn.getAttribute('data-active')|| '0';
+        mbCG.style.display='flex';
+      };
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.btnDeactivateBridge'), function(btn){
+      btn.onclick = function(){
+        var id = parseInt(btn.getAttribute('data-id') || '0', 10) || 0;
+        if (!id) return;
+        if (!confirm('Desactivar relacion?')) return;
+        var fd = new FormData();
+        fd.set('ajax', '1');
+        fd.set('csrf', window.ADMIN_CSRF_TOKEN || '');
+        fd.set('tab', 'clans');
+        fd.set('action', 'deactivate_row');
+        fd.set('table', TABLE_CLAN_GROUP);
+        fd.set('id', String(id));
+        request(endpointUrl('', 'clans'), { method:'POST', body: fd, loadingEl: btn }).then(function(payload){
+          var data = payload && payload.data ? payload.data : {};
+          if (Array.isArray(data.clanGroups)) renderClanGroups(data.clanGroups);
+          notifyOk((payload && (payload.message || payload.msg)) || 'Desactivado');
+        }).catch(notifyErr);
+      };
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('form.adm-inline'), function(frm){
+      frm.onsubmit = function(ev){
+        ev.preventDefault();
+        var fd = new FormData(frm);
+        fd.set('ajax', '1');
+        request(endpointUrl('', 'clans'), { method:'POST', body: fd, loadingEl: frm }).then(function(payload){
+          var data = payload && payload.data ? payload.data : {};
+          if (Array.isArray(data.clanGroups)) renderClanGroups(data.clanGroups);
+          notifyOk((payload && (payload.message || payload.msg)) || 'Actualizado');
+        }).catch(notifyErr);
+      };
+    });
+  }
 
   // Modal Clan <-> Manada
   var mbCG = document.getElementById('mbCG');
   var btnCGCancel = document.getElementById('btnCGCancel');
   var btnNewCG = document.getElementById('btnNewClanGroup');
-
   var fCGClan = document.getElementById('f_cg_clan');
   var fCGGroup= document.getElementById('f_cg_group');
   var fCGAct  = document.getElementById('f_cg_active');
+
+  btnCharCancel && btnCharCancel.addEventListener('click', function(){ mbChar.style.display='none'; });
+  mbChar && mbChar.addEventListener('click', function(e){ if (e.target === mbChar) mbChar.style.display='none'; });
+  btnCGCancel && btnCGCancel.addEventListener('click', function(){ mbCG.style.display='none'; });
+  mbCG && mbCG.addEventListener('click', function(e){ if (e.target === mbCG) mbCG.style.display='none'; });
 
   btnNewCG && btnNewCG.addEventListener('click', function(){
     fCGClan.value = '0';
     fCGGroup.value= '0';
     fCGAct.value  = '1';
     mbCG.style.display='flex';
-    initSelect2(jQuery('#mbCG'));
   });
 
-  Array.prototype.forEach.call(document.querySelectorAll('.btnEditClanGroup'), function(btn){
-    btn.addEventListener('click', function(){
-      fCGClan.value = btn.getAttribute('data-clan') || '0';
-      fCGGroup.value= btn.getAttribute('data-group')|| '0';
-      fCGAct.value  = btn.getAttribute('data-active')|| '0';
-      mbCG.style.display='flex';
-      initSelect2(jQuery('#mbCG'));
+  var formChar = document.getElementById('formChar');
+  if (formChar) {
+    formChar.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var fd = new FormData(formChar);
+      fd.set('ajax', '1');
+      request(endpointUrl('', 'chars'), { method:'POST', body: fd, loadingEl: formChar }).then(function(payload){
+        var data = payload && payload.data ? payload.data : {};
+        if (Array.isArray(data.chars)) renderChars(data.chars);
+        mbChar.style.display = 'none';
+        notifyOk((payload && (payload.message || payload.msg)) || 'Guardado');
+      }).catch(notifyErr);
     });
-  });
+  }
+  var formCG = document.getElementById('formCG');
+  if (formCG) {
+    formCG.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var fd = new FormData(formCG);
+      fd.set('ajax', '1');
+      request(endpointUrl('', 'clans'), { method:'POST', body: fd, loadingEl: formCG }).then(function(payload){
+        var data = payload && payload.data ? payload.data : {};
+        if (Array.isArray(data.clanGroups)) renderClanGroups(data.clanGroups);
+        mbCG.style.display = 'none';
+        notifyOk((payload && (payload.message || payload.msg)) || 'Guardado');
+      }).catch(notifyErr);
+    });
+  }
 
-  btnCGCancel && btnCGCancel.addEventListener('click', function(){ mbCG.style.display='none'; });
-  mbCG && mbCG.addEventListener('click', function(e){ if (e.target === mbCG) mbCG.style.display='none'; });
+  var qChars = document.getElementById('qChars');
+  if (qChars) qChars.addEventListener('input', applyQuickFilters);
+  var qCG = document.getElementById('qClanGroups');
+  if (qCG) qCG.addEventListener('input', applyQuickFilters);
+
+  bindRows();
+  applyQuickFilters();
 
 })();
 </script>

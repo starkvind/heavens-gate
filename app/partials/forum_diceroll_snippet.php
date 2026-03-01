@@ -24,10 +24,12 @@ $resultados = explode(",", $tirada['roll_results']);
 $exitos = (int)$tirada['successes'];
 $pifia = (bool)$tirada['botch'];
 
-$palette = '#222';
+$paletteParam = filter_input(INPUT_GET, 'palette', FILTER_SANITIZE_STRING) ?? '';
+$paletteParam = preg_replace('/[^a-zA-Z0-9#(),.\s%-]/', '', (string)$paletteParam);
 
-if ($exitos > 0) {
-	$palette = '#0FA';
+$palette = $pifia ? '#3A1010' : '#05014E';
+if (trim($paletteParam) !== '') {
+    $palette = $paletteParam;
 }
 
 ?>
@@ -40,25 +42,27 @@ if ($exitos > 0) {
 		<link rel="stylesheet" href="/assets/css/hg-embeds.css">
 </head>
 	<body class="hg-embed-roll" style="--palette: <?= $palette ?>;">
-		<div class="roll-box-name"><?= $titulo ?></div>
-		<div class="roll-box">
-			<!--<div class="roll-title"><?= $titulo ?></div>-->
-			<p class="roll-head"><strong><?= $nombre ?></strong> lanzo <?= count($resultados) ?>d10 a dificultad <strong><?= $dificultad ?></strong>.</p>
-			<div class="roll-results">
-				<?php
-				foreach ($resultados as $dado) {
-					$dado = (int)$dado;
-					$color = ($dado == 1) ? '#f55' : (($dado >= $dificultad) ? '#5f5' : '#5ff');
-					echo "<div class='dado' style='--die-color:$color;'><span>$dado</span></div>";
-				}
-				?>
+		<div class="roll-main-box">
+			<div class="roll-box">
+				<div class="roll-box-name"><?= $titulo ?></div>
+				<!--<div class="roll-title"><?= $titulo ?></div>-->
+				<p class="roll-head"><strong><?= $nombre ?></strong> lanzo <?= count($resultados) ?>d10 a dificultad <strong><?= $dificultad ?></strong>.</p>
+				<div class="roll-results">
+					<?php
+					foreach ($resultados as $dado) {
+						$dado = (int)$dado;
+						$color = ($dado == 1) ? '#f55' : (($dado >= $dificultad) ? '#5f5' : '#5ff');
+						echo "<div class='dado' style='--die-color:$color;'><span>$dado</span></div>";
+					}
+					?>
+				</div>
+				<p><strong>Exitos</strong>: <?= $exitos ?></p>
+				<?php if ($pifia): ?><p class="roll-botch"><strong>&#161;PIFIA!</strong></p><?php endif; ?>
 			</div>
-			<p><strong>Exitos</strong>: <?= $exitos ?></p>
-			<?php if ($pifia): ?><p class="roll-botch"><strong>&#161;PIFIA!</strong></p><?php endif; ?>
 		</div>
 		<script>
 				function sendHeight() {
-					const height = document.body.scrollHeight + 12;
+					const height = document.body.scrollHeight + 24;
 					window.parent.postMessage({ type: 'setHeight', height }, '*');
 				}
 

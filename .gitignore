@@ -76,3 +76,4 @@ app/tools/migrate_system_name_phase1.php
 app/tools/migrate_timestamps_phase1.php
 app/tools/migrate_timestamps_phase2_excluding_logs.php
 upgrade_plan.txt
+admin_upgrade_notes/

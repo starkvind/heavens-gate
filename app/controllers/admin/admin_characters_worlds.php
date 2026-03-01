@@ -3,6 +3,17 @@
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+
+$isAjaxRequest = (
+    (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
+    || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+    || ((string)($_POST['ajax'] ?? '') === 'save_character_world')
+);
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_characters_worlds';
+$ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
+    ? hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY)
+    : (string)($_SESSION[$ADMIN_CSRF_SESSION_KEY] ?? '');
 
 if (!function_exists('hg_acw_h')) {
     function hg_acw_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -38,6 +49,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'save_c
         echo json_encode($payload, JSON_UNESCAPED_UNICODE);
         exit;
     };
+
+    if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $csrfToken = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($_POST)
+        : (string)($_POST['csrf'] ?? '');
+    $csrfOk = function_exists('hg_admin_csrf_valid')
+        ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
+        : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals((string)$_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
+    if (!$csrfOk) {
+        $jsonExit(['ok' => false, 'msg' => 'CSRF invalido']);
+    }
 
     if (!hg_acw_has_table($link, 'dim_realities') || !hg_acw_has_column($link, 'fact_characters', 'reality_id')) {
         $jsonExit(['ok' => false, 'msg' => 'Falta esquema: dim_realities / fact_characters.reality_id']);
@@ -242,6 +266,7 @@ if ($hasRealitySchema) {
 <?php if ($hasRealitySchema): ?>
 <script>
 (function(){
+  var ADMIN_CSRF_TOKEN = <?php echo json_encode((string)$ADMIN_CSRF_TOKEN, JSON_UNESCAPED_UNICODE); ?>;
   var table = document.getElementById('worlds-table');
   var fSearch = document.getElementById('f-search-worlds');
   var fChronicle = document.getElementById('f-chronicle-worlds');
@@ -290,6 +315,7 @@ if ($hasRealitySchema) {
     fd.append('character_id', String(charId));
     fd.append('chronicle_id', String(chronicleId));
     fd.append('reality_id', String(realityId));
+    if (ADMIN_CSRF_TOKEN) fd.append('csrf', ADMIN_CSRF_TOKEN);
 
     try {
       var endpoint = '/talim?s=admin_characters_worlds&ajax=1';

@@ -3,6 +3,17 @@
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+
+$isAjaxRequest = (
+    (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
+    || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
+    || ((string)($_POST['ajax'] ?? '') === 'upload_avatar')
+);
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_avatar_mass';
+$ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
+    ? hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY)
+    : (string)($_SESSION[$ADMIN_CSRF_SESSION_KEY] ?? '');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -89,6 +100,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
         echo json_encode($payload, JSON_UNESCAPED_UNICODE);
         exit;
     };
+
+    if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $csrfToken = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($_POST)
+        : (string)($_POST['csrf'] ?? '');
+    $csrfOk = function_exists('hg_admin_csrf_valid')
+        ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
+        : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals((string)$_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
+    if (!$csrfOk) {
+        $jsonExit(['ok' => false, 'msg' => 'CSRF invalido']);
+    }
 
     $charId = isset($_POST['character_id']) ? (int)$_POST['character_id'] : 0;
     if ($charId <= 0) {
@@ -271,6 +295,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
 
 <script>
 (function(){
+  var ADMIN_CSRF_TOKEN = <?php echo json_encode((string)$ADMIN_CSRF_TOKEN, JSON_UNESCAPED_UNICODE); ?>;
   var table = document.getElementById('avatar-table');
   var fGroup = document.getElementById('f-group');
   var fOrg = document.getElementById('f-org');
@@ -330,6 +355,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
       fd.append('ajax', 'upload_avatar');
       fd.append('character_id', String(charId));
       fd.append('avatar', fileInput.files[0]);
+      if (ADMIN_CSRF_TOKEN) fd.append('csrf', ADMIN_CSRF_TOKEN);
 
       try {
         var endpoint = '/talim?s=admin_avatar_mass&ajax=1';
