@@ -17,11 +17,15 @@
 	<?= setMetaTags($_GET['p'] ?? '', $pageURL); ?>
 	
     <?php
-        $titleParts = [];
-        if (!empty($pageTitle2)) $titleParts[] = $pageTitle2;
-        if (!empty($pageSect)) $titleParts[] = $pageSect;
-        if (!empty($pageTitle)) $titleParts[] = $pageTitle;
-        $fullTitle = implode(' | ', $titleParts);
+        if (!empty($metaTitle)) {
+            $fullTitle = (string)$metaTitle;
+        } else {
+            $titleParts = [];
+            if (!empty($pageTitle2)) $titleParts[] = $pageTitle2;
+            if (!empty($pageSect)) $titleParts[] = $pageSect;
+            if (!empty($pageTitle)) $titleParts[] = $pageTitle;
+            $fullTitle = implode(' | ', $titleParts);
+        }
     ?>
     <title><?= htmlspecialchars($fullTitle) ?></title>
 

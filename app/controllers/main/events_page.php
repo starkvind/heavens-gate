@@ -194,7 +194,8 @@ $metaDesc = $description !== '' ? $description : 'Detalle del evento de la linea
 if (function_exists('meta_excerpt')) {
     $metaDesc = meta_excerpt($metaDesc);
 }
-setMetaFromPage($title . ' | Evento | Heaven\'s Gate', $metaDesc, null, 'article');
+
+setMetaFromPage($title . " | Evento | Heaven's Gate", $metaDesc, null, 'article');
 
 $participants = [];
 if (hg_ev_table_exists($link, 'bridge_timeline_events_characters') && hg_ev_table_exists($link, 'fact_characters')) {
