@@ -44,6 +44,7 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         'versistdetalle' => ['b', 'dim_breeds', '/systems/detail'],
         'seechapter'   => ['t', 'dim_chapters', '/chapters'],
         'temp'         => ['t', 'dim_seasons', '/seasons'],
+        'timeline_event' => ['t', 'fact_timeline_events', '/timeline/event'],
         'maps_detail'  => ['id', 'fact_map_pois', '/maps/poi'],
     ];
 
@@ -401,7 +402,8 @@ $routes = [
 	'ost' => ['app/controllers/ost/bso_main.php', 'Banda sonora'],
 	
 	// Línea temporal
-	'timeline' => ['app/controllers/main/main_timeline.php', 'Línea temporal'],
+	'timeline' => ['app/controllers/main/events_main.php', 'Línea temporal'],
+	'timeline_event' => ['app/controllers/main/events_page.php', 'Evento'],
 	
 	// Galería
 	'gallery' => ['app/controllers/main/main_gallery.php', 'Galería de imágenes'],

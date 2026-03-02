@@ -75,6 +75,9 @@
 				case 'admin_timelines':
 					include("admin_timelines.php");
 					break;
+				case 'admin_birthdays_quick':
+					include("admin_birthdays_quick.php");
+					break;
 				case 'admin_bso':
 					include("admin_bso.php");
 					break;
@@ -151,6 +154,9 @@
 					break;
 				case 'admin_timelines':
 					include("admin_timelines.php");
+					break;
+				case 'admin_birthdays_quick':
+					include("admin_birthdays_quick.php");
 					break;
 				case 'admin_gallery':
 					include("admin_gallery.php");
@@ -313,6 +319,11 @@
 					<a href='/talim?s=admin_timelines'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar L&iacute;nea temporal
+						</div>
+					</a>
+					<a href='/talim?s=admin_birthdays_quick'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Cumplea&ntilde;os R&aacute;pidos
 						</div>
 					</a>
 					<a href='/talim?s=admin_gallery'>

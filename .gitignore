@@ -77,3 +77,7 @@ app/tools/migrate_timestamps_phase1.php
 app/tools/migrate_timestamps_phase2_excluding_logs.php
 upgrade_plan.txt
 admin_upgrade_notes/
+app/tools/migrate_timeline_birthdays_phase3.php
+app/tools/migrate_timeline_birthdays_text_phase4.php
+app/tools/migrate_timeline_events_bridges_phase2.php
+app/tools/migrate_timeline_events_phase1.php

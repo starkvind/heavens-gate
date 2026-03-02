@@ -3,31 +3,53 @@
 ## 1. Scope
 This document explains architecture, data model, table relationships, and operational guidelines for the Heaven's Gate codebase.
 
-Source of truth for schema inventory: `bdd_structure.txt`.
+Primary schema references:
+
+- `admin_upgrade_notes/dump-u807926597_hg-202603022117.sql` (latest reviewed dump)
+- `bdd_structure.txt` (inventory snapshot)
+
+For timeline insertion automation (LLM-ready):
+
+- `admin_upgrade_notes/hg_timeline_events_howto.txt`
 
 ## 2. Application Architecture
+
 - Entry point: `index.php`
 - Router and route map: `app/bootstrap/body_work.php`
-- DB bootstrap: `app/helpers/heroes.php` (`config.env`, `mysqli`, `utf8mb4`)
-- Main UI composition: navbar + menu + route controller includes
-- Admin area: `/talim?s=...` -> `app/controllers/admin/admin_main.php`
+- DB bootstrap: `app/helpers/db_connection.php` (`config.env`, `mysqli`, `utf8mb4`)
+- Main UI composition: navbar + route controller includes
+- Admin dispatcher: `/talim?s=...` -> `app/controllers/admin/admin_main.php`
+
+### 2.1 Timeline/Event routes (Operation Events 5.0)
+
+- Main timeline page: `p=timeline` -> `app/controllers/main/events_main.php`
+- Event detail page: `p=timeline_event` -> `app/controllers/main/events_page.php`
+- Admin timeline module: `s=admin_timelines`
+- Birthday quick admin module: `s=admin_birthdays_quick`
 
 ## 3. Database Modeling Strategy
+
 - `dim_*`: dimensions/catalogs (reference entities)
 - `fact_*`: content/state/events/business entities
 - `bridge_*`: many-to-many relationships and active-state bridges
-- Core narrative entity: `fact_characters`
 
-### 3.1 Table counts
-- Total tables: 62
-- `dim_*`: 29
-- `fact_*`: 18
-- `bridge_*`: 15
+Main narrative hubs:
 
-## 4. Relational Star-Like Map
-The model is not a pure warehouse star, but the character domain behaves as a star center (`fact_characters`) with many dimensions and bridges.
+- `fact_characters`
+- `fact_timeline_events` (expanded in Events 5.0)
 
-### 4.1 Character-centric star (operational)
+### 3.1 Table counts (from dump-u807926597_hg-202603022117.sql)
+
+- Total tables: 72
+- `dim_*`: 33
+- `fact_*`: 19
+- `bridge_*`: 20
+
+## 4. Core Relational Maps
+
+The model is not a pure warehouse star. It is an operational domain model with two major hubs: character and timeline event.
+
+### 4.1 Character-centric map (operational)
 ```mermaid
 erDiagram
     fact_characters ||--o{ bridge_characters_groups : has
@@ -39,42 +61,42 @@ erDiagram
     fact_characters ||--o{ bridge_characters_merits_flaws : has
     fact_characters ||--o{ bridge_characters_relations : source_target
     fact_characters ||--o{ bridge_chapters_characters : participates
-
-    dim_groups ||--o{ bridge_characters_groups : links
-    dim_organizations ||--o{ bridge_characters_organizations : links
-    dim_traits ||--o{ bridge_characters_traits : links
-    dim_systems_resources ||--o{ bridge_characters_system_resources : links
-    fact_items ||--o{ bridge_characters_items : links
-    dim_merits_flaws ||--o{ bridge_characters_merits_flaws : links
-    dim_chapters ||--o{ bridge_chapters_characters : links
-
-    dim_players ||--o{ fact_characters : player_id
-    dim_chronicles ||--o{ fact_characters : chronicle_id
-    dim_systems ||--o{ fact_characters : system_id
-    dim_totems ||--o{ fact_characters : totem_id
-    dim_character_types ||--o{ fact_characters : character_type_id
-    dim_breeds ||--o{ fact_characters : breed_id
-    dim_auspices ||--o{ fact_characters : auspice_id
-    dim_tribes ||--o{ fact_characters : tribe_id
-    dim_archetypes ||--o{ fact_characters : nature_demeanor
+    fact_characters ||--o{ bridge_timeline_events_characters : appears_in
 ```
 
-### 4.2 Relationship matrix (core domains)
+### 4.2 Timeline event map (Operation Events 5.0)
+```mermaid
+erDiagram
+    dim_timeline_events_types ||--o{ fact_timeline_events : event_type_id
+    fact_timeline_events ||--o{ bridge_timeline_events_characters : event_id
+    fact_timeline_events ||--o{ bridge_timeline_events_chapters : event_id
+    fact_timeline_events ||--o{ bridge_timeline_events_chronicles : event_id
+    fact_timeline_events ||--o{ bridge_timeline_events_realities : event_id
+
+    fact_characters ||--o{ bridge_timeline_events_characters : character_id
+    dim_chapters ||--o{ bridge_timeline_events_chapters : chapter_id
+    dim_chronicles ||--o{ bridge_timeline_events_chronicles : chronicle_id
+    dim_realities ||--o{ bridge_timeline_events_realities : reality_id
+```
+
+### 4.3 Relationship matrix (core domains)
 | Domain | Hub table(s) | Main dimensions | Main bridge tables |
 |---|---|---|---|
-| Characters | `fact_characters` | players, chronicles, systems, breeds, auspices, tribes, totems, archetypes | groups, organizations, traits, resources, powers, items, merits/flaws, relations, chapters |
+| Characters | `fact_characters` | players, chronicles, systems, breeds, auspices, tribes, totems, archetypes | groups, organizations, traits, resources, powers, items, merits/flaws, relations, chapters, timeline_events_characters |
+| Timeline events | `fact_timeline_events` | timeline event types | timeline_events_characters, timeline_events_chapters, timeline_events_chronicles, timeline_events_realities |
 | Systems/Rules | `dim_systems`, `dim_traits`, `fact_trait_sets`, `dim_systems_resources` | bibliographies, forms, breeds, auspices, tribes, misc | systems_resources_to_system |
 | Powers | `fact_gifts`, `fact_rites`, `dim_totems`, `fact_discipline_powers` | gift/rite/totem/discipline types, systems, bibliographies | characters_powers |
-| Chapters/Seasons | `dim_seasons`, `dim_chapters` | chronicles | chapters_characters, timeline_links |
+| Chapters/Seasons | `dim_seasons`, `dim_chapters` | chronicles | chapters_characters, timeline_events_chapters, timeline_links (legacy) |
 | Maps | `dim_maps`, `fact_map_pois`, `fact_map_areas` | map categories | - |
 | Party tracker | `dim_parties`, `fact_party_members` | characters | party_members_changes |
 | Soundtrack | `dim_soundtracks` | - | soundtrack_links |
 
 ## 5. Operational Guidelines
+
 ### 5.1 Character memberships
 - Active Group: `bridge_characters_groups.is_active=1`
 - Active Organization: `bridge_characters_organizations.is_active=1`
-- Group<->Organization ownership: `bridge_organizations_groups`
+- Group/organization ownership: `bridge_organizations_groups`
 
 ### 5.2 Character sheet state
 - Traits values: `bridge_characters_traits`
@@ -83,12 +105,35 @@ erDiagram
 - Inventory links: `bridge_characters_items`
 - Merits/flaws links: `bridge_characters_merits_flaws`
 
-### 5.3 Logs/audit tables
+### 5.3 Timeline events (post Events 5.0)
+- Type source of truth: `fact_timeline_events.event_type_id` -> `dim_timeline_events_types.id`
+- `fact_timeline_events.kind` remains LEGACY compatibility field
+- `fact_timeline_events.timeline` remains LEGACY compatibility field
+- Chronicle links must use `bridge_timeline_events_chronicles`
+- Event ordering must use `sort_date` (fallback: `event_date`)
+- Public timeline uses `is_active = 1` when column is present
+
+### 5.4 Birthday canonical source
+- Birthday is now represented as a timeline event of type `nacimiento`
+- Character page birthday resolution now reads:
+  - `bridge_timeline_events_characters`
+  - `fact_timeline_events`
+  - `dim_timeline_events_types` (`pretty_id='nacimiento'`)
+- `fact_characters.birthdate_text` is now treated as migration/input support data
+
+### 5.5 Timeline migration scripts
+- `app/tools/migrate_timeline_events_phase1.php`
+- `app/tools/migrate_timeline_events_bridges_phase2.php`
+- `app/tools/migrate_timeline_birthdays_phase3.php`
+- `app/tools/migrate_timeline_birthdays_text_phase4.php`
+
+### 5.6 Logs/audit tables
 - `bridge_characters_traits_log`
 - `bridge_characters_system_resources_log`
 - `fact_party_members_changes`
 
 ## 6. Full Data Dictionary (from bdd_structure.txt)
+Note: timeline-related sections above (2.x, 4.2, 5.3, 5.4) reflect the latest dump and take precedence for the Events 5.0 domain.
 Legend: PK=Primary Key, IDX=Indexed, NOT NULL as declared in source inventory.
 
 ### bridge_chapters_characters
@@ -944,4 +989,3 @@ Legend: PK=Primary Key, IDX=Indexed, NOT NULL as declared in source inventory.
 3. Update route/pretty-id behavior if URL entities change.
 4. Update this document and `README.md`.
 5. Re-run data integrity checks (orphan bridges, invalid FK IDs, null critical fields).
-

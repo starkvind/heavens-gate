@@ -315,5 +315,114 @@ if (!function_exists('createSkillCircle')) {
 if (isset($bioArrayAtt)) $bioAttrImg = createSkillCircle($bioArrayAtt, 'gem-attr');
 if (isset($bioArraySki)) $bioSkilImg = createSkillCircle($bioArraySki, 'gem-attr');
 
+// CUMPLEANOS desde Operacion Eventos 5.0 (evento de nacimiento + bridge)
+if (!function_exists('hg_bio_timeline_col_exists')) {
+    function hg_bio_timeline_col_exists(mysqli $link, string $table, string $column): bool {
+        static $cache = [];
+        $key = $table . ':' . $column;
+        if (isset($cache[$key])) return $cache[$key];
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            $st->bind_param('ss', $table, $column);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+        $cache[$key] = $ok;
+        return $ok;
+    }
+}
+
+if (!function_exists('hg_bio_timeline_table_exists')) {
+    function hg_bio_timeline_table_exists(mysqli $link, string $table): bool {
+        static $cache = [];
+        if (isset($cache[$table])) return $cache[$table];
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
+            $st->bind_param('s', $table);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+        $cache[$table] = $ok;
+        return $ok;
+    }
+}
+
+if (!function_exists('hg_bio_event_date_label')) {
+    function hg_bio_event_date_label(?string $dateValue, ?string $precision, ?string $note): string {
+        $precision = trim((string)$precision);
+        $dateValue = trim((string)$dateValue);
+        $note = trim((string)$note);
+
+        if ($precision === 'unknown') return ($note !== '') ? $note : 'Desconocido';
+        if ($dateValue === '' || $dateValue === '0000-00-00') return ($note !== '') ? $note : '';
+
+        $ts = strtotime($dateValue);
+        if ($ts === false) return ($note !== '') ? $note : $dateValue;
+
+        if ($precision === 'year') $base = date('Y', $ts);
+        elseif ($precision === 'month') $base = date('m/Y', $ts);
+        elseif ($precision === 'approx') $base = 'Aprox. ' . date('d/m/Y', $ts);
+        else $base = date('d/m/Y', $ts);
+
+        return ($note !== '') ? ($base . ' (' . $note . ')') : $base;
+    }
+}
+
+$bioBday = '';
+$canUseTimelineBirthdays =
+    isset($characterId) &&
+    hg_bio_timeline_table_exists($link, 'bridge_timeline_events_characters') &&
+    hg_bio_timeline_table_exists($link, 'fact_timeline_events');
+
+if ($canUseTimelineBirthdays) {
+    $hasTypeTable = hg_bio_timeline_table_exists($link, 'dim_timeline_events_types');
+    $hasEventTypeId = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'event_type_id');
+    $joinTypes = ($hasTypeTable && $hasEventTypeId) ? 'LEFT JOIN dim_timeline_events_types tet ON tet.id = e.event_type_id' : '';
+    $matchType = ($hasTypeTable && $hasEventTypeId)
+        ? "(tet.pretty_id = 'nacimiento' OR e.kind = 'nacimiento')"
+        : "e.kind = 'nacimiento'";
+    $datePrecisionExpr = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'date_precision') ? 'e.date_precision' : "'day'";
+    $dateNoteExpr = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'date_note') ? 'e.date_note' : 'NULL';
+    $sortDateExpr = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'sort_date')
+        ? 'COALESCE(e.sort_date, e.event_date)'
+        : 'e.event_date';
+    $activeCond = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'is_active') ? 'AND e.is_active = 1' : '';
+
+    $sqlBirthday = "
+        SELECT
+            e.event_date,
+            {$datePrecisionExpr} AS date_precision,
+            {$dateNoteExpr} AS date_note
+        FROM bridge_timeline_events_characters bec
+        INNER JOIN fact_timeline_events e ON e.id = bec.event_id
+        {$joinTypes}
+        WHERE bec.character_id = ?
+          {$activeCond}
+          AND {$matchType}
+        ORDER BY {$sortDateExpr} ASC, e.id ASC
+        LIMIT 1
+    ";
+
+    if ($stBirthday = $link->prepare($sqlBirthday)) {
+        $stBirthday->bind_param('i', $characterId);
+        $stBirthday->execute();
+        $rsBirthday = $stBirthday->get_result();
+        if ($rsBirthday && ($rowBirthday = $rsBirthday->fetch_assoc())) {
+            $bioBday = hg_bio_event_date_label(
+                (string)($rowBirthday['event_date'] ?? ''),
+                (string)($rowBirthday['date_precision'] ?? 'day'),
+                (string)($rowBirthday['date_note'] ?? '')
+            );
+        }
+        $stBirthday->close();
+    }
+}
+
 ?>
 

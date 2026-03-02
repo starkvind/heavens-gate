@@ -1,9 +1,9 @@
-<?php ob_start(); ?>
+﻿<?php ob_start(); ?>
 
 	<?php
 		// <p class="navegacion_secciones">
-		// include("app/partials/main_nav_bar.php");	// Barra Navegación
-		$pillSeparator = "»";
+		// include("app/partials/main_nav_bar.php");	// Barra Navegacion
+		$pillSeparator = "&raquo;";
 		$systemSeresSobrenaturales = "<a href='/systems'> Seres sobrenaturales</a> $pillSeparator ";
 		$playerIdNav = isset($pjId) ? (int)$pjId : (isset($idPlayer) ? (int)$idPlayer : 0);
 		$bioIdNav = isset($bioId) ? (int)$bioId : (isset($characterId) ? (int)$characterId : 0);
@@ -23,12 +23,12 @@
 
 		switch ($routeKey) {
 			// ========================================== //
-			// Administración
+			// Administracion
 			// ========================================== //
 			case "talim": // 
 				if (isset($_GET['s'])) {
 					$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
-					echo "<a href='/talim' title='Administración'>Administración</a>";
+					echo "<a href='/talim' title='Administracion'>Administracion</a>";
 					switch ($seccion) {
 						case 'admin_pjs':
 						case 'admin_characters':
@@ -49,20 +49,20 @@
 							break;
 						case 'admin_epis':
 						case 'admin_chapters':
-							echo " $pillSeparator Capítulos";
+							echo " $pillSeparator Capitulos";
 							break;
 						case 'admin_pois':
 							echo " $pillSeparator Mapas";
 							break;
 						case 'admin_timelines':
-							echo " $pillSeparator Línea temporal";
+							echo " $pillSeparator L&iacute;nea temporal";
 							break;
 						case 'admin_bso':
 						case 'admin_bso_link':
 							echo " $pillSeparator Banda sonora";
 							break;
 						case 'admin_gallery':
-							echo " $pillSeparator Galería";
+							echo " $pillSeparator Galeria";
 							break;
 						case 'admin_plots':
 						case 'admin_parties':
@@ -81,7 +81,7 @@
 							echo " $pillSeparator Relaciones";
 							break;
 						case 'admin_docs':
-							echo " $pillSeparator Documentación";
+							echo " $pillSeparator Documentacion";
 							break;
 					case 'admin_news':
 						echo " $pillSeparator Noticias";
@@ -108,16 +108,16 @@
 						echo " $pillSeparator Asignar recursos por sistema";
 						break;
 					case 'admin_resources':
-						echo " $pillSeparator Gestionar recursos (catálogo)";
+						echo " $pillSeparator Gestionar recursos (catalogo)";
 						break;
 					case 'admin_resources_migration':
-						echo " $pillSeparator Migración de recursos";
+						echo " $pillSeparator Migracion de recursos";
 						break;
 					case 'admin_inspect_db':
 						echo " $pillSeparator Inspeccionar BDD";
 						break;
 					case 'admin_characters_worlds':
-						echo " $pillSeparator Asignación crónicas y realidades";
+						echo " $pillSeparator Asignacion cronicas y realidades";
 						break;
 					case 'admin_character_deaths':
 						echo " $pillSeparator Muertes de personajes";
@@ -126,7 +126,7 @@
 						echo " $pillSeparator Ayuda mentions";
 						break;
 					case 'logout':
-						echo " $pillSeparator Cerrar sesión";
+						echo " $pillSeparator Cerrar sesion";
 						break;
 					}
 					echo "<br />";
@@ -139,12 +139,12 @@
 				echo "<a href='/players' title='Lista de Jugadores'>Jugadores</a> $pillSeparator $namePJ $surnamePJ";
 				break;
 			// ========================================== //
-			// Biografías
+			// Biografias
 			// ========================================== //
 			case "biogroup":    // Lista de Personajes
-				// Antes dependía de afiliación, ahora solo mostramos clan
+				// Antes dependia de afiliacion, ahora solo mostramos clan
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$idTipo);
-				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator $nombreTipo";
+				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator $nombreTipo";
 				break;
 			case "chronicles":
 			case "bio_chronicles":
@@ -160,7 +160,7 @@
 						}
 						$stChronNav->close();
 					}
-					echo "<a href='/chronicles' title='Crónicas'>Crónicas</a>";
+					echo "<a href='/chronicles' title='Cronicas'>Cronicas</a>";
 					if ($chronNavName !== '') echo " $pillSeparator " . htmlspecialchars($chronNavName, ENT_QUOTES, 'UTF-8');
 				}
 				break;
@@ -168,12 +168,12 @@
 				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator Realidades";
 				break;
 			case "muestrabio":  // Ver Personaje
-				// Igual: quitamos afiliación, mostramos Clan $pillSeparator Nombre del PJ
+				// Igual: quitamos afiliacion, mostramos Clan $pillSeparator Nombre del PJ
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$bioType);
-				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator 
+				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator 
 					<a href='" . htmlspecialchars($typeHref) . "'>$nameTipo</a> $pillSeparator $bioName";
 				break;
-			case "seegroup":	// Ver Organización
+			case "seegroup":	// Ver Organizacion
 				echo "<a href='/organizations' title='Grupos y Sociedades'>Grupos y Sociedades</a> $pillSeparator $packNavLinks";
 				break;
 			// ========================================== //
@@ -181,7 +181,20 @@
 			// ========================================== //
 			case "seechapter":	// Ver Capitulo
 				$tempHref = pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada);
-				echo "<a href='" . htmlspecialchars($tempHref) . "' title='$nameTemporada'>$nameTemporada</a> $pillSeparator Capítulo $numeracionOK";
+				echo "<a href='" . htmlspecialchars($tempHref) . "' title='$nameTemporada'>$nameTemporada</a> $pillSeparator Capitulo $numeracionOK";
+				break;
+			// ========================================== //
+			// Linea temporal
+			// ========================================== //
+			case "timeline":
+				// En la portada de timeline no mostramos breadcrumb.
+				break;
+			case "timeline_event":
+				$eventNavTitle = isset($title) ? (string)$title : (isset($pageTitle2) ? (string)$pageTitle2 : '');
+				echo "<a href='/timeline' title='Linea temporal'>L&iacute;nea temporal</a>";
+				if (trim($eventNavTitle) !== '') {
+					echo " $pillSeparator " . htmlspecialchars($eventNavTitle, ENT_QUOTES, 'UTF-8');
+				}
 				break;
 			// ========================================== //
 			// Documentos
@@ -236,10 +249,10 @@
 				echo "<a href='/rules/traits' title='Rasgos'>Rasgos</a> $pillSeparator $traitNavName";
 				break;
 			// ========================================== //
-			// Méritos y Defectos
+			// Meritos y Defectos
 			// ========================================== //
 			case "vermyd":
-				echo "<a href='/rules/merits-flaws' title='Méritos y Defectos'>Méritos y Defectos</a> $pillSeparator $mafName";
+				echo "<a href='/rules/merits-flaws' title='Meritos y Defectos'>Meritos y Defectos</a> $pillSeparator $mafName";
 				break;
 			// ========================================== //
 			// Maniobras de Combate
@@ -277,14 +290,14 @@
 				echo "<a href='/powers/rites' title='Rituales'>Rituales</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $riteName";
 				break;
 			// ========================================== //
-			// Tótems
+			// Totems
 			// ========================================== //
-			case "tipototm":	// Lista de Tótems
-				echo "<a href='/powers/totems' title='Tótems'>Tótems</a> $pillSeparator $totemName";
+			case "tipototm":	// Lista de Totems
+				echo "<a href='/powers/totems' title='Totems'>Totems</a> $pillSeparator $totemName";
 				break;
-			case "muestratotem":// Ver Tótem
+			case "muestratotem":// Ver Totem
 				$typeHref = pretty_url($link, 'dim_totem_types', '/powers/totem/type', $totemTypeNav);
-				echo "<a href='/powers/totems' title='Tótems'>Tótems</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $totemName";
+				echo "<a href='/powers/totems' title='Totems'>Totems</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $totemName";
 				break;
 			// ========================================== //
 			// Disciplinas
@@ -328,3 +341,5 @@ if ($nav !== '') {
     echo '</div><br/>';
 }
 ?>
+
+
