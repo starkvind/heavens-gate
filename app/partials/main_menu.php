@@ -77,8 +77,8 @@
 		if (!$link) return null;
 		$path = hg_normalize_path($path);
 
-		// Resolver temporadas/cap?tulos a su men? v?a dynamic_source (seasons_0 / seasons_1)
-		$seasonFlag = null;
+		// Resolver temporadas/capitulos a su menu via dynamic_source (seasons_0 / seasons_1)
+		$seasonKind = null;
 		if (preg_match('#^/seasons/([^/]+)#', $path, $m)) {
 			$seasonRaw = (string)$m[1];
 			$seasonId = 0;
@@ -87,12 +87,13 @@
 			} elseif (function_exists('resolve_pretty_id')) {
 				$seasonId = (int)(resolve_pretty_id($link, 'dim_seasons', $seasonRaw) ?? 0);
 			}
-			if ($seasonId > 0 && ($stmt = mysqli_prepare($link, "SELECT season FROM dim_seasons WHERE id = ? LIMIT 1"))) {
+			if ($seasonId > 0 && ($stmt = mysqli_prepare($link, "SELECT season_kind AS season_value FROM dim_seasons WHERE id = ? LIMIT 1"))) {
 				mysqli_stmt_bind_param($stmt, 'i', $seasonId);
 				mysqli_stmt_execute($stmt);
 				$res = mysqli_stmt_get_result($stmt);
 				if ($row = mysqli_fetch_assoc($res)) {
-					$seasonFlag = (string)($row['season'] ?? '');
+					$seasonValue = (string)($row['season_value'] ?? '');
+					$seasonKind = $seasonValue;
 				}
 				mysqli_stmt_close($stmt);
 			}
@@ -104,19 +105,20 @@
 			} elseif (function_exists('resolve_pretty_id')) {
 				$chapterId = (int)(resolve_pretty_id($link, 'dim_chapters', $chapterRaw) ?? 0);
 			}
-			if ($chapterId > 0 && ($stmt = mysqli_prepare($link, "SELECT s.season AS season_flag FROM dim_chapters c JOIN dim_seasons s ON s.season_number = c.season_number WHERE c.id = ? LIMIT 1"))) {
+			if ($chapterId > 0 && ($stmt = mysqli_prepare($link, "SELECT s.season_kind AS season_value FROM dim_chapters c JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1"))) {
 				mysqli_stmt_bind_param($stmt, 'i', $chapterId);
 				mysqli_stmt_execute($stmt);
 				$res = mysqli_stmt_get_result($stmt);
 				if ($row = mysqli_fetch_assoc($res)) {
-					$seasonFlag = (string)($row['season_flag'] ?? '');
+					$seasonValue = (string)($row['season_value'] ?? '');
+					$seasonKind = $seasonValue;
 				}
 				mysqli_stmt_close($stmt);
 			}
 		}
 
-		if ($seasonFlag === '0' || $seasonFlag === '1') {
-			$dyn = 'seasons_' . $seasonFlag;
+		if ($seasonKind !== null && $seasonKind !== '') {
+			$dyn = ($seasonKind === 'historia_personal') ? 'seasons_1' : 'seasons_0';
 			if ($stmt = mysqli_prepare($link, "SELECT p.menu_key FROM dim_menu_items c JOIN dim_menu_items p ON c.parent_id = p.id WHERE c.enabled = 1 AND p.enabled = 1 AND c.dynamic_source = ? LIMIT 1")) {
 				mysqli_stmt_bind_param($stmt, 's', $dyn);
 				mysqli_stmt_execute($stmt);
@@ -191,37 +193,55 @@
 
 	if ($useDbMenu) {
 		function render_seasons(mysqli $link, string $seasonFlag): void {
-			$consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE ? ORDER BY sort_order";
-			if ($stmt = mysqli_prepare($link, $consulta)) {
-				mysqli_stmt_bind_param($stmt, 's', $seasonFlag);
+			if ($seasonFlag === '1') {
+				$consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind = 'historia_personal' ORDER BY sort_order, season_number";
+				$stmt = mysqli_prepare($link, $consulta);
+			} else {
+				$consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind IN ('temporada','inciso','especial') ORDER BY FIELD(season_kind, 'temporada','inciso','especial'), sort_order, season_number";
+				$stmt = mysqli_prepare($link, $consulta);
+			}
+
+			if ($stmt) {
 				mysqli_stmt_execute($stmt);
 				$result = mysqli_stmt_get_result($stmt);
-				while ($row = mysqli_fetch_assoc($result)) {
-					$idTemporada = (int)$row["id"];
-					$numeroTemp = (int)$row["numero"];
-					$tituloTemp = (string)$row["name"];
-					$tempFinalizada = (int)$row["finished"];
+				$lastGroup = '';
 
-					$nombreTemporada = $numeroTemp . "ª Temporada";
-					$claseTemporada = "";
-					if ($seasonFlag === '1') {
+				while ($row = mysqli_fetch_assoc($result)) {
+					$idTemporada = (int)$row['id'];
+					$numeroTemp = (int)$row['numero'];
+					$tituloTemp = (string)$row['name'];
+					$tempFinalizada = (int)$row['finished'];
+					$seasonKind = trim((string)($row['season_kind'] ?? 'temporada'));
+					if ($seasonKind === '' || ($seasonKind !== 'temporada' && $seasonKind !== 'inciso' && $seasonKind !== 'historia_personal' && $seasonKind !== 'especial')) {
+						$seasonKind = 'temporada';
+					}
+
+					if ($seasonFlag === '0' && $seasonKind !== $lastGroup) {
+						if ($lastGroup !== '') {
+							echo "<div class='renglonMenu menuSeparator'>&nbsp;</div>";
+						}
+						$lastGroup = $seasonKind;
+					}
+
+					$nombreTemporada = $tituloTemp;
+					$claseTemporada = '';
+					if ($seasonKind === 'historia_personal') {
+						$nombreTemporada = $tituloTemp;
+					} elseif ($seasonKind === 'inciso') {
+						$incisoNum = $numeroTemp;
+						if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
+						$nombreTemporada = 'I' . $incisoNum . ' - ' . $tituloTemp;
+						$claseTemporada = 'renglonMenuInciso';
+					} elseif ($seasonKind === 'especial') {
 						$nombreTemporada = $tituloTemp;
 					} else {
-						if ($numeroTemp < 101) {
-							$nombreTemporada = $numeroTemp . "ª Temporada";
-						} elseif ($numeroTemp == 999) {
-							$nombreTemporada = $tituloTemp;
-						} else {
-							$numeroTemp -= 100;
-							$nombreTemporada = "Inciso " . $numeroTemp . "º";
-							$claseTemporada = "renglonMenuInciso";
-						}
+						$nombreTemporada = 'T' . $numeroTemp . ' - ' . $tituloTemp;
 					}
 
 					if ($tempFinalizada == 1) {
-						$historiaCheck = '✔️';
+						$historiaCheck = '&#10004;';
 					} elseif ($tempFinalizada == 2) {
-						$historiaCheck = '❌';
+						$historiaCheck = '&#10006;';
 					} else {
 						$historiaCheck = '';
 					}
@@ -229,10 +249,13 @@
 					$hrefTemporada = function_exists('pretty_url')
 						? pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada)
 						: ('/seasons/' . (int)$idTemporada);
+					$statusClass = ($historiaCheck === '') ? ' menu-season-row--nostatus' : '';
 					echo "<a href='" . h($hrefTemporada) . "' title='" . h($tituloTemp) . "'>";
-					echo "<div class='renglonMenu {$claseTemporada}'>";
+					echo "<div class='renglonMenu menu-season-row {$claseTemporada}{$statusClass}'>";
 					echo "<div class='menu-season-label'>" . h($nombreTemporada) . "</div>";
-					echo "<div class='menu-season-status'>" . $historiaCheck . "</div>";
+					if ($historiaCheck !== '') {
+						echo "<div class='menu-season-status'>{$historiaCheck}</div>";
+					}
 					echo "</div></a>";
 				}
 				mysqli_stmt_close($stmt);
@@ -372,7 +395,7 @@
 				<div class='renglonMenu menuSeparator'>&nbsp;</div>
                 <?php
                     // Conexión a la base de datos usando MySQLi
-                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '0' ORDER BY sort_order";
+                    $consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind IN ('temporada','inciso','especial') ORDER BY FIELD(season_kind, 'temporada','inciso','especial'), sort_order";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);
@@ -399,10 +422,10 @@
 						// Check de marcas
 						# Completado
 						if ($tempFinalizada == 1) {
-							$historiaCheck = '✔️';
+							$historiaCheck = '&#10004;';
 						# Abandonado
 						} elseif ($tempFinalizada == 2) {
-							$historiaCheck = '❌';
+							$historiaCheck = '&#10006;';
 						# En curso
 						} else {
 							$historiaCheck = '';
@@ -411,11 +434,14 @@
 						$hrefTemporada = function_exists('pretty_url')
 							? pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada)
 							: ('/seasons/' . (int)$idTemporada);
+						$statusClass = ($historiaCheck === '') ? ' menu-season-row--nostatus' : '';
                         echo "<a href='" . h($hrefTemporada) . "' title='{$tituloTemp}'>
-							<div class='renglonMenu {$claseTemporada}'>
-								<div class='menu-season-label'>{$nombreTemporada}</div>
-								<div class='menu-season-status'>{$historiaCheck}</div>
-							</div>
+							<div class='renglonMenu menu-season-row {$claseTemporada}{$statusClass}'>
+								<div class='menu-season-label'>{$nombreTemporada}</div>";
+						if ($historiaCheck !== '') {
+							echo "<div class='menu-season-status'>{$historiaCheck}</div>";
+						}
+						echo "	</div>
 						</a>";
                     }
 
@@ -437,7 +463,7 @@
         <td class='sekzo'>
             <div class="ocultable<?= ($menuOpenId === 'personalesMenu') ? ' open' : '' ?>" id="personalesMenu">
                 <?php
-                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season LIKE '1' ORDER BY sort_order";
+                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season_kind = 'historia_personal' ORDER BY sort_order";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
                     $result = mysqli_stmt_get_result($stmt);
@@ -448,10 +474,10 @@
 						$historiaFinalizada = $ResultQuery["finished"];
 						# Completado
 						if ($historiaFinalizada == 1) {
-							$historiaCheck = '✔️';
+							$historiaCheck = '&#10004;';
 						# Abandonado
 						} elseif ($historiaFinalizada == 2) {
-							$historiaCheck = '❌';
+							$historiaCheck = '&#10006;';
 						# En curso
 						} else {
 							$historiaCheck = '';
@@ -459,10 +485,13 @@
 						$hrefHistoria = function_exists('pretty_url')
 							? pretty_url($link, 'dim_seasons', '/seasons', (int)$idHistoria)
 							: ('/seasons/' . (int)$idHistoria);
-                        echo "<a href='" . h($hrefHistoria) . "'><div class='renglonMenu'>
-							<div class='menu-season-label'>{$nombreHistoria}</div>
-							<div class='menu-season-status'>{$historiaCheck}</div>
-						</div></a>";
+						$statusClass = ($historiaCheck === '') ? ' menu-season-row--nostatus' : '';
+                        echo "<a href='" . h($hrefHistoria) . "'><div class='renglonMenu menu-season-row{$statusClass}'>
+							<div class='menu-season-label'>{$nombreHistoria}</div>";
+						if ($historiaCheck !== '') {
+							echo "<div class='menu-season-status'>{$historiaCheck}</div>";
+						}
+						echo "</div></a>";
                     }
 
                     mysqli_stmt_close($stmt);

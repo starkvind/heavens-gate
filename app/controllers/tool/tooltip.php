@@ -41,6 +41,34 @@ function tt_join_meta(array $parts): string {
     }
     return implode(' - ', $safe);
 }
+function tt_event_date_label(?string $dateValue, string $precision = 'day', ?string $note = null): string {
+    $precision = trim((string)$precision);
+    $dateValue = trim((string)$dateValue);
+    $note = trim((string)$note);
+
+    if ($precision === 'unknown') {
+        return ($note !== '') ? $note : 'Desconocida';
+    }
+    if ($dateValue === '' || $dateValue === '0000-00-00') {
+        return ($note !== '') ? $note : '-';
+    }
+    $ts = strtotime($dateValue);
+    if ($ts === false) {
+        return ($note !== '') ? $note : $dateValue;
+    }
+
+    if ($precision === 'year') {
+        $base = date('Y', $ts);
+    } elseif ($precision === 'month') {
+        $base = date('m/Y', $ts);
+    } elseif ($precision === 'approx') {
+        $base = 'Aprox. ' . date('d/m/Y', $ts);
+    } else {
+        $base = date('d/m/Y', $ts);
+    }
+
+    return ($note !== '') ? ($base . ' (' . $note . ')') : $base;
+}
 
 $type = $_GET['type'] ?? '';
 $id = (int)($_GET['id'] ?? 0);
@@ -54,6 +82,8 @@ $outImg = '';
 $outImgAlt = '';
 $outExtraLabel = '';
 $outExtra = '';
+$outPreDescLabel = '';
+$outPreDesc = '';
 
 if ($type === 'don') {
     $giftSystemCol = tt_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
@@ -329,6 +359,122 @@ if ($type === 'don') {
         }
         $st->close();
     }
+} elseif ($type === 'chapter' || $type === 'dim_chapter' || $type === 'dim_chapters') {
+    $hasSeasonKind = tt_has_column($link, 'dim_seasons', 'season_kind');
+    $seasonKindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
+    if ($st = $link->prepare("
+        SELECT
+            c.name,
+            c.chapter_number,
+            s.season_number,
+            c.synopsis,
+            c.played_date,
+            {$seasonKindExpr} AS season_kind
+        FROM dim_chapters c
+        LEFT JOIN dim_seasons s ON s.id = c.season_id
+        WHERE c.id = ?
+        LIMIT 1
+    ")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = (string)($r['name'] ?? '');
+            $chapterNum = (int)($r['chapter_number'] ?? 0);
+            $seasonNum = (int)($r['season_number'] ?? 0);
+            $seasonKind = trim((string)($r['season_kind'] ?? 'temporada'));
+            if ($seasonKind === '') $seasonKind = 'temporada';
+
+            $chapterLabel = 'Capitulo ' . ($chapterNum > 0 ? $chapterNum : '?');
+            if ($seasonKind === 'historia_personal') {
+                $seasonLabel = 'Historia personal';
+            } elseif ($seasonKind === 'inciso') {
+                $incisoNum = $seasonNum;
+                if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
+                $seasonLabel = 'Inciso ' . ($incisoNum > 0 ? $incisoNum : '?');
+            } elseif ($seasonKind === 'especial') {
+                $seasonLabel = 'Especial';
+            } else {
+                $seasonLabel = 'Temporada ' . ($seasonNum > 0 ? $seasonNum : '?');
+            }
+            $outMeta = tt_join_meta([$chapterLabel, $seasonLabel]);
+
+            $playedDate = trim((string)($r['played_date'] ?? ''));
+            if ($playedDate !== '' && $playedDate !== '0000-00-00') {
+                $ts = strtotime($playedDate);
+                if ($ts !== false) {
+                    $outPreDescLabel = 'Fecha de juego';
+                    $outPreDesc = date('d/m/Y', $ts);
+                }
+            }
+
+            $outDesc = short_text((string)($r['synopsis'] ?? ''), 360);
+        }
+        $st->close();
+    }
+} elseif ($type === 'event' || $type === 'timeline_event' || $type === 'fact_timeline_events') {
+    $hasEventDatePrecision = tt_has_column($link, 'fact_timeline_events', 'date_precision');
+    $hasEventDateNote = tt_has_column($link, 'fact_timeline_events', 'date_note');
+    $hasEventTimeline = tt_has_column($link, 'fact_timeline_events', 'timeline');
+    $hasChronBridge = tt_has_column($link, 'bridge_timeline_events_chronicles', 'event_id')
+        && tt_has_column($link, 'bridge_timeline_events_chronicles', 'chronicle_id');
+
+    $datePrecisionExpr = $hasEventDatePrecision ? "e.date_precision" : "'day'";
+    $dateNoteExpr = $hasEventDateNote ? "e.date_note" : "NULL";
+    $timelineExpr = $hasEventTimeline ? "NULLIF(TRIM(e.timeline), '')" : "NULL";
+    $chronJoin = '';
+    $chronicleExpr = $timelineExpr;
+    if ($hasChronBridge) {
+        $chronJoin = "
+        LEFT JOIN (
+            SELECT
+                bec.event_id,
+                GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ' | ') AS chronicle_line
+            FROM bridge_timeline_events_chronicles bec
+            INNER JOIN dim_chronicles c ON c.id = bec.chronicle_id
+            GROUP BY bec.event_id
+        ) chr ON chr.event_id = e.id";
+        $chronicleExpr = "NULLIF(chr.chronicle_line, '')";
+    }
+
+    $sqlEvent = "
+        SELECT
+            e.title,
+            e.event_date,
+            {$datePrecisionExpr} AS date_precision,
+            {$dateNoteExpr} AS date_note,
+            COALESCE(t.name, 'Evento') AS type_name,
+            COALESCE(
+                {$chronicleExpr},
+                {$timelineExpr},
+                '-'
+            ) AS chronicle_line,
+            e.description
+        FROM fact_timeline_events e
+        LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id
+        {$chronJoin}
+        WHERE e.id = ?
+        LIMIT 1
+    ";
+    if ($st = $link->prepare($sqlEvent)) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = (string)($r['title'] ?? '');
+            $dateLabel = tt_event_date_label(
+                (string)($r['event_date'] ?? ''),
+                (string)($r['date_precision'] ?? 'day'),
+                (string)($r['date_note'] ?? '')
+            );
+            $typeName = trim((string)($r['type_name'] ?? 'Evento'));
+            $chronicleLine = trim((string)($r['chronicle_line'] ?? '-'));
+            if ($chronicleLine === '') $chronicleLine = '-';
+            $outMeta = tt_join_meta([$dateLabel, $typeName, $chronicleLine]);
+            $outDesc = short_text((string)($r['description'] ?? ''), 360);
+        }
+        $st->close();
+    }
 } elseif ($type === 'character' || $type === 'bio' || $type === 'pj') {
     $kindCol = tt_has_column($link, 'fact_characters', 'character_kind') ? 'character_kind' : (tt_has_column($link, 'fact_characters', 'kind') ? 'kind' : '');
     $descExpr = "COALESCE(NULLIF(c.info_text,''), NULLIF(c.notes,''), '')";
@@ -386,6 +532,10 @@ echo "<div class='hg-tip hg-tip-row'>";
 	echo "<div class='hg-tip-body'>";
 	echo "<div class='hg-tip-title'>" . h($outTitle) . "</div>";
 	if ($outMeta !== '') echo "<div class='hg-tip-meta'>" . $outMeta . "</div>";
+	if ($outPreDesc !== '') {
+		echo "<div class='hg-tip-label'>" . h($outPreDescLabel) . "</div>";
+		echo "<div class='hg-tip-text'>" . h($outPreDesc) . "</div>";
+	}
 	if ($outDesc !== '') {
 		echo "<div class='hg-tip-label'>Descripci&oacute;n</div>";
 		echo "<div class='hg-tip-text'>" . h($outDesc) . "</div>";

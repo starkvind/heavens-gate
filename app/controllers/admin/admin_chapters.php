@@ -24,6 +24,34 @@ function parse_int_list($raw){
     }
     return array_values($out);
 }
+function ac_col_exists(mysqli $link, string $table, string $column): bool {
+    static $cache = [];
+    $key = $table . ':' . $column;
+    if (isset($cache[$key])) return $cache[$key];
+    $ok = false;
+    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+        $st->bind_param('ss', $table, $column);
+        $st->execute();
+        $st->bind_result($count);
+        $st->fetch();
+        $st->close();
+        $ok = ((int)$count > 0);
+    }
+    $cache[$key] = $ok;
+    return $ok;
+}
+function ac_fetch_season(mysqli $link, int $seasonId): ?array {
+    if ($seasonId <= 0) return null;
+    if ($st = $link->prepare('SELECT id, season_number, name FROM dim_seasons WHERE id = ? LIMIT 1')) {
+        $st->bind_param('i', $seasonId);
+        $st->execute();
+        $rs = $st->get_result();
+        $row = $rs ? $rs->fetch_assoc() : null;
+        $st->close();
+        return $row ?: null;
+    }
+    return null;
+}
 function attach_chapter_characters(mysqli $link, int $chapterId, array $characterIds): int {
     if ($chapterId <= 0 || empty($characterIds)) return 0;
     $added = 0;
@@ -50,6 +78,7 @@ function attach_chapter_characters(mysqli $link, int $chapterId, array $characte
     $ins->close();
     return $added;
 }
+$hasChapterSeasonId = true;
 
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_chapters';
 if (function_exists('hg_admin_ensure_csrf_token')) {
@@ -172,13 +201,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $id = (int)($_POST['id'] ?? 0);
         $name = trim((string)($_POST['name'] ?? ''));
         $chapterNumber = (int)($_POST['chapter_number'] ?? 0);
-        $seasonNumber = (int)($_POST['season_number'] ?? 0);
+        $seasonId = (int)($_POST['season_id'] ?? 0);
         $playedDate = norm_date($_POST['played_date'] ?? '');
-        $ingameDate = norm_date($_POST['in_game_date'] ?? '');
         $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
         $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+        $seasonRow = ac_fetch_season($link, $seasonId);
 
-        if ($name === '' || $chapterNumber <= 0 || $seasonNumber <= 0) {
+        if ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
             echo json_encode(['ok' => false, 'error' => 'Nombre, capitulo y temporada son obligatorios.']);
             exit;
         }
@@ -186,16 +215,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $savedId = 0;
         $ok = false;
         if ($id > 0) {
-            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_number=?, played_date=?, in_game_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
+            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
             $st = $link->prepare($sql);
-            $st->bind_param('siisssi', $name, $chapterNumber, $seasonNumber, $playedDate, $ingameDate, $synopsis, $id);
+            $st->bind_param('siissi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $id);
             $ok = $st->execute();
             $savedId = $id;
             $st->close();
         } else {
-            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_number, played_date, in_game_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
+            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
             $st = $link->prepare($sql);
-            $st->bind_param('siisss', $name, $chapterNumber, $seasonNumber, $playedDate, $ingameDate, $synopsis);
+            $st->bind_param('siiss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis);
             $ok = $st->execute();
             $savedId = (int)$link->insert_id;
             $st->close();
@@ -210,7 +239,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         attach_chapter_characters($link, $savedId, $pendingCharacterIds);
 
         $chapterRow = null;
-        if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, c.season_number, c.played_date, c.in_game_date, c.synopsis, s.name AS season_name FROM dim_chapters c LEFT JOIN dim_seasons s ON s.season_number = c.season_number WHERE c.id = ? LIMIT 1")) {
+        if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1")) {
             $st->bind_param('i', $savedId);
             $st->execute();
             $rs = $st->get_result();
@@ -249,19 +278,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
     $id = (int)($_POST['id'] ?? 0);
     $name = trim((string)($_POST['name'] ?? ''));
     $chapterNumber = (int)($_POST['chapter_number'] ?? 0);
-    $seasonNumber = (int)($_POST['season_number'] ?? 0);
+    $seasonId = (int)($_POST['season_id'] ?? 0);
     $playedDate = norm_date($_POST['played_date'] ?? '');
-    $ingameDate = norm_date($_POST['in_game_date'] ?? '');
     $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
     $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+    $seasonRow = ac_fetch_season($link, $seasonId);
 
-    if ($name === '' || $chapterNumber <= 0 || $seasonNumber <= 0) {
+    if ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
         $flash[] = ['type' => 'err', 'msg' => 'Nombre, capitulo y temporada son obligatorios.'];
     } else {
         if ($id > 0) {
-            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_number=?, played_date=?, in_game_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
+            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
             $st = $link->prepare($sql);
-            $st->bind_param('siisssi', $name, $chapterNumber, $seasonNumber, $playedDate, $ingameDate, $synopsis, $id);
+            $st->bind_param('siissi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $id);
             $ok = $st->execute();
             $st->close();
             if ($ok) {
@@ -270,9 +299,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
                 $flash[] = ['type' => 'ok', 'msg' => 'Capitulo actualizado.'];
             }
         } else {
-            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_number, played_date, in_game_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
+            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
             $st = $link->prepare($sql);
-            $st->bind_param('siisss', $name, $chapterNumber, $seasonNumber, $playedDate, $ingameDate, $synopsis);
+            $st->bind_param('siiss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis);
             $ok = $st->execute();
             $newId = (int)$link->insert_id;
             $st->close();
@@ -293,13 +322,13 @@ if ($rs = $link->query('SELECT p.id, p.name, COALESCE(ch.name, "") AS chronicle_
 }
 
 $temporadasCatalogo = [];
-if ($rs = $link->query('SELECT season_number, name FROM dim_seasons ORDER BY season_number ASC')) {
+if ($rs = $link->query('SELECT id, season_number, name, sort_order FROM dim_seasons ORDER BY sort_order ASC, season_number ASC, id ASC')) {
     while ($r = $rs->fetch_assoc()) { $temporadasCatalogo[] = $r; }
     $rs->close();
 }
 
 $chapters = [];
-if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, c.season_number, c.played_date, c.in_game_date, c.synopsis, s.name AS season_name FROM dim_chapters c LEFT JOIN dim_seasons s ON s.season_number = c.season_number ORDER BY c.season_number ASC, c.chapter_number ASC")) {
+if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id ORDER BY COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC, c.id ASC")) {
     while ($r = $rs->fetch_assoc()) { $chapters[] = $r; }
     $rs->close();
 }
@@ -308,7 +337,7 @@ $actions = '<span class="adm-flex-right-wrap-8">'
     . '<label class="adm-text-left">Filtro rapido <input class="inp" type="text" id="quickFilter" placeholder="Nombre..."></label>'
     . '<label class="adm-text-left">Temporada <select id="seasonFilter" class="select"><option value="">Todas</option>';
 foreach ($temporadasCatalogo as $t) {
-    $actions .= '<option value="' . (int)$t['season_number'] . '">' . h($t['name']) . '</option>';
+    $actions .= '<option value="' . (int)$t['id'] . '">' . h($t['name']) . '</option>';
 }
 $actions .= '</select></label>'
     . '<button class="btn btn-green" type="button" onclick="openChapterModal(0)">+ Nuevo capitulo</button>'
@@ -357,17 +386,14 @@ admin_panel_open('Capitulos', $actions);
                     <input class="inp" type="number" min="1" name="chapter_number" id="f_chapter" required>
                 </label>
                 <label>Temporada
-                    <select class="select" name="season_number" id="f_season" required>
+                    <select class="select" name="season_id" id="f_season" required>
                         <?php foreach ($temporadasCatalogo as $t): ?>
-                        <option value="<?= (int)$t['season_number'] ?>"><?= h($t['name']) ?></option>
+                        <option value="<?= (int)$t['id'] ?>"><?= h($t['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </label>
                 <label>Fecha jugada
                     <input class="inp" type="date" name="played_date" id="f_played">
-                </label>
-                <label>Fecha in-game
-                    <input class="inp" type="date" name="in_game_date" id="f_ingame">
                 </label>
                 <label class="adm-grid-full">Sinopsis
                     <div>
@@ -431,7 +457,7 @@ function filteredChapters(){
     const sf = document.getElementById('seasonFilter').value;
     return chapters.filter(c => {
         const okName = (c.name || '').toLowerCase().includes(q);
-        const okSeason = (sf === '' || String(c.season_number) === sf);
+        const okSeason = (sf === '' || String(c.season_id || '') === sf);
         return okName && okSeason;
     });
 }
@@ -481,8 +507,8 @@ function chapterById(id){
 
 function sortChaptersInPlace(){
     chapters.sort((a, b) => {
-        const sa = Number(a.season_number || 0);
-        const sb = Number(b.season_number || 0);
+        const sa = Number(a.season_sort || a.season_number || 0);
+        const sb = Number(b.season_sort || b.season_number || 0);
         if (sa !== sb) return sa - sb;
         const ca = Number(a.chapter_number || 0);
         const cb = Number(b.chapter_number || 0);
@@ -545,9 +571,8 @@ function openChapterModal(id){
     document.getElementById('f_id').value = c ? c.id : 0;
     document.getElementById('f_name').value = c ? (c.name || '') : '';
     document.getElementById('f_chapter').value = c ? (c.chapter_number || '') : '';
-    document.getElementById('f_season').value = c ? String(c.season_number || '') : (document.getElementById('seasonFilter').value || '');
+    document.getElementById('f_season').value = c ? String(c.season_id || '') : (document.getElementById('seasonFilter').value || '');
     document.getElementById('f_played').value = c ? (c.played_date || '') : '';
-    document.getElementById('f_ingame').value = c ? (c.in_game_date || '') : '';
     const synopsisHtml = c ? (c.synopsis || '') : '';
     document.getElementById('f_synopsis').value = synopsisHtml;
     if (chapterSynopsisEditor) chapterSynopsisEditor.root.innerHTML = synopsisHtml;

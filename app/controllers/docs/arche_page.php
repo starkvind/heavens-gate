@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 $archeRaw = $_GET['b'] ?? '';
 $archeId = resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0;
@@ -109,7 +109,7 @@ $demeanorOwners = [];
 
 $characterKindSql = hg_character_kind_select($link, 'p');
 $queryOwnersNature = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind
     FROM fact_characters p
     LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     WHERE p.nature_id = ? {$chronicleNotInSQL}
@@ -126,7 +126,7 @@ if ($stNature = $link->prepare($queryOwnersNature)) {
 }
 
 $queryOwnersDemeanor = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind
     FROM fact_characters p
     LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     WHERE p.demeanor_id = ? {$chronicleNotInSQL}
@@ -159,10 +159,10 @@ if ($hasOwnersTabs) {
 
     $mapEstado = [
         'Aun por aparecer'      => '(@)',
-        'Aún por aparecer'      => '(@)',
+        'AÃºn por aparecer'      => '(@)',
         'Paradero desconocido'  => '(?)',
         'Cadaver'               => '(&#8224;)',
-        'Cadáver'               => '(&#8224;)'
+        'CadÃ¡ver'               => '(&#8224;)'
     ];
 
     echo "<section class='hg-tab-panel' data-tab='owners'>";
@@ -224,4 +224,5 @@ if ($hasOwnersTabs) {
 
 $stmtArche->close();
 ?>
+
 

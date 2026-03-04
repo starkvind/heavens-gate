@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // ================================================================== //
 // PERSONAJES QUE POSEEN ESTE OBJETO
 include_once(__DIR__ . '/character_avatar.php');
@@ -28,7 +28,7 @@ $queryOwners = "
         p.alias,
         p.image_url,
         p.gender,
-        COALESCE(dcs.label, p.status) AS status, p.status_id,
+        COALESCE(dcs.label, '') AS status, p.status_id,
         {$characterKindSql} AS character_kind
     FROM bridge_characters_items b
     JOIN fact_characters p ON p.id = b.character_id
@@ -63,9 +63,9 @@ if ($resultOwners->num_rows === 0) {
 
         $pjLabel = $pjAlias !== '' ? $pjAlias : $pjName;
         $mapEstado = [
-            "Aún por aparecer"     => "(&#64;)",
+            "AÃºn por aparecer"     => "(&#64;)",
             "Paradero desconocido" => "(&#63;)",
-            "Cadáver"              => "(&#8224;)"
+            "CadÃ¡ver"              => "(&#8224;)"
         ];
         $simboloEstado = $mapEstado[$pjState] ?? "";
 
@@ -92,4 +92,5 @@ if ($resultOwners->num_rows === 0) {
 
 $stmtOwners->close();
 ?>
+
 

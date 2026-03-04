@@ -319,7 +319,7 @@ $sqlChars = "
     p.name,
     p.image_url,
     p.gender,
-    COALESCE(dcs.label, p.status) AS status, p.status_id,
+    COALESCE(dcs.label, '') AS status, p.status_id,
 
     cg.id  AS char_group_bridge_id,
     cg.group_id AS active_group_id,
@@ -960,6 +960,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 
 })();
 </script>
+
 
 
 

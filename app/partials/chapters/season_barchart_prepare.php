@@ -1,8 +1,14 @@
 <?php
-	// Obtener el ID de temporada desde la URL
-	$id_temporada = $_GET['t'] ?? null;
+	// Obtener ID de temporada ya resuelto por season_archive.php (preferido).
+	$id_temporada = isset($temporadaId) ? (int)$temporadaId : 0;
+	if ($id_temporada <= 0) {
+		$temporadaRaw = (string)($_GET['t'] ?? '');
+		if ($temporadaRaw !== '' && function_exists('resolve_pretty_id')) {
+			$id_temporada = (int)(resolve_pretty_id($link, 'dim_seasons', $temporadaRaw) ?? 0);
+		}
+	}
 
-	if (!$id_temporada || !is_numeric($id_temporada)) {
+	if ($id_temporada <= 0) {
 		echo "<p class='chapt-error'>Temporada no valida.</p>";
 		return;
 	}
@@ -29,13 +35,9 @@
 */
 
 	// 1. Obtener total de capitulos en la temporada (con fecha valida)
-	$query_total = "
-		SELECT COUNT(*) AS total
-		FROM dim_chapters
-		WHERE season_number = ? AND played_date != '0000-00-00'
-	";
+	$query_total = "SELECT COUNT(*) AS total FROM dim_chapters WHERE season_id = ? AND played_date != '0000-00-00'";
 	$stmt = $link->prepare($query_total);
-	$stmt->bind_param("i", $numero_temporada);
+	$stmt->bind_param("i", $id_temporada);
 	$stmt->execute();
 	$result = $stmt->get_result();
 	$total_capitulos = $result->fetch_assoc()['total'] ?? 0;
@@ -47,17 +49,15 @@
 	}
 
 	// 2. Obtener participacion por personaje
-	$query_participacion = "
-		SELECT fact_characters.name, fact_characters.id AS pj_id, COUNT(*) AS jugados
-		FROM bridge_chapters_characters acp
-		JOIN dim_chapters ac ON ac.id = acp.chapter_id
-		JOIN fact_characters ON fact_characters.id = acp.character_id
-		WHERE ac.season_number = ? AND ac.played_date != '0000-00-00' AND fact_characters.character_kind = 'pj'
-		GROUP BY acp.character_id
-		ORDER BY jugados DESC
-	";
+	$query_participacion = "SELECT fact_characters.name, fact_characters.id AS pj_id, COUNT(*) AS jugados
+		   FROM bridge_chapters_characters acp
+		   JOIN dim_chapters ac ON ac.id = acp.chapter_id
+		   JOIN fact_characters ON fact_characters.id = acp.character_id
+		   WHERE ac.season_id = ? AND ac.played_date != '0000-00-00' AND fact_characters.character_kind = 'pj' AND fact_characters.character_type_id = 1
+		   GROUP BY acp.character_id
+		   ORDER BY jugados DESC";
 	$stmt = $link->prepare($query_participacion);
-	$stmt->bind_param("i", $numero_temporada);
+	$stmt->bind_param("i", $id_temporada);
 	$stmt->execute();
 	$result = $stmt->get_result();
 
@@ -76,4 +76,3 @@
 	}
 
 ?>
-

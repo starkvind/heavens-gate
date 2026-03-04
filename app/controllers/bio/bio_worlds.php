@@ -1,5 +1,5 @@
-<?php
-setMetaFromPage("Biografías por realidad | Heaven's Gate", "Listado de personajes agrupados por realidad.", null, 'website');
+﻿<?php
+setMetaFromPage("BiografÃ­as por realidad | Heaven's Gate", "Listado de personajes agrupados por realidad.", null, 'website');
 ?>
 <style>
     .toggleAfiliacion {
@@ -85,7 +85,7 @@ $sql = "
         p.id,
         p.name,
         p.alias,
-        COALESCE(dcs.label, p.status) AS status,
+        COALESCE(dcs.label, '') AS status,
         p.status_id,
         p.image_url,
         p.gender,
@@ -154,9 +154,9 @@ foreach ($keys as $k) {
         if ($aliasPJ === '') $aliasPJ = $nombrePJ;
 
         $mapEstado = [
-            "Aún por aparecer"     => "(&#64;)",
+            "AÃºn por aparecer"     => "(&#64;)",
             "Paradero desconocido" => "(&#63;)",
-            "Cadáver"              => "(&#8224;)",
+            "CadÃ¡ver"              => "(&#8224;)",
             "Cadaver "             => "(&#8224;)"
         ];
         $simboloEstado = $mapEstado[$estadoPJ] ?? "";
@@ -194,3 +194,4 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 });
 </script>
+

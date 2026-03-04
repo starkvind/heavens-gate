@@ -1,6 +1,6 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener y sanitizar el parámetro 'b'
+// Obtener y sanitizar el parÃ¡metro 'b'
 $ritePageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
 // Consulta segura para obtener los datos del ritual
@@ -19,7 +19,7 @@ $rowsQueryRite = $result->num_rows;
 if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $resultQueryRite = $result->fetch_assoc();
 
-    // DATOS BÁSICOS
+    // DATOS BÃSICOS
     $riteId     = htmlspecialchars($resultQueryRite["id"]);
     $riteName   = htmlspecialchars($resultQueryRite["name"]);
     $riteType   = htmlspecialchars($resultQueryRite["tipo"]);
@@ -58,11 +58,11 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para breadcrumbs
+    // Guardar en sesiÃ³n para breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
     // =========================
-    // Personajes con este Ritual (respeta exclusiones de crónica)
+    // Personajes con este Ritual (respeta exclusiones de crÃ³nica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -82,7 +82,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $riteOwners = [];
     $characterKindSql = hg_character_kind_select($link, 'c');
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, c.status) AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $ritePageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -96,10 +96,10 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
 	$pageTitle2 = $riteName; // PARA CAMBIAR EL TITULO A LA PAGINA
 	setMetaFromPage($riteName . " | Rituales | Heaven's Gate", meta_excerpt($riteDesc), null, 'article');
 
-    // Incluir barra de navegación
+    // Incluir barra de navegaciÃ³n
     include("app/partials/main_nav_bar.php");
 
-    // Título de la página
+    // TÃ­tulo de la pÃ¡gina
     ob_start();
 
     // Imagen del Ritual
@@ -162,7 +162,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
@@ -179,9 +179,9 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
-                    "Aún por aparecer"     => "(&#64;)",
+                    "AÃºn por aparecer"     => "(&#64;)",
                     "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
+                    "CadÃ¡ver"              => "(&#8224;)"
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
@@ -211,6 +211,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     echo "<p>Error: Ritual no encontrado.</p>";
 }
 ?>
+
 
 
 

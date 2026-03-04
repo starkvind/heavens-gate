@@ -1,194 +1,88 @@
 <?php
-$character_id = $_GET['b'] ?? 1;
+$character_id = isset($characterId)
+    ? (int)$characterId
+    : (isset($_GET['b']) ? (int)$_GET['b'] : 0);
 
-// 1. Obtener la primera fecha de aparición
-$query_inicio = "
-    SELECT MIN(ac.played_date) AS primera_fecha
-    FROM dim_chapters ac
-    JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id
-    WHERE acp.character_id = ? AND ac.played_date != '0000-00-00'
-";
-$stmt = $link->prepare($query_inicio);
-$stmt->bind_param("i", $character_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$inicio = $result->fetch_assoc()['primera_fecha'] ?? null;
+$eventosParticipacion = [];
 
-if ($inicio && isset($finalPlayer)) {
-
-    // 2. Obtener capítulos en los que participó
-    $query_capitulos_pj = "
-        SELECT ac.id, ac.played_date, ac.season_number
-        FROM dim_chapters ac
-        JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id
-        WHERE acp.character_id = ? AND ac.played_date != '0000-00-00'
+if ($character_id > 0) {
+    $query_eventos_pj = "
+        SELECT
+            e.id,
+            e.pretty_id,
+            e.title,
+            e.event_date,
+            COALESCE(t.name, 'Evento') AS type_name
+        FROM bridge_timeline_events_characters bec
+        INNER JOIN fact_timeline_events e ON e.id = bec.event_id
+        LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id
+        WHERE bec.character_id = ?
+        ORDER BY
+            CASE WHEN e.event_date = '0000-00-00' OR e.event_date IS NULL THEN 1 ELSE 0 END ASC,
+            e.event_date ASC,
+            e.id ASC
+        LIMIT 24
     ";
-    $stmt = $link->prepare($query_capitulos_pj);
-    $stmt->bind_param("i", $character_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
 
-    $jugados = [];
-    $temporadas_validas = [];
-    $temporadas_por_mes = [];
-    while ($row = $result->fetch_assoc()) {
-        $mes = date('Y-m', strtotime($row['played_date']));
-        $jugados[$mes] = ($jugados[$mes] ?? 0) + 1;
-        $temporadas_validas[$row['season_number']] = true;
-        $temporadas_por_mes[$mes] = $row['season_number']; // última temporada válida en el mes
-    }
+    $stmtEv = $link->prepare($query_eventos_pj);
+    if ($stmtEv) {
+        $stmtEv->bind_param("i", $character_id);
+        $stmtEv->execute();
+        $resultEv = $stmtEv->get_result();
+        while ($resultEv && ($row = $resultEv->fetch_assoc())) {
+            $eventId = (int)($row['id'] ?? 0);
+            $slug = trim((string)($row['pretty_id'] ?? ''));
+            if ($slug === '') {
+                $slug = (string)$eventId;
+            }
+            $eventHref = '/timeline/event/' . rawurlencode($slug);
 
-	// Obtener capítulos de todas las temporadas válidas (aunque el personaje no jugara)
-	$temporadas_in = implode(',', array_keys($temporadas_validas));
-	$query_mapeo_temporadas = "
-		SELECT DATE_FORMAT(ac.played_date, '%Y-%m') AS mes, MAX(ac.season_number) AS season_number
-		FROM dim_chapters ac
-		WHERE ac.played_date >= ? AND ac.played_date != '0000-00-00' AND ac.season_number IN ($temporadas_in)
-		GROUP BY mes
-	";
-	$stmt = $link->prepare($query_mapeo_temporadas);
-	$stmt->bind_param("s", $inicio);
-	$stmt->execute();
-	$result = $stmt->get_result();
-	$temporadas_por_mes = [];
-	while ($row = $result->fetch_assoc()) {
-		$temporadas_por_mes[$row['mes']] = $row['season_number'];
-	}
+            $eventDateRaw = trim((string)($row['event_date'] ?? ''));
+            $eventDateFmt = '-';
+            if ($eventDateRaw !== '' && $eventDateRaw !== '0000-00-00') {
+                $ts = strtotime($eventDateRaw);
+                if ($ts !== false) {
+                    $eventDateFmt = date('d-m-Y', $ts);
+                } else {
+                    $eventDateFmt = $eventDateRaw;
+                }
+            }
 
-    // 3. Obtener todos los capítulos de esas temporadas para contar "esperados"
-    $query_esperados = "
-        SELECT DATE_FORMAT(played_date, '%Y-%m') AS mes, COUNT(*) AS total
-        FROM dim_chapters
-        WHERE played_date >= ? AND played_date != '0000-00-00' AND season_number IN ($temporadas_in)
-        GROUP BY mes
-    ";
-    $stmt = $link->prepare($query_esperados);
-    $stmt->bind_param("s", $inicio);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $esperados = [];
-    while ($row = $result->fetch_assoc()) {
-        $esperados[$row['mes']] = $row['total'];
-    }
-
-    // Rango de meses desde inicio hasta último esperado
-    $all_meses = [];
-    $first = new DateTime($inicio);
-    $last = new DateTime(max(array_keys($esperados) + array_keys($jugados)));
-    $last->modify('first day of next month');
-    while ($first < $last) {
-        $all_meses[] = $first->format('Y-m');
-        $first->modify('+1 month');
-    }
-
-    // Obtener nombres de temporadas para tooltip
-    $query_nombres = "
-        SELECT season_number AS id, name FROM dim_seasons
-        WHERE season_number IN ($temporadas_in)
-    ";
-    $result = $link->query($query_nombres);
-    $nombre_temporadas = [];
-    while ($row = $result->fetch_assoc()) {
-        $nombre_temporadas[$row['id']] = $row['name'];
-    }
-
-    // Construcción final
-    $labels = $all_meses;
-    $datos_jugados = [];
-    $datos_esperados = [];
-    $datos_temporada = [];
-
-    foreach ($labels as $mes) {
-        $datos_jugados[] = $jugados[$mes] ?? 0;
-        $datos_esperados[] = $esperados[$mes] ?? 0;
-        $id_temporada = $temporadas_por_mes[$mes] ?? null;
-		$datos_temporada[] = $id_temporada ? ($nombre_temporadas[$id_temporada] ?? '¿?') : '';
+            $eventosParticipacion[] = [
+                'id' => $eventId,
+                'title' => (string)($row['title'] ?? ''),
+                'type_name' => (string)($row['type_name'] ?? 'Evento'),
+                'date' => $eventDateFmt,
+                'href' => $eventHref,
+            ];
+        }
+        $stmtEv->close();
     }
 }
 ?>
 
-<?php if ($inicio && isset($finalPlayer)): ?>
-
-<script src="/assets/vendor/chartjs/chart.min.js"></script>
-
-<div class="bioTextData">
-	<fieldset class='bioSeccion'>
-		<legend>&nbsp;Participación de <?php echo $finalPlayer; ?>&nbsp;</legend>
-		<canvas id="participacionChart" width="500" height="300"></canvas>
-	</fieldset>
+<?php if (!empty($eventosParticipacion)): ?>
+    <br />
+<div class="listaParticipacion">
+    <fieldset class='grupoBioClan bioChaptersSeasonFieldset'>
+        <legend class='bioPowerTitle bioChaptersSeasonLegend'>&nbsp;Eventos relacionados (<?= (int)count($eventosParticipacion) ?>)&nbsp;</legend>
+        <div class='capitulosTemporada'>
+            <?php foreach ($eventosParticipacion as $ev):
+                $eventTitle = trim((string)($ev['title'] ?? ''));
+                if ($eventTitle === '') $eventTitle = 'Evento';
+                $eventType = trim((string)($ev['type_name'] ?? 'Evento'));
+                $eventDate = trim((string)($ev['date'] ?? '-'));
+                //$eventLabel = '[' . $eventType . '] ' . $eventTitle;
+                $eventLabel = $eventTitle;
+            ?>
+            <a class='bioChapterLink hg-tooltip' href='<?= htmlspecialchars((string)$ev['href'], ENT_QUOTES, 'UTF-8') ?>' target='_blank' data-tip='event' data-id='<?= (int)$ev['id'] ?>'>
+                <div class='bioSheetPower bioChapterEntry'>
+                    <span class='bioEventTitle'><?= htmlspecialchars($eventLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                    <div class='bioChapterDate'><?= htmlspecialchars($eventDate, ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </fieldset>
 </div>
-
-<script>
-let labels = <?= json_encode($labels) ?>;
-let temporadas = <?= json_encode($datos_temporada) ?>;
-let jugados = <?= json_encode($datos_jugados) ?>;
-let esperados = <?= json_encode($datos_esperados) ?>;
-
-let ctx = document.getElementById('participacionChart').getContext('2d');
-let chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: labels,
-        datasets: [
-            {
-                label: 'Participación',
-                data: jugados,
-                borderColor: 'rgba(86, 240, 120, 1)',
-                backgroundColor: 'rgba(13, 150, 43, 0.5)',
-                tension: 0.3
-            },
-            {
-                label: 'Totales',
-                data: esperados,
-                borderColor: 'rgba(224, 0, 0, 1)',
-                backgroundColor: 'rgba(143, 0, 0, 0.5)',
-                tension: 0.3
-            }
-        ]
-    },
-	options: {
-		interaction: {
-			mode: 'index',
-			intersect: false
-		},
-		plugins: {
-			legend: {
-				labels: {
-					color: 'white'
-				}
-			},
-			tooltip: {
-				mode: 'index',
-				intersect: false,
-				callbacks: {
-					title: function(tooltipItems) {
-						const index = tooltipItems[0].dataIndex;
-						const label = labels[index];
-						const temporada = temporadas[index];
-						return temporada ? `${label} - ${temporada}` : label;
-					},
-					label: function(context) {
-						return `${context.dataset.label}: ${context.formattedValue}`;
-					}
-				}
-			}
-		},
-		scales: {
-			x: {
-				ticks: { color: 'white' }
-			},
-			y: {
-				beginAtZero: true,
-				ticks: {
-					color: 'white',
-					stepSize: 1,
-					precision: 0
-				}
-			}
-		}
-	}
-
-});
-</script>
-
 <?php endif; ?>

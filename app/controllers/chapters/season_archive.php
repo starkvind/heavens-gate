@@ -7,13 +7,34 @@ if (!$link) {
     die("Error de conexion a la base de datos: " . mysqli_connect_error());
 }
 
+if (!function_exists('hg_sa_col_exists')) {
+    function hg_sa_col_exists(mysqli $link, string $table, string $column): bool
+    {
+        static $cache = [];
+        $key = $table . ':' . $column;
+        if (isset($cache[$key])) return $cache[$key];
+
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            $st->bind_param('ss', $table, $column);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+
+        $cache[$key] = $ok;
+        return $ok;
+    }
+}
+
 $temporadaRaw = $_GET['t'] ?? '';
 $temporadaId = resolve_pretty_id($link, 'dim_seasons', (string)$temporadaRaw) ?? 0;
-
 $consulta = "SELECT * FROM dim_seasons WHERE id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $consulta);
 if ($temporadaId > 0 && $stmt) {
-    mysqli_stmt_bind_param($stmt, 's', $temporadaId);
+    mysqli_stmt_bind_param($stmt, 'i', $temporadaId);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
 
@@ -26,10 +47,11 @@ if ($temporadaId > 0 && $stmt) {
 
         $titleSinop = "Sinopsis";
         $titleProta = "Protagonistas";
-        $titleChapt = "Capítulos";
+        $titleChapt = "Capitulos";
 
-        $esTempOno = (int)$ResultQuery['season'];
-        $pageSect = ($esTempOno === 0) ? "Temporadas" : "Historia personal";
+        $seasonKind = trim((string)($ResultQuery['season_kind'] ?? 'temporada'));
+        if ($seasonKind === '') $seasonKind = 'temporada';
+        $pageSect = ($seasonKind === 'historia_personal') ? "Historia personal" : "Temporadas";
         $pageTitle2 = $nameTemp;
 
         include("app/partials/main_nav_bar.php");
@@ -37,7 +59,18 @@ if ($temporadaId > 0 && $stmt) {
         echo "<div class='archive-shell'>";
         echo "<div class='archive-hero'>";
         echo "<h2>" . htmlspecialchars($nameTemp) . "</h2>";
-        echo "<span class='archive-chip'>Temporada " . htmlspecialchars((string)$numberTemp) . "</span>";
+        if ($seasonKind === 'temporada') {
+            $archiveChip = "Temporada " . (string)$numberTemp;
+        } elseif ($seasonKind === 'inciso') {
+            $incisoNum = $numberTemp;
+            if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
+            $archiveChip = "Inciso " . $incisoNum;
+        } elseif ($seasonKind === 'historia_personal') {
+            $archiveChip = "Historia personal";
+        } else {
+            $archiveChip = "Especial";
+        }
+        echo "<span class='archive-chip'>" . htmlspecialchars($archiveChip) . "</span>";
         echo "</div>";
 
         echo "<div class='bioBody'>";
@@ -62,6 +95,8 @@ if ($temporadaId > 0 && $stmt) {
                     FROM fact_characters p
                     WHERE p.id IN ($ids)
                       AND p.player_id > 0
+                      AND p.character_kind = 'pj'
+                      AND p.character_type_id = 1
                     ORDER BY p.name ASC
                 ";
                 $resultProtas = $link->query($query);
@@ -77,7 +112,7 @@ if ($temporadaId > 0 && $stmt) {
 
                         if ($participaciones >= $umbral) {
                             $hrefProta = pretty_url($link, 'fact_characters', '/characters', $checkId);
-                            echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card' target='_blank' title='" . htmlspecialchars((string)$row['name']) . "'>";
+                            echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card hg-tooltip' target='_blank' data-tip='character' data-id='" . $checkId . "'>";
                             echo "<img src='" . htmlspecialchars(hg_character_avatar_url((string)($row['image_url'] ?? ''), (string)($row['gender'] ?? ''))) . "' class='photochapter' alt='" . htmlspecialchars((string)$row['name']) . "'>";
                             echo "<span>" . htmlspecialchars((string)$row['name']) . "</span>";
                             echo "</a>";
@@ -95,10 +130,10 @@ if ($temporadaId > 0 && $stmt) {
         echo "<h3 class='archive-title'>{$titleChapt}</h3>";
         echo "<div class='chapters-list'>";
 
-        $consultaChapt = "SELECT id, name, chapter_number FROM dim_chapters WHERE season_number = ? ORDER BY chapter_number";
+        $consultaChapt = "SELECT id, name, chapter_number FROM dim_chapters WHERE season_id = ? ORDER BY chapter_number";
         $stmtChapt = mysqli_prepare($link, $consultaChapt);
         if ($stmtChapt) {
-            mysqli_stmt_bind_param($stmtChapt, 's', $numberTemp);
+            mysqli_stmt_bind_param($stmtChapt, 'i', $temporadaId);
             mysqli_stmt_execute($stmtChapt);
             $resultChapt = mysqli_stmt_get_result($stmtChapt);
 
@@ -108,10 +143,8 @@ if ($temporadaId > 0 && $stmt) {
                     $nameEpi = (string)$ResultQueryChapt['name'];
                     $capiEpi = (int)$ResultQueryChapt['chapter_number'];
 
-                    if ($esTempOno === 0) {
-                        $chapterCode = ($numberTemp < 100)
-                            ? sprintf('%dx%02d', $numberTemp, $capiEpi)
-                            : sprintf('%02d', $capiEpi);
+                    if ($seasonKind === 'temporada') {
+                        $chapterCode = sprintf('%dx%02d', $numberTemp, $capiEpi);
                     } else {
                         $chapterCode = sprintf('%02d', $capiEpi);
                     }
@@ -143,8 +176,8 @@ if ($temporadaId > 0 && $stmt) {
 
         $prevSeasonLink = '';
         $nextSeasonLink = '';
-        if ($esTempOno === 0 && $numberTemp < 101) {
-            $stmtPrevSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season = 0 AND season_number < 101 AND season_number < ? ORDER BY season_number DESC LIMIT 1");
+        if ($seasonKind === 'temporada') {
+            $stmtPrevSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season_kind = 'temporada' AND season_number < ? ORDER BY season_number DESC LIMIT 1");
             if ($stmtPrevSeason) {
                 mysqli_stmt_bind_param($stmtPrevSeason, 'i', $numberTemp);
                 mysqli_stmt_execute($stmtPrevSeason);
@@ -152,7 +185,7 @@ if ($temporadaId > 0 && $stmt) {
                 if ($rowPrevSeason = mysqli_fetch_assoc($resPrevSeason)) {
                     $prevNum = (int)$rowPrevSeason['season_number'];
                     $prevHref = pretty_url($link, 'dim_seasons', '/seasons', (int)$rowPrevSeason['id']);
-                    $prevSeasonLink = "<a class='archive-season-link prev' href='" . htmlspecialchars($prevHref) . "'>&laquo; " . $prevNum . "ª Temporada</a>";
+                    $prevSeasonLink = "<a class='archive-season-link prev' href='" . htmlspecialchars($prevHref) . "'>&laquo; " . $prevNum . "a Temporada</a>";
                 }
                 if ($resPrevSeason) {
                     mysqli_free_result($resPrevSeason);
@@ -160,7 +193,7 @@ if ($temporadaId > 0 && $stmt) {
                 mysqli_stmt_close($stmtPrevSeason);
             }
 
-            $stmtNextSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season = 0 AND season_number < 101 AND season_number > ? ORDER BY season_number ASC LIMIT 1");
+            $stmtNextSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season_kind = 'temporada' AND season_number > ? ORDER BY season_number ASC LIMIT 1");
             if ($stmtNextSeason) {
                 mysqli_stmt_bind_param($stmtNextSeason, 'i', $numberTemp);
                 mysqli_stmt_execute($stmtNextSeason);
@@ -168,7 +201,7 @@ if ($temporadaId > 0 && $stmt) {
                 if ($rowNextSeason = mysqli_fetch_assoc($resNextSeason)) {
                     $nextNum = (int)$rowNextSeason['season_number'];
                     $nextHref = pretty_url($link, 'dim_seasons', '/seasons', (int)$rowNextSeason['id']);
-                    $nextSeasonLink = "<a class='archive-season-link next' href='" . htmlspecialchars($nextHref) . "'>" . $nextNum . "ª Temporada &raquo;</a>";
+                    $nextSeasonLink = "<a class='archive-season-link next' href='" . htmlspecialchars($nextHref) . "'>" . $nextNum . "a Temporada &raquo;</a>";
                 }
                 if ($resNextSeason) {
                     mysqli_free_result($resNextSeason);

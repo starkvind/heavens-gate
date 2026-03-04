@@ -1,6 +1,6 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Verificar si se recibe el parámetro 'b' y sanitizarlo
+// Verificar si se recibe el parÃ¡metro 'b' y sanitizarlo
 $donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
 if (!function_exists('gift_has_column')) {
@@ -18,7 +18,7 @@ if (!function_exists('gift_has_column')) {
 $giftSystemCol = gift_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
 $giftRulesCol = gift_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
 
-// Consulta para obtener información del Don
+// Consulta para obtener informaciÃ³n del Don
 $queryDon = "
     SELECT g.*, s.name AS system_name, g.name AS nombre, g.kind AS tipo, g.rank AS rango, g.description AS descripcion, g.`$giftRulesCol` AS sistema, g.`$giftSystemCol` AS ferasistema
     FROM fact_gifts g
@@ -34,7 +34,7 @@ $rowsQueryDon = $result->num_rows;
 if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $resultQueryDon = $result->fetch_assoc();
 
-    // DATOS BÁSICOS
+    // DATOS BÃSICOS
     $donId     = htmlspecialchars($resultQueryDon["id"]);
     $donName   = htmlspecialchars($resultQueryDon["nombre"]);
     $donType   = htmlspecialchars($resultQueryDon["tipo"]);
@@ -75,11 +75,11 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para los breadcrumbs
+    // Guardar en sesiÃ³n para los breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
     // =========================
-    // Personajes con este Don (respeta exclusiones de crónica)
+    // Personajes con este Don (respeta exclusiones de crÃ³nica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -99,7 +99,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $donOwners = [];
     $characterKindSql = hg_character_kind_select($link, 'c');
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, c.status) AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $donPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -113,10 +113,10 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
 	$pageTitle2 = $donName; // PARA CAMBIAR EL TITULO A LA PAGINA
 	setMetaFromPage($donName . " | Dones | Heaven's Gate", meta_excerpt($donDesc), null, 'article');
 
-    // Incluir barra de navegación
+    // Incluir barra de navegaciÃ³n
     include("app/partials/main_nav_bar.php");
 
-    // Título de la página
+    // TÃ­tulo de la pÃ¡gina
     //echo "<h2>$donName</h2>";
 
     ob_start();
@@ -186,7 +186,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
@@ -203,9 +203,9 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
-                    "Aún por aparecer"     => "(&#64;)",
+                    "AÃºn por aparecer"     => "(&#64;)",
                     "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
+                    "CadÃ¡ver"              => "(&#8224;)"
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
@@ -235,6 +235,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     echo "<p>Error: Don no encontrado.</p>";
 }
 ?>
+
 
 
 

@@ -1,15 +1,15 @@
-<?php
+﻿<?php
 setMetaFromPage("Personajes | Heaven's Gate", "Listado completo de personajes.", null, 'website');
 include("app/partials/main_nav_bar.php");
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 }
 if (method_exists($link, 'set_charset')) {
     $link->set_charset('utf8mb4');
 } else {
     mysqli_set_charset($link, 'utf8mb4');
 }
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -43,7 +43,7 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
         nc_from_pack.pretty_id AS clan_from_pack_pretty_id,
         nc_from_pack.name AS clan_from_pack_name,
           a.id AS type_id, a.pretty_id AS type_pretty_id, a.kind AS type_name,
-          s.name AS system_name, COALESCE(dcs.label, p.status) AS status, p.status_id
+          s.name AS system_name, COALESCE(dcs.label, '') AS status, p.status_id
       FROM fact_characters p
         LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
         -- Bridge: personaje -> manada
@@ -127,7 +127,7 @@ function ensure_utf8($value) {
     return $value;
 }
 $personajes = ensure_utf8($personajes);
-$pageSect = "Lista de personajes - Biografías";
+$pageSect = "Lista de personajes - BiografÃ­as";
 ?>
 <style>
 /* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
@@ -229,7 +229,7 @@ $pageSect = "Lista de personajes - Biografías";
         </div>
         <div class="ms-wrap" id="filter-clan">
           <div class="ms-btn" id="ms-toggle-clan" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
-            <span class="ms-label">Organización</span>
+            <span class="ms-label">OrganizaciÃ³n</span>
             <span class="ms-summary" id="ms-summary-clan">Todas</span>
           </div>
           <div class="ms-panel" id="ms-panel-clan" aria-hidden="true">
@@ -290,7 +290,7 @@ $pageSect = "Lista de personajes - Biografías";
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Grupo</th>
-                <th>Organización</th>
+                <th>OrganizaciÃ³n</th>
                 <th>Sistema</th>
                 <th>Tipo</th>
                 <th>Estado</th>
@@ -307,7 +307,7 @@ function escapeHtml(text) {
 		return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
 	});
 }
-// Escape específico para atributos (incluye backticks)
+// Escape especÃ­fico para atributos (incluye backticks)
 function escapeAttr(text) {
 	if (!text) return '';
 	return String(text).replace(/[&<>"'`]/g, function (m) {
@@ -351,7 +351,7 @@ $(document).ready(function () {
         $personajes,
         JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
     ) ?>;
-	// Construimos el array final para DataTables (más rápido que append por fila)
+	// Construimos el array final para DataTables (mÃ¡s rÃ¡pido que append por fila)
 	const data = personajes.map(p => {
 		const imgUrl = safeUrl(p.image_url) || fallbackAvatarByGender(p.gender);
 		const pj_img = imgUrl ? `<img src="${escapeAttr(imgUrl)}" height="12" alt="" loading="lazy" />` : '';
@@ -379,7 +379,7 @@ $(document).ready(function () {
 			{ title: "ID" },
 			{ title: "Nombre" },
 			{ title: "Grupo" },
-			{ title: "Organización" },
+			{ title: "OrganizaciÃ³n" },
 			{ title: "Sistema" },
 			{ title: "Tipo" },
 			{ title: "Estado" }
@@ -395,7 +395,7 @@ $(document).ready(function () {
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Último",
+				last: "Ãšltimo",
 				next: "&#9654;",
 				previous: "&#9664;"
 			}
@@ -519,3 +519,4 @@ $(document).ready(function () {
 	applyFilters();
 });
 </script>
+

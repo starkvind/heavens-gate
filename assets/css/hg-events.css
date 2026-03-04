@@ -303,6 +303,94 @@
     outline-offset: 1px;
 }
 
+.events-ms-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.events-ms-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    color: #f5fbff;
+}
+
+.events-ms-label {
+    font-weight: 600;
+    opacity: .9;
+}
+
+.events-ms-summary {
+    margin-left: auto;
+    color: #9ec7ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.events-ms-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: auto;
+    z-index: 40;
+    border: 1px solid #173b9d;
+    border-radius: 8px;
+    background: #050f3f;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, .35);
+    min-width: 180px;
+    width: max-content;
+    max-width: 280px;
+    max-height: 240px;
+    overflow: auto;
+    padding: 6px;
+}
+
+.events-ms-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #dcedff;
+    cursor: pointer;
+}
+
+.events-ms-row:hover {
+    background: rgba(19, 59, 157, .35);
+}
+
+.events-ms-check {
+    margin: 0;
+    width: 13px;
+    height: 13px;
+}
+
+.events-ms-actions {
+    margin-top: 6px;
+    display: flex;
+    gap: 6px;
+}
+
+.events-ms-actions button {
+    border: 1px solid #1f4aa7;
+    border-radius: 6px;
+    background: #081a53;
+    color: #d8ecff;
+    font-size: 10px;
+    padding: 4px 7px;
+    cursor: pointer;
+}
+
+.events-ms-actions button:hover {
+    background: #0d2a77;
+}
+
 .events-toolbar-actions {
     display: flex;
     gap: 8px;
@@ -750,6 +838,11 @@
 
 .event-nav-chapter-style .chapter-nav-link.prev {
     text-align: left;
+}
+
+.event-nav-chapter-style .chapter-nav-link:hover {
+    border-color: #33CCCC;
+    background: rgba(0, 0, 102, .95);
 }
 
 .event-nav-chapter-style .nav-empty {

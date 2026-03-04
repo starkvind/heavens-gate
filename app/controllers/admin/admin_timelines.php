@@ -37,6 +37,64 @@ function hg_admin_col_exists(mysqli $link, string $table, string $column): bool 
     return $ok;
 }
 
+function hg_admin_has_table(mysqli $link, string $table): bool {
+    $table = str_replace('`', '', $table);
+    $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
+    if (!$rs) return false;
+    $ok = ($rs->num_rows > 0);
+    $rs->close();
+    return $ok;
+}
+
+function hg_admin_pick_deaths_table(mysqli $link): string {
+    if (hg_admin_has_table($link, 'fact_characters_deaths')) return 'fact_characters_deaths';
+    if (hg_admin_has_table($link, 'fact_characters_death')) return 'fact_characters_death';
+    return '';
+}
+
+function hg_admin_sync_death_ground_truth(mysqli $link, string $deathsTable, int $eventId, ?string $deathDate): void {
+    if ($deathsTable === '' || $eventId <= 0) return;
+
+    $linkedDeaths = 0;
+    if ($stCount = $link->prepare("SELECT COUNT(*) FROM `{$deathsTable}` WHERE death_timeline_event_id = ?")) {
+        $stCount->bind_param('i', $eventId);
+        $stCount->execute();
+        $stCount->bind_result($linkedDeaths);
+        $stCount->fetch();
+        $stCount->close();
+    }
+    if ((int)$linkedDeaths <= 0) return;
+
+    if ($stDeaths = $link->prepare("UPDATE `{$deathsTable}` SET death_date = ? WHERE death_timeline_event_id = ?")) {
+        $stDeaths->bind_param('si', $deathDate, $eventId);
+        $stDeaths->execute();
+        $stDeaths->close();
+    }
+
+    $eventDate = ($deathDate !== null && $deathDate !== '') ? $deathDate : '1000-01-01';
+    $precision = ($deathDate !== null && $deathDate !== '') ? 'day' : 'unknown';
+    $dateNote = ($deathDate !== null && $deathDate !== '')
+        ? null
+        : 'Fecha de muerte no especificada (sincronizado desde muertes).';
+
+    if ($stEv = $link->prepare("
+        UPDATE fact_timeline_events
+        SET
+            event_type_id = 5,
+            event_date = ?,
+            sort_date = ?,
+            date_precision = ?,
+            date_note = ?,
+            updated_at = NOW()
+        WHERE id = ?
+        LIMIT 1
+    ")) {
+        $stEv->bind_param('ssssi', $eventDate, $eventDate, $precision, $dateNote, $eventId);
+        $stEv->execute();
+        $stEv->close();
+    }
+}
+
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_timelines';
 if (function_exists('hg_admin_ensure_csrf_token')) {
     $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
@@ -73,6 +131,7 @@ if ($rs = $link->query("SELECT id, pretty_id, name, {$eventTypeSortSelect} AS so
 if ($defaultEventTypeId <= 0 && !empty($eventTypes)) {
     $defaultEventTypeId = (int)$eventTypes[0]['id'];
 }
+$deathsTable = hg_admin_pick_deaths_table($link);
 
 $chronicles = [];
 $chronicleById = [];
@@ -95,7 +154,7 @@ if ($rs = $link->query("SELECT id, name FROM dim_realities ORDER BY {$realityOrd
 }
 
 $chapters = [];
-if ($rs = $link->query("SELECT id, name, season_number, chapter_number FROM dim_chapters ORDER BY season_number ASC, chapter_number ASC, id ASC")) {
+if ($rs = $link->query("SELECT c.id, c.name, s.season_number, s.season_kind, c.chapter_number FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id ORDER BY COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC, c.id ASC")) {
     while ($row = $rs->fetch_assoc()) {
         $chapters[] = $row;
     }
@@ -284,7 +343,7 @@ $getEventRow = function(int $eventId) use ($link, $getEventLinks, $chronicleConc
             e.is_active,
             e.event_type_id,
             COALESCE(t.name, 'Evento') AS type_name,
-            COALESCE(t.pretty_id, e.kind, 'evento') AS type_slug,
+            COALESCE(t.pretty_id, 'evento') AS type_slug,
             {$primaryChronicleExpr} AS primary_chronicle_id,
             COALESCE(
                 NULLIF(GROUP_CONCAT(DISTINCT c.name ORDER BY {$chronicleConcatOrderSql} SEPARATOR ' | '), ''),
@@ -411,9 +470,6 @@ if ($isAjax) {
         if ($eventTypeId <= 0 || !isset($eventTypeById[$eventTypeId])) {
             $eventTypeId = $defaultEventTypeId;
         }
-        $typePretty = isset($eventTypeById[$eventTypeId])
-            ? (string)$eventTypeById[$eventTypeId]['pretty_id']
-            : 'evento';
 
         if ($title === '') {
             if (function_exists('hg_admin_json_error')) hg_admin_json_error('El titulo es obligatorio.', 400);
@@ -453,7 +509,6 @@ if ($isAjax) {
                         location = ?,
                         source = ?,
                         event_type_id = ?,
-                        kind = ?,
                         timeline = ?,
                         is_active = ?,
                         updated_at = NOW()
@@ -461,7 +516,7 @@ if ($isAjax) {
                 ";
                 $st = $link->prepare($sql);
                 $st->bind_param(
-                    'ssssssssissii',
+                    'ssssssssisii',
                     $title,
                     $eventDate,
                     $datePrecision,
@@ -471,7 +526,6 @@ if ($isAjax) {
                     $location,
                     $source,
                     $eventTypeId,
-                    $typePretty,
                     $timelineLegacySql,
                     $isActive,
                     $id
@@ -485,13 +539,13 @@ if ($isAjax) {
             } else {
                 $sql = "
                     INSERT INTO fact_timeline_events
-                    (title, event_date, date_precision, date_note, sort_date, description, location, source, event_type_id, kind, timeline, is_active)
+                    (title, event_date, date_precision, date_note, sort_date, description, location, source, event_type_id, timeline, is_active)
                     VALUES
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ";
                 $st = $link->prepare($sql);
                 $st->bind_param(
-                    'ssssssssissi',
+                    'ssssssssisi',
                     $title,
                     $eventDate,
                     $datePrecision,
@@ -501,7 +555,6 @@ if ($isAjax) {
                     $location,
                     $source,
                     $eventTypeId,
-                    $typePretty,
                     $timelineLegacySql,
                     $isActive
                 );
@@ -518,6 +571,9 @@ if ($isAjax) {
             hg_admin_sync_bridge_characters($link, $savedId, $characterIds);
             hg_admin_sync_bridge_ids($link, 'bridge_timeline_events_chapters', 'chapter_id', $savedId, $chapterIds);
             hg_admin_sync_bridge_ids($link, 'bridge_timeline_events_realities', 'reality_id', $savedId, $realityIds);
+
+            $syncDeathDate = ($datePrecision === 'unknown' || $eventDate === '1000-01-01') ? null : $eventDate;
+            hg_admin_sync_death_ground_truth($link, $deathsTable, $savedId, $syncDeathDate);
 
             $link->commit();
         } catch (Throwable $e) {
@@ -567,7 +623,7 @@ $sql = "
         e.is_active,
         e.event_type_id,
         COALESCE(t.name, 'Evento') AS type_name,
-        COALESCE(t.pretty_id, e.kind, 'evento') AS type_slug,
+        COALESCE(t.pretty_id, 'evento') AS type_slug,
         {$primaryChronicleExpr} AS primary_chronicle_id,
         COALESCE(
             NULLIF(GROUP_CONCAT(DISTINCT c.name ORDER BY {$chronicleConcatOrderSql} SEPARATOR ' | '), ''),
@@ -742,8 +798,11 @@ admin_panel_open('Linea temporal', $actions);
                             <option value="">Seleccionar capitulo</option>
                             <?php foreach ($chapters as $chapterRow):
                                 $seasonNum = (int)($chapterRow['season_number'] ?? 0);
+                                $seasonKind = trim((string)($chapterRow['season_kind'] ?? 'temporada'));
                                 $chapterNum = (int)($chapterRow['chapter_number'] ?? 0);
-                                $chapterCode = $seasonNum . 'x' . str_pad((string)$chapterNum, 2, '0', STR_PAD_LEFT);
+                                $chapterCode = ($seasonKind === 'temporada')
+                                    ? ($seasonNum . 'x' . str_pad((string)$chapterNum, 2, '0', STR_PAD_LEFT))
+                                    : str_pad((string)$chapterNum, 2, '0', STR_PAD_LEFT);
                                 $chapterName = trim((string)($chapterRow['name'] ?? ''));
                             ?>
                             <option value="<?= (int)$chapterRow['id'] ?>">[<?= h($chapterCode) ?>] <?= h($chapterName) ?></option>
@@ -909,8 +968,11 @@ function chapterLabelById(id){
     const c = chapterById.get(Number(id));
     if (!c) return `#${Number(id)}`;
     const seasonNum = Number(c.season_number || 0);
+    const seasonKind = String(c.season_kind || 'temporada');
     const chapterNum = Number(c.chapter_number || 0);
-    const chapterCode = seasonNum + 'x' + String(chapterNum).padStart(2, '0');
+    const chapterCode = seasonKind === 'temporada'
+        ? (seasonNum + 'x' + String(chapterNum).padStart(2, '0'))
+        : String(chapterNum).padStart(2, '0');
     return `[${chapterCode}] ${c.name || ''}`;
 }
 

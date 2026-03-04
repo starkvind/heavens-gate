@@ -204,6 +204,14 @@
     overflow: hidden;
 }
 
+.bioEventTitle {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .bioChapterDate {
     float: none;
     flex: 0 0 auto;
@@ -250,6 +258,71 @@
     width: 100%;
     display: block;
     clear: both;
+}
+
+.bio-kills-block {
+    margin-top: 14px;
+}
+
+.bio-kills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 8px 12px;
+    width: 100%;
+}
+
+.bio-kill-link {
+    text-decoration: none;
+    display: block;
+}
+
+.bio-kill-card {
+    min-height: 38px;
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 2px;
+    padding: 8px 10px;
+    border: 1px solid #0044aa;
+    background: linear-gradient(180deg, #00156a 0%, #000d4d 100%);
+    color: #eaf3ff;
+    box-sizing: border-box;
+}
+
+.bio-kill-card:hover {
+    background: linear-gradient(180deg, #001d88 0%, #001266 100%);
+}
+
+.bio-kill-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #0044aa;
+    grid-row: 1 / span 2;
+}
+
+.bio-kill-main {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1.1;
+}
+
+.bio-kill-meta {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #9fd4ff;
+    font-size: 10px;
+    line-height: 1.1;
 }
 
 .bio-rel-error {

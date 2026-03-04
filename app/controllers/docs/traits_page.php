@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 $traitPageID = isset($_GET['b']) ? (int)$_GET['b'] : 0;
@@ -71,7 +71,7 @@ if ($result->num_rows > 0) {
     }
 
     if (trim($traitSpecial) !== "") {
-        echo "      <div class='power-stat'><div class='power-stat__label'>Maestrías</div><div class='power-stat__value'>{$traitSpecial}</div></div>";
+        echo "      <div class='power-stat'><div class='power-stat__label'>MaestrÃ­as</div><div class='power-stat__value'>{$traitSpecial}</div></div>";
     }
 
     echo "      <div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$traitOriginName}</div></div>";
@@ -123,7 +123,7 @@ if ($result->num_rows > 0) {
             c.alias,
             c.image_url,
             c.gender,
-            COALESCE(dcs.label, c.status) AS status, c.status_id,
+            COALESCE(dcs.label, '') AS status, c.status_id,
             {$characterKindSql} AS character_kind,
             b.value
         FROM bridge_characters_traits b
@@ -164,9 +164,9 @@ if ($result->num_rows > 0) {
 
         echo "<section class='hg-tab-panel' data-tab='owners'>";
         $mapEstado = [
-            "Aún por aparecer"     => "(&#64;)",
+            "AÃºn por aparecer"     => "(&#64;)",
             "Paradero desconocido" => "(&#63;)",
-            "Cadáver"              => "(&#8224;)",
+            "CadÃ¡ver"              => "(&#8224;)",
             "A?n por aparecer"     => "(&#64;)",
             "Cad?ver"              => "(&#8224;)"
         ];
@@ -217,6 +217,7 @@ if ($result->num_rows > 0) {
 $stmt->close();
 
 ?>
+
 
 
 

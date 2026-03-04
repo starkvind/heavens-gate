@@ -360,6 +360,51 @@
     line-height: 1.3;
 }
 
+.chapter-events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px 12px;
+    width: 100%;
+}
+
+.chapter-event-item {
+    min-height: 34px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+    width: 100%;
+    margin: 0;
+    border: 1px solid #0044aa;
+    background: linear-gradient(180deg, #00156a 0%, #000d4d 100%);
+    color: #eaf3ff;
+    font-size: 12px;
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.chapter-event-item:hover {
+    background: linear-gradient(180deg, #001d88 0%, #001266 100%);
+}
+
+.chapter-event-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #ffffff;
+}
+
+.chapter-event-date {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: #9fd4ff;
+}
+
 .chapter-shell .bioTextData {
     float: none;
     width: auto;
@@ -408,7 +453,7 @@
 }
 
 .chapter-nav .nav-empty {
-    width: 48%;
+    width: 46%;
 }
 
 .chapter-nav-link {
@@ -416,14 +461,15 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    width: 48%;
-    padding: 9px 10px;
-    border-radius: 9px;
+    width: 46%;
+    padding: 6px 8px;
+    border-radius: 7px;
     border: 1px solid rgba(0, 0, 153, .85);
     background: rgba(0, 0, 85, .75);
     color: var(--ch-ink);
     text-decoration: none;
-    font-size: .85rem;
+    font-size: .78rem;
+    line-height: 1.2;
     transition: border-color .16s ease, background .16s ease;
 }
 

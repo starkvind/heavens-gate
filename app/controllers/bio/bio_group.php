@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Biografías por grupo | Heaven's Gate", "Listado de biografías agrupadas por Tipo y Organización.", null, 'website'); ?>
+﻿<?php setMetaFromPage("BiografÃ­as por grupo | Heaven's Gate", "Listado de biografÃ­as agrupadas por Tipo y OrganizaciÃ³n.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;
@@ -29,14 +29,14 @@
 
 <?php
 	if (!$link) {
-		die("Error de conexión a la base de datos: " . mysqli_connect_error());
+		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 	}
 
 	include_once(__DIR__ . '/../../helpers/character_avatar.php');
 	// Helper escape
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+	// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 	function sanitize_int_csv($csv){
 		$csv = (string)$csv;
 		if (trim($csv) === '') return '';
@@ -53,11 +53,11 @@
 	$idTipo = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 	if ($idTipo <= 0) {
 		include("app/partials/main_nav_bar.php");
-		echo "<h2>Error</h2><p class='texti'>Tipo inválido.</p>";
+		echo "<h2>Error</h2><p class='texti'>Tipo invÃ¡lido.</p>";
 		exit;
 	}
 
-	$valuePJ = "p.id, p.name, p.alias, COALESCE(dcs.label, p.status) AS status, p.status_id, p.image_url, p.gender, p.character_kind, p.character_type_id,
+	$valuePJ = "p.id, p.name, p.alias, COALESCE(dcs.label, '') AS status, p.status_id, p.image_url, p.gender, p.character_kind, p.character_type_id,
 						COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
 						COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
 						COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name,
@@ -65,7 +65,7 @@
 	$howMuch = 0;
 
 	// ======================================== //
-	// EXCLUSIONES DE CRÓNICAS (lista de ints, segura)
+	// EXCLUSIONES DE CRÃ“NICAS (lista de ints, segura)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
@@ -82,7 +82,7 @@
 	if ($rowType = mysqli_fetch_assoc($resultTypeQuery)) {
 
 		$nombreTipo = h($rowType["kind"]);
-		$pageSect   = "$nombreTipo | Biografías";
+		$pageSect   = "$nombreTipo | BiografÃ­as";
 
 		include("app/partials/main_nav_bar.php");
 		echo "<h2>$nombreTipo</h2>";
@@ -195,9 +195,9 @@
 						if ($aliasPJ === "") { $aliasPJ = $nombrePJ; }
 
 						$mapEstado = [
-							"Aún por aparecer"     => "(&#64;)",
+							"AÃºn por aparecer"     => "(&#64;)",
 							"Paradero desconocido" => "(&#63;)",
-							"Cadáver"              => "(&#8224;)"
+							"CadÃ¡ver"              => "(&#8224;)"
 						];
 						$simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
@@ -250,5 +250,6 @@
 		}
 	});
 </script>
+
 
 

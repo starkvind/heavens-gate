@@ -90,9 +90,7 @@ $ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
    Estado (catalogo + fallback legacy)
 ------------------------------------------------- */
 $estado_opts = [];
-$estado_set = [];
-$status_label_to_id = [];
-$default_status_label = 'En activo';
+$default_status_id = 0;
 $has_status_id_col = false;
 if ($rsChk = $link->query("SHOW COLUMNS FROM fact_characters LIKE 'status_id'")) {
     $has_status_id_col = ($rsChk->num_rows > 0);
@@ -108,33 +106,23 @@ if ($has_status_dim) {
     while ($row = $qst->fetch_assoc()) {
       $sid = (int)($row['id'] ?? 0);
       $label = (string)($row['label'] ?? '');
-      if ($label === '') continue;
-      $estado_opts[$label] = $label;
-      $estado_set[$label] = true;
-      $status_label_to_id[$label] = $sid;
-      if ((int)($row['is_active'] ?? 0) === 1 && $default_status_label === 'En activo') {
-        $default_status_label = $label;
+      if ($sid <= 0 || $label === '') continue;
+      $estado_opts[$sid] = $label;
+      if ((int)($row['is_active'] ?? 0) === 1 && $default_status_id <= 0) {
+        $default_status_id = $sid;
       }
     }
     $qst->close();
   }
 }
-if (empty($estado_opts)) {
-  if ($rs = $link->query("SELECT status FROM fact_characters GROUP BY 1 ORDER BY 1")) {
-    while ($row = $rs->fetch_assoc()) {
-      $val = (string)($row['status'] ?? '');
-      if ($val === '') continue;
-      $estado_opts[$val] = $val;
-      $estado_set[$val] = true;
+if ($default_status_id <= 0 && !empty($estado_opts)) {
+    $firstSid = (int)array_key_first($estado_opts);
+    if ($firstSid > 0) {
+        $default_status_id = $firstSid;
     }
-    $rs->close();
-  }
 }
-if (!isset($estado_opts[$default_status_label])) $estado_opts[$default_status_label] = $default_status_label;
-if (!isset($estado_set[$default_status_label])) $estado_set[$default_status_label] = true;
 
 // Estado usado para desactivar en "delete" (soft delete).
-$inactive_status_label = '';
 $inactive_status_id = 0;
 if ($has_status_dim) {
     if ($stIn = $link->prepare("SELECT id, label FROM dim_character_status WHERE is_active=0 ORDER BY sort_order ASC, label ASC LIMIT 1")) {
@@ -142,27 +130,20 @@ if ($has_status_dim) {
         if ($rsIn = $stIn->get_result()) {
             if ($rIn = $rsIn->fetch_assoc()) {
                 $inactive_status_id = (int)($rIn['id'] ?? 0);
-                $inactive_status_label = trim((string)($rIn['label'] ?? ''));
             }
         }
         $stIn->close();
     }
 }
-if ($inactive_status_label === '') {
+if ($inactive_status_id <= 0) {
     $preferred_inactive = ['inactivo','inactiva','desactivado','desactivada','retirado','retirada','baja','fallecido','fallecida','muerto','muerta'];
-    foreach (array_keys($estado_opts) as $lbl) {
+    foreach ($estado_opts as $sid => $lbl) {
         $norm = function_exists('mb_strtolower') ? mb_strtolower((string)$lbl, 'UTF-8') : strtolower((string)$lbl);
         if (in_array($norm, $preferred_inactive, true)) {
-            $inactive_status_label = (string)$lbl;
+            $inactive_status_id = (int)$sid;
             break;
         }
     }
-}
-if ($inactive_status_label === '') $inactive_status_label = 'Inactivo';
-if (!isset($estado_opts[$inactive_status_label])) $estado_opts[$inactive_status_label] = $inactive_status_label;
-if (!isset($estado_set[$inactive_status_label])) $estado_set[$inactive_status_label] = true;
-if ($inactive_status_id <= 0 && isset($status_label_to_id[$inactive_status_label])) {
-    $inactive_status_id = (int)$status_label_to_id[$inactive_status_label];
 }
 
 if (hg_admin_characters_handle_ajax($link)) {
@@ -506,7 +487,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $rm_avatar   = isset($_POST['avatar_remove']) && $_POST['avatar_remove'] ? true : false;
 
     // Campos complejos
-    $status      = (string)($_POST['status'] ?? '');
+    $status_id   = max(0, (int)($_POST['status_id'] ?? 0));
     $cumple      = trim($_POST['cumple'] ?? '');
     $rango       = trim($_POST['rango'] ?? '');
     $infotext    = trim($_POST['infotext'] ?? '');
@@ -578,12 +559,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     if ($gender === '')  $gender = 'f';
     if ($text_color === '') $text_color = 'SkyBlue';
-    if ($status === '') $status = $default_status_label;
-    $status_id = isset($status_label_to_id[$status]) ? (int)$status_label_to_id[$status] : 0;
+    if ($status_id <= 0) $status_id = (int)$default_status_id;
 
     // Validaciones
     if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
-    if (!isset($estado_set[$status]) && $status_id <= 0) $flash[] = ['type'=>'error','msg'=>'? El status no es válido.'];
+    if ($status_id <= 0) $flash[] = ['type'=>'error','msg'=>'? El status no es válido.'];
     if ($manada > 0) {
         $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
         if ($clan_of_manada !== $clan) {
@@ -642,17 +622,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, `$character_kind_column`, system_id,
-                 totem_id, status, status_id, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 totem_id, status_id, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img='';
                 $stmt->bind_param(
-                    "sssssiiissssiisisssiiiii",
+                    "sssssiiissssiiisssiiiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
                     $img, $notas, $text_color, $kind, $system_id,
                     $totem_id,
-                    $status, $status_id, $cumple, $rango, $infotext,
+                    $status_id, $cumple, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
                 );
                 if ($stmt->execute()) {
@@ -745,20 +725,20 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
                   breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
-                  status=?, status_id=?, birthdate_text=?, rank=?, info_text=?
+                  status_id=?, birthdate_text=?, rank=?, info_text=?
                   WHERE id=?";
 
           if ($stmt = $link->prepare($sql)) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiissiiiiiisisssi",
+                  "sssssiiiissiiiiiissssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
                   $kind,
                   $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
-                  $status, $status_id, $cumple, $rango, $infotext,
+                  $status_id, $cumple, $rango, $infotext,
                   $id
               );
 
@@ -861,29 +841,16 @@ $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
       } elseif (!$character_exists) {
           $flash[] = ['type'=>'error','msg'=>'[WARN] El personaje no existe o ya no esta disponible.'];
       } else {
-          $status_to_set = (string)$inactive_status_label;
           $okDelete = false;
 
           if ($has_status_id_col) {
               if ($inactive_status_id > 0) {
-                  if ($stmt = $link->prepare("UPDATE fact_characters SET status=?, status_id=? WHERE id=?")) {
+                  if ($stmt = $link->prepare("UPDATE fact_characters SET status_id=? WHERE id=?")) {
                       $status_id_to_set = (int)$inactive_status_id;
-                      $stmt->bind_param("sii", $status_to_set, $status_id_to_set, $id);
+                      $stmt->bind_param("ii", $status_id_to_set, $id);
                       $okDelete = (bool)$stmt->execute();
                       $stmt->close();
                   }
-              } else {
-                  if ($stmt = $link->prepare("UPDATE fact_characters SET status=? WHERE id=?")) {
-                      $stmt->bind_param("si", $status_to_set, $id);
-                      $okDelete = (bool)$stmt->execute();
-                      $stmt->close();
-                  }
-              }
-          } else {
-              if ($stmt = $link->prepare("UPDATE fact_characters SET status=? WHERE id=?")) {
-                  $stmt->bind_param("si", $status_to_set, $id);
-                  $okDelete = (bool)$stmt->execute();
-                  $stmt->close();
               }
           }
 
@@ -1049,7 +1016,7 @@ $stmt->close();
 $char_details = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, fc.status) AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
+    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, '') AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
     if ($qdet) {
         while ($d = $qdet->fetch_assoc()) {
             $cid = (int)($d['id'] ?? 0);
@@ -1351,13 +1318,13 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
 
         <div>
           <label>Estado
-            <select class="select" name="status" id="f_estado" required>
+            <select class="select" name="status_id" id="f_estado" required>
               <option value="">— Selecciona —</option>
-              <?php foreach ($estado_opts as $val=>$label): ?>
-                <option value="<?= h($val) ?>"><?= h($label==='' ? '(vacío)' : $label) ?></option>
+              <?php foreach ($estado_opts as $sid=>$label): ?>
+                <option value="<?= (int)$sid ?>"><?= h($label==='' ? '(vacío)' : $label) ?></option>
               <?php endforeach; ?>
             </select>
-            <span class="small-note">Lista desde: dim_character_status (fallback: fact_characters.status)</span>
+            <span class="small-note">Lista desde: dim_character_status</span>
           </label>
         </div>
         <div>
@@ -1641,6 +1608,7 @@ $jsBoot = [
   'CHAR_TRAITS' => $char_traits,
   'TRAIT_SET_ORDER' => $trait_set_order,
   'CHAR_DETAILS' => $char_details,
+  'DEFAULT_STATUS_ID' => (int)$default_status_id,
 ];
 $jsBootFlags = JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE;
 if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {

@@ -1,8 +1,8 @@
-<?php
+﻿<?php
 setMetaFromPage("Nebulosa de manadas | Heaven's Gate", "Mapa de relaciones entre manadas.", null, 'website');
 
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 }
 
 // Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints).
@@ -19,7 +19,7 @@ function sanitize_int_csv($csv){
     return implode(',', $ints);
 }
 
-// Excluir crónicas (si existe la variable global, la usamos; si no, no excluimos nada)
+// Excluir crÃ³nicas (si existe la variable global, la usamos; si no, no excluimos nada)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
@@ -29,7 +29,7 @@ $charsSql = "
         p.id,
         p.name,
         p.image_url,
-        COALESCE(dcs.label, p.status) AS status,
+        COALESCE(dcs.label, '') AS status,
         p.status_id,
         gbc.group_id
     FROM fact_characters p
@@ -115,9 +115,9 @@ $pageTitle2 = "Manadas";
     <fieldset class='bioSeccion'>
         <legend>&nbsp;Relaciones entre manadas&nbsp;</legend>
         <div style="float: right;">
-            <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">🔍 Pantalla completa</button>
-            <button class="boton2" onclick="location.href='/relationship-map/characters'">👤 Personajes</button>
-            <button class="boton2" onclick="location.href='/relationship-map/organizations'">🏷️ Clanes</button>
+            <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">ðŸ” Pantalla completa</button>
+            <button class="boton2" onclick="location.href='/relationship-map/characters'">ðŸ‘¤ Personajes</button>
+            <button class="boton2" onclick="location.href='/relationship-map/organizations'">ðŸ·ï¸ Clanes</button>
         </div>
         <div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
             <div id="network" style="width:100%; height:100%;"></div>
@@ -188,4 +188,5 @@ const options = {
 
 new vis.Network(container, data, options);
 </script>
+
 

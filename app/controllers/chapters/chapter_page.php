@@ -4,13 +4,47 @@ if (!$link) {
 }
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
+if (!function_exists('hg_ch_table_exists')) {
+    function hg_ch_table_exists(mysqli $link, string $table): bool
+    {
+        $table = str_replace('`', '', $table);
+        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
+        if (!$rs) return false;
+        $ok = ($rs->num_rows > 0);
+        $rs->close();
+        return $ok;
+    }
+}
+
+if (!function_exists('hg_ch_col_exists')) {
+    function hg_ch_col_exists(mysqli $link, string $table, string $column): bool
+    {
+        static $cache = [];
+        $key = $table . ':' . $column;
+        if (isset($cache[$key])) return $cache[$key];
+
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            $st->bind_param('ss', $table, $column);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+
+        $cache[$key] = $ok;
+        return $ok;
+    }
+}
+
 $chapter_numberRaw = $_GET['t'] ?? '';
 $chapter_numberId = resolve_pretty_id($link, 'dim_chapters', (string)$chapter_numberRaw) ?? 0;
 
 $Query = "SELECT * FROM dim_chapters WHERE id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $Query);
 if ($chapter_numberId > 0 && $stmt) {
-    mysqli_stmt_bind_param($stmt, 's', $chapter_numberId);
+    mysqli_stmt_bind_param($stmt, 'i', $chapter_numberId);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
 
@@ -20,21 +54,20 @@ if ($chapter_numberId > 0 && $stmt) {
         $nameCapi = (string)$ResultQuery['name'];
         $sinoCapi = (string)$ResultQuery['synopsis'];
         $noSinoCapi = "Este capitulo no dispone de informacion, disculpa las molestias.";
-        $tempCapi = (int)$ResultQuery['season_number'];
+        $tempSeasonId = (int)($ResultQuery['season_id'] ?? 0);
         $numeCapi = (int)$ResultQuery['chapter_number'];
         $dateCapi = (string)$ResultQuery['played_date'];
-        $dateIngame = (string)$ResultQuery['in_game_date'];
 
-        $tempQuery = "SELECT id, name, season_number, season AS season_flag FROM dim_seasons WHERE season_number = ? LIMIT 1";
+        $tempQuery = "SELECT id, name, season_number, season_kind AS season_value FROM dim_seasons WHERE id = ? LIMIT 1";
         $stmtTemp = mysqli_prepare($link, $tempQuery);
 
         $idTemporada = 0;
         $nameTemporada = 'Temporada';
-        $numbTemporada = $tempCapi;
-        $seasonFlag = 0;
+        $numbTemporada = 0;
+        $seasonKind = 'temporada';
 
         if ($stmtTemp) {
-            mysqli_stmt_bind_param($stmtTemp, 's', $tempCapi);
+            mysqli_stmt_bind_param($stmtTemp, 'i', $tempSeasonId);
             mysqli_stmt_execute($stmtTemp);
             $resultTemp = mysqli_stmt_get_result($stmtTemp);
             $resultDataTemp = $resultTemp ? mysqli_fetch_assoc($resultTemp) : null;
@@ -43,18 +76,17 @@ if ($chapter_numberId > 0 && $stmt) {
                 $idTemporada = (int)$resultDataTemp['id'];
                 $nameTemporada = (string)$resultDataTemp['name'];
                 $numbTemporada = (int)$resultDataTemp['season_number'];
-                $seasonFlag = (int)$resultDataTemp['season_flag'];
+                $seasonKind = trim((string)($resultDataTemp['season_value'] ?? 'temporada'));
+                if ($seasonKind === '') $seasonKind = 'temporada';
             }
         }
 
         $checkNumCapi = ($numeCapi < 10) ? '0' : '';
-        $goodNumTemp = ($numbTemporada >= 100) ? '' : (string)$numbTemporada;
-        $numeracionOK = ($numbTemporada < 99)
-            ? "{$goodNumTemp}x{$checkNumCapi}{$numeCapi}"
-            : "{$checkNumCapi}{$numeCapi}";
+        $numeracionOK = ($seasonKind === 'temporada')
+            ? ((string)$numbTemporada . "x" . $checkNumCapi . $numeCapi)
+            : ($checkNumCapi . $numeCapi);
 
         $goodFecha = ($dateCapi && $dateCapi !== '0000-00-00') ? date('d-m-Y', strtotime($dateCapi)) : '';
-        $goodIngameFecha = ($dateIngame && $dateIngame !== '0000-00-00') ? date('d-m-Y', strtotime($dateIngame)) : '';
 
         $pageSect = "{$nameTemporada} {$numeracionOK}";
         $pageTitle2 = $nameCapi;
@@ -98,7 +130,7 @@ if ($chapter_numberId > 0 && $stmt) {
                     $img = hg_character_avatar_url((string)($pj['image_url'] ?? ''), (string)($pj['gender'] ?? ''));
                     $hrefChar = pretty_url($link, 'fact_characters', '/characters', $idPJSelect);
 
-                    echo "<a class='participant-card' href='" . htmlspecialchars($hrefChar) . "' title='" . htmlspecialchars($nombre) . "' target='_blank'>";
+                    echo "<a class='participant-card hg-tooltip' href='" . htmlspecialchars($hrefChar) . "' target='_blank' data-tip='character' data-id='" . $idPJSelect . "'>";
                     echo "<img src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($nombre) . "'>";
                     echo "<span>" . htmlspecialchars($nombre) . "</span>";
                     echo "</a>";
@@ -116,13 +148,89 @@ if ($chapter_numberId > 0 && $stmt) {
         echo "</section>";
 
         echo "<section class='chapter-block'>";
+        echo "<h3 class='chapter-title'>Eventos relacionados</h3>";
+
+        $eventsRows = [];
+        $hasBridgeEvents = hg_ch_table_exists($link, 'bridge_timeline_events_chapters');
+        $hasTimelineEvents = hg_ch_table_exists($link, 'fact_timeline_events');
+        $hasEventTypes = hg_ch_table_exists($link, 'dim_timeline_events_types');
+
+        if ($hasBridgeEvents && $hasTimelineEvents) {
+            $eventOrder = [];
+            if (hg_ch_col_exists($link, 'bridge_timeline_events_chapters', 'sort_order')) $eventOrder[] = 'b.sort_order ASC';
+            $eventOrder[] = "CASE WHEN e.event_date = '0000-00-00' OR e.event_date IS NULL THEN 1 ELSE 0 END ASC";
+            $eventOrder[] = 'e.event_date ASC';
+            $eventOrder[] = 'e.id ASC';
+            $eventOrderSql = implode(', ', $eventOrder);
+
+            $prettyExpr = hg_ch_col_exists($link, 'fact_timeline_events', 'pretty_id') ? 'e.pretty_id' : 'NULL';
+            $joinType = $hasEventTypes ? 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id' : '';
+            $typeExpr = $hasEventTypes ? "COALESCE(t.name, 'Evento')" : "'Evento'";
+
+            $eventsQuery = "
+                SELECT
+                    e.id,
+                    {$prettyExpr} AS pretty_id,
+                    e.title,
+                    e.event_date,
+                    {$typeExpr} AS type_name
+                FROM bridge_timeline_events_chapters b
+                INNER JOIN fact_timeline_events e ON e.id = b.event_id
+                {$joinType}
+                WHERE b.chapter_id = ?
+                ORDER BY {$eventOrderSql}
+            ";
+
+            if ($stmtEvents = mysqli_prepare($link, $eventsQuery)) {
+                mysqli_stmt_bind_param($stmtEvents, 'i', $chapter_numberId);
+                mysqli_stmt_execute($stmtEvents);
+                $resultEvents = mysqli_stmt_get_result($stmtEvents);
+                if ($resultEvents) {
+                    while ($erow = mysqli_fetch_assoc($resultEvents)) {
+                        $eventsRows[] = $erow;
+                    }
+                    mysqli_free_result($resultEvents);
+                }
+                mysqli_stmt_close($stmtEvents);
+            }
+        }
+
+        if (!empty($eventsRows)) {
+            echo "<div class='chapter-events-grid'>";
+            foreach ($eventsRows as $erow) {
+                $eventId = (int)($erow['id'] ?? 0);
+                $eventTitle = trim((string)($erow['title'] ?? 'Evento'));
+                if ($eventTitle === '') $eventTitle = 'Evento';
+
+                $eventSlug = trim((string)($erow['pretty_id'] ?? ''));
+                if ($eventSlug === '') $eventSlug = (string)$eventId;
+                $eventHref = '/timeline/event/' . rawurlencode($eventSlug);
+
+                $eventDateRaw = trim((string)($erow['event_date'] ?? ''));
+                $eventDateFmt = '-';
+                if ($eventDateRaw !== '' && $eventDateRaw !== '0000-00-00') {
+                    $tsEvent = strtotime($eventDateRaw);
+                    if ($tsEvent !== false) $eventDateFmt = date('d-m-Y', $tsEvent);
+                    else $eventDateFmt = $eventDateRaw;
+                }
+
+                echo "<a class='chapter-event-item hg-tooltip' href='" . htmlspecialchars($eventHref) . "' target='_blank' data-tip='event' data-id='" . $eventId . "'>";
+                echo "  <span class='chapter-event-title'>" . htmlspecialchars($eventTitle) . "</span>";
+                echo "  <span class='chapter-event-date'>" . htmlspecialchars($eventDateFmt) . "</span>";
+                echo "</a>";
+            }
+            echo "</div>";
+        } else {
+            echo "<p class='chapter-text'>No hay eventos vinculados a este capitulo.</p>";
+        }
+
+        echo "</section>";
+
+        echo "<section class='chapter-block'>";
         echo "<h3 class='chapter-title'>Resumen</h3>";
 
-        if (($goodFecha !== '') || ($goodIngameFecha !== '' && $goodIngameFecha !== '01-01-1970')) {
+        if ($goodFecha !== '') {
             echo "<ul class='chapter-dates'>";
-            if ($goodIngameFecha !== '' && $goodIngameFecha !== '01-01-1970') {
-                echo "<li><b>Fecha en ficción:</b> " . htmlspecialchars($goodIngameFecha) . "</li>";
-            }
             if ($goodFecha !== '') {
                 echo "<li><b>Fecha de juego:</b> " . htmlspecialchars($goodFecha) . "</li>";
             }
@@ -146,7 +254,7 @@ if ($chapter_numberId > 0 && $stmt) {
         $navQuery = "
             SELECT id, chapter_number, name
             FROM dim_chapters
-            WHERE season_number = ? AND chapter_number IN (?, ?)
+            WHERE season_id = ? AND chapter_number IN (?, ?)
             ORDER BY chapter_number ASC
         ";
 
@@ -154,7 +262,7 @@ if ($chapter_numberId > 0 && $stmt) {
         if ($stmtNav) {
             $prevCap = $numeCapi - 1;
             $nextCap = $numeCapi + 1;
-            mysqli_stmt_bind_param($stmtNav, 'iii', $tempCapi, $prevCap, $nextCap);
+            mysqli_stmt_bind_param($stmtNav, 'iii', $tempSeasonId, $prevCap, $nextCap);
             mysqli_stmt_execute($stmtNav);
             $resultNav = mysqli_stmt_get_result($stmtNav);
 
@@ -187,10 +295,10 @@ if ($chapter_numberId > 0 && $stmt) {
 
         $prevSeasonBoundaryLink = '';
         $nextSeasonBoundaryLink = '';
-        if ($seasonFlag === 0 && $numbTemporada < 101) {
-            $seasonBoundsStmt = mysqli_prepare($link, "SELECT MIN(chapter_number) AS min_ch, MAX(chapter_number) AS max_ch FROM dim_chapters WHERE season_number = ?");
+        if ($seasonKind === 'temporada') {
+            $seasonBoundsStmt = mysqli_prepare($link, "SELECT MIN(chapter_number) AS min_ch, MAX(chapter_number) AS max_ch FROM dim_chapters WHERE season_id = ?");
             if ($seasonBoundsStmt) {
-                mysqli_stmt_bind_param($seasonBoundsStmt, 'i', $numbTemporada);
+                mysqli_stmt_bind_param($seasonBoundsStmt, 'i', $tempSeasonId);
                 mysqli_stmt_execute($seasonBoundsStmt);
                 $seasonBoundsRes = mysqli_stmt_get_result($seasonBoundsStmt);
                 $seasonBounds = $seasonBoundsRes ? mysqli_fetch_assoc($seasonBoundsRes) : null;
@@ -202,7 +310,7 @@ if ($chapter_numberId > 0 && $stmt) {
                 mysqli_stmt_close($seasonBoundsStmt);
 
                 if ($numeCapi === $minChapter) {
-                    $stmtPrevSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season = 0 AND season_number < 101 AND season_number < ? ORDER BY season_number DESC LIMIT 1");
+                    $stmtPrevSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season_kind = 'temporada' AND season_number < ? ORDER BY season_number DESC LIMIT 1");
                     if ($stmtPrevSeason) {
                         mysqli_stmt_bind_param($stmtPrevSeason, 'i', $numbTemporada);
                         mysqli_stmt_execute($stmtPrevSeason);
@@ -220,7 +328,7 @@ if ($chapter_numberId > 0 && $stmt) {
                 }
 
                 if ($numeCapi === $maxChapter) {
-                    $stmtNextSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season = 0 AND season_number < 101 AND season_number > ? ORDER BY season_number ASC LIMIT 1");
+                    $stmtNextSeason = mysqli_prepare($link, "SELECT id, season_number FROM dim_seasons WHERE season_kind = 'temporada' AND season_number > ? ORDER BY season_number ASC LIMIT 1");
                     if ($stmtNextSeason) {
                         mysqli_stmt_bind_param($stmtNextSeason, 'i', $numbTemporada);
                         mysqli_stmt_execute($stmtNextSeason);

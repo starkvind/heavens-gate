@@ -1,19 +1,19 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener y sanitizar el parámetro 'b'
+// Obtener y sanitizar el parÃ¡metro 'b'
 $totemPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
-// Consulta segura para obtener los datos del tótem
+// Consulta segura para obtener los datos del tÃ³tem
 $queryTotem = "SELECT * FROM dim_totems WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($queryTotem);
 $stmt->bind_param('s', $totemPageID);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
+if ($result->num_rows > 0) { // Si encontramos el tÃ³tem en la base de datos
     $resultQueryTotem = $result->fetch_assoc();
 
-    // DATOS BÁSICOS
+    // DATOS BÃSICOS
     $totemId    = htmlspecialchars($resultQueryTotem["id"]);
     $totemName  = htmlspecialchars($resultQueryTotem["name"]);
     $totemNameRaw = (string)($resultQueryTotem["name"] ?? "");
@@ -26,7 +26,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["image_url"] ?? ""));
 
-    // Obtener el nombre del origen del tótem
+    // Obtener el nombre del origen del tÃ³tem
     $totemOriginName = "-"; // Valor por defecto
 
     if (!empty($totemOrigin)) {
@@ -40,7 +40,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         }
     }
 
-    // Obtener el tipo de tótem
+    // Obtener el tipo de tÃ³tem
     $nombreTipo = "Desconocido"; // Valor por defecto
     $queryTipo = "SELECT name FROM dim_totem_types WHERE id = ? LIMIT 1";
     $stmt = $link->prepare($queryTipo);
@@ -51,11 +51,11 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para breadcrumbs
+    // Guardar en sesiÃ³n para breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
     // =========================
-    // Portadores / grupos / organizaciones con este Tótem (respeta exclusiones de crónica)
+    // Portadores / grupos / organizaciones con este TÃ³tem (respeta exclusiones de crÃ³nica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -75,7 +75,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
     $totemCharOwners = [];
     $characterKindSql = hg_character_kind_select($link, 'p');
-    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind FROM fact_characters p LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id WHERE p.totem_id = ? $cronicaNotInSQL ORDER BY p.name")) {
+    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind FROM fact_characters p LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id WHERE p.totem_id = ? $cronicaNotInSQL ORDER BY p.name")) {
         $stOwners->bind_param('i', $totemPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -106,14 +106,14 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $hasOrgOwners = count($totemOrgs) > 0;
     $useTabs = ($hasCharOwners || $hasGroupOwners || $hasOrgOwners);
 	
-	$pageSect = "Tótems"; // PARA CAMBIAR EL TITULO A LA PAGINA
+	$pageSect = "TÃ³tems"; // PARA CAMBIAR EL TITULO A LA PAGINA
 	$pageTitle2 = $totemName; // PARA CAMBIAR EL TITULO A LA PAGINA
-	setMetaFromPage($totemName . " | Tótems | Heaven's Gate", meta_excerpt($totemDesc), null, 'article');
+	setMetaFromPage($totemName . " | TÃ³tems | Heaven's Gate", meta_excerpt($totemDesc), null, 'article');
 
-    // Incluir barra de navegación
+    // Incluir barra de navegaciÃ³n
     include("app/partials/main_nav_bar.php");
 
-    // Título de la página
+    // TÃ­tulo de la pÃ¡gina
     ob_start();
 
     // Imagen del Totem
@@ -206,7 +206,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         </style>";
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
         if ($hasCharOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         if ($hasGroupOwners) echo "<button class='boton2 hgTabBtn' data-tab='groups'>Grupos</button>";
         if ($hasOrgOwners) echo "<button class='boton2 hgTabBtn' data-tab='orgs'>Organizaciones</button>";
@@ -225,9 +225,9 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
-                    "Aún por aparecer"     => "(&#64;)",
+                    "AÃºn por aparecer"     => "(&#64;)",
                     "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
+                    "CadÃ¡ver"              => "(&#8224;)"
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
@@ -282,8 +282,9 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     }
 
 } else {
-    echo "<p>Error: Tótem no encontrado.</p>";
+    echo "<p>Error: TÃ³tem no encontrado.</p>";
 }
 ?>
+
 
 

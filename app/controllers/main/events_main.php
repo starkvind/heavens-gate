@@ -127,11 +127,11 @@ $hasFteDateNote = hg_events_col_exists($link, 'fact_timeline_events', 'date_note
 $hasFteLocation = hg_events_col_exists($link, 'fact_timeline_events', 'location');
 $hasFteSource = hg_events_col_exists($link, 'fact_timeline_events', 'source');
 $hasFteTimeline = hg_events_col_exists($link, 'fact_timeline_events', 'timeline');
-$hasFteKind = hg_events_col_exists($link, 'fact_timeline_events', 'kind');
 $hasFteIsActive = hg_events_col_exists($link, 'fact_timeline_events', 'is_active');
 $hasFteEventTypeId = hg_events_col_exists($link, 'fact_timeline_events', 'event_type_id');
 
 $hasTypesTable = hg_events_table_exists($link, 'dim_timeline_events_types');
+$hasTypeColor = hg_events_col_exists($link, 'dim_timeline_events_types', 'color_hex');
 $hasChronBridge = hg_events_table_exists($link, 'bridge_timeline_events_chronicles') && hg_events_table_exists($link, 'dim_chronicles');
 $hasRealBridge = hg_events_table_exists($link, 'bridge_timeline_events_realities') && hg_events_table_exists($link, 'dim_realities');
 
@@ -161,16 +161,17 @@ $selectDateNote = $hasFteDateNote ? 'e.date_note AS date_note' : 'NULL AS date_n
 $selectLocation = $hasFteLocation ? 'e.location AS location' : 'NULL AS location';
 $selectSource = $hasFteSource ? 'e.source AS source' : 'NULL AS source';
 $selectTimeline = $hasFteTimeline ? 'e.timeline AS timeline' : 'NULL AS timeline';
-$selectKind = $hasFteKind ? 'e.kind AS kind' : "'evento' AS kind";
 
 $typeJoin = '';
 if ($hasTypesTable && $hasFteEventTypeId) {
     $typeJoin = 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id';
-    $typeSlugExpr = "COALESCE(t.pretty_id, " . ($hasFteKind ? 'e.kind' : "'evento'") . ", 'evento')";
+    $typeSlugExpr = "COALESCE(t.pretty_id, 'evento')";
     $typeNameExpr = "COALESCE(t.name, 'Evento')";
+    $typeColorExpr = $hasTypeColor ? "NULLIF(TRIM(t.color_hex), '')" : 'NULL';
 } else {
-    $typeSlugExpr = "COALESCE(" . ($hasFteKind ? 'e.kind' : "'evento'") . ", 'evento')";
+    $typeSlugExpr = "'evento'";
     $typeNameExpr = "'Evento'";
+    $typeColorExpr = 'NULL';
 }
 
 $chronicleJoin = '';
@@ -245,9 +246,9 @@ SELECT
     {$selectLocation},
     {$selectSource},
     {$selectTimeline},
-    {$selectKind},
     {$typeSlugExpr} AS type_slug,
     {$typeNameExpr} AS type_name,
+    {$typeColorExpr} AS type_color,
     {$chronicleRefsExpr},
     {$chronicleLineExpr},
     {$realityRefsExpr},
@@ -267,6 +268,8 @@ if ($res) {
         $typeName = trim((string)($row['type_name'] ?? 'Evento'));
         if ($typeSlug === '') $typeSlug = 'evento';
         if ($typeName === '') $typeName = 'Evento';
+        $typeColor = trim((string)($row['type_color'] ?? ''));
+        if ($typeColor === '') $typeColor = null;
 
         $icon = 'O';
         switch ($typeSlug) {
@@ -357,6 +360,7 @@ if ($res) {
             'date_label' => hg_events_date_label($eventDate, (string)($row['date_precision'] ?? 'day'), (string)($row['date_note'] ?? '')),
             'type_slug' => $typeSlug,
             'type_name' => $typeName,
+            'type_color' => $typeColor,
             'description' => $description,
             'short_desc' => hg_events_excerpt($description, 190),
             'location' => $location,
@@ -458,33 +462,69 @@ include("app/partials/main_nav_bar.php");
                 <span class="events-filter-label">Búsqueda</span>
                 <input class="events-filter-input" type="text" id="evSearch" placeholder="Titulo, descripcion, fuente...">
             </label>
-            <label class="events-filter-block">
+            <div class="events-filter-block">
                 <span class="events-filter-label">Tipo</span>
-                <select class="events-filter-select" id="evType">
-                    <option value="">Todos</option>
-                    <?php foreach ($typeStats as $typeData): ?>
-                    <option value="<?= hg_events_h($typeData['slug']) ?>"><?= hg_events_h($typeData['name']) ?> (<?= (int)$typeData['count'] ?>)</option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label class="events-filter-block">
+                <div class="events-ms-wrap" id="filter-type">
+                    <button class="events-ms-btn events-filter-select" type="button" id="ms-toggle-type" aria-haspopup="true" aria-expanded="false">
+                        <span class="events-ms-label">Tipo</span>
+                        <span class="events-ms-summary" id="ms-summary-type">Todos</span>
+                    </button>
+                    <div class="events-ms-panel" id="ms-panel-type" aria-hidden="true">
+                        <?php foreach ($typeStats as $typeData): ?>
+                        <label class="events-ms-row">
+                            <input type="checkbox" class="events-ms-check events-ms-check-type" value="<?= hg_events_h($typeData['slug']) ?>" checked>
+                            <span><?= hg_events_h($typeData['name']) ?> (<?= (int)$typeData['count'] ?>)</span>
+                        </label>
+                        <?php endforeach; ?>
+                        <div class="events-ms-actions">
+                            <button type="button" id="ms-select-all-type">Todo</button>
+                            <button type="button" id="ms-clear-type">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="events-filter-block">
                 <span class="events-filter-label">Crónica</span>
-                <select class="events-filter-select" id="evChronicle">
-                    <option value="">Todas</option>
-                    <?php foreach ($chronicleFilterMap as $cid => $cname): ?>
-                    <option value="<?= (int)$cid ?>"><?= hg_events_h($cname) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label class="events-filter-block<?= $showRealityFilter ? '' : ' is-future-hidden' ?>">
+                <div class="events-ms-wrap" id="filter-chronicle">
+                    <button class="events-ms-btn events-filter-select" type="button" id="ms-toggle-chronicle" aria-haspopup="true" aria-expanded="false">
+                        <span class="events-ms-label">Crónica</span>
+                        <span class="events-ms-summary" id="ms-summary-chronicle">Todas</span>
+                    </button>
+                    <div class="events-ms-panel" id="ms-panel-chronicle" aria-hidden="true">
+                        <?php foreach ($chronicleFilterMap as $cid => $cname): ?>
+                        <label class="events-ms-row">
+                            <input type="checkbox" class="events-ms-check events-ms-check-chronicle" value="<?= (int)$cid ?>" checked>
+                            <span><?= hg_events_h($cname) ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                        <div class="events-ms-actions">
+                            <button type="button" id="ms-select-all-chronicle">Todo</button>
+                            <button type="button" id="ms-clear-chronicle">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="events-filter-block<?= $showRealityFilter ? '' : ' is-future-hidden' ?>">
                 <span class="events-filter-label">Realidad</span>
-                <select class="events-filter-select" id="evReality" <?= $showRealityFilter ? '' : 'disabled aria-hidden="true"' ?>>
-                    <option value="">Todas</option>
-                    <?php foreach ($realityFilterMap as $rid => $rname): ?>
-                    <option value="<?= (int)$rid ?>"><?= hg_events_h($rname) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
+                <div class="events-ms-wrap" id="filter-reality"<?= $showRealityFilter ? '' : ' aria-hidden="true"' ?>>
+                    <button class="events-ms-btn events-filter-select" type="button" id="ms-toggle-reality" aria-haspopup="true" aria-expanded="false" <?= $showRealityFilter ? '' : 'disabled' ?>>
+                        <span class="events-ms-label">Realidad</span>
+                        <span class="events-ms-summary" id="ms-summary-reality">Todas</span>
+                    </button>
+                    <div class="events-ms-panel" id="ms-panel-reality" aria-hidden="true">
+                        <?php foreach ($realityFilterMap as $rid => $rname): ?>
+                        <label class="events-ms-row">
+                            <input type="checkbox" class="events-ms-check events-ms-check-reality" value="<?= (int)$rid ?>" checked>
+                            <span><?= hg_events_h($rname) ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                        <div class="events-ms-actions">
+                            <button type="button" id="ms-select-all-reality">Todo</button>
+                            <button type="button" id="ms-clear-reality">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <label class="events-filter-block">
                 <span class="events-filter-label">Desde</span>
                 <input class="events-filter-input" type="date" id="evDateFrom" value="">
@@ -561,9 +601,9 @@ include("app/partials/main_nav_bar.php");
     const noRows = document.getElementById('evNoRows');
 
     const inputSearch = document.getElementById('evSearch');
-    const inputType = document.getElementById('evType');
-    const inputChronicle = document.getElementById('evChronicle');
-    const inputReality = document.getElementById('evReality');
+    const typeChecks = Array.from(document.querySelectorAll('.events-ms-check-type'));
+    const chronicleChecks = Array.from(document.querySelectorAll('.events-ms-check-chronicle'));
+    const realityChecks = Array.from(document.querySelectorAll('.events-ms-check-reality'));
     const inputDateFrom = document.getElementById('evDateFrom');
     const inputDateTo = document.getElementById('evDateTo');
 
@@ -587,6 +627,69 @@ include("app/partials/main_nav_bar.php");
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
+    }
+
+    const multiFilterConfigs = [
+        { key: 'type', allLabel: 'Todos', checks: typeChecks, hidden: false },
+        { key: 'chronicle', allLabel: 'Todas', checks: chronicleChecks, hidden: false },
+        { key: 'reality', allLabel: 'Todas', checks: realityChecks, hidden: !allowRealityFilter }
+    ];
+
+    function openMsPanel(key) {
+        const panel = document.getElementById('ms-panel-' + key);
+        const toggle = document.getElementById('ms-toggle-' + key);
+        if (!panel || !toggle || toggle.disabled) return;
+        panel.style.display = 'block';
+        panel.setAttribute('aria-hidden', 'false');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMsPanel(key) {
+        const panel = document.getElementById('ms-panel-' + key);
+        const toggle = document.getElementById('ms-toggle-' + key);
+        if (!panel || !toggle) return;
+        panel.style.display = 'none';
+        panel.setAttribute('aria-hidden', 'true');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMsPanel(key) {
+        const panel = document.getElementById('ms-panel-' + key);
+        if (!panel) return;
+        if (panel.style.display === 'block') closeMsPanel(key);
+        else openMsPanel(key);
+    }
+
+    function getSelectedValues(checks) {
+        const selected = checks.filter(node => node.checked).map(node => String(node.value));
+        return selected.length ? selected : null;
+    }
+
+    function updateMsSummary(cfg) {
+        if (cfg.hidden) return;
+        const summary = document.getElementById('ms-summary-' + cfg.key);
+        if (!summary) return;
+        const selected = getSelectedValues(cfg.checks);
+        if (selected === null) {
+            summary.textContent = cfg.allLabel;
+            return;
+        }
+        if (selected.length === 1) {
+            const firstLabel = cfg.checks.find(node => node.checked);
+            let txt = selected[0];
+            if (firstLabel) {
+                const rowLabel = firstLabel.closest('label');
+                const span = rowLabel ? rowLabel.querySelector('span') : null;
+                if (span && span.textContent) txt = String(span.textContent);
+            }
+            summary.textContent = txt;
+            return;
+        }
+        summary.textContent = selected.length + ' selecc.';
+    }
+
+    function setAllChecks(checks, state) {
+        checks.forEach(node => { node.checked = state; });
     }
 
     function dateInRange(eventDate, fromDate, toDate) {
@@ -644,23 +747,12 @@ include("app/partials/main_nav_bar.php");
         };
     }
 
-    function typeColor(typeSlug) {
-        const map = {
-            evento: '#4b78d4',
-            catastrofe: '#df4549',
-            batalla: '#9264df',
-            descubrimiento: '#4a9cff',
-            muerte: '#7e7e7e',
-            nacimiento: '#53cf9d',
-            traicion: '#d968c6',
-            romance: '#ff8fc0',
-            fundacion: '#f8cb63',
-            alianza: '#68dddd',
-            enemistad: '#d6a35f',
-            reclutamiento: '#66c1ff',
-            otros: '#d9a76b'
-        };
-        return map[String(typeSlug || 'evento')] || '#4b78d4';
+    function typeColor(ev) {
+        const fallback = '#4b78d4';
+        const raw = String((ev && ev.type_color) || '').trim();
+        if (!raw) return fallback;
+        if (/^#[0-9a-fA-F]{6}$/.test(raw) || /^#[0-9a-fA-F]{3}$/.test(raw)) return raw;
+        return fallback;
     }
 
     function buildChartData(rows) {
@@ -683,7 +775,7 @@ include("app/partials/main_nav_bar.php");
                 event: ev,
                 symbolSize: selected ? 20 : 14,
                 itemStyle: {
-                    color: typeColor(type),
+                    color: typeColor(ev),
                     borderColor: selected ? '#ffffff' : '#132e73',
                     borderWidth: selected ? 2 : 1,
                     shadowBlur: selected ? 10 : 0,
@@ -848,15 +940,25 @@ include("app/partials/main_nav_bar.php");
             if (!hay.includes(q)) return false;
         }
 
-        const selectedType = (inputType.value || '').trim();
-        if (selectedType !== '' && String(ev.type_slug) !== selectedType) return false;
+        const selectedTypes = getSelectedValues(typeChecks);
+        if (selectedTypes !== null && !selectedTypes.includes(String(ev.type_slug || ''))) return false;
 
-        const selectedChronicle = Number(inputChronicle.value || 0);
-        if (selectedChronicle > 0 && !(Array.isArray(ev.chronicle_ids) && ev.chronicle_ids.includes(selectedChronicle))) return false;
+        const selectedChronicles = getSelectedValues(chronicleChecks);
+        if (selectedChronicles !== null) {
+            const selectedSet = new Set(selectedChronicles.map(v => Number(v)));
+            const ids = Array.isArray(ev.chronicle_ids) ? ev.chronicle_ids : [];
+            const hasMatch = ids.some(id => selectedSet.has(Number(id)));
+            if (!hasMatch) return false;
+        }
 
         if (allowRealityFilter) {
-            const selectedReality = Number(inputReality.value || 0);
-            if (selectedReality > 0 && !(Array.isArray(ev.reality_ids) && ev.reality_ids.includes(selectedReality))) return false;
+            const selectedRealities = getSelectedValues(realityChecks);
+            if (selectedRealities !== null) {
+                const selectedSet = new Set(selectedRealities.map(v => Number(v)));
+                const ids = Array.isArray(ev.reality_ids) ? ev.reality_ids : [];
+                const hasMatch = ids.some(id => selectedSet.has(Number(id)));
+                if (!hasMatch) return false;
+            }
         }
 
         const fromDate = (inputDateFrom.value || '').trim();
@@ -1042,16 +1144,64 @@ include("app/partials/main_nav_bar.php");
         });
     });
 
-    [inputSearch, inputType, inputChronicle, inputReality, inputDateFrom, inputDateTo].forEach(node => {
+    [inputSearch, inputDateFrom, inputDateTo].forEach(node => {
         node.addEventListener('input', function(){ applyFilters(true); });
         node.addEventListener('change', function(){ applyFilters(true); });
     });
 
+    multiFilterConfigs.forEach(cfg => {
+        if (cfg.hidden) return;
+        const toggle = document.getElementById('ms-toggle-' + cfg.key);
+        const wrap = document.getElementById('filter-' + cfg.key);
+        const btnAll = document.getElementById('ms-select-all-' + cfg.key);
+        const btnClear = document.getElementById('ms-clear-' + cfg.key);
+
+        if (toggle) {
+            toggle.addEventListener('click', function() { toggleMsPanel(cfg.key); });
+            toggle.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleMsPanel(cfg.key);
+                }
+            });
+        }
+
+        cfg.checks.forEach(node => {
+            node.addEventListener('change', function() {
+                updateMsSummary(cfg);
+                applyFilters(true);
+            });
+        });
+
+        if (btnAll) {
+            btnAll.addEventListener('click', function() {
+                setAllChecks(cfg.checks, true);
+                updateMsSummary(cfg);
+                applyFilters(true);
+            });
+        }
+        if (btnClear) {
+            btnClear.addEventListener('click', function() {
+                setAllChecks(cfg.checks, false);
+                updateMsSummary(cfg);
+                applyFilters(true);
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!wrap) return;
+            if (!wrap.contains(e.target)) closeMsPanel(cfg.key);
+        });
+    });
+
     document.getElementById('evReset').addEventListener('click', function(){
         inputSearch.value = '';
-        inputType.value = '';
-        inputChronicle.value = '';
-        inputReality.value = '';
+        multiFilterConfigs.forEach(cfg => {
+            if (cfg.hidden) return;
+            setAllChecks(cfg.checks, true);
+            updateMsSummary(cfg);
+            closeMsPanel(cfg.key);
+        });
         inputDateFrom.value = '';
         inputDateTo.value = '';
         applyFilters(false);
@@ -1089,6 +1239,7 @@ include("app/partials/main_nav_bar.php");
         return;
     }
 
+    multiFilterConfigs.forEach(updateMsSummary);
     applyFilters(false);
     focusGameplayEraOnLoad();
 })();

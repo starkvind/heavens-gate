@@ -25,6 +25,32 @@ function hg_acd_pick_deaths_table(mysqli $db): string {
     return '';
 }
 
+function hg_acd_sync_timeline_from_death(mysqli $db, string $deathsTable, ?int $eventId, ?string $deathDate): void {
+    if ($eventId === null || $eventId <= 0) return;
+    $eventDate = ($deathDate !== null && $deathDate !== '') ? $deathDate : '1000-01-01';
+    $precision = ($deathDate !== null && $deathDate !== '') ? 'day' : 'unknown';
+    $dateNote = ($deathDate !== null && $deathDate !== '')
+        ? null
+        : "Fecha de muerte no especificada (sincronizado desde {$deathsTable}).";
+
+    if ($st = $db->prepare("
+        UPDATE fact_timeline_events
+        SET
+            event_type_id = 5,
+            event_date = ?,
+            sort_date = ?,
+            date_precision = ?,
+            date_note = ?,
+            updated_at = NOW()
+        WHERE id = ?
+        LIMIT 1
+    ")) {
+        $st->bind_param('ssssi', $eventDate, $eventDate, $precision, $dateNote, $eventId);
+        $st->execute();
+        $st->close();
+    }
+}
+
 $deathsTable = hg_acd_pick_deaths_table($link);
 $hasSchema = ($deathsTable !== '')
     && hg_acd_has_table($link, 'fact_characters')
@@ -151,6 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
                     $jsonExit(['ok' => false, 'msg' => 'Error al actualizar la muerte']);
                 }
                 $st->close();
+                hg_acd_sync_timeline_from_death($link, $deathsTable, $timelineEventId, $deathDate);
                 $jsonExit(['ok' => true, 'msg' => 'Guardado', 'mode' => 'update']);
             }
             $jsonExit(['ok' => false, 'msg' => 'Error al preparar UPDATE']);
@@ -167,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
                 $jsonExit(['ok' => false, 'msg' => 'Error al insertar la muerte']);
             }
             $st->close();
+            hg_acd_sync_timeline_from_death($link, $deathsTable, $timelineEventId, $deathDate);
             $jsonExit(['ok' => true, 'msg' => 'Guardado', 'mode' => 'insert']);
         }
 
@@ -223,7 +251,7 @@ if ($hasSchema) {
       p.id,
       p.pretty_id,
       p.name,
-      COALESCE(dcs.label, p.status) AS status, p.status_id,
+      COALESCE(dcs.label, '') AS status, p.status_id,
       p.chronicle_id,
       COALESCE(bo.organization_id, 0) AS organization_id,
       d.id AS death_id,
@@ -658,5 +686,6 @@ window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON
 })();
 </script>
 <?php endif; ?>
+
 
 

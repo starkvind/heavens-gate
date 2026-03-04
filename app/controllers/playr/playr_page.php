@@ -1,13 +1,13 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 $pjRaw = $_GET['b'] ?? '';
 $pjId = resolve_pretty_id($link, 'dim_players', (string)$pjRaw) ?? 0;
 
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 }
 if ($pjId <= 0) {
-    die("Jugador inválido.");
+    die("Jugador invÃ¡lido.");
 }
 
 $queryPlayer = "
@@ -27,7 +27,7 @@ $resultPlayer = mysqli_stmt_get_result($stmtPlayer);
 
 if (!$resultPlayer || mysqli_num_rows($resultPlayer) <= 0) {
     mysqli_stmt_close($stmtPlayer);
-    die("Jugador no disponible en el catálogo.");
+    die("Jugador no disponible en el catÃ¡logo.");
 }
 
 $player = mysqli_fetch_assoc($resultPlayer);
@@ -69,7 +69,7 @@ $chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN (
 
 $characterKindSql = hg_character_kind_select($link, 'p');
 $queryCharacters = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, {$characterKindSql} AS character_kind
+    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind
     FROM fact_characters p
     LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
     WHERE p.player_id = ? $chronicleNotInSQL
@@ -95,10 +95,10 @@ mysqli_stmt_close($stmtCharacters);
 
 $mapEstado = [
     'Aun por aparecer' => '(@)',
-    'Aún por aparecer' => '(@)',
+    'AÃºn por aparecer' => '(@)',
     'Paradero desconocido' => '(?)',
     'Cadaver' => '(&#8224;)',
-    'Cadáver' => '(&#8224;)'
+    'CadÃ¡ver' => '(&#8224;)'
 ];
 ?>
 
@@ -147,4 +147,5 @@ $mapEstado = [
         <?php endif; ?>
     </section>
 </div>
+
 

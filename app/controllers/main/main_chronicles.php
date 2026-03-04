@@ -54,8 +54,7 @@ $chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN (
 $chronicleFilterId = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 $chronicleFilterSQL = ($chronicleFilterId > 0) ? " AND p.chronicle_id = " . $chronicleFilterId . " " : "";
 $kindColumn = hg_ch_has_column($link, 'fact_characters', 'character_kind') ? 'character_kind' : 'kind';
-$statusColumn = hg_ch_has_column($link, 'fact_characters', 'status') ? 'status' : 'character_status';
-$statusExpr = "COALESCE(dcs.label, p.`$statusColumn`)";
+$statusExpr = "COALESCE(dcs.label, '')";
 
 include("app/partials/main_nav_bar.php");
 

@@ -95,6 +95,7 @@ var CHAR_RESOURCES       = BOOT.CHAR_RESOURCES || {};
 var CHAR_TRAITS      = BOOT.CHAR_TRAITS || {};
 var TRAIT_SET_ORDER  = BOOT.TRAIT_SET_ORDER || {};
 var CHAR_DETAILS     = BOOT.CHAR_DETAILS || {};
+var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
 (function(){
   var filterForm = document.getElementById('charactersFilterForm');
@@ -591,18 +592,21 @@ var CHAR_DETAILS     = BOOT.CHAR_DETAILS || {};
     });
   }
 
-  function ensureEstadoOption(val){
-    if (!val) return;
+  function ensureEstadoOption(val, label){
+    var wanted = parseInt(val, 10) || 0;
+    if (!wanted) return;
     var sel = fEstado;
-    var ok = Array.prototype.some.call(sel.options, function(o){ return o.value === val; });
+    var ok = Array.prototype.some.call(sel.options, function(o){
+      return (parseInt(o.value, 10) || 0) === wanted;
+    });
     if (!ok) {
       var opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = '[WARN] ' + val + ' (no en lista)';
+      opt.value = String(wanted);
+      opt.textContent = '[WARN] ' + (label || ('Estado #' + wanted)) + ' (no en lista)';
       sel.appendChild(opt);
       reinitSelect2(sel);
     }
-    sel.value = val;
+    sel.value = String(wanted);
     reinitSelect2(sel);
   }
 
@@ -621,7 +625,7 @@ var CHAR_DETAILS     = BOOT.CHAR_DETAILS || {};
     selAfili.value = '0';
     if (selKind) selKind.value = 'pnj';
 
-    ensureEstadoOption('En activo');
+    ensureEstadoOption(DEFAULT_STATUS_ID);
 
     fInfo.value  = '';
 
@@ -757,11 +761,11 @@ var CHAR_DETAILS     = BOOT.CHAR_DETAILS || {};
     fInfo.value   = '';
     fCumple.value = '';
     fRango.value  = '';
-    ensureEstadoOption('En activo');
+    ensureEstadoOption(DEFAULT_STATUS_ID);
 
     var d = CHAR_DETAILS[cid];
     if (d) {
-      ensureEstadoOption(d.status || 'En activo');
+      ensureEstadoOption(d.status_id || DEFAULT_STATUS_ID, d.status || '');
       fCumple.value = d.cumple || '';
       fRango.value  = d.rango || '';
       fInfo.value   = d.infotext || '';

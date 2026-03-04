@@ -285,18 +285,12 @@ if ($q) { while ($r = $q->fetch_assoc()) $plots[] = $r; $q->close(); }
 
 // Personajes base (fact_characters)
 $baseChars = [];
-$statusCol = has_column($link, 'fact_characters', 'status') ? 'status' : (has_column($link, 'fact_characters', 'character_status') ? 'character_status' : '');
 $hasStatusId = has_column($link, 'fact_characters', 'status_id');
 $hasStatusDim = has_table($link, 'dim_character_status');
 $baseCharsSql = "SELECT fc.id, fc.name AS nombre, fc.alias FROM fact_characters fc";
 if ($hasStatusId && $hasStatusDim) {
-    $legacyActiveExpr = ($statusCol !== '')
-        ? "IF(LOWER(TRIM(COALESCE(fc.`{$statusCol}`, '')))='en activo',1,0)"
-        : "0";
     $baseCharsSql .= " LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id";
-    $baseCharsSql .= " WHERE COALESCE(dcs.is_active, {$legacyActiveExpr}) = 1";
-} elseif ($statusCol !== '') {
-    $baseCharsSql .= " WHERE LOWER(TRIM(COALESCE(fc.`{$statusCol}`, ''))) = 'en activo' ";
+    $baseCharsSql .= " WHERE COALESCE(dcs.is_active, 0) = 1";
 }
 $baseCharsSql .= " ORDER BY fc.name ASC";
 $q = $link->query($baseCharsSql);

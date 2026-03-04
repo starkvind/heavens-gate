@@ -1,30 +1,47 @@
 <?php
 	include_once(__DIR__ . '/../../helpers/character_avatar.php');
-	/*  Índice de secciones
+	/*  Ãndice de secciones
 			1.- Query en Base de Datos 		[#SEC01]
 			2.- Foto del Personaje 			[#SEC02]
-			3.- Datos básicos - Detalles	[#SEC03]
+			3.- Datos bÃ¡sicos - Detalles	[#SEC03]
 			4.- Parte superior de la Hoja	[#SEC04]
 			5.- Atributos					[#SEC05]
 			6.- Habilidades					[#SEC06]
 			7.- Trasfondos y Ventajas		[#SEC07]
-			8.- Méritos y Defectos			[#SEC08]
+			8.- MÃ©ritos y Defectos			[#SEC08]
 			9.- Renombre / Virtudes			[#SEC09]
 		   10.- Fuerza de Voluntad			[#SEC10]
 		   11.- Poderes - Dones, Discip.	[#SEC11]
 		   12.- Rituales					[#SEC12]
 		   13.- Inventario del personaje	[#SEC13]
-		   14.- Biografías similares		[#SEC14]
+		   14.- BiografÃ­as similares		 [#SEC14]
 		   15.- Comentarios					[#SEC15]
 	*/
 
 	// Helpers (escape + fetch sin depender de mysqlnd)
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
+	function column_exists(mysqli $link, string $table, string $column): bool {
+		static $cache = [];
+		$key = $table . ':' . $column;
+		if (isset($cache[$key])) return $cache[$key];
+		$ok = false;
+		if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+			$st->bind_param('ss', $table, $column);
+			$st->execute();
+			$st->bind_result($count);
+			$st->fetch();
+			$st->close();
+			$ok = ((int)$count > 0);
+		}
+		$cache[$key] = $ok;
+		return $ok;
+	}
+
 	function stmt_fetch_all_assoc_compat(mysqli_stmt $stmt): array {
 		$out = [];
 
-		// Camino rápido (mysqlnd)
+		// Camino rÃ¡pido (mysqlnd)
 		if (method_exists($stmt, 'get_result')) {
 			$res = @$stmt->get_result();
 			if ($res instanceof mysqli_result) {
@@ -106,7 +123,7 @@
 		return $out;
 	}
 
-	// Cálculo de círculos de habilidad, atributos, etc.
+	// CÃ¡lculo de cÃ­rculos de habilidad, atributos, etc.
 	if (!function_exists('createSkillCircle')) {
 		function createSkillCircle(array $array, string $prefix): array {
 			$result = [];
@@ -335,45 +352,45 @@
 		foreach ($rowsMain as $dataResult) {
 		#$dataResult = mysql_fetch_array($queryData); // Empezamos a recolectar los datos. ~~ #SEC01
 		// ================================================================== //
-		// Datos básicos del personaje
+		// Datos bÃ¡sicos del personaje
 			$characterIdDb		 = $dataResult["id"];
 		$bioId = $characterIdDb;
- 			// ID del personaje. Aunque la tengamos en el get, mejor así.
+ 			// ID del personaje. Aunque la tengamos en el get, mejor asÃ­.
 			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
-			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
+			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "ClÃ¡usula", "Churrasco", "Chili-ChingÃ³n", etc.
 			$bioPhoto	 = hg_character_avatar_url($dataResult["image_url"] ?? '', $dataResult["gender"] ?? ''); 	// Imagen del personaje.
 			$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
-			$bioBday	 = $dataResult["birthdate_text"]; // Cumpleaños del personaje.
+			$bioBday	 = ''; // Se calcula desde timeline en bio_page_section_01_data.php
 			$bioConcept	 = $dataResult["concept"]; 		// Concepto del personaje.
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
 			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
 		// ================================================================== //
-			$pageSect 	 = "Biografía";						// Para cambiar el título a la página.
-			$pageTitle2	 = $bioName;						// Título de la Página
+			$pageSect 	 = "Biograf&iacute;a";						// Para cambiar el titulo a la pagina.
+			$pageTitle2	 = $bioName;						// TÃ­tulo de la PÃ¡gina
 			setMetaFromPage($bioName . " | Personajes | Heaven's Gate", meta_excerpt($bioText), $bioPhoto, 'article');
-			$titleInfo	 = "&nbsp;Información&nbsp;";		// Titulo de la seccion "Información"
-			$titleId	 = "&nbsp;Detalles de $bioName&nbsp;";// Titulo de la seccion "Identificación"
+			$titleInfo	 = "&nbsp;Informaci&oacute;n&nbsp;";		// Titulo de la seccion "Informacion"
+			$titleId	 = "&nbsp;Detalles de $bioName&nbsp;";// Titulo de la seccion "Identificacion"
 			$titleAttr	 = "&nbsp;Atributos&nbsp;";			// Titulo de la seccion "Atributos"
 			$titleSkill	 = "&nbsp;Habilidades&nbsp;";		// Titulo de la seccion "Habilidades"
 			$titleBackg	 = "&nbsp;Trasfondos&nbsp;";		// Titulo de la seccion "Trasfondos"
-			$titleMerits = "&nbsp;Méritos y Defectos&nbsp;";// Titulo de la seccion "Méritos y Defectos"
+			$titleMerits = "&nbsp;M&eacute;ritos y Defectos&nbsp;";// Titulo de la seccion "Meritos y Defectos"
 			$titleSocial = "&nbsp;Renombre&nbsp;"; 			// Titulo de la seccion "Social"
 			$titleAdvant = "&nbsp;Estado&nbsp;";			// Titulo de la seccion "Estado"
 			$titlePowers = "&nbsp;Poderes&nbsp;";			// Titulo de la seccion "Poderes"
 			$titleItems	 = "&nbsp;Inventario&nbsp;";		// Titulo de la seccion "Inventario"
-			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// Título de la sección "Relaciones"
-			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// Título de la sección "Nebulosa de relaciones"	
-			$titleParticp= "&nbsp;Participación&nbsp;";		// Titulo de la seccion "Participación"		
+			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// TÃ­tulo de la secciÃ³n "Relaciones"
+			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// TÃ­tulo de la secciÃ³n "Nebulosa de relaciones"	
+			$titleParticp= "&nbsp;Participaci&oacute;n&nbsp;";		// Titulo de la seccion "Participacion"		
 		// ================================================================== //
-		// Datos de jugador y crónica
+		// Datos de jugador y crÃ³nica
 			$bioPlayer	 = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
-			$bioChronic	 = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
-			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si está "activo" o "muerto", etc.
+			$bioChronic	 = $dataResult["chronicle_id"]; // CrÃ³nica a la que pertenece el personaje.
+			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si estÃ¡ "activo" o "muerto", etc.
 			$bioDethCaus = $dataResult["death_description"] ?? ""; // Causa de la muerte.
 			$bioSheetRaw = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
-			$bioSheet	 = $bioSheetRaw; // Compatibilidad con código legacy.
+			$bioSheet	 = $bioSheetRaw; // Compatibilidad con cÃ³digo legacy.
 			$bioIsMonster = in_array($bioSheetRaw, ["mon", "monster"], true);
 			$bioHasSheet = in_array($bioSheetRaw, ["pj", "mon", "monster"], true);
 		// ================================================================== //
@@ -381,15 +398,15 @@
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
 			$bioAuspice	 = $dataResult["auspice_id"]; 	// Auspicio al que pertenece el personaje.
 			$bioTribe	 = $dataResult["tribe_id"]; 	// Tribu a la que pertenece el personaje.
-			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organización.
+			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organizaciÃ³n.
 		// ================================================================== //
 		// Ventajas y poderes
-			$bioTotem	 = ""; 		// Tótem que guía al personaje.
+			$bioTotem	 = ""; 		// TÃ³tem que guÃ­a al personaje.
 			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
-		// Género
-			$bioGender	 = $dataResult["gender"];	// Género del personaje
-		// Títulos de la sección Detalles		
-			$titlePkName	= "Nombre Garou";		// Título del nombre Garou
+		// GÃ©nero
+			$bioGender	 = $dataResult["gender"];	// GÃ©nero del personaje
+		// TÃ­tulos de la secciÃ³n Detalles		
+			$titlePkName	= "Nombre Garou";		// TÃ­tulo del nombre Garou
 		// Sistema, para nombres de detalles y tal.
 			$bioSystem 	= (string)($dataResult["system_label"] ?? "");
 			$bioSystemId = (int)($dataResult["system_id"] ?? 0);
@@ -404,15 +421,15 @@
 			$titleTribe 	= "Tribu";
 			$titleClan 		= "Clan";
 			// ================================================================== //
-			// Cambiamos títulos de secciones acorde al Sistema del PJ
-			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la página con código
+			// Cambiamos tÃ­tulos de secciones acorde al Sistema del PJ
+			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 		// ================================================================== //
-		if ($bioHasSheet) { // <--- Inicio de comprobación si lleva hoja
+		if ($bioHasSheet) { // <--- Inicio de comprobaciÃ³n si lleva hoja
 		// ================================================================== //
 		// Traits normalizados (bridge_characters_traits)
 			$traitValues = fetch_trait_values($link, (int)$characterId);
 
-			// Mapa trait_id por columna legacy (mismo mapping que migración)
+			// Mapa trait_id por columna legacy (mismo mapping que migraciÃ³n)
 			$traitIdMap = [
 				'fuerza' => 1,
 				'destreza' => 33,
@@ -481,14 +498,14 @@
 		$bioTraitsByType = [
 			'Atributos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Atributos', $bioIsMonster),
 			'Talentos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Talentos', $bioIsMonster),
-			'Técnicas' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Técnicas', $bioIsMonster),
+			'TÃ©cnicas' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'TÃ©cnicas', $bioIsMonster),
 			'Conocimientos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Conocimientos', $bioIsMonster),
 			'Trasfondos' => fetch_traits_for_system_type($link, (int)$characterId, (int)($dataResult['system_id'] ?? 0), 'Trasfondos', $bioIsMonster),
 		];
 
-		// Orden + extras al final (alfabético)
+		// Orden + extras al final (alfabÃ©tico)
 		$bioTraitsByType['Talentos'] = order_trait_list($bioTraitsByType['Talentos'] ?? [], 10);
-		$bioTraitsByType['Técnicas'] = order_trait_list($bioTraitsByType['Técnicas'] ?? [], 10);
+		$bioTraitsByType['TÃ©cnicas'] = order_trait_list($bioTraitsByType['TÃ©cnicas'] ?? [], 10);
 		$bioTraitsByType['Conocimientos'] = order_trait_list($bioTraitsByType['Conocimientos'] ?? [], 10);
 
 		$bioTraitImgsByType = [];
@@ -523,12 +540,12 @@
 
 		$bioSkillCols = [
 			'Talentos' => $bioTraitsByType['Talentos'] ?? [],
-			'Técnicas' => $bioTraitsByType['Técnicas'] ?? [],
+			'TÃ©cnicas' => $bioTraitsByType['TÃ©cnicas'] ?? [],
 			'Conocimientos' => $bioTraitsByType['Conocimientos'] ?? [],
 		];
 		$bioSkillColImgs = [
 			'Talentos' => $bioTraitImgsByType['Talentos'] ?? [],
-			'Técnicas' => $bioTraitImgsByType['Técnicas'] ?? [],
+			'TÃ©cnicas' => $bioTraitImgsByType['TÃ©cnicas'] ?? [],
 			'Conocimientos' => $bioTraitImgsByType['Conocimientos'] ?? [],
 		];
 
@@ -572,17 +589,17 @@
 		$bioSkilImg = createSkillCircle($bioArraySkiLegacy, 'gem-attr');
 
 		$talentoExtras = array_slice($bioTraitsByType['Talentos'] ?? [], 10);
-		$tecnicaExtras = array_slice($bioTraitsByType['Técnicas'] ?? [], 10);
+		$tecnicaExtras = array_slice($bioTraitsByType['TÃ©cnicas'] ?? [], 10);
 		$conociExtras = array_slice($bioTraitsByType['Conocimientos'] ?? [], 10);
 		$bioExtraTalImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $talentoExtras), 'gem-attr');
 		$bioExtraTecImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $tecnicaExtras), 'gem-attr');
 		$bioExtraConImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $conociExtras), 'gem-attr');
 // ================================================================== //
 			}
-	 	} // <---- Fin de comprobación si lleva hoja de PJ
+	 	} // <---- Fin de comprobaciÃ³n si lleva hoja de PJ
 		
 		// ======================================================================================
-		// Nueva preparación 2025. Tabla de relaciones.
+		// Nueva preparaciÃ³n 2025. Tabla de relaciones.
 		// ======================================================================================
 		$relaciones = [];
 		
@@ -607,20 +624,54 @@
 		$stmt2->execute();
 		$stm12_results = stmt_fetch_all_assoc_compat($stmt2);
 		$relaciones = array_merge($relaciones, $stm12_results);
-		// Ordenar alfabéticamente por 'relation_type'
+		// Ordenar alfabÃ©ticamente por 'relation_type'
 		usort($relaciones, function($a, $b) {
 			return strcasecmp($a['relation_type'], $b['relation_type']);
 		});
 		
 		$numRelaciones = count($relaciones);
+
+		$killsAsKiller = [];
+		if ($deathTable !== null) {
+			$sqlKills = "SELECT
+						fd.id AS death_id,
+						fd.character_id AS victim_id,
+						fd.death_type,
+						fd.death_date,
+						fd.death_description,
+						fd.death_timeline_event_id,
+						v.name AS victim_name,
+						v.alias AS victim_alias,
+						v.image_url AS victim_image,
+						v.gender AS victim_gender,
+						e.title AS event_title,
+						e.event_date AS event_date
+					FROM `{$deathTable}` fd
+					INNER JOIN fact_characters v ON v.id = fd.character_id
+					LEFT JOIN fact_timeline_events e ON e.id = fd.death_timeline_event_id
+					WHERE fd.killer_character_id = ?
+					  AND fd.character_id <> ?
+					ORDER BY COALESCE(fd.death_date, e.event_date) DESC, fd.id DESC";
+			if ($stKills = $link->prepare($sqlKills)) {
+				$stKills->bind_param('ii', $characterId, $characterId);
+				$stKills->execute();
+				$killsAsKiller = stmt_fetch_all_assoc_compat($stKills);
+				$stKills->close();
+			}
+		}
+		$numKillsAsKiller = count($killsAsKiller);
 		
 		// ======================================================================================
-		// Nueva preparación 2025. Participación del personaje.
+		// Nueva preparaciÃ³n 2025. ParticipaciÃ³n del personaje.
 		// ======================================================================================		
 		$participacion = [];
-		$stmtP = $link->prepare("SELECT ac.id, ac.name, ac.chapter_number, at2.name AS temporada_name, at2.season_number, ac.played_date FROM dim_chapters ac
+		$hasSeasonKindBio = column_exists($link, 'dim_seasons', 'season_kind');
+		$seasonKindExprBio = $hasSeasonKindBio
+			? "COALESCE(at2.season_kind, 'temporada')"
+			: "'temporada'";
+		$stmtP = $link->prepare("SELECT ac.id, ac.name, ac.chapter_number, at2.name AS temporada_name, at2.season_number, {$seasonKindExprBio} AS season_kind, ac.played_date FROM dim_chapters ac
 								INNER JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id 
-								INNER JOIN dim_seasons at2 ON ac.season_number = at2.season_number 
+								INNER JOIN dim_seasons at2 ON at2.id = ac.season_id
 								WHERE acp.character_id = ?
 								ORDER BY ac.played_date, ac.chapter_number");
 		$stmtP->bind_param('i', $characterId);
@@ -629,12 +680,22 @@
 		$participacion = array_merge($participacion, $stmtP_results);
 		
 		$numParticipa = count($participacion);
+		$numEventosParticipa = 0;
+		if ($stPartEv = $link->prepare("SELECT COUNT(*) AS c FROM bridge_timeline_events_characters WHERE character_id = ?")) {
+			$stPartEv->bind_param('i', $characterId);
+			$stPartEv->execute();
+			$resPartEv = $stPartEv->get_result();
+			if ($resPartEv && ($rowPartEv = $resPartEv->fetch_assoc())) {
+				$numEventosParticipa = (int)($rowPartEv['c'] ?? 0);
+			}
+			$stPartEv->close();
+		}
 
 		// Flags de secciones
 		$hasInfo = true;
 		$hasSheet = $bioHasSheet;
-		$hasRel = (isset($relaciones) && $numRelaciones > 0);
-		$hasPart = (isset($participacion) && $numParticipa > 0);
+		$hasRel = ((isset($relaciones) && $numRelaciones > 0) || $numKillsAsKiller > 0);
+		$hasPart = ((isset($participacion) && $numParticipa > 0) || $numEventosParticipa > 0);
 		$characterComments = [];
 		if ($stComments = $link->prepare("SELECT id, nick, comment_time, commented_at, message, ip, created_at FROM fact_characters_comments WHERE character_id = ? ORDER BY commented_at DESC, comment_time DESC, id DESC")) {
 			$stComments->bind_param('i', $characterId);
@@ -656,10 +717,10 @@
 		
 		// Hacemos un repaso a los datos y obtenemos los enlaces que corresponden
 		// ----------------------------------------- //
-		include ("app/partials/bio/bio_page_section_01_data.php"); // Utilizamos "include" para no sobrecargar la página con código
+		include ("app/partials/bio/bio_page_section_01_data.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 		// ----------------------------------------- //
 		/* MODERNO NUEVO */
-		include("app/partials/main_nav_bar.php");	// Barra Navegación
+		include("app/partials/main_nav_bar.php");	// Barra NavegaciÃ³n
 		// ================================================================== //
 		echo "<link rel='stylesheet' href='/assets/css/hg-bio.css'>";
 
@@ -674,32 +735,63 @@
 		echo "      </div>";
 		echo "    </div>";
 		echo "    <div class='power-card__stats'>";
-		include ("app/partials/bio/bio_page_section_03_details.php"); // Detalles básicos (contexto fijo)
+		include ("app/partials/bio/bio_page_section_03_details.php"); // Detalles bÃ¡sicos (contexto fijo)
 		echo "    </div>";
 		echo "  </div>";
 		echo "</div>";
 		echo "</section>";
+
+		// Config de iconos de tabs BIO (16x16).
+		// Cambia solo las rutas de este bloque cuando tengas los iconos definitivos.
+		$bioTabIconDefault = '/img/ui/icons/icon_character_sheet.png';
+		$bioTabIcons = [
+			// Keys validas: info, sheet, rel, part, bso, comments
+			'default'  => $bioTabIconDefault, // Fallback global
+			'info'     => '/img/ui/icons/icon_character_info.png',
+			'sheet'    => '/img/ui/icons/icon_character_sheet.png',
+			'rel'      => '/img/ui/icons/icon_character_relationships.png',
+			'part'     => '/img/ui/icons/icon_character_participation.png',
+			'bso'      => '/img/ui/icons/icon_character_music.png',
+			'comments' => '/img/ui/icons/icon_character_comments.png',
+		];
+
+		// Fallback por si alguna ruta llega vacia.
+		foreach (['info', 'sheet', 'rel', 'part', 'bso', 'comments'] as $k) {
+			if (!isset($bioTabIcons[$k]) || trim((string)$bioTabIcons[$k]) === '') {
+				$bioTabIcons[$k] = $bioTabIconDefault;
+			}
+		}
+
+		$renderBioTab = function (string $tabKey, string $labelHtml) use ($bioTabIcons) {
+			$icon = trim((string)($bioTabIcons[$tabKey] ?? $bioTabIcons['default'] ?? ''));
+			$iconHtml = '';
+			if ($icon !== '') {
+				$iconHtml = "<img class='hgTabIcon' src='" . h($icon) . "' alt='' width='16' height='16' loading='lazy' decoding='async'>";
+			}
+			echo "<button class='hgTabBtn' data-tab='" . h($tabKey) . "'><span class='hgTabEmoji' aria-hidden='true'>" . $iconHtml . "</span><span class='hgTabLabel'>" . $labelHtml . "</span></button>";
+		};
+
 		echo "<div class='hg-tabs'>";
-		if ($hasInfo) echo "<button class='hgTabBtn' data-tab='info'><span class='hgTabEmoji' aria-hidden='true'>📄</span><span class='hgTabLabel'>Información</span></button>";
-		if ($hasSheet) echo "<button class='hgTabBtn' data-tab='sheet'><span class='hgTabEmoji' aria-hidden='true'>🧾</span><span class='hgTabLabel'>Hoja de personaje</span></button>";
-		if ($hasRel) echo "<button class='hgTabBtn' data-tab='rel'><span class='hgTabEmoji' aria-hidden='true'>🕸️</span><span class='hgTabLabel'>Relaciones</span></button>";
-		if ($hasPart) echo "<button class='hgTabBtn' data-tab='part'><span class='hgTabEmoji' aria-hidden='true'>📚</span><span class='hgTabLabel'>Participación</span></button>";
-		if ($hasBso) echo "<button class='hgTabBtn' data-tab='bso'><span class='hgTabEmoji' aria-hidden='true'>🎵</span><span class='hgTabLabel'>Banda sonora</span></button>";
-		if ($hasComments) echo "<button class='hgTabBtn' data-tab='comments'><span class='hgTabEmoji' aria-hidden='true'>💬</span><span class='hgTabLabel'>Comentarios</span></button>";
+		if ($hasInfo) $renderBioTab('info', 'Informaci&oacute;n');
+		if ($hasSheet) $renderBioTab('sheet', 'Hoja de personaje');
+		if ($hasRel) $renderBioTab('rel', 'Relaciones');
+		if ($hasPart) $renderBioTab('part', 'Participaci&oacute;n');
+		if ($hasBso) $renderBioTab('bso', 'Banda sonora');
+		if ($hasComments) $renderBioTab('comments', 'Comentarios');
 		echo "</div>";
 
 	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
 		// ================================================================== //
 		echo "<section id='sec-info' class='bio-tab-panel' data-tab='info'>";
 		// ================================================================== //
-		if ($bioText != "") { // Empezamos colocando la información de Texto
+		if ($bioText != "") { // Empezamos colocando la informaciÃ³n de Texto
 			echo "<div class='bioTextData'>"; 
 				echo "<fieldset class='bioSeccion'><legend>$titleInfo</legend>$bioText</fieldset>";
 			echo "</div>";
 		} // Finalizamos de poner el Texto
 		// INVENTARIO Y OBJETOS
 		// ================================================================== //
-		include ("app/partials/bio/bio_page_section_13_items.php"); // Utilizamos "include" para no sobrecargar la página con código
+		include ("app/partials/bio/bio_page_section_13_items.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 		// ================================================================== //
 		?>
 		
@@ -734,7 +826,7 @@
 			echo "<div class='bioSheetData'>"; // Parte Superior de la Hoja ~~ #SEC04
 			echo "<fieldset class='bioSeccion'><legend>$titleId</legend>";
 				// ----------------------------------------- //
-				include ("app/partials/bio/bio_page_section_04_sheetup.php"); // Utilizamos "include" para no sobrecargar la página con código
+				include ("app/partials/bio/bio_page_section_04_sheetup.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 				// ----------------------------------------- //
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Parte Superior ~~
@@ -742,14 +834,14 @@
 			echo "<div class='bioSheetData'>"; // Atributos de la Hoja ~~ #SEC05
 			echo "<fieldset class='bioSeccion'><legend>$titleAttr</legend>";
 				// ----------------------------------------- //
-				include ("app/partials/bio/bio_page_section_05_attributes.php"); // Utilizamos "include" para no sobrecargar la página con código
+				include ("app/partials/bio/bio_page_section_05_attributes.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 				// ----------------------------------------- //
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Atributos ~~
 			// ================================================================== //
 			echo "<div class='bioSheetData'>"; // Habilidades de la Hoja ~~ #SEC06
 			echo "<fieldset class='bioSeccion'><legend>$titleSkill</legend>";
-				include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la página con código
+				include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Habilidades ~~
 			// ================================================================== //
@@ -775,24 +867,24 @@
 		echo "</fieldset>";
 		echo "</div>"; // Cerramos Trasfondos ~~
 		// ================================================================== //
-		// MÉRITOS Y DEFECTOS
+		// Mï¿½?RITOS Y DEFECTOS
 		// ================================================================== //
-		include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la página con código
+		include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 	}
 			// ================================================================== //
 			// RECURSOS DEL PERSONAJE
 			// ================================================================== //
-			include ("app/partials/bio/bio_page_section_07_resources.php"); // Utilizamos "include" para no sobrecargar la página con código
+			include ("app/partials/bio/bio_page_section_07_resources.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 			// ================================================================== //
 			// PODERES, DONES, RITUALES Y DISCIPLINAS
 			// ================================================================== //
-			include ("app/partials/bio/bio_page_section_11_power.php"); // Utilizamos "include" para no sobrecargar la página con código
+			include ("app/partials/bio/bio_page_section_11_power.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 			// ================================================================== //
 			echo "</section>";
 		} // Finalizamos la Hoja de Personaje
 		?>
 		
-		<?php if ((isset($relaciones)) && $numRelaciones > 0): ?>
+		<?php if ($hasRel): ?>
 			<section id="sec-rel" class="bio-tab-panel" data-tab="rel">
 			<div class="bioTextData">
 				<fieldset class='bioSeccion'>
@@ -801,6 +893,7 @@
 					<div id="seccion2">
 						<?php include("app/partials/bio/bio_page_section_17_rel_graph.php"); ?>
 					</div>
+					<?php include("app/partials/bio/bio_page_section_20_kills.php"); ?>
 					<div id="seccion1" class="bio-hidden">
 						<?php include("app/partials/bio/bio_page_section_14_family.php"); ?>
 					</div>
@@ -810,17 +903,15 @@
 
 		<?php endif; ?>
 		
-		<?php if ((isset($participacion)) && $numParticipa > 0): ?>
+		<?php if ($hasPart): ?>
 			<section id="sec-part" class="bio-tab-panel" data-tab="part">
 			<div class="bioTextData">
 				<fieldset class='bioSeccion'>
 					<legend>&nbsp;<?= ($titleParticp) ?>&nbsp;</legend>
 					<?php include("app/partials/bio/bio_page_section_18_chapters.php"); ?>
+					<?php include("app/partials/bio/bio_page_section_19_participation.php"); ?>
 				</fieldset>
 			</div>
-			<?php if ($bioHasSheet): ?>
-				<?php include("app/partials/bio/bio_page_section_19_participation.php"); ?>
-			<?php endif; ?>
 			</section>
 		<?php endif; ?>
 		<?php if ($hasComments): ?>
@@ -845,6 +936,9 @@
 	document.addEventListener('DOMContentLoaded', () => {
 		const tabs = Array.from(document.querySelectorAll('.hgTabBtn, .bioTabBtn'));
 		const panels = Array.from(document.querySelectorAll('.bio-tab-panel'));
+		if (typeof HGBindHoverSound === 'function') {
+			HGBindHoverSound('.hgTabBtn, .bioTabBtn', '/sounds/ui/hover.ogg');
+		}
 		function activate(tabKey){
 			panels.forEach(p => {
 				p.classList.toggle('active', p.dataset.tab === tabKey);
@@ -890,7 +984,7 @@
 		const seccion3 = document.getElementById('seccion3');
 		const seccion4 = document.getElementById('seccion4');
 
-		// Si no existe el botón (porque no hay relaciones), no hacemos nada
+		// Si no existe el botÃ³n (porque no hay relaciones), no hacemos nada
 		if (!btnToggle || !seccion1 || !seccion2) return;
 
 		btnToggle.addEventListener('click', () => {
@@ -902,7 +996,7 @@
 				seccion1.style.display = 'none';
 				seccion2.style.display = 'block';
 			}
-			// Recalcular tamaño/redibujar vis-network si existe
+			// Recalcular tamaÃ±o/redibujar vis-network si existe
 			try {
 				if (typeof window.__bioRelNetworkRefresh === 'function') {
 					window.__bioRelNetworkRefresh();
@@ -1013,3 +1107,4 @@
 			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
+

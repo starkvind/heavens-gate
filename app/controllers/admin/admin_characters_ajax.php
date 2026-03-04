@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // AJAX handlers for admin_characters.php
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -27,7 +27,7 @@ if (!function_exists('hg_admin_characters_handle_ajax')) {
             hg_admin_json_error('bad_id', 400, ['id' => 'required_positive'], null, ['mode' => $mode]);
         }
 
-        $sql = "SELECT COALESCE(dcs.label, fc.status) AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text
+        $sql = "SELECT COALESCE(dcs.label, '') AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text
                 FROM fact_characters fc
                 LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id
                 WHERE fc.id=? LIMIT 1";
@@ -68,3 +68,4 @@ if (!function_exists('hg_admin_characters_handle_ajax')) {
         return true;
     }
 }
+

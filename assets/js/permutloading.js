@@ -83,3 +83,28 @@ function preloadPermut(img, src) {
 		img.permloaded = true;
 	}
 }
+
+// Reproductor simple para sonidos de hover reutilizable en cualquier vista.
+window.__hgHoverAudioCache = window.__hgHoverAudioCache || {};
+function HGPlayHoverSound(src) {
+	if (!src) return;
+	try {
+		if (!window.__hgHoverAudioCache[src]) {
+			const a = new Audio(src);
+			a.preload = 'auto';
+			window.__hgHoverAudioCache[src] = a;
+		}
+		const snd = window.__hgHoverAudioCache[src];
+		snd.currentTime = 0;
+		snd.play();
+	} catch (e) {}
+}
+
+function HGBindHoverSound(selector, src) {
+	if (!selector || !src) return;
+	document.querySelectorAll(selector).forEach(el => {
+		if (!el || el.dataset.hgHoverSoundBound === '1') return;
+		el.dataset.hgHoverSoundBound = '1';
+		el.addEventListener('mouseenter', () => HGPlayHoverSound(src));
+	});
+}

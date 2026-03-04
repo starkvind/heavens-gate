@@ -1789,8 +1789,20 @@ header img {
 }
 
 .hg-tabs .hgTabBtn .hgTabEmoji {
+	width: 16px;
+	height: 16px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	font-size: 13px;
 	line-height: 1;
+}
+
+.hg-tabs .hgTabBtn .hgTabEmoji .hgTabIcon {
+	width: 16px;
+	height: 16px;
+	display: block;
+	object-fit: contain;
 }
 
 .hg-tabs .hgTabBtn .hgTabLabel {

@@ -144,8 +144,11 @@ status_section('Biografías y Personajes', [
 ]);
 
 $seasons = status_count_table($link, 'dim_seasons');
-$seasonMain = status_column_exists($link, 'dim_seasons', 'season') ? status_count_table($link, 'dim_seasons', 'season = 0') : null;
-$seasonPersonal = status_column_exists($link, 'dim_seasons', 'season') ? status_count_table($link, 'dim_seasons', 'season = 1') : null;
+$hasSeasonKind = status_column_exists($link, 'dim_seasons', 'season_kind');
+$seasonMain = status_count_table($link, 'dim_seasons', "season_kind = 'temporada'");
+$seasonInciso = $hasSeasonKind ? status_count_table($link, 'dim_seasons', "season_kind = 'inciso'") : null;
+$seasonSpecial = $hasSeasonKind ? status_count_table($link, 'dim_seasons', "season_kind = 'especial'") : null;
+$seasonPersonal = status_count_table($link, 'dim_seasons', "season_kind = 'historia_personal'");
 $seasonFinished = status_column_exists($link, 'dim_seasons', 'finished') ? status_count_table($link, 'dim_seasons', 'finished = 1') : null;
 $chapterWithSynopsis = status_column_exists($link, 'dim_chapters', 'synopsis') ? status_count_table($link, 'dim_chapters', "synopsis IS NOT NULL AND TRIM(synopsis) <> ''") : null;
 $chapterPlayed = status_column_exists($link, 'dim_chapters', 'played_date') ? status_count_table($link, 'dim_chapters', "played_date IS NOT NULL AND played_date <> '0000-00-00'") : null;
@@ -154,7 +157,9 @@ $chapterLinks = status_count_table($link, 'bridge_chapters_characters');
 status_section('Temporadas y Capítulos', [
     ['label' => 'Temporadas / historias personales', 'value' => $seasons],
     ['label' => 'Temporadas principales', 'value' => $seasonMain],
+    ['label' => 'Incisos', 'value' => $seasonInciso],
     ['label' => 'Historias personales', 'value' => $seasonPersonal],
+    ['label' => 'Especiales', 'value' => $seasonSpecial],
     ['label' => 'Temporadas finalizadas', 'value' => $seasonFinished],
     ['label' => 'Capítulos', 'value' => $chapters],
     ['label' => 'Capítulos con resumen', 'value' => $chapterWithSynopsis],

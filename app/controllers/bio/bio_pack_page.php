@@ -1,14 +1,14 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Verificar la conexión a la base de datos
+// Verificar la conexiÃ³n a la base de datos
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
 }
 
 // Helper escape
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-// Sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
+// Sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -22,7 +22,7 @@ function sanitize_int_csv($csv){
     return implode(',', $ints);
 }
 
-// Obtener y sanitizar los parámetros de la URL
+// Obtener y sanitizar los parÃ¡metros de la URL
 $typePack = isset($_GET['t']) ? (int)$_GET['t'] : 0;  /* Tipo de contenido */
 $packId   = isset($_GET['b']) ? (int)$_GET['b'] : 0;  /* ID del contenido */
 
@@ -42,13 +42,13 @@ switch($typePack) {
         $nameTypeForTitle = "Clan";
         break;
     default:
-        // Tipo inválido: evita warnings y sal con algo legible
+        // Tipo invÃ¡lido: evita warnings y sal con algo legible
         echo "<h2>Error</h2>";
-        echo "<p class='texti'>Tipo de contenido inválido.</p>";
+        echo "<p class='texti'>Tipo de contenido invÃ¡lido.</p>";
         exit;
 }
 
-// Excluir crónicas (si existe la variable)
+// Excluir crÃ³nicas (si existe la variable)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 $characterKindCol = 'character_kind';
@@ -86,7 +86,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     $namePack = $ResultQuery["name"] ?? '';
     $infoPack = $ResultQuery["description"] ?? $ResultQuery["description"] ?? '';
 
-    $pageSect   = "Biografías";
+    $pageSect   = "BiografÃ­as";
     $pageTitle2 = $namePack;
     setMetaFromPage($namePack . " | " . $nameTypeForTitle . " | Heaven's Gate", meta_excerpt($infoPack), null, 'article');
 
@@ -125,7 +125,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     }
 
     // ------------------------------------------------------------
-    // Tótem (igual que lo tenías)
+    // TÃ³tem (igual que lo tenÃ­as)
     // ------------------------------------------------------------
     $totemLink = "";
     $totemPack  = isset($ResultQuery["totem_id"]) ? (int)$ResultQuery["totem_id"] : 0;
@@ -151,7 +151,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     }
 
     if ($typePack == 1) {
-        $packNavLinks = "$clanLink » $namePack";
+        $packNavLinks = "$clanLink Â» $namePack";
     } else {
         $packNavLinks = $namePack;
     }
@@ -179,7 +179,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
     if ($typePack == 1) {
 
         $packsOfSeptQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
@@ -187,13 +187,13 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
               AND (bg.is_active = 1 OR bg.is_active IS NULL)
               $cronicaNotInSQL
             ORDER BY
-                CASE LOWER(TRIM(COALESCE(dcs.label, p.status)))
+                CASE LOWER(TRIM(COALESCE(dcs.label, '')))
                     WHEN 'paradero desconocido' THEN 1
-                    WHEN 'cadáver' THEN 2
-                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadÃ¡ver' THEN 2
+                    WHEN 'cadÃ¡ver' THEN 2
                     WHEN 'cadaver' THEN 2
-                    WHEN 'aún por aparecer' THEN 9999
-                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aÃºn por aparecer' THEN 9999
+                    WHEN 'aÃºn por aparecer' THEN 9999
                     WHEN 'aun por aparecer' THEN 9999
                     ELSE 0
                 END,
@@ -218,9 +218,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $packDataKind   = (string)($packRow["character_kind"] ?? '');
 
                     switch ($packDataStatus) {
-                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -244,7 +244,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         }
 
         $oldMembersQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_groups bg
             INNER JOIN fact_characters p ON p.id = bg.character_id
             LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
@@ -252,13 +252,13 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
               AND bg.is_active = 0
               $cronicaNotInSQL
             ORDER BY
-                CASE LOWER(TRIM(COALESCE(dcs.label, p.status)))
+                CASE LOWER(TRIM(COALESCE(dcs.label, '')))
                     WHEN 'paradero desconocido' THEN 1
-                    WHEN 'cadáver' THEN 2
-                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadÃ¡ver' THEN 2
+                    WHEN 'cadÃ¡ver' THEN 2
                     WHEN 'cadaver' THEN 2
-                    WHEN 'aún por aparecer' THEN 9999
-                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aÃºn por aparecer' THEN 9999
+                    WHEN 'aÃºn por aparecer' THEN 9999
                     WHEN 'aun por aparecer' THEN 9999
                     ELSE 0
                 END,
@@ -283,9 +283,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $oldMemberKind   = (string)($oldMemberRow["character_kind"] ?? '');
 
                     switch ($oldMemberStatus) {
-                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -395,7 +395,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
         //  - Clan: bridge_characters_organizations
         //  - Sin manada: NO existe enlace activo en bridge_characters_groups
         $charsWithoutPackQuery = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, p.status) AS status, p.status_id, p.`$characterKindCol` AS character_kind
+            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, p.`$characterKindCol` AS character_kind
             FROM bridge_characters_organizations bc
             INNER JOIN fact_characters p ON p.id = bc.character_id
             LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
@@ -407,13 +407,13 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
               AND bg.character_id IS NULL
               $cronicaNotInSQL
             ORDER BY
-                CASE LOWER(TRIM(COALESCE(dcs.label, p.status)))
+                CASE LOWER(TRIM(COALESCE(dcs.label, '')))
                     WHEN 'paradero desconocido' THEN 1
-                    WHEN 'cadáver' THEN 2
-                    WHEN 'cadáver' THEN 2
+                    WHEN 'cadÃ¡ver' THEN 2
+                    WHEN 'cadÃ¡ver' THEN 2
                     WHEN 'cadaver' THEN 2
-                    WHEN 'aún por aparecer' THEN 9999
-                    WHEN 'aún por aparecer' THEN 9999
+                    WHEN 'aÃºn por aparecer' THEN 9999
+                    WHEN 'aÃºn por aparecer' THEN 9999
                     WHEN 'aun por aparecer' THEN 9999
                     ELSE 0
                 END,
@@ -438,9 +438,9 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
                     $ckind = (string)($charRow["character_kind"] ?? '');
 
                     switch ($cst) {
-                        case "Aún por aparecer":       $simboloEstado = "(&#64)"; break;
+                        case "AÃºn por aparecer":       $simboloEstado = "(&#64)"; break;
                         case "Paradero desconocido":   $simboloEstado = "(&#63;)"; break;
-                        case "Cadáver":                $simboloEstado = "(&#8224;)"; break;
+                        case "CadÃ¡ver":                $simboloEstado = "(&#8224;)"; break;
                         default:                       $simboloEstado = ""; break;
                     }
 
@@ -470,6 +470,7 @@ while ($ResultQuery = mysqli_fetch_assoc($result)) {
 mysqli_free_result($result);
 mysqli_stmt_close($stmtMain);
 ?>
+
 
 
 

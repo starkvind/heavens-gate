@@ -76,6 +76,14 @@ if (!function_exists('hg_abq_find_birth_type_id')) {
     }
 }
 
+if (!function_exists('hg_abq_birthtext_expr')) {
+    function hg_abq_birthtext_expr(mysqli $db): string {
+        return hg_abq_col_exists($db, 'fact_characters', 'birthdate_text')
+            ? 'p.birthdate_text'
+            : "''";
+    }
+}
+
 if (!function_exists('hg_abq_fetch_rows')) {
     function hg_abq_fetch_rows(mysqli $db, string $q, string $status, int $limit): array {
         $rows = [];
@@ -101,12 +109,13 @@ if (!function_exists('hg_abq_fetch_rows')) {
             $params[] = $q;
         }
 
+        $birthTextExpr = hg_abq_birthtext_expr($db);
         $sql = "
             SELECT
               p.id AS character_id,
               p.pretty_id AS character_pretty_id,
               p.name AS character_name,
-              p.birthdate_text AS character_birthdate_text,
+              {$birthTextExpr} AS character_birthdate_text,
               be.id AS birth_event_id,
               be.pretty_id AS birth_event_pretty_id,
               be.event_date AS birth_event_date,
@@ -151,12 +160,13 @@ if (!function_exists('hg_abq_fetch_rows')) {
 if (!function_exists('hg_abq_fetch_row_by_character')) {
     function hg_abq_fetch_row_by_character(mysqli $db, int $characterId): ?array {
         if ($characterId <= 0) return null;
+        $birthTextExpr = hg_abq_birthtext_expr($db);
         $sql = "
             SELECT
               p.id AS character_id,
               p.pretty_id AS character_pretty_id,
               p.name AS character_name,
-              p.birthdate_text AS character_birthdate_text,
+              {$birthTextExpr} AS character_birthdate_text,
               be.id AS birth_event_id,
               be.pretty_id AS birth_event_pretty_id,
               be.event_date AS birth_event_date,
@@ -203,8 +213,7 @@ if (function_exists('hg_admin_ensure_csrf_token')) {
 $hasSchema = hg_abq_table_exists($link, 'fact_characters')
     && hg_abq_table_exists($link, 'fact_timeline_events')
     && hg_abq_table_exists($link, 'bridge_timeline_events_characters')
-    && hg_abq_table_exists($link, 'dim_timeline_events_types')
-    && hg_abq_col_exists($link, 'fact_characters', 'birthdate_text');
+    && hg_abq_table_exists($link, 'dim_timeline_events_types');
 
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if (function_exists('hg_admin_require_session')) hg_admin_require_session(true);
@@ -266,12 +275,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $prettyId = 'birthday-char-' . $characterId;
         $eventId = 0;
 
+        $hasBirthTextCol = hg_abq_col_exists($link, 'fact_characters', 'birthdate_text');
+
         $link->begin_transaction();
         try {
-            if ($st = $link->prepare('UPDATE fact_characters SET birthdate_text = ? WHERE id = ?')) {
-                $st->bind_param('si', $birthdateText, $characterId);
-                $st->execute();
-                $st->close();
+            if ($hasBirthTextCol) {
+                if ($st = $link->prepare('UPDATE fact_characters SET birthdate_text = ? WHERE id = ?')) {
+                    $st->bind_param('si', $birthdateText, $characterId);
+                    $st->execute();
+                    $st->close();
+                }
             }
 
             if ($parsedDate !== null) {
@@ -302,24 +315,45 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $title = 'Cumpleanos de ' . trim($characterName);
                 $description = 'Evento de nacimiento del personaje ' . trim($characterName) . ' (id=' . $characterId . ').';
 
+                $hasKindCol = hg_abq_col_exists($link, 'fact_timeline_events', 'kind');
                 if ($eventId > 0) {
-                    if ($st = $link->prepare("
-                        UPDATE fact_timeline_events
-                        SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
-                            title = ?, description = ?, event_type_id = ?, kind = 'nacimiento', is_active = 1,
-                            source = 'fact_characters.birthdate_text', updated_at = NOW()
-                        WHERE id = ?
-                    ")) {
+                    if ($hasKindCol) {
+                        $sqlUpdateEvent = "
+                            UPDATE fact_timeline_events
+                            SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
+                                title = ?, description = ?, event_type_id = ?, kind = 'nacimiento', is_active = 1,
+                                source = 'fact_characters.birthdate_text', updated_at = NOW()
+                            WHERE id = ?
+                        ";
+                    } else {
+                        $sqlUpdateEvent = "
+                            UPDATE fact_timeline_events
+                            SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
+                                title = ?, description = ?, event_type_id = ?, is_active = 1,
+                                source = 'fact_characters.birthdate_text', updated_at = NOW()
+                            WHERE id = ?
+                        ";
+                    }
+                    if ($st = $link->prepare($sqlUpdateEvent)) {
                         $st->bind_param('sssssii', $prettyId, $parsedDate, $parsedDate, $title, $description, $birthTypeId, $eventId);
                         $st->execute();
                         $st->close();
                     }
                 } else {
-                    if ($st = $link->prepare("
-                        INSERT INTO fact_timeline_events
-                        (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, kind, is_active, source, timeline)
-                        VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 'nacimiento', 1, 'fact_characters.birthdate_text', NULL)
-                    ")) {
+                    if ($hasKindCol) {
+                        $sqlInsertEvent = "
+                            INSERT INTO fact_timeline_events
+                            (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, kind, is_active, source, timeline)
+                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 'nacimiento', 1, 'fact_characters.birthdate_text', NULL)
+                        ";
+                    } else {
+                        $sqlInsertEvent = "
+                            INSERT INTO fact_timeline_events
+                            (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, is_active, source, timeline)
+                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 1, 'fact_characters.birthdate_text', NULL)
+                        ";
+                    }
+                    if ($st = $link->prepare($sqlInsertEvent)) {
                         $st->bind_param('sssssi', $prettyId, $parsedDate, $parsedDate, $title, $description, $birthTypeId);
                         $st->execute();
                         $eventId = (int)$link->insert_id;

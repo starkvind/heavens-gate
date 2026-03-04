@@ -1,7 +1,7 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener parámetros 'b' y 'r' de manera segura
-$mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del Mérito Defecto
+// Obtener parÃ¡metros 'b' y 'r' de manera segura
+$mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del MÃ©rito Defecto
 $returnID = isset($_GET['r']) ? $_GET['r'] : '';  // ID del Regreso
 
 $unknownOrigin = "-";
@@ -19,7 +19,7 @@ $rowsQueryMaf = $resultMaf->num_rows;
 if ($rowsQueryMaf > 0) {
     $resultQueryMaf = $resultMaf->fetch_assoc();
 
-    // Datos básicos
+    // Datos bÃ¡sicos
     $mafId = htmlspecialchars($resultQueryMaf["id"]);
     $mafName = htmlspecialchars($resultQueryMaf["name"]);
     $mafType = htmlspecialchars($resultQueryMaf["tipo"]);
@@ -48,9 +48,9 @@ if ($rowsQueryMaf > 0) {
 
     // Datos para regresar
     switch ($mafType) {
-        case "Méritos":
+        case "MÃ©ritos":
             $returnType = 1;
-            $mafNameType = "Mérito";
+            $mafNameType = "MÃ©rito";
             break;
         case "Defectos":
             $returnType = 2;
@@ -78,7 +78,7 @@ if ($rowsQueryMaf > 0) {
 	$typeReturnId = $returnArray[$mafAfil];
 
     // =========================
-    // Personajes con este Mérito/Defecto (respeta exclusiones de crónica)
+    // Personajes con este MÃ©rito/Defecto (respeta exclusiones de crÃ³nica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -98,7 +98,7 @@ if ($rowsQueryMaf > 0) {
     $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
     $mafOwners = [];
     $characterKindSql = hg_character_kind_select($link, 'c');
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, c.status) AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
+    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_merits_flaws b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.merit_flaw_id = ? $cronicaNotInSQL ORDER BY c.name")) {
         $stOwners->bind_param('i', $mafPageID);
         $stOwners->execute();
         $rsOwners = $stOwners->get_result();
@@ -108,14 +108,14 @@ if ($rowsQueryMaf > 0) {
     $hasOwners = count($mafOwners) > 0;
     $useTabs = $hasOwners;
 
-    // Título e Imágenes
+    // TÃ­tulo e ImÃ¡genes
     $costMeritFlaw = $mafCoste;
     $pageSect = $mafNameType; // PARA CAMBIAR EL TITULO A LA PAGINA
     $pageTitle2 = $mafName;
-    setMetaFromPage($mafName . " | Méritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
+    setMetaFromPage($mafName . " | MÃ©ritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
 
-    // Incluir archivos para navegación y contenido
-    include("app/partials/main_nav_bar.php"); // Barra Navegación
+    // Incluir archivos para navegaciÃ³n y contenido
+    include("app/partials/main_nav_bar.php"); // Barra NavegaciÃ³n
     echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
     ob_start();
@@ -147,7 +147,7 @@ if ($rowsQueryMaf > 0) {
         echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'>$costText</div></div>";
     }
     if ($mafAfil !== "") {
-        echo "<div class='power-stat'><div class='power-stat__label'>Categoría</div><div class='power-stat__value'>$mafAfil</div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>CategorÃ­a</div><div class='power-stat__value'>$mafAfil</div></div>";
     }
     if ($mafSystem !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>$mafSystem</div></div>";
@@ -158,7 +158,7 @@ if ($rowsQueryMaf > 0) {
     echo "    </div>";
     echo "  </div>";
 
-    // Descripción del Mérito
+    // DescripciÃ³n del MÃ©rito
     if ($mafDesc != "") {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
@@ -174,7 +174,7 @@ if ($rowsQueryMaf > 0) {
         hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
@@ -191,9 +191,9 @@ if ($rowsQueryMaf > 0) {
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
                 $mapEstado = [
-                    "Aún por aparecer"     => "(&#64;)",
+                    "AÃºn por aparecer"     => "(&#64;)",
                     "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
+                    "CadÃ¡ver"              => "(&#8224;)"
                 ];
                 $simboloEstado = $mapEstado[$estado] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
@@ -218,11 +218,12 @@ if ($rowsQueryMaf > 0) {
     } else {
         echo $infoHtml;
     }
-} // Fin comprobación
+} // Fin comprobaciÃ³n
 
 // Cerramos la sentencia preparada para la consulta principal
 $stmtMaf->close();
 ?>
+
 
 
 

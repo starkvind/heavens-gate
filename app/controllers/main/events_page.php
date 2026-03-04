@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (!$link) {
     die("Error de conexion a la base de datos.");
 }
@@ -34,11 +34,11 @@ if (!function_exists('hg_ev_date_label')) {
         if ($precision === 'year') {
             $base = date('Y', $ts);
         } elseif ($precision === 'month') {
-            $base = date('m/Y', $ts);
+            $base = date('m-Y', $ts);
         } elseif ($precision === 'approx') {
-            $base = 'Aprox. ' . date('d/m/Y', $ts);
+            $base = 'Aprox. ' . date('d-m-Y', $ts);
         } else {
-            $base = date('d/m/Y', $ts);
+            $base = date('d-m-Y', $ts);
         }
 
         return $note !== '' ? ($base . ' (' . $note . ')') : $base;
@@ -112,11 +112,12 @@ $hasFteDateNote = hg_ev_col_exists($link, 'fact_timeline_events', 'date_note');
 $hasFteLocation = hg_ev_col_exists($link, 'fact_timeline_events', 'location');
 $hasFteSource = hg_ev_col_exists($link, 'fact_timeline_events', 'source');
 $hasFteTimeline = hg_ev_col_exists($link, 'fact_timeline_events', 'timeline');
-$hasFteKind = hg_ev_col_exists($link, 'fact_timeline_events', 'kind');
 $hasFteIsActive = hg_ev_col_exists($link, 'fact_timeline_events', 'is_active');
 $hasFteEventTypeId = hg_ev_col_exists($link, 'fact_timeline_events', 'event_type_id');
 
 $hasTypesTable = hg_ev_table_exists($link, 'dim_timeline_events_types');
+$hasSeasonsTable = hg_ev_table_exists($link, 'dim_seasons');
+$hasSeasonsKind = true;
 
 $rawEvent = (string)($_GET['t'] ?? '');
 $eventId = resolve_pretty_id($link, 'fact_timeline_events', $rawEvent) ?? 0;
@@ -136,17 +137,16 @@ $selectDateNote = $hasFteDateNote ? 'e.date_note AS date_note' : 'NULL AS date_n
 $selectLocation = $hasFteLocation ? 'e.location AS location' : 'NULL AS location';
 $selectSource = $hasFteSource ? 'e.source AS source' : 'NULL AS source';
 $selectTimeline = $hasFteTimeline ? 'e.timeline AS timeline' : 'NULL AS timeline';
-$selectKind = $hasFteKind ? 'e.kind AS kind' : "'evento' AS kind";
 $selectIsActive = $hasFteIsActive ? 'e.is_active AS is_active' : '1 AS is_active';
 
 $typeJoin = '';
 if ($hasTypesTable && $hasFteEventTypeId) {
     $typeJoin = 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id';
     $typeNameExpr = "COALESCE(t.name, 'Evento')";
-    $typeSlugExpr = "COALESCE(t.pretty_id, " . ($hasFteKind ? 'e.kind' : "'evento'") . ", 'evento')";
+    $typeSlugExpr = "COALESCE(t.pretty_id, 'evento')";
 } else {
     $typeNameExpr = "'Evento'";
-    $typeSlugExpr = "COALESCE(" . ($hasFteKind ? 'e.kind' : "'evento'") . ", 'evento')";
+    $typeSlugExpr = "'evento'";
 }
 
 $eventSql = "
@@ -162,7 +162,6 @@ $eventSql = "
         {$selectLocation},
         {$selectSource},
         {$selectTimeline},
-        {$selectKind},
         {$selectIsActive},
         {$typeNameExpr} AS type_name,
         {$typeSlugExpr} AS type_slug
@@ -207,7 +206,7 @@ if (hg_ev_table_exists($link, 'bridge_timeline_events_characters') && hg_ev_tabl
     $roleExpr = hg_ev_col_exists($link, 'bridge_timeline_events_characters', 'role_label') ? 'b.role_label' : 'NULL';
 
     $kindExpr = function_exists('hg_character_kind_select') ? hg_character_kind_select($link, 'c') : "''";
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, c.alias, c.image_url, c.gender, COALESCE(dcs.label, c.status) AS status, {$kindExpr} AS character_kind, {$roleExpr} AS role_label FROM bridge_timeline_events_characters b INNER JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.event_id = ? ORDER BY {$characterOrderSql}")) {
+    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, {$kindExpr} AS character_kind, {$roleExpr} AS role_label FROM bridge_timeline_events_characters b INNER JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.event_id = ? ORDER BY {$characterOrderSql}")) {
         $st->bind_param('i', $eventId);
         $st->execute();
         $rs = $st->get_result();
@@ -222,12 +221,18 @@ $chapters = [];
 if (hg_ev_table_exists($link, 'bridge_timeline_events_chapters') && hg_ev_table_exists($link, 'dim_chapters')) {
     $chapterOrder = [];
     if (hg_ev_col_exists($link, 'bridge_timeline_events_chapters', 'sort_order')) $chapterOrder[] = 'b.sort_order ASC';
-    $chapterOrder[] = 'c.season_number ASC';
+    $chapterOrder[] = 'COALESCE(s.sort_order, 9999) ASC';
     $chapterOrder[] = 'c.chapter_number ASC';
     $chapterOrder[] = 'c.id ASC';
     $chapterOrderSql = implode(', ', $chapterOrder);
 
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, c.season_number, c.chapter_number FROM bridge_timeline_events_chapters b INNER JOIN dim_chapters c ON c.id = b.chapter_id WHERE b.event_id = ? ORDER BY {$chapterOrderSql}")) {
+    $seasonJoin = '';
+    if ($hasSeasonsTable) {
+        $seasonJoin = "LEFT JOIN dim_seasons s ON s.id = c.season_id";
+    }
+    $seasonNameExpr = $hasSeasonsTable ? "s.name" : "NULL";
+    $seasonKindExpr = "COALESCE(s.season_kind, 'temporada')";
+    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, s.season_number AS season_number, c.season_id AS season_id, c.chapter_number, {$seasonNameExpr} AS season_name, {$seasonKindExpr} AS season_kind FROM bridge_timeline_events_chapters b INNER JOIN dim_chapters c ON c.id = b.chapter_id {$seasonJoin} WHERE b.event_id = ? ORDER BY {$chapterOrderSql}")) {
         $st->bind_param('i', $eventId);
         $st->execute();
         $rs = $st->get_result();
@@ -338,10 +343,11 @@ $showAnyTechField = ($showTypeField || $showDateField || $showLocationField || $
 
 $chaptersBySeason = [];
 foreach ($chapters as $chapterRow) {
+    $seasonId = (int)($chapterRow['season_id'] ?? 0);
     $seasonNum = (int)($chapterRow['season_number'] ?? 0);
-    if ($seasonNum <= 0) $seasonNum = 9999;
-    if (!isset($chaptersBySeason[$seasonNum])) $chaptersBySeason[$seasonNum] = [];
-    $chaptersBySeason[$seasonNum][] = $chapterRow;
+    $seasonKey = ($seasonId > 0 ? $seasonId : ($seasonNum > 0 ? $seasonNum : 9999));
+    if (!isset($chaptersBySeason[$seasonKey])) $chaptersBySeason[$seasonKey] = [];
+    $chaptersBySeason[$seasonKey][] = $chapterRow;
 }
 ksort($chaptersBySeason, SORT_NUMERIC);
 
@@ -412,7 +418,7 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
             <div class="power-card__desc-title">Descripcion</div>
             <div class="power-card__desc-body">
                 <?php if ($description !== ''): ?>
-                <?= nl2br(hg_ev_h($description)) ?>
+                <?= nl2br(($description)) ?>
                 <?php else: ?>
                 Sin descripcion registrada.
                 <?php endif; ?>
@@ -449,13 +455,38 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
                 <div class="event-rel-lista">
                     <?php foreach ($chaptersBySeason as $seasonNum => $seasonChapters): ?>
                     <div class="event-rel-group">
-                        <div class="event-rel-group-title"><?= $seasonNum === 9999 ? 'Capitulos sin temporada' : ('Temporada ' . (int)$seasonNum) ?></div>
+                        <?php
+                            $seasonHeader = 'Capitulos sin temporada';
+                            if ($seasonNum !== 9999 && !empty($seasonChapters)) {
+                                $firstSeason = $seasonChapters[0];
+                                $sk = trim((string)($firstSeason['season_kind'] ?? 'temporada'));
+                                $sn = (int)($firstSeason['season_number'] ?? 0);
+                                $sname = trim((string)($firstSeason['season_name'] ?? ''));
+                                if ($sk === 'historia_personal') {
+                                    $seasonHeader = ($sname !== '' ? ($sname . ' (Historia personal)') : 'Historia personal');
+                                } elseif ($sk === 'inciso') {
+                                    $incisoNum = $sn;
+                                    if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
+                                    $seasonHeader = 'Inciso ' . $incisoNum . ($sname !== '' ? (' - ' . $sname) : '');
+                                } elseif ($sk === 'especial') {
+                                    $seasonHeader = ($sname !== '' ? ('Especial - ' . $sname) : 'Especial');
+                                } else {
+                                    $seasonHeader = ($sname !== '' ? ($sname . ' (Temporada ' . $sn . ')') : ('Temporada ' . $sn));
+                                }
+                            }
+                        ?>
+                        <div class="event-rel-group-title"><?= hg_ev_h($seasonHeader) ?></div>
                         <div class="event-rel-items event-rel-items--chapters">
                             <?php foreach ($seasonChapters as $row):
                                 $href = pretty_url($link, 'dim_chapters', '/chapters', (int)$row['id']);
-                                $chapterCode = ((int)$row['season_number']) . 'x' . str_pad((string)(int)$row['chapter_number'], 2, '0', STR_PAD_LEFT);
+                                $chapterKind = trim((string)($row['season_kind'] ?? 'temporada'));
+                                if ($chapterKind === 'temporada') {
+                                    $chapterCode = ((int)$row['season_number']) . 'x' . str_pad((string)(int)$row['chapter_number'], 2, '0', STR_PAD_LEFT);
+                                } else {
+                                    $chapterCode = str_pad((string)(int)$row['chapter_number'], 2, '0', STR_PAD_LEFT);
+                                }
                             ?>
-                            <a class="event-rel-item" href="<?= hg_ev_h($href) ?>" target="_blank" title="<?= hg_ev_h($chapterCode) ?>">
+                            <a class="event-rel-item hg-tooltip" href="<?= hg_ev_h($href) ?>" target="_blank" data-tip="chapter" data-id="<?= (int)$row['id'] ?>">
                                 <span class="event-rel-item-name"><?= hg_ev_h((string)$row['name']) ?></span>
                                 <span class="event-rel-item-meta"><?= hg_ev_h($chapterCode) ?></span>
                             </a>
@@ -510,6 +541,64 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
 (function() {
     var prevHref = <?= json_encode((string)$prevHrefKey, JSON_UNESCAPED_UNICODE) ?>;
     var nextHref = <?= json_encode((string)$nextHrefKey, JSON_UNESCAPED_UNICODE) ?>;
+    function trimNavLabels() {
+        var links = document.querySelectorAll('.event-nav-chapter-style .chapter-nav-link');
+        if (!links || !links.length) return;
+        links.forEach(function(link) {
+            var full = link.getAttribute('data-full-label');
+            if (!full) {
+                full = (link.textContent || '').trim();
+                link.setAttribute('data-full-label', full);
+            }
+            link.textContent = full;
+            if (link.scrollWidth <= link.clientWidth) return;
+
+            var text = full;
+            var prefix = '';
+            var suffix = '';
+
+            if (/^Â«\s*/.test(text)) {
+                prefix = 'Â« ';
+                text = text.replace(/^Â«\s*/, '');
+            }
+            if (/\s*Â»$/.test(text)) {
+                suffix = ' Â»';
+                text = text.replace(/\s*Â»$/, '');
+            }
+
+            var lo = 0;
+            var hi = text.length;
+            var best = '';
+            while (lo <= hi) {
+                var mid = (lo + hi) >> 1;
+                var core = text.slice(0, mid).trimEnd();
+                var candidate = prefix + (core ? (core + '...') : '...') + suffix;
+                link.textContent = candidate;
+                if (link.scrollWidth <= link.clientWidth) {
+                    best = candidate;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+
+            if (best) {
+                link.textContent = best;
+            } else {
+                link.textContent = prefix + '...' + suffix;
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', trimNavLabels);
+    } else {
+        trimNavLabels();
+    }
+    window.addEventListener('resize', trimNavLabels);
+    window.setTimeout(trimNavLabels, 0);
+    window.setTimeout(trimNavLabels, 120);
+
     document.addEventListener('keydown', function(e) {
         if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return;
         var t = e.target;
@@ -522,3 +611,5 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
     });
 })();
 </script>
+
+

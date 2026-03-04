@@ -1,12 +1,33 @@
 <?php setMetaFromPage("Temporadas | Analisis | Heaven's Gate", "Analisis de asistencia y actividad por temporada.", null, 'website'); ?>
-<?php 
+<?php
+if (!function_exists('hg_saa_col_exists')) {
+    function hg_saa_col_exists(mysqli $link, string $table, string $column): bool {
+        static $cache = [];
+        $key = $table . ':' . $column;
+        if (isset($cache[$key])) return $cache[$key];
 
-// 1. Obtener todos los capítulos válidos con nombre y número de temporada
-$query = "SELECT 
-				ac.id, ac.season_number AS num_temporada, at.name AS nombre_temporada, ac.played_date 
-			FROM dim_chapters ac 
-			LEFT JOIN dim_seasons at ON ac.season_number = at.season_number
-			WHERE ac.played_date != '0000-00-00'";
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            $st->bind_param('ss', $table, $column);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+
+        $cache[$key] = $ok;
+        return $ok;
+    }
+}
+
+// 1. Obtener todos los capitulos validos con nombre y numero de temporada
+$seasonJoin = 'ac.season_id = at.id';
+$query = "SELECT
+                ac.id, at.season_number AS num_temporada, at.name AS nombre_temporada, ac.played_date
+            FROM dim_chapters ac
+            LEFT JOIN dim_seasons at ON {$seasonJoin}
+            WHERE ac.played_date != '0000-00-00'";
 $result = $link->query($query);
 $capitulos = [];
 $capitulos_por_temporada = [];
@@ -14,9 +35,10 @@ $nombre_temporadas = [];
 
 while ($row = $result->fetch_assoc()) {
     $capitulos[$row['id']] = $row;
-    $num = $row['num_temporada'];
+    $num = (int)($row['num_temporada'] ?? 0);
+    if ($num <= 0) continue;
     $capitulos_por_temporada[$num][] = $row['id'];
-    $nombre_temporadas[$num] = $row['nombre_temporada']; // Map: número → nombre
+    $nombre_temporadas[$num] = $row['nombre_temporada'];
 }
 
 // 2. Obtener participaciones
@@ -29,21 +51,22 @@ while ($row = $result->fetch_assoc()) {
     $cap = $row['chapter_id'];
 
     if (!isset($capitulos[$cap])) continue;
-    $temporada = $capitulos[$cap]['num_temporada'];
+    $temporada = (int)($capitulos[$cap]['num_temporada'] ?? 0);
+    if ($temporada <= 0) continue;
     $apariciones[$pj][$temporada][] = $cap;
 }
 
 // 3. Obtener nombres de personajes y orden fijo
 $query = "SELECT p.id, p.name
-  FROM fact_characters p 
-  JOIN bridge_chapters_characters acp ON p.id = acp.character_id 
-  WHERE p.character_kind = 'pj' AND p.player_id > 0
+  FROM fact_characters p
+  JOIN bridge_chapters_characters acp ON p.id = acp.character_id
+  WHERE p.character_kind = 'pj' AND p.character_type_id = 1 AND p.player_id > 0
   GROUP BY p.id, p.name
   ORDER BY COUNT(acp.id) DESC";
 
 $result = $link->query($query);
-$labels = [];     // ID → nombre
-$pj_order = [];   // lista de IDs en orden fijo
+$labels = [];
+$pj_order = [];
 
 while ($row = $result->fetch_assoc()) {
     $id = $row['id'];
@@ -53,7 +76,7 @@ while ($row = $result->fetch_assoc()) {
 
 // 4. Preparar datos por temporada (siguiendo $pj_order)
 $temporadas_totales = array_keys($capitulos_por_temporada);
-sort($temporadas_totales); // orden por número
+sort($temporadas_totales);
 
 $datos_por_temporada = [];
 $dataset_colors = ['#4dc9f6','#f67019','#f53794','#537bc4','#acc236','#166a8f','#00a950','#58595b'];
@@ -100,7 +123,7 @@ foreach ($pj_order as $pj_id) {
 <h2><?php echo $pageSect; ?></h2>
 <div class="bioTextData">
     <fieldset class='bioSeccion'>
-        <legend>&nbsp;Participación segmentada por temporada&nbsp;</legend>
+        <legend>&nbsp;Participacion segmentada por temporada&nbsp;</legend>
         <canvas id="stackedChart" width="500" height="600"></canvas>
     </fieldset>
 </div>
@@ -121,17 +144,16 @@ const chart = new Chart(ctx, {
                 intersect: false,
                 callbacks: {
                     label: function(ctx) {
-						const datasetLabel = ctx.dataset.label;
-						const personaje = ctx.chart.data.labels[ctx.dataIndex]; // 🔑 aquí accedes al nombre correcto
-						const valor = ctx.raw;
-						return `${datasetLabel}: ${valor}`;
-					}
+                        const datasetLabel = ctx.dataset.label;
+                        const valor = ctx.raw;
+                        return `${datasetLabel}: ${valor}`;
+                    }
                 },
-				interaction: {
-					mode: 'nearest',
-					axis: 'y',
-					intersect: false
-				}
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'y',
+                    intersect: false
+                }
             },
             legend: {
                 position: 'top',

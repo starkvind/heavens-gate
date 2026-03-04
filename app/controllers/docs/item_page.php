@@ -1,7 +1,7 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
-// Aseguramos que el parámetro GET 'b' esté definido y es un valor seguro
+// Aseguramos que el parÃ¡metro GET 'b' estÃ© definido y es un valor seguro
 $itemPageID = isset($_GET['b']) ? $_GET['b'] : '';
 $itemId = (int)$itemPageID;
 
@@ -18,7 +18,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $resultQueryItem = $result->fetch_assoc();
 
     // ================================================================== //
-    // DATOS BÁSICOS
+    // DATOS BÃSICOS
     $itemID     = htmlspecialchars($resultQueryItem["id"]);
     $itemName   = htmlspecialchars($resultQueryItem["name"]);
     $itemType   = (int)$resultQueryItem["item_type_id"];
@@ -94,7 +94,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
 // ================================================================== //
-    // Preparar Daño
+    // Preparar DaÃ±o
     switch ($itemMetal) {
         case 1:
             $metalText = " y de plata";
@@ -119,8 +119,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
     // ================================================================== //
-    // Imágenes y Título
-    $pageSect = "Objeto"; // Título de la Página ( #$itemID )
+    // ImÃ¡genes y TÃ­tulo
+    $pageSect = "Objeto"; // TÃ­tulo de la PÃ¡gina ( #$itemID )
     $pageTitle2 = $itemName;
     setMetaFromPage($itemName . " | Objetos | Heaven's Gate", meta_excerpt($itemInfo), null, 'article');
     if (empty($itemImg)) {
@@ -129,8 +129,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 
     // ================================================================== //
     /* MODERNO NUEVO */
-    include("app/partials/main_nav_bar.php"); // Barra Navegación
-    //echo "<h2>$itemName</h2>"; // Encabezado de página
+    include("app/partials/main_nav_bar.php"); // Barra NavegaciÃ³n
+    //echo "<h2>$itemName</h2>"; // Encabezado de pÃ¡gina
 
     ob_start();
 
@@ -252,7 +252,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             p.alias,
             p.image_url,
             p.gender,
-            COALESCE(dcs.label, p.status) AS status, p.status_id,
+            COALESCE(dcs.label, '') AS status, p.status_id,
             {$characterKindSql} AS character_kind
         FROM bridge_characters_items b
         JOIN fact_characters p ON p.id = b.character_id
@@ -308,7 +308,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         echo $infoHtml;
     }
     /* =========== */
-} // Fin comprobación
+} // Fin comprobaciÃ³n
 
 $stmt->close();
 
@@ -344,3 +344,4 @@ document.addEventListener('click', async (event) => {
     setTimeout(() => { btn.innerHTML = old; }, 1400);
 });
 </script>
+

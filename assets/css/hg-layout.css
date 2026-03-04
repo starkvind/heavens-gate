@@ -39,10 +39,57 @@
 }
 
 .menu-season-label {
-    float: left !important;
-    margin-left: 6px;
+    float: none !important;
+    margin-left: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+    text-align: left;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .menu-season-status {
-    float: right !important;
+    float: none !important;
+    flex: 0 0 16px;
+    text-align: right;
+    margin-left: 6px;
+}
+
+.menuGroupTitle {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    height: auto !important;
+    min-height: 14px;
+    padding-top: 2px !important;
+    padding-bottom: 2px;
+    width: calc(100% - 12px) !important;
+    margin-left: 6px !important;
+}
+
+.menu-season-row {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 0;
+    height: auto !important;
+    min-height: 20px;
+    box-sizing: border-box;
+    width: calc(100% - 16px) !important;
+    margin-left: 8px !important;
+    margin-bottom: 3px !important;
+    padding: 3px 8px !important;
+    text-align: left !important;
+}
+
+.menu-season-row--nostatus .menu-season-label {
+    text-align: left;
+}
+
+.menu-season-row--nostatus .menu-season-status {
+    display: none;
 }
