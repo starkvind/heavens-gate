@@ -572,6 +572,7 @@
 		<td class="sekzo">
 			<div class="ocultable<?= ($menuOpenId === 'toolsMenu') ? ' open' : '' ?>" id="toolsMenu">
 				<a href="/tools/dice"><div class="renglonMenu">Tiradados</div></a>
+				<a href="/tools/forum-avatar"><div class="renglonMenu">Creador Mensajes Foro</div></a>
 				<a href="/tools/csp"><div class="renglonMenu">Tablón de Mensajes</div></a>
 				<a href="/seasons/analysis"><div class="renglonMenu ">Análisis temporadas</div></a>
 				<a href="/tools/garou-name-generator?n=20"><div class="renglonMenu">Generador Nombres</div></a>

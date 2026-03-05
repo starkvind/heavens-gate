@@ -90,3 +90,4 @@ app/tools/migrate_season_kind_phase1.php
 app/tools/migrate_timeline_birthdays_text_phase5.php
 app/tools/migrate_character_status_id_phase1.php
 check_encoding.ps1
+app/tools/recover_zeroed_character_traits.php

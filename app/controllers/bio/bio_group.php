@@ -1,4 +1,4 @@
-<?php setMetaFromPage("BiografÃ­as por grupo | Heaven's Gate", "Listado de biografÃ­as agrupadas por Tipo y OrganizaciÃ³n.", null, 'website'); ?>
+<?php setMetaFromPage("Biografí­as por grupo | Heaven's Gate", "Listado de biografí­as agrupadas por Tipo y Organización.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;
@@ -29,7 +29,7 @@
 
 <?php
 	if (!$link) {
-		die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+		die("Error de conexión a la base de datos: " . mysqli_connect_error());
 	}
 
 	include_once(__DIR__ . '/../../helpers/character_avatar.php');
@@ -53,7 +53,7 @@
 	$idTipo = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 	if ($idTipo <= 0) {
 		include("app/partials/main_nav_bar.php");
-		echo "<h2>Error</h2><p class='texti'>Tipo invÃ¡lido.</p>";
+		echo "<h2>Error</h2><p class='texti'>Tipo inválido.</p>";
 		exit;
 	}
 
@@ -65,7 +65,7 @@
 	$howMuch = 0;
 
 	// ======================================== //
-	// EXCLUSIONES DE CRÃ“NICAS (lista de ints, segura)
+	// EXCLUSIONES DE CRÓNICAS (lista de ints, segura)
 	$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 	$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
@@ -82,7 +82,7 @@
 	if ($rowType = mysqli_fetch_assoc($resultTypeQuery)) {
 
 		$nombreTipo = h($rowType["kind"]);
-		$pageSect   = "$nombreTipo | BiografÃ­as";
+		$pageSect   = "$nombreTipo | Biografías";
 
 		include("app/partials/main_nav_bar.php");
 		echo "<h2>$nombreTipo</h2>";
@@ -195,9 +195,9 @@
 						if ($aliasPJ === "") { $aliasPJ = $nombrePJ; }
 
 						$mapEstado = [
-							"AÃºn por aparecer"     => "(&#64;)",
+							"Aún por aparecer"     => "(&#64;)",
 							"Paradero desconocido" => "(&#63;)",
-							"CadÃ¡ver"              => "(&#8224;)"
+							"Cadáver"              => "(&#8224;)"
 						];
 						$simboloEstado = $mapEstado[$estadoPJ] ?? "";
 

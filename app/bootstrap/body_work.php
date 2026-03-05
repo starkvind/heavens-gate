@@ -394,6 +394,7 @@ $routes = [
 	// 🛠️ Herramientas
 	'csp'     		   => ['app/controllers/tool/csp_board.php', null],
 	'dados'   		   => ['app/controllers/tool/dice_roller.php', 'Tiradados'],
+	'forum_avatar_tool' => ['app/controllers/tool/forum_avatar_builder.php', 'Creador de mensajes foro'],
 	'garou_name_gen'   => ['app/controllers/tool/garou_name_generator.php', 'Generador de nombres Garou'],
 	'keygen'           => ['app/tools/key_generator.php', 'Generador de claves'],
 	'crop'             => ['app/tools/crop.html', 'Recortador de imágenes'],

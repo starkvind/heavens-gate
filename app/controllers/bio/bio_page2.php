@@ -350,12 +350,12 @@
 
 	if ($NFilas > 0) { // Comenzamos chequeo de datos. Si no tenemos nada, mandamos un mensaje de error.
 		foreach ($rowsMain as $dataResult) {
-		#$dataResult = mysql_fetch_array($queryData); // Empezamos a recolectar los datos. ~~ #SEC01
+		// Empezamos a recolectar los datos. ~~ #SEC01
 		// ================================================================== //
-		// Datos bÃ¡sicos del personaje
-			$characterIdDb		 = $dataResult["id"];
-		$bioId = $characterIdDb;
- 			// ID del personaje. Aunque la tengamos en el get, mejor asÃ­.
+		// Datos básicos del personaje
+			$characterIdDb = $dataResult["id"];
+			$bioId 		   = $characterIdDb;
+ 			// ID del personaje. Aunque la tengamos en el get, mejor así.
 			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "ClÃ¡usula", "Churrasco", "Chili-ChingÃ³n", etc.
@@ -380,19 +380,19 @@
 			$titleAdvant = "&nbsp;Estado&nbsp;";			// Titulo de la seccion "Estado"
 			$titlePowers = "&nbsp;Poderes&nbsp;";			// Titulo de la seccion "Poderes"
 			$titleItems	 = "&nbsp;Inventario&nbsp;";		// Titulo de la seccion "Inventario"
-			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// TÃ­tulo de la secciÃ³n "Relaciones"
-			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// TÃ­tulo de la secciÃ³n "Nebulosa de relaciones"	
+			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// TÃ­tulo de la sección "Relaciones"
+			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// TÃ­tulo de la sección "Nebulosa de relaciones"	
 			$titleParticp= "&nbsp;Participaci&oacute;n&nbsp;";		// Titulo de la seccion "Participacion"		
 		// ================================================================== //
-		// Datos de jugador y crÃ³nica
-			$bioPlayer	 = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
-			$bioChronic	 = $dataResult["chronicle_id"]; // CrÃ³nica a la que pertenece el personaje.
-			$bioStatus	 = $dataResult["status"] ?? ""; 	// Estado legacy; puede no venir desde fact_characters.
-			$bioDethCaus = $dataResult["death_description"] ?? ""; // Causa de la muerte.
-			$bioSheetRaw = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
-			$bioSheet	 = $bioSheetRaw; // Compatibilidad con cÃ³digo legacy.
+		// Datos de jugador y crónica
+			$bioPlayer	  = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
+			$bioChronic	  = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
+			$bioStatus	  = $dataResult["status"] ?? ""; 	// Estado legacy; puede no venir desde fact_characters.
+			$bioDethCaus  = $dataResult["death_description"] ?? ""; // Causa de la muerte.
+			$bioSheetRaw  = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
+			$bioSheet	  = $bioSheetRaw; // Compatibilidad con cÃ³digo legacy.
 			$bioIsMonster = in_array($bioSheetRaw, ["mon", "monster"], true);
-			$bioHasSheet = in_array($bioSheetRaw, ["pj", "mon", "monster"], true);
+			$bioHasSheet  = in_array($bioSheetRaw, ["pj", "mon", "monster"], true);
 		// ================================================================== //
 		// Datos de raza y alineamientos
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
@@ -401,11 +401,11 @@
 			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organizaciÃ³n.
 		// ================================================================== //
 		// Ventajas y poderes
-			$bioTotem	 = ""; 		// TÃ³tem que guÃ­a al personaje.
+			$bioTotem	 = ""; 		// Tótem que guí­a al personaje.
 			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
 		// GÃ©nero
-			$bioGender	 = $dataResult["gender"];	// GÃ©nero del personaje
-		// TÃ­tulos de la secciÃ³n Detalles		
+			$bioGender	 = $dataResult["gender"];	// Género del personaje
+		// TÃ­tulos de la sección Detalles		
 			$titlePkName	= "Nombre Garou";		// TÃ­tulo del nombre Garou
 		// Sistema, para nombres de detalles y tal.
 			$bioSystem 	= (string)($dataResult["system_label"] ?? "");
@@ -421,10 +421,10 @@
 			$titleTribe 	= "Tribu";
 			$titleClan 		= "Clan";
 			// ================================================================== //
-			// Cambiamos tÃ­tulos de secciones acorde al Sistema del PJ
+			// Cambiamos títulos de secciones acorde al Sistema del PJ
 			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 		// ================================================================== //
-		if ($bioHasSheet) { // <--- Inicio de comprobaciÃ³n si lleva hoja
+		if ($bioHasSheet) { // <--- Inicio de comprobación si lleva hoja
 		// ================================================================== //
 		// Traits normalizados (bridge_characters_traits)
 			$traitValues = fetch_trait_values($link, (int)$characterId);
@@ -789,26 +789,6 @@
 				echo "<fieldset class='bioSeccion'><legend>$titleInfo</legend>$bioText</fieldset>";
 			echo "</div>";
 		} // Finalizamos de poner el Texto
-		// INVENTARIO Y OBJETOS
-		// ================================================================== //
-		include ("app/partials/bio/bio_page_section_13_items.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
-		// ================================================================== //
-		?>
-		
-		<div class="bioTextData">
-			<fieldset class='bioSeccion'>
-				<legend>Embeber en el foro</legend>
-		<?php
-			// Mensaje de " . (string)$bioName . "
-			$embedCodeRaw = "[hg_avatar=" . (int)$characterId . "]Mensaje[/hg_avatar]";
-			$embedCodeEsc = h($embedCodeRaw);
-			$html = "<div class='hg-forum-roll-code'><code>{$embedCodeEsc}</code><button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$embedCodeEsc}' title='Copiar codigo'>&#128203;</button></div>";
-			echo $html;
-		?>
-			</fieldset>
-		</div>
-		
-		<?php
 
 		echo "</section>";
 		// ================================================================== //
@@ -839,38 +819,34 @@
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Atributos ~~
 			// ================================================================== //
-			echo "<div class='bioSheetData'>"; // Habilidades de la Hoja ~~ #SEC06
-			echo "<fieldset class='bioSeccion'><legend>$titleSkill</legend>";
-				include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
-			echo "</fieldset>";
-			echo "</div>"; // Cerramos Habilidades ~~
+			include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 			// ================================================================== //
-			if (!$bioIsMonster) {
-		echo "<div class='bioSheetBackgrounds'>"; // Trasfondos de la Hoja ~~ #SEC07
-		echo "<fieldset class='bioSeccion'><legend>$titleBackg</legend>";
-			if (!empty($bioBackgrounds)) {
-				foreach ($bioBackgrounds as $idx => $bg) {
-					$tid = (int)($bg['id'] ?? 0);
-					$nm = (string)($bg['name'] ?? '');
-					$val = (int)($bg['value'] ?? 0);
-					if ($nm === '' || $val <= 0) continue;
-					$nameHtml = h($nm);
-					if ($tid > 0 && function_exists('pretty_url')) {
-						$hrefT = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
-						$nameHtml = "<a href='" . h($hrefT) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>" . h($nm) . "</a>";
+		if (!$bioIsMonster) {
+			echo "<div class='bioSheetBackgrounds'>"; // Trasfondos de la Hoja ~~ #SEC07
+				echo "<fieldset class='bioSeccion'><legend>$titleBackg</legend>";
+					if (!empty($bioBackgrounds)) {
+						foreach ($bioBackgrounds as $idx => $bg) {
+							$tid = (int)($bg['id'] ?? 0);
+							$nm = (string)($bg['name'] ?? '');
+							$val = (int)($bg['value'] ?? 0);
+							if ($nm === '' || $val <= 0) continue;
+							$nameHtml = h($nm);
+							if ($tid > 0 && function_exists('pretty_url')) {
+								$hrefT = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
+								$nameHtml = "<a href='" . h($hrefT) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>" . h($nm) . "</a>";
+							}
+							echo"<div class='bioSheetBackgroundLeft'>" . $nameHtml . ":</div>";
+							$img = $bioBackImgs[$idx] ?? '';
+							echo"<div class='bioSheetBackgroundRight'>" . $img . "</div>";
+						}
 					}
-					echo"<div class='bioSheetBackgroundLeft'>" . $nameHtml . ":</div>";
-					$img = $bioBackImgs[$idx] ?? '';
-					echo"<div class='bioSheetBackgroundRight'>" . $img . "</div>";
-				}
-			}
-		echo "</fieldset>";
-		echo "</div>"; // Cerramos Trasfondos ~~
-		// ================================================================== //
-		// Mï¿½?RITOS Y DEFECTOS
-		// ================================================================== //
-		include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
-	}
+				echo "</fieldset>";
+			echo "</div>"; // Cerramos Trasfondos ~~
+			// ================================================================== //
+			// MÉRITOS Y DEFECTOS
+			// ================================================================== //
+			include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
+		}
 			// ================================================================== //
 			// RECURSOS DEL PERSONAJE
 			// ================================================================== //
@@ -879,6 +855,10 @@
 			// PODERES, DONES, RITUALES Y DISCIPLINAS
 			// ================================================================== //
 			include ("app/partials/bio/bio_page_section_11_power.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
+			// ================================================================== //
+			// INVENTARIO Y OBJETOS
+			// ================================================================== //
+			include ("app/partials/bio/bio_page_section_13_items.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 			// ================================================================== //
 			echo "</section>";
 		} // Finalizamos la Hoja de Personaje

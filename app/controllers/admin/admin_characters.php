@@ -654,7 +654,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $items_id    = isset($_POST['items_id']) ? array_map('intval',(array)$_POST['items_id']) : [];
 
     // TRAITS
-    $traits_raw = isset($_POST['traits']) && is_array($_POST['traits']) ? $_POST['traits'] : [];
+    $traits_was_submitted = isset($_POST['traits']) && is_array($_POST['traits']);
+    $traits_raw = $traits_was_submitted ? $_POST['traits'] : [];
     $traits = [];
     foreach ($traits_raw as $tid => $val) {
         $tid = (int)$tid;
@@ -828,9 +829,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                     
-                    // Traits
-                    $resultTr = save_character_traits($link, (int)$newId, $traits, 'admin', null);
-                    if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+                    // Traits: solo si llegaron en el payload (evita borrado accidental en updates parciales)
+                    if ($traits_was_submitted) {
+                        $resultTr = save_character_traits($link, (int)$newId, $traits, 'admin', null);
+                        if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+                    }
 
                     // Recursos (estado/permanente)
                     $resultRes = save_character_resources(
@@ -947,9 +950,11 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                   
-                  // Traits
-                  $resultTr = save_character_traits($link, (int)$id, $traits, 'admin', null);
-                  if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+                  // Traits: solo si llegaron en el payload (evita borrado accidental en updates parciales)
+                  if ($traits_was_submitted) {
+                      $resultTr = save_character_traits($link, (int)$id, $traits, 'admin', null);
+                      if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+                  }
 
                   // Recursos (estado/permanente)
                   $resultRes = save_character_resources(
