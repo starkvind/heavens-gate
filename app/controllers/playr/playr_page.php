@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 $pjRaw = $_GET['b'] ?? '';
 $pjId = resolve_pretty_id($link, 'dim_players', (string)$pjRaw) ?? 0;

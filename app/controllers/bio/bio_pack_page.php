@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar la conexiÃ³n a la base de datos
 if (!$link) {

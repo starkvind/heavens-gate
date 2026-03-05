@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 setMetaFromPage("BiografÃ­as por realidad | Heaven's Gate", "Listado de personajes agrupados por realidad.", null, 'website');
 ?>
 <style>

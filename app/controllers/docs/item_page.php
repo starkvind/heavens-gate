@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 // Aseguramos que el parÃ¡metro GET 'b' estÃ© definido y es un valor seguro

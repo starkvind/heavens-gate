@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 setMetaFromPage("Nebulosa de manadas | Heaven's Gate", "Mapa de relaciones entre manadas.", null, 'website');
 
 if (!$link) {

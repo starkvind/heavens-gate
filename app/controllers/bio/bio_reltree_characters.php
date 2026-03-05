@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 setMetaFromPage("Nebulosa de personajes | Heaven's Gate", "Mapa de relaciones entre personajes.", null, 'website');
 
 if (!$link) {

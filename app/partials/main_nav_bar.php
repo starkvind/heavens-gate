@@ -1,4 +1,4 @@
-﻿<?php ob_start(); ?>
+<?php ob_start(); ?>
 
 	<?php
 		// <p class="navegacion_secciones">

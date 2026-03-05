@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 $traitPageID = isset($_GET['b']) ? (int)$_GET['b'] : 0;

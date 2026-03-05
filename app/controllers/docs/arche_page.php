@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 $archeRaw = $_GET['b'] ?? '';
 $archeId = resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0;

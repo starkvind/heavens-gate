@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin_items.php — CRUD Objetos (fact_items)
 if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }

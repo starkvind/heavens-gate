@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Obtener parÃ¡metros 'b' y 'r' de manera segura
 $mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del MÃ©rito Defecto

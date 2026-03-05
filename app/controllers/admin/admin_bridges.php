@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin_bridges.php - Panel para ver/editar Bridges
 // - PJ -> Manada (bridge_characters_groups)
 // - PJ -> Clan   (bridge_characters_organizations)

@@ -369,44 +369,190 @@ if ($rs = $link->query("SELECT system_id, trait_id, sort_order FROM fact_trait_s
 ------------------------------------------------- */
 // RAZAS
 $opts_razas = [];
-$razas_by_sys = []; $raza_id_to_sys = [];
+$razas_by_sys = []; $raza_id_to_sys = []; $raza_id_to_allowed_sys = []; $razas_seen_by_sys = [];
 if ($st = $link->prepare("SELECT id, name, system_id FROM dim_breeds ORDER BY system_id, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
         $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
         $opts_razas[$id] = $nm . ($sys>0 && isset($opts_sist[$sys]) ? ' ('.$opts_sist[$sys].')' : '');
         $raza_id_to_sys[$id] = $sys;
-        $razas_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+        if ($sys > 0) {
+            if (!isset($raza_id_to_allowed_sys[$id])) $raza_id_to_allowed_sys[$id] = [];
+            $raza_id_to_allowed_sys[$id][$sys] = true;
+        }
+        if (!isset($razas_seen_by_sys[$sys][$id])) {
+            $razas_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+            $razas_seen_by_sys[$sys][$id] = true;
+        }
     }
     $st->close();
 }
+$bridgeExtraRazaTable = '';
+$bridgeExtraRazaFk = '';
+$bridgeExtraRazaCandidates = [
+    ['table' => 'bridge_systems_ex_races', 'fk' => 'race_id'],
+    ['table' => 'bridge_systems_ex_races', 'fk' => 'breed_id'],
+    ['table' => 'bridge_systems_ex_breeds', 'fk' => 'breed_id'],
+];
+foreach ($bridgeExtraRazaCandidates as $candidate) {
+    $table = (string)$candidate['table'];
+    $fk = (string)$candidate['fk'];
+    if (!pjs_table_exists($link, $table)) continue;
+    if (!pjs_table_has_column($link, $table, 'system_id')) continue;
+    if (!pjs_table_has_column($link, $table, $fk)) continue;
+    $bridgeExtraRazaTable = $table;
+    $bridgeExtraRazaFk = $fk;
+    break;
+}
+if ($bridgeExtraRazaTable !== '' && $bridgeExtraRazaFk !== '') {
+    $hasActiveCol = pjs_table_has_column($link, $bridgeExtraRazaTable, 'is_active');
+    $sqlExtraRaza = "
+        SELECT b.system_id AS system_id, d.id AS id, d.name AS name
+        FROM {$bridgeExtraRazaTable} b
+        INNER JOIN dim_breeds d ON d.id = b.{$bridgeExtraRazaFk}
+    ";
+    if ($hasActiveCol) $sqlExtraRaza .= " WHERE (b.is_active = 1 OR b.is_active IS NULL)";
+    $sqlExtraRaza .= " ORDER BY b.system_id, d.name";
+    if ($st = $link->prepare($sqlExtraRaza)) {
+        $st->execute(); $rs = $st->get_result();
+        while ($r = $rs->fetch_assoc()) {
+            $sys = (int)($r['system_id'] ?? 0);
+            $id = (int)($r['id'] ?? 0);
+            $nm = (string)($r['name'] ?? '');
+            if ($sys <= 0 || $id <= 0 || $nm === '') continue;
+            if (!isset($raza_id_to_allowed_sys[$id])) $raza_id_to_allowed_sys[$id] = [];
+            $raza_id_to_allowed_sys[$id][$sys] = true;
+            if (!isset($razas_seen_by_sys[$sys][$id])) {
+                $razas_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+                $razas_seen_by_sys[$sys][$id] = true;
+            }
+        }
+        $st->close();
+    }
+}
 // AUSPICIOS
-$opts_ausp = []; $ausp_by_sys = []; $ausp_id_to_sys = [];
+$opts_ausp = []; $ausp_by_sys = []; $ausp_id_to_sys = []; $ausp_id_to_allowed_sys = []; $ausp_seen_by_sys = [];
 if ($st = $link->prepare("SELECT id, name, system_id FROM dim_auspices ORDER BY system_id, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
         $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
         $opts_ausp[$id] = $nm;
         $ausp_id_to_sys[$id] = $sys;
-        $ausp_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+        if ($sys > 0) {
+            if (!isset($ausp_id_to_allowed_sys[$id])) $ausp_id_to_allowed_sys[$id] = [];
+            $ausp_id_to_allowed_sys[$id][$sys] = true;
+        }
+        if (!isset($ausp_seen_by_sys[$sys][$id])) {
+            $ausp_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+            $ausp_seen_by_sys[$sys][$id] = true;
+        }
     }
     $st->close();
 } else {
     $opts_ausp = fetchPairs($link, "SELECT id, name FROM dim_auspices ORDER BY name");
 }
+$bridgeExtraAuspTable = '';
+$bridgeExtraAuspFk = '';
+$bridgeExtraAuspCandidates = [
+    ['table' => 'bridge_systems_ex_auspices', 'fk' => 'auspice_id'],
+];
+foreach ($bridgeExtraAuspCandidates as $candidate) {
+    $table = (string)$candidate['table'];
+    $fk = (string)$candidate['fk'];
+    if (!pjs_table_exists($link, $table)) continue;
+    if (!pjs_table_has_column($link, $table, 'system_id')) continue;
+    if (!pjs_table_has_column($link, $table, $fk)) continue;
+    $bridgeExtraAuspTable = $table;
+    $bridgeExtraAuspFk = $fk;
+    break;
+}
+if ($bridgeExtraAuspTable !== '' && $bridgeExtraAuspFk !== '') {
+    $hasActiveCol = pjs_table_has_column($link, $bridgeExtraAuspTable, 'is_active');
+    $sqlExtraAusp = "
+        SELECT b.system_id AS system_id, d.id AS id, d.name AS name
+        FROM {$bridgeExtraAuspTable} b
+        INNER JOIN dim_auspices d ON d.id = b.{$bridgeExtraAuspFk}
+    ";
+    if ($hasActiveCol) $sqlExtraAusp .= " WHERE (b.is_active = 1 OR b.is_active IS NULL)";
+    $sqlExtraAusp .= " ORDER BY b.system_id, d.name";
+    if ($st = $link->prepare($sqlExtraAusp)) {
+        $st->execute(); $rs = $st->get_result();
+        while ($r = $rs->fetch_assoc()) {
+            $sys = (int)($r['system_id'] ?? 0);
+            $id = (int)($r['id'] ?? 0);
+            $nm = (string)($r['name'] ?? '');
+            if ($sys <= 0 || $id <= 0 || $nm === '') continue;
+            if (!isset($ausp_id_to_allowed_sys[$id])) $ausp_id_to_allowed_sys[$id] = [];
+            $ausp_id_to_allowed_sys[$id][$sys] = true;
+            if (!isset($ausp_seen_by_sys[$sys][$id])) {
+                $ausp_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+                $ausp_seen_by_sys[$sys][$id] = true;
+            }
+        }
+        $st->close();
+    }
+}
 // TRIBUS
-$opts_tribus = []; $tribus_by_sys = []; $tribu_id_to_sys = [];
+$opts_tribus = []; $tribus_by_sys = []; $tribu_id_to_sys = []; $tribu_id_to_allowed_sys = []; $tribus_seen_by_sys = [];
 if ($st = $link->prepare("SELECT id, name, system_id FROM dim_tribes ORDER BY system_id, name")) {
     $st->execute(); $rs = $st->get_result();
     while ($r = $rs->fetch_assoc()) {
         $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
         $opts_tribus[$id] = $nm;
         $tribu_id_to_sys[$id] = $sys;
-        $tribus_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+        if ($sys > 0) {
+            if (!isset($tribu_id_to_allowed_sys[$id])) $tribu_id_to_allowed_sys[$id] = [];
+            $tribu_id_to_allowed_sys[$id][$sys] = true;
+        }
+        if (!isset($tribus_seen_by_sys[$sys][$id])) {
+            $tribus_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+            $tribus_seen_by_sys[$sys][$id] = true;
+        }
     }
     $st->close();
 } else {
     $opts_tribus = fetchPairs($link, "SELECT id, name FROM dim_tribes ORDER BY name");
+}
+$bridgeExtraTribuTable = '';
+$bridgeExtraTribuFk = '';
+$bridgeExtraTribuCandidates = [
+    ['table' => 'bridge_systems_ex_tribes', 'fk' => 'tribe_id'],
+];
+foreach ($bridgeExtraTribuCandidates as $candidate) {
+    $table = (string)$candidate['table'];
+    $fk = (string)$candidate['fk'];
+    if (!pjs_table_exists($link, $table)) continue;
+    if (!pjs_table_has_column($link, $table, 'system_id')) continue;
+    if (!pjs_table_has_column($link, $table, $fk)) continue;
+    $bridgeExtraTribuTable = $table;
+    $bridgeExtraTribuFk = $fk;
+    break;
+}
+if ($bridgeExtraTribuTable !== '' && $bridgeExtraTribuFk !== '') {
+    $hasActiveCol = pjs_table_has_column($link, $bridgeExtraTribuTable, 'is_active');
+    $sqlExtraTribu = "
+        SELECT b.system_id AS system_id, d.id AS id, d.name AS name
+        FROM {$bridgeExtraTribuTable} b
+        INNER JOIN dim_tribes d ON d.id = b.{$bridgeExtraTribuFk}
+    ";
+    if ($hasActiveCol) $sqlExtraTribu .= " WHERE (b.is_active = 1 OR b.is_active IS NULL)";
+    $sqlExtraTribu .= " ORDER BY b.system_id, d.name";
+    if ($st = $link->prepare($sqlExtraTribu)) {
+        $st->execute(); $rs = $st->get_result();
+        while ($r = $rs->fetch_assoc()) {
+            $sys = (int)($r['system_id'] ?? 0);
+            $id = (int)($r['id'] ?? 0);
+            $nm = (string)($r['name'] ?? '');
+            if ($sys <= 0 || $id <= 0 || $nm === '') continue;
+            if (!isset($tribu_id_to_allowed_sys[$id])) $tribu_id_to_allowed_sys[$id] = [];
+            $tribu_id_to_allowed_sys[$id][$sys] = true;
+            if (!isset($tribus_seen_by_sys[$sys][$id])) {
+                $tribus_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
+                $tribus_seen_by_sys[$sys][$id] = true;
+            }
+        }
+        $st->close();
+    }
 }
 
 /* -------------------------------------------------
@@ -571,9 +717,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         }
     }
     if ($system_id > 0) {
-        if ($raza     > 0 && isset($raza_id_to_sys[$raza])     && (int)$raza_id_to_sys[$raza]     !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] La Raza no pertenece al Sistema elegido.'];
-        if ($auspice_id > 0 && isset($ausp_id_to_sys[$auspice_id]) && (int)$ausp_id_to_sys[$auspice_id] !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] El Auspicio no pertenece al Sistema elegido.'];
-        if ($tribe_id    > 0 && isset($tribu_id_to_sys[$tribe_id])   && (int)$tribu_id_to_sys[$tribe_id]   !== (int)$system_id) $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
+        if ($raza > 0 && isset($raza_id_to_allowed_sys[$raza]) && !isset($raza_id_to_allowed_sys[$raza][(int)$system_id])) {
+            $flash[]=['type'=>'error','msg'=>'[WARN] La Raza no pertenece al Sistema elegido.'];
+        }
+        if ($auspice_id > 0 && isset($ausp_id_to_allowed_sys[$auspice_id]) && !isset($ausp_id_to_allowed_sys[$auspice_id][(int)$system_id])) {
+            $flash[]=['type'=>'error','msg'=>'[WARN] El Auspicio no pertenece al Sistema elegido.'];
+        }
+        if ($tribe_id > 0 && isset($tribu_id_to_allowed_sys[$tribe_id]) && !isset($tribu_id_to_allowed_sys[$tribe_id][(int)$system_id])) {
+            $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
+        }
     }
 
     // Totem: si no elige, hereda de manada o clan
@@ -1590,10 +1742,13 @@ $jsBoot = [
   'MANADA_ID_TO_CLAN' => $manadas_map_id_to_clan,
   'RAZAS_BY_SYS' => $razas_by_sys,
   'RAZA_ID_TO_SYS' => $raza_id_to_sys,
+  'RAZA_ID_TO_ALLOWED_SYS' => $raza_id_to_allowed_sys,
   'AUSP_BY_SYS' => $ausp_by_sys,
   'AUSP_ID_TO_SYS' => $ausp_id_to_sys,
+  'AUSP_ID_TO_ALLOWED_SYS' => $ausp_id_to_allowed_sys,
   'TRIBUS_BY_SYS' => $tribus_by_sys,
   'TRIBU_ID_TO_SYS' => $tribu_id_to_sys,
+  'TRIBU_ID_TO_ALLOWED_SYS' => $tribu_id_to_allowed_sys,
   'DONES_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_dones), array_values($opts_dones)),
   'DISC_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_disciplinas), array_values($opts_disciplinas)),
   'RITU_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_rituales), array_values($opts_rituales)),

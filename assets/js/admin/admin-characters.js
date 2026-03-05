@@ -65,12 +65,15 @@ var MANADA_ID_TO_CLAN = BOOT.MANADA_ID_TO_CLAN || {};
 
 var RAZAS_BY_SYS      = BOOT.RAZAS_BY_SYS || {};
 var RAZA_ID_TO_SYS    = BOOT.RAZA_ID_TO_SYS || {};
+var RAZA_ID_TO_ALLOWED_SYS = BOOT.RAZA_ID_TO_ALLOWED_SYS || {};
 
 var AUSP_BY_SYS       = BOOT.AUSP_BY_SYS || {};
 var AUSP_ID_TO_SYS    = BOOT.AUSP_ID_TO_SYS || {};
+var AUSP_ID_TO_ALLOWED_SYS = BOOT.AUSP_ID_TO_ALLOWED_SYS || {};
 
 var TRIBUS_BY_SYS     = BOOT.TRIBUS_BY_SYS || {};
 var TRIBU_ID_TO_SYS   = BOOT.TRIBU_ID_TO_SYS || {};
+var TRIBU_ID_TO_ALLOWED_SYS = BOOT.TRIBU_ID_TO_ALLOWED_SYS || {};
 
 // PODERES
 var DONES_OPTS       = Array.isArray(BOOT.DONES_OPTS) ? BOOT.DONES_OPTS : [];
@@ -110,11 +113,11 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   var btnSave = document.getElementById('btnSave');
 
   var selSistema = document.getElementById('f_system_id');
-	  var selRaza    = document.getElementById('f_raza');
-	  var selAusp    = document.getElementById('f_auspicio');
-	  var selTribu   = document.getElementById('f_tribu');
-	  var selNature  = document.getElementById('f_nature_id');
-	  var selDemeanor= document.getElementById('f_demeanor_id');
+  var selRaza    = document.getElementById('f_raza');
+  var selAusp    = document.getElementById('f_auspicio');
+  var selTribu   = document.getElementById('f_tribu');
+  var selNature  = document.getElementById('f_nature_id');
+  var selDemeanor= document.getElementById('f_demeanor_id');
 
   var selClan    = document.getElementById('f_clan');
   var selManada  = document.getElementById('f_manada');
@@ -166,10 +169,13 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     if (nextBoot.MANADA_ID_TO_CLAN) MANADA_ID_TO_CLAN = nextBoot.MANADA_ID_TO_CLAN;
     if (nextBoot.RAZAS_BY_SYS) RAZAS_BY_SYS = nextBoot.RAZAS_BY_SYS;
     if (nextBoot.RAZA_ID_TO_SYS) RAZA_ID_TO_SYS = nextBoot.RAZA_ID_TO_SYS;
+    if (nextBoot.RAZA_ID_TO_ALLOWED_SYS) RAZA_ID_TO_ALLOWED_SYS = nextBoot.RAZA_ID_TO_ALLOWED_SYS;
     if (nextBoot.AUSP_BY_SYS) AUSP_BY_SYS = nextBoot.AUSP_BY_SYS;
     if (nextBoot.AUSP_ID_TO_SYS) AUSP_ID_TO_SYS = nextBoot.AUSP_ID_TO_SYS;
+    if (nextBoot.AUSP_ID_TO_ALLOWED_SYS) AUSP_ID_TO_ALLOWED_SYS = nextBoot.AUSP_ID_TO_ALLOWED_SYS;
     if (nextBoot.TRIBUS_BY_SYS) TRIBUS_BY_SYS = nextBoot.TRIBUS_BY_SYS;
     if (nextBoot.TRIBU_ID_TO_SYS) TRIBU_ID_TO_SYS = nextBoot.TRIBU_ID_TO_SYS;
+    if (nextBoot.TRIBU_ID_TO_ALLOWED_SYS) TRIBU_ID_TO_ALLOWED_SYS = nextBoot.TRIBU_ID_TO_ALLOWED_SYS;
     DONES_OPTS = Array.isArray(nextBoot.DONES_OPTS) ? nextBoot.DONES_OPTS : DONES_OPTS;
     DISC_OPTS = Array.isArray(nextBoot.DISC_OPTS) ? nextBoot.DISC_OPTS : DISC_OPTS;
     RITU_OPTS = Array.isArray(nextBoot.RITU_OPTS) ? nextBoot.RITU_OPTS : RITU_OPTS;
@@ -875,6 +881,24 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   });
 
   function validateCrudForm(){
+    function isAllowedForSystem(allowedByIdMap, nativeByIdMap, valueId, systemId){
+      var id = parseInt(valueId, 10) || 0;
+      var sys = parseInt(systemId, 10) || 0;
+      if (!id || !sys) return true;
+
+      var idKey = String(id);
+      var sysKey = String(sys);
+      var allowedObj = allowedByIdMap && allowedByIdMap[idKey];
+      if (allowedObj && typeof allowedObj === 'object') {
+        return !!allowedObj[sysKey];
+      }
+
+      if (nativeByIdMap && Object.prototype.hasOwnProperty.call(nativeByIdMap, idKey)) {
+        return (parseInt(nativeByIdMap[idKey], 10) || 0) === sys;
+      }
+      return true;
+    }
+
     var c = parseInt(selClan.value,10)||0;
     var m = parseInt(selManada.value,10)||0;
     if (!c) return 'Debes seleccionar un Clan.';
@@ -886,9 +910,9 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     var au = parseInt(selAusp.value,10)||0;
     var tr = parseInt(selTribu.value,10)||0;
     if (sys){
-      if (rz && RAZA_ID_TO_SYS[String(rz)]   && parseInt(RAZA_ID_TO_SYS[String(rz)],10)   !== sys){ return 'La Raza no pertenece al Sistema elegido.'; }
-      if (au && AUSP_ID_TO_SYS[String(au)]   && parseInt(AUSP_ID_TO_SYS[String(au)],10)   !== sys){ return 'El Auspicio no pertenece al Sistema elegido.'; }
-      if (tr && TRIBU_ID_TO_SYS[String(tr)]  && parseInt(TRIBU_ID_TO_SYS[String(tr)],10)  !== sys){ return 'La Tribu no pertenece al Sistema elegido.'; }
+      if (!isAllowedForSystem(RAZA_ID_TO_ALLOWED_SYS, RAZA_ID_TO_SYS, rz, sys)){ return 'La Raza no pertenece al Sistema elegido.'; }
+      if (!isAllowedForSystem(AUSP_ID_TO_ALLOWED_SYS, AUSP_ID_TO_SYS, au, sys)){ return 'El Auspicio no pertenece al Sistema elegido.'; }
+      if (!isAllowedForSystem(TRIBU_ID_TO_ALLOWED_SYS, TRIBU_ID_TO_SYS, tr, sys)){ return 'La Tribu no pertenece al Sistema elegido.'; }
     }
     if (!fEstado.value) return 'Debes seleccionar un Estado.';
     return '';

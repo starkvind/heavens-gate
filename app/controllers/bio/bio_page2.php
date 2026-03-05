@@ -387,7 +387,7 @@
 		// Datos de jugador y crÃ³nica
 			$bioPlayer	 = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
 			$bioChronic	 = $dataResult["chronicle_id"]; // CrÃ³nica a la que pertenece el personaje.
-			$bioStatus	 = $dataResult["status"]; 		// Estado del personaje. Si estÃ¡ "activo" o "muerto", etc.
+			$bioStatus	 = $dataResult["status"] ?? ""; 	// Estado legacy; puede no venir desde fact_characters.
 			$bioDethCaus = $dataResult["death_description"] ?? ""; // Causa de la muerte.
 			$bioSheetRaw = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
 			$bioSheet	 = $bioSheetRaw; // Compatibilidad con cÃ³digo legacy.
@@ -1107,4 +1107,3 @@
 			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
-

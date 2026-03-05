@@ -1,4 +1,4 @@
-﻿<?php setMetaFromPage("Linea temporal | Heaven's Gate", "Linea temporal de eventos y sucesos.", null, 'website'); ?>
+<?php setMetaFromPage("Linea temporal | Heaven's Gate", "Linea temporal de eventos y sucesos.", null, 'website'); ?>
 <?php
 if (!$link) {
     die("Error de conexion a la base de datos.");

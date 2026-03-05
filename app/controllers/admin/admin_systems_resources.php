@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin_systems_resources.php - Recursos por sistema (AJAX)
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');

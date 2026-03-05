@@ -1,4 +1,4 @@
-﻿<?php setMetaFromPage("BiografÃ­as por grupo | Heaven's Gate", "Listado de biografÃ­as agrupadas por Tipo y OrganizaciÃ³n.", null, 'website'); ?>
+<?php setMetaFromPage("BiografÃ­as por grupo | Heaven's Gate", "Listado de biografÃ­as agrupadas por Tipo y OrganizaciÃ³n.", null, 'website'); ?>
 <style>
 	.toggleAfiliacion {
 	  background: #05014e;

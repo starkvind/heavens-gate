@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin_character_deaths.php - Gestion de muertes de personajes con guardado Ajax por fila.
 
 if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }

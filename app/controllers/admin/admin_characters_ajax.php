@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // AJAX handlers for admin_characters.php
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');

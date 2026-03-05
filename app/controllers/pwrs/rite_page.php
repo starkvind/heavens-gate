@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Obtener y sanitizar el parÃ¡metro 'b'
 $ritePageID = isset($_GET['b']) ? $_GET['b'] : ''; 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 setMetaFromPage("Personajes | Heaven's Gate", "Listado completo de personajes.", null, 'website');
 include("app/partials/main_nav_bar.php");
 if (!$link) {
@@ -127,7 +127,7 @@ function ensure_utf8($value) {
     return $value;
 }
 $personajes = ensure_utf8($personajes);
-$pageSect = "Lista de personajes - BiografÃ­as";
+$pageSect = "Lista de personajes - Biograf&iacute;as";
 ?>
 <style>
 /* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
@@ -229,7 +229,7 @@ $pageSect = "Lista de personajes - BiografÃ­as";
         </div>
         <div class="ms-wrap" id="filter-clan">
           <div class="ms-btn" id="ms-toggle-clan" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
-            <span class="ms-label">OrganizaciÃ³n</span>
+            <span class="ms-label">Organizaci&oacute;n</span>
             <span class="ms-summary" id="ms-summary-clan">Todas</span>
           </div>
           <div class="ms-panel" id="ms-panel-clan" aria-hidden="true">
@@ -290,7 +290,7 @@ $pageSect = "Lista de personajes - BiografÃ­as";
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Grupo</th>
-                <th>OrganizaciÃ³n</th>
+                <th>Organizaci&oacute;n</th>
                 <th>Sistema</th>
                 <th>Tipo</th>
                 <th>Estado</th>

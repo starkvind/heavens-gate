@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar si se recibe el parÃ¡metro 'b' y sanitizarlo
 $donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 

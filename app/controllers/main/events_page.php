@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (!$link) {
     die("Error de conexion a la base de datos.");
 }

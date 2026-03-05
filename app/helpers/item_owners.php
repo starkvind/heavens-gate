@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // ================================================================== //
 // PERSONAJES QUE POSEEN ESTE OBJETO
 include_once(__DIR__ . '/character_avatar.php');
