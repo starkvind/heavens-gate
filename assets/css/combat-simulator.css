@@ -1,0 +1,853 @@
+.hg-sim-shell {
+    --sim-bg: #05014e;
+    --sim-panel: linear-gradient(160deg, #04035f 0%, #071a4f 100%);
+    --sim-line: #123c8b;
+    --sim-line-soft: rgba(18, 60, 139, 0.72);
+    --sim-ink: #f2f8ff;
+    --sim-muted: #9fc0f3;
+    --sim-accent: #36d0d3;
+    --sim-glow: rgba(54, 208, 211, 0.2);
+    max-width: 1040px;
+    margin: 0 auto 2rem;
+    padding: 0 12px 20px;
+    color: var(--sim-ink);
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+}
+
+.hg-sim-shell h2 {
+    margin: 8px 0 14px;
+    padding: 12px 16px;
+    border: 1px solid var(--sim-line);
+    border-radius: 12px;
+    background: var(--sim-panel);
+    color: #b7e8ff;
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.hg-sim-shell form {
+    margin: 0;
+}
+
+.hg-sim-shell table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--sim-line);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--sim-bg);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.hg-sim-shell tr + tr td,
+.hg-sim-shell tr + tr th {
+    border-top: 1px solid var(--sim-line-soft);
+}
+
+.hg-sim-shell td,
+.hg-sim-shell th,
+.hg-sim-shell .ajustcelda,
+.hg-sim-shell .ajustceld {
+    padding: 9px 10px;
+    border-left: 1px solid var(--sim-line-soft);
+    vertical-align: middle;
+    color: var(--sim-ink);
+}
+
+.hg-sim-shell td:first-child,
+.hg-sim-shell th:first-child {
+    border-left: 0;
+}
+
+.hg-sim-shell .celdacombat,
+.hg-sim-shell .celdacombat2 {
+    background: rgba(7, 23, 68, 0.92);
+    color: #eaf4ff;
+    line-height: 1.5;
+}
+
+.hg-sim-shell .celdacombat2 {
+    background: rgba(11, 31, 85, 0.94);
+}
+
+.hg-sim-shell fieldset {
+    border: 1px solid var(--sim-line);
+    border-radius: 10px;
+    background: rgba(7, 17, 56, 0.95);
+    padding: 10px 12px;
+}
+
+.hg-sim-shell legend {
+    border: 1px solid var(--sim-line);
+    border-radius: 999px;
+    padding: 6px 14px;
+    background: #061140;
+    color: var(--sim-accent);
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.hg-sim-shell select,
+.hg-sim-shell input[type="text"],
+.hg-sim-shell input[type="number"],
+.hg-sim-shell input[type="search"] {
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid #23509a;
+    border-radius: 8px;
+    padding: 7px 8px;
+    background: #061546;
+    color: #eff8ff;
+    font-size: 0.92rem;
+    box-sizing: border-box;
+}
+
+.hg-sim-shell input[type="checkbox"] {
+    accent-color: #2bbfd1;
+}
+
+.hg-sim-shell input[type="submit"],
+.hg-sim-shell input[type="button"],
+.hg-sim-shell .boton1,
+.hg-sim-shell button {
+    display: inline-block;
+    border: 1px solid #1c5ea9;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #0f2f73 0%, #0a205a 100%);
+    color: #e8f7ff;
+    padding: 8px 16px;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.hg-sim-shell input[type="submit"]:hover,
+.hg-sim-shell input[type="button"]:hover,
+.hg-sim-shell .boton1:hover,
+.hg-sim-shell button:hover {
+    transform: translateY(-1px);
+    border-color: var(--sim-accent);
+    box-shadow: 0 0 0 3px var(--sim-glow);
+}
+
+.hg-sim-shell a {
+    color: #8de8f0;
+    text-decoration: none;
+}
+
+.hg-sim-shell a:hover {
+    color: #d9fbff;
+    text-decoration: underline;
+}
+
+.hg-sim-shell #celdaAtaqueJ1,
+.hg-sim-shell #celdaAtaqueJ2 {
+    margin: 8px 0;
+    padding: 9px 10px;
+    border: 1px solid var(--sim-line-soft);
+    border-radius: 10px;
+    background: rgba(6, 18, 58, 0.92);
+    line-height: 1.45;
+}
+
+.hg-sim-shell #celdaAtaqueJ2 {
+    background: rgba(7, 26, 75, 0.94);
+}
+
+.hg-sim-shell #celdaInicioCombateIz,
+.hg-sim-shell #celdaInicioCombateDe {
+    display: inline-block;
+    width: calc(50% - 8px);
+    margin: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--sim-line-soft);
+    border-radius: 10px;
+    background: rgba(8, 24, 73, 0.88);
+    box-sizing: border-box;
+}
+
+.hg-sim-shell #paIniCom {
+    margin: 0 0 4px;
+    color: #dbeaff;
+}
+
+.hg-sim-shell .photobio {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #1a4d9b;
+    object-fit: cover;
+    background: #02083a;
+}
+
+.hg-sim-shell .sim-combat-avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 10px;
+}
+
+.hg-sim-shell p[align="right"] {
+    text-align: right;
+    margin-top: 10px;
+    color: var(--sim-muted);
+}
+
+.hg-sim-shell .infoLink {
+    color: #a7d6ff;
+}
+
+.hg-sim-shell .infoLink:hover {
+    color: #d9f7ff;
+}
+
+.hg-sim-shell .simulator-stat-box,
+.hg-sim-shell .simulator-help-box {
+    border: 1px solid var(--sim-line);
+    border-radius: 10px;
+    background: rgba(7, 17, 56, 0.92);
+}
+
+.hg-sim-shell .sim-ui {
+    padding: 10px 8px 14px;
+}
+
+.hg-sim-shell .sim-select-screen {
+    display: grid;
+    gap: 14px;
+}
+
+.hg-sim-shell .sim-fight-header {
+    display: grid;
+    grid-template-columns: 1fr 72px 1fr;
+    gap: 12px;
+    align-items: center;
+}
+
+.hg-sim-shell .sim-fighter-slot {
+    border: 1px solid var(--sim-line);
+    border-radius: 14px;
+    background: rgba(6, 16, 54, 0.95);
+    padding: 12px;
+    min-height: 186px;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.hg-sim-shell .sim-fighter-slot:hover {
+    border-color: var(--sim-accent);
+    box-shadow: 0 0 0 3px var(--sim-glow);
+    transform: translateY(-1px);
+}
+
+.hg-sim-shell .sim-slot-portrait {
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 10px;
+    border-radius: 10px;
+    border: 1px solid #1f4fa0;
+    background: #081449;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hg-sim-shell .sim-slot-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hg-sim-shell .sim-slot-noimg {
+    color: #87a9df;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.hg-sim-shell .sim-slot-name {
+    font-size: 0.96rem;
+    font-weight: bold;
+    margin-bottom: 3px;
+    line-height: 1.15;
+    height: 1.15em;
+    overflow: hidden;
+}
+
+.hg-sim-shell .sim-slot-alias {
+    color: #9bc0f7;
+    font-size: 0.83rem;
+    margin-bottom: 4px;
+    line-height: 1.15;
+    height: 1.15em;
+    overflow: hidden;
+}
+
+.hg-sim-shell .sim-slot-rank {
+    display: block;
+    color: #ffd86f;
+    letter-spacing: 1px;
+    font-size: 0.92rem;
+    line-height: 1.15;
+    height: 1.15em;
+    overflow: hidden;
+}
+
+.hg-sim-shell .sim-fight-vs {
+    width: 72px;
+    height: 72px;
+    border-radius: 999px;
+    border: 1px solid #1e4f9f;
+    background: radial-gradient(circle at 40% 35%, #0c2e75 0%, #07184f 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: #b7ecff;
+}
+
+.hg-sim-shell .sim-roster-wrap {
+    border: 1px solid var(--sim-line);
+    border-radius: 12px;
+    background: rgba(5, 13, 49, 0.93);
+    padding: 12px;
+    margin-top: 1.5em;
+}
+
+.hg-sim-shell .sim-roster-title {
+    color: var(--sim-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.hg-sim-shell .sim-roster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 9px;
+}
+
+.hg-sim-shell .sim-roster-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(28, 74, 144, 0.85);
+    border-radius: 10px;
+    background: rgba(8, 27, 79, 0.95);
+    padding: 7px 8px;
+    text-align: left;
+    color: #fff;
+    cursor: pointer;
+    transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
+}
+
+.hg-sim-shell .sim-roster-card:hover {
+    border-color: var(--sim-accent);
+    box-shadow: 0 0 0 3px var(--sim-glow);
+    transform: translateY(-1px);
+}
+
+.hg-sim-shell .sim-roster-card.is-picked-p1 {
+    border-color: #39d680;
+    box-shadow: 0 0 0 2px rgba(57, 214, 128, 0.22);
+}
+
+.hg-sim-shell .sim-roster-card.is-picked-p2 {
+    border-color: #f1a94b;
+    box-shadow: 0 0 0 2px rgba(241, 169, 75, 0.22);
+}
+
+.hg-sim-shell .sim-roster-card.sim-roster-random {
+    border-style: dashed;
+}
+
+.hg-sim-shell .sim-roster-portrait {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 6px;
+    border: 1px solid #1d4a95;
+    background: #081448;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+}
+
+.hg-sim-shell .sim-roster-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hg-sim-shell .sim-roster-noimg {
+    color: #7ea8e8;
+    font-size: 0.9rem;
+}
+
+.hg-sim-shell .sim-roster-name {
+    font-size: 0.78rem;
+    font-weight: bold;
+    margin-bottom: 1px;
+}
+
+.hg-sim-shell .sim-combats-table,
+.hg-sim-shell .sim-stats-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.hg-sim-shell .sim-combats-table td,
+.hg-sim-shell .sim-stats-table td {
+    padding: 9px 10px;
+    vertical-align: middle;
+    word-break: break-word;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-id {
+    width: 12%;
+    text-align: left;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-p1 {
+    width: 20%;
+    text-align: right;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-vs {
+    width: 8%;
+    text-align: center;
+    font-weight: bold;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-p2 {
+    width: 20%;
+    text-align: left;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-result {
+    width: 40%;
+    text-align: right;
+    font-weight: bold;
+}
+
+.hg-sim-shell .sim-stats-table .sim-stat-label {
+    width: 46%;
+    text-align: left;
+}
+
+.hg-sim-shell .sim-stats-table .sim-stat-value {
+    width: 54%;
+    text-align: right;
+    font-weight: bold;
+}
+
+.hg-sim-shell .sim-actions-row {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.hg-sim-shell .sim-classic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    min-width: 120px;
+    padding: 8px 8px;
+    margin: 0 4px;
+    border: 1px solid #1c5ea9;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #0f2f73 0%, #0a205a 100%);
+    color: #e8f7ff;
+    font-size: 0.74rem;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    text-align: center;
+    line-height: 1;
+    white-space: nowrap;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.hg-sim-shell .sim-classic-btn:hover {
+    color: #e8f7ff;
+    border-color: var(--sim-accent);
+    text-decoration: none;
+    box-shadow: 0 0 0 3px var(--sim-glow);
+    transform: translateY(-1px);
+}
+
+.hg-sim-shell .sim-roster-rank {
+    color: #ffd86f;
+    letter-spacing: 1px;
+    font-size: 0.68rem;
+}
+
+.hg-sim-shell .sim-result-rank {
+    color: #ffd86f;
+    letter-spacing: 1px;
+    font-size: 0.82rem;
+    margin-top: 5px;
+}
+
+.hg-sim-shell .sim-loadout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 6px;
+}
+
+.hg-sim-shell .sim-loadout-card {
+    border: 1px solid var(--sim-line);
+    border-radius: 12px;
+    background: rgba(5, 13, 48, 0.94);
+    padding: 11px;
+}
+
+.hg-sim-shell .sim-loadout-card h3 {
+    margin: 0 0 8px;
+    font-size: 0.86rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #9ad6ff;
+}
+
+.hg-sim-shell .sim-loadout-card label {
+    display: grid;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: #b8d7ff;
+    margin-bottom: 7px;
+}
+
+.hg-sim-shell .sim-loadout-card label:last-child {
+    margin-bottom: 0;
+}
+
+.hg-sim-shell .sim-fieldset-inline {
+    margin: 6px 0 0;
+    padding: 12px;
+}
+
+.hg-sim-shell .sim-options-row,
+.hg-sim-shell .sim-random-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+}
+
+.hg-sim-shell .sim-options-row label,
+.hg-sim-shell .sim-random-row label {
+    min-width: 124px;
+    display: grid;
+    gap: 4px;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #b0d0fb;
+}
+
+.hg-sim-shell .sim-random-row label {
+    min-width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border: 1px solid rgba(29, 75, 144, 0.82);
+    border-radius: 8px;
+    background: rgba(8, 23, 73, 0.9);
+}
+
+.hg-sim-shell .sim-submit-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 6px;
+}
+
+.hg-sim-shell .sim-submit-row .boton1 {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 120px;
+    margin: 0 auto;
+    padding: 8px 20px;
+}
+
+.hg-sim-shell .sim-submit-row .boton1[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.hg-sim-shell .sim-extra-panels {
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.hg-sim-shell .sim-turn-fieldset {
+    border: 1px solid var(--sim-line);
+    border-radius: 12px;
+    background: rgba(7, 18, 59, 0.96);
+    padding: 10px;
+    margin: 10px 0;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.36s ease, transform 0.36s ease;
+}
+
+.hg-sim-shell .sim-turn-fieldset.is-pending {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.hg-sim-shell .sim-turn-fieldset.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.hg-sim-shell .sim-attack-msg {
+    margin: 8px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--sim-line-soft);
+    border-radius: 10px;
+    background: rgba(7, 25, 78, 0.96);
+    line-height: 1.45;
+    max-width: 94%;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.34s ease, transform 0.34s ease;
+}
+
+.hg-sim-shell .sim-turn-fieldset.is-pending .sim-attack-msg {
+    opacity: 0;
+}
+
+.hg-sim-shell .sim-attack-msg.from-left {
+    margin-right: auto;
+    transform: translateX(-12px);
+}
+
+.hg-sim-shell .sim-attack-msg.from-right {
+    margin-left: auto;
+    text-align: right;
+    background: rgba(10, 31, 91, 0.96);
+    transform: translateX(12px);
+}
+
+.hg-sim-shell .sim-turn-fieldset.is-visible .sim-attack-msg.from-left,
+.hg-sim-shell .sim-turn-fieldset.is-visible .sim-attack-msg.from-right {
+    transform: translateX(0);
+}
+
+.hg-sim-shell .sim-attack-msg.sim-ambient-msg {
+    background: rgba(96, 104, 122, 0.72);
+    border-color: rgba(165, 176, 199, 0.52);
+    color: #eef2fb;
+    font-style: italic;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 86%;
+    transform: none;
+}
+
+.hg-sim-shell .sim-rubber-dice {
+    display: inline-block;
+    margin-top: 4px;
+    opacity: 0.88;
+    letter-spacing: 2px;
+    font-size: 0.92rem;
+}
+
+.hg-sim-shell .sim-turn-health-wrap {
+    margin-top: 10px;
+}
+
+.hg-sim-shell .sim-turn-health-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.hg-sim-shell .sim-hp-card {
+    border: 1px solid rgba(35, 83, 156, 0.84);
+    border-radius: 9px;
+    background: rgba(6, 18, 60, 0.96);
+    padding: 8px 9px;
+}
+
+.hg-sim-shell .sim-hp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    color: #cbe1ff;
+}
+
+.hg-sim-shell .sim-hp-penalty {
+    margin-left: 6px;
+    padding: 1px 5px 0;
+    border: 1px solid rgba(190, 62, 62, 0.45);
+    border-radius: 999px;
+    background: rgba(88, 16, 23, 0.45);
+    color: #ff7f86;
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    line-height: 1.2;
+}
+
+.hg-sim-shell .sim-hp-track {
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(14, 36, 93, 0.9);
+    border: 1px solid rgba(34, 77, 148, 0.82);
+    overflow: hidden;
+}
+
+.hg-sim-shell .sim-hp-fill {
+    display: block;
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.hg-sim-shell .sim-hp-fill-p1 {
+    background: linear-gradient(90deg, #2fc46a 0%, #5de098 100%);
+}
+
+.hg-sim-shell .sim-hp-fill-p2 {
+    background: linear-gradient(90deg, #e0863c 0%, #f3b058 100%);
+}
+
+.hg-sim-shell .sim-rematch-row {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.hg-sim-shell .sim-rematch-form {
+    display: inline-block;
+}
+
+.hg-sim-shell .sim-loadout-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+
+.hg-sim-shell .sim-loadout-pill {
+    display: inline-block;
+    border: 1px solid rgba(32, 90, 166, 0.9);
+    border-radius: 999px;
+    background: rgba(8, 31, 86, 0.92);
+    color: #d9efff;
+    padding: 3px 10px;
+    font-size: 0.74rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.hg-sim-shell .sim-final-card {
+    border: 1px solid rgba(42, 102, 184, 0.9);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(10, 28, 80, 0.96) 0%, rgba(8, 22, 62, 0.98) 100%);
+    padding: 14px 12px;
+}
+
+.hg-sim-shell .sim-final-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.hg-sim-shell .sim-final-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #f4f8ff;
+    margin-bottom: 4px;
+}
+
+.hg-sim-shell .sim-final-subtitle {
+    font-size: 0.86rem;
+    color: #97cbff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.hg-sim-shell .sim-final-vitals {
+    font-size: 0.82rem;
+    color: #c7e4ff;
+}
+
+.hg-sim-shell .sim-final-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.hg-sim-shell .sim-final-actions .sim-rematch-form {
+    display: inline-block;
+    margin: 0;
+}
+
+.hg-sim-shell .sim-final-action-btn {
+    min-width: 120px;
+    width: 120px;
+    text-align: center;
+    margin: 0;
+}
+
+@media (max-width: 960px) {
+    .hg-sim-shell {
+        padding: 0 8px 16px;
+    }
+
+    .hg-sim-shell table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .hg-sim-shell #celdaInicioCombateIz,
+    .hg-sim-shell #celdaInicioCombateDe {
+        display: block;
+        width: 100%;
+        margin: 6px 0;
+    }
+
+    .hg-sim-shell .sim-fight-header {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .hg-sim-shell .sim-fight-vs {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto;
+    }
+
+    .hg-sim-shell .sim-loadout-grid {
+        grid-template-columns: 1fr;
+        margin-top: 1.5em!important;
+    }
+
+    .hg-sim-shell .sim-turn-health-row {
+        grid-template-columns: 1fr;
+    }
+}

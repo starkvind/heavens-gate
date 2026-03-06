@@ -1,5 +1,5 @@
 <?php
-setMetaFromPage("Cronicas | Heaven's Gate", "Cronicas del universo Heaven's Gate.", null, 'website');
+setMetaFromPage("Crónicas | Heaven's Gate", "Crónicas del universo Heaven's Gate.", null, 'website');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 ?>

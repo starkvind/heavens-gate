@@ -60,6 +60,8 @@ cache/
 tmp/
 img/
 
+__legacy_sim/
+__legacy_sim/*
 bdd_structure.txt
 app/tools/migrate_character_indexes_phase1.php
 app/tools/migrate_character_status_phase1.php

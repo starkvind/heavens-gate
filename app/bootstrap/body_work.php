@@ -260,6 +260,22 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Cómodo tirador de dados d10 para partidas de foro.";
 			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
             break;
+		case 'combat_simulator':
+		case 'combat_simulator_result':
+		case 'combat_simulator_logs':
+		case 'combat_simulator_log':
+		case 'combat_simulator_scores':
+		case 'combat_simulator_weapons':
+		case 'simulador':
+		case 'simulador2':
+		case 'combtodo':
+		case 'vercombat':
+		case 'punts':
+		case 'arms':
+            $title = "Simulador de combate | Heaven's Gate";
+            $description = "Simulador de combate de personajes usando datos reales de la web.";
+			$image = $baseURL . "/img/og/og_image_power.jpg";
+            break;
 		case 'gallery':
             $title = "Galería de imágenes | Heaven's Gate";
             $description = "Lista de imágenes utilizadas en la campaña.";
@@ -396,6 +412,20 @@ $routes = [
 	'dados'   		   => ['app/controllers/tool/dice_roller.php', 'Tiradados'],
 	'forum_avatar_tool' => ['app/controllers/tool/forum_avatar_builder.php', 'Creador de mensajes foro'],
 	'garou_name_gen'   => ['app/controllers/tool/garou_name_generator.php', 'Generador de nombres Garou'],
+	'combat_simulator' => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
+	'combat_simulator_result' => ['app/controllers/tool/combat_simulator.php', 'Resultado del Combate'],
+	'combat_simulator_logs' => ['app/controllers/tool/combat_simulator.php', 'Registro de Combates'],
+	'combat_simulator_log' => ['app/controllers/tool/combat_simulator.php', 'Detalle del Combate'],
+	'combat_simulator_scores' => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
+	'combat_simulator_weapons' => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
+
+	// Legacy aliases
+	'simulador'        => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
+	'simulador2'       => ['app/controllers/tool/combat_simulator.php', 'Resultado del Combate'],
+	'combtodo'         => ['app/controllers/tool/combat_simulator.php', 'Registro de Combates'],
+	'vercombat'        => ['app/controllers/tool/combat_simulator.php', 'Detalle del Combate'],
+	'punts'            => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
+	'arms'             => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
 	'keygen'           => ['app/tools/key_generator.php', 'Generador de claves'],
 	'crop'             => ['app/tools/crop.html', 'Recortador de imágenes'],
 	
