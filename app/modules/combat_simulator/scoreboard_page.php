@@ -1,22 +1,25 @@
 <?php
+include_once("sim_character_scope.php");
 
 /* include("heroes.php"); */
 
 /* SELECCIONAMOS LO MAXIMO */
+$scoreSeasonWhere = sim_active_season_where_sql($link, 'fact_sim_character_scores');
+$battleSeasonWhere = sim_active_season_where_sql($link, 'fact_sim_battles');
 
-$consulta ="SELECT MAX(wins) dicks FROM fact_sim_character_scores LIMIT 1";
+$consulta ="SELECT MAX(wins) dicks FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
 
 $IdConsulta = mysql_query($consulta, $link);
 $ResultQuery = mysql_fetch_array($IdConsulta);
 $maxvictor = $ResultQuery['dicks'];
 
-$consulta ="SELECT MAX(draws) dicks FROM fact_sim_character_scores LIMIT 1";
+$consulta ="SELECT MAX(draws) dicks FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
 
 $IdConsulta = mysql_query($consulta, $link);
 $ResultQuery = mysql_fetch_array($IdConsulta);
 $maxempat = $ResultQuery['dicks'];
 
-$consulta ="SELECT MAX(losses) dicks FROM fact_sim_character_scores LIMIT 1";
+$consulta ="SELECT MAX(losses) dicks FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
 
 $IdConsulta = mysql_query($consulta, $link);
 $ResultQuery = mysql_fetch_array($IdConsulta);
@@ -59,7 +62,7 @@ include("app/partials/main_nav_bar.php");	// Barra Navegación
 
 /* ESTO ES UNA CASTAÑA, LA PROXIMA VEZ USA ID'S, HIJOPUTA */
 
-$consulta ="SELECT * FROM fact_sim_character_scores INNER JOIN vw_sim_characters ON fact_sim_character_scores.character_id = vw_sim_characters.id ORDER BY points DESC";
+$consulta ="SELECT * FROM fact_sim_character_scores INNER JOIN vw_sim_characters ON fact_sim_character_scores.character_id = vw_sim_characters.id{$scoreSeasonWhere} ORDER BY points DESC";
 
 $IdConsulta = mysql_query($consulta, $link);
 $NFilas = mysql_num_rows($IdConsulta);
@@ -133,7 +136,7 @@ $alias
 
 $pageSect = ":: Puntuaciones"; // PARA CAMBIAR EL TITULO A LA PAGINA
 
-$sql = "SELECT * FROM fact_sim_battles";//"SELECT SUM(combates) AS suma FROM fact_sim_character_scores";
+$sql = "SELECT * FROM fact_sim_battles{$battleSeasonWhere}";//"SELECT SUM(combates) AS suma FROM fact_sim_character_scores";
 $result = mysql_query ($sql, $link);
 $numeroCombates = mysql_num_rows($result);
 //$row = mysql_fetch_array($result);

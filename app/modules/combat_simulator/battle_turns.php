@@ -116,7 +116,7 @@ if (!function_exists('sim_pick_attack_phrase')) {
                     'golpea',
                     'amenaza',
                     'prueba a golpear',
-                    'se tira sobre su enemigo',
+                    'se tira sobre su oponente',
                     'descarga su furia',
                     'llega con un golpe seco',
                     'presiona sin descanso',
@@ -164,7 +164,7 @@ if (!function_exists('sim_pick_fail_phrase')) {
                     'no acierta',
                     'golpea el suelo',
                     'pierde el equilibrio al atacar',
-                    'se queda a medias por muy poco'
+                    'se queda a medias'
                 );
                 break;
             case 5:
@@ -211,7 +211,7 @@ if (!function_exists('sim_rubber_bonus_from_streak')) {
     function sim_rubber_cfg_int($link, $configName, $defaultValue)
     {
         $defaultValue = (int)$defaultValue;
-        if (!is_resource($link)) {
+        if (!$link) {
             return $defaultValue;
         }
 
@@ -289,9 +289,11 @@ if (!function_exists('sim_rubber_dice_markup')) {
         if ($bonusDice <= 0) {
             return '';
         }
-        if ($bonusDice > 8) {
-            $bonusDice = 8;
-        }
+        $cfg = sim_rubber_cfg_settings();
+        $maxVisual = (int)($cfg['max_bonus_dice'] ?? 3);
+        if ($maxVisual < 1) { $maxVisual = 1; }
+        if ($maxVisual > 12) { $maxVisual = 12; }
+        if ($bonusDice > $maxVisual) { $bonusDice = $maxVisual; }
 
         $icons = str_repeat('&#127922;', $bonusDice);
         return "<br/><span class='sim-rubber-dice' title='Rubberbanding +{$bonusDice} dado(s)'>{$icons}</span>";
@@ -478,6 +480,8 @@ $hpact1 = isset($hpact1) ? (int)$hpact1 : 0;
 $hpact2 = isset($hpact2) ? (int)$hpact2 : 0;
 $heridas1 = isset($heridas1) ? (int)$heridas1 : 0;
 $heridas2 = isset($heridas2) ? (int)$heridas2 : 0;
+$damageTakenP1 = isset($damageTakenP1) ? (int)$damageTakenP1 : 0;
+$damageTakenP2 = isset($damageTakenP2) ? (int)$damageTakenP2 : 0;
 
 $debug = isset($debug) ? (string)$debug : 'no';
 $tipoCombate = isset($tipoCombate) ? (string)$tipoCombate : 'normal';
@@ -527,6 +531,10 @@ $simAmbientMessagesEnabled = isset($simAmbientMessagesEnabled) ? (string)$simAmb
 $simRubberbandingEnabled = isset($simRubberbandingEnabled) ? (string)$simRubberbandingEnabled : 'yes';
 $rubberFailStreakP1 = 0;
 $rubberFailStreakP2 = 0;
+$simFirstBloodBy = isset($simFirstBloodBy) ? (string)$simFirstBloodBy : '';
+$simFirstBloodTurn = isset($simFirstBloodTurn) ? (int)$simFirstBloodTurn : 0;
+$simMaxMissStreakP1 = isset($simMaxMissStreakP1) ? (int)$simMaxMissStreakP1 : 0;
+$simMaxMissStreakP2 = isset($simMaxMissStreakP2) ? (int)$simMaxMissStreakP2 : 0;
 
 $turnOrder = 0; // 1: primero pj1, 2: primero pj2, 0: simultaneo
 if ($iniciativa1 > $iniciativa2) {
@@ -536,15 +544,16 @@ if ($iniciativa1 > $iniciativa2) {
 }
 
 $finalMessagePrinted = false;
-echo "<tr><td colspan='4' class=''><br/>";
+echo "<tr><td colspan='4'>";
 
 while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
     $turnos++;
     $combateArray["turnos"] = $turnos;
+    echo "<fieldset class='sim-turn-fieldset' id='sim-turn-$turnos'><legend>Turno $turnos</legend>";
 
     if ($turnos > 1) {
-        $regenMsg1 = "!$nombre1, al estar en forma $forma1, regenera <b><u>$cantidadRegenPj1</u> puntos de da&ntilde;o</b>!";
-        $regenMsg2 = "!$nombre2, al estar en forma $forma2, regenera <b><u>$cantidadRegenPj2</u> puntos de da&ntilde;o</b>!";
+        $regenMsg1 = "¡$nombre1, al estar en forma $forma1, regenera <strong><u>$cantidadRegenPj1</u> puntos de salud</strong>!";
+        $regenMsg2 = "¡$nombre2, al estar en forma $forma2, regenera <strong><u>$cantidadRegenPj2</u> puntos de salud</strong>!";
 
         $didRegen1 = false;
         $didRegen2 = false;
@@ -558,26 +567,24 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
 
         if ($turnOrder === 2) {
             if ($didRegen2) {
-                echo "<tr><td colspan='4' class='celdacombat'>$regenMsg2</td></tr>";
+                echo "<div class='sim-attack-msg sim-regen-msg from-left'>$regenMsg2</div>";
                 $combateArray["regenAtacante$turnos"] = $regenMsg2;
             }
             if ($didRegen1) {
-                echo "<tr><td colspan='4' class='celdacombat2'>$regenMsg1</td></tr>";
+                echo "<div class='sim-attack-msg sim-regen-msg from-right'>$regenMsg1</div>";
                 $combateArray["regenDefensor$turnos"] = $regenMsg1;
             }
         } else {
             if ($didRegen1) {
-                echo "<tr><td colspan='4' class='celdacombat'>$regenMsg1</td></tr>";
+                echo "<div class='sim-attack-msg sim-regen-msg from-left'>$regenMsg1</div>";
                 $combateArray["regenAtacante$turnos"] = $regenMsg1;
             }
             if ($didRegen2) {
-                echo "<tr><td colspan='4' class='celdacombat2'>$regenMsg2</td></tr>";
+                echo "<div class='sim-attack-msg sim-regen-msg from-right'>$regenMsg2</div>";
                 $combateArray["regenDefensor$turnos"] = $regenMsg2;
             }
         }
     }
-
-    echo "<fieldset class='sim-turn-fieldset' id='sim-turn-$turnos'><legend>Turno $turnos</legend>";
 
     if ($turnOrder === 0) {
         $rubberBonusP1 = ($simRubberbandingEnabled === 'yes') ? sim_rubber_bonus_from_streak($rubberFailStreakP1) : 0;
@@ -628,6 +635,8 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
         $dano1 = (int)$roll2['damage'];
         $heridas2 += $dano2;
         $heridas1 += $dano1;
+        $damageTakenP2 += max(0, $dano2);
+        $damageTakenP1 += max(0, $dano1);
         $hpact2 -= $dano2;
         $hpact1 -= $dano1;
 
@@ -635,6 +644,20 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
         if ($dano1 > 0) { $tiradasExitoJ2++; } else { $tiradasFalliJ2++; }
         $rubberFailStreakP1 = ($dano2 > 0) ? 0 : ($rubberFailStreakP1 + 1);
         $rubberFailStreakP2 = ($dano1 > 0) ? 0 : ($rubberFailStreakP2 + 1);
+        if ($rubberFailStreakP1 > $simMaxMissStreakP1) { $simMaxMissStreakP1 = $rubberFailStreakP1; }
+        if ($rubberFailStreakP2 > $simMaxMissStreakP2) { $simMaxMissStreakP2 = $rubberFailStreakP2; }
+        if ($simFirstBloodBy === '') {
+            if ($dano2 > 0 && $dano1 > 0) {
+                $simFirstBloodBy = 'both';
+                $simFirstBloodTurn = $turnos;
+            } elseif ($dano2 > 0) {
+                $simFirstBloodBy = 'p1';
+                $simFirstBloodTurn = $turnos;
+            } elseif ($dano1 > 0) {
+                $simFirstBloodBy = 'p2';
+                $simFirstBloodTurn = $turnos;
+            }
+        }
 
         $rubberMarkupP1 = sim_rubber_dice_markup($rubberBonusP1);
         $rubberMarkupP2 = sim_rubber_dice_markup($rubberBonusP2);
@@ -644,7 +667,10 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
         echo "<div class='sim-attack-msg from-left'>{$line1}</div>";
         echo "<div class='sim-attack-msg from-right'>{$line2}</div>";
 
-        $combateArray["turnoAtacante$turnos"] = $roll1['attackText'] . "<br/>" . $roll2['attackText'] . "<br/><hr/>" . ($roll1['resultText'] . $rubberMarkupP1) . "<br/>" . ($roll2['resultText'] . $rubberMarkupP2);
+        // Store simultaneous turn payload in normalized attacker/defender slots.
+        // This avoids legacy merged payloads with <hr/> that are harder to parse in logs.
+        $combateArray["turnoAtacante$turnos"] = $roll1['attackText'] . "<br/>" . ($roll1['resultText'] . $rubberMarkupP1);
+        $combateArray["turnoDefensor$turnos"] = $roll2['attackText'] . "<br/>" . ($roll2['resultText'] . $rubberMarkupP2);
 
         if ($hpact1 <= 0 && $hpact2 <= 0) {
             sim_emit_turn_health($turnos, $nombre1, $hpact1, $hp1Max, $nombre2, $hpact2, $hp2Max, $heridas1, $heridas2, $aplicarHeridas, $combateArray);
@@ -695,9 +721,15 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
 
         $dano2 = (int)$roll1['damage'];
         $heridas2 += $dano2;
+        $damageTakenP2 += max(0, $dano2);
         $hpact2 -= $dano2;
         if ($dano2 > 0) { $tiradasExitoJ1++; } else { $tiradasFalliJ1++; }
         $rubberFailStreakP1 = ($dano2 > 0) ? 0 : ($rubberFailStreakP1 + 1);
+        if ($rubberFailStreakP1 > $simMaxMissStreakP1) { $simMaxMissStreakP1 = $rubberFailStreakP1; }
+        if ($simFirstBloodBy === '' && $dano2 > 0) {
+            $simFirstBloodBy = 'p1';
+            $simFirstBloodTurn = $turnos;
+        }
 
         $rubberMarkupP1 = sim_rubber_dice_markup($rubberBonusP1);
         $line1 = $roll1['attackText'] . $roll1['resultText'] . $rubberMarkupP1 . $roll1['debug'];
@@ -737,9 +769,15 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
 
         $dano1 = (int)$roll2['damage'];
         $heridas1 += $dano1;
+        $damageTakenP1 += max(0, $dano1);
         $hpact1 -= $dano1;
         if ($dano1 > 0) { $tiradasExitoJ2++; } else { $tiradasFalliJ2++; }
         $rubberFailStreakP2 = ($dano1 > 0) ? 0 : ($rubberFailStreakP2 + 1);
+        if ($rubberFailStreakP2 > $simMaxMissStreakP2) { $simMaxMissStreakP2 = $rubberFailStreakP2; }
+        if ($simFirstBloodBy === '' && $dano1 > 0) {
+            $simFirstBloodBy = 'p2';
+            $simFirstBloodTurn = $turnos;
+        }
 
         $rubberMarkupP2 = sim_rubber_dice_markup($rubberBonusP2);
         $line2 = $roll2['attackText'] . $roll2['resultText'] . $rubberMarkupP2 . $roll2['debug'];
@@ -779,9 +817,15 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
 
         $dano1 = (int)$roll2['damage'];
         $heridas1 += $dano1;
+        $damageTakenP1 += max(0, $dano1);
         $hpact1 -= $dano1;
         if ($dano1 > 0) { $tiradasExitoJ2++; } else { $tiradasFalliJ2++; }
         $rubberFailStreakP2 = ($dano1 > 0) ? 0 : ($rubberFailStreakP2 + 1);
+        if ($rubberFailStreakP2 > $simMaxMissStreakP2) { $simMaxMissStreakP2 = $rubberFailStreakP2; }
+        if ($simFirstBloodBy === '' && $dano1 > 0) {
+            $simFirstBloodBy = 'p2';
+            $simFirstBloodTurn = $turnos;
+        }
 
         $rubberMarkupP2 = sim_rubber_dice_markup($rubberBonusP2);
         $line2 = $roll2['attackText'] . $roll2['resultText'] . $rubberMarkupP2 . $roll2['debug'];
@@ -821,9 +865,15 @@ while ($hpact1 > 0 && $hpact2 > 0 && $turnos < $maxturn) {
 
         $dano2 = (int)$roll1['damage'];
         $heridas2 += $dano2;
+        $damageTakenP2 += max(0, $dano2);
         $hpact2 -= $dano2;
         if ($dano2 > 0) { $tiradasExitoJ1++; } else { $tiradasFalliJ1++; }
         $rubberFailStreakP1 = ($dano2 > 0) ? 0 : ($rubberFailStreakP1 + 1);
+        if ($rubberFailStreakP1 > $simMaxMissStreakP1) { $simMaxMissStreakP1 = $rubberFailStreakP1; }
+        if ($simFirstBloodBy === '' && $dano2 > 0) {
+            $simFirstBloodBy = 'p1';
+            $simFirstBloodTurn = $turnos;
+        }
 
         $rubberMarkupP1 = sim_rubber_dice_markup($rubberBonusP1);
         $line1 = $roll1['attackText'] . $roll1['resultText'] . $rubberMarkupP1 . $roll1['debug'];
@@ -895,6 +945,17 @@ if (!$finalMessagePrinted) {
         echo "<p id='fraseFinalCombate'>$mensajefin</p>";
     }
 }
+
+$combateArray['first_blood_by'] = $simFirstBloodBy;
+$combateArray['first_blood_turn'] = (int)$simFirstBloodTurn;
+$combateArray['max_miss_streak_p1'] = (int)$simMaxMissStreakP1;
+$combateArray['max_miss_streak_p2'] = (int)$simMaxMissStreakP2;
+$combateArray['total_attacks_p1'] = (int)$tiradasExitoJ1 + (int)$tiradasFalliJ1;
+$combateArray['total_attacks_p2'] = (int)$tiradasExitoJ2 + (int)$tiradasFalliJ2;
+$combateArray['successful_attacks_p1'] = (int)$tiradasExitoJ1;
+$combateArray['successful_attacks_p2'] = (int)$tiradasExitoJ2;
+$combateArray['damage_taken_p1'] = (int)$damageTakenP1;
+$combateArray['damage_taken_p2'] = (int)$damageTakenP2;
 
 echo "</td></tr>";
 

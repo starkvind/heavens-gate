@@ -41,17 +41,25 @@ if (!function_exists('sim_cfg_int')) {
 	}
 }
 
-if (!function_exists('sim_count_ip_attempts_since')) {
-	function sim_count_ip_attempts_since($link, $ipAddress, $intervalSql)
+if (!function_exists('sim_count_ip_attempts_windows')) {
+	function sim_count_ip_attempts_windows($link, $ipAddress)
 	{
 		$safeIp = mysql_real_escape_string((string)$ipAddress, $link);
-		$query = "SELECT COUNT(*) AS total FROM fact_sim_battles WHERE request_ip = '$safeIp' AND created_at >= (NOW() - INTERVAL $intervalSql)";
+		$query = "SELECT"
+			. " COUNT(*) AS day_total,"
+			. " SUM(CASE WHEN created_at >= (NOW() - INTERVAL 1 HOUR) THEN 1 ELSE 0 END) AS hour_total"
+			. " FROM fact_sim_battles"
+			. " WHERE request_ip = '$safeIp'"
+			. "   AND created_at >= (NOW() - INTERVAL 1 DAY)";
 		$result = mysql_query($query, $link);
 		if (!$result || mysql_num_rows($result) === 0) {
-			return 0;
+			return array('hour' => 0, 'day' => 0);
 		}
 		$row = mysql_fetch_array($result);
-		return (int)($row['total'] ?? 0);
+		return array(
+			'hour' => (int)($row['hour_total'] ?? 0),
+			'day' => (int)($row['day_total'] ?? 0)
+		);
 	}
 }
 
@@ -74,8 +82,12 @@ if ($requestIp === '') {
 $maxAttemptsPerHour = sim_cfg_int($link, 'combat_simulator_ip_limit_max_attempts_per_hour', 25);
 $maxAttemptsPerDay = sim_cfg_int($link, 'combat_simulator_ip_limit_max_attempts_per_day', 120);
 
-$attemptsLastHour = ($maxAttemptsPerHour > 0) ? sim_count_ip_attempts_since($link, $requestIp, '1 HOUR') : 0;
-$attemptsLastDay = ($maxAttemptsPerDay > 0) ? sim_count_ip_attempts_since($link, $requestIp, '1 DAY') : 0;
+$attemptsWindow = (($maxAttemptsPerHour > 0) || ($maxAttemptsPerDay > 0))
+	? sim_count_ip_attempts_windows($link, $requestIp)
+	: array('hour' => 0, 'day' => 0);
+
+$attemptsLastHour = (int)($attemptsWindow['hour'] ?? 0);
+$attemptsLastDay = (int)($attemptsWindow['day'] ?? 0);
 
 $hitHourLimit = ($maxAttemptsPerHour > 0 && $attemptsLastHour >= $maxAttemptsPerHour);
 $hitDayLimit = ($maxAttemptsPerDay > 0 && $attemptsLastDay >= $maxAttemptsPerDay);

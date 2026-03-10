@@ -655,7 +655,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     // TRAITS
     $traits_was_submitted = isset($_POST['traits']) && is_array($_POST['traits']);
-    $traits_raw = $traits_was_submitted ? $_POST['traits'] : [];
+    $traits_dirty = ((string)($_POST['traits_dirty'] ?? '0') === '1');
+    $should_save_traits = $traits_was_submitted && ($action === 'create' || $traits_dirty);
+    $traits_raw = $should_save_traits ? $_POST['traits'] : [];
     $traits = [];
     foreach ($traits_raw as $tid => $val) {
         $tid = (int)$tid;
@@ -829,8 +831,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                     
-                    // Traits: solo si llegaron en el payload (evita borrado accidental en updates parciales)
-                    if ($traits_was_submitted) {
+                    // Traits: solo si llegaron y fueron modificados en el modal (evita borrado accidental)
+                    if ($should_save_traits) {
                         $resultTr = save_character_traits($link, (int)$newId, $traits, 'admin', null);
                         if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
                     }
@@ -950,8 +952,8 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   if ($resultIt['skipped']>0)  { $flash[]=['type'=>'info','msg'=>'(Objetos omitidos: '.$resultIt['skipped'].')']; }
 
                   
-                  // Traits: solo si llegaron en el payload (evita borrado accidental en updates parciales)
-                  if ($traits_was_submitted) {
+                  // Traits: solo si llegaron y fueron modificados en el modal (evita borrado accidental)
+                  if ($should_save_traits) {
                       $resultTr = save_character_traits($link, (int)$id, $traits, 'admin', null);
                       if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
                   }
@@ -1439,6 +1441,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
       <input type="hidden" name="crud_action" id="crud_action" value="create">
       <input type="hidden" name="id" id="f_id" value="0">
       <input type="hidden" name="csrf" id="f_csrf" value="<?= h($ADMIN_CSRF_TOKEN) ?>">
+      <input type="hidden" name="traits_dirty" id="f_traits_dirty" value="0">
 
       <div class="grid">
         <div>

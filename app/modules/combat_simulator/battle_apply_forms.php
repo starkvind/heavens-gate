@@ -59,7 +59,7 @@ if ($rowsFormaPJ1 != 0) {
 
 	if ($nousesarmas1 == 1) {
 	/* LOS CRINOS Y LOS PECES DEL AMOR NO USAN ARMAS */
-		$arma1 = 0;
+		$arma1 = '';
 		$bonus1 = 0;
 		$danyo1 = 0;
 		$plata1 = 0;
@@ -106,7 +106,7 @@ if ($rowsFormaPJ2 != 0) {
 
 	if ($nousesarmas2 == 1) {
 	/* LOS CRINOS Y LOS PECES DEL AMOR NO USAN ARMAS */
-	$arma2 = 0;
+	$arma2 = '';
 	$bonus2 = 0;
 	$danyo2 = 0;
 	$plata2 = 0;

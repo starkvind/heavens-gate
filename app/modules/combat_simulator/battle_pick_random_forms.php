@@ -12,8 +12,8 @@
 	}
 
 	if ($rowsPJ1Forma != 0) {
-		$randKeysForm1 = array_rand($arrayFormas1,$rowsPJ1Forma);	
-		$nameForma1 = $arrayFormas1[$randKeysForm1[0]];
+		$randKeyForm1 = array_rand($arrayFormas1);	
+		$nameForma1 = $arrayFormas1[$randKeyForm1];
 		$forma1 = $nameForma1;
 	} else {
 		$forma1 = "Hominido";
@@ -31,8 +31,8 @@
 	}
 
 	if ($rowsPJ2Forma != 0) {
-		$randKeysForm2 = array_rand($arrayFormas2,$rowsPJ2Forma);	
-		$nameForma2 = $arrayFormas2[$randKeysForm2[0]];
+		$randKeyForm2 = array_rand($arrayFormas2);	
+		$nameForma2 = $arrayFormas2[$randKeyForm2];
 		$forma2 = $nameForma2;
 	} else {
 		$forma2 = "Hominido";

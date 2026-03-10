@@ -93,3 +93,7 @@ app/tools/migrate_timeline_birthdays_text_phase5.php
 app/tools/migrate_character_status_id_phase1.php
 check_encoding.ps1
 app/tools/recover_zeroed_character_traits.php
+app/tools/simulator_battles_add_season_id_20260309.php
+app/tools/simulator_schema_upgrade_20260307.php
+app/tools/simulator_scores_add_season_id_20260310.php
+app/tools/simulator_seasons_setup_20260309.php

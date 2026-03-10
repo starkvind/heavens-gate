@@ -102,6 +102,12 @@
 				case 'admin_character_deaths':
 					include("admin_character_deaths.php");
 					break;
+				case 'admin_sim_character_talk':
+					include("admin_sim_character_talk.php");
+					break;
+				case 'admin_sim_browser':
+					include("admin_sim_browser.php");
+					break;
 				default:
 					http_response_code(400);
 					header('Content-Type: application/json; charset=UTF-8');
@@ -131,6 +137,12 @@
 					break;
 				case 'admin_character_deaths':
 					include("admin_character_deaths.php");
+					break;
+				case 'admin_sim_character_talk':
+					include("admin_sim_character_talk.php");
+					break;
+				case 'admin_sim_browser':
+					include("admin_sim_browser.php");
 					break;
 				case 'admin_groups':
 					include("admin_groups.php");
@@ -252,7 +264,7 @@
 				echo "</fieldset>";
 					echo "<br />";
 				// RELACIONES & BRIDGES
-				echo "<fieldset class='bioSeccion'><legend>&nbsp;Relaciones & Bridges&nbsp;</legend>";
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Relaciones & Puentes&nbsp;</legend>";
 					echo "
 					<a href='/talim?s=admin_avatar_mass'>
 					  <div class='bioSheetPower adm-admin-tile'>
@@ -394,6 +406,21 @@
 						</div>
 					</a>
 					";
+				echo "</fieldset>";
+					echo "<br />";
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Simulador de Combate&nbsp;</legend>";
+				echo "
+					<a href='/talim?s=admin_sim_character_talk'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Frases Simulador
+						</div>
+					</a>
+					<a href='/talim?s=admin_sim_browser'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Browser Simulador
+						</div>
+					</a>
+				";
 				echo "</fieldset>";
 					echo "<br />";
 				// SISTEMA

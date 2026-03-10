@@ -221,6 +221,32 @@
     gap: 14px;
 }
 
+.hg-sim-shell .sim-season-banner {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(58, 128, 186, 0.72);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(10, 44, 90, 0.92), rgba(8, 33, 74, 0.92));
+    color: #d9eeff;
+    padding: 10px 12px;
+    margin: 0;
+}
+
+.hg-sim-shell .sim-season-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+    color: #b9e6ff;
+}
+
+.hg-sim-shell .sim-season-desc {
+    margin-top: 3px;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: #d9ecfb;
+}
+
 .hg-sim-shell .sim-fight-header {
     display: grid;
     grid-template-columns: 1fr 72px 1fr;
@@ -638,6 +664,7 @@
 
 .hg-sim-shell .sim-attack-msg.from-left {
     margin-right: auto;
+    text-align: left;
     transform: translateX(-12px);
 }
 
@@ -663,6 +690,16 @@
     margin-right: auto;
     max-width: 86%;
     transform: none;
+}
+
+.hg-sim-shell .sim-attack-msg.sim-regen-msg {
+    background: rgba(24, 74, 50, 0.56);
+    border: 1px dashed rgba(123, 192, 151, 0.74);
+    color: #d8f6e4;
+}
+
+.hg-sim-shell .sim-attack-msg.sim-regen-msg.from-right {
+    background: rgba(28, 88, 58, 0.6);
 }
 
 .hg-sim-shell .sim-rubber-dice {
@@ -774,6 +811,21 @@
     margin-bottom: 6px;
 }
 
+.hg-sim-shell .sim-final-winner-avatar-wrap {
+    margin: 4px auto 8px;
+}
+
+.hg-sim-shell .sim-final-winner-avatar {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid rgba(112, 173, 255, 0.85);
+    box-shadow: 0 0 0 2px rgba(7, 20, 57, 0.92);
+    display: block;
+    margin: 0 auto;
+}
+
 .hg-sim-shell .sim-final-title {
     font-size: 1.2rem;
     font-weight: bold;
@@ -789,9 +841,74 @@
     letter-spacing: 0.07em;
 }
 
+.hg-sim-shell .sim-final-quote {
+    max-width: 680px;
+    margin: 0 auto 10px;
+    padding: 8px 11px;
+    border: 1px solid rgba(71, 124, 197, 0.72);
+    border-radius: 10px;
+    background: rgba(6, 19, 53, 0.88);
+    color: #eaf4ff;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
 .hg-sim-shell .sim-final-vitals {
     font-size: 0.82rem;
     color: #c7e4ff;
+}
+
+.hg-sim-shell .sim-achievement-list {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.hg-sim-shell .sim-achievement-item {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(92, 123, 172, 0.62);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(10, 25, 73, 0.95) 0%, rgba(5, 16, 48, 0.95) 100%);
+    padding: 7px 9px;
+}
+
+.hg-sim-shell .sim-achievement-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #7f6429;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(13, 21, 49, 0.9) inset;
+}
+
+.hg-sim-shell .sim-achievement-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.hg-sim-shell .sim-achievement-copy {
+    min-width: 0;
+}
+
+.hg-sim-shell .sim-achievement-title {
+    font-size: 0.82rem;
+    color: #5caeff;
+    font-weight: bold;
+    line-height: 1.2;
+    text-align: left;
+}
+
+.hg-sim-shell .sim-achievement-desc {
+    margin-top: 3px;
+    font-size: 0.76rem;
+    color: #ffffff;
+    line-height: 1.3;
+    text-align: left;
 }
 
 .hg-sim-shell .sim-final-actions {

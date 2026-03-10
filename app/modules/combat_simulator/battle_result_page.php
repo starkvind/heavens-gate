@@ -3,6 +3,9 @@
 $pageSect = 'Resultados del combate';
 
 include_once('sim_character_scope.php');
+include_once('sim_achievements.php');
+include_once('sim_character_talk.php');
+include_once('app/helpers/character_avatar.php');
 
 if (!function_exists('sim_fetch_assoc_by_id')) {
     function sim_fetch_assoc_by_id($table, $id, $link)
@@ -54,7 +57,7 @@ if (!function_exists('sim_combat_mode_title')) {
         $normalTitles = array(
             'serio' => 'Duelo a muerte',
             'epico' => 'Choque de leyendas',
-            'brutal' => 'Carniceria total',
+            'brutal' => 'Carnicería total',
             'ironico' => 'Pelea de malas ideas',
             'random' => 'Combate a muerte'
         );
@@ -225,10 +228,21 @@ if (!function_exists('sim_table_exists')) {
 }
 
 if (!function_exists('sim_pick_random_character_id')) {
-    function sim_pick_random_character_id($link, $excludeId = 0)
+    function sim_pick_random_character_id($link, $excludeId = 0, $seasonId = 0)
     {
         $cronicaNotInSQL = sim_chronicle_not_in_sql('c.chronicle_id');
-        $query = "SELECT v.id FROM vw_sim_characters v INNER JOIN fact_characters c ON c.id = v.id WHERE v.kes LIKE 'pj' $cronicaNotInSQL ORDER BY v.nombre";
+        $excludeId = (int)$excludeId;
+        $seasonId = (int)$seasonId;
+        $seasonJoin = '';
+        if ($seasonId > 0 && sim_table_exists($link, 'bridge_battle_sim_characters_seasons')) {
+            $seasonJoin = " INNER JOIN bridge_battle_sim_characters_seasons sbs ON sbs.character_id = v.id AND sbs.season_id = $seasonId ";
+        }
+        $query = "SELECT v.id
+                  FROM vw_sim_characters v
+                  INNER JOIN fact_characters c ON c.id = v.id
+                  $seasonJoin
+                  WHERE v.kes LIKE 'pj' $cronicaNotInSQL
+                  ORDER BY v.nombre";
         $result = mysql_query($query, $link);
         if (!$result) {
             return 0;
@@ -237,7 +251,7 @@ if (!function_exists('sim_pick_random_character_id')) {
         $pool = array();
         while ($row = mysql_fetch_array($result)) {
             $characterId = (int)($row['id'] ?? 0);
-            if ($characterId <= 0 || $characterId === (int)$excludeId) {
+            if ($characterId <= 0 || $characterId === $excludeId) {
                 continue;
             }
             $pool[] = $characterId;
@@ -350,6 +364,7 @@ $usarRegen = $_POST['regeneracion'] ?? 'no';
 $simNarrativeTone = $_POST['narrative_tone'] ?? 'random';
 $simAmbientMessagesEnabled = $_POST['ambient_msgs'] ?? 'yes';
 $simRubberbandingEnabled = $_POST['rubberbanding'] ?? 'yes';
+$simSeasonId = isset($_POST['season_id']) ? (int)$_POST['season_id'] : 0;
 
 $allowedNarrativeTones = array('random', 'serio', 'epico', 'brutal', 'ironico');
 if (!in_array($simNarrativeTone, $allowedNarrativeTones, true)) {
@@ -364,13 +379,13 @@ $characterTwoId = ($characterTwoId === 'random') ? '' : $characterTwoId;
 
 if ($randomCharactersToggle === 'yes' || $characterOneId === '' || $characterTwoId === '') {
     if ($characterOneId === '') {
-        $characterOneId = sim_pick_random_character_id($link, 0);
+        $characterOneId = sim_pick_random_character_id($link, 0, $simSeasonId);
     }
     if ($characterTwoId === '') {
-        $characterTwoId = sim_pick_random_character_id($link, (int)$characterOneId);
+        $characterTwoId = sim_pick_random_character_id($link, (int)$characterOneId, $simSeasonId);
     }
     if ((int)$characterOneId > 0 && (int)$characterOneId === (int)$characterTwoId) {
-        $characterTwoId = sim_pick_random_character_id($link, (int)$characterOneId);
+        $characterTwoId = sim_pick_random_character_id($link, (int)$characterOneId, $simSeasonId);
     }
 }
 
@@ -532,6 +547,10 @@ $rabia2 = (int)($char2['rabiap'] ?? 0);
 $gnosis2 = (int)($char2['gnosisp'] ?? 0);
 $fvp2 = (int)($char2['fvp'] ?? 0);
 $img2 = $char2['img'] ?? '';
+if (function_exists('hg_character_avatar_url')) {
+    $img1 = hg_character_avatar_url((string)$img1, '');
+    $img2 = hg_character_avatar_url((string)$img2, '');
+}
 
 $rankScore1 = $fuerza1 + $destre1 + $pelea1 + $armascc1 + $armasdefuego1 + $esquivar1 + $resist1;
 $rankScore2 = $fuerza2 + $destre2 + $pelea2 + $armascc2 + $armasdefuego2 + $esquivar2 + $resist2;
@@ -580,6 +599,7 @@ $combateArray['rubberbanding'] = $simRubberbandingEnabled;
 $combateArray['combat_mode_label'] = $combatModeTitle;
 $combateArray['relation_type'] = $simRelationType;
 $combateArray['relation_context'] = $simRelationContext;
+$combateArray['season_id'] = (int)$simSeasonId;
 
 $rnd1 = rand(1, 10);
 $rnd2 = rand(1, 10);
@@ -672,7 +692,10 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
             $winaID = $idPJno2;
             $losa = $nombreCom1;
             $losaID = $idPJno1;
-            $winnerAlias = $nombre2;
+            $winnerAlias = ($nombre2 !== '') ? $nombre2 : $nombreCom2;
+            $loserAlias = ($nombre1 !== '') ? $nombre1 : $nombreCom1;
+            $winnerRealName = $nombreCom2;
+            $loserRealName = $nombreCom1;
             $winnerGender = $gender2;
             $winnerRemainingHp = (int)$hpact2;
             $loserRemainingHp = (int)$hpact1;
@@ -681,7 +704,10 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
             $winaID = $idPJno1;
             $losa = $nombreCom2;
             $losaID = $idPJno2;
-            $winnerAlias = $nombre1;
+            $winnerAlias = ($nombre1 !== '') ? $nombre1 : $nombreCom1;
+            $loserAlias = ($nombre2 !== '') ? $nombre2 : $nombreCom2;
+            $winnerRealName = $nombreCom1;
+            $loserRealName = $nombreCom2;
             $winnerGender = $gender1;
             $winnerRemainingHp = (int)$hpact1;
             $loserRemainingHp = (int)$hpact2;
@@ -693,6 +719,9 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
             $losaID = $idPJno2;
             $ganador = sim_pick_pool_item($simDrawMessages ?? array(), 'El combate termina en empate.');
             $winnerAlias = '';
+            $loserAlias = '';
+            $winnerRealName = '';
+            $loserRealName = '';
             $winnerGender = '';
             $winnerRemainingHp = 0;
             $loserRemainingHp = 0;
@@ -718,9 +747,85 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
             $ganador = sim_apply_gender_aware_phrase($ganador, $winnerGender);
         }
 
+        $winnerAvatar = '';
+        $winnerTalkVictory = '';
+        if ($drau !== 1) {
+            if ((int)$winaID === (int)$idPJno1) {
+                $winnerAvatar = (string)$img1;
+            } else {
+                $winnerAvatar = (string)$img2;
+            }
+
+            $winnerTalkVictory = sim_talk_pick_phrase(
+                $link,
+                'victory',
+                (int)$winaID,
+                array(
+                    '{winner}' => (string)$winnerAlias,
+                    '{loser}' => (string)$loserAlias,
+                    '{winner_name}' => (string)$winnerAlias,
+                    '{loser_name}' => (string)$loserAlias,
+                    '{winner_alias}' => (string)$winnerAlias,
+                    '{loser_alias}' => (string)$loserAlias,
+                    '{winner_real_name}' => (string)$winnerRealName,
+                    '{loser_real_name}' => (string)$loserRealName,
+                    '{winner_id}' => (string)((int)$winaID),
+                    '{loser_id}' => (string)((int)$losaID),
+                    '%WINNER%' => (string)$winnerAlias,
+                    '%LOSER%' => (string)$loserAlias
+                )
+            );
+        }
+
+        $winnerKey = '';
+        $winnerLabel = '';
+        $winnerWoundsTaken = 0;
+        $winnerWoundPenalty = 0;
+        $loserLabel = '';
+        if ($drau !== 1) {
+            $damageTakenP1 = (int)($combateArray['damage_taken_p1'] ?? $heridas1);
+            $damageTakenP2 = (int)($combateArray['damage_taken_p2'] ?? $heridas2);
+            if ((int)$winaID === (int)$idPJno1) {
+                $winnerKey = 'p1';
+                $winnerLabel = $nombre1;
+                $loserLabel = $nombre2;
+                $winnerWoundsTaken = $damageTakenP1;
+                if (function_exists('sim_wound_penalty')) {
+                    $winnerWoundPenalty = (int)sim_wound_penalty((int)$heridas1, (string)$aplicarHeridas, (int)$hp1);
+                }
+            } else {
+                $winnerKey = 'p2';
+                $winnerLabel = $nombre2;
+                $loserLabel = $nombre1;
+                $winnerWoundsTaken = $damageTakenP2;
+                if (function_exists('sim_wound_penalty')) {
+                    $winnerWoundPenalty = (int)sim_wound_penalty((int)$heridas2, (string)$aplicarHeridas, (int)$hp2);
+                }
+            }
+        }
+
+        $simAchievements = sim_achievements_evaluate(array(
+            'draw' => ($drau === 1),
+            'winner_key' => $winnerKey,
+            'winner_label' => $winnerLabel,
+            'loser_label' => $loserLabel,
+            'winner_remaining_hp' => (int)$winnerRemainingHp,
+            'winner_wounds_taken' => (int)$winnerWoundsTaken,
+            'winner_wound_penalty' => (int)$winnerWoundPenalty,
+            'turns' => (int)$turnos,
+            'turn_data' => $combateArray,
+            'p1_stars' => max(1, min(5, (int)ceil(((int)$rankScore1) / 7))),
+            'p2_stars' => max(1, min(5, (int)ceil(((int)$rankScore2) / 7))),
+            'p1_label' => (string)$nombre1,
+            'p2_label' => (string)$nombre2
+        ));
+
         $heridasFinales = "Vitalidad de $nombre1: $hpact1 ($hp1 - $heridas1) | Vitalidad de $nombre2: $hpact2 ($hp2 - $heridas2)";
         $combateArray['ganador'] = $ganador;
         $combateArray['heridas'] = $heridasFinales;
+        $combateArray['achievements'] = $simAchievements;
+        $combateArray['winner_avatar'] = $winnerAvatar;
+        $combateArray['winner_talk_victory'] = $winnerTalkVictory;
 
         include('battle_finalize.php');
 
@@ -733,14 +838,35 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
             $finalTitle = htmlspecialchars((string)$wina, ENT_QUOTES, 'UTF-8');
             $finalSubtitle = 'Victoria';
         }
-        $finalVitals = htmlspecialchars((string)$heridasFinales, ENT_QUOTES, 'UTF-8');
+        $finalVitalsText = htmlspecialchars((string)$heridasFinales, ENT_QUOTES, 'UTF-8');
+        $finalVitalsHtml = function_exists('sim_turn_health_markup')
+            ? sim_turn_health_markup(
+                (int)$turnos + 1,
+                $nombre1,
+                (int)$hpact1,
+                (int)$hp1,
+                $nombre2,
+                (int)$hpact2,
+                (int)$hp2,
+                (int)$heridas1,
+                (int)$heridas2,
+                (string)$aplicarHeridas
+            )
+            : ("<div class='sim-final-vitals'>$finalVitalsText</div>");
+        $simAchievementsHtml = sim_achievements_render_html($simAchievements);
+        $safeWinnerTalkVictory = htmlspecialchars((string)$winnerTalkVictory, ENT_QUOTES, 'UTF-8');
+        $safeWinnerAvatar = htmlspecialchars((string)$winnerAvatar, ENT_QUOTES, 'UTF-8');
+        $safeWinnerAvatarTitle = htmlspecialchars((string)$finalTitle, ENT_QUOTES, 'UTF-8');
 
-        echo "<tr><td colspan='4' class='ajustcelda'>"
+        echo "<tr id='simFinalRow' style='display:none;'><td colspan='4' class='ajustcelda'>"
             . "<div class='sim-final-card'>"
             . "<div class='sim-final-icon'>$finalIcon</div>"
+            . ($safeWinnerAvatar !== '' ? "<div class='sim-final-winner-avatar-wrap'><img class='sim-final-winner-avatar' src='$safeWinnerAvatar' alt='Avatar de $safeWinnerAvatarTitle' title='$safeWinnerAvatarTitle'></div>" : '')
             . "<div class='sim-final-title'>$finalTitle</div>"
             . "<div class='sim-final-subtitle'>$finalSubtitle</div>"
-            . "<div class='sim-final-vitals'>$finalVitals</div>"
+            . ($safeWinnerTalkVictory !== '' ? "<div class='sim-final-quote'>&laquo;$safeWinnerTalkVictory&raquo;</div>" : '')
+            . "<div class='sim-final-vitals'>$finalVitalsHtml</div>"
+            . $simAchievementsHtml
             . "</div>"
             . "</td></tr>";
         ?>
@@ -762,7 +888,7 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
         : (string)(int)$idPJno2;
     ?>
 
-    <div class="sim-rematch-row sim-final-actions">
+    <div class="sim-rematch-row sim-final-actions" id="simFinalActions" style="display:none;">
         <form method="get" action="/tools/combat-simulator" class="sim-rematch-form">
             <button type="submit" class="boton1 sim-final-action-btn" title="Simulador de Combate">Volver</button>
         </form>
@@ -804,6 +930,7 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
             echo sim_hidden_input('narrative_tone', $simNarrativeTone);
             echo sim_hidden_input('ambient_msgs', $simAmbientMessagesEnabled);
             echo sim_hidden_input('rubberbanding', $simRubberbandingEnabled);
+            echo sim_hidden_input('season_id', (int)$simSeasonId);
             ?>
             <button type="submit" class="boton1 sim-final-action-btn">Otra vez</button>
         </form>
@@ -812,7 +939,31 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
     <script>
     (function() {
         var turns = Array.prototype.slice.call(document.querySelectorAll('.sim-turn-fieldset'));
-        if (!turns.length) { return; }
+        var finalRow = document.getElementById('simFinalRow');
+        var finalActions = document.getElementById('simFinalActions');
+        var turnDelayMs = 800;
+
+        function scrollToNode(node) {
+            if (!node || typeof node.scrollIntoView !== 'function') { return; }
+            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function revealFinal() {
+            if (finalRow) {
+                finalRow.style.display = '';
+            }
+            if (finalActions) {
+                finalActions.style.display = '';
+            }
+            if (finalRow) {
+                setTimeout(function() { scrollToNode(finalRow); }, 60);
+            }
+        }
+
+        if (!turns.length) {
+            revealFinal();
+            return;
+        }
 
         turns.forEach(function(turn) {
             turn.classList.add('is-pending');
@@ -821,11 +972,16 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
 
         var idx = 0;
         function showNextTurn() {
-            if (idx >= turns.length) { return; }
-            turns[idx].classList.remove('is-pending');
-            turns[idx].classList.add('is-visible');
+            if (idx >= turns.length) {
+                revealFinal();
+                return;
+            }
+            var currentTurn = turns[idx];
+            currentTurn.classList.remove('is-pending');
+            currentTurn.classList.add('is-visible');
+            setTimeout(function() { scrollToNode(currentTurn); }, 40);
             idx += 1;
-            setTimeout(showNextTurn, 800);
+            setTimeout(showNextTurn, turnDelayMs);
         }
 
         setTimeout(showNextTurn, 220);

@@ -1,15 +1,37 @@
 <?php
 	include("app/helpers/db_connection.php");
 	include_once("app/helpers/character_avatar.php");
+
+	if (!function_exists('hg_normalize_palette_value')) {
+		function hg_normalize_palette_value(string $raw, string $fallback = 'SkyBlue'): string {
+			$v = trim($raw);
+			if ($v === '') return $fallback;
+			if ($v === '3') return 'SkyBlue';
+
+			if (preg_match('/^\$([0-9a-f]{3}|[0-9a-f]{6})$/i', $v, $m)) {
+				return '#'.strtolower($m[1]);
+			}
+			if (preg_match('/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i', $v, $m)) {
+				return '#'.strtolower($m[1]);
+			}
+			if (preg_match('/^(?:rgb|hsl)a?\(\s*[0-9.%\s,]+\s*\)$/i', $v)) {
+				$clean = preg_replace('/\s+/', ' ', $v);
+				return trim((string)$clean);
+			}
+			if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,39}$/', $v)) {
+				return $v;
+			}
+			return $fallback;
+		}
+	}
 	
 	$char_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-	$palette = filter_input(INPUT_GET, 'palette', FILTER_SANITIZE_STRING) ?? 'SkyBlue';
-	$palette = preg_replace('/[^a-zA-Z0-9#(),.\s%-]/', '', $palette);
-	if ($palette == "3") $palette = "SkyBlue";
+	$palette_raw = isset($_GET['palette']) ? (string)$_GET['palette'] : 'SkyBlue';
+	$palette = hg_normalize_palette_value($palette_raw, 'SkyBlue');
 
 	$msg = filter_input(INPUT_GET, 'msg');
 
-	if (!$char_id || !$msg) {
+	if (!$char_id || $msg === null || $msg === '') {
 		die("Parametros incorrectos.");
 	}
 	
@@ -39,7 +61,7 @@
 
 		$nombre = htmlspecialchars($row['name']);
 		$img = htmlspecialchars(ltrim(hg_character_avatar_url($row['image_url'] ?? '', $row['gender'] ?? ''), '/'));
-		$colortexto = htmlspecialchars($row['text_color']);
+		$colortexto = hg_normalize_palette_value((string)($row['text_color'] ?? ''), '');
 		$char_pretty = trim((string)($row['pretty_id'] ?? ''));
 		if ($char_pretty === '') {
 			$char_pretty = (string)$char_id;
@@ -114,7 +136,7 @@
 		<link href="/assets/vendor/fonts/quicksand/quicksand.css" rel="stylesheet">
 		<link rel="stylesheet" href="/assets/css/hg-embeds.css">
 	</head>
-	<body class="hg-embed-message" style="--palette: <?= $palette ?>;">
+	<body class="hg-embed-message" style="--palette: <?= htmlspecialchars($palette, ENT_QUOTES, 'UTF-8') ?>;">
 		<div class="msg_main_box">
 			<?php if ($char_id > 0): ?>
 				<a class="img_link" href="https://naufragio-heavensgate.duckdns.org/characters/<?= rawurlencode($char_pretty) ?>" target="_blank">

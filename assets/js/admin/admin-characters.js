@@ -158,6 +158,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   var resSel   = document.getElementById('res_sel');
   var resAdd   = document.getElementById('res_add');
   var resList  = document.getElementById('resourceList');
+  var fTraitsDirty = document.getElementById('f_traits_dirty');
   var traitInputs = document.querySelectorAll('.trait-input');
   var pjOnlyBlocks = document.querySelectorAll('.kind-pj-only');
   var noMonsterBlocks = document.querySelectorAll('.kind-no-monster');
@@ -290,7 +291,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     return v;
   }
 
-  function applyMonsterTraitFilter(kind){
+  function applyMonsterTraitFilter(kind, trackTraitChanges){
     var isMonster = (normalizeText(kind) === 'monster' || normalizeText(kind) === 'mon');
     document.querySelectorAll('.trait-item').forEach(function(item){
       var k = normalizeText(item.getAttribute('data-trait-kind') || '');
@@ -305,12 +306,15 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       item.style.display = hide ? 'none' : '';
       if (hide) {
         var inp = item.querySelector('.trait-input');
-        if (inp) inp.value = '0';
+        if (inp && inp.value !== '0') {
+          inp.value = '0';
+          if (trackTraitChanges) markTraitsDirty();
+        }
       }
     });
   }
 
-  function applyKindVisibility(kind){
+  function applyKindVisibility(kind, trackTraitChanges){
     var k = String(kind || '').toLowerCase();
     var isPj = (k !== 'pnj');
     var isMonster = (normalizeText(k) === 'monster' || normalizeText(k) === 'mon');
@@ -320,7 +324,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     noMonsterBlocks.forEach(function(block){
       block.style.display = (isPj && !isMonster) ? '' : 'none';
     });
-    applyMonsterTraitFilter(kind);
+    applyMonsterTraitFilter(kind, !!trackTraitChanges);
   }
 
   function clearSelect(sel, keepFirst){
@@ -399,6 +403,12 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   function resetTraits(){
     if (!traitInputs) return;
     traitInputs.forEach(function(inp){ inp.value = '0'; });
+  }
+  function resetTraitsDirty(){
+    if (fTraitsDirty) fTraitsDirty.value = '0';
+  }
+  function markTraitsDirty(){
+    if (fTraitsDirty) fTraitsDirty.value = '1';
   }
 
   function fillTraits(map){
@@ -668,8 +678,9 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     // reset traits
     resetTraits();
+    resetTraitsDirty();
     applyTraitOrder(0);
-    applyKindVisibility(selKind ? selKind.value : 'pnj');
+    applyKindVisibility(selKind ? selKind.value : 'pnj', false);
 
     mb.style.display='flex';
     initSelect2Modal();
@@ -762,7 +773,8 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     // Traits: cargar
     fillTraits(CHAR_TRAITS[cid] || {});
-    applyKindVisibility(selKind ? selKind.value : 'pnj');
+    resetTraitsDirty();
+    applyKindVisibility(selKind ? selKind.value : 'pnj', false);
 
     fInfo.value   = '';
     fCumple.value = '';
@@ -858,9 +870,13 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   });
 
   onSelectChange(selKind, function(){
-    applyKindVisibility(selKind ? selKind.value : 'pnj');
+    applyKindVisibility(selKind ? selKind.value : 'pnj', true);
   });
-  applyKindVisibility(selKind ? selKind.value : 'pnj');
+  applyKindVisibility(selKind ? selKind.value : 'pnj', false);
+  traitInputs.forEach(function(inp){
+    inp.addEventListener('input', markTraitsDirty);
+    inp.addEventListener('change', markTraitsDirty);
+  });
 
   // Avatar preview / remove
   avatar.addEventListener('change', function(){
@@ -971,6 +987,15 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     formData.set('ajax', '1');
     if (window.ADMIN_CSRF_TOKEN && !formData.get('csrf')) {
       formData.set('csrf', window.ADMIN_CSRF_TOKEN);
+    }
+    var traitsDirty = (formData.get('traits_dirty') === '1');
+    formData.set('traits_dirty', traitsDirty ? '1' : '0');
+    if (!traitsDirty) {
+      var traitKeys = [];
+      formData.forEach(function(_value, key){
+        if (key.indexOf('traits[') === 0) traitKeys.push(key);
+      });
+      traitKeys.forEach(function(key){ formData.delete(key); });
     }
     formCrud.dataset.saving = '1';
     var req = null;

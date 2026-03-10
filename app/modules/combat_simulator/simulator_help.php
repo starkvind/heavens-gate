@@ -10,10 +10,17 @@
 
 <div class="ocultable" id="texto1">
 
-<b>Arma y Protector</b>: <br/> Especifica si el combatiente va a utilizar o no un arma o un protector. Las bonificaciones que ofrecen se pueden comprobar en la secci&oacute;n <b>"Inventario"</b>.<br/>
-Existen varios tipos de arma y cada una utiliza una habilidad diferente. Si no se lleva ning&uacute;n arma, la habilidad de <b>Pelea</b> es la que se usar&aacute;.<br/><br/>
+<b>Selecci&oacute;n de combatientes</b>:<br/>
+Debes elegir dos participantes (P1 y P2) para habilitar la configuraci&oacute;n avanzada. El sistema acepta selecci&oacute;n manual o aleatoria por cada hueco.<br/>
+Si ya hay dos seleccionados y eliges un tercer personaje, se reemplaza autom&aacute;ticamente primero P1 y en el siguiente clic P2 (alternando).<br/><br/>
 
-<b>Leyenda</b>: 
+<b>Forma</b>:<br/>
+Define la forma en la que luchar&aacute; cada combatiente. Las formas disponibles dependen de la especie del personaje.<br/><br/>
+
+<b>Arma y protector</b>:<br/>
+Puedes dejar ambos en vac&iacute;o o elegir equipamiento del personaje. En armas se indica entre par&eacute;ntesis la habilidad principal usada por el simulador.<br/><br/>
+
+<b>Leyenda de armas</b>:
 
 <ul>
 	<li>Pelea - (P)</li>
@@ -25,48 +32,53 @@ Existen varios tipos de arma y cada una utiliza una habilidad diferente. Si no s
 </ul>
 
 
-<b>Forma</b>: <br/>Define la forma en la que el luchador combatir&aacute;. Cada una otorga diferentes atributos f&iacute;sicos. Las transformaciones disponibles variar&aacute;n de una especie cambiante a otra.<br/><br/>
+<b>Opciones de combate</b>:
+<ul>
+	<li><b>Turnos</b>: l&iacute;mite m&aacute;ximo de rondas.</li>
+	<li><b>Vitalidad</b>: vida inicial para ambos combatientes.</li>
+	<li><b>Heridas</b>: activa o ignora penalizadores por da&ntilde;o.</li>
+	<li><b>Curaci&oacute;n</b>: ninguna, ambos, solo P1 o solo P2.</li>
+	<li><b>Combate</b>: modo Normal o Umbral.</li>
+	<li><b>Tono narrativo</b>: Aleatorio, Serio, &Eacute;pico, Brutal o Ir&oacute;nico.</li>
+	<li><b>Mensajes ambientales</b>: activa/desactiva eventos de ambientaci&oacute;n.</li>
+	<li><b>Rubberbanding</b>: activa/desactiva ajustes de equilibrio durante el combate.</li>
+</ul>
 
-<b>Turnos</b>:<br/> Establece el n&uacute;mero de turnos que se podr&aacute;n jugar para resolver el combate.<br/><br/>
+<b>Aleatorizar</b>:
+<ul>
+	<li><b>Personajes</b>: selecciona P1/P2 al azar.</li>
+	<li><b>Armamento</b>, <b>Protecci&oacute;n</b>, <b>Formas</b>: asignaci&oacute;n aleatoria de equipo y forma.</li>
+	<li><b>Turnos</b> y <b>Vitalidad</b>: valores aleatorios al iniciar.</li>
+</ul>
 
-<b>Vitalidad</b>:<br/> La cantidad de da&ntilde;o que podr&aacute;n recibir <b><u>cada uno de los dos</u></b> participantes en la pelea.<br/><br/>
-
-<b>Tiradas</b>:<br/> Muestra o no las tiradas de ataque realizadas para resolver cada turno.<br/><br/>
-
-<b>Ventaja</b>:<br/> Ofrece una ventaja en forma de m&aacute;s vitalidad al participante seleccionado.<br/>
+<b>Resultado del combate</b>:<br/>
+Al finalizar se calcula vencedor, vitalidad restante y resumen final. Tambi&eacute;n se aplican mensajes de victoria/empate y frases contextuales del simulador si est&aacute;n configuradas.<br/>
 
 <br/>
 
-<b>Diferencias respecto al Sistema de Combate Original</b>:
+<b>Notas del simulador</b>:
 
 <br/>
 
 <ul>
 
 <li>Todas las tiradas tienen la dificultad est&aacute;ndar de <b>6</b>.</li>
-<li>El da&ntilde;o por <u>plata</u> o por <u>oro</u> no afecta en la forma de <b>Hom&iacute;nido</b>.</li>
-<li>En forma <b>Hom&iacute;nido</b> es posible resistir el da&ntilde;o <i>Contundente</i> y <i>Letal</i>.</li>
-<li>Equiparse un <b>Protector</b> garantiza el absorber da&ntilde;o <i>Agravado</i> o por <u>plata</u> u <u>oro</u>.</li>
-<li>El uso de <b>Dones</b> que favorecen el combate a&uacute;n no est&aacute; implementado.</li>
-<li>La utilizaci&oacute;n tanto de <b>Rabia</b> como de <b>Fuerza de Voluntad</b> no se ha implementado a&uacute;n.</li>
+<li>El c&aacute;lculo de da&ntilde;o y resistencia depende del arma/protector, la forma y el modo de combate.</li>
+<li>El resultado puede variar por azar, configuraci&oacute;n y eventos narrativos.</li>
+<li>Las opciones visibles en pantalla son las que aplica esta versi&oacute;n del simulador.</li>
 
 </ul>
 
-<b>Esquema de Combate</b>:
+<b>Esquema de combate (resumen)</b>:
 
 <br/>
 
 <ol>
 
-<li>Se calcula iniciativa. La f&oacute;rmula es <b>Destreza</b> + <b>Astucia</b> + N&uacute;mero al azar entre 1 y 10.</li>
-<li>El combatiente con <b><u>m&aacute;s</u></b> iniciativa ataca. <br/>El combatiente con <b><u>menos</u></b> iniciativa intentar&aacute; esquivar el ataque.</li>
-<li>Se resolver&aacute;n las tiradas de <b>ataque</b> y <b>esquiva</b>. Si la tirada de ataque es superior a la de esquiva, se proceder&aacute; a calcular la tirada de da&ntilde;o. Sino, el ataque se considerar&aacute; fallido y comenzar&aacute; el turno de ataque del combatiente que ha esquivado.</li>
-<li>El da&ntilde;o se calcula con la f&oacute;rmula: <br/><br/>
-"<b>Bonus del Arma + &Eacute;xitos en el ataque</b>" (<u>Arma de Fuego/ a Distancia</u>)<br/>
-"<b>Fuerza + Bonus del Arma + &Eacute;xitos en el ataque</b>" (<u>Cuerpo a Cuerpo</u> o manos desnudas)<br/><br/></li>
-<li>Al resultado de la tirada de da&ntilde;o se le resta el resultado de tirar "<b>Resistencia + Bonus del Protector</b>". Si el rival no puede resistir el tipo de da&ntilde;o, solo se tirar&aacute; el Bonus del Protector.</li>
-<li>Se provoca el da&ntilde;o al combatiente defensor. Si su vida est&aacute; igual o por debajo de 0, morir&aacute; y se habr&aacute; terminado el combate; de lo contrario, se repetir&aacute; el proceso, intercambiando atacante y defensor.</li>
-<li>En caso de empate de iniciativa, los personajes atacar&aacute;n y esquivar&aacute;n a la vez.</li>
+<li>Se calculan iniciativa y par&aacute;metros de ataque/defensa seg&uacute;n modo y configuraci&oacute;n.</li>
+<li>Se resuelven turnos de ataque/esquiva y tiradas de da&ntilde;o/resistencia.</li>
+<li>La vitalidad se reduce hasta victoria, derrota o empate por l&iacute;mite de turnos.</li>
+<li>Se construye un resumen final con estado del combate y eventos narrativos.</li>
 
 </ol>
 

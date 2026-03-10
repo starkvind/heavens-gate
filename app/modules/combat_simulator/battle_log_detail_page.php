@@ -1,6 +1,9 @@
 ﻿<?php
 
 $idDelCombate = isset($_GET['b']) ? (int)$_GET['b'] : 0;
+include_once('sim_achievements.php');
+include_once('sim_battle_summary.php');
+include_once('app/helpers/character_avatar.php');
 
 if (!function_exists('sim_log_error_box')) {
     function sim_log_error_box($message)
@@ -147,6 +150,33 @@ if (!function_exists('sim_log_form_icon_for_system')) {
 }
 
 if (!function_exists('sim_log_lines_from_payload')) {
+    function sim_log_sanitize_left_attack_markup($html)
+    {
+        $out = (string)$html;
+        if ($out === '') {
+            return $out;
+        }
+
+        // Legacy payloads may include centered wrappers/styles inside the line.
+        $out = preg_replace('#</?center[^>]*>#i', '', $out);
+        $out = preg_replace('#\salign\s*=\s*([\'"])center\\1#i', '', $out);
+        $out = preg_replace('#text-align\s*:\s*center\s*;?#i', '', $out);
+        return $out;
+    }
+
+    function sim_log_join_attack_result_line($attack, $result)
+    {
+        $attack = trim((string)$attack);
+        $result = trim((string)$result);
+        if ($attack === '') {
+            return $result;
+        }
+        if ($result === '') {
+            return $attack;
+        }
+        return trim($attack . ' ' . $result);
+    }
+
     function sim_log_is_continuation_line($line)
     {
         $plain = trim(strip_tags((string)$line));
@@ -246,7 +276,7 @@ if (!is_array($arrayOfTurns)) {
 }
 
 $kid = (int)($ResultQuery['id'] ?? 0);
-$kires = (string)($ResultQuery['winner_summary'] ?? '');
+$kires = sim_battle_summary_html_from_row($ResultQuery);
 
 $idPj1 = (int)($arrayOfTurns['id1'] ?? 0);
 $idPj2 = (int)($arrayOfTurns['id2'] ?? 0);
@@ -260,6 +290,10 @@ $aliasPj1 = (string)($rowP1['alias'] ?? ($ResultQuery['fighter_one_alias_snapsho
 $aliasPj2 = (string)($rowP2['alias'] ?? ($ResultQuery['fighter_two_alias_snapshot'] ?? $nombrePj2));
 $imgPj1 = (string)($rowP1['img'] ?? '');
 $imgPj2 = (string)($rowP2['img'] ?? '');
+if (function_exists('hg_character_avatar_url')) {
+    $imgPj1 = hg_character_avatar_url($imgPj1, '');
+    $imgPj2 = hg_character_avatar_url($imgPj2, '');
+}
 $systemId1 = sim_log_fetch_character_system_id($link, $idPj1);
 $systemId2 = sim_log_fetch_character_system_id($link, $idPj2);
 
@@ -349,6 +383,53 @@ include('app/partials/main_nav_bar.php');
 
             $attackerLines = sim_log_lines_from_payload($temaAtacante);
             $defenderLines = sim_log_lines_from_payload($temaDefensor);
+            $renderLines = array();
+
+            // Backward-compatible parser for old simultaneous payloads:
+            // ataque1<br/>ataque2<hr/>resultado1<br/>resultado2
+            if ($temaDefensor === '' && preg_match('#<hr\s*/?>#i', $temaAtacante)) {
+                $parts = preg_split('#<hr\s*/?>#i', $temaAtacante, 2);
+                $attacksRaw = (string)($parts[0] ?? '');
+                $resultsRaw = (string)($parts[1] ?? '');
+                $atk = sim_log_lines_from_payload($attacksRaw);
+                $res = sim_log_lines_from_payload($resultsRaw);
+
+                $leftLine = sim_log_join_attack_result_line($atk[0] ?? '', $res[0] ?? '');
+                $rightLine = sim_log_join_attack_result_line($atk[1] ?? '', $res[1] ?? '');
+
+                if ($leftLine !== '') {
+                    $renderLines[] = array('dir' => 'from-left', 'text' => $leftLine);
+                }
+                if ($rightLine !== '') {
+                    $renderLines[] = array('dir' => 'from-right', 'text' => $rightLine);
+                }
+
+                for ($x = 2; $x < count($atk); $x++) {
+                    $extra = trim((string)$atk[$x]);
+                    if ($extra !== '') {
+                        $renderLines[] = array('dir' => (($x % 2 === 0) ? 'from-left' : 'from-right'), 'text' => $extra);
+                    }
+                }
+                for ($x = 2; $x < count($res); $x++) {
+                    $extra = trim((string)$res[$x]);
+                    if ($extra !== '') {
+                        $renderLines[] = array('dir' => 'from-right', 'text' => $extra);
+                    }
+                }
+            } else {
+                $lineIdx = 0;
+                foreach ($attackerLines as $line) {
+                    $renderLines[] = array(
+                        'dir' => (($lineIdx % 2 === 0) ? 'from-left' : 'from-right'),
+                        'text' => $line
+                    );
+                    $lineIdx++;
+                }
+
+                foreach ($defenderLines as $line) {
+                    $renderLines[] = array('dir' => 'from-right', 'text' => $line);
+                }
+            }
             ?>
             <tr>
                 <td colspan="4" class="ajustcelda">
@@ -356,25 +437,22 @@ include('app/partials/main_nav_bar.php');
                         <legend>Turno <?php echo (int)$iturnos; ?></legend>
 
                         <?php if ($regeAtacante !== '') { ?>
-                            <div class="sim-attack-msg from-left"><?php echo $regeAtacante; ?></div>
+                            <div class="sim-attack-msg sim-regen-msg from-left"><?php echo $regeAtacante; ?></div>
                         <?php } ?>
 
                         <?php if ($regeDefensor !== '') { ?>
-                            <div class="sim-attack-msg from-right"><?php echo $regeDefensor; ?></div>
+                            <div class="sim-attack-msg sim-regen-msg from-right"><?php echo $regeDefensor; ?></div>
                         <?php } ?>
 
-                        <?php
-                        $lineIdx = 0;
-                        foreach ($attackerLines as $line) {
-                            $dir = ($lineIdx % 2 === 0) ? 'from-left' : 'from-right';
-                            echo "<div class='sim-attack-msg $dir'>$line</div>";
-                            $lineIdx++;
-                        }
-
-                        foreach ($defenderLines as $line) {
-                            echo "<div class='sim-attack-msg from-right'>$line</div>";
-                        }
-                        ?>
+                        <?php foreach ($renderLines as $rowLine) {
+                            $dir = (string)($rowLine['dir'] ?? 'from-left');
+                            $text = (string)($rowLine['text'] ?? '');
+                            if ($text === '') { continue; }
+                            if ($dir === 'from-left') {
+                                $text = sim_log_sanitize_left_attack_markup($text);
+                            }
+                            echo "<div class='sim-attack-msg $dir'>$text</div>";
+                        } ?>
 
                         <?php if ($ambientLate !== '') { ?>
                             <div class="sim-attack-msg sim-ambient-msg"><?php echo $ambientLate; ?></div>
@@ -395,38 +473,71 @@ include('app/partials/main_nav_bar.php');
 
         $ganador = (string)($arrayOfTurns['ganador'] ?? '');
         $heridas = (string)($arrayOfTurns['heridas'] ?? '');
+        $achievements = sim_achievements_hydrate_from_payload($arrayOfTurns['achievements'] ?? array());
         $resultadoFinal = (string)($arrayOfTurns['resultadofinal'] ?? '');
         $outcome = (string)($ResultQuery['outcome'] ?? '');
 
         $finalIcon = ($outcome === 'draw') ? '&#9878;' : '&#127942;';
-        $winnerSummaryLabel = trim(strip_tags((string)($ResultQuery['winner_summary'] ?? 'Victoria')));
-        if (stripos($winnerSummaryLabel, 'Ganador:') === 0) {
-            $winnerSummaryLabel = trim(substr($winnerSummaryLabel, 8));
-        }
+        $winnerSummaryLabel = sim_battle_winner_name_from_row($ResultQuery);
         $finalTitle = ($outcome === 'draw') ? 'Empate' : htmlspecialchars(($winnerSummaryLabel !== '' ? $winnerSummaryLabel : 'Victoria'), ENT_QUOTES, 'UTF-8');
         $finalSubtitle = ($ganador !== '') ? $ganador : $kires;
+        $winnerAvatar = (string)($arrayOfTurns['winner_avatar'] ?? '');
+        if (function_exists('hg_character_avatar_url')) {
+            $winnerAvatar = hg_character_avatar_url($winnerAvatar, '');
+        }
+        if ($winnerAvatar === '' && $outcome !== 'draw') {
+            $winnerCharacterId = (int)($ResultQuery['winner_character_id'] ?? 0);
+            if ($winnerCharacterId > 0 && $winnerCharacterId === $idPj1) {
+                $winnerAvatar = $imgPj1;
+            } elseif ($winnerCharacterId > 0 && $winnerCharacterId === $idPj2) {
+                $winnerAvatar = $imgPj2;
+            } elseif ($winnerSummaryLabel !== '' && (strcasecmp($winnerSummaryLabel, $nombrePj1) === 0 || strcasecmp($winnerSummaryLabel, $aliasPj1) === 0)) {
+                $winnerAvatar = $imgPj1;
+            } elseif ($winnerSummaryLabel !== '' && (strcasecmp($winnerSummaryLabel, $nombrePj2) === 0 || strcasecmp($winnerSummaryLabel, $aliasPj2) === 0)) {
+                $winnerAvatar = $imgPj2;
+            }
+        }
+        $winnerTalkVictory = (string)($arrayOfTurns['winner_talk_victory'] ?? '');
+        $safeWinnerAvatar = htmlspecialchars((string)$winnerAvatar, ENT_QUOTES, 'UTF-8');
+        $safeWinnerAvatarTitle = htmlspecialchars(($winnerSummaryLabel !== '' ? $winnerSummaryLabel : 'Ganador'), ENT_QUOTES, 'UTF-8');
+        $safeWinnerTalkVictory = htmlspecialchars($winnerTalkVictory, ENT_QUOTES, 'UTF-8');
         $finalVitals = htmlspecialchars(strip_tags($heridas), ENT_QUOTES, 'UTF-8');
+        $finalHealthTurn = '';
+        if ($numeroValoresArray > 0) {
+            $finalHealthTurn = (string)($arrayOfTurns["healthTurn{$numeroValoresArray}"] ?? '');
+        }
+        $finalVitalsHtml = ($finalHealthTurn !== '')
+            ? $finalHealthTurn
+            : ($finalVitals !== '' ? "<div class='sim-final-vitals'>{$finalVitals}</div>" : '');
+        $achievementsHtml = sim_achievements_render_html($achievements);
         ?>
 
         <?php if ($resultadoFinal !== '') { ?>
             <tr><td colspan="4" class="ajustcelda"><?php echo $resultadoFinal; ?></td></tr>
         <?php } ?>
 
-        <tr>
+        <tr id="simFinalRow" style="display:none;">
             <td colspan='4' class='ajustcelda'>
                 <div class='sim-final-card'>
                     <div class='sim-final-icon'><?php echo $finalIcon; ?></div>
+                    <?php if ($safeWinnerAvatar !== '') { ?>
+                        <div class='sim-final-winner-avatar-wrap'>
+                            <img class='sim-final-winner-avatar' src='<?php echo $safeWinnerAvatar; ?>' alt='Avatar de <?php echo $safeWinnerAvatarTitle; ?>' title='<?php echo $safeWinnerAvatarTitle; ?>'>
+                        </div>
+                    <?php } ?>
                     <div class='sim-final-title'><?php echo $finalTitle; ?></div>
                     <div class='sim-final-subtitle'><?php echo $finalSubtitle; ?></div>
-                    <?php if ($finalVitals !== '') { ?>
-                        <div class='sim-final-vitals'><?php echo $finalVitals; ?></div>
+                    <?php if ($safeWinnerTalkVictory !== '') { ?>
+                        <div class='sim-final-quote'>&laquo;<?php echo $safeWinnerTalkVictory; ?>&raquo;</div>
                     <?php } ?>
+                    <?php echo $finalVitalsHtml; ?>
+                    <?php echo $achievementsHtml; ?>
                 </div>
             </td>
         </tr>
     </table>
 
-    <div class="sim-rematch-row sim-final-actions">
+    <div class="sim-rematch-row sim-final-actions" id="simFinalActions" style="display:none;">
         <form method="get" action="/tools/combat-simulator/log" class="sim-rematch-form">
             <button type="submit" class="boton1 sim-final-action-btn">Volver</button>
         </form>
@@ -435,7 +546,27 @@ include('app/partials/main_nav_bar.php');
     <script>
     (function() {
         var turns = Array.prototype.slice.call(document.querySelectorAll('.sim-turn-fieldset'));
-        if (!turns.length) { return; }
+        var finalRow = document.getElementById('simFinalRow');
+        var finalActions = document.getElementById('simFinalActions');
+        var turnDelayMs = 450;
+
+        function scrollToNode(node) {
+            if (!node || typeof node.scrollIntoView !== 'function') { return; }
+            node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function revealFinal() {
+            if (finalRow) { finalRow.style.display = ''; }
+            if (finalActions) { finalActions.style.display = ''; }
+            if (finalRow) {
+                setTimeout(function() { scrollToNode(finalRow); }, 60);
+            }
+        }
+
+        if (!turns.length) {
+            revealFinal();
+            return;
+        }
 
         turns.forEach(function(turn) {
             turn.classList.add('is-pending');
@@ -444,11 +575,16 @@ include('app/partials/main_nav_bar.php');
 
         var idx = 0;
         function showNextTurn() {
-            if (idx >= turns.length) { return; }
-            turns[idx].classList.remove('is-pending');
-            turns[idx].classList.add('is-visible');
+            if (idx >= turns.length) {
+                revealFinal();
+                return;
+            }
+            var currentTurn = turns[idx];
+            currentTurn.classList.remove('is-pending');
+            currentTurn.classList.add('is-visible');
+            setTimeout(function() { scrollToNode(currentTurn); }, 40);
             idx += 1;
-            setTimeout(showNextTurn, 450);
+            setTimeout(showNextTurn, turnDelayMs);
         }
 
         setTimeout(showNextTurn, 150);

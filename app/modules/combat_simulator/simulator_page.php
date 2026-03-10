@@ -24,6 +24,46 @@ if (!function_exists('sim_table_exists')) {
     }
 }
 
+if (!function_exists('sim_column_exists')) {
+    function sim_column_exists($link, $tableName, $columnName)
+    {
+        $safeTable = mysql_real_escape_string((string)$tableName, $link);
+        $safeCol = mysql_real_escape_string((string)$columnName, $link);
+        $rs = mysql_query("SHOW COLUMNS FROM `$safeTable` LIKE '$safeCol'", $link);
+        return ($rs && mysql_num_rows($rs) > 0);
+    }
+}
+
+if (!function_exists('sim_active_browser_season')) {
+    function sim_active_browser_season($link)
+    {
+        $out = array('id' => 0, 'name' => '', 'description' => '', 'character_limit' => 35);
+        if (!sim_table_exists($link, 'fact_sim_seasons')) {
+            return $out;
+        }
+
+        $query = "SELECT id, COALESCE(name, '') AS name, COALESCE(description, '') AS description, COALESCE(character_limit, 35) AS character_limit
+                  FROM fact_sim_seasons
+                  WHERE is_active = 1
+                  ORDER BY updated_at DESC, id DESC
+                  LIMIT 1";
+        $rs = mysql_query($query, $link);
+        if (!$rs || mysql_num_rows($rs) === 0) {
+            return $out;
+        }
+
+        $row = mysql_fetch_array($rs);
+        $out['id'] = (int)($row['id'] ?? 0);
+        $out['name'] = (string)($row['name'] ?? '');
+        $out['description'] = (string)($row['description'] ?? '');
+        $limit = (int)($row['character_limit'] ?? 35);
+        if ($limit < 1) { $limit = 1; }
+        if ($limit > 200) { $limit = 200; }
+        $out['character_limit'] = $limit;
+        return $out;
+    }
+}
+
 $formsByRace = array();
 $formsQuery = mysql_query("SELECT raza, forma FROM vw_sim_forms ORDER BY forma ASC", $link);
 if ($formsQuery) {
@@ -47,6 +87,18 @@ $roster = array();
 $formsByCharacter = array();
 $itemsByCharacter = array();
 $characterIds = array();
+$seasonCfg = sim_active_browser_season($link);
+$activeSeasonId = (int)($seasonCfg['id'] ?? 0);
+$activeSeasonName = (string)($seasonCfg['name'] ?? '');
+$activeSeasonDescription = (string)($seasonCfg['description'] ?? '');
+$rosterLimit = (int)($seasonCfg['character_limit'] ?? 35);
+if ($rosterLimit < 1) { $rosterLimit = 1; }
+if ($rosterLimit > 200) { $rosterLimit = 200; }
+$hasSeasonBridge = sim_table_exists($link, 'bridge_battle_sim_characters_seasons');
+$seasonJoinSql = '';
+if ($activeSeasonId > 0 && $hasSeasonBridge) {
+    $seasonJoinSql = "INNER JOIN bridge_battle_sim_characters_seasons sbs ON sbs.character_id = v.id AND sbs.season_id = $activeSeasonId";
+}
 
 $queryRoster = "
 SELECT
@@ -64,8 +116,10 @@ SELECT
     COALESCE(v.resistencia, 0) AS resistencia
 FROM vw_sim_characters v
 INNER JOIN fact_characters c ON c.id = v.id
+$seasonJoinSql
 WHERE v.kes LIKE 'pj' $cronicaNotInSQL
 ORDER BY v.alias ASC
+LIMIT $rosterLimit
 ";
 
 $resultRoster = mysql_query($queryRoster, $link);
@@ -205,10 +259,19 @@ if ($itemsJson === false) {
 
 <div class="sim-ui sim-select-screen">
     <h2>Simulador de Combate</h2>
+    <?php if ($activeSeasonId > 0): ?>
+      <div class="sim-season-banner">
+        <div class="sim-season-title"><?php echo sim_h($activeSeasonName !== '' ? $activeSeasonName : ('Temporada #' . $activeSeasonId)); ?></div>
+        <?php if ($activeSeasonDescription !== ''): ?>
+          <div class="sim-season-desc"><?php echo sim_h($activeSeasonDescription); ?></div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
 
     <form action="/tools/combat-simulator/result" method="post" name="simulador" id="simFightForm">
         <input type="hidden" name="pj1" id="simPj1" value="">
         <input type="hidden" name="pj2" id="simPj2" value="">
+        <input type="hidden" name="season_id" id="simSeasonId" value="<?php echo (int)$activeSeasonId; ?>">
 
         <div class="sim-fight-header">
             <button type="button" class="sim-fighter-slot" id="simSlotP1" data-slot="p1">
@@ -233,7 +296,7 @@ if ($itemsJson === false) {
             <div class="sim-roster-grid" id="simRosterGrid"></div>
         </div>
 
-        <div class="sim-loadout-grid" id="simLoadoutGrid">
+        <div class="sim-loadout-grid" id="simLoadoutGrid" hidden style="display:none;">
             <div class="sim-loadout-card">
                 <h3 id="simConfigTitleP1">Configuraci&oacute;n P1</h3>
                 <label>Forma
@@ -260,7 +323,7 @@ if ($itemsJson === false) {
             </div>
         </div>
 
-        <fieldset class="sim-fieldset-inline">
+        <fieldset class="sim-fieldset-inline" id="simCombatOptions" hidden style="display:none;">
             <legend>Opciones de combate</legend>
             <div class="sim-options-row">
                 <label>Turnos
@@ -342,10 +405,9 @@ if ($itemsJson === false) {
             </div>
         </fieldset>
 
-        <fieldset class="sim-fieldset-inline">
+        <fieldset class="sim-fieldset-inline" id="simRandomOptions" hidden style="display:none;">
             <legend>Aleatorizar</legend>
             <div class="sim-random-row">
-                <label><input type="checkbox" name="aleatorio" value="yes" id="simRandomChars"> Personajes</label>
                 <label><input type="checkbox" name="armasrandom" value="yes"> Armamento</label>
                 <label><input type="checkbox" name="protrandom" value="yes"> Protecci&oacute;n</label>
                 <label><input type="checkbox" name="formarandom" value="yes"> Formas</label>
@@ -393,12 +455,14 @@ if ($itemsJson === false) {
     var selProt1 = document.getElementById('simProt1');
     var selProt2 = document.getElementById('simProt2');
     var loadoutGrid = document.getElementById('simLoadoutGrid');
+    var combatOptions = document.getElementById('simCombatOptions');
+    var randomOptions = document.getElementById('simRandomOptions');
     var configTitleP1 = document.getElementById('simConfigTitleP1');
     var configTitleP2 = document.getElementById('simConfigTitleP2');
 
-    var randomCharsToggle = document.getElementById('simRandomChars');
     var startBtn = document.getElementById('simStartBtn');
     var hadBothSelected = false;
+    var replaceNextSlot = 'p1';
 
     function isRandomPick(value) {
         return String(value || '') === 'random';
@@ -533,7 +597,11 @@ if ($itemsJson === false) {
     }
 
     function previewSlotKey() {
-        return nextFreeSlot();
+        var free = nextFreeSlot();
+        if (free) {
+            return free;
+        }
+        return replaceNextSlot;
     }
 
     function paintRoster() {
@@ -628,8 +696,7 @@ if ($itemsJson === false) {
 
         var hasP1 = !!selected.p1;
         var hasP2 = !!selected.p2;
-        var randomBoth = !!(randomCharsToggle && randomCharsToggle.checked);
-        startBtn.disabled = !((hasP1 || randomBoth) && (hasP2 || randomBoth));
+        startBtn.disabled = !(hasP1 && hasP2);
     }
 
     function selectedAlias(slotKey) {
@@ -667,25 +734,26 @@ if ($itemsJson === false) {
             var randomFree = nextFreeSlot();
             if (randomFree) {
                 selected[randomFree] = 'random';
-            } else if (selected.p1 === 'random' && selected.p2 === 'random') {
-                selected.p2 = null;
-            } else if (selected.p1 === 'random') {
-                selected.p1 = null;
-            } else if (selected.p2 === 'random') {
-                selected.p2 = null;
+                replaceNextSlot = (randomFree === 'p1') ? 'p2' : 'p1';
+                renderAll();
             }
-            renderAll();
             return;
         }
 
         if (selected.p1 === id) {
             selected.p1 = null;
+            replaceNextSlot = 'p1';
         } else if (selected.p2 === id) {
             selected.p2 = null;
+            replaceNextSlot = 'p2';
         } else {
             var free = nextFreeSlot();
             if (free) {
                 selected[free] = id;
+                replaceNextSlot = (free === 'p1') ? 'p2' : 'p1';
+            } else {
+                selected[replaceNextSlot] = id;
+                replaceNextSlot = (replaceNextSlot === 'p1') ? 'p2' : 'p1';
             }
         }
 
@@ -697,6 +765,7 @@ if ($itemsJson === false) {
             clearHoverPreview();
             if (selected[slotKey]) {
                 selected[slotKey] = null;
+                replaceNextSlot = slotKey;
                 renderAll();
             }
         });
@@ -710,6 +779,18 @@ if ($itemsJson === false) {
         updateConfigTitles();
 
         var bothSelected = !!selected.p1 && !!selected.p2;
+        if (loadoutGrid) {
+            loadoutGrid.hidden = !bothSelected;
+            loadoutGrid.style.display = bothSelected ? '' : 'none';
+        }
+        if (combatOptions) {
+            combatOptions.hidden = !bothSelected;
+            combatOptions.style.display = bothSelected ? '' : 'none';
+        }
+        if (randomOptions) {
+            randomOptions.hidden = !bothSelected;
+            randomOptions.style.display = bothSelected ? '' : 'none';
+        }
         if (bothSelected && !hadBothSelected && loadoutGrid) {
             setTimeout(function() {
                 loadoutGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -720,10 +801,6 @@ if ($itemsJson === false) {
 
     setupSlotClick(slotP1, 'p1');
     setupSlotClick(slotP2, 'p2');
-    if (randomCharsToggle) {
-        randomCharsToggle.addEventListener('change', syncFormState);
-    }
-
     renderAll();
 })();
 </script>

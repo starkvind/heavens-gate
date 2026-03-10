@@ -198,9 +198,36 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
         $avatar.value = canRestore ? selected : $avatar.options[0].value;
     }
 
+    function normalizePaletteValue(raw, fallback = "SkyBlue") {
+        const value = String(raw || "").trim();
+        if (!value) return fallback;
+        if (value === "3") return "SkyBlue";
+
+        let m = value.match(/^\$([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+        if (m) return `#${m[1].toLowerCase()}`;
+
+        m = value.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+        if (m) return `#${m[1].toLowerCase()}`;
+
+        if (/^(?:rgb|hsl)a?\(\s*[0-9.%\s,]+\s*\)$/i.test(value)) {
+            return value.replace(/\s+/g, " ").trim();
+        }
+        if (/^[a-zA-Z][a-zA-Z0-9_-]{0,39}$/.test(value)) {
+            return value;
+        }
+        return fallback;
+    }
+
     function hexToPickerSafe(v) {
-        const m = String(v || "").trim().match(/^#([0-9a-fA-F]{6})$/);
-        return m ? `#${m[1].toLowerCase()}` : null;
+        const normalized = normalizePaletteValue(v, "");
+        let m = normalized.match(/^#([0-9a-fA-F]{6})$/);
+        if (m) return `#${m[1].toLowerCase()}`;
+        m = normalized.match(/^#([0-9a-fA-F]{3})$/);
+        if (m) {
+            const h = m[1].toLowerCase();
+            return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
+        }
+        return null;
     }
 
     function colorToCss(v) {
@@ -249,7 +276,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
 
     function buildSnippet() {
         const id = String($avatar.value || "-1").trim();
-        const color = String($colorText.value || "SkyBlue").trim() || "SkyBlue";
+        const color = normalizePaletteValue($colorText.value, "SkyBlue");
         const msg = String($message.value || "").trim();
         if (isDefaultColorMode()) {
             return `[hg_avatar=${id}]${msg}[/hg_avatar]`;
@@ -261,7 +288,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
         const id = encodeURIComponent(String($avatar.value || "-1").trim());
         const paletteRaw = isDefaultColorMode()
             ? "SkyBlue"
-            : (String($colorText.value || "SkyBlue").trim() || "SkyBlue");
+            : normalizePaletteValue($colorText.value, "SkyBlue");
         const palette = encodeURIComponent(paletteRaw);
         const msg = encodeURIComponent(String($message.value || " ").trim() || " ");
         $preview.src = `/forum/message?id=${id}&palette=${palette}&msg=${msg}`;
@@ -272,7 +299,8 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
         $colorPicker.disabled = defaultMode;
         $colorText.disabled = defaultMode;
         $colorRow.classList.toggle("is-disabled", defaultMode);
-        $colorDot.style.background = defaultMode ? "transparent" : colorToCss($colorText.value);
+        const normalized = normalizePaletteValue($colorText.value, "SkyBlue");
+        $colorDot.style.background = defaultMode ? "transparent" : colorToCss(normalized);
     }
 
     function syncAll() {
@@ -306,8 +334,8 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
             return;
         }
         if (!value) return;
-        $colorText.value = value;
-        const hex = hexToPickerSafe(value);
+        $colorText.value = normalizePaletteValue(value, "SkyBlue");
+        const hex = hexToPickerSafe($colorText.value);
         if (hex) $colorPicker.value = hex;
         syncAll();
     });

@@ -122,6 +122,9 @@
 					case 'admin_character_deaths':
 						echo " $pillSeparator Muertes de personajes";
 						break;
+					case 'admin_sim_character_talk':
+						echo " $pillSeparator Frases de simulador";
+						break;
 					case 'admin_mentions_help':
 						echo " $pillSeparator Ayuda mentions";
 						break;

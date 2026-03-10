@@ -372,6 +372,7 @@ RewriteRule ^powers/?$ index.php?p=powers [L,QSA]
 # Forum embed snippets
 RewriteRule ^forum/message/?$ index.php?p=forum_message [L,QSA]
 RewriteRule ^forum/diceroll/?$ index.php?p=forum_diceroll [L,QSA]
+RewriteRule ^sep/snippet_forum_hg\.php$ /forum/message [R=301,L,QSA,NC]
 
 RewriteRule ^tools/keygen/?$ index.php?p=keygen [L,QSA]
 RewriteRule ^tools/crop/?$ index.php?p=crop [L,QSA]
