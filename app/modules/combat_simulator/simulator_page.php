@@ -1,10 +1,14 @@
-﻿<?php
+<?php
 include_once("sim_character_scope.php");
 include_once("app/helpers/character_avatar.php");
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
 $cronicaNotInSQL = sim_chronicle_not_in_sql('c.chronicle_id');
 $pageSect = "Simulador de Combate";
 $defaultForm = "Humano";
+$isSimAdmin = (!empty($_SESSION['is_admin']) || (!empty($_COOKIE['is_admin']) && in_array(strtoupper(trim((string)$_COOKIE['is_admin'])), array('1', 'TRUE', 'YES', 'ON'), true)));
 
 include("app/partials/main_nav_bar.php");
 
@@ -614,14 +618,7 @@ if ($itemsJson === false) {
             randomStateClass = 'is-picked-p2';
         }
 
-        var html = ''
-            + '<button type="button" class="sim-roster-card sim-roster-random ' + randomStateClass + '" data-char-id="random">'
-            + '  <div class="sim-roster-portrait"><span class="sim-roster-noimg">?</span></div>'
-            + '  <div class="sim-roster-meta">'
-            + '    <div class="sim-roster-name">Aleatorio</div>'
-            + '    <div class="sim-roster-rank"></div>'
-            + '  </div>'
-            + '</button>';
+        var html = '';
 
         roster.forEach(function(ch) {
             var cid = Number(ch.id || 0);
@@ -647,6 +644,15 @@ if ($itemsJson === false) {
                 + '  </div>'
                 + '</button>';
         });
+
+        html += ''
+            + '<button type="button" class="sim-roster-card sim-roster-random ' + randomStateClass + '" data-char-id="random">'
+            + '  <div class="sim-roster-portrait"><span class="sim-roster-noimg">?</span></div>'
+            + '  <div class="sim-roster-meta">'
+            + '    <div class="sim-roster-name">Aleatorio</div>'
+            + '    <div class="sim-roster-rank"></div>'
+            + '  </div>'
+            + '</button>';
 
         rosterGrid.innerHTML = html;
 

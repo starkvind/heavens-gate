@@ -1,7 +1,22 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener parÃ¡metros 'b' y 'r' de manera segura
-$mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del MÃ©rito Defecto
+
+if (!function_exists('hg_merfla_normalize_text')) {
+    function hg_merfla_normalize_text($value)
+    {
+        $text = html_entity_decode((string)$value, ENT_QUOTES, 'UTF-8');
+        $text = trim(mb_strtolower($text, 'UTF-8'));
+        $text = strtr($text, array(
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u',
+            'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u',
+            'ä' => 'a', 'ë' => 'e', 'ï' => 'i', 'ö' => 'o', 'ü' => 'u'
+        ));
+        return $text;
+    }
+}
+
+// Obtener par&aacute;metros 'b' y 'r' de manera segura
+$mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del M&eacute;rito/Defecto
 $returnID = isset($_GET['r']) ? $_GET['r'] : '';  // ID del Regreso
 
 $unknownOrigin = "-";
@@ -19,7 +34,7 @@ $rowsQueryMaf = $resultMaf->num_rows;
 if ($rowsQueryMaf > 0) {
     $resultQueryMaf = $resultMaf->fetch_assoc();
 
-    // Datos bÃ¡sicos
+    // Datos b&aacute;sicos
     $mafId = htmlspecialchars($resultQueryMaf["id"]);
     $mafName = htmlspecialchars($resultQueryMaf["name"]);
     $mafType = htmlspecialchars($resultQueryMaf["tipo"]);
@@ -47,19 +62,16 @@ if ($rowsQueryMaf > 0) {
     }
 
     // Datos para regresar
-    switch ($mafType) {
-        case "MÃ©ritos":
-            $returnType = 1;
-            $mafNameType = "MÃ©rito";
-            break;
-        case "Defectos":
-            $returnType = 2;
-            $mafNameType = "Defecto";
-            break;
-        default:
-            $returnType = 1;
-            $mafNameType = "Tipo desconocido";
-            break;
+    $mafTypeNormalized = hg_merfla_normalize_text($mafType);
+    if ($mafTypeNormalized === 'meritos' || strpos($mafTypeNormalized, 'merit') !== false) {
+        $returnType = 1;
+        $mafNameType = "M&eacute;rito";
+    } elseif ($mafTypeNormalized === 'defectos' || strpos($mafTypeNormalized, 'defect') !== false) {
+        $returnType = 2;
+        $mafNameType = "Defecto";
+    } else {
+        $returnType = 1;
+        $mafNameType = "Tipo desconocido";
     }
 
     // Crear un array para regresar
@@ -78,7 +90,7 @@ if ($rowsQueryMaf > 0) {
 	$typeReturnId = $returnArray[$mafAfil];
 
     // =========================
-    // Personajes con este MÃ©rito/Defecto (respeta exclusiones de crÃ³nica)
+    // Personajes con este M&eacute;rito/Defecto (respeta exclusiones de cr&oacute;nica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -108,14 +120,14 @@ if ($rowsQueryMaf > 0) {
     $hasOwners = count($mafOwners) > 0;
     $useTabs = $hasOwners;
 
-    // TÃ­tulo e ImÃ¡genes
+    // T&iacute;tulo e Im&aacute;genes
     $costMeritFlaw = $mafCoste;
     $pageSect = $mafNameType; // PARA CAMBIAR EL TITULO A LA PAGINA
     $pageTitle2 = $mafName;
-    setMetaFromPage($mafName . " | MÃ©ritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
+    setMetaFromPage($mafName . " | M&eacute;ritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
 
-    // Incluir archivos para navegaciÃ³n y contenido
-    include("app/partials/main_nav_bar.php"); // Barra NavegaciÃ³n
+    // Incluir archivos para navegaci&oacute;n y contenido
+    include("app/partials/main_nav_bar.php"); // Barra navegaci&oacute;n
     echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
     ob_start();
@@ -147,7 +159,7 @@ if ($rowsQueryMaf > 0) {
         echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'>$costText</div></div>";
     }
     if ($mafAfil !== "") {
-        echo "<div class='power-stat'><div class='power-stat__label'>CategorÃ­a</div><div class='power-stat__value'>$mafAfil</div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Categor&iacute;a</div><div class='power-stat__value'>$mafAfil</div></div>";
     }
     if ($mafSystem !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>$mafSystem</div></div>";
@@ -158,7 +170,7 @@ if ($rowsQueryMaf > 0) {
     echo "    </div>";
     echo "  </div>";
 
-    // DescripciÃ³n del MÃ©rito
+    // Descripci&oacute;n del M&eacute;rito
     if ($mafDesc != "") {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
@@ -174,7 +186,7 @@ if ($rowsQueryMaf > 0) {
         hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
@@ -189,13 +201,17 @@ if ($rowsQueryMaf > 0) {
                 $alias = (string)($o['alias'] ?? '');
                 $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
                 $estado = (string)($o['status'] ?? '');
+                $estadoNormalized = hg_merfla_normalize_text($estado);
                 $label = $alias !== '' ? $alias : $name;
-                $mapEstado = [
-                    "AÃºn por aparecer"     => "(&#64;)",
-                    "Paradero desconocido" => "(&#63;)",
-                    "CadÃ¡ver"              => "(&#8224;)"
-                ];
-                $simboloEstado = $mapEstado[$estado] ?? "";
+                if ($estadoNormalized === 'aun por aparecer') {
+                    $simboloEstado = "(&#64;)";
+                } elseif ($estadoNormalized === 'paradero desconocido') {
+                    $simboloEstado = "(&#63;)";
+                } elseif ($estadoNormalized === 'cadaver') {
+                    $simboloEstado = "(&#8224;)";
+                } else {
+                    $simboloEstado = "";
+                }
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
                 hg_render_character_avatar_tile([
                     'href' => $href,
@@ -218,11 +234,12 @@ if ($rowsQueryMaf > 0) {
     } else {
         echo $infoHtml;
     }
-} // Fin comprobaciÃ³n
+} // Fin comprobaci&oacute;n
 
 // Cerramos la sentencia preparada para la consulta principal
 $stmtMaf->close();
 ?>
+
 
 
 

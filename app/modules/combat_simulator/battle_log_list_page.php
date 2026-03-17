@@ -1,33 +1,5 @@
 <?php include("app/partials/main_nav_bar.php"); ?>
-<?php include_once("sim_battle_summary.php"); ?>
-
-<?php
-if (!function_exists('sim_log_list_h')) {
-    function sim_log_list_h($value)
-    {
-        return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('sim_log_list_table_exists')) {
-    function sim_log_list_table_exists($link, $tableName)
-    {
-        $safe = mysql_real_escape_string((string)$tableName, $link);
-        $rs = mysql_query("SHOW TABLES LIKE '$safe'", $link);
-        return ($rs && mysql_num_rows($rs) > 0);
-    }
-}
-
-if (!function_exists('sim_log_list_column_exists')) {
-    function sim_log_list_column_exists($link, $tableName, $columnName)
-    {
-        $safeTable = mysql_real_escape_string((string)$tableName, $link);
-        $safeCol = mysql_real_escape_string((string)$columnName, $link);
-        $rs = mysql_query("SHOW COLUMNS FROM `$safeTable` LIKE '$safeCol'", $link);
-        return ($rs && mysql_num_rows($rs) > 0);
-    }
-}
-?>
+<?php include_once("sim_battles_table.php"); ?>
 
 <div class="sim-ui">
 <h2>Registro de Combates</h2>
@@ -37,7 +9,6 @@ if (!function_exists('sim_log_list_column_exists')) {
 <legend>Combates</legend>
 
 <?php
-
 $pageSect = ":: Combates del Simulador";
 
 $tamano_pagina = 30;
@@ -54,8 +25,8 @@ if (!$pagina) {
 }
 
 $seasonOptions = array();
-$hasSeasonTables = sim_log_list_table_exists($link, 'fact_sim_seasons');
-$hasSeasonColumn = sim_log_list_column_exists($link, 'fact_sim_battles', 'season_id');
+$hasSeasonTables = sim_btl_table_exists($link, 'fact_sim_seasons');
+$hasSeasonColumn = sim_btl_column_exists($link, 'fact_sim_battles', 'season_id');
 if ($hasSeasonTables) {
     $rsSeason = mysql_query("SELECT id, COALESCE(name, '') AS name FROM fact_sim_seasons ORDER BY is_active DESC, updated_at DESC, id DESC", $link);
     if ($rsSeason) {
@@ -81,7 +52,12 @@ $total_paginas = (int)ceil($num_total_registros / $tamano_pagina);
 
 $consulta = "SELECT * FROM fact_sim_battles{$where} ORDER BY id DESC LIMIT $inicio,$tamano_pagina";
 $IdConsulta = mysql_query($consulta, $link);
-$NFilas = mysql_num_rows($IdConsulta);
+$battleRows = array();
+if ($IdConsulta) {
+    while ($row = mysql_fetch_array($IdConsulta)) {
+        $battleRows[] = $row;
+    }
+}
 
 if ($hasSeasonColumn && !empty($seasonOptions)) {
     echo "<form method='get' id='simLogSeasonForm' action='/tools/combat-simulator/log' style='margin:0 0 10px 0; text-align:left;'>";
@@ -90,7 +66,7 @@ if ($hasSeasonColumn && !empty($seasonOptions)) {
     echo "<option value='0'>Todas</option>";
     foreach ($seasonOptions as $sopt) {
         $sid = (int)($sopt['id'] ?? 0);
-        $sname = sim_log_list_h($sopt['name'] ?? ('#' . $sid));
+        $sname = sim_btl_h($sopt['name'] ?? ('#' . $sid));
         $sel = ($sid === $selectedSeasonId) ? " selected='selected'" : '';
         echo "<option value='{$sid}'{$sel}>{$sname} [ID:{$sid}]</option>";
     }
@@ -101,32 +77,9 @@ if ($hasSeasonColumn && !empty($seasonOptions)) {
     echo "</form>";
 }
 
-if ($NFilas == "") {
-    echo "A&uacute;n no se ha celebrado ning&uacute;n combate.";
-} else {
-    echo "<table class='sim-combats-table'>";
-
-    for ($i = 0; $i < $NFilas; $i++) {
-        $ResultQuery = mysql_fetch_array($IdConsulta);
-
-        $kid = (int)($ResultQuery["id"] ?? 0);
-        $ki1 = sim_log_list_h($ResultQuery["fighter_one_alias_snapshot"] ?? "");
-        $ki2 = sim_log_list_h($ResultQuery["fighter_two_alias_snapshot"] ?? "");
-        $kires = sim_battle_summary_html_from_row($ResultQuery);
-
-        echo "
-        <tr>
-            <td class='sim-col-id'>#<a href='/tools/combat-simulator/log/$kid'>$kid</a></td>
-            <td class='sim-col-p1'>$ki1</td>
-            <td class='sim-col-vs'>VS</td>
-            <td class='sim-col-p2'>$ki2</td>
-            <td class='sim-col-result'>$kires</td>
-        </tr>";
-    }
-
-    echo "</table>";
-}
-
+sim_btl_render_table($link, $battleRows, array(
+    'empty_text' => "A&uacute;n no se ha celebrado ning&uacute;n combate."
+));
 ?>
 
 </fieldset>

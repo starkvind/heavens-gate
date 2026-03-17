@@ -78,6 +78,9 @@
     border-radius: 10px;
     background: rgba(7, 17, 56, 0.95);
     padding: 10px 12px;
+    width: 100%;
+    min-inline-size: 0;
+    box-sizing: border-box;
 }
 
 .hg-sim-shell legend {
@@ -214,6 +217,11 @@
 
 .hg-sim-shell .sim-ui {
     padding: 10px 8px 14px;
+}
+
+/* The generic accordion cap (600px) is too small for simulator help content. */
+.hg-sim-shell .ocultable.open {
+    max-height: 9999px;
 }
 
 .hg-sim-shell .sim-select-screen {
@@ -437,12 +445,14 @@
 .hg-sim-shell .sim-stats-table td {
     padding: 9px 10px;
     vertical-align: middle;
-    word-break: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
 }
 
 .hg-sim-shell .sim-combats-table .sim-col-id {
     width: 12%;
     text-align: left;
+    white-space: nowrap;
 }
 
 .hg-sim-shell .sim-combats-table .sim-col-p1 {
@@ -462,9 +472,117 @@
 }
 
 .hg-sim-shell .sim-combats-table .sim-col-result {
-    width: 40%;
+    width: 20%;
     text-align: right;
     font-weight: bold;
+    white-space: nowrap;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-fight {
+    width: 43%;
+    text-align: left;
+    white-space: normal;
+}
+
+.hg-sim-shell .sim-combats-table .sim-col-type {
+    width: 25%;
+    text-align: center;
+    white-space: normal;
+}
+
+.hg-sim-shell .sim-fight-row-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    text-decoration: none;
+}
+
+.hg-sim-shell .sim-fight-row-link:hover {
+    text-decoration: none;
+}
+
+.hg-sim-shell .sim-fight-row-side {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 0;
+}
+
+.hg-sim-shell .sim-fight-row-side--p2 {
+    justify-content: flex-end;
+}
+
+.hg-sim-shell .sim-fight-row-vs {
+    display: inline-block;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    color: #c9e8ff;
+}
+
+.hg-sim-shell .sim-fight-row-avatar-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+
+.hg-sim-shell .sim-fight-row-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    display: block;
+    object-fit: cover;
+    border: 1px solid rgba(150, 196, 255, 0.6);
+}
+
+.hg-sim-shell .sim-fight-row-name {
+    display: inline-block;
+    min-width: 0;
+    max-width: 100%;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hg-sim-shell .sim-fight-row-link:hover .sim-fight-row-name {
+    text-decoration: underline;
+}
+
+.hg-sim-shell .sim-result-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    text-align: right;
+}
+
+.hg-sim-shell .sim-result-text {
+    display: inline-block;
+    vertical-align: middle;
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    line-height: 1.1;
+    text-align: right;
+}
+
+.hg-sim-shell .sim-winner-avatar16 {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    display: block;
+    object-fit: cover;
+    border: 1px solid rgba(150, 196, 255, 0.6);
 }
 
 .hg-sim-shell .sim-stats-table .sim-stat-label {
@@ -476,6 +594,43 @@
     width: 54%;
     text-align: right;
     font-weight: bold;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-rank {
+    width: 6%;
+    text-align: center;
+    font-weight: bold;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-character {
+    width: 34%;
+    text-align: left;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-character-cell {
+    text-align: left;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-char {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-name-wrap {
+    display: inline-block;
+    min-width: 0;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-name-link {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.hg-sim-shell .sim-score-table .sim-score-num {
+    text-align: center;
+    white-space: nowrap;
 }
 
 .hg-sim-shell .sim-actions-row {
@@ -930,6 +1085,446 @@
     margin: 0;
 }
 
+.hg-sim-shell .sim-tournament-note {
+    margin: 8px 0 0;
+    color: #c8e6ff;
+    font-size: 0.82rem;
+}
+
+.hg-sim-shell .sim-tournament-create {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+}
+
+.hg-sim-shell .sim-tournament-create label {
+    min-width: 140px;
+}
+
+.hg-sim-shell .sim-tournament-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hg-sim-shell .sim-tournament-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+}
+
+.hg-sim-shell .sim-tournament-picker label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 320px;
+    color: #9ad2ff;
+    font-size: 0.78rem;
+}
+
+.hg-sim-shell .sim-tournament-picker select {
+    min-height: 34px;
+    border: 1px solid #2b74c0;
+    background: #071740;
+    color: #d7f0ff;
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+.hg-sim-shell .sim-tournament-chip {
+    display: inline-block;
+    border: 1px solid rgba(78, 126, 192, 0.7);
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: rgba(8, 23, 67, 0.92);
+    color: #d9f0ff;
+    font-size: 0.76rem;
+    line-height: 1.2;
+}
+
+.hg-sim-shell .sim-tournament-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.hg-sim-shell .sim-tournament-toolbar form {
+    margin: 0;
+}
+
+.hg-sim-shell .sim-tournament-view-toggle {
+    white-space: nowrap;
+}
+
+.hg-sim-shell .sim-tournament-stage {
+    margin: 0 auto;
+    max-width: 600px;
+    position: relative;
+}
+
+.hg-sim-shell .sim-tournament-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 68px minmax(0, 1fr);
+    gap: 10px;
+    max-width: 600px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+    align-items: start;
+}
+
+.hg-sim-shell .sim-tournament-side {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(58px, 1fr);
+    gap: 8px;
+    align-items: start;
+}
+
+.hg-sim-shell .sim-tournament-side-right {
+    direction: ltr;
+}
+
+.hg-sim-shell .sim-tournament-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.hg-sim-shell .sim-tournament-final-round {
+    min-width: 68px;
+}
+
+.hg-sim-shell .sim-tournament-winner-hero {
+    align-items: center;
+    background: linear-gradient(180deg, rgba(16, 39, 84, 0.94), rgba(11, 28, 66, 0.92));
+    border: 1px solid rgba(93, 146, 217, 0.62);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content: center;
+    margin: 10px auto 8px;
+    max-width: 600px;
+    padding: 10px 12px 12px;
+    position: relative;
+    text-align: center;
+}
+
+.hg-sim-shell .sim-tournament-winner-crown {
+    color: #ffd76f;
+    font-size: 1.05rem;
+    line-height: 1;
+    position: static;
+}
+
+.hg-sim-shell .sim-tournament-winner-avatar-wrap {
+    align-items: center;
+    display: flex;
+    flex: 0 0 48px;
+    height: 48px;
+    justify-content: center;
+    width: 48px;
+}
+
+.hg-sim-shell .sim-tournament-winner-avatar {
+    border: 2px solid rgba(255, 222, 128, 0.78);
+    border-radius: 8px;
+    display: block;
+    height: 48px;
+    object-fit: cover;
+    width: 48px;
+}
+
+.hg-sim-shell .sim-tournament-winner-avatar-fallback {
+    align-items: center;
+    background: #12315b;
+    color: #e8f8ff;
+    display: flex;
+    font-size: 1rem;
+    font-weight: bold;
+    height: 48px;
+    justify-content: center;
+    text-transform: uppercase;
+    width: 48px;
+}
+
+.hg-sim-shell .sim-tournament-winner-text {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.hg-sim-shell .sim-tournament-winner-label {
+    color: #93d0ff;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.hg-sim-shell .sim-tournament-winner-name {
+    color: #ffffff;
+    font-size: 1.32rem;
+    font-weight: bold;
+    line-height: 1.1;
+}
+
+.hg-sim-shell .sim-tournament-winner-concept {
+    color: #ffe28d;
+    font-size: 0.86rem;
+    line-height: 1.2;
+    max-width: 520px;
+}
+
+.hg-sim-shell .sim-tournament-winner-concept-link {
+    color: #ffe28d;
+    text-decoration: underline;
+}
+
+.hg-sim-shell .sim-tournament-winner-concept-link:hover,
+.hg-sim-shell .sim-tournament-winner-concept-link:focus {
+    color: #fff2b8;
+}
+
+body.sim-tournament-fullscreen-open {
+    overflow: hidden;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    z-index: 2000;
+    max-width: none;
+    overflow: auto;
+    padding: 10px 10px 14px;
+    border: 1px solid rgba(93, 146, 217, 0.72);
+    border-radius: 12px;
+    background: radial-gradient(circle at 50% 0%, rgba(13, 39, 86, 0.96) 0%, rgba(5, 14, 46, 0.98) 72%);
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-winner-hero {
+    margin-top: 0;
+    max-width: 920px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-board {
+    grid-template-columns: auto 92px auto;
+    gap: 12px;
+    width: max-content;
+    max-width: none;
+    margin-top: 12px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-side {
+    grid-auto-columns: 74px;
+    gap: 10px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-round {
+    min-width: 74px;
+    padding: 6px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-final-round {
+    min-width: 92px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-match {
+    width: 74px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-slot {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-avatar,
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-avatar-fallback {
+    width: 20px;
+    height: 20px;
+}
+
+.hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-vs {
+    font-size: 0.56rem;
+}
+
+.hg-sim-shell .sim-tournament-round {
+    border: 1px solid rgba(53, 96, 153, 0.82);
+    border-radius: 10px;
+    background: rgba(118, 150, 192, 0.24);
+    padding: 4px;
+    min-width: 58px;
+}
+
+.hg-sim-shell .sim-tournament-round-title {
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #8de8f0;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+.hg-sim-shell .sim-tournament-match-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 6px;
+}
+
+.hg-sim-shell .sim-tournament-match-link.is-disabled {
+    cursor: default;
+}
+
+.hg-sim-shell .sim-tournament-match {
+    position: relative;
+    border: 1px solid rgba(31, 55, 89, 0.88);
+    border-radius: 8px;
+    background: rgba(169, 196, 230, 0.2);
+    width: 58px;
+    margin: 0 auto;
+    padding: 4px 3px;
+    transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.hg-sim-shell .sim-tournament-match-link:hover .sim-tournament-match {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px rgba(124, 191, 255, 0.45);
+}
+
+.hg-sim-shell .sim-tournament-match::after {
+    content: "";
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    width: 6px;
+    border-top: 1px solid #ff2f2f;
+}
+
+.hg-sim-shell .sim-tournament-side-right .sim-tournament-match::after {
+    right: auto;
+    left: -7px;
+}
+
+.hg-sim-shell .sim-tournament-final-round .sim-tournament-match::after,
+.hg-sim-shell .sim-tournament-round:last-child .sim-tournament-slot::after {
+    display: none;
+}
+
+.hg-sim-shell .sim-tournament-match-head {
+    color: #9ec8ff;
+    font-size: 0.56rem;
+    margin-bottom: 3px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.hg-sim-shell .sim-tournament-duel {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+}
+
+.hg-sim-shell .sim-tournament-slot {
+    position: relative;
+    border: 1px solid #18425d;
+    background: #195f7b;
+    box-sizing: border-box;
+    padding: 1px;
+    border-radius: 4px;
+    font-size: 0;
+    color: #031722;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    overflow: hidden;
+}
+
+.hg-sim-shell .sim-tournament-slot::after {
+    display: none;
+}
+
+.hg-sim-shell .sim-tournament-slot.is-winner {
+    background: #d7edf6;
+    border-color: #b9eaff;
+    box-shadow: 0 0 0 1px rgba(183, 234, 255, 0.66);
+}
+
+.hg-sim-shell .sim-tournament-slot.is-loser {
+    background: rgba(98, 113, 130, 0.54);
+    border-color: rgba(170, 180, 189, 0.7);
+    opacity: 0.52;
+    filter: grayscale(100%);
+}
+
+.hg-sim-shell .sim-tournament-slot.is-empty {
+    background: rgba(21, 34, 56, 0.66);
+    border-color: rgba(84, 110, 138, 0.72);
+}
+
+.hg-sim-shell .sim-tournament-vs {
+    color: #99c8ff;
+    font-size: 0.5rem;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    min-width: 10px;
+    text-align: center;
+}
+
+.hg-sim-shell .sim-tournament-avatar {
+    width: 16px;
+    height: 16px;
+    aspect-ratio: 1 / 1;
+    border-radius: 2px;
+    display: block;
+    object-fit: cover;
+}
+
+.hg-sim-shell .sim-tournament-avatar-fallback {
+    align-items: center;
+    background: #0a2b3b;
+    color: #9ce6ff;
+    display: flex;
+    font-size: 0.56rem;
+    font-weight: bold;
+    height: 16px;
+    justify-content: center;
+    text-transform: uppercase;
+    width: 16px;
+}
+
+.hg-sim-shell .sim-tournament-summary {
+    margin-top: 5px;
+    font-size: 0.72rem;
+    color: #a8d8ff;
+    line-height: 1.3;
+}
+
+.hg-sim-shell .sim-tournament-champion-name {
+    font-size: 1.02rem;
+    color: #8dffbf;
+    font-weight: bold;
+}
+
+.hg-sim-shell .sim-tournament-champion-meta {
+    margin-top: 4px;
+    color: #ffd86f;
+}
+
 @media (max-width: 960px) {
     .hg-sim-shell {
         padding: 0 8px 16px;
@@ -966,5 +1561,44 @@
 
     .hg-sim-shell .sim-turn-health-row {
         grid-template-columns: 1fr;
+    }
+
+    .hg-sim-shell .sim-tournament-board {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+    }
+
+    .hg-sim-shell .sim-tournament-stage {
+        max-width: 100%;
+    }
+
+    .hg-sim-shell .sim-tournament-winner-hero {
+        max-width: 100%;
+    }
+
+    .hg-sim-shell .sim-tournament-side {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+    }
+
+    .hg-sim-shell .sim-tournament-stage.is-expanded {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    .hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-board {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .hg-sim-shell .sim-tournament-stage.is-expanded .sim-tournament-side {
+        grid-auto-flow: row;
+        grid-auto-columns: auto;
+        grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
     }
 }

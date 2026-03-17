@@ -119,7 +119,7 @@ if (!function_exists('sim_insert_battle_log')) {
         return $columns;
     }
 
-    function sim_insert_battle_log($link, $fighterOneId, $fighterTwoId, $fighterOneAlias, $fighterTwoAlias, $winnerSummary, $winnerCharacterId, $outcome, $requestIp, $turnsPayload, $seasonId = 0)
+    function sim_insert_battle_log($link, $fighterOneId, $fighterTwoId, $fighterOneAlias, $fighterTwoAlias, $winnerSummary, $winnerCharacterId, $outcome, $requestIp, $turnsPayload, $seasonId = 0, $isTournament = 0, $tournamentKey = '', $tournamentRound = 0, $tournamentMatch = 0)
     {
         $fighterOneId = (int)$fighterOneId;
         $fighterTwoId = (int)$fighterTwoId;
@@ -131,6 +131,14 @@ if (!function_exists('sim_insert_battle_log')) {
         $requestIp = sim_escape($requestIp, $link);
         $turnsPayload = sim_escape($turnsPayload, $link);
         $seasonId = (int)$seasonId;
+        $isTournament = ((int)$isTournament > 0) ? 1 : 0;
+        $tournamentKey = trim((string)$tournamentKey);
+        if (strlen($tournamentKey) > 64) {
+            $tournamentKey = substr($tournamentKey, 0, 64);
+        }
+        $tournamentKeyEsc = sim_escape($tournamentKey, $link);
+        $tournamentRound = (int)$tournamentRound;
+        $tournamentMatch = (int)$tournamentMatch;
 
         $cols = sim_battle_columns($link);
         $fields = array(
@@ -170,10 +178,27 @@ if (!function_exists('sim_insert_battle_log')) {
             $fields[] = '`season_id`';
             $values[] = ($seasonId > 0) ? (string)$seasonId : 'NULL';
         }
+        if (isset($cols['is_tournament'])) {
+            $fields[] = '`is_tournament`';
+            $values[] = (string)$isTournament;
+        }
+        if (isset($cols['tournament_key'])) {
+            $fields[] = '`tournament_key`';
+            $values[] = ($tournamentKeyEsc !== '') ? "'$tournamentKeyEsc'" : 'NULL';
+        }
+        if (isset($cols['tournament_round'])) {
+            $fields[] = '`tournament_round`';
+            $values[] = ($tournamentRound > 0) ? (string)$tournamentRound : 'NULL';
+        }
+        if (isset($cols['tournament_match'])) {
+            $fields[] = '`tournament_match`';
+            $values[] = ($tournamentMatch > 0) ? (string)$tournamentMatch : 'NULL';
+        }
 
         $query = "INSERT INTO `fact_sim_battles` (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $values) . ")";
 
         mysql_query($query, $link);
+        return (int)mysql_insert_id($link);
     }
 }
 
@@ -202,6 +227,10 @@ if (!function_exists('sim_upsert_item_usage')) {
 
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 $scoreSeasonId = (int)($combateArray['season_id'] ?? 0);
+$isTournamentBattle = ((int)($combateArray['is_tournament'] ?? 0) > 0) ? 1 : 0;
+$tournamentKey = (string)($combateArray['tournament_key'] ?? '');
+$tournamentRound = (int)($combateArray['tournament_round'] ?? 0);
+$tournamentMatch = (int)($combateArray['tournament_match'] ?? 0);
 if ($scoreSeasonId <= 0 && function_exists('sim_get_active_season_id')) {
     $scoreSeasonId = (int)sim_get_active_season_id($link);
 }
@@ -215,7 +244,7 @@ if ($drau != 1) {
     sim_upsert_character_score($link, $winaID, $wina, 1, 0, 0, 1, 3, $winnerDamageDealt, $winnerDamageTaken, $scoreSeasonId);
     sim_upsert_character_score($link, $losaID, $losa, 0, 0, 1, 1, 0, $loserDamageDealt, $loserDamageTaken, $scoreSeasonId);
 
-    sim_insert_battle_log(
+    $simInsertedBattleId = sim_insert_battle_log(
         $link,
         (int)$idPJno1,
         (int)$idPJno2,
@@ -226,8 +255,15 @@ if ($drau != 1) {
         'win',
         $ip,
         $datosDelArray,
-        (int)($combateArray['season_id'] ?? 0)
+        (int)($combateArray['season_id'] ?? 0),
+        $isTournamentBattle,
+        $tournamentKey,
+        $tournamentRound,
+        $tournamentMatch
     );
+    $GLOBALS['sim_last_battle_id'] = (int)$simInsertedBattleId;
+    $GLOBALS['sim_last_battle_outcome'] = 'win';
+    $GLOBALS['sim_last_battle_winner_character_id'] = (int)$winaID;
 
     sim_upsert_item_usage($link, $idarma1 ?? 0, $arma1 ?? '', 1);
     sim_upsert_item_usage($link, $idarma2 ?? 0, $arma2 ?? '', 1);
@@ -244,7 +280,7 @@ if ($nombreCom1 != $nombreCom2) {
     sim_upsert_character_score($link, $winaID, $wina, 0, 1, 0, 1, 1, (int)$heridas2, (int)$heridas1, $scoreSeasonId);
     sim_upsert_character_score($link, $losaID, $losa, 0, 1, 0, 1, 1, (int)$heridas1, (int)$heridas2, $scoreSeasonId);
 
-    sim_insert_battle_log(
+    $simInsertedBattleId = sim_insert_battle_log(
         $link,
         (int)$idPJno1,
         (int)$idPJno2,
@@ -255,8 +291,15 @@ if ($nombreCom1 != $nombreCom2) {
         'draw',
         $ip,
         $datosDelArray,
-        (int)($combateArray['season_id'] ?? 0)
+        (int)($combateArray['season_id'] ?? 0),
+        $isTournamentBattle,
+        $tournamentKey,
+        $tournamentRound,
+        $tournamentMatch
     );
+    $GLOBALS['sim_last_battle_id'] = (int)$simInsertedBattleId;
+    $GLOBALS['sim_last_battle_outcome'] = 'draw';
+    $GLOBALS['sim_last_battle_winner_character_id'] = 0;
 
     sim_upsert_item_usage($link, $idarma1 ?? 0, $arma1 ?? '', 1);
     sim_upsert_item_usage($link, $idarma2 ?? 0, $arma2 ?? '', 1);

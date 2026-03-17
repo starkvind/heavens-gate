@@ -1,157 +1,139 @@
 <?php
 include_once("sim_character_scope.php");
+include_once("sim_battles_table.php");
 
-/* include("heroes.php"); */
+if (!function_exists('sim_score_h')) {
+    function sim_score_h($value)
+    {
+        return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+    }
+}
 
-/* SELECCIONAMOS LO MAXIMO */
 $scoreSeasonWhere = sim_active_season_where_sql($link, 'fact_sim_character_scores');
 $battleSeasonWhere = sim_active_season_where_sql($link, 'fact_sim_battles');
 
-$consulta ="SELECT MAX(wins) dicks FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
-
+$consulta = "SELECT MAX(wins) AS max_wins FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
 $IdConsulta = mysql_query($consulta, $link);
-$ResultQuery = mysql_fetch_array($IdConsulta);
-$maxvictor = $ResultQuery['dicks'];
+$ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
+$maxvictor = (int)($ResultQuery['max_wins'] ?? 0);
 
-$consulta ="SELECT MAX(draws) dicks FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
-
+$consulta = "SELECT MAX(draws) AS max_draws FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
 $IdConsulta = mysql_query($consulta, $link);
-$ResultQuery = mysql_fetch_array($IdConsulta);
-$maxempat = $ResultQuery['dicks'];
+$ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
+$maxempat = (int)($ResultQuery['max_draws'] ?? 0);
 
-$consulta ="SELECT MAX(losses) dicks FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
-
+$consulta = "SELECT MAX(losses) AS max_losses FROM fact_sim_character_scores{$scoreSeasonWhere} LIMIT 1";
 $IdConsulta = mysql_query($consulta, $link);
-$ResultQuery = mysql_fetch_array($IdConsulta);
-$maxderrot = $ResultQuery['dicks'];
+$ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
+$maxderrot = (int)($ResultQuery['max_losses'] ?? 0);
 
-/* YA TENEMOS LO MAXIMO */
-
-include("app/partials/main_nav_bar.php");	// Barra Navegación
-
+include("app/partials/main_nav_bar.php");
 ?>
 
 <div class="sim-ui">
-<h2> Puntuaciones </h2>
+<h2>Puntuaciones</h2>
 <br/>
 <center>
 
-<table>
-
+<table class="sim-combats-table sim-score-table">
 <tr>
-
-<td> </td>
-
-<td class="celdacombat" width="25%"> Nombre </td>
-
-<td class="celdacombat"> Victorias </td>
-
-<td class="celdacombat"> Empates </td>
-
-<td class="celdacombat"> Derrotas </td>
-
-<td class="celdacombat"> Combates </td>
-
-<td class="celdacombat"> Puntos </td>
-
-<td class="celdacombat"> Eficacia </td>
-
+    <td class="celdacombat sim-score-rank">#</td>
+    <td class="celdacombat sim-score-character">Personaje</td>
+    <td class="celdacombat sim-score-num">Victorias</td>
+    <td class="celdacombat sim-score-num">Empates</td>
+    <td class="celdacombat sim-score-num">Derrotas</td>
+    <td class="celdacombat sim-score-num">Combates</td>
+    <td class="celdacombat sim-score-num">Puntos</td>
+    <td class="celdacombat sim-score-num">Eficacia</td>
 </tr>
 
 <?php
-
-/* ESTO ES UNA CASTAÑA, LA PROXIMA VEZ USA ID'S, HIJOPUTA */
-
-$consulta ="SELECT * FROM fact_sim_character_scores INNER JOIN vw_sim_characters ON fact_sim_character_scores.character_id = vw_sim_characters.id{$scoreSeasonWhere} ORDER BY points DESC";
-
+$consulta = "SELECT fact_sim_character_scores.*, vw_sim_characters.id AS sim_character_id, vw_sim_characters.nombre, vw_sim_characters.alias, COALESCE(vw_sim_characters.img, '') AS img
+            FROM fact_sim_character_scores
+            INNER JOIN vw_sim_characters ON fact_sim_character_scores.character_id = vw_sim_characters.id{$scoreSeasonWhere}
+            ORDER BY points DESC";
 $IdConsulta = mysql_query($consulta, $link);
-$NFilas = mysql_num_rows($IdConsulta);
-for($i=0;$i<$NFilas;$i++) {
-$ResultQuery = mysql_fetch_array($IdConsulta);
+$NFilas = $IdConsulta ? mysql_num_rows($IdConsulta) : 0;
 
-$siesmaxvictorias = "";
-$siesmaxempates = "";
-$siesmaxderrotas = "";
-$nombre = $ResultQuery["nombre"];
-$alias = $ResultQuery["alias"];
+for ($i = 0; $i < $NFilas; $i++) {
+    $ResultQuery = mysql_fetch_array($IdConsulta);
 
-$victorias = $ResultQuery["wins"];
-$empates = $ResultQuery["draws"];
-$derrotas = $ResultQuery["losses"];
+    $nombre = (string)($ResultQuery["nombre"] ?? '');
+    $alias = (string)($ResultQuery["alias"] ?? '');
+    if ($alias === '') {
+        $alias = $nombre;
+    }
 
-$kombo = $ResultQuery["battles"];
+    $victorias = (int)($ResultQuery["wins"] ?? 0);
+    $empates = (int)($ResultQuery["draws"] ?? 0);
+    $derrotas = (int)($ResultQuery["losses"] ?? 0);
+    $kombo = (int)($ResultQuery["battles"] ?? 0);
+    $puntos = (int)($ResultQuery["points"] ?? 0);
+    $characterId = (int)($ResultQuery["character_id"] ?? 0);
+    $posicionEnTabla = $i + 1;
 
-$puntos = $ResultQuery["points"];
-$danoc = $ResultQuery["damage_dealt"];
-$danor = $ResultQuery["damage_taken"];
+    $orden = 0;
+    if ($kombo > 0) {
+        $orden = ($puntos * 100) / ($kombo * 3);
+    }
+    $orden = round($orden, 1);
 
-$ships = $ResultQuery["character_id"];
+    $siesmaxvictorias = ($victorias === $maxvictor && $maxvictor > 0) ? "background:#CC0000;font-weight:bolder;border:1px solid #FFFF00;" : "";
+    $siesmaxempates = ($empates === $maxempat && $maxempat > 0) ? "background:#007700;font-weight:bolder;border:1px solid #00FF00;" : "";
+    $siesmaxderrotas = ($derrotas === $maxderrot && $maxderrot > 0) ? "background:#333399;font-weight:bolder;border:1px solid #00FFFF;" : "";
 
-$posicionEnTabla = $i + 1;
+    $slug = sim_btl_character_slug_by_id($link, $characterId);
+    $bioHref = ($slug !== '') ? ('/characters/' . rawurlencode($slug)) : ('/characters/' . $characterId);
+    $avatarUrl = function_exists('hg_character_avatar_url')
+        ? hg_character_avatar_url((string)($ResultQuery['img'] ?? ''), '')
+        : (string)($ResultQuery['img'] ?? '');
 
-#$orden2 = $victorias/($victorias+$empates+$derrotas)*100;
+    $safeAlias = sim_score_h($alias);
+    $safeAvatar = sim_score_h($avatarUrl);
+    $safeHref = sim_score_h($bioHref);
 
-$orden = 0;
-if ($kombo > 0) {
-	$orden = ($puntos * 100) / ($kombo * 3);
+    echo "
+    <tr>
+        <td class='ajustcelda sim-score-rank'>$posicionEnTabla</td>
+        <td class='ajustcelda sim-score-character-cell'>
+            <span class='sim-score-char'>
+                <a class='sim-winner-avatar-link hg-tooltip' data-tip='character' data-id='$characterId' href='$safeHref' target='_blank'>
+                    <img class='sim-winner-avatar16' src='$safeAvatar' alt=''>
+                </a>
+                <span class='sim-score-name-wrap'>
+                    <a class='hg-tooltip sim-score-name-link' data-tip='character' data-id='$characterId' href='$safeHref' target='_blank'>$safeAlias</a>
+                </span>
+            </span>
+        </td>
+        <td class='ajustcelda sim-score-num' style='$siesmaxvictorias'>$victorias</td>
+        <td class='ajustcelda sim-score-num' style='$siesmaxempates'>$empates</td>
+        <td class='ajustcelda sim-score-num' style='$siesmaxderrotas'>$derrotas</td>
+        <td class='ajustcelda sim-score-num'>$kombo</td>
+        <td class='ajustcelda sim-score-num'>$puntos</td>
+        <td class='ajustcelda sim-score-num'>{$orden}%</td>
+    </tr>";
 }
-
-$orden = round($orden,1);
-
-if ($victorias == $maxvictor) { $siesmaxvictorias = "background:#CC0000;font-weight:bolder;border:1px solid #FFFF00;"; }
-if ($empates == $maxempat) { $siesmaxempates = "background:#007700;font-weight:bolder;border:1px solid #00FF00;"; }
-if ($derrotas == $maxderrot) { $siesmaxderrotas = "background:#333399;font-weight:bolder;border:1px solid #00FFFF;"; }
-
-print("
-
-<tr>
-
-<td class='ajustcelda'><center>$posicionEnTabla</center></td>
-<td class='ajustcelda'>
-<a href='/characters/$ships' title='|| $nombre || Da&ntilde;o causado: $danoc || Vida perdida: $danor ||' target='_blank'>
-$alias
-</a>
-</td>
-
-<td class='ajustcelda' style='$siesmaxvictorias'>$victorias</td>
-<td class='ajustcelda' style='$siesmaxempates'>$empates</td>
-<td class='ajustcelda' style='$siesmaxderrotas'>$derrotas</td>
-<td class='ajustcelda'>$kombo</td>
-<td class='ajustcelda'>$puntos</td>
-<td class='ajustcelda'>$orden%</td>
-
-</tr>
-
-");
-
-}
-
 ?>
 
 <tr>
-
-<td colspan="8" style="text-align:right;"> <h4> 
-
-<?php
-
-$pageSect = ":: Puntuaciones"; // PARA CAMBIAR EL TITULO A LA PAGINA
-
-$sql = "SELECT * FROM fact_sim_battles{$battleSeasonWhere}";//"SELECT SUM(combates) AS suma FROM fact_sim_character_scores";
-$result = mysql_query ($sql, $link);
-$numeroCombates = mysql_num_rows($result);
-//$row = mysql_fetch_array($result);
-
-echo "<b>Combates totales:</b> $numeroCombates";
-//$titi = $row['suma'];
-//$tite = $titi/2;
-//echo $tite;
-
-?> </h4> </td> </tr>
+    <td colspan="8" style="text-align:right;">
+        <h4>
+            <?php
+            $pageSect = ":: Puntuaciones";
+            $sql = "SELECT COUNT(*) AS total FROM fact_sim_battles{$battleSeasonWhere}";
+            $result = mysql_query($sql, $link);
+            $rowTotalCombates = ($result) ? mysql_fetch_array($result) : array();
+            $numeroCombates = (int)($rowTotalCombates['total'] ?? 0);
+            echo "<b>Combates totales:</b> " . (int)$numeroCombates;
+            ?>
+        </h4>
+    </td>
+</tr>
 
 </table>
 
 <div class="sim-actions-row">
-<a class="sim-classic-btn" href="/tools/combat-simulator">Volver</a>
+    <a class="sim-classic-btn" href="/tools/combat-simulator">Volver</a>
 </div>
 
 </center>

@@ -13,15 +13,37 @@ if (!function_exists('hg_bio_skills_norm')) {
     }
 }
 
+if (!function_exists('hg_bio_skills_fix_mojibake')) {
+    function hg_bio_skills_fix_mojibake(string $s): string {
+        if (!function_exists('mb_convert_encoding')) {
+            return $s;
+        }
+
+        $out = trim($s);
+        for ($i = 0; $i < 2; $i++) {
+            if (strpos($out, 'Ã') === false && strpos($out, 'Â') === false) {
+                break;
+            }
+            $fixed = @mb_convert_encoding($out, 'UTF-8', 'ISO-8859-1');
+            if (!is_string($fixed) || $fixed === '') {
+                break;
+            }
+            $out = $fixed;
+        }
+
+        return $out;
+    }
+}
+
 if (!function_exists('hg_bio_skills_bucket')) {
     function hg_bio_skills_bucket(string $kindRaw): string {
-        $raw = trim($kindRaw);
-        // Match exact/known variants first (accent + mojibake variants).
+        $raw = hg_bio_skills_fix_mojibake($kindRaw);
+        // Match exact/known variants first.
         if ($raw === 'Talentos') return 'Talentos';
-        if ($raw === 'Técnicas' || $raw === 'Tecnicas' || $raw === 'TÃ©cnicas' || $raw === 'TÃƒÂ©cnicas') return 'Técnicas';
+        if ($raw === 'Técnicas' || $raw === 'Tecnicas') return 'Técnicas';
         if ($raw === 'Conocimientos' || $raw === 'Habilidades') return 'Conocimientos';
 
-        $k = hg_bio_skills_norm($kindRaw);
+        $k = hg_bio_skills_norm($raw);
         if ($k === 'talentos') return 'Talentos';
         if ($k === 'tecnicas') return 'Técnicas';
         if ($k === 'conocimientos') return 'Conocimientos';

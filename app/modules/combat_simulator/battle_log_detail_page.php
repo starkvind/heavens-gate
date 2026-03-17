@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 $idDelCombate = isset($_GET['b']) ? (int)$_GET['b'] : 0;
 include_once('sim_achievements.php');
@@ -86,6 +86,86 @@ if (!function_exists('sim_log_fetch_character_system_id')) {
         }
         $row = mysql_fetch_array($rs);
         return (int)($row['system_id'] ?? 0);
+    }
+}
+
+if (!function_exists('sim_log_character_slug_by_id')) {
+    function sim_log_character_slug_by_id($link, $characterId)
+    {
+        static $cache = array();
+        static $hasPrettyId = null;
+
+        $characterId = (int)$characterId;
+        if ($characterId <= 0) {
+            return '';
+        }
+        if (isset($cache[$characterId])) {
+            return (string)$cache[$characterId];
+        }
+
+        if ($hasPrettyId === null) {
+            $hasPrettyId = false;
+            $colRs = mysql_query("SHOW COLUMNS FROM `fact_characters` LIKE 'pretty_id'", $link);
+            if ($colRs && mysql_num_rows($colRs) > 0) {
+                $hasPrettyId = true;
+            }
+            if ($colRs) {
+                mysql_free_result($colRs);
+            }
+        }
+
+        $slug = (string)$characterId;
+        if ($hasPrettyId) {
+            $query = "SELECT COALESCE(NULLIF(pretty_id, ''), CAST(id AS CHAR)) AS slug FROM fact_characters WHERE id = $characterId LIMIT 1";
+            $rs = mysql_query($query, $link);
+            if ($rs && mysql_num_rows($rs) > 0) {
+                $row = mysql_fetch_array($rs);
+                $value = trim((string)($row['slug'] ?? ''));
+                if ($value !== '') {
+                    $slug = $value;
+                }
+            }
+            if ($rs) {
+                mysql_free_result($rs);
+            }
+        }
+
+        $cache[$characterId] = $slug;
+        return $slug;
+    }
+}
+
+if (!function_exists('sim_log_tournament_by_key')) {
+    function sim_log_tournament_by_key($link, $tournamentKey)
+    {
+        static $cache = array();
+        $tournamentKey = trim((string)$tournamentKey);
+        if ($tournamentKey === '') {
+            return null;
+        }
+        if (isset($cache[$tournamentKey])) {
+            return $cache[$tournamentKey];
+        }
+        if (!sim_table_exists($link, 'fact_sim_tournaments')) {
+            $cache[$tournamentKey] = null;
+            return null;
+        }
+
+        $safeKey = mysql_real_escape_string($tournamentKey, $link);
+        $query = "SELECT id, COALESCE(name, '') AS name FROM fact_sim_tournaments WHERE tournament_key = '$safeKey' ORDER BY id DESC LIMIT 1";
+        $rs = mysql_query($query, $link);
+        if (!$rs || mysql_num_rows($rs) === 0) {
+            $cache[$tournamentKey] = null;
+            return null;
+        }
+
+        $row = mysql_fetch_array($rs);
+        $out = array(
+            'id' => (int)($row['id'] ?? 0),
+            'name' => trim((string)($row['name'] ?? ''))
+        );
+        $cache[$tournamentKey] = $out;
+        return $out;
     }
 }
 
@@ -278,8 +358,8 @@ if (!is_array($arrayOfTurns)) {
 $kid = (int)($ResultQuery['id'] ?? 0);
 $kires = sim_battle_summary_html_from_row($ResultQuery);
 
-$idPj1 = (int)($arrayOfTurns['id1'] ?? 0);
-$idPj2 = (int)($arrayOfTurns['id2'] ?? 0);
+$idPj1 = (int)($arrayOfTurns['id1'] ?? ($ResultQuery['fighter_one_character_id'] ?? 0));
+$idPj2 = (int)($arrayOfTurns['id2'] ?? ($ResultQuery['fighter_two_character_id'] ?? 0));
 
 $rowP1 = sim_log_fetch_character_row($link, $idPj1);
 $rowP2 = sim_log_fetch_character_row($link, $idPj2);
@@ -299,6 +379,10 @@ $systemId2 = sim_log_fetch_character_system_id($link, $idPj2);
 
 $rankStars1 = sim_log_rank_stars_html($rowP1 ?? array());
 $rankStars2 = sim_log_rank_stars_html($rowP2 ?? array());
+$bioSlug1 = sim_log_character_slug_by_id($link, $idPj1);
+$bioSlug2 = sim_log_character_slug_by_id($link, $idPj2);
+$bioHref1 = ($bioSlug1 !== '') ? ('/characters/' . rawurlencode($bioSlug1)) : '';
+$bioHref2 = ($bioSlug2 !== '') ? ('/characters/' . rawurlencode($bioSlug2)) : '';
 
 $tipoComb = (string)($arrayOfTurns['tipocombate'] ?? 'normal');
 $combatModeLabel = (string)($arrayOfTurns['combat_mode_label'] ?? '');
@@ -307,6 +391,22 @@ if ($combatModeLabel === '') {
         $tipoComb,
         (string)($arrayOfTurns['narrative_tone'] ?? 'random')
     );
+}
+$combatModeLabelHtml = htmlspecialchars((string)$combatModeLabel, ENT_QUOTES, 'UTF-8');
+
+$tournamentKey = trim((string)($ResultQuery['tournament_key'] ?? ($arrayOfTurns['tournament_key'] ?? '')));
+if ($tournamentKey !== '') {
+    $tournamentInfo = sim_log_tournament_by_key($link, $tournamentKey);
+    if (is_array($tournamentInfo) && (int)($tournamentInfo['id'] ?? 0) > 0) {
+        $tournamentId = (int)$tournamentInfo['id'];
+        $tournamentName = trim((string)($tournamentInfo['name'] ?? ''));
+        if ($tournamentName === '') {
+            $tournamentName = 'Torneo #' . $tournamentId;
+        }
+        $combatModeLabelHtml = 'Combate de <a href="/tools/combat-simulator/tournament?tid=' . $tournamentId . '">' . htmlspecialchars($tournamentName, ENT_QUOTES, 'UTF-8') . '</a>';
+    } else {
+        $combatModeLabelHtml = 'Combate de torneo';
+    }
 }
 
 $arma1 = (string)($arrayOfTurns['arma1'] ?? '');
@@ -346,12 +446,12 @@ include('app/partials/main_nav_bar.php');
     <table>
         <tr>
             <td class="ajustcelda" colspan="4" style="text-align:center;text-transform:uppercase;font-weight:bold;">
-                <?php echo htmlspecialchars((string)$combatModeLabel, ENT_QUOTES, 'UTF-8'); ?>
+                <?php echo $combatModeLabelHtml; ?>
             </td>
         </tr>
         <tr>
-            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='/characters/$idPj1' target='_blank'><img class='photobio sim-combat-avatar' src='$imgPj1' title='$nombrePj1'></a></center>"; ?></td>
-            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='/characters/$idPj2' target='_blank'><img class='photobio sim-combat-avatar' src='$imgPj2' title='$nombrePj2'></a></center>"; ?></td>
+            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='$bioHref1' target='_blank'><img class='photobio sim-combat-avatar' src='$imgPj1' title='$nombrePj1'></a></center>"; ?></td>
+            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='$bioHref2' target='_blank'><img class='photobio sim-combat-avatar' src='$imgPj2' title='$nombrePj2'></a></center>"; ?></td>
         </tr>
         <tr>
             <td class="ajustcelda" colspan="2"><?php echo "$nombrePj1 <hr style='border: 1px solid #009;'/> $aliasPj1<div class='sim-result-rank'>$rankStars1</div>"; ?></td>

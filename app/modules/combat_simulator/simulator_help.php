@@ -1,87 +1,89 @@
 <br/>
 
 <fieldset>
-
-<legend>Informaci&oacute;n</legend>
+	<legend>Informaci&oacute;n</legend>
 
 <center>
 	<a href="javascript:MostrarOcultar('texto1');" id="enlace1">Mostrar informaci&oacute;n</a>
 </center>
 
-<div class="ocultable" id="texto1">
+	<div class="ocultable" id="texto1">
 
-<b>Selecci&oacute;n de combatientes</b>:<br/>
-Debes elegir dos participantes (P1 y P2) para habilitar la configuraci&oacute;n avanzada. El sistema acepta selecci&oacute;n manual o aleatoria por cada hueco.<br/>
-Si ya hay dos seleccionados y eliges un tercer personaje, se reemplaza autom&aacute;ticamente primero P1 y en el siguiente clic P2 (alternando).<br/><br/>
+		<p><strong>Selecci&oacute;n de combatientes</strong>:</p>
+		<p>Debes elegir dos participantes (P1 y P2) para habilitar la configuraci&oacute;n avanzada. 
+			El sistema acepta selecci&oacute;n manual o aleatoria por cada hueco.</p>
+		<p>Si ya hay dos seleccionados y eliges un tercer personaje, se reemplaza autom&aacute;ticamente 
+			primero P1 y en el siguiente clic P2 (alternando).</p>
 
-<b>Forma</b>:<br/>
-Define la forma en la que luchar&aacute; cada combatiente. Las formas disponibles dependen de la especie del personaje.<br/><br/>
+		<p><strong>Forma</strong>:</p>
+		<p>Define la forma en la que luchar&aacute; cada combatiente. Las formas disponibles dependen de la especie 
+			del personaje.</p>
 
-<b>Arma y protector</b>:<br/>
-Puedes dejar ambos en vac&iacute;o o elegir equipamiento del personaje. En armas se indica entre par&eacute;ntesis la habilidad principal usada por el simulador.<br/><br/>
+		<p><strong>Arma y protector</strong>:</p>
+		<p>Puedes dejar ambos en vac&iacute;o o elegir equipamiento del personaje. En armas se indica entre 
+			par&eacute;ntesis la habilidad principal usada por el simulador.</p>
 
-<b>Leyenda de armas</b>:
+		<p><strong>Leyenda de armas</strong>:</p>
 
-<ul>
-	<li>Pelea - (P)</li>
-	<li>Cuerpo a Cuerpo - (C)</li>
-	<li>Tiro con Arco - (T)</li>
-	<li>Arrojar o Atletismo - (A)</li>
-	<li>Armas de Fuego - (F)</li>
-	<li>Informatica - (I)</li>
-</ul>
+		<ul>
+			<li>Pelea - (P)</li>
+			<li>Cuerpo a Cuerpo - (C)</li>
+			<li>Tiro con Arco - (T)</li>
+			<li>Arrojar o Atletismo - (A)</li>
+			<li>Armas de Fuego - (F)</li>
+			<li>Informatica - (I)</li>
+		</ul>
 
+		<p><strong>Opciones de combate</strong>:</p>
+		<ul>
+			<li><strong>Turnos</strong>: l&iacute;mite m&aacute;ximo de rondas. <code>5</code></li>
+			<li><strong>Vitalidad</strong>: vida inicial para ambos combatientes. <code>7</code></li>
+			<li><strong>Heridas</strong>: activa o ignora penalizadores por da&ntilde;o. <code>Sí</code></li>
+			<li><strong>Curaci&oacute;n</strong>: ninguna, ambos, solo P1 o solo P2. <code>No</code></li>
+			<li><strong>Combate</strong>: modo Normal o Umbral.</li>
+			<li><strong>Tono narrativo</strong>: Aleatorio, Serio, &Eacute;pico, Brutal o Ir&oacute;nico.</li>
+			<li><strong>Mensajes ambientales</strong>: activa/desactiva eventos de ambientaci&oacute;n.</li>
+			<li><strong>Rubberbanding</strong>: activa/desactiva ajustes de equilibrio durante el combate.</li>
+		</ul>
 
-<b>Opciones de combate</b>:
-<ul>
-	<li><b>Turnos</b>: l&iacute;mite m&aacute;ximo de rondas.</li>
-	<li><b>Vitalidad</b>: vida inicial para ambos combatientes.</li>
-	<li><b>Heridas</b>: activa o ignora penalizadores por da&ntilde;o.</li>
-	<li><b>Curaci&oacute;n</b>: ninguna, ambos, solo P1 o solo P2.</li>
-	<li><b>Combate</b>: modo Normal o Umbral.</li>
-	<li><b>Tono narrativo</b>: Aleatorio, Serio, &Eacute;pico, Brutal o Ir&oacute;nico.</li>
-	<li><b>Mensajes ambientales</b>: activa/desactiva eventos de ambientaci&oacute;n.</li>
-	<li><b>Rubberbanding</b>: activa/desactiva ajustes de equilibrio durante el combate.</li>
-</ul>
+		<p><strong>Aleatorizar</strong>:</p>
+		<ul>
+			<li><strong>Armamento</strong>, <strong>Protecci&oacute;n</strong>, <strong>Formas</strong>: 
+			asignaci&oacute;n aleatoria de equipo y forma.</li>
+			<li><strong>Turnos</strong> y <strong>Vitalidad</strong>: valores aleatorios al iniciar.</li>
+		</ul>
 
-<b>Aleatorizar</b>:
-<ul>
-	<li><b>Personajes</b>: selecciona P1/P2 al azar.</li>
-	<li><b>Armamento</b>, <b>Protecci&oacute;n</b>, <b>Formas</b>: asignaci&oacute;n aleatoria de equipo y forma.</li>
-	<li><b>Turnos</b> y <b>Vitalidad</b>: valores aleatorios al iniciar.</li>
-</ul>
+		<p><strong>Resultado del combate</strong>:</p>
+		<p>Al finalizar se calcula vencedor, vitalidad restante y resumen final. Tambi&eacute;n se aplican 
+			mensajes de victoria/empate y frases contextuales del simulador si est&aacute;n configuradas.</p>
 
-<b>Resultado del combate</b>:<br/>
-Al finalizar se calcula vencedor, vitalidad restante y resumen final. Tambi&eacute;n se aplican mensajes de victoria/empate y frases contextuales del simulador si est&aacute;n configuradas.<br/>
+		<p><strong>Esquema de combate (resumen)</strong>:</p>
 
-<br/>
+		<ol>
+			<li>Se calculan iniciativa y par&aacute;metros de ataque/defensa seg&uacute;n modo y configuraci&oacute;n.</li>
+			<li>Se resuelven turnos de ataque/esquiva y tiradas de da&ntilde;o/resistencia.</li>
+			<li>La vitalidad se reduce hasta victoria, derrota o empate por l&iacute;mite de turnos.</li>
+			<li>Se construye un resumen final con estado del combate y eventos narrativos.</li>
+		</ol>
 
-<b>Notas del simulador</b>:
+	<p><strong>Notas del simulador</strong>:</p>
 
-<br/>
+		<ul>
 
-<ul>
+		<li>Todas las tiradas tienen la dificultad est&aacute;ndar de <strong>6</strong>.</li>
+		<li>El c&aacute;lculo de da&ntilde;o y resistencia depende del arma/protector, la forma y el modo de combate.</li>
+		<li>El resultado puede variar por azar, configuraci&oacute;n y eventos narrativos.</li>
+		<li>Las opciones visibles en pantalla son las que aplica esta versi&oacute;n del simulador.</li>
+		<li><strong>No se aplican todas las reglas del sistema.</strong> Limitaciones actuales:
+			<ul>
+				<li>No se puede cambiar de forma en mitad del combate.</li>
+				<li>La regeneraci&oacute;n se aplica aunque se sufra da&ntilde;o agravado.</li>
+				<li>No se distinguen tipos de da&ntilde;o: todos se tratan igual.</li>
+				<li>No se contemplan dones ni poderes especiales; es combate f&iacute;sico 1 vs 1.</li>
+			</ul>
+		</li>
 
-<li>Todas las tiradas tienen la dificultad est&aacute;ndar de <b>6</b>.</li>
-<li>El c&aacute;lculo de da&ntilde;o y resistencia depende del arma/protector, la forma y el modo de combate.</li>
-<li>El resultado puede variar por azar, configuraci&oacute;n y eventos narrativos.</li>
-<li>Las opciones visibles en pantalla son las que aplica esta versi&oacute;n del simulador.</li>
+		</ul>
 
-</ul>
-
-<b>Esquema de combate (resumen)</b>:
-
-<br/>
-
-<ol>
-
-<li>Se calculan iniciativa y par&aacute;metros de ataque/defensa seg&uacute;n modo y configuraci&oacute;n.</li>
-<li>Se resuelven turnos de ataque/esquiva y tiradas de da&ntilde;o/resistencia.</li>
-<li>La vitalidad se reduce hasta victoria, derrota o empate por l&iacute;mite de turnos.</li>
-<li>Se construye un resumen final con estado del combate y eventos narrativos.</li>
-
-</ol>
-
-</div>
-
+	</div>
 </fieldset>

@@ -1,6 +1,6 @@
 <?php
-include_once("sim_battle_summary.php");
 include_once("sim_character_scope.php");
+include_once("sim_battles_table.php");
 
 if (!function_exists('sim_stats_h')) {
     function sim_stats_h($value)
@@ -20,33 +20,15 @@ $statsItemWhere = sim_active_season_where_sql($link, 'fact_sim_item_usage');
 <?php
 $consulta = "SELECT * FROM fact_sim_battles{$statsBattleWhere} ORDER BY id DESC LIMIT 5";
 $IdConsulta = mysql_query($consulta, $link);
-$NFilas = mysql_num_rows($IdConsulta);
-
-if ($NFilas == "") {
-    echo "A&uacute;n no se ha celebrado ning&uacute;n combate.";
-} else {
-    echo "<table class='sim-combats-table'>";
-
-    for ($i = 0; $i < $NFilas; $i++) {
-        $ResultQuery = mysql_fetch_array($IdConsulta);
-
-        $kid = (int)$ResultQuery["id"];
-        $ki1 = sim_stats_h($ResultQuery["fighter_one_alias_snapshot"] ?? "");
-        $ki2 = sim_stats_h($ResultQuery["fighter_two_alias_snapshot"] ?? "");
-        $kires = sim_battle_summary_html_from_row($ResultQuery);
-
-        echo "
-        <tr>
-            <td class='sim-col-id'>#<a href='/tools/combat-simulator/log/$kid'>$kid</a></td>
-            <td class='sim-col-p1'>$ki1</td>
-            <td class='sim-col-vs'>VS</td>
-            <td class='sim-col-p2'>$ki2</td>
-            <td class='sim-col-result'>$kires</td>
-        </tr>";
+$battleRows = array();
+if ($IdConsulta) {
+    while ($row = mysql_fetch_array($IdConsulta)) {
+        $battleRows[] = $row;
     }
-
-    echo "</table>";
 }
+sim_btl_render_table($link, $battleRows, array(
+    'empty_text' => "A&uacute;n no se ha celebrado ning&uacute;n combate."
+));
 ?>
 
 </fieldset>
@@ -180,5 +162,6 @@ $NFilas = (int)($ResultQuery['total'] ?? 0);
 if ($NFilas > 0) {
     echo " <a class='sim-classic-btn' href='/tools/combat-simulator/weapons'>Armas utilizadas</a>";
 }
+echo " <a class='sim-classic-btn' href='/tools/combat-simulator/tournament'>Torneo</a>";
 ?>
 </div>

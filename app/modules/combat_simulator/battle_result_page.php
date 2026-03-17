@@ -227,6 +227,40 @@ if (!function_exists('sim_table_exists')) {
     }
 }
 
+if (!function_exists('sim_fetch_tournament_by_key')) {
+    function sim_fetch_tournament_by_key($link, $tournamentKey)
+    {
+        static $cache = array();
+        $tournamentKey = trim((string)$tournamentKey);
+        if ($tournamentKey === '') {
+            return null;
+        }
+        if (isset($cache[$tournamentKey])) {
+            return $cache[$tournamentKey];
+        }
+        if (!sim_table_exists($link, 'fact_sim_tournaments')) {
+            $cache[$tournamentKey] = null;
+            return null;
+        }
+
+        $safeKey = mysql_real_escape_string($tournamentKey, $link);
+        $query = "SELECT id, COALESCE(name, '') AS name FROM fact_sim_tournaments WHERE tournament_key = '$safeKey' ORDER BY id DESC LIMIT 1";
+        $rs = mysql_query($query, $link);
+        if (!$rs || mysql_num_rows($rs) === 0) {
+            $cache[$tournamentKey] = null;
+            return null;
+        }
+
+        $row = mysql_fetch_array($rs);
+        $out = array(
+            'id' => (int)($row['id'] ?? 0),
+            'name' => trim((string)($row['name'] ?? ''))
+        );
+        $cache[$tournamentKey] = $out;
+        return $out;
+    }
+}
+
 if (!function_exists('sim_pick_random_character_id')) {
     function sim_pick_random_character_id($link, $excludeId = 0, $seasonId = 0)
     {
@@ -303,6 +337,52 @@ if (!function_exists('sim_fetch_character_gender')) {
     }
 }
 
+if (!function_exists('sim_character_bio_slug_by_id')) {
+    function sim_character_bio_slug_by_id($link, $characterId)
+    {
+        static $cache = array();
+        static $hasPrettyId = null;
+
+        $characterId = (int)$characterId;
+        if ($characterId <= 0) {
+            return '';
+        }
+        if (isset($cache[$characterId])) {
+            return (string)$cache[$characterId];
+        }
+
+        if ($hasPrettyId === null) {
+            $hasPrettyId = false;
+            $colRs = mysql_query("SHOW COLUMNS FROM `fact_characters` LIKE 'pretty_id'", $link);
+            if ($colRs && mysql_num_rows($colRs) > 0) {
+                $hasPrettyId = true;
+            }
+            if ($colRs) {
+                mysql_free_result($colRs);
+            }
+        }
+
+        $slug = (string)$characterId;
+        if ($hasPrettyId) {
+            $query = "SELECT COALESCE(NULLIF(pretty_id, ''), CAST(id AS CHAR)) AS slug FROM fact_characters WHERE id = $characterId LIMIT 1";
+            $rs = mysql_query($query, $link);
+            if ($rs && mysql_num_rows($rs) > 0) {
+                $row = mysql_fetch_array($rs);
+                $value = trim((string)($row['slug'] ?? ''));
+                if ($value !== '') {
+                    $slug = $value;
+                }
+            }
+            if ($rs) {
+                mysql_free_result($rs);
+            }
+        }
+
+        $cache[$characterId] = $slug;
+        return $slug;
+    }
+}
+
 if (!function_exists('sim_get_form_icon_map')) {
     function sim_get_form_icon_map($link)
     {
@@ -373,6 +453,22 @@ if (!in_array($simNarrativeTone, $allowedNarrativeTones, true)) {
 $simAmbientMessagesEnabled = ($simAmbientMessagesEnabled === 'no') ? 'no' : 'yes';
 $simRubberbandingEnabled = ($simRubberbandingEnabled === 'no') ? 'no' : 'yes';
 $combatModeTitle = sim_combat_mode_title($combatType, $simNarrativeTone);
+$combatModeTitleHtml = htmlspecialchars((string)$combatModeTitle, ENT_QUOTES, 'UTF-8');
+$postedTournamentKey = trim((string)($_POST['tournament_id'] ?? ''));
+$isTournamentContext = (!empty($_POST['tournament_background']) && (string)$_POST['tournament_background'] === '1' && $postedTournamentKey !== '');
+if ($isTournamentContext) {
+    $tournamentInfo = sim_fetch_tournament_by_key($link, $postedTournamentKey);
+    if (is_array($tournamentInfo) && (int)($tournamentInfo['id'] ?? 0) > 0) {
+        $tournamentId = (int)$tournamentInfo['id'];
+        $tournamentName = trim((string)($tournamentInfo['name'] ?? ''));
+        if ($tournamentName === '') {
+            $tournamentName = 'Torneo #' . $tournamentId;
+        }
+        $combatModeTitleHtml = 'Combate de <a href="/tools/combat-simulator/tournament?tid=' . $tournamentId . '">' . htmlspecialchars($tournamentName, ENT_QUOTES, 'UTF-8') . '</a>';
+    } else {
+        $combatModeTitleHtml = 'Combate de torneo';
+    }
+}
 
 $characterOneId = ($characterOneId === 'random') ? '' : $characterOneId;
 $characterTwoId = ($characterTwoId === 'random') ? '' : $characterTwoId;
@@ -600,6 +696,10 @@ $combateArray['combat_mode_label'] = $combatModeTitle;
 $combateArray['relation_type'] = $simRelationType;
 $combateArray['relation_context'] = $simRelationContext;
 $combateArray['season_id'] = (int)$simSeasonId;
+$combateArray['is_tournament'] = (!empty($_POST['tournament_background']) && (string)$_POST['tournament_background'] === '1') ? 1 : 0;
+$combateArray['tournament_key'] = (string)($_POST['tournament_id'] ?? '');
+$combateArray['tournament_round'] = isset($_POST['tournament_round']) ? (int)$_POST['tournament_round'] : 0;
+$combateArray['tournament_match'] = isset($_POST['tournament_match']) ? (int)$_POST['tournament_match'] : 0;
 
 $rnd1 = rand(1, 10);
 $rnd2 = rand(1, 10);
@@ -658,18 +758,22 @@ $formIconP1 = sim_form_icon_for_system($systemId1, $formIconMap);
 $formIconP2 = sim_form_icon_for_system($systemId2, $formIconMap);
 $loadoutP1 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#9876; $safeArma1</span><span class='sim-loadout-pill'>&#128737; $safeProt1</span><span class='sim-loadout-pill'>$formIconP1 $safeForma1</span></div>";
 $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#9876; $safeArma2</span><span class='sim-loadout-pill'>&#128737; $safeProt2</span><span class='sim-loadout-pill'>$formIconP2 $safeForma2</span></div>";
+$bioSlug1 = sim_character_bio_slug_by_id($link, $idPJno1);
+$bioSlug2 = sim_character_bio_slug_by_id($link, $idPJno2);
+$bioHref1 = ($bioSlug1 !== '') ? ('/characters/' . rawurlencode($bioSlug1)) : '';
+$bioHref2 = ($bioSlug2 !== '') ? ('/characters/' . rawurlencode($bioSlug2)) : '';
 ?>
 <div class="sim-ui">
     <h2>Resultados del Combate</h2>
     <table>
         <tr>
             <td class="ajustcelda" colspan="4" style="text-align:center;text-transform:uppercase;font-weight:bold;">
-                <?php echo htmlspecialchars((string)$combatModeTitle, ENT_QUOTES, 'UTF-8'); ?>
+                <?php echo $combatModeTitleHtml; ?>
             </td>
         </tr>
         <tr>
-            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='/characters/$idPJno1' target='_blank'><img class='photobio sim-combat-avatar' src='$img1' title='$nombreCom1'></a></center>"; ?></td>
-            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='/characters/$idPJno2' target='_blank'><img class='photobio sim-combat-avatar' src='$img2' title='$nombreCom2'></a></center>"; ?></td>
+            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='$bioHref1' target='_blank'><img class='photobio sim-combat-avatar' src='$img1' title='$nombreCom1'></a></center>"; ?></td>
+            <td class="ajustcelda" colspan="2"><?php echo "<center><a href='$bioHref2' target='_blank'><img class='photobio sim-combat-avatar' src='$img2' title='$nombreCom2'></a></center>"; ?></td>
         </tr>
         <tr>
             <td class="ajustcelda" colspan="2"><?php echo "$nombreCom1 <hr style='border: 1px solid #009;'/> $nombre1<div class='sim-result-rank'>$rankStars1</div>"; ?></td>

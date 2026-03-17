@@ -8,6 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 	@session_start();
 }
 
+// Tournament runner executes battles in background; skip IP limiter for those internal runs.
+if (!empty($_POST['tournament_background']) && (string)$_POST['tournament_background'] === '1') {
+	return;
+}
+
 if (!function_exists('sim_cfg_value')) {
 	function sim_cfg_value($link, $configName, $defaultValue)
 	{

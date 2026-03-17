@@ -266,12 +266,14 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'combat_simulator_log':
 		case 'combat_simulator_scores':
 		case 'combat_simulator_weapons':
+		case 'combat_simulator_tournament':
 		case 'simulador':
 		case 'simulador2':
 		case 'combtodo':
 		case 'vercombat':
 		case 'punts':
 		case 'arms':
+		case 'sim_tournament':
             $title = "Simulador de combate | Heaven's Gate";
             $description = "Simulador de combate de personajes usando datos reales de la web.";
 			$image = $baseURL . "/img/og/og_image_power.jpg";
@@ -418,6 +420,7 @@ $routes = [
 	'combat_simulator_log' => ['app/controllers/tool/combat_simulator.php', 'Detalle del Combate'],
 	'combat_simulator_scores' => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
 	'combat_simulator_weapons' => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
+	'combat_simulator_tournament' => ['app/controllers/tool/combat_simulator.php', 'Torneo del Simulador'],
 
 	// Legacy aliases
 	'simulador'        => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
@@ -426,6 +429,7 @@ $routes = [
 	'vercombat'        => ['app/controllers/tool/combat_simulator.php', 'Detalle del Combate'],
 	'punts'            => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
 	'arms'             => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
+	'sim_tournament'   => ['app/controllers/tool/combat_simulator.php', 'Torneo del Simulador'],
 	'keygen'           => ['app/tools/key_generator.php', 'Generador de claves'],
 	'crop'             => ['app/tools/crop.html', 'Recortador de imágenes'],
 	
