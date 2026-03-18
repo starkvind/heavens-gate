@@ -54,6 +54,9 @@
 				case 'admin_docs':
 					include("admin_docs.php");
 					break;
+				case 'admin_topic_viewer':
+					include("admin_topic_viewer.php");
+					break;
 				case 'admin_gallery':
 					include("admin_gallery.php");
 					break;
@@ -183,6 +186,9 @@
 				case 'admin_docs':
 					include("admin_docs.php");
 					break;
+				case 'admin_topic_viewer':
+					include("admin_topic_viewer.php");
+					break;
 				case 'admin_bridges':
 					include("admin_bridges.php");
 					break;
@@ -305,6 +311,11 @@
 					<a href='/talim?s=admin_docs'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Documentaci&oacute;n
+						</div>
+					</a>
+					<a href='/talim?s=admin_topic_viewer'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Temas de Foro
 						</div>
 					</a>
 					<a href='/talim?s=admin_seasons'>

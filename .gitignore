@@ -100,3 +100,4 @@ app/tools/simulator_scores_add_season_id_20260310.php
 app/tools/simulator_seasons_setup_20260309.php
 app/tools/simulator_tournaments_setup_20260314.php
 app/tools/simulator_battles_add_tournament_flags_20260314.php
+app/tools/topic_viewer_setup_20260318.php

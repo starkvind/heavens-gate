@@ -83,6 +83,9 @@
 						case 'admin_docs':
 							echo " $pillSeparator Documentacion";
 							break;
+						case 'admin_topic_viewer':
+							echo " $pillSeparator Temas Visor Foro";
+							break;
 					case 'admin_news':
 						echo " $pillSeparator Noticias";
 						break;
@@ -327,6 +330,9 @@
 						mysqli_stmt_close($stmt);
 					}
 				}
+				break;
+			case "forum_topic_viewer":
+				echo "<a href='/tools/forum-topic-viewer' title='Visor de temas foro'>Visor de temas foro</a>";
 				break;
 			// ========================================== //
 			default:

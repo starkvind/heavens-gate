@@ -413,6 +413,7 @@ $routes = [
 	'csp'     		   => ['app/controllers/tool/csp_board.php', null],
 	'dados'   		   => ['app/controllers/tool/dice_roller.php', 'Tiradados'],
 	'forum_avatar_tool' => ['app/controllers/tool/forum_avatar_builder.php', 'Creador de mensajes foro'],
+	'forum_topic_viewer' => ['app/controllers/tool/forum_topic_viewer.php', 'Visor de temas foro'],
 	'garou_name_gen'   => ['app/controllers/tool/garou_name_generator.php', 'Generador de nombres Garou'],
 	'combat_simulator' => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
 	'combat_simulator_result' => ['app/controllers/tool/combat_simulator.php', 'Resultado del Combate'],
