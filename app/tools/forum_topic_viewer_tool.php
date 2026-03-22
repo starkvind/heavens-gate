@@ -480,6 +480,20 @@ function hgfv_pick_smf_table($link, $tableBaseName)
     return '';
 }
 
+function hgfv_column_exists($link, $tableName, $columnName)
+{
+    $safeTable = mysqli_real_escape_string($link, (string)$tableName);
+    $safeCol = mysqli_real_escape_string($link, (string)$columnName);
+    $sql = "SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = '$safeTable'
+              AND COLUMN_NAME = '$safeCol'
+            LIMIT 1";
+    $rs = mysqli_query($link, $sql);
+    return ($rs && mysqli_num_rows($rs) > 0);
+}
+
 function hgfv_normalize_author_avatar_url($raw)
 {
     $v = trim((string)$raw);
@@ -507,33 +521,228 @@ function hgfv_author_initial($name)
     return strtoupper(substr($name, 0, 1));
 }
 
+function hgfv_scope_type_label($type)
+{
+    switch ((string)$type) {
+        case 'character': return 'Personaje';
+        case 'group': return 'Grupo';
+        case 'organization': return 'Organización';
+        default: return 'Sin agrupación';
+    }
+}
+
+function hgfv_scope_name_from_row(array $row)
+{
+    $scopeType = (string)($row['scope_type'] ?? '');
+    $scopeId = (int)($row['scope_id'] ?? 0);
+
+    if ($scopeType === 'character' && trim((string)($row['scope_character_name'] ?? '')) !== '') {
+        return trim((string)$row['scope_character_name']);
+    }
+    if ($scopeType === 'group' && trim((string)($row['scope_group_name'] ?? '')) !== '') {
+        return trim((string)$row['scope_group_name']);
+    }
+    if ($scopeType === 'organization' && trim((string)($row['scope_organization_name'] ?? '')) !== '') {
+        return trim((string)$row['scope_organization_name']);
+    }
+    if ($scopeId > 0) {
+        return hgfv_scope_type_label($scopeType) . ' #' . $scopeId;
+    }
+    return 'Sin agrupación';
+}
+
+function hgfv_scope_href_from_row(array $row)
+{
+    $scopeType = (string)($row['scope_type'] ?? '');
+    $scopeId = (int)($row['scope_id'] ?? 0);
+    if ($scopeId <= 0) {
+        return '';
+    }
+
+    if ($scopeType === 'character') {
+        $slug = trim((string)($row['scope_character_pretty_id'] ?? ''));
+        return '/characters/' . rawurlencode($slug !== '' ? $slug : (string)$scopeId);
+    }
+    if ($scopeType === 'group') {
+        $slug = trim((string)($row['scope_group_pretty_id'] ?? ''));
+        return '/groups/' . rawurlencode($slug !== '' ? $slug : (string)$scopeId);
+    }
+    if ($scopeType === 'organization') {
+        $slug = trim((string)($row['scope_organization_pretty_id'] ?? ''));
+        return '/organizations/' . rawurlencode($slug !== '' ? $slug : (string)$scopeId);
+    }
+    return '';
+}
+
+function hgfv_chapter_href_from_row(array $row)
+{
+    $chapterId = (int)($row['chapter_id'] ?? 0);
+    if ($chapterId <= 0) {
+        return '';
+    }
+    $slug = trim((string)($row['chapter_pretty_id'] ?? ''));
+    return '/chapters/' . rawurlencode($slug !== '' ? $slug : (string)$chapterId);
+}
+
 $topicId = filter_input(INPUT_GET, 'id_topic', FILTER_VALIDATE_INT);
 $topicId = $topicId ? (int)$topicId : 0;
 
 $messages = [];
 $savedTopics = [];
+$savedTopicsGrouped = [];
+$savedTopicsByTopicId = [];
+$selectedSavedTopic = null;
 $hasSavedTopicsTable = false;
 $query = '';
 $error = '';
 $smfMessagesTable = hgfv_pick_smf_table($link, 'smf_messages');
 $smfMembersTable = hgfv_pick_smf_table($link, 'smf_members');
 $smfAttachmentsTable = hgfv_pick_smf_table($link, 'smf_attachments');
+$hasChapterIdCol = false;
+$hasScopeTypeCol = false;
+$hasScopeIdCol = false;
 
 if (hgfv_table_exists($link, 'fact_tools_topic_viewer')) {
     $hasSavedTopicsTable = true;
+    $hasChapterIdCol = hgfv_column_exists($link, 'fact_tools_topic_viewer', 'chapter_id');
+    $hasScopeTypeCol = hgfv_column_exists($link, 'fact_tools_topic_viewer', 'link_scope_type');
+    $hasScopeIdCol = hgfv_column_exists($link, 'fact_tools_topic_viewer', 'link_scope_id');
+    $supportsEpisodeAndScope = $hasChapterIdCol && $hasScopeTypeCol && $hasScopeIdCol;
+
+    if ($supportsEpisodeAndScope) {
     $rsSaved = mysqli_query(
         $link,
-        "SELECT id, topic_name, topic_id, topic_url, topic_description, sort_order, is_active
-         FROM fact_tools_topic_viewer
-         WHERE is_active = 1
-         ORDER BY sort_order ASC, topic_name ASC, id ASC"
+        "SELECT
+            ftv.id,
+            ftv.topic_name,
+            ftv.topic_id,
+            ftv.topic_url,
+            ftv.topic_description,
+            ftv.sort_order,
+            ftv.is_active,
+            ftv.chapter_id,
+            ftv.link_scope_type AS scope_type,
+            ftv.link_scope_id AS scope_id,
+            dc.pretty_id AS chapter_pretty_id,
+            dc.name AS chapter_name,
+            dc.chapter_number,
+            dc.played_date,
+            ds.id AS season_id,
+            ds.pretty_id AS season_pretty_id,
+            ds.name AS season_name,
+            ds.season_number,
+            fc.name AS scope_character_name,
+            fc.pretty_id AS scope_character_pretty_id,
+            dg.name AS scope_group_name,
+            dg.pretty_id AS scope_group_pretty_id,
+            do2.name AS scope_organization_name,
+            do2.pretty_id AS scope_organization_pretty_id
+         FROM fact_tools_topic_viewer ftv
+         LEFT JOIN dim_chapters dc ON dc.id = ftv.chapter_id
+         LEFT JOIN dim_seasons ds ON ds.id = dc.season_id
+         LEFT JOIN fact_characters fc
+            ON ftv.link_scope_type = 'character'
+           AND ftv.link_scope_id = fc.id
+         LEFT JOIN dim_groups dg
+            ON ftv.link_scope_type = 'group'
+           AND ftv.link_scope_id = dg.id
+         LEFT JOIN dim_organizations do2
+            ON ftv.link_scope_type = 'organization'
+           AND ftv.link_scope_id = do2.id
+         WHERE ftv.is_active = 1
+         ORDER BY
+            COALESCE(ftv.link_scope_type, 'zzz') ASC,
+            COALESCE(ftv.link_scope_id, 0) ASC,
+            ftv.sort_order ASC,
+            ftv.topic_name ASC,
+            ftv.id ASC"
     );
     if ($rsSaved) {
         while ($rowSaved = mysqli_fetch_assoc($rsSaved)) {
+            $seasonName = trim((string)($rowSaved['season_name'] ?? ''));
+            $seasonNumber = (int)($rowSaved['season_number'] ?? 0);
+            $chapterNumber = (int)($rowSaved['chapter_number'] ?? 0);
+            $chapterName = trim((string)($rowSaved['chapter_name'] ?? ''));
+
+            $chapterBadge = '';
+            if ($seasonName !== '') {
+                $chapterBadge = $seasonName;
+                if ($seasonNumber > 0) {
+                    $chapterBadge .= ' (T' . $seasonNumber . ')';
+                }
+            }
+            if ($chapterNumber > 0) {
+                $chapterBadge .= ($chapterBadge !== '' ? ' · ' : '') . 'Ep. ' . $chapterNumber;
+            }
+            if ($chapterName !== '') {
+                $chapterBadge .= ($chapterBadge !== '' ? ' · ' : '') . $chapterName;
+            }
+            $rowSaved['chapter_badge'] = $chapterBadge;
+
+            $scopeType = (string)($rowSaved['scope_type'] ?? '');
+            $scopeId = (int)($rowSaved['scope_id'] ?? 0);
+            $scopeLabel = hgfv_scope_type_label($scopeType);
+            $scopeName = hgfv_scope_name_from_row($rowSaved);
+            $scopeHref = hgfv_scope_href_from_row($rowSaved);
+            $scopeKey = ($scopeType !== '' && $scopeId > 0) ? ($scopeType . ':' . $scopeId) : 'none';
+            $scopeGroupTitle = $scopeName;
+            if ($scopeKey === 'none') {
+                $scopeGroupTitle = 'Sin agrupación';
+            } elseif ($scopeLabel !== '') {
+                $scopeGroupTitle = $scopeLabel . ' · ' . $scopeName;
+            }
+
+            $rowSaved['scope_label'] = $scopeLabel;
+            $rowSaved['scope_name'] = $scopeName;
+            $rowSaved['scope_href'] = $scopeHref;
+            $rowSaved['scope_key'] = $scopeKey;
+            $rowSaved['scope_group_title'] = $scopeGroupTitle;
+            $rowSaved['chapter_href'] = hgfv_chapter_href_from_row($rowSaved);
+
             $savedTopics[] = $rowSaved;
+            $savedTopicsByTopicId[(int)($rowSaved['topic_id'] ?? 0)] = $rowSaved;
+
+            if (!isset($savedTopicsGrouped[$scopeKey])) {
+                $savedTopicsGrouped[$scopeKey] = [
+                    'title' => $scopeGroupTitle,
+                    'items' => [],
+                ];
+            }
+            $savedTopicsGrouped[$scopeKey]['items'][] = $rowSaved;
         }
         mysqli_free_result($rsSaved);
     }
+    } else {
+        $rsSaved = mysqli_query(
+            $link,
+            "SELECT id, topic_name, topic_id, topic_url, topic_description, sort_order, is_active
+             FROM fact_tools_topic_viewer
+             WHERE is_active = 1
+             ORDER BY sort_order ASC, topic_name ASC, id ASC"
+        );
+        if ($rsSaved) {
+            while ($rowSaved = mysqli_fetch_assoc($rsSaved)) {
+                $rowSaved['chapter_badge'] = '';
+                $rowSaved['scope_label'] = 'Sin agrupación';
+                $rowSaved['scope_name'] = 'Sin agrupación';
+                $rowSaved['scope_href'] = '';
+                $rowSaved['scope_key'] = 'none';
+                $rowSaved['scope_group_title'] = 'Sin agrupación';
+                $rowSaved['chapter_href'] = '';
+                $savedTopics[] = $rowSaved;
+                $savedTopicsByTopicId[(int)($rowSaved['topic_id'] ?? 0)] = $rowSaved;
+                if (!isset($savedTopicsGrouped['none'])) {
+                    $savedTopicsGrouped['none'] = ['title' => 'Sin agrupación', 'items' => []];
+                }
+                $savedTopicsGrouped['none']['items'][] = $rowSaved;
+            }
+            mysqli_free_result($rsSaved);
+        }
+    }
+}
+
+if ($topicId > 0 && isset($savedTopicsByTopicId[$topicId])) {
+    $selectedSavedTopic = $savedTopicsByTopicId[$topicId];
 }
 
 if ($topicId > 0) {
@@ -599,6 +808,67 @@ if ($topicId > 0) {
             mysqli_stmt_close($stmt);
         }
     }
+}
+
+$metaTitle = "Visor de temas de foro | Heaven's Gate";
+$metaDescription = "Visualiza temas del foro con render BBCode incluyendo hg_avatar y hg_tirada.";
+$panelTitle = 'Visualizador de mensajes SMF (BBCode + snippets)';
+
+if (is_array($selectedSavedTopic)) {
+    $chapterName = trim((string)($selectedSavedTopic['chapter_name'] ?? ''));
+    $topicName = trim((string)($selectedSavedTopic['topic_name'] ?? ''));
+    $seasonName = trim((string)($selectedSavedTopic['season_name'] ?? ''));
+    $chapterNumber = (int)($selectedSavedTopic['chapter_number'] ?? 0);
+    $topicDesc = trim((string)($selectedSavedTopic['topic_description'] ?? ''));
+
+    $pieces = [];
+    if ($chapterName !== '') {
+        $pieces[] = $chapterName;
+    }
+    if ($seasonName !== '') {
+        $pieces[] = $seasonName;
+    }
+    if ($chapterNumber > 0) {
+        $pieces[] = 'Ep. ' . $chapterNumber;
+    }
+    $pieces[] = "Foro";
+    $pieces[] = "Heaven's Gate";
+    $metaTitle = implode(' | ', $pieces);
+
+    if ($topicDesc !== '') {
+        $metaDescription = $topicDesc;
+    } else {
+        $descPieces = [];
+        if ($topicName !== '') {
+            $descPieces[] = $topicName;
+        }
+        if ($chapterName !== '') {
+            $descPieces[] = 'Episodio: ' . $chapterName;
+        }
+        if ($seasonName !== '') {
+            $descPieces[] = 'Temporada: ' . $seasonName;
+        }
+        $metaDescription = !empty($descPieces)
+            ? implode(' | ', $descPieces)
+            : $metaDescription;
+    }
+
+    if ($chapterName !== '') {
+        $panelTitle = 'Foro del episodio: ' . $chapterName;
+    } elseif ($topicName !== '') {
+        $panelTitle = $topicName;
+    }
+} elseif (!empty($messages)) {
+    $firstSubject = trim((string)($messages[0]['subject'] ?? ''));
+    if ($firstSubject !== '') {
+        $metaTitle = $firstSubject . " | Foro | Heaven's Gate";
+        $metaDescription = "Tema del foro: " . $firstSubject;
+        $panelTitle = $firstSubject;
+    }
+}
+
+if (function_exists('setMetaFromPage')) {
+    setMetaFromPage($metaTitle, $metaDescription, null, 'article');
 }
 
 ?>
@@ -864,7 +1134,7 @@ HTML;
 
 if (!$hgfvEmbedded) {
     echo "<!doctype html>\n<html lang='es'>\n<head>\n";
-    echo "<meta charset='UTF-8'>\n<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n<title>Check Forum Test</title>\n";
+    echo "<meta charset='UTF-8'>\n<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n<title>" . h($metaTitle) . "</title>\n";
     echo $hgfvAssets . "\n</head>\n<body>\n";
 } else {
     echo $hgfvAssets . "\n";
@@ -873,7 +1143,7 @@ if (!$hgfvEmbedded) {
 <section class="hgfv-root">
     <div class="hgfv-wrap">
         <section class="hgfv-panel hgfv-top">
-            <h1>Visualizador de mensajes SMF (BBCode + snippets)</h1>
+            <h1><?= h($panelTitle) ?></h1>
             <?php if (empty($savedTopics)): ?>
                 <form method="get" class="hgfv-form-row">
                     <label for="id_topic"><strong>id_topic:</strong></label>
@@ -888,16 +1158,24 @@ if (!$hgfvEmbedded) {
                     <div class="hgfv-select-wrap">
                         <select id="saved_topic_pick">
                             <option value="">Selecciona un tema...</option>
-                            <?php foreach ($savedTopics as $topicRow): ?>
-                                <?php
-                                    $tId = (int)($topicRow['topic_id'] ?? 0);
-                                    $tName = trim((string)($topicRow['topic_name'] ?? ''));
-                                    if ($tId <= 0) { continue; }
-                                ?>
-                                <?php /* [<?= $tId ?>]  */ ?>
-                                <option value="<?= $tId ?>" <?= ($topicId === $tId) ? 'selected' : '' ?>>
-                                    <?= h($tName !== '' ? $tName : ('Tema #' . $tId)) ?>
-                                </option>
+                            <?php foreach ($savedTopicsGrouped as $scopeGroup): ?>
+                                <optgroup label="<?= h((string)($scopeGroup['title'] ?? 'Sin agrupación')) ?>">
+                                    <?php foreach (($scopeGroup['items'] ?? []) as $topicRow): ?>
+                                        <?php
+                                            $tId = (int)($topicRow['topic_id'] ?? 0);
+                                            $tName = trim((string)($topicRow['topic_name'] ?? ''));
+                                            $chapterBadge = trim((string)($topicRow['chapter_badge'] ?? ''));
+                                            if ($tId <= 0) { continue; }
+                                            $optionText = $tName !== '' ? $tName : ('Tema #' . $tId);
+                                            if ($chapterBadge !== '') {
+                                                $optionText .= ' [' . $chapterBadge . ']';
+                                            }
+                                        ?>
+                                        <option value="<?= $tId ?>" <?= ($topicId === $tId) ? 'selected' : '' ?>>
+                                            <?= h($optionText) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </optgroup>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -905,6 +1183,39 @@ if (!$hgfvEmbedded) {
                 </div>
             <?php elseif ($hasSavedTopicsTable): ?>
                 <div class="hgfv-thread-head">No hay temas activos en `fact_tools_topic_viewer`.</div>
+            <?php endif; ?>
+
+            <?php if (is_array($selectedSavedTopic)): ?>
+                <div class="hgfv-thread-head">
+                    <?php
+                        $chapterName = trim((string)($selectedSavedTopic['chapter_name'] ?? ''));
+                        $seasonName = trim((string)($selectedSavedTopic['season_name'] ?? ''));
+                        $chapterNumber = (int)($selectedSavedTopic['chapter_number'] ?? 0);
+                        $scopeLabel = trim((string)($selectedSavedTopic['scope_label'] ?? ''));
+                        $scopeName = trim((string)($selectedSavedTopic['scope_name'] ?? ''));
+                        $chapterHref = trim((string)($selectedSavedTopic['chapter_href'] ?? ''));
+                        $scopeHref = trim((string)($selectedSavedTopic['scope_href'] ?? ''));
+                    ?>
+                    <?php if ($chapterName !== ''): ?>
+                        Episodio:
+                        <?php if ($chapterHref !== ''): ?>
+                            <a href="<?= h($chapterHref) ?>" target="_blank" rel="noopener noreferrer"><?= h($chapterName) ?></a>
+                        <?php else: ?>
+                            <strong><?= h($chapterName) ?></strong>
+                        <?php endif; ?>
+                        <?php if ($seasonName !== ''): ?> | Temporada: <?= h($seasonName) ?><?php endif; ?>
+                        <?php if ($chapterNumber > 0): ?> | Nº episodio: <?= $chapterNumber ?><?php endif; ?>
+                    <?php endif; ?>
+                    <?php if ($scopeName !== '' && $scopeName !== 'Sin agrupación'): ?>
+                        <br>
+                        Agrupación:
+                        <?php if ($scopeHref !== ''): ?>
+                            <a href="<?= h($scopeHref) ?>" target="_blank" rel="noopener noreferrer"><?= h($scopeLabel . ' · ' . $scopeName) ?></a>
+                        <?php else: ?>
+                            <strong><?= h($scopeLabel . ' · ' . $scopeName) ?></strong>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
 
             <!-- <?php if ($query !== ''): ?>
@@ -953,6 +1264,28 @@ if (!$hgfvEmbedded) {
     </div>
 </section>
 <script>
+var hgfvMetaTitle = <?= json_encode((string)$metaTitle, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var hgfvMetaDescription = <?= json_encode((string)$metaDescription, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+(function(){
+    if (typeof document === 'undefined') return;
+    if (hgfvMetaTitle && String(hgfvMetaTitle).trim() !== '') {
+        document.title = String(hgfvMetaTitle);
+    }
+    if (hgfvMetaDescription && String(hgfvMetaDescription).trim() !== '') {
+        var metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+            metaDesc = document.createElement('meta');
+            metaDesc.setAttribute('name', 'description');
+            if (document.head) {
+                document.head.appendChild(metaDesc);
+            }
+        }
+        if (metaDesc) {
+            metaDesc.setAttribute('content', String(hgfvMetaDescription));
+        }
+    }
+})();
+
 function getLuminance(r, g, b) {
     var a = [r, g, b].map(function(v) {
         v /= 255;

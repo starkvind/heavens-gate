@@ -1,5 +1,6 @@
 <?php
 	include_once(__DIR__ . '/../../helpers/character_avatar.php');
+	if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 	/*  Ãndice de secciones
 			1.- Query en Base de Datos 		[#SEC01]
 			2.- Foto del Personaje 			[#SEC02]
@@ -20,6 +21,14 @@
 
 	// Helpers (escape + fetch sin depender de mysqlnd)
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+	$mensajeDeError = 'No se pudo cargar el personaje solicitado.';
+
+	function bio_page_is_admin_flag_enabled(): bool {
+		$sessionAdmin = (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
+		if ($sessionAdmin) return true;
+		$cookieValue = isset($_COOKIE['is_admin']) ? strtoupper(trim((string)$_COOKIE['is_admin'])) : '';
+		return in_array($cookieValue, ['1', 'TRUE', 'YES', 'ON'], true);
+	}
 
 	function column_exists(mysqli $link, string $table, string $column): bool {
 		static $cache = [];
@@ -315,6 +324,7 @@
 		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
 		exit;
 	}
+	$bioIsAdminFlag = bio_page_is_admin_flag_enabled();
 
 	$deathTable = null;
 	if ($rs = $link->query("SHOW TABLES LIKE 'fact_characters_deaths'")) {
@@ -352,10 +362,10 @@
 		foreach ($rowsMain as $dataResult) {
 		// Empezamos a recolectar los datos. ~~ #SEC01
 		// ================================================================== //
-		// Datos básicos del personaje
+		// Datos bÃ¡sicos del personaje
 			$characterIdDb = $dataResult["id"];
 			$bioId 		   = $characterIdDb;
- 			// ID del personaje. Aunque la tengamos en el get, mejor así.
+ 			// ID del personaje. Aunque la tengamos en el get, mejor asÃ­.
 			$bioName 	 = $dataResult["name"]; 		// Nombre completo del personaje.
 			$bioAlias 	 = $dataResult["alias"]; 		// Alias del personaje, como le llaman.
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "ClÃ¡usula", "Churrasco", "Chili-ChingÃ³n", etc.
@@ -366,6 +376,7 @@
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
 			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
+			$bioNotes	 = (string)($dataResult["notes"] ?? ''); // Notas internas (solo admin flag).
 		// ================================================================== //
 			$pageSect 	 = "Biograf&iacute;a";						// Para cambiar el titulo a la pagina.
 			$pageTitle2	 = $bioName;						// TÃ­tulo de la PÃ¡gina
@@ -380,13 +391,13 @@
 			$titleAdvant = "&nbsp;Estado&nbsp;";			// Titulo de la seccion "Estado"
 			$titlePowers = "&nbsp;Poderes&nbsp;";			// Titulo de la seccion "Poderes"
 			$titleItems	 = "&nbsp;Inventario&nbsp;";		// Titulo de la seccion "Inventario"
-			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// TÃ­tulo de la sección "Relaciones"
-			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// TÃ­tulo de la sección "Nebulosa de relaciones"	
+			$titleSameBio= "&nbsp;Relaciones de $bioName&nbsp;";// TÃ­tulo de la secciÃ³n "Relaciones"
+			$titleNebulo = "&nbsp;Nebulosa de relaciones&nbsp;";// TÃ­tulo de la secciÃ³n "Nebulosa de relaciones"	
 			$titleParticp= "&nbsp;Participaci&oacute;n&nbsp;";		// Titulo de la seccion "Participacion"		
 		// ================================================================== //
-		// Datos de jugador y crónica
+		// Datos de jugador y crÃ³nica
 			$bioPlayer	  = $dataResult["player_id"]; 	// Jugador al que pertenece el personaje.
-			$bioChronic	  = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
+			$bioChronic	  = $dataResult["chronicle_id"]; // CrÃ³nica a la que pertenece el personaje.
 			$bioStatus	  = $dataResult["status"] ?? ""; 	// Estado legacy; puede no venir desde fact_characters.
 			$bioDethCaus  = $dataResult["death_description"] ?? ""; // Causa de la muerte.
 			$bioSheetRaw  = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
@@ -401,11 +412,11 @@
 			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organizaciÃ³n.
 		// ================================================================== //
 		// Ventajas y poderes
-			$bioTotem	 = ""; 		// Tótem que guí­a al personaje.
+			$bioTotem	 = ""; 		// TÃ³tem que guÃ­Â­a al personaje.
 			$bioTotemId  = (int)($dataResult["totem_id"] ?? 0);
 		// GÃ©nero
-			$bioGender	 = $dataResult["gender"];	// Género del personaje
-		// TÃ­tulos de la sección Detalles		
+			$bioGender	 = $dataResult["gender"];	// GÃ©nero del personaje
+		// TÃ­tulos de la secciÃ³n Detalles		
 			$titlePkName	= "Nombre Garou";		// TÃ­tulo del nombre Garou
 		// Sistema, para nombres de detalles y tal.
 			$bioSystem 	= (string)($dataResult["system_label"] ?? "");
@@ -421,10 +432,10 @@
 			$titleTribe 	= "Tribu";
 			$titleClan 		= "Clan";
 			// ================================================================== //
-			// Cambiamos títulos de secciones acorde al Sistema del PJ
+			// Cambiamos tÃ­tulos de secciones acorde al Sistema del PJ
 			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 		// ================================================================== //
-		if ($bioHasSheet) { // <--- Inicio de comprobación si lleva hoja
+		if ($bioHasSheet) { // <--- Inicio de comprobaciÃ³n si lleva hoja
 		// ================================================================== //
 		// Traits normalizados (bridge_characters_traits)
 			$traitValues = fetch_trait_values($link, (int)$characterId);
@@ -789,6 +800,11 @@
 				echo "<fieldset class='bioSeccion'><legend>$titleInfo</legend>$bioText</fieldset>";
 			echo "</div>";
 		} // Finalizamos de poner el Texto
+		if ($bioIsAdminFlag && trim($bioNotes) !== '') {
+			echo "<div class='bioTextData'>";
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Notas internas (admin)&nbsp;</legend><div class='bioAdminNotes'>" . nl2br(h($bioNotes)) . "</div></fieldset>";
+			echo "</div>";
+		}
 
 		echo "</section>";
 		// ================================================================== //
@@ -843,7 +859,7 @@
 				echo "</fieldset>";
 			echo "</div>"; // Cerramos Trasfondos ~~
 			// ================================================================== //
-			// MÉRITOS Y DEFECTOS
+			// MÃ‰RITOS Y DEFECTOS
 			// ================================================================== //
 			include ("app/partials/bio/bio_page_section_08_merits.php"); // Utilizamos "include" para no sobrecargar la pÃ¡gina con cÃ³digo
 		}
@@ -1087,3 +1103,4 @@
 			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
+

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum Resumee Builder</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f6f7fb;
+      color: #1f2633;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #d8deea;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      border: 1px solid #bcc7df;
+      border-radius: 8px;
+      padding: 10px;
+      box-sizing: border-box;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #1e4bb8;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    button.secondary {
+      background: #57658a;
+    }
+    .hint {
+      margin-top: 8px;
+      color: #5a6787;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Forum Resumee Builder</h1>
+
+    <div class="panel">
+      <label for="chapterInput">Texto del capítulo (se insertará en {CAPITULO})</label>
+      <textarea id="chapterInput" placeholder="Pega aquí el capítulo..."></textarea>
+      <div class="actions">
+        <button id="buildBtn" type="button">Generar texto</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <label for="resultOutput">Texto final para pegar en el LLM</label>
+      <textarea id="resultOutput" readonly></textarea>
+      <div class="actions">
+        <button id="copyBtn" class="secondary" type="button">Copiar</button>
+      </div>
+      <div class="hint" id="copyHint"></div>
+    </div>
+  </div>
+
+  <script>
+    const TEMPLATE = `Quiero que hagas un resumen de este capítulo de Heaven’s Gate.
+
+Instrucciones:
+- Respeta estrictamente el canon y no inventes nada que no esté en el texto.
+- Resume solo lo que realmente ocurre en el capítulo.
+- Usa un tono claro, evocador y contenido, sin expandirte demasiado.
+- Mantén la estructura en bloques temáticos con subtítulos.
+- Si el capítulo termina en punto de tensión o cliffhanger, haz que el último bloque lo refleje.
+- Si hay decisiones de personajes, cambios de alianza, pérdidas, revelaciones o giros, dales peso dentro del resumen.
+- No hagas análisis ni valoración: solo resumen narrativo ordenado.
+- No uses listas largas ni expliques la trama fuera del formato pedido.
+
+Quiero este formato exacto:
+
+[emoji] Capítulo X — [título breve o nombre del arco]
+📅 Fecha in-game: [fecha o rango de fechas dentro de la ficción]
+🗓️ Fecha de juego: [fecha y hora del primer mensaje] — [fecha y hora del último mensaje]
+⏳ Duración: [número de días transcurridos entre ambos mensajes]
+📍 Localización: [lugares principales del capítulo]
+
+[emoji] [Subtítulo temático 1]
+Párrafo de resumen.
+
+[emoji] [Subtítulo temático 2]
+Párrafo de resumen.
+
+[emoji] [Subtítulo temático 3]
+Párrafo de resumen.
+
+[emoji] [Subtítulo temático 4]
+Párrafo de resumen.
+
+[emoji] [Subtítulo final]
+Párrafo de cierre que recoja la consecuencia principal o el punto de tensión final.
+
+Criterios de estilo:
+- Entre 4 y 6 bloques temáticos.
+- Cada bloque debe condensar una fase importante del capítulo.
+- El título de cada bloque debe sonar narrativo, no técnico.
+- Evita repetir nombres o datos si no aportan nada.
+- Da prioridad a la progresión dramática del capítulo.
+- Si hay varios escenarios, ordénalos de forma cronológica.
+- Si un personaje desaparece, cambia de rol o abandona la trama, debe quedar reflejado.
+- Si se indica experiencia, cierre de capítulo o salida de un personaje, puedes integrarlo en el último bloque solo si tiene peso narrativo.
+
+Ahora, aquí tienes el capítulo:
+{CAPITULO}`;
+
+    const chapterInput = document.getElementById('chapterInput');
+    const resultOutput = document.getElementById('resultOutput');
+    const copyHint = document.getElementById('copyHint');
+    const buildBtn = document.getElementById('buildBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    function buildPrompt() {
+      const chapterText = chapterInput.value || '';
+      resultOutput.value = TEMPLATE.replace('{CAPITULO}', chapterText);
+      copyHint.textContent = '';
+    }
+
+    async function copyResult() {
+      const text = resultOutput.value || '';
+      if (!text) {
+        copyHint.textContent = 'No hay texto generado para copiar.';
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        copyHint.textContent = 'Copiado al portapapeles.';
+      } catch (e) {
+        resultOutput.focus();
+        resultOutput.select();
+        copyHint.textContent = 'No se pudo copiar automáticamente. Selecciona y copia manualmente.';
+      }
+    }
+
+    buildBtn.addEventListener('click', buildPrompt);
+    copyBtn.addEventListener('click', copyResult);
+    buildPrompt();
+  </script>
+</body>
+</html>

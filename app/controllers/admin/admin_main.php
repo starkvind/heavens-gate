@@ -48,6 +48,9 @@
 				case 'admin_traits':
 					include("admin_traits.php");
 					break;
+				case 'admin_merits_flaws':
+					include("admin_merits_flaws.php");
+					break;
 				case 'admin_powers':
 					include("admin_powers.php");
 					break;
@@ -105,6 +108,9 @@
 				case 'admin_character_deaths':
 					include("admin_character_deaths.php");
 					break;
+				case 'admin_characters_clone':
+					include("admin_characters_clone.php");
+					break;
 				case 'admin_sim_character_talk':
 					include("admin_sim_character_talk.php");
 					break;
@@ -140,6 +146,9 @@
 					break;
 				case 'admin_character_deaths':
 					include("admin_character_deaths.php");
+					break;
+				case 'admin_characters_clone':
+					include("admin_characters_clone.php");
 					break;
 				case 'admin_sim_character_talk':
 					include("admin_sim_character_talk.php");
@@ -219,6 +228,9 @@
 				case 'admin_traits':
 					include("admin_traits.php");
 					break;
+				case 'admin_merits_flaws':
+					include("admin_merits_flaws.php");
+					break;
 				case 'admin_systems_resources':
 					include("admin_systems_resources.php");
 					break;
@@ -251,7 +263,7 @@
 				// PERSONAJES
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Personajes&nbsp;</legend>";
 				echo "
-					<a href='/talim?s=admin_characters&pp=500'>
+					<a href='/talim?s=admin_characters'>
 					  <div class='bioSheetPower adm-admin-tile'>
 						Gestionar Personajes
 					  </div>
@@ -287,6 +299,11 @@
 						Muertes de Personajes
 					  </div>
 					</a>
+					<a href='/talim?s=admin_characters_clone'>
+					  <div class='bioSheetPower adm-admin-tile'>
+						Copiar Personajes
+					  </div>
+					</a>
 					<a href='/talim?s=admin_bridges'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Editar Bridges
@@ -313,11 +330,6 @@
 							Gestionar Documentaci&oacute;n
 						</div>
 					</a>
-					<a href='/talim?s=admin_topic_viewer'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Temas de Foro
-						</div>
-					</a>
 					<a href='/talim?s=admin_seasons'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Temporadas
@@ -326,6 +338,11 @@
 					<a href='/talim?s=admin_chapters'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Episodios
+						</div>
+					</a>
+					<a href='/talim?s=admin_topic_viewer'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Topics del Foro
 						</div>
 					</a>
 					";
@@ -386,6 +403,11 @@
 							Gestionar Rasgos
 						</div>
 					</a>
+					<a href='/talim?s=admin_merits_flaws'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Meritos y Defectos
+						</div>
+					</a>
 					<a href='/talim?s=admin_systems'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Sistemas
@@ -419,16 +441,17 @@
 					";
 				echo "</fieldset>";
 					echo "<br />";
+				// SIMULADOR
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Simulador de Combate&nbsp;</legend>";
 				echo "
-					<a href='/talim?s=admin_sim_character_talk'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Frases Simulador
-						</div>
-					</a>
 					<a href='/talim?s=admin_sim_browser'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Browser Simulador
+							Temporadas Simulador
+						</div>
+					</a>
+					<a href='/talim?s=admin_sim_character_talk'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Frases PJs Simulador
 						</div>
 					</a>
 				";

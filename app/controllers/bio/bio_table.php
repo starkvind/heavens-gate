@@ -379,7 +379,7 @@ $(document).ready(function () {
 			{ title: "ID" },
 			{ title: "Nombre" },
 			{ title: "Grupo" },
-			{ title: "OrganizaciÃ³n" },
+			{ title: "Organizaci&oacute;n" },
 			{ title: "Sistema" },
 			{ title: "Tipo" },
 			{ title: "Estado" }

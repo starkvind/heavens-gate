@@ -135,6 +135,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   var fCumple     = document.getElementById('f_cumple');
   var fRango      = document.getElementById('f_rango');
   var fInfo       = document.getElementById('f_infotext');
+  var fNotes      = document.getElementById('f_notes');
 
   // PODERES
   var powTipo  = document.getElementById('pow_tipo');
@@ -644,6 +645,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     ensureEstadoOption(DEFAULT_STATUS_ID);
 
     fInfo.value  = '';
+    if (fNotes) fNotes.value = '';
 
 	    updateSistemaSets('', 0,0,0);
 	    if (selNature) selNature.value = '0';
@@ -779,6 +781,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     fInfo.value   = '';
     fCumple.value = '';
     fRango.value  = '';
+    if (fNotes) fNotes.value = '';
     ensureEstadoOption(DEFAULT_STATUS_ID);
 
     var d = CHAR_DETAILS[cid];
@@ -787,6 +790,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       fCumple.value = d.cumple || '';
       fRango.value  = d.rango || '';
       fInfo.value   = d.infotext || '';
+      if (fNotes) fNotes.value = d.notes || '';
     }
 
     mb.style.display='flex';

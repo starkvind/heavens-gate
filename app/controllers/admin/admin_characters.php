@@ -638,8 +638,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $rango       = trim($_POST['rango'] ?? '');
     $infotext    = trim($_POST['infotext'] ?? '');
     $infotext    = hg_mentions_convert($link, $infotext);
-
-    $notas       = '';
+    $notas       = trim($_POST['notes'] ?? '');
 
     // PODERES
     $powers_type = isset($_POST['powers_type']) ? (array)$_POST['powers_type'] : [];
@@ -882,20 +881,20 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
                   breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
-                  status_id=?, birthdate_text=?, rank=?, info_text=?
+                  status_id=?, birthdate_text=?, rank=?, info_text=?, notes=?
                   WHERE id=?";
 
           if ($stmt = $link->prepare($sql)) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiissiiiiiissssi",
+                  "sssssiiiissiiiiiiissssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
                   $kind,
                   $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
-                  $status_id, $cumple, $rango, $infotext,
+                  $status_id, $cumple, $rango, $infotext, $notas,
                   $id
               );
 
@@ -1175,7 +1174,7 @@ $stmt->close();
 $char_details = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, '') AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
+    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, '') AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text, fc.notes FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
     if ($qdet) {
         while ($d = $qdet->fetch_assoc()) {
             $cid = (int)($d['id'] ?? 0);
@@ -1187,6 +1186,7 @@ if (!empty($ids_page)) {
                 'cumple'      => (string)($d['birthdate_text'] ?? ''),
                 'rango'       => (string)($d['rank'] ?? ''),
                 'infotext'    => (string)($d['info_text'] ?? ''),
+                'notes'       => (string)($d['notes'] ?? ''),
             ];
         }
         $qdet->close();
@@ -1650,6 +1650,12 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
         <div class="adm-grid-full">
           <label class="adm-text-left">Información sobre el personaje
             <textarea class="ta hg-mention-input" data-mentions="character,season,episode,organization,group,gift,rite,totem,discipline,item,trait,background,merit,flaw,merydef,doc" name="infotext" id="f_infotext" rows="6" placeholder="Texto largo…"></textarea>
+          </label>
+        </div>
+
+        <div class="adm-grid-full">
+          <label class="adm-text-left">Notas internas
+            <textarea class="ta" name="notes" id="f_notes" rows="4" placeholder="Notas internas del personaje…"></textarea>
           </label>
         </div>
 

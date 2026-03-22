@@ -404,6 +404,7 @@ RewriteRule ^gallery/?$ index.php?p=gallery [L,QSA]
 RewriteRule ^maps/poi/([^/]+)/?$ index.php?p=maps_detail&id=$1 [L,QSA]
 RewriteRule ^maps/?$ index.php?p=maps [L,QSA]
 
+RewriteRule ^admin/merits-flaws/?$ index.php?p=talim&s=admin_merits_flaws [L,QSA]
 RewriteRule ^talim/?$ index.php?p=talim [L,QSA]
 # Fallback 404 personalizado
 RewriteCond %{REQUEST_FILENAME} !-f
