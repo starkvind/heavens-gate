@@ -57,6 +57,15 @@
 				case 'admin_docs':
 					include("admin_docs.php");
 					break;
+				case 'admin_external_links':
+					include("admin_external_links.php");
+					break;
+				case 'admin_character_links':
+					include("admin_character_links.php");
+					break;
+				case 'admin_doc_links':
+					include("admin_doc_links.php");
+					break;
 				case 'admin_topic_viewer':
 					include("admin_topic_viewer.php");
 					break;
@@ -194,6 +203,15 @@
 					break;
 				case 'admin_docs':
 					include("admin_docs.php");
+					break;
+				case 'admin_external_links':
+					include("admin_external_links.php");
+					break;
+				case 'admin_character_links':
+					include("admin_character_links.php");
+					break;
+				case 'admin_doc_links':
+					include("admin_doc_links.php");
 					break;
 				case 'admin_topic_viewer':
 					include("admin_topic_viewer.php");
@@ -338,6 +356,21 @@
 					<a href='/talim?s=admin_chapters'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Episodios
+						</div>
+					</a>
+					<a href='/talim?s=admin_external_links'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Enlaces Externos
+						</div>
+					</a>
+					<a href='/talim?s=admin_character_links'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Vincular Docs y Enlaces a PJ
+						</div>
+					</a>
+					<a href='/talim?s=admin_doc_links'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Vincular Documento a PJs
 						</div>
 					</a>
 					<a href='/talim?s=admin_topic_viewer'>

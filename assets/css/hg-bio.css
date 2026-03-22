@@ -189,7 +189,10 @@
 }
 
 .bioChaptersSeasonFieldset {
-    margin: 0;
+    margin-top: 1em;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .bioChaptersSeasonLegend {
@@ -460,4 +463,58 @@
 
 .hg-tooltip--help {
     cursor: help;
+}
+
+.bio-doc-links-wrap {
+    margin: 4px 6px 10px;
+    width: 100%;
+    padding: 0;
+}
+
+.bio-doc-links-title {
+    clear: both;
+    width: 100%;
+    margin: 12px 0 6px;
+    color: #66ccff;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.bio-doc-links-content {
+    display: block;
+}
+
+.bio-doc-links-group + .bio-doc-links-group {
+    padding-top: 2em;
+}
+
+.bio-doc-links-wrap a {
+    display: block;
+    text-decoration: none;
+}
+
+.bio-doc-link-card {
+    float: none;
+    width: 72%;
+    max-width: 560px;
+    min-width: 280px;
+    margin: 2px auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.bio-doc-link-card .bio-inline-type {
+    max-width: 38%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .bio-doc-link-card {
+        width: calc(100% - 16px);
+        min-width: 0;
+    }
 }

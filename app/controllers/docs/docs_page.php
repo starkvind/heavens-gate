@@ -1,4 +1,36 @@
 <?php
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
+
+if (!function_exists('h')) {
+  function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
+
+if (!function_exists('docs_page_table_exists')) {
+  function docs_page_table_exists(mysqli $db, string $table): bool {
+    $safe = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
+    if ($safe === '') return false;
+    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safe}' LIMIT 1";
+    $rs = mysqli_query($db, $sql);
+    return ($rs && mysqli_num_rows($rs) > 0);
+  }
+}
+
+if (!function_exists('docs_page_column_exists')) {
+  function docs_page_column_exists(mysqli $db, string $table, string $column): bool {
+    $safeTable = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
+    $safeColumn = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $column));
+    if ($safeTable === '' || $safeColumn === '') return false;
+    $sql = "SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = '{$safeTable}'
+              AND COLUMN_NAME = '{$safeColumn}'
+            LIMIT 1";
+    $rs = mysqli_query($db, $sql);
+    return ($rs && mysqli_num_rows($rs) > 0);
+  }
+}
+
 // Obtener id o pretty-id
 $docRaw = $_GET['b'] ?? '';
 $docId = resolve_pretty_id($link, 'fact_docs', (string)$docRaw) ?? 0;
@@ -34,6 +66,31 @@ $titleDoc = (string)$ResultQuery["title"];
 $texto    = (string)$ResultQuery["content"];   // HTML (Quill) -> se imprime tal cual
 $source   = (string)($ResultQuery["source"] ?? '');
 $secciDoc = (string)($ResultQuery["section_id"] ?? 'Documento');
+$docCharacters = [];
+$hasDocCharacters = false;
+
+if (docs_page_table_exists($link, 'bridge_characters_docs') && docs_page_table_exists($link, 'fact_characters')) {
+  $characterKindSql = function_exists('hg_character_kind_select') ? hg_character_kind_select($link, 'c') : "''";
+  $docSortOrder = docs_page_column_exists($link, 'bridge_characters_docs', 'sort_order')
+    ? 'b.sort_order ASC, c.name ASC'
+    : 'c.name ASC';
+  $sqlDocCharacters = "SELECT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, {$characterKindSql} AS character_kind
+                      FROM bridge_characters_docs b
+                      INNER JOIN fact_characters c ON c.id = b.character_id
+                      LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id
+                      WHERE b.doc_id = ?
+                      ORDER BY {$docSortOrder}";
+  if ($stChars = $link->prepare($sqlDocCharacters)) {
+    $stChars->bind_param('i', $docId);
+    $stChars->execute();
+    $rsChars = $stChars->get_result();
+    while ($rsChars && ($rowChar = $rsChars->fetch_assoc())) {
+      $docCharacters[] = $rowChar;
+    }
+    $stChars->close();
+  }
+  $hasDocCharacters = !empty($docCharacters);
+}
 
 // Para tu sistema de titulos
 $pageSect   = "Documento";
@@ -70,6 +127,36 @@ echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
         <div class="doc-source">
           <strong>Fuente:</strong>
           <div class="doc-source-top"><?= $source ?></div>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($hasDocCharacters): ?>
+        <div class="doc-source">
+          <strong>Personajes relacionados:</strong>
+          <div class="grupoBioClan">
+            <div class="contenidoAfiliacion">
+              <?php foreach ($docCharacters as $char): ?>
+                <?php
+                  $charId = (int)($char['id'] ?? 0);
+                  $charName = (string)($char['name'] ?? '');
+                  $charAlias = (string)($char['alias'] ?? '');
+                  $charHref = pretty_url($link, 'fact_characters', '/characters', $charId);
+                  hg_render_character_avatar_tile([
+                    'href' => $charHref,
+                    'title' => $charName,
+                    'name' => $charName,
+                    'alias' => $charAlias,
+                    'character_id' => $charId,
+                    'image_url' => (string)($char['image_url'] ?? ''),
+                    'gender' => (string)($char['gender'] ?? ''),
+                    'status' => (string)($char['status'] ?? ''),
+                    'character_kind' => hg_character_kind_from_row($char),
+                    'target_blank' => true,
+                  ]);
+                ?>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
       <?php endif; ?>
     </div>

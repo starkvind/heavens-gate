@@ -186,7 +186,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 

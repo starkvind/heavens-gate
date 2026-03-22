@@ -47,6 +47,23 @@
 		return $ok;
 	}
 
+	function table_exists(mysqli $link, string $table): bool {
+		static $cache = [];
+		$key = $table;
+		if (isset($cache[$key])) return $cache[$key];
+		$ok = false;
+		if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
+			$st->bind_param('s', $table);
+			$st->execute();
+			$st->bind_result($count);
+			$st->fetch();
+			$st->close();
+			$ok = ((int)$count > 0);
+		}
+		$cache[$key] = $ok;
+		return $ok;
+	}
+
 	function stmt_fetch_all_assoc_compat(mysqli_stmt $stmt): array {
 		$out = [];
 
@@ -702,6 +719,73 @@
 			$stPartEv->close();
 		}
 
+		// ======================================================================================
+		// Documentacion y enlaces externos del personaje
+		// ======================================================================================
+		$characterDocs = [];
+		$characterExternalLinks = [];
+
+		if (table_exists($link, 'bridge_characters_docs') && table_exists($link, 'fact_docs')) {
+			$hasDocRelLabel = column_exists($link, 'bridge_characters_docs', 'relation_label');
+			$hasDocSortOrder = column_exists($link, 'bridge_characters_docs', 'sort_order');
+			$docRelExpr = $hasDocRelLabel ? 'COALESCE(b.relation_label, "")' : '""';
+			$docSortExpr = $hasDocSortOrder ? 'COALESCE(b.sort_order, 0)' : '0';
+			$docOrder = $hasDocSortOrder ? 'b.sort_order ASC, d.title ASC' : 'd.title ASC';
+
+			$sqlDocLinks = "SELECT
+							b.id AS bridge_id,
+							b.doc_id,
+							{$docRelExpr} AS relation_label,
+							{$docSortExpr} AS sort_order,
+							d.title,
+							d.pretty_id,
+							COALESCE(c.kind, '') AS section_name
+						FROM bridge_characters_docs b
+						INNER JOIN fact_docs d ON d.id = b.doc_id
+						LEFT JOIN dim_doc_categories c ON c.id = d.section_id
+						WHERE b.character_id = ?
+						ORDER BY {$docOrder}";
+			if ($stDocLinks = $link->prepare($sqlDocLinks)) {
+				$stDocLinks->bind_param('i', $characterId);
+				$stDocLinks->execute();
+				$characterDocs = stmt_fetch_all_assoc_compat($stDocLinks);
+				$stDocLinks->close();
+			}
+		}
+
+		if (table_exists($link, 'bridge_characters_external_links') && table_exists($link, 'fact_external_links')) {
+			$hasExtRelLabel = column_exists($link, 'bridge_characters_external_links', 'relation_label');
+			$hasExtSortOrder = column_exists($link, 'bridge_characters_external_links', 'sort_order');
+			$extRelExpr = $hasExtRelLabel ? 'COALESCE(b.relation_label, "")' : '""';
+			$extSortExpr = $hasExtSortOrder ? 'COALESCE(b.sort_order, 0)' : '0';
+			$extOrder = $hasExtSortOrder ? 'b.sort_order ASC, l.title ASC' : 'l.title ASC';
+			$hasExternalActive = column_exists($link, 'fact_external_links', 'is_active');
+			$extActiveExpr = $hasExternalActive ? 'COALESCE(l.is_active, 1)' : '1';
+
+			$sqlExternalLinks = "SELECT
+								b.id AS bridge_id,
+								b.external_link_id,
+								{$extRelExpr} AS relation_label,
+								{$extSortExpr} AS sort_order,
+								l.title,
+								l.url,
+								l.kind,
+								l.source_label,
+								COALESCE(l.description, '') AS description,
+								{$extActiveExpr} AS is_active
+							FROM bridge_characters_external_links b
+							INNER JOIN fact_external_links l ON l.id = b.external_link_id
+							WHERE b.character_id = ?
+							ORDER BY {$extOrder}";
+			if ($stExternalLinks = $link->prepare($sqlExternalLinks)) {
+				$stExternalLinks->bind_param('i', $characterId);
+				$stExternalLinks->execute();
+				$characterExternalLinks = stmt_fetch_all_assoc_compat($stExternalLinks);
+				$stExternalLinks->close();
+			}
+		}
+		$hasDocsLinks = (!empty($characterDocs) || !empty($characterExternalLinks));
+
 		// Flags de secciones
 		$hasInfo = true;
 		$hasSheet = $bioHasSheet;
@@ -756,18 +840,19 @@
 		// Cambia solo las rutas de este bloque cuando tengas los iconos definitivos.
 		$bioTabIconDefault = '/img/ui/icons/icon_character_sheet.png';
 		$bioTabIcons = [
-			// Keys validas: info, sheet, rel, part, bso, comments
+			// Keys validas: info, sheet, rel, part, docs, bso, comments
 			'default'  => $bioTabIconDefault, // Fallback global
 			'info'     => '/img/ui/icons/icon_character_info.png',
 			'sheet'    => '/img/ui/icons/icon_character_sheet.png',
 			'rel'      => '/img/ui/icons/icon_character_relationships.png',
 			'part'     => '/img/ui/icons/icon_character_participation.png',
+			'docs'     => '/img/ui/icons/icon_document.png',
 			'bso'      => '/img/ui/icons/icon_character_music.png',
 			'comments' => '/img/ui/icons/icon_character_comments.png',
 		];
 
 		// Fallback por si alguna ruta llega vacia.
-		foreach (['info', 'sheet', 'rel', 'part', 'bso', 'comments'] as $k) {
+		foreach (['info', 'sheet', 'rel', 'part', 'docs', 'bso', 'comments'] as $k) {
 			if (!isset($bioTabIcons[$k]) || trim((string)$bioTabIcons[$k]) === '') {
 				$bioTabIcons[$k] = $bioTabIconDefault;
 			}
@@ -787,6 +872,7 @@
 		if ($hasSheet) $renderBioTab('sheet', 'Hoja de personaje');
 		if ($hasRel) $renderBioTab('rel', 'Relaciones');
 		if ($hasPart) $renderBioTab('part', 'Participaci&oacute;n');
+		if ($hasDocsLinks) $renderBioTab('docs', 'Documentaci&oacute;n');
 		if ($hasBso) $renderBioTab('bso', 'Banda sonora');
 		if ($hasComments) $renderBioTab('comments', 'Comentarios');
 		echo "</div>";
@@ -906,6 +992,16 @@
 					<legend>&nbsp;<?= ($titleParticp) ?>&nbsp;</legend>
 					<?php include("app/partials/bio/bio_page_section_18_chapters.php"); ?>
 					<?php include("app/partials/bio/bio_page_section_19_participation.php"); ?>
+				</fieldset>
+			</div>
+			</section>
+		<?php endif; ?>
+		<?php if ($hasDocsLinks): ?>
+			<section id="sec-docs" class="bio-tab-panel" data-tab="docs">
+			<div class="bioTextData">
+				<fieldset class='bioSeccion'>
+					<legend>&nbsp;Documentaci&oacute;n y enlaces&nbsp;</legend>
+					<?php include("app/partials/bio/bio_page_section_21_docs_links.php"); ?>
 				</fieldset>
 			</div>
 			</section>
