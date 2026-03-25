@@ -16,6 +16,60 @@
 	--hg-btn-accent-hover: #00ccff;
 }
 
+body.theme-heavens-blue {
+	--hg-bg: #050150;
+	--hg-text: #ffffff;
+	--hg-h2: #33cccc;
+	--hg-h3: #99ffff;
+	--hg-font-body: Verdana, sans-serif;
+	--hg-font-ui: Verdana, sans-serif;
+	--hg-font-head: Verdana, sans-serif;
+	--hg-link: #44aaee;
+	--hg-link-hover: #66ccff;
+	--hg-info-link: #ffffff;
+	--hg-info-link-hover: #ffeedd;
+	--hg-field-bg: #000066;
+	--hg-field-border: #000099;
+	--hg-btn-accent: #00ffff;
+	--hg-btn-accent-hover: #00ccff;
+}
+
+body.theme-ember-red {
+	--hg-bg: #240405;
+	--hg-text: #ffe9dd;
+	--hg-h2: #ff8f70;
+	--hg-h3: #ffc4b2;
+	--hg-font-body: Verdana, sans-serif;
+	--hg-font-ui: Verdana, sans-serif;
+	--hg-font-head: Verdana, sans-serif;
+	--hg-link: #ff9e80;
+	--hg-link-hover: #ffc0ad;
+	--hg-info-link: #ffe9dd;
+	--hg-info-link-hover: #fff5ef;
+	--hg-field-bg: #3a090b;
+	--hg-field-border: #6b171a;
+	--hg-btn-accent: #ff8f70;
+	--hg-btn-accent-hover: #ffc0ad;
+}
+
+body.theme-sky-white {
+	--hg-bg: #f7f9fc;
+	--hg-text: #1f2328;
+	--hg-h2: #2e3a46;
+	--hg-h3: #4a5561;
+	--hg-font-body: Verdana, sans-serif;
+	--hg-font-ui: Verdana, sans-serif;
+	--hg-font-head: Verdana, sans-serif;
+	--hg-link: #274f7a;
+	--hg-link-hover: #1f3f62;
+	--hg-info-link: #1f2328;
+	--hg-info-link-hover: #0f1114;
+	--hg-field-bg: #ffffff;
+	--hg-field-border: #4e5864;
+	--hg-btn-accent: #1f2328;
+	--hg-btn-accent-hover: #0f1114;
+}
+
 body.theme-modern {
 	--hg-bg: #f7f7f7;
 	--hg-text: #111111;

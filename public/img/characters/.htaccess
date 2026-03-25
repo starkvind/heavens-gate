@@ -1,0 +1,16 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Bloquear ejecución de scripts en uploads
+RewriteRule \.(?:php[0-9]?|phtml|phar|cgi|pl|py|jsp|asp|aspx|sh|bash)$ - [F,NC,L]
+
+# Permitir solo servir recursos estáticos comunes
+RewriteCond %{REQUEST_URI} !\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp|css|js|json|txt|xml|woff2?|ttf|otf|eot|mp3|ogg|wav|mp4|webm)$ [NC]
+RewriteRule ^ - [F,L]
+</IfModule>
+
+<FilesMatch "\.(?:php[0-9]?|phtml|phar|cgi|pl|py|jsp|asp|aspx|sh|bash)$">
+Require all denied
+</FilesMatch>
