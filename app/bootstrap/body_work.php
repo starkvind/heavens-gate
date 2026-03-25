@@ -24,9 +24,9 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         'seegroup'     => ['b', null, null],
         'seeplayer'    => ['b', 'dim_players', '/players'],
         'verdoc'       => ['b', 'fact_docs', '/documents'],
-        'verobj'       => ['b', 'fact_items', '/inventory'],
-        'inv_type'     => ['t', 'dim_item_types', '/inventory'],
-        'seeitem'      => ['b', 'fact_items', '/inventory/item'],
+        'verobj'       => ['b', 'fact_items', '/inventory/items'],
+        'inv_type'     => ['t', 'dim_item_types', '/inventory/type'],
+        'seeitem'      => ['b', 'fact_items', '/inventory/items'],
         'muestradon'   => ['b', 'fact_gifts', '/powers/gift'],
         'tipodon'      => ['b', 'dim_gift_types', '/powers/gift/type'],
         'seerite'      => ['b', 'fact_rites', '/powers/rite'],
@@ -80,28 +80,52 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         $_GET[$param] = (string)$resolved;
     }
 
+    if (($route === 'verobj' || $route === 'seeitem') && isset($_GET['b'])) {
+        $itemId = (int)$_GET['b'];
+        if ($itemId > 0) {
+            $itemSlug = '';
+            $typeSlug = '';
+            if ($stmtItem = $link->prepare("
+                SELECT i.id, i.pretty_id AS item_pretty, t.id AS type_id, t.pretty_id AS type_pretty
+                FROM fact_items i
+                LEFT JOIN dim_item_types t ON t.id = i.item_type_id
+                WHERE i.id = ?
+                LIMIT 1
+            ")) {
+                $stmtItem->bind_param('i', $itemId);
+                $stmtItem->execute();
+                $rsItem = $stmtItem->get_result();
+                if ($rsItem && ($rowItem = $rsItem->fetch_assoc())) {
+                    $itemSlug = (string)($rowItem['item_pretty'] ?? '');
+                    if ($itemSlug === '' && isset($rowItem['id'])) $itemSlug = (string)$rowItem['id'];
+
+                    $typeSlug = (string)($rowItem['type_pretty'] ?? '');
+                    if ($typeSlug === '' && isset($rowItem['type_id'])) $typeSlug = (string)$rowItem['type_id'];
+                }
+                $stmtItem->close();
+            }
+
+            if ($itemSlug !== '' && $typeSlug !== '') {
+                $target = '/inventory/' . rawurlencode($typeSlug) . '/' . rawurlencode($itemSlug);
+
+                $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+                $currentPath = (string)(parse_url($requestUri, PHP_URL_PATH) ?? '');
+                $norm = static function (string $path): string {
+                    $path = rtrim(rawurldecode($path), '/');
+                    return $path === '' ? '/' : $path;
+                };
+
+                if ($norm($currentPath) !== $norm($target)) {
+                    header("Location: $target", true, 301);
+                    exit;
+                }
+            }
+        }
+    }
+
     if (preg_match('/^\d+$/', $raw)) {
         $pretty = get_pretty_id($link, $table, (int)$raw);
         if ($pretty) {
-            if ($route === 'verobj') {
-                // Inventario: redirigir a /inventory/{type}/{item}
-                $typePretty = null;
-                if ($stmt2 = $link->prepare("SELECT t.pretty_id, t.id AS type_id FROM fact_items i LEFT JOIN dim_item_types t ON t.id = i.item_type_id WHERE i.id = ? LIMIT 1")) {
-                    $idInt = (int)$raw;
-                    $stmt2->bind_param('i', $idInt);
-                    $stmt2->execute();
-                    $rs2 = $stmt2->get_result();
-                    if ($rs2 && ($row2 = $rs2->fetch_assoc())) {
-                        $typePretty = (string)($row2['pretty_id'] ?? '');
-                        if ($typePretty === '' && isset($row2['type_id'])) $typePretty = (string)$row2['type_id'];
-                    }
-                    $stmt2->close();
-                }
-                if ($typePretty === null || $typePretty === '') $typePretty = 'tipo';
-                $target = '/inventory/' . rawurlencode($typePretty) . '/' . rawurlencode($pretty);
-                header("Location: $target", true, 301);
-                exit;
-            }
             $target = rtrim($base, '/') . '/' . rawurlencode($pretty);
             if ($route === 'seegroup') {
                 $target = rtrim($base, '/') . '/' . rawurlencode($pretty);

@@ -51,8 +51,15 @@ if ($temporadaId > 0 && $stmt) {
 
         $seasonKind = trim((string)($ResultQuery['season_kind'] ?? 'temporada'));
         if ($seasonKind === '') $seasonKind = 'temporada';
-        $pageSect = ($seasonKind === 'historia_personal') ? "Historia personal" : "Temporadas";
+        $titleSection = ($seasonKind === 'historia_personal') ? "Historias personales" : "Temporadas";
+        $pageSect = $titleSection;
         $pageTitle2 = $nameTemp;
+        setMetaFromPage(
+            $nameTemp . " | " . $titleSection . " | Heaven's Gate",
+            meta_excerpt($sinopsis),
+            null,
+            'article'
+        );
 
         include("app/partials/main_nav_bar.php");
 

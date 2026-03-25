@@ -90,7 +90,12 @@ if ($chapter_numberId > 0 && $stmt) {
 
         $pageSect = "{$nameTemporada} {$numeracionOK}";
         $pageTitle2 = $nameCapi;
-        setMetaFromPage($nameCapi . " | Capítulos | Heaven's Gate", meta_excerpt(!empty($sinoCapi) ? $sinoCapi : $noSinoCapi), null, 'article');
+        setMetaFromPage(
+            $nameCapi . " | " . $nameTemporada . " | Heaven's Gate",
+            meta_excerpt(!empty($sinoCapi) ? $sinoCapi : $noSinoCapi),
+            null,
+            'article'
+        );
 
         include("app/partials/main_nav_bar.php");
         echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';

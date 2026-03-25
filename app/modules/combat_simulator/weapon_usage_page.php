@@ -56,7 +56,7 @@ for ($i = 0; $i < $NFilas; $i++) {
     print("
     <tr>
         <td class='ajustcelda'>
-            <a href='/inventory/item/$id' title='' target='_blank'>$nambre</a>
+            <a href='/inventory/items/$id' title='' target='_blank'>$nambre</a>
         </td>
         <td class='ajustcelda'>$ability</td>
         <td class='ajustcelda'>$bonux $damage $plata</td>
