@@ -1,4 +1,26 @@
 <?php
+	if (!function_exists('hg_sb_col_exists')) {
+		function hg_sb_col_exists(mysqli $link, string $table, string $column): bool
+		{
+			static $cache = [];
+			$key = $table . ':' . $column;
+			if (isset($cache[$key])) return $cache[$key];
+
+			$ok = false;
+			if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+				$st->bind_param('ss', $table, $column);
+				$st->execute();
+				$st->bind_result($count);
+				$st->fetch();
+				$st->close();
+				$ok = ((int)$count > 0);
+			}
+
+			$cache[$key] = $ok;
+			return $ok;
+		}
+	}
+
 	// Obtener ID de temporada ya resuelto por season_archive.php (preferido).
 	$id_temporada = isset($temporadaId) ? (int)$temporadaId : 0;
 	if ($id_temporada <= 0) {
@@ -49,30 +71,34 @@
 	}
 
 	// 2. Obtener participacion por personaje
-	$query_participacion = "SELECT fact_characters.name, fact_characters.id AS pj_id, COUNT(*) AS jugados
+	$hasParticipationRole = hg_sb_col_exists($link, 'bridge_chapters_characters', 'participation_role');
+	$participationFilter = $hasParticipationRole
+		? " AND acp.participation_role = 'player'"
+		: " AND fact_characters.character_kind = 'pj' AND fact_characters.character_type_id = 1";
+
+	$nombres = [];
+	$jugados = [];
+	$player_ids = [];
+	$porcentajes = [];
+
+	$query_participacion = "SELECT fact_characters.name, fact_characters.id AS pj_id, COUNT(DISTINCT acp.chapter_id) AS jugados
 		   FROM bridge_chapters_characters acp
 		   JOIN dim_chapters ac ON ac.id = acp.chapter_id
 		   JOIN fact_characters ON fact_characters.id = acp.character_id
-		   WHERE ac.season_id = ? AND ac.played_date != '0000-00-00' AND fact_characters.character_kind = 'pj' AND fact_characters.character_type_id = 1
-		   GROUP BY acp.character_id
-		   ORDER BY jugados DESC";
+		   WHERE ac.season_id = ? AND ac.played_date != '0000-00-00'{$participationFilter}
+		   GROUP BY acp.character_id, fact_characters.id, fact_characters.name
+		   ORDER BY jugados DESC, fact_characters.name ASC";
 	$stmt = $link->prepare($query_participacion);
 	$stmt->bind_param("i", $id_temporada);
 	$stmt->execute();
 	$result = $stmt->get_result();
 
-	/*
-	$nombres = [];
-	$jugados = [];
-	$player_ids[] = [];
-	$porcentajes = [];
-	*/
-
 	while ($row = $result->fetch_assoc()) {
-		$nombres[] = $row['name'];
-		$jugados[] = $row['jugados'];
-		$player_ids[] = $row['pj_id'];
-		$porcentajes[] = round(($row['jugados'] / $total_capitulos) * 100, 1);
+		$jugadosCount = (int)($row['jugados'] ?? 0);
+		$nombres[] = (string)($row['name'] ?? '');
+		$jugados[] = $jugadosCount;
+		$player_ids[] = (int)($row['pj_id'] ?? 0);
+		$porcentajes[] = ($total_capitulos > 0) ? round(($jugadosCount / $total_capitulos) * 100, 1) : 0;
 	}
 
 ?>

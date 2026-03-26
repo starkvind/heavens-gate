@@ -1,6 +1,92 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
+if (!function_exists('hg_render_trait_levels_with_gems')) {
+    function hg_render_trait_levels_with_gems(string $levelsHtml): string
+    {
+        $levelsHtml = trim($levelsHtml);
+        if ($levelsHtml === '' || !class_exists('DOMDocument')) {
+            return $levelsHtml;
+        }
+
+        $previousUseInternalErrors = libxml_use_internal_errors(true);
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $loaded = $dom->loadHTML(
+            '<?xml encoding="utf-8" ?><div id="hg-trait-levels-root">' . $levelsHtml . '</div>',
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
+
+        if (!$loaded) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousUseInternalErrors);
+            return $levelsHtml;
+        }
+
+        $root = $dom->getElementById('hg-trait-levels-root');
+        if (!$root instanceof DOMElement) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousUseInternalErrors);
+            return $levelsHtml;
+        }
+
+        $significantChildren = [];
+        foreach ($root->childNodes as $child) {
+            if ($child instanceof DOMText && trim((string)$child->textContent) === '') {
+                continue;
+            }
+            $significantChildren[] = $child;
+        }
+
+        if (count($significantChildren) !== 1 || !($significantChildren[0] instanceof DOMElement) || strtolower($significantChildren[0]->tagName) !== 'ol') {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousUseInternalErrors);
+            return $levelsHtml;
+        }
+
+        $list = $significantChildren[0];
+        $items = [];
+        foreach ($list->childNodes as $child) {
+            if ($child instanceof DOMText && trim((string)$child->textContent) === '') {
+                continue;
+            }
+            if (!($child instanceof DOMElement) || strtolower($child->tagName) !== 'li') {
+                libxml_clear_errors();
+                libxml_use_internal_errors($previousUseInternalErrors);
+                return $levelsHtml;
+            }
+            $items[] = $child;
+        }
+
+        if ($items === []) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousUseInternalErrors);
+            return $levelsHtml;
+        }
+
+        $rendered = "<div class='trait-levels-gems'>";
+        foreach ($items as $index => $item) {
+            $level = $index + 1;
+            $gemFile = sprintf('img/ui/gems/attr/gem-attr-%02d.png', $level);
+
+            $itemHtml = '';
+            foreach ($item->childNodes as $node) {
+                $itemHtml .= $dom->saveHTML($node);
+            }
+
+            $rendered .= "<div class='trait-levels-gems__item'>";
+            $rendered .= "<div class='trait-levels-gems__icon'><img class='bioAttCircle trait-levels-gems__img' src='{$gemFile}' alt='Nivel {$level}'/></div>";
+            $rendered .= "<div class='trait-levels-gems__text'>{$itemHtml}</div>";
+            $rendered .= "</div>";
+        }
+        $rendered .= "</div>";
+
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousUseInternalErrors);
+
+        return $rendered;
+    }
+}
+
 $traitPageID = isset($_GET['b']) ? (int)$_GET['b'] : 0;
 $skillId = $traitPageID; // Compatibilidad con main_nav_bar.php
 
@@ -71,7 +157,7 @@ if ($result->num_rows > 0) {
     }
 
     if (trim($traitSpecial) !== "") {
-        echo "      <div class='power-stat'><div class='power-stat__label'>MaestrÃ­as</div><div class='power-stat__value'>{$traitSpecial}</div></div>";
+        echo "      <div class='power-stat'><div class='power-stat__label'>Maestr&iacute;as</div><div class='power-stat__value'>{$traitSpecial}</div></div>";
     }
 
     echo "      <div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$traitOriginName}</div></div>";
@@ -86,9 +172,10 @@ if ($result->num_rows > 0) {
     }
 
     if (trim($traitLevels) !== "") {
+        $traitLevelsHtml = hg_render_trait_levels_with_gems($traitLevels);
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Niveles</div>";
-        echo "    <div class='power-card__desc-body'>{$traitLevels}</div>";
+        echo "    <div class='power-card__desc-body'>{$traitLevelsHtml}</div>";
         echo "  </div>";
     }
 
@@ -217,8 +304,6 @@ if ($result->num_rows > 0) {
 $stmt->close();
 
 ?>
-
-
 
 
 

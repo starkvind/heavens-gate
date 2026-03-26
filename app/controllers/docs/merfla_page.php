@@ -124,7 +124,7 @@ if ($rowsQueryMaf > 0) {
     $costMeritFlaw = $mafCoste;
     $pageSect = $mafNameType; // PARA CAMBIAR EL TITULO A LA PAGINA
     $pageTitle2 = $mafName;
-    setMetaFromPage($mafName . " | M&eacute;ritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
+    setMetaFromPage($mafName . " | Méritos y Defectos | Heaven's Gate", meta_excerpt($mafDesc), null, 'article');
 
     // Incluir archivos para navegaci&oacute;n y contenido
     include("app/partials/main_nav_bar.php"); // Barra navegaci&oacute;n

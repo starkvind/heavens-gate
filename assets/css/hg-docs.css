@@ -230,6 +230,39 @@
     vertical-align: middle;
 }
 
+.trait-levels-gems {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.trait-levels-gems__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.trait-levels-gems__icon {
+    flex: 0 0 auto;
+    line-height: 1;
+}
+
+.trait-levels-gems__img {
+    display: block;
+}
+
+.trait-levels-gems__text {
+    flex: 1 1 auto;
+}
+
+.trait-levels-gems__text > :first-child {
+    margin-top: 0;
+}
+
+.trait-levels-gems__text > :last-child {
+    margin-bottom: 0;
+}
+
 .hg-tab-panel[data-tab="owners"] .grupoBioClan {
     display: flex;
     justify-content: flex-start !important;

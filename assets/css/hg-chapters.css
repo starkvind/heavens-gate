@@ -306,6 +306,14 @@
     font-weight: bold;
 }
 
+.chapter-subtitle {
+    margin: 12px 0 8px;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ch-muted);
+}
+
 .chapter-dates {
     margin: 0 0 10px;
     padding-left: 16px;
@@ -339,6 +347,14 @@
     transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 
+.participant-card--player {
+    border-color: rgba(0, 119, 255, .9);
+}
+
+.participant-card--npc {
+    border-color: rgba(94, 102, 155, .9);
+}
+
 .participant-card:hover {
     transform: translateY(-2px);
     border-color: var(--ch-accent);
@@ -358,6 +374,14 @@
     font-size: .8rem;
     text-align: center;
     line-height: 1.3;
+}
+
+.participant-role {
+    margin-top: 4px;
+    font-size: .64rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ch-muted);
 }
 
 .chapter-events-grid {

@@ -24,6 +24,35 @@ function parse_int_list($raw){
     }
     return array_values($out);
 }
+function normalize_participation_role($raw): string {
+    $role = strtolower(trim((string)$raw));
+    return $role === 'player' ? 'player' : 'npc';
+}
+function parse_pending_relations($raw): array {
+    $raw = trim((string)$raw);
+    if ($raw === '') return [];
+
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) return [];
+
+    $out = [];
+    foreach ($decoded as $row) {
+        if (is_array($row)) {
+            $characterId = (int)($row['character_id'] ?? 0);
+            $role = normalize_participation_role($row['participation_role'] ?? 'npc');
+        } else {
+            $characterId = (int)$row;
+            $role = 'npc';
+        }
+        if ($characterId <= 0) continue;
+        $out[$characterId] = [
+            'character_id' => $characterId,
+            'participation_role' => $role,
+        ];
+    }
+
+    return array_values($out);
+}
 function ac_col_exists(mysqli $link, string $table, string $column): bool {
     static $cache = [];
     $key = $table . ':' . $column;
@@ -52,25 +81,38 @@ function ac_fetch_season(mysqli $link, int $seasonId): ?array {
     }
     return null;
 }
-function attach_chapter_characters(mysqli $link, int $chapterId, array $characterIds): int {
-    if ($chapterId <= 0 || empty($characterIds)) return 0;
+function attach_chapter_characters(mysqli $link, int $chapterId, array $relations): int {
+    if ($chapterId <= 0 || empty($relations)) return 0;
     $added = 0;
+    $hasParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
     $chk = $link->prepare('SELECT id FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ? LIMIT 1');
-    $ins = $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)');
+    $ins = $hasParticipationRole
+        ? $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id, participation_role) VALUES (?, ?, ?)')
+        : $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)');
     if (!$chk || !$ins) {
         if ($chk) $chk->close();
         if ($ins) $ins->close();
         return 0;
     }
-    foreach ($characterIds as $characterId) {
-        $characterId = (int)$characterId;
+    foreach ($relations as $relation) {
+        if (is_array($relation)) {
+            $characterId = (int)($relation['character_id'] ?? 0);
+            $participationRole = normalize_participation_role($relation['participation_role'] ?? 'npc');
+        } else {
+            $characterId = (int)$relation;
+            $participationRole = 'npc';
+        }
         if ($characterId <= 0) continue;
         $chk->bind_param('ii', $chapterId, $characterId);
         $chk->execute();
         $rs = $chk->get_result();
         $exists = $rs && $rs->fetch_assoc() ? true : false;
         if (!$exists) {
-            $ins->bind_param('ii', $chapterId, $characterId);
+            if ($hasParticipationRole) {
+                $ins->bind_param('iis', $chapterId, $characterId, $participationRole);
+            } else {
+                $ins->bind_param('ii', $chapterId, $characterId);
+            }
             if ($ins->execute()) $added++;
         }
     }
@@ -79,6 +121,7 @@ function attach_chapter_characters(mysqli $link, int $chapterId, array $characte
     return $added;
 }
 $hasChapterSeasonId = true;
+$hasChapterParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
 
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_chapters';
 if (function_exists('hg_admin_ensure_csrf_token')) {
@@ -133,7 +176,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             $clean->execute();
             $clean->close();
         }
-        if ($chapterId > 0 && ($st = $link->prepare("SELECT b.id, b.character_id, c.name, ch.name AS chronicle_name FROM bridge_chapters_characters b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id WHERE b.chapter_id = ? ORDER BY c.name ASC, c.id ASC"))) {
+        $roleExpr = $hasChapterParticipationRole
+            ? "COALESCE(NULLIF(TRIM(b.participation_role), ''), 'npc')"
+            : "CASE WHEN c.character_kind = 'pj' THEN 'player' ELSE 'npc' END";
+        if ($chapterId > 0 && ($st = $link->prepare("SELECT b.id, b.character_id, c.name, ch.name AS chronicle_name, {$roleExpr} AS participation_role FROM bridge_chapters_characters b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id WHERE b.chapter_id = ? ORDER BY c.name ASC, c.id ASC"))) {
             $st->bind_param('i', $chapterId);
             $st->execute();
             $rs = $st->get_result();
@@ -147,21 +193,53 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($action === 'add_relation') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         $characterId = (int)($_POST['character_id'] ?? 0);
+        $participationRole = normalize_participation_role($_POST['participation_role'] ?? 'npc');
         $ok = false;
         if ($chapterId > 0 && $characterId > 0) {
-            $exists = false;
+            $existingRelId = 0;
             if ($chk = $link->prepare('SELECT id FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ? LIMIT 1')) {
                 $chk->bind_param('ii', $chapterId, $characterId);
                 $chk->execute();
                 $rs = $chk->get_result();
-                $exists = $rs && $rs->fetch_assoc() ? true : false;
+                $row = $rs ? $rs->fetch_assoc() : null;
+                $existingRelId = (int)($row['id'] ?? 0);
                 $chk->close();
             }
-            if (!$exists && ($st = $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)'))) {
+
+            if ($existingRelId > 0) {
+                if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE id = ?'))) {
+                    $st->bind_param('si', $participationRole, $existingRelId);
+                    $ok = $st->execute();
+                    $st->close();
+                } else {
+                    $ok = true;
+                }
+            } elseif ($hasChapterParticipationRole && ($st = $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id, participation_role) VALUES (?, ?, ?)'))) {
+                $st->bind_param('iis', $chapterId, $characterId, $participationRole);
+                $ok = $st->execute();
+                $st->close();
+            } elseif (!$hasChapterParticipationRole && ($st = $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)'))) {
                 $st->bind_param('ii', $chapterId, $characterId);
                 $ok = $st->execute();
                 $st->close();
             } else {
+                $ok = false;
+            }
+        }
+        echo json_encode(['ok' => (bool)$ok]);
+        exit;
+    }
+
+    if ($action === 'update_relation_role') {
+        $relId = (int)($_POST['rel_id'] ?? 0);
+        $participationRole = normalize_participation_role($_POST['participation_role'] ?? 'npc');
+        $ok = false;
+        if ($relId > 0) {
+            if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE id = ?'))) {
+                $st->bind_param('si', $participationRole, $relId);
+                $ok = $st->execute();
+                $st->close();
+            } elseif (!$hasChapterParticipationRole) {
                 $ok = true;
             }
         }
@@ -204,7 +282,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $seasonId = (int)($_POST['season_id'] ?? 0);
         $playedDate = norm_date($_POST['played_date'] ?? '');
         $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
-        $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+        $pendingRelations = parse_pending_relations($_POST['pending_relations_json'] ?? '');
+        if (empty($pendingRelations)) {
+            $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+            foreach ($pendingCharacterIds as $pendingCharacterId) {
+                $pendingRelations[] = [
+                    'character_id' => (int)$pendingCharacterId,
+                    'participation_role' => 'npc',
+                ];
+            }
+        }
         $seasonRow = ac_fetch_season($link, $seasonId);
 
         if ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
@@ -236,7 +323,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         }
 
         hg_update_pretty_id_if_exists($link, 'dim_chapters', $savedId, $name);
-        attach_chapter_characters($link, $savedId, $pendingCharacterIds);
+        attach_chapter_characters($link, $savedId, $pendingRelations);
 
         $chapterRow = null;
         if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1")) {
@@ -281,7 +368,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
     $seasonId = (int)($_POST['season_id'] ?? 0);
     $playedDate = norm_date($_POST['played_date'] ?? '');
     $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
-    $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+    $pendingRelations = parse_pending_relations($_POST['pending_relations_json'] ?? '');
+    if (empty($pendingRelations)) {
+        $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
+        foreach ($pendingCharacterIds as $pendingCharacterId) {
+            $pendingRelations[] = [
+                'character_id' => (int)$pendingCharacterId,
+                'participation_role' => 'npc',
+            ];
+        }
+    }
     $seasonRow = ac_fetch_season($link, $seasonId);
 
     if ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
@@ -295,7 +391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
             $st->close();
             if ($ok) {
                 hg_update_pretty_id_if_exists($link, 'dim_chapters', $id, $name);
-                attach_chapter_characters($link, $id, $pendingCharacterIds);
+                attach_chapter_characters($link, $id, $pendingRelations);
                 $flash[] = ['type' => 'ok', 'msg' => 'Capitulo actualizado.'];
             }
         } else {
@@ -307,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
             $st->close();
             if ($ok) {
                 hg_update_pretty_id_if_exists($link, 'dim_chapters', $newId, $name);
-                attach_chapter_characters($link, $newId, $pendingCharacterIds);
+                attach_chapter_characters($link, $newId, $pendingRelations);
                 $flash[] = ['type' => 'ok', 'msg' => 'Capitulo creado.'];
             }
         }
@@ -376,7 +472,7 @@ admin_panel_open('Capitulos', $actions);
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="save_chapter" value="1">
             <input type="hidden" name="id" id="f_id" value="0">
-            <input type="hidden" name="pending_character_ids" id="f_pending_character_ids" value="">
+            <input type="hidden" name="pending_relations_json" id="f_pending_relations_json" value="">
 
             <div class="grid">
                 <label>Nombre
@@ -415,8 +511,15 @@ admin_panel_open('Capitulos', $actions);
                         <option value="<?= (int)$pj['id'] ?>"><?= h($pj['name']) ?> (#<?= (int)$pj['id'] ?><?= $pj['chronicle_name'] !== '' ? ' - "' . h($pj['chronicle_name']) . '"' : '' ?>)</option>
                         <?php endforeach; ?>
                     </select>
+                    <select id="relationRoleSelect" class="select">
+                        <option value="npc">NPC</option>
+                        <option value="player">Player</option>
+                    </select>
                     <button class="btn" type="button" id="btnAddRel">Agregar</button>
                 </div>
+                <?php if (!$hasChapterParticipationRole): ?>
+                <div class="small adm-mb8">El rol `player|npc` aun no existe en la tabla `bridge_chapters_characters`. Cuando ejecutes la migracion, este selector quedara operativo.</div>
+                <?php endif; ?>
                 <div id="relationsList" class="small">Sin participantes.</div>
             </div>
 
@@ -439,11 +542,12 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 const chapters = <?= json_encode($chapters, JSON_UNESCAPED_UNICODE); ?>;
 const charactersCatalog = <?= json_encode($personajes, JSON_UNESCAPED_UNICODE); ?>;
+const hasChapterParticipationRole = <?= $hasChapterParticipationRole ? 'true' : 'false' ?>;
 const CHAPTER_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
 let page = 1;
 const pageSize = 20;
 let currentId = 0;
-let pendingRelationCharacterIds = [];
+let pendingRelations = [];
 const characterById = new Map((charactersCatalog || []).map(c => [Number(c.id), c]));
 let chapterSynopsisEditor = null;
 
@@ -543,19 +647,38 @@ function characterLabelById(id){
     return `${c.name} (#${Number(c.id)}${chron})`;
 }
 
+function normalizeParticipationRole(role){
+    return String(role || '').toLowerCase() === 'player' ? 'player' : 'npc';
+}
+
+function participationRoleLabel(role){
+    return normalizeParticipationRole(role) === 'player' ? 'Player' : 'NPC';
+}
+
+function relationRoleSelectHtml(selectedRole, onChangeExpr, disabled){
+    const role = normalizeParticipationRole(selectedRole);
+    const disabledAttr = disabled ? ' disabled' : '';
+    return `<select class="select" style="min-width:110px" onchange="${esc(onChangeExpr)}"${disabledAttr}>
+        <option value="npc"${role === 'npc' ? ' selected' : ''}>NPC</option>
+        <option value="player"${role === 'player' ? ' selected' : ''}>Player</option>
+    </select>`;
+}
+
 function syncPendingField(){
-    document.getElementById('f_pending_character_ids').value = pendingRelationCharacterIds.join(',');
+    document.getElementById('f_pending_relations_json').value = JSON.stringify(pendingRelations);
 }
 
 function renderPendingRelations(){
     const box = document.getElementById('relationsList');
-    if (!pendingRelationCharacterIds.length) {
+    if (!pendingRelations.length) {
         box.textContent = 'Sin participantes (se guardaran al crear el capitulo).';
         return;
     }
     let html = '<ul class="adm-ul-reset">';
-    for (const cid of pendingRelationCharacterIds) {
-        html += `<li>${esc(characterLabelById(cid))} <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removePendingRelation(${Number(cid)})">Quitar</button></li>`;
+    for (const rel of pendingRelations) {
+        const cid = Number(rel.character_id || 0);
+        const roleSel = relationRoleSelectHtml(rel.participation_role, `changePendingRelationRole(${cid}, this.value)`, !hasChapterParticipationRole);
+        html += `<li class="adm-flex-8-mb8">${esc(characterLabelById(cid))} ${roleSel} <span class="small">${esc(participationRoleLabel(rel.participation_role))}</span> <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removePendingRelation(${cid})">Quitar</button></li>`;
     }
     html += '</ul>';
     box.innerHTML = html;
@@ -564,7 +687,7 @@ function renderPendingRelations(){
 function openChapterModal(id){
     ensureChapterSynopsisEditor();
     currentId = Number(id || 0);
-    pendingRelationCharacterIds = [];
+    pendingRelations = [];
     syncPendingField();
     const c = chapterById(currentId);
 
@@ -573,6 +696,7 @@ function openChapterModal(id){
     document.getElementById('f_chapter').value = c ? (c.chapter_number || '') : '';
     document.getElementById('f_season').value = c ? String(c.season_id || '') : (document.getElementById('seasonFilter').value || '');
     document.getElementById('f_played').value = c ? (c.played_date || '') : '';
+    document.getElementById('relationRoleSelect').value = 'npc';
     const synopsisHtml = c ? (c.synopsis || '') : '';
     document.getElementById('f_synopsis').value = synopsisHtml;
     if (chapterSynopsisEditor) chapterSynopsisEditor.root.innerHTML = synopsisHtml;
@@ -626,7 +750,8 @@ async function loadRelations(){
         let html = '<ul class="adm-ul-reset">';
         for (const rel of data.data) {
             const chron = rel.chronicle_name ? ` - "${rel.chronicle_name}"` : '';
-            html += `<li>${esc(rel.name)} (#${Number(rel.character_id)}${esc(chron)}) <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removeRelation(${Number(rel.id)})">Quitar</button></li>`;
+            const roleSel = relationRoleSelectHtml(rel.participation_role, `changeRelationRole(${Number(rel.id)}, this.value)`, !hasChapterParticipationRole);
+            html += `<li class="adm-flex-8-mb8">${esc(rel.name)} (#${Number(rel.character_id)}${esc(chron)}) ${roleSel} <span class="small">${esc(participationRoleLabel(rel.participation_role))}</span> <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removeRelation(${Number(rel.id)})">Quitar</button></li>`;
         }
         html += '</ul>';
         box.innerHTML = html;
@@ -637,22 +762,26 @@ async function loadRelations(){
 
 async function addRelation(){
     const characterId = Number(document.getElementById('characterSelect').value || 0);
+    const participationRole = normalizeParticipationRole(document.getElementById('relationRoleSelect').value || 'npc');
     if (!characterId) return;
 
     if (!currentId) {
-        if (!pendingRelationCharacterIds.includes(characterId)) {
-            pendingRelationCharacterIds.push(characterId);
-            syncPendingField();
-        }
+        const idx = pendingRelations.findIndex(rel => Number(rel.character_id) === characterId);
+        const relation = { character_id: characterId, participation_role: participationRole };
+        if (idx >= 0) pendingRelations[idx] = relation;
+        else pendingRelations.push(relation);
+        syncPendingField();
         document.getElementById('characterSelect').value = '';
+        document.getElementById('relationRoleSelect').value = 'npc';
         renderPendingRelations();
         return;
     }
 
     try {
-        const data = await postAjax({ action: 'add_relation', chapter_id: currentId, character_id: characterId });
+        const data = await postAjax({ action: 'add_relation', chapter_id: currentId, character_id: characterId, participation_role: participationRole });
         if (data.ok) {
             document.getElementById('characterSelect').value = '';
+            document.getElementById('relationRoleSelect').value = 'npc';
             loadRelations();
         }
     } catch (e) {
@@ -660,10 +789,28 @@ async function addRelation(){
     }
 }
 
-function removePendingRelation(characterId){
-    pendingRelationCharacterIds = pendingRelationCharacterIds.filter(id => Number(id) !== Number(characterId));
+function changePendingRelationRole(characterId, role){
+    const idx = pendingRelations.findIndex(rel => Number(rel.character_id) === Number(characterId));
+    if (idx < 0) return;
+    pendingRelations[idx].participation_role = normalizeParticipationRole(role);
     syncPendingField();
     renderPendingRelations();
+}
+
+function removePendingRelation(characterId){
+    pendingRelations = pendingRelations.filter(rel => Number(rel.character_id) !== Number(characterId));
+    syncPendingField();
+    renderPendingRelations();
+}
+
+async function changeRelationRole(relId, role){
+    if (!hasChapterParticipationRole) return;
+    try {
+        const data = await postAjax({ action: 'update_relation_role', rel_id: relId, participation_role: normalizeParticipationRole(role) });
+        if (data.ok) loadRelations();
+    } catch (e) {
+        loadRelations();
+    }
 }
 
 async function removeRelation(relId){

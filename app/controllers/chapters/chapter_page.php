@@ -113,12 +113,17 @@ if ($chapter_numberId > 0 && $stmt) {
         echo "<section class='chapter-block'>";
         echo "<h3 class='chapter-title'>Participantes</h3>";
 
+        $hasParticipationRole = hg_ch_col_exists($link, 'bridge_chapters_characters', 'participation_role');
+        $participationRoleExpr = $hasParticipationRole
+            ? "COALESCE(NULLIF(TRIM(acp.participation_role), ''), 'npc')"
+            : "CASE WHEN p.character_kind = 'pj' THEN 'player' ELSE 'npc' END";
+
         $protaQuery = "
-            SELECT p.id, p.name, p.image_url, p.gender
+            SELECT p.id, p.name, p.image_url, p.gender, {$participationRoleExpr} AS participation_role
             FROM bridge_chapters_characters acp
             INNER JOIN fact_characters p ON acp.character_id = p.id
             WHERE acp.chapter_id = ?
-            ORDER BY p.name ASC
+            ORDER BY CASE WHEN {$participationRoleExpr} = 'player' THEN 0 ELSE 1 END ASC, p.name ASC
         ";
 
         $stmtProta = mysqli_prepare($link, $protaQuery);
@@ -128,19 +133,43 @@ if ($chapter_numberId > 0 && $stmt) {
             $resultProta = mysqli_stmt_get_result($stmtProta);
 
             if ($resultProta && mysqli_num_rows($resultProta) > 0) {
-                echo "<div class='participants-grid'>";
-                while ($pj = mysqli_fetch_assoc($resultProta)) {
-                    $idPJSelect = (int)$pj['id'];
-                    $nombre = (string)$pj['name'];
-                    $img = hg_character_avatar_url((string)($pj['image_url'] ?? ''), (string)($pj['gender'] ?? ''));
-                    $hrefChar = pretty_url($link, 'fact_characters', '/characters', $idPJSelect);
+                $participantGroups = [
+                    'player' => [],
+                    'npc' => [],
+                ];
 
-                    echo "<a class='participant-card hg-tooltip' href='" . htmlspecialchars($hrefChar) . "' target='_blank' data-tip='character' data-id='" . $idPJSelect . "'>";
-                    echo "<img src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($nombre) . "'>";
-                    echo "<span>" . htmlspecialchars($nombre) . "</span>";
-                    echo "</a>";
+                while ($pj = mysqli_fetch_assoc($resultProta)) {
+                    $role = strtolower(trim((string)($pj['participation_role'] ?? 'npc')));
+                    if ($role !== 'player') $role = 'npc';
+                    $participantGroups[$role][] = $pj;
                 }
-                echo "</div>";
+
+                foreach ([
+                    'player' => 'Como jugadores',
+                    'npc' => 'Como PNJ',
+                ] as $roleKey => $roleLabel) {
+                    if (empty($participantGroups[$roleKey])) continue;
+
+                    //echo "<h4 class='chapter-subtitle'>" . htmlspecialchars($roleLabel) . "</h4>";
+                    echo "<br />";
+                    echo "<div class='participants-grid'>";
+
+                    foreach ($participantGroups[$roleKey] as $pj) {
+                        $idPJSelect = (int)$pj['id'];
+                        $nombre = (string)$pj['name'];
+                        $img = hg_character_avatar_url((string)($pj['image_url'] ?? ''), (string)($pj['gender'] ?? ''));
+                        $hrefChar = pretty_url($link, 'fact_characters', '/characters', $idPJSelect);
+                        $roleText = ($roleKey === 'player') ? 'Jugador' : 'PNJ';
+
+                        echo "<a class='participant-card participant-card--" . htmlspecialchars($roleKey) . " hg-tooltip' href='" . htmlspecialchars($hrefChar) . "' target='_blank' data-tip='character' data-id='" . $idPJSelect . "'>";
+                        echo "<img src='" . htmlspecialchars($img) . "' alt='" . htmlspecialchars($nombre) . "'>";
+                        echo "<span class='participant-name'>" . htmlspecialchars($nombre) . "</span>";
+                        echo "<small class='participant-role'>" . htmlspecialchars($roleText) . "</small>";
+                        echo "</a>";
+                    }
+
+                    echo "</div>";
+                }
             } else {
                 echo "<p class='chapter-text'>No hay participantes registrados para este capitulo.</p>";
             }

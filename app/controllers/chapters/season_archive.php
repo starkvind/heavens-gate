@@ -89,7 +89,11 @@ if ($temporadaId > 0 && $stmt) {
         echo "<div class='archive-text db-text-pad'>{$sinopsis}</div>";
         echo "</section>";
 
-        if (isset($player_ids) && is_array($player_ids) && count($player_ids) > 0) {
+        $player_ids = (isset($player_ids) && is_array($player_ids))
+            ? array_values(array_unique(array_filter(array_map('intval', $player_ids))))
+            : [];
+
+        if (!empty($player_ids)) {
             $numProtagonistas = count($player_ids);
             if ($numProtagonistas > 0) {
                 echo "<section class='archive-block'>";
@@ -101,29 +105,18 @@ if ($temporadaId > 0 && $stmt) {
                     SELECT p.id, p.name, p.image_url, p.gender
                     FROM fact_characters p
                     WHERE p.id IN ($ids)
-                      AND p.player_id > 0
-                      AND p.character_kind = 'pj'
-                      AND p.character_type_id = 1
-                    ORDER BY p.name ASC
+                    ORDER BY p.name ASC, p.id ASC
                 ";
                 $resultProtas = $link->query($query);
-
-                $maxJugados = (!empty($jugados) && is_array($jugados)) ? max($jugados) : 0;
-                $umbral = ($maxJugados > 0) ? ($maxJugados / 2) : 0;
 
                 if ($resultProtas) {
                     while ($row = $resultProtas->fetch_assoc()) {
                         $checkId = (int)$row['id'];
-                        $index = array_search($checkId, $player_ids);
-                        $participaciones = ($index !== false && isset($jugados[$index])) ? (int)$jugados[$index] : 0;
-
-                        if ($participaciones >= $umbral) {
-                            $hrefProta = pretty_url($link, 'fact_characters', '/characters', $checkId);
-                            echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card hg-tooltip' target='_blank' data-tip='character' data-id='" . $checkId . "'>";
-                            echo "<img src='" . htmlspecialchars(hg_character_avatar_url((string)($row['image_url'] ?? ''), (string)($row['gender'] ?? ''))) . "' class='photochapter' alt='" . htmlspecialchars((string)$row['name']) . "'>";
-                            echo "<span>" . htmlspecialchars((string)$row['name']) . "</span>";
-                            echo "</a>";
-                        }
+                        $hrefProta = pretty_url($link, 'fact_characters', '/characters', $checkId);
+                        echo "<a href='" . htmlspecialchars($hrefProta) . "' class='prota-card hg-tooltip' target='_blank' data-tip='character' data-id='" . $checkId . "'>";
+                        echo "<img src='" . htmlspecialchars(hg_character_avatar_url((string)($row['image_url'] ?? ''), (string)($row['gender'] ?? ''))) . "' class='photochapter' alt='" . htmlspecialchars((string)$row['name']) . "'>";
+                        echo "<span>" . htmlspecialchars((string)$row['name']) . "</span>";
+                        echo "</a>";
                     }
                     mysqli_free_result($resultProtas);
                 }
@@ -177,7 +170,7 @@ if ($temporadaId > 0 && $stmt) {
         include("app/partials/snippet_bso_card.php");
         mostrarTarjetaBSO($link, 'temporada', $temporadaId);
 
-        if (isset($player_ids)) {
+        if (!empty($player_ids)) {
             include("app/partials/chapters/season_barchart.php");
         }
 

@@ -309,6 +309,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             break;
 		case 'maps':
 		case 'maps_detail':
+		case 'maps_api':
             $title = "Mapas | Heaven's Gate";
             $description = "Mapas interactivos sobre lugares de interés en la campaña.";
 			$image = $baseURL . "/img/og/og_image_power.jpg"; // ahora correcto
@@ -473,6 +474,7 @@ $routes = [
 	// Mapas
 	'maps' 		  => ['app/controllers/maps/maps_main.php', 'Mapas'],
 	'maps_detail' => ['app/controllers/maps/maps_detail.php', 'Punto de interés'],
+	'maps_api'    => ['app/controllers/maps/maps_api.php', null],
 
 	// Jugadores
 	'players' 	=> ['app/controllers/playr/playr_list.php', 'Jugadores'],
@@ -492,7 +494,7 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api'], true)) {
 		$isBarePage = true;
 	}
 	include($file);

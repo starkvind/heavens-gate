@@ -1,143 +1,122 @@
 <?php
-// sep/maps/maps_detail.php
-// Renderiza detalle de un POI. Asume $link (mysqli) ya conectado.
-if (!$link) { die("Error de conexión a la base de datos: " . mysqli_connect_error()); }
 
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) {
-  echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>Id inválido.</fieldset></div>"; exit;
+include_once(__DIR__ . '/../../helpers/maps.php');
+
+hg_maps_require_connection($link);
+
+$poiId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($poiId <= 0) {
+    echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>Id invalido.</fieldset></div>";
+    return;
 }
 
-// ¿esquema nuevo?
-$has_map_id = $link->query("SHOW COLUMNS FROM fact_map_pois LIKE 'map_id'")->num_rows > 0;
-
-$poi = null;
-if ($has_map_id) {
-  $stmt = $link->prepare(
-    "SELECT p.id, p.name, p.description, p.thumbnail, p.latitude, p.longitude,
-            m.name AS map_name, m.slug AS map_slug,
-            c.name AS category_name
-     FROM fact_map_pois p
-     JOIN dim_maps m ON m.id = p.map_id
-     JOIN dim_map_categories c ON c.id = p.category_id
-     WHERE p.id=?"
-  );
-  $stmt->bind_param('i', $id); $stmt->execute();
-  $poi = $stmt->get_result()->fetch_assoc(); $stmt->close();
-} else {
-  $stmt = $link->prepare("SELECT id, name, map AS map_name, category AS category_name, description, thumbnail, latitude, longitude FROM fact_map_pois WHERE id=?");
-  $stmt->bind_param('i', $id); $stmt->execute();
-  $tmp = $stmt->get_result()->fetch_assoc(); $stmt->close();
-  if ($tmp) { $tmp['map_slug'] = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $tmp['map_name'])); $poi = $tmp; }
-}
+$schema = hg_maps_schema_info($link);
+$poi = hg_maps_fetch_poi_detail($link, $schema, $poiId);
 
 if (!$poi) {
-  echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>No existe el punto solicitado.</fieldset></div>";
-  exit;
+    echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>No existe el punto solicitado.</fieldset></div>";
+    return;
 }
 
-setMetaFromPage($poi['name'] . " | Mapas | Heaven's Gate", meta_excerpt($poi['description'] ?? ''), $poi['thumbnail'] ?? null, 'article');
+$maps = hg_maps_fetch_maps($link);
+$fromMapParam = trim((string)($_GET['from_map'] ?? ''));
+$fromMap = $fromMapParam !== '' ? hg_maps_find_map($maps, $fromMapParam) : null;
+$fromMapIsDifferent = $fromMap && (string)$fromMap['slug'] !== (string)$poi['map_slug'];
+$relatedPois = hg_maps_fetch_related_pois($link, $schema, $poi, 40);
 
-// Tiles (coherentes con main)
-$TILES = [
-  'carto-dark' => [
-    'url' => 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    'attribution' => '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/basemaps" target="_blank" rel="noopener">CARTO</a>',
-    'subdomains' => ['a','b','c','d'], 'maxZoom' => 19
-  ],
-  'osm-standard' => [
-    'url' => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    'attribution' => '&copy; OpenStreetMap contributors',
-    'subdomains' => ['a','b','c'], 'maxZoom' => 19
-  ],
-  'esri-gray' => [
-    'url' => 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    'attribution' => 'Tiles &copy; Esri — Esri, DeLorme, NAVTEQ',
-    'subdomains' => [], 'maxZoom' => 19
-  ],
-];
-$tile = $TILES['carto-dark'];
+setMetaFromPage(
+    $poi['name'] . " | Mapas | Heaven's Gate",
+    meta_excerpt($poi['description'] ?? ''),
+    $poi['thumbnail'] ?? null,
+    'article'
+);
 
-// Otros POIs en el mismo mapa
-$others = [];
-if ($has_map_id) {
-  $q = $link->prepare("SELECT id, name FROM fact_map_pois WHERE map_id=(SELECT map_id FROM fact_map_pois WHERE id=?) AND id<>? ORDER BY name LIMIT 30");
-  $q->bind_param('ii', $id, $id);
-} else {
-  $q = $link->prepare("SELECT id, name FROM fact_map_pois WHERE map=? AND id<>? ORDER BY name LIMIT 30");
-  $q->bind_param('si', $poi['map_name'], $id);
-}
-$q->execute(); $r = $q->get_result();
-while ($row = $r->fetch_assoc()) { $others[] = $row; }
-$q->close();
-
-$lat = (float)$poi['latitude']; $lng = (float)$poi['longitude'];
 ?>
 
-<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
-<script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
+<link rel="stylesheet" href="/assets/css/hg-chapters.css">
 <link rel="stylesheet" href="/assets/css/hg-maps.css">
 
-<h2>Mapa · <?= htmlspecialchars($poi['map_name']) ?></h2>
+<div class="chapter-shell map-shell-root map-shell-root-detail">
+  <div class="chapter-hero map-hero">
+    <h2><?= htmlspecialchars((string)$poi['name'], ENT_QUOTES, 'UTF-8') ?></h2>
+    <span class="chapter-code"><?= htmlspecialchars((string)$poi['map_name'], ENT_QUOTES, 'UTF-8') ?></span>
+  </div>
 
-<div class="bioTextData">
-  <fieldset class='bioSeccion'>
-    <legend>&nbsp;<?= htmlspecialchars($poi['name']) ?>&nbsp;</legend>
-
-    <div class="map-toolbar">
-      <a class="boton2" href="/maps?map=<?= urlencode($poi['map_slug']) ?>">⬅️ Volver al mapa</a>
-      <button class="boton2" id="btnFullscreen">🔍 Pantalla completa</button>
-    </div>
-
-    <div class="map-detail-summary">
-      <b>Categoría:</b> <?= htmlspecialchars($poi['category_name']) ?><br>
-      <?php if (!empty($poi['thumbnail'])): ?>
-        <img class="map-thumb map-thumb-detail" src="<?= htmlspecialchars($poi['thumbnail']) ?>" alt="">
-      <?php endif; ?>
-      <?php if (!empty($poi['description'])): ?>
-        <div class="map-detail-description"><?= nl2br(htmlspecialchars($poi['description'])) ?></div>
+  <section class="chapter-block map-detail-nav-block">
+    <div class="map-action-cluster">
+      <a class="boton2" href="/maps?map=<?= urlencode((string)$poi['map_slug']) ?>">Volver al mapa</a>
+      <?php if ($fromMapIsDifferent): ?>
+        <a class="boton2" href="/maps?map=<?= urlencode((string)$fromMap['slug']) ?>">Volver a <?= htmlspecialchars((string)$fromMap['name'], ENT_QUOTES, 'UTF-8') ?></a>
       <?php endif; ?>
     </div>
+  </section>
 
-    <div id="hg-map-detail"></div>
+  <section class="chapter-block map-detail-article">
+    <h3 class="chapter-title">Ficha</h3>
 
-    <?php if ($others): ?>
-      <div class="map-detail-others">
-        <fieldset class="bioSeccion">
-          <legend>&nbsp;Otros puntos en <?= htmlspecialchars($poi['map_name']) ?>&nbsp;</legend>
-          <ul class="listaManadas map-detail-others-list">
-            <?php foreach ($others as $o): ?>
-              <li class="listaManadas map-detail-others-item">
-                <a href="/maps/poi/<?= (int)$o['id'] ?>" class="infoLink">➡️ <?= htmlspecialchars($o['name']) ?></a>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-        </fieldset>
+    <div class="map-detail-layout<?= !empty($poi['thumbnail']) ? '' : ' is-text-only' ?>">
+      <div class="map-detail-summary">
+        <div class="map-detail-badges">
+          <?php if (!empty($poi['category_name'])): ?>
+            <span class="map-popup-pill"><?= htmlspecialchars((string)$poi['category_name'], ENT_QUOTES, 'UTF-8') ?></span>
+          <?php endif; ?>
+          <?php if (!empty($poi['map_name'])): ?>
+            <span class="map-popup-pill map-popup-pill-map"><?= htmlspecialchars((string)$poi['map_name'], ENT_QUOTES, 'UTF-8') ?></span>
+          <?php endif; ?>
+        </div>
+
+        <?php if (!empty($poi['description'])): ?>
+          <div class="map-detail-description">
+            <?= nl2br(htmlspecialchars((string)$poi['description'], ENT_QUOTES, 'UTF-8')) ?>
+          </div>
+        <?php else: ?>
+          <p class="map-help-text">Este punto no tiene descripcion todavia.</p>
+        <?php endif; ?>
+
+        <?php if (!empty($poi['map_name']) || !empty($poi['category_name'])): ?>
+          <dl class="map-detail-meta">
+            <?php if (!empty($poi['map_name'])): ?>
+              <div>
+                <dt>Mapa</dt>
+                <dd><?= htmlspecialchars((string)$poi['map_name'], ENT_QUOTES, 'UTF-8') ?></dd>
+              </div>
+            <?php endif; ?>
+            <?php if (!empty($poi['category_name'])): ?>
+              <div>
+                <dt>Categoria</dt>
+                <dd><?= htmlspecialchars((string)$poi['category_name'], ENT_QUOTES, 'UTF-8') ?></dd>
+              </div>
+            <?php endif; ?>
+          </dl>
+        <?php endif; ?>
       </div>
-    <?php endif; ?>
-  </fieldset>
+
+      <?php if (!empty($poi['thumbnail'])): ?>
+        <div class="map-detail-media">
+          <img
+            class="map-thumb map-thumb-detail"
+            src="<?= htmlspecialchars((string)$poi['thumbnail'], ENT_QUOTES, 'UTF-8') ?>"
+            alt="<?= htmlspecialchars((string)$poi['name'], ENT_QUOTES, 'UTF-8') ?>"
+          >
+        </div>
+      <?php endif; ?>
+    </div>
+  </section>
+
+  <?php if ($relatedPois): ?>
+    <details class="chapter-block map-collapse">
+      <summary class="map-collapse-summary">Otros puntos en <?= htmlspecialchars((string)$poi['map_name'], ENT_QUOTES, 'UTF-8') ?></summary>
+      <div class="map-collapse-body">
+        <ul class="map-related-list">
+          <?php foreach ($relatedPois as $related): ?>
+            <li class="map-related-item">
+              <a href="<?= htmlspecialchars((string)$related['detail_url'], ENT_QUOTES, 'UTF-8') ?>" class="infoLink">
+                <?= htmlspecialchars((string)$related['name'], ENT_QUOTES, 'UTF-8') ?>
+              </a>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    </details>
+  <?php endif; ?>
 </div>
-
-<script>
-(function(){
-  const lat = <?= $lat ?>, lng = <?= $lng ?>;
-  const map = L.map('hg-map-detail', { zoomControl:true }).setView([lat,lng], 14);
-
-  L.tileLayer('<?= $tile['url'] ?>', {
-    attribution: '<?= $tile['attribution'] ?>',
-    subdomains: <?= json_encode($tile['subdomains']) ?>,
-    maxZoom: <?= (int)$tile['maxZoom'] ?>
-  }).addTo(map);
-
-  const pingIcon = L.divIcon({ className:'', html:'<div class="ping-wrap"><div class="ping-core"></div><div class="ping-wave"></div></div>', iconSize:[18,18], iconAnchor:[9,9] });
-  const marker = L.marker([lat,lng], { icon: pingIcon }).addTo(map);
-  marker.bindPopup(`<b><?= htmlspecialchars($poi['name']) ?></b><br><small><?= htmlspecialchars($poi['category_name']) ?></small>`).openPopup();
-
-  document.getElementById('btnFullscreen').addEventListener('click', () => {
-    const el = document.getElementById('hg-map-detail');
-    if (!document.fullscreenElement) el.requestFullscreen(); else document.exitFullscreen();
-  });
-
-  window.addEventListener('resize', () => map.invalidateSize());
-})();
-</script>
