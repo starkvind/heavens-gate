@@ -85,6 +85,18 @@
     font-size: 12px;
 }
 
+.hg-dice-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #d7e8ff;
+    font-size: 13px;
+}
+
+.hg-dice-check input {
+    accent-color: #00ccff;
+}
+
 .hg-dice-inp,
 .hg-dice-sel {
     width: 100%;

@@ -226,8 +226,23 @@ $opts_manadas_flat = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY
 
 /* --- PODERES: catálogos --- */
 $opts_dones        = fetchPairs($link, "SELECT id, CONCAT(name, ' (', gift_group, ')') AS name FROM fact_gifts");
-$opts_disciplinas  = fetchPairs($link, "SELECT nd.id, CONCAT(nd.name, ' (', ntd.name, ')') AS name FROM fact_discipline_powers nd LEFT JOIN dim_discipline_types ntd ON nd.disc = ntd.id");
+$opts_disciplinas  = fetchPairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY name");
 $opts_rituales     = fetchPairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id");
+$discipline_power_to_type = [];
+if ($st = $link->prepare("SELECT id, disc FROM fact_discipline_powers")) {
+    $st->execute();
+    if ($rs = $st->get_result()) {
+        while ($r = $rs->fetch_assoc()) {
+            $powerId = (int)($r['id'] ?? 0);
+            $typeIdRaw = trim((string)($r['disc'] ?? ''));
+            if ($powerId <= 0 || $typeIdRaw === '' || !ctype_digit($typeIdRaw)) continue;
+            $typeId = (int)$typeIdRaw;
+            if ($typeId <= 0) continue;
+            $discipline_power_to_type[$powerId] = $typeId;
+        }
+    }
+    $st->close();
+}
 
 /* --- MÉRITOS/DEFECTOS: catálogo completo (para select + chips) --- */
 $opts_myd_full = []; // [{id,name,tipo,coste}]
@@ -311,10 +326,11 @@ if ($has_bridge_systems_resources && $has_dim_systems_resources) {
 }
 
 /* --- TRAITS: catálogo (todos los tipos) --- */
-$traits_by_type = [];
-$trait_types = [];
+$traits_catalog = [];
+$valid_trait_ids = [];
 $monster_blocked_trait_ids = [];
 $trait_order_fixed = ['Atributos','Talentos','Técnicas','Conocimientos','Trasfondos'];
+$trait_kind_seen = [];
 if ($st = $link->prepare("
     SELECT id, name, kind, classification
     FROM dim_traits
@@ -325,14 +341,16 @@ if ($st = $link->prepare("
     while ($r = $rs->fetch_assoc()) {
         $kindTrait = (string)$r['kind'];
         $classification = (string)($r['classification'] ?? '');
-        if (!isset($traits_by_type[$kindTrait])) {
-            $traits_by_type[$kindTrait] = [];
-        }
-        $traits_by_type[$kindTrait][] = [
-            'id'=>(int)$r['id'],
+        $traitId = (int)($r['id'] ?? 0);
+        if ($traitId <= 0 || $kindTrait === '') continue;
+        $valid_trait_ids[$traitId] = true;
+        $traits_catalog[] = [
+            'id'=>$traitId,
             'name'=>(string)$r['name'],
+            'kind'=>$kindTrait,
             'classification'=>$classification,
         ];
+        $trait_kind_seen[$kindTrait] = true;
 
         $kindNorm = function_exists('mb_strtolower') ? mb_strtolower($kindTrait, 'UTF-8') : strtolower($kindTrait);
         $classNorm = function_exists('mb_strtolower') ? mb_strtolower($classification, 'UTF-8') : strtolower($classification);
@@ -341,15 +359,15 @@ if ($st = $link->prepare("
         $isBlockedForMonster = ($kindNorm === 'trasfondos')
             || ($isSec && in_array($kindNorm, ['talentos','tecnicas','conocimientos'], true));
         if ($isBlockedForMonster) {
-            $monster_blocked_trait_ids[(int)$r['id']] = true;
+            $monster_blocked_trait_ids[$traitId] = true;
         }
     }
     $st->close();
 }
 // Orden fijo + resto al final (alfabético)
-$trait_types = $trait_order_fixed;
-foreach (array_keys($traits_by_type) as $kind) {
-    if (!in_array($kind, $trait_types, true)) $trait_types[] = $kind;
+$trait_kind_order = $trait_order_fixed;
+foreach (array_keys($trait_kind_seen) as $kind) {
+    if (!in_array($kind, $trait_kind_order, true)) $trait_kind_order[] = $kind;
 }
 
 /* --- TRAIT SETS: orden por sistema --- */
@@ -653,40 +671,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $items_id    = isset($_POST['items_id']) ? array_map('intval',(array)$_POST['items_id']) : [];
 
     // TRAITS
-    $traits_was_submitted = isset($_POST['traits']) && is_array($_POST['traits']);
+    $traits_mode = trim((string)($_POST['traits_mode'] ?? ''));
+    $traits_full_raw = isset($_POST['traits']) && is_array($_POST['traits']) ? $_POST['traits'] : [];
+    $traits_upsert_raw = ($traits_mode === 'delta' && isset($_POST['traits_upsert']) && is_array($_POST['traits_upsert']))
+        ? $_POST['traits_upsert']
+        : [];
+    $traits_delete_raw = ($traits_mode === 'delta' && isset($_POST['traits_delete']))
+        ? (array)$_POST['traits_delete']
+        : [];
+    $traits_was_submitted = ($traits_mode === 'delta')
+        ? (!empty($traits_upsert_raw) || !empty($traits_delete_raw))
+        : !empty($traits_full_raw);
     $traits_dirty = ((string)($_POST['traits_dirty'] ?? '0') === '1');
     $should_save_traits = $traits_was_submitted && ($action === 'create' || $traits_dirty);
-    $traits_raw = $should_save_traits ? $_POST['traits'] : [];
     $traits = [];
-    foreach ($traits_raw as $tid => $val) {
-        $tid = (int)$tid;
-        if ($tid <= 0) continue;
-        $v = is_string($val) ? trim($val) : $val;
-        if ($v === '' || $v === null) { $v = 0; }
-        $v = (int)$v;
-        if ($v < 0) $v = 0;
-        if ($v > 10) $v = 10;
-        $traits[$tid] = $v;
-    }
-    // Filtrar: solo traits por defecto del sistema + traits con valor > 0
-    $default_trait_ids = [];
-    if ($system_id > 0 && isset($trait_set_order[$system_id])) {
-        $default_trait_ids = array_keys($trait_set_order[$system_id]);
-    }
-    if (!empty($traits)) {
-        $filtered = [];
-        foreach ($traits as $tid => $v) {
-            if ($v > 0 || in_array($tid, $default_trait_ids, true)) {
-                $filtered[$tid] = $v;
+    $traits_delete = [];
+    if ($should_save_traits) {
+        if ($traits_mode === 'delta') {
+            foreach ($traits_upsert_raw as $tid => $val) {
+                $tid = (int)$tid;
+                if ($tid <= 0 || !isset($valid_trait_ids[$tid])) continue;
+                $v = is_string($val) ? trim($val) : $val;
+                if ($v === '' || $v === null) $v = 0;
+                $v = (int)$v;
+                if ($v < 0) $v = 0;
+                if ($v > 10) $v = 10;
+                if ($v > 0) $traits[$tid] = $v;
+                else $traits_delete[$tid] = true;
+            }
+            foreach ($traits_delete_raw as $tid) {
+                $tid = (int)$tid;
+                if ($tid <= 0 || !isset($valid_trait_ids[$tid])) continue;
+                $traits_delete[$tid] = true;
+            }
+        } else {
+            foreach ($traits_full_raw as $tid => $val) {
+                $tid = (int)$tid;
+                if ($tid <= 0 || !isset($valid_trait_ids[$tid])) continue;
+                $v = is_string($val) ? trim($val) : $val;
+                if ($v === '' || $v === null) $v = 0;
+                $v = (int)$v;
+                if ($v < 0) $v = 0;
+                if ($v > 10) $v = 10;
+                if ($v > 0) $traits[$tid] = $v;
+                else $traits_delete[$tid] = true;
             }
         }
-        $traits = $filtered;
     }
     if ($isMonsterKind && !empty($traits) && !empty($monster_blocked_trait_ids)) {
         foreach (array_keys($monster_blocked_trait_ids) as $blockedTid) {
             unset($traits[(int)$blockedTid]);
         }
     }
+    foreach (array_keys($traits) as $traitId) {
+        unset($traits_delete[(int)$traitId]);
+    }
+    $traits_delete = array_map('intval', array_keys($traits_delete));
 
     // RECURSOS (nuevo modelo): arrays paralelos enviados desde chips del modal
     $resources_rows = [];
@@ -832,8 +872,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     
                     // Traits: solo si llegaron y fueron modificados en el modal (evita borrado accidental)
                     if ($should_save_traits) {
-                        $resultTr = save_character_traits($link, (int)$newId, $traits, 'admin', null);
-                        if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+                        $resultTr = save_character_traits($link, (int)$newId, $traits, $traits_delete, 'admin', null);
+                        if ($resultTr['updated']>0) {
+                            $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']];
+                        }
                     }
 
                     // Recursos (estado/permanente)
@@ -953,8 +995,10 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   
                   // Traits: solo si llegaron y fueron modificados en el modal (evita borrado accidental)
                   if ($should_save_traits) {
-                      $resultTr = save_character_traits($link, (int)$id, $traits, 'admin', null);
-                      if ($resultTr['updated']>0) { $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']]; }
+                      $resultTr = save_character_traits($link, (int)$id, $traits, $traits_delete, 'admin', null);
+                      if ($resultTr['updated']>0) {
+                          $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']];
+                      }
                   }
 
                   // Recursos (estado/permanente)
@@ -1203,13 +1247,26 @@ if (!empty($ids_page)) {
             $cid = (int)$pw['character_id'];
             $tp  = (string)$pw['power_kind'];
             $pid = (int)$pw['power_id'];
+            $rawPid = $pid;
             $lvl = (int)$pw['power_level'];
-            if ($tp==='dones')          { $nm = $opts_dones[$pid]        ?? ('#'.$pid); }
-            elseif ($tp==='disciplinas'){ $nm = $opts_disciplinas[$pid]  ?? ('#'.$pid); }
-            else                        { $nm = $opts_rituales[$pid]     ?? ('#'.$pid); }
-            $char_powers[$cid][] = ['t'=>$tp,'id'=>$pid,'lvl'=>$lvl,'name'=>$nm];
+            if ($tp === 'disciplinas' && !isset($opts_disciplinas[$pid]) && isset($discipline_power_to_type[$pid])) {
+                $pid = (int)$discipline_power_to_type[$pid];
+            }
+            if ($tp==='dones')          { $nm = $opts_dones[$pid]        ?? ('#'.$rawPid); }
+            elseif ($tp==='disciplinas'){ $nm = $opts_disciplinas[$pid]  ?? ('#'.$rawPid); }
+            else                        { $nm = $opts_rituales[$pid]     ?? ('#'.$rawPid); }
+            $key = $tp . ':' . $pid;
+            if (!isset($char_powers[$cid])) $char_powers[$cid] = [];
+            if (!isset($char_powers[$cid][$key])) {
+                $char_powers[$cid][$key] = ['t'=>$tp,'id'=>$pid,'lvl'=>$lvl,'name'=>$nm];
+            } elseif ($lvl > (int)$char_powers[$cid][$key]['lvl']) {
+                $char_powers[$cid][$key]['lvl'] = $lvl;
+            }
         }
         $qpow->close();
+    }
+    foreach ($char_powers as $cid => $rowsByKey) {
+        $char_powers[$cid] = array_values($rowsByKey);
     }
 }
 
@@ -1442,7 +1499,6 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
       <input type="hidden" name="id" id="f_id" value="0">
       <input type="hidden" name="csrf" id="f_csrf" value="<?= h($ADMIN_CSRF_TOKEN) ?>">
       <input type="hidden" name="traits_dirty" id="f_traits_dirty" value="0">
-
       <div class="grid">
         <div>
           <label>Nombre
@@ -1662,25 +1718,13 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
         <!-- TRAITS -->
         <div class="kind-pj-only adm-grid-full">
           <label><strong>Traits</strong></label>
-          <div class="traits-grid">
-            <?php foreach ($trait_types as $tipo): $list = $traits_by_type[$tipo] ?? []; if (!$list) continue; ?>
-              <div class="traits-group">
-                <div class="traits-title"><?= h($tipo) ?></div>
-                <div class="traits-items">
-                  <?php foreach ($list as $t): ?>
-                    <label class="trait-item"
-                           data-trait-name="<?= h($t['name']) ?>"
-                           data-trait-kind="<?= h($tipo) ?>"
-                           data-trait-classification="<?= h((string)($t['classification'] ?? '')) ?>">
-                      <span><?= h($t['name']) ?></span>
-                      <input class="inp trait-input" type="number" min="0" max="10" name="traits[<?= (int)$t['id'] ?>]" data-trait-id="<?= (int)$t['id'] ?>" value="0">
-                    </label>
-                  <?php endforeach; ?>
-                </div>
-              </div>
-            <?php endforeach; ?>
+          <div class="traits-grid" id="traitsDefaultList"></div>
+          <div class="grid adm-grid-2-auto">
+            <select class="select" id="trait_sel"></select>
+            <button class="btn" type="button" id="trait_add">Añadir</button>
           </div>
-          <span class="small-note">Se guardan en bridge_characters_traits.</span>
+          <div class="chips" id="traitExtraList"></div>
+          <span class="small-note">Se cargan los traits base del sistema; el resto se añaden manualmente. Se guardan en bridge_characters_traits.</span>
         </div>
 
         <!-- RECURSOS -->
@@ -1708,7 +1752,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
             <button class="btn" type="button" id="pow_add">Añadir</button>
           </div>
           <div class="chips" id="powersList"></div>
-          <span class="small-note">Los poderes listados aquí se guardarán con el personaje.</span>
+          <span class="small-note">Las Disciplinas se guardan como tipo de Disciplina + nivel; dones y rituales siguen guardándose como poderes concretos.</span>
         </div>
 
         <!-- MÉRITOS Y DEFECTOS -->
@@ -1774,7 +1818,9 @@ $jsBoot = [
   'RESOURCE_OPTS' => $opts_resources_full,
   'SYS_RESOURCES_BY_SYS' => $sys_resources_by_system,
   'CHAR_RESOURCES' => $char_resources,
+  'TRAITS_OPTS' => $traits_catalog,
   'CHAR_TRAITS' => $char_traits,
+  'TRAIT_KIND_ORDER' => $trait_kind_order,
   'TRAIT_SET_ORDER' => $trait_set_order,
   'CHAR_DETAILS' => $char_details,
   'DEFAULT_STATUS_ID' => (int)$default_status_id,

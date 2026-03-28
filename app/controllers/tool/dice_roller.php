@@ -76,6 +76,10 @@ function sanitize_int_csv(string $csv): string {
     return implode(',', $ints);
 }
 
+function hg_strlen(string $value): int {
+    return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
+}
+
 function fetch_pj_list(mysqli $link): array {
     $out = [];
     global $excludeChronicles;
@@ -183,6 +187,7 @@ function render_roll_card(array $tirada, int $id): void {
     $dicePool = (int)$tirada['dice_pool'];
     $successes = (int)$tirada['successes'];
     $isBotch = (int)$tirada['botch'] === 1;
+    $willpowerSpent = !empty($tirada['willpower_spent']);
     $palette = '#05014E';
     $codeText = "[hg_tirada]{$id}[/hg_tirada]";
     $safeCodeText = htmlspecialchars($codeText, ENT_QUOTES, 'UTF-8');
@@ -200,7 +205,9 @@ function render_roll_card(array $tirada, int $id): void {
     }
 
     echo "</div>";
-    echo "<p><strong>Éxitos</strong>: {$successes}</p>";
+    echo "<p><strong>&Eacute;xitos</strong>: {$successes}";
+    if ($willpowerSpent) echo " <span class='hg-dice-help'>(+1 por Fuerza de Voluntad)</span>";
+    echo "</p>";
     if ($isBotch) echo "<p class='hg-forum-roll-botch'><strong>¡PIFIA!</strong></p>";
     echo "<div class='hg-forum-roll-code'><code>{$safeCodeText}</code><button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$safeCodeText}' title='Copiar codigo'>&#128203;</button></div>";
     echo "</div>";
@@ -214,6 +221,7 @@ $form_attr_trait_id = 0;
 $form_skill_trait_id = 0;
 $form_resource_id = 0;
 $form_extra_dice = 0;
+$form_willpower_spent = 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $roll_mode = ((string)($_POST['roll_mode'] ?? 'free') === 'pj') ? 'pj' : 'free';
@@ -222,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dados = 0;
     $dificultad = (int)($_POST['dificultad'] ?? 0);
     $debug_forced_rolls = parse_debug_rolls((string)($_POST['debug_forced_rolls'] ?? ''));
+    $form_willpower_spent = isset($_POST['willpower_spent']) ? 1 : 0;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     $maxDados = 20;
 
@@ -271,6 +280,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje_error = 'Parametros invalidos.';
     } elseif ($mensaje_error === '' && !empty($debug_forced_rolls) && count($debug_forced_rolls) !== $dados) {
         $mensaje_error = 'El debug no coincide con el numero de dados.';
+    } elseif ($mensaje_error === '' && hg_strlen($nombre_jugador) > 50) {
+        $mensaje_error = 'El nombre del jugador/personaje no puede superar 50 caracteres.';
+    } elseif ($mensaje_error === '' && hg_strlen($tirada_nombre) > 150) {
+        $mensaje_error = 'El nombre de la tirada no puede superar 150 caracteres.';
     }
 
     if ($mensaje_error === '') {
@@ -300,17 +313,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($mensaje_error === '') {
         [$resultados, $exitos, $pifia] = roll_d10_pool($dados, $dificultad, $debug_forced_rolls);
+        if ($form_willpower_spent === 1) {
+            $exitos++;
+            $pifia = false;
+        }
         $pifia_valor = $pifia ? 1 : 0;
         $str_resultados = implode(',', $resultados);
 
-        $query = "INSERT INTO fact_dice_rolls (name, roll_name, dice_pool, difficulty, roll_results, successes, botch, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $query = "INSERT INTO fact_dice_rolls (name, roll_name, dice_pool, difficulty, roll_results, successes, botch, willpower_spent, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = mysqli_prepare($link, $query);
-        mysqli_stmt_bind_param($stmt, 'ssiisiss', $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia_valor, $ip);
-        mysqli_stmt_execute($stmt);
-
-        $last_id = mysqli_insert_id($link);
-        header("Location: /tools/dice?see=$last_id");
-        exit;
+        if (!$stmt) {
+            $mensaje_error = 'No se pudo preparar el guardado de la tirada: ' . mysqli_error($link);
+        } else {
+            mysqli_stmt_bind_param($stmt, 'ssiisiiis', $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia_valor, $form_willpower_spent, $ip);
+            if (!mysqli_stmt_execute($stmt)) {
+                $mensaje_error = 'No se pudo guardar la tirada: ' . mysqli_stmt_error($stmt);
+            } else {
+                $last_id = mysqli_insert_id($link);
+                if ($last_id > 0) {
+                    header("Location: /tools/dice?see=$last_id");
+                    exit;
+                }
+                $mensaje_error = 'La tirada no devolvio un identificador valido al guardarse.';
+            }
+            mysqli_stmt_close($stmt);
+        }
     }
 }
 
@@ -350,7 +377,7 @@ if (!isset($_GET['see'])) {
     echo "</div>";
 
     echo "<div><label class='hg-dice-label' for='nombre'>Nombre del jugador / personaje</label><input class='hg-dice-inp' type='text' name='nombre' id='nombre' maxlength='50' value='{$selectedName}' required></div>";
-    echo "<div><label class='hg-dice-label' for='tirada_nombre'>Nombre de la tirada (único)</label><input class='hg-dice-inp' type='text' name='tirada_nombre' id='tirada_nombre' maxlength='80' placeholder='Ej: Ataque del lobo' value='{$selectedRollName}' required></div>";
+    echo "<div><label class='hg-dice-label' for='tirada_nombre'>Nombre de la tirada (único)</label><input class='hg-dice-inp' type='text' name='tirada_nombre' id='tirada_nombre' maxlength='150' placeholder='Ej: Ataque del lobo' value='{$selectedRollName}' required></div>";
 
     echo "<div id='roll-panel-free' class='hg-roll-panel'>";
     echo "<div><label class='hg-dice-label' for='dados'>Dados (1-20)</label><select class='hg-dice-sel' name='dados' id='dados'>";
@@ -358,11 +385,11 @@ if (!isset($_GET['see'])) {
         $sel = ($i === $selectedDados) ? " selected" : "";
         echo "<option value='{$i}'{$sel}>{$i}</option>";
     }
-    echo "</select><p class='hg-dice-help'>Modo clasico: eliges solo el numero de dados.</p></div>";
+    echo "</select><p class='hg-dice-help'>Modo cl&aacute;sico: eliges solo el numero de dados.</p></div>";
     echo "</div>";
 
     echo "<div id='roll-panel-pj' class='hg-roll-panel'>";
-    echo "<div><label class='hg-dice-label' for='character_id'>Protagonista (PJ)</label><select class='hg-dice-sel' name='character_id' id='character_id'><option value='0'>Selecciona protagonista...</option>";
+    echo "<div style='margin-bottom:1em;'><label class='hg-dice-label' for='character_id'>Protagonista (PJ)</label><select class='hg-dice-sel' name='character_id' id='character_id'><option value='0'>Selecciona protagonista...</option>";
     foreach ($pjList as $pjRow) {
         $cid = (int)$pjRow['id'];
         $pname = htmlspecialchars((string)$pjRow['name'], ENT_QUOTES, 'UTF-8');
@@ -373,7 +400,7 @@ if (!isset($_GET['see'])) {
     }
     echo "</select></div>";
 
-    echo "<div class='hg-dice-row'>";
+    echo "<div class='hg-dice-row' style='margin-bottom:1em;'>";
     echo "<div><label class='hg-dice-label' for='attr_trait_id'>Atributo</label><select class='hg-dice-sel' name='attr_trait_id' id='attr_trait_id'><option value='0'>-- Ninguno --</option></select></div>";
     echo "<div><label class='hg-dice-label' for='skill_trait_id'>Habilidad / Trasfondo</label><select class='hg-dice-sel' name='skill_trait_id' id='skill_trait_id'><option value='0'>-- Ninguno --</option></select></div>";
     echo "</div>";
@@ -398,6 +425,8 @@ if (!isset($_GET['see'])) {
         echo "<option value='{$i}'{$sel}>{$i}</option>";
     }
     echo "</select></div>";
+    $checkedWillpower = ($form_willpower_spent === 1) ? " checked" : "";
+    echo "<div><label class='hg-dice-label' for='willpower_spent'>Reglas opcionales</label><label class='hg-dice-check'><input type='checkbox' name='willpower_spent' id='willpower_spent' value='1'{$checkedWillpower}> Gasto de Fuerza de Voluntad (+1 &Eacute;xito automatico)</label></div>";
     echo "<input type='hidden' name='debug_forced_rolls' id='debug_forced_rolls' value=''>";
     echo "<div class='hg-dice-actions'><button class='boton2' type='submit'>Tirar</button></div>";
     echo "</form>";
@@ -410,7 +439,7 @@ if (!isset($_GET['see'])) {
 
 if (!isset($_GET['see'])) {
     $rolls = [];
-    $query = "SELECT id, roll_name, name, successes, botch, rolled_at FROM fact_dice_rolls ORDER BY rolled_at DESC";
+    $query = "SELECT id, roll_name, name, successes, botch, willpower_spent, rolled_at FROM fact_dice_rolls ORDER BY rolled_at DESC";
     if ($rs = mysqli_query($link, $query)) {
         while ($r = mysqli_fetch_assoc($rs)) { $rolls[] = $r; }
         mysqli_free_result($rs);
@@ -427,7 +456,7 @@ if (!isset($_GET['see'])) {
         $player = htmlspecialchars((string)$r['name'], ENT_QUOTES, 'UTF-8');
         $successes = (int)$r['successes'];
         $isBotch = ((int)$r['botch'] === 1);
-        $estado = $isBotch ? 'Pifia' : (($successes > 0) ? 'Exito' : 'Fallo');
+        $estado = $isBotch ? 'Pifia' : (($successes > 0) ? 'Éxito' : 'Fallo');
         $pillClass = $isBotch ? 'hg-pill hg-pill--botch' : (($successes > 0) ? 'hg-pill hg-pill--ok' : 'hg-pill hg-pill--fail');
         $date = htmlspecialchars((string)$r['rolled_at'], ENT_QUOTES, 'UTF-8');
         $rollUrl = "/tools/dice?see={$id}";

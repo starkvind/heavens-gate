@@ -95,7 +95,9 @@ var SYS_RESOURCES_BY_SYS = BOOT.SYS_RESOURCES_BY_SYS || {};
 var CHAR_RESOURCES       = BOOT.CHAR_RESOURCES || {};
 
 // TRAITS
+var TRAITS_OPTS      = Array.isArray(BOOT.TRAITS_OPTS) ? BOOT.TRAITS_OPTS : [];
 var CHAR_TRAITS      = BOOT.CHAR_TRAITS || {};
+var TRAIT_KIND_ORDER = Array.isArray(BOOT.TRAIT_KIND_ORDER) ? BOOT.TRAIT_KIND_ORDER : [];
 var TRAIT_SET_ORDER  = BOOT.TRAIT_SET_ORDER || {};
 var CHAR_DETAILS     = BOOT.CHAR_DETAILS || {};
 var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
@@ -160,9 +162,26 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   var resAdd   = document.getElementById('res_add');
   var resList  = document.getElementById('resourceList');
   var fTraitsDirty = document.getElementById('f_traits_dirty');
-  var traitInputs = document.querySelectorAll('.trait-input');
+  var traitSel = document.getElementById('trait_sel');
+  var traitAdd = document.getElementById('trait_add');
+  var traitDefaultList = document.getElementById('traitsDefaultList');
+  var traitExtraList = document.getElementById('traitExtraList');
   var pjOnlyBlocks = document.querySelectorAll('.kind-pj-only');
   var noMonsterBlocks = document.querySelectorAll('.kind-no-monster');
+  var traitMetaById = {};
+  var traitBaseline = {};
+  var traitTouchedIds = {};
+  var traitRemovedIds = {};
+
+  function rebuildTraitMetaIndex(){
+    traitMetaById = {};
+    (TRAITS_OPTS || []).forEach(function(trait){
+      var id = parseInt(trait && trait.id, 10) || 0;
+      if (!id) return;
+      traitMetaById[String(id)] = trait;
+    });
+  }
+  rebuildTraitMetaIndex();
 
   function applyBootData(nextBoot){
     if (!nextBoot || typeof nextBoot !== 'object') return;
@@ -189,9 +208,12 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     RESOURCE_OPTS = Array.isArray(nextBoot.RESOURCE_OPTS) ? nextBoot.RESOURCE_OPTS : RESOURCE_OPTS;
     SYS_RESOURCES_BY_SYS = nextBoot.SYS_RESOURCES_BY_SYS || SYS_RESOURCES_BY_SYS;
     CHAR_RESOURCES = nextBoot.CHAR_RESOURCES || CHAR_RESOURCES;
+    TRAITS_OPTS = Array.isArray(nextBoot.TRAITS_OPTS) ? nextBoot.TRAITS_OPTS : TRAITS_OPTS;
     CHAR_TRAITS = nextBoot.CHAR_TRAITS || CHAR_TRAITS;
+    TRAIT_KIND_ORDER = Array.isArray(nextBoot.TRAIT_KIND_ORDER) ? nextBoot.TRAIT_KIND_ORDER : TRAIT_KIND_ORDER;
     TRAIT_SET_ORDER = nextBoot.TRAIT_SET_ORDER || TRAIT_SET_ORDER;
     CHAR_DETAILS = nextBoot.CHAR_DETAILS || CHAR_DETAILS;
+    rebuildTraitMetaIndex();
   }
   function bindEditButtons(scope){
     var root = scope || document;
@@ -292,33 +314,400 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     return v;
   }
 
-  function applyMonsterTraitFilter(kind, trackTraitChanges){
-    var isMonster = (normalizeText(kind) === 'monster' || normalizeText(kind) === 'mon');
-    document.querySelectorAll('.trait-item').forEach(function(item){
-      var k = normalizeText(item.getAttribute('data-trait-kind') || '');
-      var c = normalizeText(item.getAttribute('data-trait-classification') || '');
-      var hide = false;
-      if (isMonster) {
-        hide = (k === 'trasfondos') || (
-          (k === 'talentos' || k === 'tecnicas' || k === 'conocimientos') &&
-          c.indexOf('002 secundarias') === 0
-        );
-      }
-      item.style.display = hide ? 'none' : '';
-      if (hide) {
-        var inp = item.querySelector('.trait-input');
-        if (inp && inp.value !== '0') {
-          inp.value = '0';
-          if (trackTraitChanges) markTraitsDirty();
+  function isMonsterKind(kind){
+    var normalized = normalizeText(kind);
+    return normalized === 'monster' || normalized === 'mon';
+  }
+
+  function getTraitInputs(){
+    return document.querySelectorAll('.trait-input');
+  }
+
+  function getTraitMeta(traitId){
+    return traitMetaById[String(parseInt(traitId, 10) || 0)] || null;
+  }
+
+  function isTraitBlockedForMonster(trait){
+    if (!trait) return false;
+    var kindNorm = normalizeText(trait.kind || '');
+    var classNorm = normalizeText(trait.classification || '');
+    var isSecondary = classNorm.indexOf('002 secundarias') === 0;
+    return kindNorm === 'trasfondos'
+      || (isSecondary && (kindNorm === 'talentos' || kindNorm === 'tecnicas' || kindNorm === 'conocimientos'));
+  }
+
+  function getSystemTraitIds(systemId){
+    var orderMap = (TRAIT_SET_ORDER && systemId && TRAIT_SET_ORDER[String(systemId)]) ? TRAIT_SET_ORDER[String(systemId)] : {};
+    return Object.keys(orderMap).sort(function(a, b){
+      var ao = parseInt(orderMap[a], 10);
+      var bo = parseInt(orderMap[b], 10);
+      if (ao !== bo) return ao - bo;
+      var am = getTraitMeta(a);
+      var bm = getTraitMeta(b);
+      var an = normalizeText(am ? am.name : ('#' + a));
+      var bn = normalizeText(bm ? bm.name : ('#' + b));
+      return an.localeCompare(bn);
+    }).map(function(id){
+      return parseInt(id, 10) || 0;
+    }).filter(Boolean);
+  }
+
+  function getTraitKindOrder(kinds){
+    var known = Array.isArray(TRAIT_KIND_ORDER) ? TRAIT_KIND_ORDER.slice() : [];
+    var extra = (kinds || []).filter(function(kind){
+      return known.indexOf(kind) === -1;
+    }).sort(function(a, b){
+      return normalizeText(a).localeCompare(normalizeText(b));
+    });
+    return known.concat(extra).filter(function(kind){
+      return (kinds || []).indexOf(kind) !== -1;
+    });
+  }
+
+  function collectTraitValues(){
+    var map = {};
+    Array.prototype.forEach.call(getTraitInputs(), function(inp){
+      var tid = parseInt(inp.getAttribute('data-trait-id'), 10) || 0;
+      if (!tid) return;
+      var val = parseInt(inp.value, 10);
+      if (isNaN(val) || val < 0) val = 0;
+      if (val > 10) val = 10;
+      map[tid] = val;
+    });
+    return map;
+  }
+
+  function collectExtraTraitIds(){
+    var ids = [];
+    if (!traitExtraList) return ids;
+    Array.prototype.forEach.call(traitExtraList.querySelectorAll('.trait-chip'), function(chip){
+      var tid = parseInt(chip.dataset.id, 10) || 0;
+      if (tid) ids.push(tid);
+    });
+    return ids;
+  }
+
+  function normalizeTraitValue(value){
+    var normalized = parseInt(value, 10);
+    if (isNaN(normalized) || normalized < 0) normalized = 0;
+    if (normalized > 10) normalized = 10;
+    return normalized;
+  }
+
+  function cloneTraitMap(map){
+    var out = {};
+    Object.keys(map || {}).forEach(function(key){
+      var tid = parseInt(key, 10) || 0;
+      if (!tid) return;
+      out[String(tid)] = normalizeTraitValue(map[key]);
+    });
+    return out;
+  }
+
+  function getTraitMapValue(map, traitId){
+    var key = String(parseInt(traitId, 10) || 0);
+    if (!key || key === '0') return 0;
+    if (!map || !Object.prototype.hasOwnProperty.call(map, key)) return 0;
+    return normalizeTraitValue(map[key]);
+  }
+
+  function setTraitBaseline(map){
+    traitBaseline = cloneTraitMap(map || {});
+    traitTouchedIds = {};
+    traitRemovedIds = {};
+    resetTraitsDirty();
+  }
+
+  function markTraitTouched(traitId){
+    traitId = parseInt(traitId, 10) || 0;
+    if (!traitId) return;
+    var key = String(traitId);
+    traitTouchedIds[key] = true;
+    delete traitRemovedIds[key];
+    markTraitsDirty();
+  }
+
+  function markTraitRemoved(traitId){
+    traitId = parseInt(traitId, 10) || 0;
+    if (!traitId) return;
+    var key = String(traitId);
+    traitRemovedIds[key] = true;
+    traitTouchedIds[key] = true;
+    markTraitsDirty();
+  }
+
+  function onTraitInputChange(ev){
+    var target = ev && ev.target ? ev.target : null;
+    var traitId = parseInt(target && target.getAttribute('data-trait-id'), 10) || 0;
+    if (!traitId) return;
+    markTraitTouched(traitId);
+  }
+
+  function buildTraitDelta(){
+    var currentMap = cloneTraitMap(collectTraitValues());
+    var upserts = {};
+    var deleteMap = {};
+
+    Object.keys(traitTouchedIds).forEach(function(key){
+      var traitId = parseInt(key, 10) || 0;
+      if (!traitId) return;
+      var baselineValue = getTraitMapValue(traitBaseline, traitId);
+      var hasCurrent = Object.prototype.hasOwnProperty.call(currentMap, String(traitId));
+      if (!hasCurrent) {
+        if (traitRemovedIds[key] && baselineValue > 0) {
+          deleteMap[String(traitId)] = traitId;
         }
+        return;
+      }
+
+      var currentValue = getTraitMapValue(currentMap, traitId);
+      if (currentValue > 0) {
+        if (currentValue !== baselineValue) {
+          upserts[String(traitId)] = currentValue;
+        }
+        return;
+      }
+
+      if (baselineValue > 0) {
+        deleteMap[String(traitId)] = traitId;
       }
     });
+
+    Object.keys(traitRemovedIds).forEach(function(key){
+      var traitId = parseInt(key, 10) || 0;
+      if (!traitId) return;
+      if (getTraitMapValue(traitBaseline, traitId) > 0) {
+        deleteMap[String(traitId)] = traitId;
+      }
+    });
+
+    return {
+      upserts: upserts,
+      deletes: Object.keys(deleteMap).map(function(key){
+        return parseInt(deleteMap[key], 10) || 0;
+      }).filter(Boolean)
+    };
+  }
+
+  function createTraitField(meta, value){
+    var label = document.createElement('label');
+    label.className = 'trait-item';
+    label.setAttribute('data-trait-name', meta.name || ('#' + meta.id));
+    label.setAttribute('data-trait-kind', meta.kind || '');
+    label.setAttribute('data-trait-classification', meta.classification || '');
+
+    var text = document.createElement('span');
+    text.textContent = meta.name || ('#' + meta.id);
+    label.appendChild(text);
+
+    var input = document.createElement('input');
+    input.className = 'inp trait-input';
+    input.type = 'number';
+    input.min = '0';
+    input.max = '10';
+    input.name = 'traits[' + meta.id + ']';
+    input.setAttribute('data-trait-id', String(meta.id));
+    input.value = String(Math.max(0, Math.min(10, parseInt(value, 10) || 0)));
+    input.addEventListener('input', onTraitInputChange);
+    input.addEventListener('change', onTraitInputChange);
+    label.appendChild(input);
+
+    return label;
+  }
+
+  function renderDefaultTraits(systemId, values){
+    if (!traitDefaultList) return;
+    traitDefaultList.innerHTML = '';
+
+    var groups = {};
+    var isMonster = isMonsterKind(selKind ? selKind.value : '');
+    getSystemTraitIds(systemId).forEach(function(traitId){
+      var meta = getTraitMeta(traitId);
+      if (!meta) return;
+      if (isMonster && isTraitBlockedForMonster(meta)) return;
+      if (!groups[meta.kind]) groups[meta.kind] = [];
+      groups[meta.kind].push(meta);
+    });
+
+    var groupKinds = getTraitKindOrder(Object.keys(groups));
+    if (!groupKinds.length) {
+      var empty = document.createElement('div');
+      empty.className = 'small-note';
+      empty.textContent = systemId ? 'Este sistema no tiene traits base configurados.' : 'Selecciona un sistema para cargar sus traits base.';
+      traitDefaultList.appendChild(empty);
+      return;
+    }
+
+    groupKinds.forEach(function(kind){
+      var group = document.createElement('div');
+      group.className = 'traits-group';
+
+      var title = document.createElement('div');
+      title.className = 'traits-title';
+      title.textContent = kind;
+      group.appendChild(title);
+
+      var items = document.createElement('div');
+      items.className = 'traits-items';
+
+      groups[kind].forEach(function(meta){
+        var traitId = parseInt(meta.id, 10) || 0;
+        items.appendChild(createTraitField(meta, values && values[traitId] !== undefined ? values[traitId] : 0));
+      });
+
+      group.appendChild(items);
+      traitDefaultList.appendChild(group);
+    });
+  }
+
+  function refreshTraitSelect(){
+    if (!traitSel) return;
+    var sys = parseInt(selSistema && selSistema.value, 10) || 0;
+    var exclude = {};
+    getSystemTraitIds(sys).forEach(function(id){ exclude[String(id)] = true; });
+    collectExtraTraitIds().forEach(function(id){ exclude[String(id)] = true; });
+    var isMonster = isMonsterKind(selKind ? selKind.value : '');
+    var list = (TRAITS_OPTS || []).filter(function(trait){
+      if (!trait || !trait.id) return false;
+      if (exclude[String(trait.id)]) return false;
+      if (isMonster && isTraitBlockedForMonster(trait)) return false;
+      return true;
+    }).sort(function(a, b){
+      var aKindIdx = TRAIT_KIND_ORDER.indexOf(a.kind);
+      var bKindIdx = TRAIT_KIND_ORDER.indexOf(b.kind);
+      var ao = aKindIdx >= 0 ? aKindIdx : 9999;
+      var bo = bKindIdx >= 0 ? bKindIdx : 9999;
+      if (ao !== bo) return ao - bo;
+      var an = normalizeText(a.name || ('#' + a.id));
+      var bn = normalizeText(b.name || ('#' + b.id));
+      return an.localeCompare(bn);
+    }).map(function(trait){
+      return {
+        id: trait.id,
+        name: (trait.name || ('#' + trait.id)) + (trait.kind ? ' — ' + trait.kind : '')
+      };
+    });
+
+    fillSelectFrom(list, traitSel, '— Sin traits extra —', 0);
+  }
+
+  function addTraitChip(traitId, value){
+    if (!traitExtraList) return;
+    traitId = parseInt(traitId, 10) || 0;
+    if (!traitId) return;
+    delete traitRemovedIds[String(traitId)];
+
+    var existing = Array.prototype.find.call(traitExtraList.querySelectorAll('.trait-chip'), function(chip){
+      return (parseInt(chip.dataset.id, 10) || 0) === traitId;
+    });
+    if (existing) {
+      var existingInput = existing.querySelector('.trait-input');
+      if (existingInput && value !== undefined && value !== null) {
+        existingInput.value = String(Math.max(0, Math.min(10, parseInt(value, 10) || 0)));
+      }
+      return;
+    }
+
+    var meta = getTraitMeta(traitId) || { id: traitId, name: '#' + traitId, kind: 'Trait', classification: '' };
+    var chip = document.createElement('span');
+    chip.className = 'chip trait-chip';
+    chip.dataset.id = String(traitId);
+    chip.dataset.kind = meta.kind || '';
+
+    var tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = meta.kind || 'Trait';
+    chip.appendChild(tag);
+
+    var name = document.createElement('span');
+    name.className = 'pname';
+    name.textContent = meta.name || ('#' + traitId);
+    chip.appendChild(name);
+
+    var input = document.createElement('input');
+    input.className = 'inp trait-input';
+    input.type = 'number';
+    input.min = '0';
+    input.max = '10';
+    input.name = 'traits[' + traitId + ']';
+    input.setAttribute('data-trait-id', String(traitId));
+    input.value = String(Math.max(0, Math.min(10, parseInt(value, 10) || 0)));
+    input.addEventListener('input', onTraitInputChange);
+    input.addEventListener('change', onTraitInputChange);
+    chip.appendChild(input);
+
+    var btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'btn btn-red btn-del-trait';
+    btnDel.textContent = 'X';
+    btnDel.addEventListener('click', function(){
+      markTraitRemoved(traitId);
+      chip.remove();
+      refreshTraitSelect();
+    });
+    chip.appendChild(btnDel);
+
+    traitExtraList.appendChild(chip);
+  }
+
+  function renderExtraTraits(systemId, values, preserveIds){
+    if (!traitExtraList) return;
+    traitExtraList.innerHTML = '';
+
+    var defaultMap = {};
+    getSystemTraitIds(systemId).forEach(function(id){ defaultMap[String(id)] = true; });
+    var keepMap = {};
+    (preserveIds || []).forEach(function(id){
+      id = parseInt(id, 10) || 0;
+      if (id) keepMap[String(id)] = true;
+    });
+    Object.keys(values || {}).forEach(function(id){
+      var numericId = parseInt(id, 10) || 0;
+      if (numericId && (parseInt(values[id], 10) || 0) > 0) {
+        keepMap[String(numericId)] = true;
+      }
+    });
+
+    var isMonster = isMonsterKind(selKind ? selKind.value : '');
+    Object.keys(keepMap).map(function(id){
+      return parseInt(id, 10) || 0;
+    }).filter(Boolean).sort(function(a, b){
+      var am = getTraitMeta(a) || { kind: '', name: '#' + a };
+      var bm = getTraitMeta(b) || { kind: '', name: '#' + b };
+      var aKindIdx = TRAIT_KIND_ORDER.indexOf(am.kind);
+      var bKindIdx = TRAIT_KIND_ORDER.indexOf(bm.kind);
+      var ao = aKindIdx >= 0 ? aKindIdx : 9999;
+      var bo = bKindIdx >= 0 ? bKindIdx : 9999;
+      if (ao !== bo) return ao - bo;
+      return normalizeText(am.name).localeCompare(normalizeText(bm.name));
+    }).forEach(function(traitId){
+      var meta = getTraitMeta(traitId) || { id: traitId, name: '#' + traitId, kind: 'Trait', classification: '' };
+      if (defaultMap[String(traitId)]) return;
+      if (isMonster && isTraitBlockedForMonster(meta)) return;
+      addTraitChip(traitId, values && values[traitId] !== undefined ? values[traitId] : 0);
+    });
+  }
+
+  function renderTraitsUI(values, preserveExtraIds){
+    var traitValues = values || collectTraitValues();
+    var manualIds = Array.isArray(preserveExtraIds) ? preserveExtraIds : collectExtraTraitIds();
+    var systemId = parseInt(selSistema && selSistema.value, 10) || 0;
+    renderDefaultTraits(systemId, traitValues);
+    renderExtraTraits(systemId, traitValues, manualIds);
+    refreshTraitSelect();
+  }
+
+  function applyMonsterTraitFilter(_kind, trackTraitChanges){
+    var currentValues = collectTraitValues();
+    var currentExtraIds = collectExtraTraitIds();
+    renderTraitsUI(currentValues, currentExtraIds);
+    if (trackTraitChanges) markTraitsDirty();
   }
 
   function applyKindVisibility(kind, trackTraitChanges){
     var k = String(kind || '').toLowerCase();
     var isPj = (k !== 'pnj');
-    var isMonster = (normalizeText(k) === 'monster' || normalizeText(k) === 'mon');
+    var isMonster = isMonsterKind(k);
     pjOnlyBlocks.forEach(function(block){
       block.style.display = isPj ? '' : 'none';
     });
@@ -329,30 +718,36 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   }
 
   function clearSelect(sel, keepFirst){
-    while (sel.options.length > (keepFirst?1:0)) sel.remove(keepFirst?1:0);
+    while (sel.options.length > (keepFirst ? 1 : 0)) sel.remove(keepFirst ? 1 : 0);
   }
 
   function fillSelectFrom(list, sel, placeholder, preselect){
-    clearSelect(sel,false);
+    clearSelect(sel, false);
 
     if (!list || !list.length){
       sel.disabled = true;
-      var o=document.createElement('option'); o.value='0'; o.textContent=placeholder;
+      var o = document.createElement('option');
+      o.value = '0';
+      o.textContent = placeholder;
       sel.appendChild(o);
-      sel.value='0';
+      sel.value = '0';
       reinitSelect2(sel);
       return false;
     }
 
     sel.disabled = false;
-    var ph=document.createElement('option'); ph.value='0'; ph.textContent='— Elige —';
+    var ph = document.createElement('option');
+    ph.value = '0';
+    ph.textContent = '— Elige —';
     sel.appendChild(ph);
 
-    var found=false;
+    var found = false;
     list.forEach(function(it){
-      var o=document.createElement('option'); o.value=String(it.id); o.textContent=it.name;
+      var o = document.createElement('option');
+      o.value = String(it.id);
+      o.textContent = it.name;
       sel.appendChild(o);
-      if (preselect && String(preselect)===String(it.id)) found=true;
+      if (preselect && String(preselect) === String(it.id)) found = true;
     });
 
     sel.value = found ? String(preselect) : '0';
@@ -361,35 +756,35 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   }
 
   function updateManadas(clanId, preselect){
-    var list = MANADAS_BY_CLAN[String(clanId||0)] || [];
+    var list = MANADAS_BY_CLAN[String(clanId || 0)] || [];
     fillSelectFrom(list, selManada, '— Sin manadas en este Clan —', preselect);
   }
 
   function updateSistemaSets(sys, preRaza, preAusp, preTribu){
     if (!sys){
-      clearSelect(selRaza,false); var a1=document.createElement('option'); a1.value='0'; a1.textContent='— Elige un Sistema —'; selRaza.appendChild(a1); selRaza.disabled=true; reinitSelect2(selRaza);
-      clearSelect(selAusp,false); var a2=document.createElement('option'); a2.value='0'; a2.textContent='— Elige un Sistema —'; selAusp.appendChild(a2); selAusp.disabled=true; reinitSelect2(selAusp);
-      clearSelect(selTribu,false); var a3=document.createElement('option'); a3.value='0'; a3.textContent='— Elige un Sistema —'; selTribu.appendChild(a3); selTribu.disabled=true; reinitSelect2(selTribu);
+      clearSelect(selRaza, false); var a1 = document.createElement('option'); a1.value = '0'; a1.textContent = '— Elige un Sistema —'; selRaza.appendChild(a1); selRaza.disabled = true; reinitSelect2(selRaza);
+      clearSelect(selAusp, false); var a2 = document.createElement('option'); a2.value = '0'; a2.textContent = '— Elige un Sistema —'; selAusp.appendChild(a2); selAusp.disabled = true; reinitSelect2(selAusp);
+      clearSelect(selTribu, false); var a3 = document.createElement('option'); a3.value = '0'; a3.textContent = '— Elige un Sistema —'; selTribu.appendChild(a3); selTribu.disabled = true; reinitSelect2(selTribu);
       return;
     }
 
-    var okR = fillSelectFrom(RAZAS_BY_SYS[sys]||[], selRaza, '— Sin razas para este Sistema —', preRaza);
-    var okA = fillSelectFrom(AUSP_BY_SYS[sys]||[],  selAusp, '— Sin auspicios para este Sistema —', preAusp);
-    var okT = fillSelectFrom(TRIBUS_BY_SYS[sys]||[], selTribu,'— Sin tribus para este Sistema —', preTribu);
+    var okR = fillSelectFrom(RAZAS_BY_SYS[sys] || [], selRaza, '— Sin razas para este Sistema —', preRaza);
+    var okA = fillSelectFrom(AUSP_BY_SYS[sys] || [], selAusp, '— Sin auspicios para este Sistema —', preAusp);
+    var okT = fillSelectFrom(TRIBUS_BY_SYS[sys] || [], selTribu, '— Sin tribus para este Sistema —', preTribu);
 
     if (preRaza && !okR){
-      var w=document.createElement('option'); w.value=String(preRaza); w.textContent='[WARN] (Fuera del Sistema) ID '+preRaza;
-      selRaza.appendChild(w); selRaza.value=String(preRaza); selRaza.disabled=false;
+      var w = document.createElement('option'); w.value = String(preRaza); w.textContent = '[WARN] (Fuera del Sistema) ID ' + preRaza;
+      selRaza.appendChild(w); selRaza.value = String(preRaza); selRaza.disabled = false;
       reinitSelect2(selRaza);
     }
     if (preAusp && !okA){
-      var w2=document.createElement('option'); w2.value=String(preAusp); w2.textContent='[WARN] (Fuera del Sistema) ID '+preAusp;
-      selAusp.appendChild(w2); selAusp.value=String(preAusp); selAusp.disabled=false;
+      var w2 = document.createElement('option'); w2.value = String(preAusp); w2.textContent = '[WARN] (Fuera del Sistema) ID ' + preAusp;
+      selAusp.appendChild(w2); selAusp.value = String(preAusp); selAusp.disabled = false;
       reinitSelect2(selAusp);
     }
     if (preTribu && !okT){
-      var w3=document.createElement('option'); w3.value=String(preTribu); w3.textContent='[WARN] (Fuera del Sistema) ID '+preTribu;
-      selTribu.appendChild(w3); selTribu.value=String(preTribu); selTribu.disabled=false;
+      var w3 = document.createElement('option'); w3.value = String(preTribu); w3.textContent = '[WARN] (Fuera del Sistema) ID ' + preTribu;
+      selTribu.appendChild(w3); selTribu.value = String(preTribu); selTribu.disabled = false;
       reinitSelect2(selTribu);
     }
   }
@@ -402,43 +797,29 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   }
 
   function resetTraits(){
-    if (!traitInputs) return;
-    traitInputs.forEach(function(inp){ inp.value = '0'; });
+    if (traitDefaultList) traitDefaultList.innerHTML = '';
+    if (traitExtraList) traitExtraList.innerHTML = '';
+    refreshTraitSelect();
   }
+
   function resetTraitsDirty(){
     if (fTraitsDirty) fTraitsDirty.value = '0';
   }
+
   function markTraitsDirty(){
     if (fTraitsDirty) fTraitsDirty.value = '1';
   }
 
   function fillTraits(map){
-    resetTraits();
-    if (!map) return;
-    traitInputs.forEach(function(inp){
-      var tid = inp.getAttribute('data-trait-id');
-      if (tid && map[tid] !== undefined) {
-        inp.value = String(map[tid]);
-      }
+    var values = map || {};
+    var systemId = parseInt(selSistema && selSistema.value, 10) || 0;
+    var defaultIds = {};
+    getSystemTraitIds(systemId).forEach(function(id){ defaultIds[String(id)] = true; });
+    var extraIds = [];
+    Object.keys(values).forEach(function(id){
+      if (!defaultIds[String(id)]) extraIds.push(parseInt(id, 10) || 0);
     });
-  }
-
-  function applyTraitOrder(systemId){
-    var orderMap = (TRAIT_SET_ORDER && systemId && TRAIT_SET_ORDER[String(systemId)]) ? TRAIT_SET_ORDER[String(systemId)] : {};
-    document.querySelectorAll('.traits-group').forEach(function(group){
-      var items = Array.prototype.slice.call(group.querySelectorAll('.trait-item'));
-      items.sort(function(a,b){
-        var aid = a.querySelector('[data-trait-id]')?.getAttribute('data-trait-id') || '';
-        var bid = b.querySelector('[data-trait-id]')?.getAttribute('data-trait-id') || '';
-        var ao = orderMap[aid] !== undefined ? parseInt(orderMap[aid],10) : 9999;
-        var bo = orderMap[bid] !== undefined ? parseInt(orderMap[bid],10) : 9999;
-        if (ao !== bo) return ao - bo;
-        var an = (a.getAttribute('data-trait-name') || '').toLowerCase();
-        var bn = (b.getAttribute('data-trait-name') || '').toLowerCase();
-        return an.localeCompare(bn);
-      });
-      items.forEach(function(it){ group.appendChild(it); });
-    });
+    renderTraitsUI(values, extraIds);
   }
 
   // PODERES
@@ -680,8 +1061,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     // reset traits
     resetTraits();
-    resetTraitsDirty();
-    applyTraitOrder(0);
+    setTraitBaseline({});
     applyKindVisibility(selKind ? selKind.value : 'pnj', false);
 
     mb.style.display='flex';
@@ -727,7 +1107,6 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 	    var natId  = parseInt(btn.getAttribute('data-nature_id')||'0',10)||0;
 	    var demId  = parseInt(btn.getAttribute('data-demeanor_id')||'0',10)||0;
 	    updateSistemaSets(sistId, razaId, ausId, triId);
-	    applyTraitOrder(sistId);
 	    if (selNature) selNature.value = String(natId||0);
 	    if (selDemeanor) selDemeanor.value = String(demId||0);
 
@@ -775,7 +1154,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     // Traits: cargar
     fillTraits(CHAR_TRAITS[cid] || {});
-    resetTraitsDirty();
+    setTraitBaseline(CHAR_TRAITS[cid] || {});
     applyKindVisibility(selKind ? selKind.value : 'pnj', false);
 
     fInfo.value   = '';
@@ -855,8 +1234,10 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   // Sistema change
   onSelectChange(selSistema, function(){
     var sys = parseInt(selSistema.value,10)||0;
+    var currentTraitValues = collectTraitValues();
+    var currentExtraTraitIds = collectExtraTraitIds();
     updateSistemaSets(sys, 0,0,0);
-    applyTraitOrder(sys);
+    renderTraitsUI(currentTraitValues, currentExtraTraitIds);
     ensureSystemResources(sys);
   });
 
@@ -874,13 +1255,9 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   });
 
   onSelectChange(selKind, function(){
-    applyKindVisibility(selKind ? selKind.value : 'pnj', true);
+    applyKindVisibility(selKind ? selKind.value : 'pnj', false);
   });
   applyKindVisibility(selKind ? selKind.value : 'pnj', false);
-  traitInputs.forEach(function(inp){
-    inp.addEventListener('input', markTraitsDirty);
-    inp.addEventListener('change', markTraitsDirty);
-  });
 
   // Avatar preview / remove
   avatar.addEventListener('change', function(){
@@ -992,15 +1369,29 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     if (window.ADMIN_CSRF_TOKEN && !formData.get('csrf')) {
       formData.set('csrf', window.ADMIN_CSRF_TOKEN);
     }
+    var traitKeys = [];
+    formData.forEach(function(_value, key){
+      if (key.indexOf('traits[') === 0) traitKeys.push(key);
+    });
+    traitKeys.forEach(function(key){ formData.delete(key); });
+
     var traitsDirty = (formData.get('traits_dirty') === '1');
-    formData.set('traits_dirty', traitsDirty ? '1' : '0');
-    if (!traitsDirty) {
-      var traitKeys = [];
-      formData.forEach(function(_value, key){
-        if (key.indexOf('traits[') === 0) traitKeys.push(key);
-      });
-      traitKeys.forEach(function(key){ formData.delete(key); });
+    if (traitsDirty) {
+      var traitDelta = buildTraitDelta();
+      var upsertIds = Object.keys(traitDelta.upserts || {});
+      if (!upsertIds.length && !(traitDelta.deletes || []).length) {
+        traitsDirty = false;
+      } else {
+        formData.set('traits_mode', 'delta');
+        upsertIds.forEach(function(id){
+          formData.append('traits_upsert[' + id + ']', String(traitDelta.upserts[id]));
+        });
+        (traitDelta.deletes || []).forEach(function(id){
+          formData.append('traits_delete[]', String(id));
+        });
+      }
     }
+    formData.set('traits_dirty', traitsDirty ? '1' : '0');
     formCrud.dataset.saving = '1';
     var req = null;
     if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
@@ -1064,6 +1455,18 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     formCrud.addEventListener('submit', function(ev){
       ev.preventDefault();
       saveCrudAjax();
+    });
+  }
+
+  // TRAITS UI
+  renderTraitsUI({}, []);
+  reinitSelect2(traitSel);
+  if (traitAdd) {
+    traitAdd.addEventListener('click', function(){
+      var traitId = parseInt(traitSel.value, 10) || 0;
+      if (!traitId) { alert('Elige un trait.'); return; }
+      addTraitChip(traitId, 0);
+      refreshTraitSelect();
     });
   }
 

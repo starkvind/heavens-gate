@@ -52,6 +52,37 @@ if (!function_exists('pjs_column_char_maxlen')) {
         return (int)($row['m'] ?? 0);
     }
 }
+if (!function_exists('pjs_fetch_id_lookup')) {
+    function pjs_fetch_id_lookup(mysqli $link, string $table): array {
+        $out = [];
+        if (!pjs_table_exists($link, $table)) return $out;
+        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        if ($t === '') return $out;
+        if (!$rs = $link->query("SELECT id FROM `{$t}`")) return $out;
+        while ($row = $rs->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id > 0) $out[$id] = true;
+        }
+        $rs->close();
+        return $out;
+    }
+}
+if (!function_exists('pjs_fetch_discipline_power_type_map')) {
+    function pjs_fetch_discipline_power_type_map(mysqli $link): array {
+        $out = [];
+        if (!pjs_table_exists($link, 'fact_discipline_powers')) return $out;
+        if (!$rs = $link->query("SELECT id, disc FROM fact_discipline_powers")) return $out;
+        while ($row = $rs->fetch_assoc()) {
+            $powerId = (int)($row['id'] ?? 0);
+            $typeIdRaw = trim((string)($row['disc'] ?? ''));
+            if ($powerId <= 0 || $typeIdRaw === '' || !ctype_digit($typeIdRaw)) continue;
+            $typeId = (int)$typeIdRaw;
+            if ($typeId > 0) $out[$powerId] = $typeId;
+        }
+        $rs->close();
+        return $out;
+    }
+}
 if (!function_exists('sync_character_bridges')) {
     function sync_character_bridges(mysqli $link, int $characterId, int $groupId, int $organizationId): void {
         if ($characterId <= 0) return;
@@ -140,6 +171,12 @@ if (!function_exists('save_character_powers')) {
         if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_powers')) return $res;
 
         $allowed = ['dones' => true, 'disciplinas' => true, 'rituales' => true];
+        $validByType = [
+            'dones' => pjs_fetch_id_lookup($link, 'fact_gifts'),
+            'disciplinas' => pjs_fetch_id_lookup($link, 'dim_discipline_types'),
+            'rituales' => pjs_fetch_id_lookup($link, 'fact_rites'),
+        ];
+        $disciplinePowerToType = pjs_fetch_discipline_power_type_map($link);
         $n = min(count($types), count($ids), count($levels));
         $rows = [];
         for ($i = 0; $i < $n; $i++) {
@@ -147,6 +184,10 @@ if (!function_exists('save_character_powers')) {
             $pid = (int)$ids[$i];
             $lvl = (int)$levels[$i];
             if (!isset($allowed[$type]) || $pid <= 0) { $res['skipped']++; continue; }
+            if ($type === 'disciplinas' && !isset($validByType['disciplinas'][$pid]) && isset($disciplinePowerToType[$pid])) {
+                $pid = (int)$disciplinePowerToType[$pid];
+            }
+            if (!isset($validByType[$type][$pid])) { $res['skipped']++; continue; }
             if ($lvl < 0) $lvl = 0;
             if ($lvl > 9) $lvl = 9;
             $rows[$type . ':' . $pid] = ['type' => $type, 'id' => $pid, 'lvl' => $lvl];
@@ -253,8 +294,19 @@ if (!function_exists('save_character_items')) {
     }
 }
 if (!function_exists('save_character_traits')) {
-    function save_character_traits(mysqli $link, int $characterId, array $traits, string $source = 'admin', ?string $createdBy = null): array {
-        $res = ['updated' => 0];
+    function save_character_traits(
+        mysqli $link,
+        int $characterId,
+        array $traits,
+        array $traitsDelete = [],
+        string $source = 'admin',
+        ?string $createdBy = null
+    ): array {
+        $res = [
+            'updated' => 0,
+            'inserted' => 0,
+            'deleted' => 0,
+        ];
         if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_traits')) return $res;
 
         $hasLog = pjs_table_exists($link, 'bridge_characters_traits_log');
@@ -275,7 +327,17 @@ if (!function_exists('save_character_traits')) {
             $nv = (int)$v;
             if ($nv < 0) $nv = 0;
             if ($nv > 10) $nv = 10;
-            $normalized[$tid] = $nv;
+            if ($nv > 0) {
+                $normalized[$tid] = $nv;
+            }
+        }
+        $deleteMap = [];
+        foreach ($traitsDelete as $tid) {
+            $tid = (int)$tid;
+            if ($tid > 0) $deleteMap[$tid] = true;
+        }
+        foreach (array_keys($normalized) as $tid) {
+            unset($deleteMap[(int)$tid]);
         }
 
         $ins = $link->prepare("INSERT INTO bridge_characters_traits (character_id, trait_id, value) VALUES (?,?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)");
@@ -292,20 +354,27 @@ if (!function_exists('save_character_traits')) {
 
             if ($ins) {
                 $ins->bind_param("iii", $characterId, $tid, $nv);
-                if ($ins->execute()) $res['updated']++;
+                if ($ins->execute()) {
+                    $res['updated']++;
+                    if ($ov === null) $res['inserted']++;
+                }
             }
             if ($log) {
                 $reason = ($ov === null) ? 'admin initial' : 'admin update';
                 $log->bind_param("iiiiisss", $characterId, $tid, $ov, $nv, $delta, $reason, $source, $createdBy);
                 $log->execute();
             }
-            unset($existing[$tid]);
         }
 
-        foreach ($existing as $tid => $ov) {
+        foreach (array_keys($deleteMap) as $tid) {
+            if (!array_key_exists($tid, $existing)) continue;
+            $ov = (int)$existing[$tid];
             if ($del) {
                 $del->bind_param("ii", $characterId, $tid);
-                if ($del->execute()) $res['updated']++;
+                if ($del->execute()) {
+                    $res['updated']++;
+                    $res['deleted']++;
+                }
             }
             if ($log) {
                 $nv = null;

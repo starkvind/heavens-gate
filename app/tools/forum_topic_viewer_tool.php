@@ -368,6 +368,7 @@ function render_hg_tirada_inline($link, $rollId, $paletteRaw = '')
     $resultados = $resultadosRaw === '' ? [] : explode(',', $resultadosRaw);
     $exitos = (int)($roll['successes'] ?? 0);
     $pifia = !empty($roll['botch']);
+    $willpowerSpent = !empty($roll['willpower_spent']);
 
     $palette = $pifia ? '#3A1010' : '#05014E';
     $customPalette = trim((string)$paletteRaw);
@@ -387,7 +388,11 @@ function render_hg_tirada_inline($link, $rollId, $paletteRaw = '')
     $html .= '<div class="roll-box-name">' . $titulo . '</div>';
     $html .= '<p class="roll-head"><strong>' . $nombre . '</strong> lanzo ' . count($resultados) . 'd10 a dificultad <strong>' . $dificultad . '</strong>.</p>';
     $html .= '<div class="roll-results">' . $diceHtml . '</div>';
-    $html .= '<p><strong>Exitos</strong>: ' . $exitos . '</p>';
+    $html .= '<p><strong>Exitos</strong>: ' . $exitos;
+    if ($willpowerSpent) {
+        $html .= ' <span>(+1 por Fuerza de Voluntad)</span>';
+    }
+    $html .= '</p>';
     if ($pifia) {
         $html .= '<p class="roll-botch"><strong>¡PIFIA!</strong></p>';
     }

@@ -787,6 +787,7 @@ Legend: PK=Primary Key, IDX=Indexed, NOT NULL as declared in source inventory.
 | `roll_results` | `text` | [NOT NULL] |
 | `successes` | `int(11)` | [NOT NULL] |
 | `botch` | `tinyint(1)` | [NOT NULL] |
+| `willpower_spent` | `tinyint(1)` | [NOT NULL] |
 | `ip` | `varchar(45)` | [NOT NULL] |
 | `rolled_at` | `datetime` |  |
 | `updated_at` | `timestamp` |  |

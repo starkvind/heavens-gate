@@ -23,6 +23,7 @@ $dificultad = (int)$tirada['difficulty'];
 $resultados = explode(",", $tirada['roll_results']);
 $exitos = (int)$tirada['successes'];
 $pifia = (bool)$tirada['botch'];
+$willpowerSpent = !empty($tirada['willpower_spent']);
 
 $paletteParam = filter_input(INPUT_GET, 'palette', FILTER_SANITIZE_STRING) ?? '';
 $paletteParam = preg_replace('/[^a-zA-Z0-9#(),.\s%-]/', '', (string)$paletteParam);
@@ -56,7 +57,7 @@ if (trim($paletteParam) !== '') {
 					}
 					?>
 				</div>
-				<p><strong>Exitos</strong>: <?= $exitos ?></p>
+				<p><strong>Exitos</strong>: <?= $exitos ?><?php if ($willpowerSpent): ?> <span>(+1 por Fuerza de Voluntad)</span><?php endif; ?></p>
 				<?php if ($pifia): ?><p class="roll-botch"><strong>&#161;PIFIA!</strong></p><?php endif; ?>
 			</div>
 		</div>
