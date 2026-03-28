@@ -11,7 +11,7 @@ $iconos = [
 ];
 
 // Consulta los poderes desde el bridge
-$stmt = $link->prepare("SELECT power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id = ? ORDER BY power_kind, power_level ASC");
+$stmt = $link->prepare("SELECT power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id = ? ORDER BY power_kind ASC");
 $stmt->bind_param('i', $characterId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -26,6 +26,77 @@ while ($row = $result->fetch_assoc()) {
 }
 
 $stmt->close();
+
+function fetch_power_sort_rows(mysqli $link, string $table, string $valueField, array $powers): array {
+    $ids = [];
+    foreach ($powers as $power) {
+        $id = (int)($power['id'] ?? 0);
+        if ($id > 0) {
+            $ids[$id] = true;
+        }
+    }
+
+    if (empty($ids)) {
+        return [];
+    }
+
+    $idList = implode(',', array_map('intval', array_keys($ids)));
+    $map = [];
+    $query = "SELECT id, name, $valueField AS sort_value FROM $table WHERE id IN ($idList)";
+    if ($rs = $link->query($query)) {
+        while ($row = $rs->fetch_assoc()) {
+            $map[(int)$row['id']] = [
+                'sort_value' => (int)($row['sort_value'] ?? 999),
+                'name' => (string)($row['name'] ?? ''),
+            ];
+        }
+        $rs->close();
+    }
+
+    return $map;
+}
+
+if (isset($listaPoderes['dones']) && is_array($listaPoderes['dones'])) {
+    $giftSortRows = fetch_power_sort_rows($link, 'fact_gifts', 'rank', $listaPoderes['dones']);
+    usort($listaPoderes['dones'], static function (array $a, array $b) use ($giftSortRows): int {
+        $rowA = $giftSortRows[(int)($a['id'] ?? 0)] ?? ['sort_value' => 999, 'name' => ''];
+        $rowB = $giftSortRows[(int)($b['id'] ?? 0)] ?? ['sort_value' => 999, 'name' => ''];
+        $rankA = (int)$rowA['sort_value'];
+        $rankB = (int)$rowB['sort_value'];
+
+        if ($rankA !== $rankB) {
+            return $rankA <=> $rankB;
+        }
+
+        $nameCmp = strcasecmp((string)$rowA['name'], (string)$rowB['name']);
+        if ($nameCmp !== 0) {
+            return $nameCmp;
+        }
+
+        return ((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0));
+    });
+}
+
+if (isset($listaPoderes['rituales']) && is_array($listaPoderes['rituales'])) {
+    $riteSortRows = fetch_power_sort_rows($link, 'fact_rites', 'level', $listaPoderes['rituales']);
+    usort($listaPoderes['rituales'], static function (array $a, array $b) use ($riteSortRows): int {
+        $rowA = $riteSortRows[(int)($a['id'] ?? 0)] ?? ['sort_value' => 999, 'name' => ''];
+        $rowB = $riteSortRows[(int)($b['id'] ?? 0)] ?? ['sort_value' => 999, 'name' => ''];
+        $levelA = (int)$rowA['sort_value'];
+        $levelB = (int)$rowB['sort_value'];
+
+        if ($levelA !== $levelB) {
+            return $levelA <=> $levelB;
+        }
+
+        $nameCmp = strcasecmp((string)$rowA['name'], (string)$rowB['name']);
+        if ($nameCmp !== 0) {
+            return $nameCmp;
+        }
+
+        return ((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0));
+    });
+}
 
 
 function build_power_url(mysqli $link, string $linkBase, string $idPoder): string {
