@@ -14,6 +14,11 @@
     min-width: 640px;
 }
 
+.docs-table-inner--wide {
+    max-width: 980px;
+    min-width: 760px;
+}
+
 .docs-table {
     width: 100%;
 }
@@ -301,6 +306,12 @@
 }
 
 @media (max-width: 720px) {
+    .docs-table-inner,
+    .docs-table-inner--wide {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
     .dt-toolbar {
         flex-direction: column;
         align-items: stretch;

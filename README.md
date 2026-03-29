@@ -16,6 +16,7 @@ This repository is the production codebase.
 - PHP 7.4+ (PHP 8.x recommended)
 - MySQL / MariaDB with `utf8mb4`
 - Web server serving repository root
+- `mod_rewrite` enabled if Apache is used
 - Write permissions for avatar uploads:
   - physical path: `public/img/characters`
   - public URL base: `/img/characters`
@@ -31,7 +32,17 @@ MYSQL_HOST=127.0.0.1
 MYSQL_USER=your_user
 MYSQL_PWD=your_password
 MYSQL_BDD=your_database
+ENCRYPTION_KEY=your_long_random_secret
 ```
+
+Notes:
+
+- `ENCRYPTION_KEY` is required for admin authentication because `/talim` reads and decrypts `rel_pwd` from `dim_web_configuration`.
+- Runtime now accepts `config.env` in either:
+  - the parent directory above the repository root;
+  - the repository root;
+  - a legacy fallback under `app/`.
+- For consistency, prefer placing `config.env` outside the web root or one level above the repository root.
 
 Bootstrap:
 
@@ -43,11 +54,18 @@ Bootstrap:
 - Main entry: `index.php`
 - Route map: `app/bootstrap/body_work.php`
 - Main route param: `p`
-- Pretty URL normalization: `app/helpers/pretty.php`
+- Pretty URL normalization and canonical redirect logic: `app/bootstrap/body_work.php` + `app/helpers/pretty.php`
 
 Examples:
 
-- `/` -> default news
+- `/` -> welcome landing page
+- `/home` -> welcome landing page
+- `/seasons` -> seasons archive landing page
+- `/seasons/complete` -> complete seasons
+- `/seasons/interludes` -> interludes / incisos
+- `/seasons/personal-stories` -> personal stories
+- `/seasons/specials` -> specials
+- `/chapters` -> global episode table
 - `/?p=bios` -> character list
 - `/?p=muestrabio&b=123` -> character page
 - `/timeline` -> timeline events main page
@@ -56,7 +74,7 @@ Examples:
 
 ## 5. Main Functional Areas
 
-- Main: news, about, status, bibliography, search
+- Main: home, news, about, status, bibliography, search
 - Characters: lists, groups/organizations, character pages, relation maps
 - Rules and docs: documents, traits, merits/flaws, archetypes, maneuvers
 - Powers: gifts, rites, totems, disciplines
@@ -129,18 +147,53 @@ Main campaign hubs:
 ## 8. Technical Documentation
 
 - Architecture and schema notes: `TECHNICAL_DOCUMENTATION.md`
-- Full schema inventory snapshot: `bdd_structure.txt`
-- Events insertion playbook for LLM ingestion:
-  - `admin_upgrade_notes/hg_timeline_events_howto.txt`
+- Backend map, routing and query inventory for bot/integration work:
+  - `TELEGRAM_BOT_BACKEND_GUIDE.md`
 
-## 9. Development Notes
+## 9. Database Provisioning
+
+- Schema installer: `app/tools/install_schema_from_dump.php`
+- Source dump: `dump-u807926597_hg-202603282141.sql`
+
+Typical usage:
+
+```bash
+php app/tools/install_schema_from_dump.php --host=127.0.0.1 --user=usuario --password=secreto --database=hg
+```
+
+If you want admin access enabled on first boot:
+
+```bash
+php app/tools/install_schema_from_dump.php --database=hg --admin-password="change-this-now"
+```
+
+The installer:
+
+- creates the database if needed;
+- creates the current 87-table schema;
+- recreates simulator views;
+- seeds safe `dim_web_configuration` values;
+- does not import production `rel_pwd` unless explicitly requested.
+
+## 10. Development Notes
 
 - Prefer prepared statements in controllers/services
 - Keep encoding clean (`utf8mb4` end-to-end)
 - Keep admin AJAX responses in strict JSON contract (`ok/message/data/errors/meta`)
 - Avoid destructive migrations without validated backup/dump
 
-## 10. Troubleshooting
+## 11. Production Hardening
+
+- Keep `config.env` out of the document root whenever possible.
+- Do not restore `dim_web_configuration.rel_pwd` from production dumps into other environments.
+- The current `.htaccess` blocks direct access to:
+  - `app/`
+  - markdown technical docs
+  - SQL dumps
+  - upgrade notes
+- If you deploy behind Nginx or another server that ignores `.htaccess`, replicate those deny rules explicitly.
+
+## 12. Troubleshooting
 
 - If an AJAX endpoint returns invalid JSON:
   - check warnings/notices emitted before JSON output
@@ -151,7 +204,7 @@ Main campaign hubs:
   - verify `event_type_id` references valid `dim_timeline_events_types` rows
   - verify events are active when filters enforce active-only
 
-## 11. License
+## 13. License
 
 Personal / non-commercial project codebase and campaign content.
 Third-party universe references remain property of their respective owners.

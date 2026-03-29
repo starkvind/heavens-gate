@@ -31,6 +31,10 @@ if (!function_exists('hg_sa_col_exists')) {
 
 $temporadaRaw = $_GET['t'] ?? '';
 $temporadaId = resolve_pretty_id($link, 'dim_seasons', (string)$temporadaRaw) ?? 0;
+if (trim((string)$temporadaRaw) === '') {
+    include(__DIR__ . '/seasons_home.php');
+    return;
+}
 $consulta = "SELECT * FROM dim_seasons WHERE id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $consulta);
 if ($temporadaId > 0 && $stmt) {
@@ -44,6 +48,24 @@ if ($temporadaId > 0 && $stmt) {
         $nameTemp = (string)$ResultQuery['name'];
         $numberTemp = (int)$ResultQuery['season_number'];
         $sinopsis = (string)$ResultQuery['description'];
+        $seasonFinished = (int)($ResultQuery['finished'] ?? 0);
+        $seasonChronicleId = hg_sa_col_exists($link, 'dim_seasons', 'chronicle_id') ? (int)($ResultQuery['chronicle_id'] ?? 0) : 0;
+        $seasonChronicleName = '';
+        $seasonChronicleHref = '';
+
+        if ($seasonChronicleId > 0 && ($stmtChron = mysqli_prepare($link, "SELECT id, name FROM dim_chronicles WHERE id = ? LIMIT 1"))) {
+            mysqli_stmt_bind_param($stmtChron, 'i', $seasonChronicleId);
+            mysqli_stmt_execute($stmtChron);
+            $resChron = mysqli_stmt_get_result($stmtChron);
+            if ($rowChron = mysqli_fetch_assoc($resChron)) {
+                $seasonChronicleName = (string)($rowChron['name'] ?? '');
+                $seasonChronicleHref = pretty_url($link, 'dim_chronicles', '/chronicles', (int)$rowChron['id']);
+            }
+            if ($resChron) {
+                mysqli_free_result($resChron);
+            }
+            mysqli_stmt_close($stmtChron);
+        }
 
         $titleSinop = "Sinopsis";
         $titleProta = "Protagonistas";
@@ -65,7 +87,9 @@ if ($temporadaId > 0 && $stmt) {
 
         echo "<div class='archive-shell'>";
         echo "<div class='archive-hero'>";
+        echo "<div class='archive-hero-main'>";
         echo "<h2>" . htmlspecialchars($nameTemp) . "</h2>";
+        echo "</div>";
         if ($seasonKind === 'temporada') {
             $archiveChip = "Temporada " . (string)$numberTemp;
         } elseif ($seasonKind === 'inciso') {
@@ -87,6 +111,20 @@ if ($temporadaId > 0 && $stmt) {
         echo "<section class='archive-block'>";
         echo "<h3 class='archive-title'>{$titleSinop}</h3>";
         echo "<div class='archive-text db-text-pad'>{$sinopsis}</div>";
+        $archivePills = [];
+        if ($seasonChronicleName !== '' && $seasonChronicleHref !== '') {
+            $archivePills[] = "<a class='archive-pill archive-pill--chronicle' href='" . htmlspecialchars($seasonChronicleHref) . "'>Cr&oacute;nica: " . htmlspecialchars($seasonChronicleName) . "</a>";
+        }
+        if ($seasonFinished === 1) {
+            $archivePills[] = "<span class='archive-pill archive-pill--done'>Finalizada</span>";
+        } elseif ($seasonFinished === 2) {
+            $archivePills[] = "<span class='archive-pill archive-pill--cancelled'>Cancelada</span>";
+        } else {
+            $archivePills[] = "<span class='archive-pill archive-pill--active'>En curso</span>";
+        }
+        if (!empty($archivePills)) {
+            echo "<div class='archive-pills'>" . implode('', $archivePills) . "</div>";
+        }
         echo "</section>";
 
         $player_ids = (isset($player_ids) && is_array($player_ids))

@@ -217,6 +217,539 @@
     border-width: 0;
 }
 
+.home-landing {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+}
+
+.home-landing h2,
+.home-landing h3,
+.home-landing h4,
+.home-landing p,
+.home-landing .home-news-meta,
+.home-landing .home-shortcut-eyebrow,
+.home-landing .home-stat-label,
+.home-landing .home-kicker {
+    text-align: left;
+}
+
+.home-hero,
+.home-section {
+    border: 1px solid #000088;
+    background: #05014e;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+    gap: 18px;
+    padding: 18px;
+    background: linear-gradient(135deg, #02012a 0%, #05014e 55%, #0b2c75 100%);
+}
+
+.home-kicker {
+    margin: 0 0 8px;
+    color: #8eb5ff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.home-hero h2 {
+    margin: 0 0 10px;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.home-lead,
+.home-copy {
+    margin: 0 0 12px;
+    max-width: 62ch;
+}
+
+.home-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.home-cta {
+    display: inline-block;
+    padding: 8px 12px;
+    border: 1px solid #2d63c9;
+    background: rgba(0, 17, 80, 0.72);
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.home-cta:hover,
+.home-cta:focus {
+    background: rgba(8, 46, 140, 0.92);
+    border-color: #57a4ff;
+    transform: translateY(-1px);
+}
+
+.home-cta-primary {
+    background: #0b2c75;
+    border-color: #57a4ff;
+    color: #d7ebff;
+}
+
+.home-hero-side {
+    display: flex;
+    align-items: stretch;
+}
+
+.home-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.home-stat-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 92px;
+    padding: 14px;
+    border: 1px solid #2041a5;
+    background: rgba(0, 12, 64, 0.72);
+    color: #fff;
+    text-decoration: none;
+}
+
+.home-stat-card:hover,
+.home-stat-card:focus {
+    border-color: #57a4ff;
+    background: rgba(5, 29, 110, 0.88);
+}
+
+.home-stat-value {
+    display: block;
+    font-size: 26px;
+    font-weight: 700;
+    color: #d8ebff;
+}
+
+.home-stat-label {
+    display: block;
+    margin-top: 4px;
+    color: #9bc2ff;
+}
+
+.home-section {
+    padding: 16px 18px 18px;
+}
+
+.home-section-head {
+    margin-bottom: 14px;
+}
+
+.home-section-head h3 {
+    margin: 0 0 6px;
+}
+
+.home-section-head p {
+    margin: 0;
+}
+
+.home-more-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #9ec7ff;
+}
+
+.home-shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.home-shortcut-card,
+.home-reading-card,
+.home-news-card {
+    border: 1px solid #102c86;
+    background: #06035a;
+}
+
+.home-shortcut-card {
+    display: block;
+    padding: 14px;
+    text-decoration: none;
+    color: #fff;
+    min-height: 164px;
+}
+
+.home-shortcut-card:hover,
+.home-shortcut-card:focus {
+    border-color: #57a4ff;
+    background: #0a1273;
+}
+
+.home-shortcut-eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: #8fb7ff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.home-shortcut-card h4,
+.home-reading-card h4,
+.home-news-card h4 {
+    margin: 0 0 8px;
+}
+
+.home-shortcut-card p,
+.home-reading-card p,
+.home-news-card p {
+    margin: 0;
+}
+
+.home-reading-grid,
+.home-news-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.home-reading-card,
+.home-news-card {
+    padding: 14px;
+}
+
+.home-news-meta {
+    margin-top: 10px;
+    color: #9db9ef;
+    font-size: 12px;
+}
+
+.season-home {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+}
+
+.season-home h2,
+.season-home h3,
+.season-home h4,
+.season-home p,
+.season-home .season-home-count,
+.season-home .season-home-status,
+.season-home .season-home-hub-kicker,
+.season-home .season-home-hub-cta {
+    text-align: left;
+}
+
+.season-home-head,
+.season-home-block {
+    border: 1px solid #000088;
+    background: #05014e;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.season-home-head {
+    padding: 16px 18px;
+}
+
+.season-home-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.season-home-nav-link {
+    display: inline-block;
+    padding: 8px 12px;
+    border: 1px solid #2d63c9;
+    background: rgba(0, 17, 80, 0.72);
+    color: #fff;
+    text-decoration: none;
+}
+
+.season-home-nav-link:hover,
+.season-home-nav-link:focus {
+    background: rgba(8, 46, 140, 0.92);
+    border-color: #57a4ff;
+}
+
+.season-home-head h2,
+.season-home-block-head h3 {
+    margin: 0 0 6px;
+}
+
+.season-home-head p,
+.season-home-block-head p {
+    margin: 0;
+}
+
+.season-home-block {
+    padding: 16px 18px 18px;
+}
+
+.season-home-block-head {
+    margin-bottom: 14px;
+}
+
+.season-home-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.season-home-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.season-home-hub-card,
+.season-home-card {
+    border: 1px solid #102c86;
+    background: #06035a;
+    color: #fff;
+    text-decoration: none;
+    overflow: hidden;
+}
+
+.season-home-hub-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 120px;
+    padding: 16px;
+}
+
+.season-home-hub-card:hover,
+.season-home-hub-card:focus,
+.season-home-card:hover,
+.season-home-card:focus {
+    border-color: #57a4ff;
+    background: #0a1273;
+}
+
+.season-home-hub-kicker {
+    display: inline-block;
+    color: #8fb7ff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.season-home-hub-card h3 {
+    margin: 0;
+}
+
+.season-home-hub-card p {
+    margin: 0;
+    color: #dbe7ff;
+    line-height: 1.4;
+}
+
+.season-home-hub-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: auto;
+    color: #9ec7ff;
+    font-size: 12px;
+}
+
+.season-home-hub-cta {
+    display: inline-block;
+    margin-top: 4px;
+    color: #9ec7ff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.season-home-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.season-home-card-media {
+    position: relative;
+    min-height: 180px;
+    border-bottom: 1px solid #173b9a;
+    background: #02012a;
+}
+
+.season-home-card-media img {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.season-home-card-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px;
+    background: linear-gradient(180deg, rgba(3, 7, 40, 0.2) 0%, rgba(3, 7, 40, 0.35) 45%, rgba(2, 1, 28, 0.78) 100%);
+    text-align: center;
+}
+
+.season-home-card-kicker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border: 1px solid rgba(132, 184, 255, 0.85);
+    border-radius: 999px;
+    background: rgba(8, 34, 97, 0.72);
+    color: #dfeeff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.season-home-card-overlay h3 {
+    margin: 0;
+    max-width: 18ch;
+    color: #f2f8ff;
+    font-size: 1.5em;
+    line-height: 1.15;
+    text-align: center;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.season-home-card-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+}
+
+.season-home-card-body p {
+    margin: 0;
+    color: #dbe7ff;
+    line-height: 1.4;
+}
+
+.season-home-card-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+}
+
+.season-home-count,
+.season-home-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.season-home-count {
+    border: 1px solid #1d477e;
+    background: rgba(0, 12, 64, 0.65);
+    color: #a8c7ff;
+}
+
+.season-home-status {
+    border: 1px solid #2f6dc7;
+    background: #0b2d70;
+    color: #d9ecff;
+    font-weight: 700;
+}
+
+.season-home-status--done {
+    border-color: #0ea28e;
+    background: #0a5a4f;
+    color: #dcfff8;
+}
+
+.season-home-status--cancelled {
+    border-color: #c95757;
+    background: #7f1f35;
+    color: #ffe1ea;
+}
+
+.season-home-status--active {
+    border-color: #4f88d0;
+    background: #1f4676;
+    color: #e0f1ff;
+}
+
+@media (max-width: 1100px) {
+    .home-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .home-shortcuts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .season-home-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .season-home-hub-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .home-hero {
+        padding: 14px;
+    }
+
+    .home-section {
+        padding: 14px;
+    }
+
+    .home-stat-grid,
+    .home-shortcuts-grid,
+    .home-reading-grid,
+    .home-news-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .home-hero h2 {
+        font-size: 24px;
+    }
+
+    .season-home-nav {
+        flex-direction: column;
+    }
+
+    .season-home-card-media,
+    .season-home-card-media img {
+        height: 160px;
+        min-height: 160px;
+    }
+
+    .season-home-card-overlay h3 {
+        font-size: 1.28em;
+    }
+
+    .season-home-card-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
 .main-404-links {
     text-align: center;
     margin-top: 10px;
@@ -271,6 +804,12 @@
     background: #000022;
 }
 
+.chron-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .chron-card h3 {
     margin: 0 0 6px;
     color: #7ef7ff;
@@ -283,6 +822,152 @@
     color: #dbe7ff;
     line-height: 1.35;
     font-size: .95em;
+    text-align: left;
+}
+
+.chron-card-meta,
+.chron-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chron-card-meta {
+    margin-top: auto;
+}
+
+.chron-hero-meta {
+    justify-content: center;
+}
+
+.chron-card-meta span,
+.chron-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid #1d477e;
+    background: rgba(0, 12, 64, 0.65);
+    color: #a8c7ff;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.chron-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+}
+
+.chron-detail h2,
+.chron-detail h3,
+.chron-detail p,
+.chron-detail td,
+.chron-detail th {
+    text-align: left;
+}
+
+.chron-hero,
+.chron-box {
+    border: 1px solid #000088;
+    background: #05014e;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.chron-hero {
+    overflow: hidden;
+    padding: 0;
+    background: #02012a;
+}
+
+.chron-hero-media {
+    position: relative;
+    min-height: 300px;
+    background: #02012a;
+}
+
+.chron-hero-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    object-fit: cover;
+}
+
+.chron-hero-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    background: linear-gradient(180deg, rgba(3, 7, 40, 0.15) 0%, rgba(3, 7, 40, 0.3) 35%, rgba(2, 1, 28, 0.82) 100%);
+    text-align: center;
+}
+
+.chron-kicker {
+    margin: 0 0 8px;
+    color: #8eb5ff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-align: center;
+}
+
+.chron-hero-overlay h2 {
+    margin: 0;
+    max-width: 18ch;
+    color: #f2f8ff;
+    font-size: 2.05em;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.chron-box {
+    padding: 16px 18px 18px;
+}
+
+.chron-box-head {
+    margin-bottom: 12px;
+}
+
+.chron-box-head h2,
+.chron-box-head h3 {
+    margin: 0 0 6px;
+}
+
+.chron-box-head p,
+.chron-empty {
+    margin: 0;
+}
+
+.chron-rich {
+    color: #dbe7ff;
+    line-height: 1.5;
+}
+
+.chron-rich > :first-child {
+    margin-top: 0;
+}
+
+.chron-rich > :last-child {
+    margin-bottom: 0;
+}
+
+.chron-detail-seasons {
+    margin-top: 4px;
+}
+
+.chron-members-table {
+    width: 100%;
+}
+
+.chron-members-table th,
+.chron-members-table td {
     text-align: left;
 }
 
@@ -654,5 +1339,18 @@
 @media (max-width: 860px) {
     .chron-grid {
         grid-template-columns: 1fr;
+    }
+
+    .chron-hero {
+        padding: 0;
+    }
+
+    .chron-hero-media,
+    .chron-hero-media img {
+        min-height: 200px;
+    }
+
+    .chron-hero-overlay h2 {
+        font-size: 1.55em;
     }
 }

@@ -44,16 +44,27 @@ function season_kind_label(string $kind): string {
     return 'Temporada';
 }
 
-$hasSeasonCol    = false;
+$hasSeasonCol    = hg_table_has_column($link, 'dim_seasons', 'season_kind');
 $hasDescription  = true; // description es NOT NULL en dim_seasons
 $hasOpening      = hg_table_has_column($link, 'dim_seasons', 'opening');
 $hasMainCast     = hg_table_has_column($link, 'dim_seasons', 'main_cast');
 $hasSortOrder    = true; // existe en dim_seasons
 $hasFinished     = true; // existe en dim_seasons
 $hasSeasonKind   = hg_table_has_column($link, 'dim_seasons', 'season_kind');
+$hasChronicleId  = hg_table_has_column($link, 'dim_seasons', 'chronicle_id');
 $hasCreatedAt    = hg_table_has_column($link, 'dim_seasons', 'created_at');
 $hasUpdatedAt    = hg_table_has_column($link, 'dim_seasons', 'updated_at');
 $hasPrettyId     = true; // existe en dim_seasons
+
+$chronicleOptions = [];
+if ($hasChronicleId) {
+    if ($rsChron = $link->query("SELECT id, name FROM dim_chronicles ORDER BY sort_order ASC, name ASC, id ASC")) {
+        while ($rChron = $rsChron->fetch_assoc()) {
+            $chronicleOptions[(int)$rChron['id']] = (string)($rChron['name'] ?? '');
+        }
+        $rsChron->close();
+    }
+}
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSeasonModal()">+ Nueva temporada</button>'
@@ -95,6 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $mainCast = (string)($_POST['main_cast'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $finished = isset($_POST['finished']) ? 1 : 0;
+        $chronicleId = $hasChronicleId ? (int)($_POST['chronicle_id'] ?? 0) : 0;
+        if ($hasChronicleId && $chronicleId > 0 && !isset($chronicleOptions[$chronicleId])) {
+            $chronicleId = 0;
+        }
 
         if ($name === '') {
             $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
@@ -109,8 +124,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $cols = ['name', 'season_number'];
                 $vals = [$name, $seasonNumber];
                 $types = 'si';
+                $insertLiterals = [];
 
                 if ($hasSeasonKind) { $cols[] = 'season_kind'; $vals[] = $seasonKind; $types .= 's'; }
+                if ($hasChronicleId) {
+                    $cols[] = 'chronicle_id';
+                    if ($chronicleId > 0) {
+                        $vals[] = $chronicleId;
+                        $types .= 'i';
+                    } else {
+                        $insertLiterals['chronicle_id'] = 'NULL';
+                    }
+                }
                 $cols[] = 'description'; $vals[] = $description; $types .= 's';
                 if ($hasOpening)     { $cols[] = 'opening';     $vals[] = $opening; $types .= 's'; }
                 if ($hasMainCast)    { $cols[] = 'main_cast';   $vals[] = $mainCast; $types .= 's'; }
@@ -123,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $ph = [];
                 foreach ($cols as $c) {
                     if ($c === 'created_at' || $c === 'updated_at') $ph[] = 'NOW()';
+                    elseif (isset($insertLiterals[$c])) $ph[] = $insertLiterals[$c];
                     else $ph[] = '?';
                 }
 
@@ -150,6 +176,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     $types = 'si';
 
                     if ($hasSeasonKind) { $sets[] = '`season_kind`=?'; $vals[] = $seasonKind; $types .= 's'; }
+                    if ($hasChronicleId) {
+                        if ($chronicleId > 0) {
+                            $sets[] = '`chronicle_id`=?';
+                            $vals[] = $chronicleId;
+                            $types .= 'i';
+                        } else {
+                            $sets[] = '`chronicle_id`=NULL';
+                        }
+                    }
                     $sets[] = '`description`=?'; $vals[] = $description; $types .= 's';
                     if ($hasOpening)     { $sets[] = '`opening`=?';     $vals[] = $opening; $types .= 's'; }
                     if ($hasMainCast)    { $sets[] = '`main_cast`=?';   $vals[] = $mainCast; $types .= 's'; }
@@ -180,19 +215,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 }
 
-$orderBy = $hasSortOrder ? 'sort_order ASC, season_number ASC' : 'season_number ASC';
-$selectCols = ['id', 'name', 'season_number'];
-$selectCols[] = $hasSeasonKind ? 'season_kind' : "'temporada' AS season_kind";
-$selectCols[] = 'description';
-if ($hasOpening)     $selectCols[] = 'opening';
-if ($hasMainCast)    $selectCols[] = 'main_cast';
-if ($hasSortOrder)   $selectCols[] = 'sort_order';
-if ($hasFinished)    $selectCols[] = 'finished';
-if ($hasPrettyId)    $selectCols[] = 'pretty_id';
+$orderBy = $hasSortOrder ? 'COALESCE(s.sort_order, 999999) ASC, s.season_number ASC' : 's.season_number ASC';
+$selectCols = ['s.id', 's.name', 's.season_number'];
+$selectCols[] = $hasSeasonKind ? 's.season_kind' : "'temporada' AS season_kind";
+if ($hasChronicleId) {
+    $selectCols[] = 's.chronicle_id';
+    $selectCols[] = "COALESCE(ch.name, '') AS chronicle_name";
+}
+$selectCols[] = 's.description';
+if ($hasOpening)     $selectCols[] = 's.opening';
+if ($hasMainCast)    $selectCols[] = 's.main_cast';
+if ($hasSortOrder)   $selectCols[] = 's.sort_order';
+if ($hasFinished)    $selectCols[] = 's.finished';
+if ($hasPrettyId)    $selectCols[] = 's.pretty_id';
 
 $rows = [];
 $rowsFull = [];
-$rs = $link->query("SELECT ".implode(',', $selectCols)." FROM dim_seasons ORDER BY ".$orderBy);
+$fromSql = " FROM dim_seasons s";
+if ($hasChronicleId) {
+    $fromSql .= " LEFT JOIN dim_chronicles ch ON ch.id = s.chronicle_id";
+}
+$rs = $link->query("SELECT ".implode(',', $selectCols) . $fromSql . " ORDER BY " . $orderBy);
 if ($rs) {
     while ($r = $rs->fetch_assoc()) {
         $rows[] = $r;
@@ -255,6 +298,16 @@ if ($rs) {
                         <option value="historia_personal">Historia personal</option>
                         <option value="especial">Especial</option>
                     </select>
+
+                    <?php if ($hasChronicleId): ?>
+                    <label>Cr&oacute;nica</label>
+                    <select class="select" name="chronicle_id" id="season_chronicle_id">
+                        <option value="0">(Sin cr&oacute;nica)</option>
+                        <?php foreach ($chronicleOptions as $cid => $cname): ?>
+                            <option value="<?= (int)$cid ?>"><?= h($cname) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php endif; ?>
 
                     <?php if ($hasFinished): ?>
                     <label>Finalizada</label>
@@ -329,6 +382,7 @@ if ($rs) {
             <th>Nombre</th>
             <?php if ($hasSortOrder): ?><th class="adm-w-80">Orden</th><?php endif; ?>
             <?php if ($hasSeasonCol): ?><th class="adm-w-140">Tipo</th><?php endif; ?>
+            <?php if ($hasChronicleId): ?><th class="adm-w-180">Cr&oacute;nica</th><?php endif; ?>
             <?php if ($hasFinished): ?><th class="adm-w-90">Finalizada</th><?php endif; ?>
             <?php if ($hasPrettyId): ?><th class="adm-w-220">Pretty ID</th><?php endif; ?>
             <?php if ($hasDescription): ?><th>Descripcion</th><?php endif; ?>
@@ -338,7 +392,7 @@ if ($rs) {
     <tbody>
     <?php foreach ($rows as $r): ?>
         <?php
-            $search = trim((string)($r['name'] ?? '') . ' ' . (string)($r['season_number'] ?? '') . ' ' . (string)($r['description'] ?? ''));
+            $search = trim((string)($r['name'] ?? '') . ' ' . (string)($r['season_number'] ?? '') . ' ' . (string)($r['chronicle_name'] ?? '') . ' ' . (string)($r['description'] ?? ''));
             if (function_exists('mb_strtolower')) { $search = mb_strtolower($search, 'UTF-8'); } else { $search = strtolower($search); }
         ?>
         <tr data-search="<?= h($search) ?>">
@@ -347,7 +401,8 @@ if ($rs) {
             <td><?= h((string)($r['name'] ?? '')) ?></td>
             <?php if ($hasSortOrder): ?><td><?= (int)($r['sort_order'] ?? 0) ?></td><?php endif; ?>
             <?php $k = (string)($r['season_kind'] ?? 'temporada'); ?>
-            <td><span class="season-kind-badge season-kind--<?= h($k) ?>"><?= h(season_kind_label($k)) ?></span></td>
+            <?php if ($hasSeasonCol): ?><td><span class="season-kind-badge season-kind--<?= h($k) ?>"><?= h(season_kind_label($k)) ?></span></td><?php endif; ?>
+            <?php if ($hasChronicleId): ?><td><?= h((string)($r['chronicle_name'] ?? '')) ?: '-' ?></td><?php endif; ?>
             <?php if ($hasFinished): ?><td><?= !empty($r['finished']) ? 'Si' : 'No' ?></td><?php endif; ?>
             <?php if ($hasPrettyId): ?><td><?= h((string)($r['pretty_id'] ?? '')) ?></td><?php endif; ?>
             <td><?= h(short_text(strip_tags((string)($r['description'] ?? '')), 20)) ?></td>
@@ -358,7 +413,7 @@ if ($rs) {
         </tr>
     <?php endforeach; ?>
     <?php if (empty($rows)): ?>
-        <tr><td colspan="<?= 6 + ($hasSortOrder?1:0) + ($hasFinished?1:0) + ($hasPrettyId?1:0) ?>" class="adm-color-muted">(Sin temporadas)</td></tr>
+        <tr><td colspan="<?= 4 + ($hasSortOrder?1:0) + ($hasSeasonCol?1:0) + ($hasChronicleId?1:0) + ($hasFinished?1:0) + ($hasPrettyId?1:0) + ($hasDescription?1:0) ?>" class="adm-color-muted">(Sin temporadas)</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
@@ -416,6 +471,7 @@ function openSeasonModal(id = null){
     document.getElementById('season_number').value = '1';
     const eSort = document.getElementById('season_sort_order'); if (eSort) eSort.value = '0';
     const eKind = document.getElementById('season_kind'); if (eKind) eKind.value = 'temporada';
+    const eChron = document.getElementById('season_chronicle_id'); if (eChron) eChron.value = '0';
     const eFin = document.getElementById('season_finished'); if (eFin) eFin.checked = false;
     setSeasonEditorHtml('description', '');
     setSeasonEditorHtml('opening', '');
@@ -431,6 +487,7 @@ function openSeasonModal(id = null){
             document.getElementById('season_number').value = String(parseInt(row.season_number || 0, 10) || 1);
             if (eSort) eSort.value = String(parseInt(row.sort_order || 0, 10) || 0);
             if (eKind) eKind.value = (row.season_kind || 'temporada');
+            if (eChron) eChron.value = String(parseInt(row.chronicle_id || 0, 10) || 0);
             if (eFin) eFin.checked = parseInt(row.finished || 0, 10) === 1;
             setSeasonEditorHtml('description', row.description || '');
             setSeasonEditorHtml('opening', row.opening || '');

@@ -186,6 +186,40 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 	$type = "website";
 
     switch ($route) {
+        case 'home':
+            $title = "Heaven's Gate";
+            $description = "Archivo vivo de una cronica alternativa de Hombre Lobo: El Apocalipsis. Explora personajes, temporadas, eventos, mapas y material de juego.";
+            break;
+        case 'seasons_home':
+            $title = "Temporadas | Heaven's Gate";
+            $description = "Portada del archivo de temporadas e historias personales de Heaven's Gate.";
+            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            break;
+        case 'seasons_complete':
+            $title = "Temporadas completas | Heaven's Gate";
+            $description = "Listado de temporadas completas de Heaven's Gate.";
+            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            break;
+        case 'seasons_interludes':
+            $title = "Interludes | Heaven's Gate";
+            $description = "Listado de incisos e interludios narrativos de Heaven's Gate.";
+            $image = $baseURL . "/img/og/og_image.jpg";
+            break;
+        case 'seasons_personal':
+            $title = "Historias personales | Heaven's Gate";
+            $description = "Listado de historias personales de Heaven's Gate.";
+            $image = $baseURL . "/img/og/og_image_bio.jpg";
+            break;
+        case 'seasons_specials':
+            $title = "Especiales | Heaven's Gate";
+            $description = "Listado de especiales de Heaven's Gate.";
+            $image = $baseURL . "/img/og/og_image_power.jpg";
+            break;
+        case 'chapters_table':
+            $title = "Tabla de episodios | Heaven's Gate";
+            $description = "Listado completo de episodios y capitulos de Heaven's Gate.";
+            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            break;
         case 'news':
             $title = "Noticias - Heaven's Gate";
             $description = "Últimas novedades de la campaña Heaven's Gate.";
@@ -347,6 +381,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 // ===================== //
 $routes = [
 	// 🌍 Principal
+	'home'       => ['app/controllers/main/main_home.php', 'Inicio'],
 	'news'       => ['app/controllers/main/main_news.php', 'Noticias'],
 	'status'     => ['app/controllers/main/main_status.php', 'Estado'],
 	'about'      => ['app/controllers/main/main_about.php', 'Acerca de...'],
@@ -357,7 +392,13 @@ $routes = [
 	'error404'   => ['app/controllers/main/error404.php', 'Error'],
 
 	// 🗃️ Temporadas
+	'seasons_home'    => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
+	'seasons_complete' => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
+	'seasons_interludes' => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
+	'seasons_personal' => ['app/controllers/chapters/seasons_home.php', 'Historias personales'],
+	'seasons_specials' => ['app/controllers/chapters/seasons_home.php', 'Especiales'],
 	'temp'            => ['app/controllers/chapters/season_archive.php', 'Temporadas'],
+	'chapters_table'  => ['app/controllers/chapters/chapter_table.php', 'Capítulos'],
 	'seechapter'      => ['app/controllers/chapters/chapter_page.php', 'Capítulos'],
 	'temp_analisis'   => ['app/controllers/chapters/season_attendance_analysis.php', 'Análisis asistencia'],
 
@@ -371,6 +412,7 @@ $routes = [
 	'listgroups'   => ['app/controllers/bio/bio_pack_list.php', null],
 	'seegroup'     => ['app/controllers/bio/bio_pack_page.php', null],
 	'chronicles'     => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
+	'chronicle_image' => ['app/controllers/main/chronicle_image.php', null],
 	'bio_chronicles' => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
 	'bio_worlds'     => ['app/controllers/bio/bio_worlds.php', null],
 
@@ -494,13 +536,18 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api', 'chronicle_image'], true)) {
 		$isBarePage = true;
 	}
 	include($file);
 } else {
-	$pageSect = "Noticias";
-	include("app/controllers/main/main_news.php");
+	if ($routeKey === '') {
+		$pageSect = "Inicio";
+		include("app/controllers/main/main_home.php");
+	} else {
+		$pageSect = "Noticias";
+		include("app/controllers/main/main_news.php");
+	}
 }
 
 // Fallback de metatags desde títulos de página si no se han definido

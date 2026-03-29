@@ -12,11 +12,12 @@ RewriteBase /
 # ==============================
 # Security
 # ==============================
-RewriteRule (^|/)\.(?:git|svn|hg)(?:/|$) - [F,L,NC]
-RewriteRule (^|/)\.(?:gitignore|gitattributes|env(?:\..*)?)$ - [F,L,NC]
-RewriteRule (^|/)(?:README|TECHNICAL_DOCUMENTATION)\.md$ - [F,L,NC]
-RewriteRule (^|/)(?:composer\.(?:json|lock)|phpunit\.xml(?:\.dist)?|dump-[^/]+\.sql|check_encoding\.ps1)$ - [F,L,NC]
-RewriteRule (^|/)admin_upgrade_notes(?:/|$) - [F,L,NC]
+RewriteRule (^|/)\.(?:git|svn|hg)(?:/|$) index.php?p=error404 [L,NC,QSA]
+RewriteRule (^|/)(?:\.(?:gitignore|gitattributes|env(?:\..*)?)|config\.env(?:\..*)?)$ index.php?p=error404 [L,NC,QSA]
+RewriteRule ^app(?:/|$) index.php?p=error404 [L,NC,QSA]
+RewriteRule (^|/)(?:README|TECHNICAL_DOCUMENTATION|TELEGRAM_BOT_BACKEND_GUIDE)\.md$ index.php?p=error404 [L,NC,QSA]
+RewriteRule (^|/)(?:composer\.(?:json|lock)|phpunit\.xml(?:\.dist)?|dump-[^/]+\.sql|check_encoding\.ps1)$ index.php?p=error404 [L,NC,QSA]
+RewriteRule (^|/)admin_upgrade_notes(?:/|$) index.php?p=error404 [L,NC,QSA]
 
 # ==============================
 # Legacy redirects
@@ -124,6 +125,8 @@ RewriteCond %{THE_REQUEST} \s+/(?:index\.php)?\?p=maps_detail&id=([0-9]+)\s [NC]
 RewriteRule ^(?:index\.php)?$ /maps/poi/%1? [R=301,L]
 
 # Legacy list pages
+RewriteCond %{THE_REQUEST} \s+/(?:index\.php)?\?p=home\s [NC]
+RewriteRule ^(?:index\.php)?$ /home? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/(?:index\.php)?\?p=news\s [NC]
 RewriteRule ^(?:index\.php)?$ /news? [R=301,L]
 RewriteCond %{THE_REQUEST} \s+/(?:index\.php)?\?p=status\s [NC]
@@ -246,6 +249,7 @@ RewriteRule ^sounds/(.*)$ public/sounds/$1 [L]
 # ==============================
 # Pretty URLs (current)
 # ==============================
+RewriteRule ^home/?$ index.php?p=home [L,QSA]
 RewriteRule ^news/?$ index.php?p=news [L,QSA]
 RewriteRule ^status/?$ index.php?p=status [L,QSA]
 RewriteRule ^about/?$ index.php?p=about [L,QSA]
@@ -256,8 +260,13 @@ RewriteRule ^timeline/event/([^/]+)/?$ index.php?p=timeline_event&t=$1 [L,QSA]
 RewriteRule ^timeline/?$ index.php?p=timeline [L,QSA]
 
 RewriteRule ^seasons/analysis/?$ index.php?p=temp_analisis [L,QSA]
+RewriteRule ^seasons/complete/?$ index.php?p=seasons_complete [L,QSA]
+RewriteRule ^seasons/interludes/?$ index.php?p=seasons_interludes [L,QSA]
+RewriteRule ^seasons/personal-stories/?$ index.php?p=seasons_personal [L,QSA]
+RewriteRule ^seasons/specials/?$ index.php?p=seasons_specials [L,QSA]
 RewriteRule ^seasons/([^/]+)/?$ index.php?p=temp&t=$1 [L,QSA]
-RewriteRule ^seasons/?$ index.php?p=temp [L,QSA]
+RewriteRule ^seasons/?$ index.php?p=seasons_home [L,QSA]
+RewriteRule ^chapters/?$ index.php?p=chapters_table [L,QSA]
 RewriteRule ^chapters/([^/]+)/?$ index.php?p=seechapter&t=$1 [L,QSA]
 
 RewriteRule ^parties/?$ index.php?p=party [L,QSA]
@@ -271,6 +280,7 @@ RewriteRule ^characters/worlds/?$ index.php?p=bio_worlds [L,QSA]
 RewriteRule ^characters/([^/]+)/?$ index.php?p=muestrabio&b=$1 [L,QSA]
 RewriteRule ^characters/?$ index.php?p=list_table [L,QSA]
 
+RewriteRule ^chronicles/([^/]+)/image/?$ index.php?p=chronicle_image&t=$1 [L,QSA]
 RewriteRule ^chronicles/([^/]+)/?$ index.php?p=chronicles&t=$1 [L,QSA]
 RewriteRule ^chronicles/?$ index.php?p=chronicles [L,QSA]
 

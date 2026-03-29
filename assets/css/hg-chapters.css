@@ -32,6 +32,13 @@
     letter-spacing: .02em;
 }
 
+.archive-hero-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
 .archive-chip {
     display: inline-flex;
     align-items: center;
@@ -67,6 +74,58 @@
 .archive-text {
     color: var(--arc-ink);
     line-height: 1.55;
+}
+
+.archive-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.archive-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border: 1px solid #000099;
+    border-radius: 999px;
+    background: rgba(0, 0, 102, .78);
+    color: #dff5ff;
+    font-size: .82rem;
+    font-weight: bold;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.archive-pill--chronicle {
+    border-color: #1f73c9;
+    background: rgba(10, 39, 116, .82);
+    color: #aee8ff;
+}
+
+.archive-pill--chronicle:hover {
+    border-color: #33cccc;
+    color: #dfffff;
+}
+
+.archive-pill--done {
+    border-color: #0aa88f;
+    background: rgba(11, 90, 78, .82);
+    color: #d8fff8;
+}
+
+.archive-pill--active {
+    border-color: #3f86d4;
+    background: rgba(29, 72, 120, .82);
+    color: #d9f1ff;
+}
+
+.archive-pill--cancelled {
+    border-color: #c95757;
+    background: rgba(127, 31, 53, .82);
+    color: #ffe1ea;
 }
 
 .prota-grid {

@@ -1,992 +1,782 @@
-# Technical Documentation - Heaven's Gate
+# Technical Documentation - HeavensGate
 
-## 1. Scope
-This document explains architecture, data model, table relationships, and operational guidelines for the Heaven's Gate codebase.
+## 1. Proposito
 
-Primary schema references:
+Este documento explica HeavensGate desde el punto de vista de uso real:
 
-- `admin_upgrade_notes/dump-u807926597_hg-202603022117.sql` (latest reviewed dump)
-- `bdd_structure.txt` (inventory snapshot)
+- como arrancar una instancia nueva;
+- como preparar la base de datos de forma segura;
+- como entrar al backend y mantener contenido;
+- como dar de alta personajes y dejar sus fichas completas;
+- como funcionan las secciones publicas que dependen de esos datos.
 
-For timeline insertion automation (LLM-ready):
+Referencias de trabajo actuales:
 
-- `admin_upgrade_notes/hg_timeline_events_howto.txt`
+- `dump-u807926597_hg-202603282141.sql`
+- `app/tools/install_schema_from_dump.php`
+- `app/helpers/db_connection.php`
+- `.htaccess`
+- `index.php`
+- `app/bootstrap/body_work.php`
+- `TELEGRAM_BOT_BACKEND_GUIDE.md`
 
-## 2. Application Architecture
+Este documento sustituye la version antigua basada en un dump anterior. El esquema vigente tiene 87 tablas:
 
-- Entry point: `index.php`
-- Router and route map: `app/bootstrap/body_work.php`
-- DB bootstrap: `app/helpers/db_connection.php` (`config.env`, `mysqli`, `utf8mb4`)
-- Main UI composition: navbar + route controller includes
-- Admin dispatcher: `/talim?s=...` -> `app/controllers/admin/admin_main.php`
+- 33 tablas `dim_*`
+- 27 tablas `fact_*`
+- 27 tablas `bridge_*`
 
-### 2.1 Timeline/Event routes (Operation Events 5.0)
+## 2. Arquitectura general
 
-- Main timeline page: `p=timeline` -> `app/controllers/main/events_main.php`
-- Event detail page: `p=timeline_event` -> `app/controllers/main/events_page.php`
-- Admin timeline module: `s=admin_timelines`
-- Birthday quick admin module: `s=admin_birthdays_quick`
+HeavensGate es una aplicacion PHP clasica con un unico front controller.
 
-## 3. Database Modeling Strategy
+Flujo de peticion:
 
-- `dim_*`: dimensions/catalogs (reference entities)
-- `fact_*`: content/state/events/business entities
-- `bridge_*`: many-to-many relationships and active-state bridges
+1. Apache recibe la URL y aplica `.htaccess`.
+2. La ruta amigable se reescribe a `index.php?p=...`.
+3. `index.php` abre la conexion MySQL y carga `app/bootstrap/body_work.php`.
+4. `body_work.php` decide que controlador incluir segun `p`.
+5. El controlador consulta la BDD y renderiza la pagina.
+6. Si la ruta es bare o AJAX, se devuelve solo el contenido. Si no, `index.php` envuelve el resultado con layout completo.
 
-Main narrative hubs:
+Piezas clave:
+
+- `index.php`: entrada unica publica.
+- `.htaccess`: rutas amigables, redirects legacy, alias `/img` y `/sounds`, fallback 404.
+- `app/bootstrap/body_work.php`: mapa real entre `p=` y controlador.
+- `app/controllers/*`: logica por dominio.
+- `app/controllers/admin/admin_main.php`: entrada administrativa en `/talim`.
+- `app/helpers/db_connection.php`: conexion MySQL basada en `config.env`.
+
+## 3. Arranque de una instancia nueva
+
+### 3.1 Requisitos minimos
+
+- Apache o servidor compatible con `.htaccess`
+- PHP con `mysqli` y `openssl`
+- MariaDB/MySQL con `utf8mb4`
+- un `config.env` valido
+
+Variables esperadas en `config.env`:
+
+- `MYSQL_HOST`
+- `MYSQL_USER`
+- `MYSQL_PWD`
+- `MYSQL_BDD`
+- `ENCRYPTION_KEY`
+
+`ENCRYPTION_KEY` es obligatoria para usar el login admin actual, porque `/talim` lee `rel_pwd` desde `dim_web_configuration` y lo descifra en runtime.
+
+Ubicaciones aceptadas actualmente para `config.env`:
+
+- directorio padre del repositorio;
+- raiz del repositorio;
+- fallback legacy bajo `app/`.
+
+Recomendacion:
+
+- guardar `config.env` fuera del document root siempre que sea posible.
+
+### 3.2 Instalacion del esquema
+
+Se ha creado un instalador CLI para dejar la estructura lista incluso si la web todavia no esta configurada:
+
+- `app/tools/install_schema_from_dump.php`
+
+Uso tipico:
+
+```bash
+php app/tools/install_schema_from_dump.php --host=127.0.0.1 --user=usuario --password=secreto --database=hg
+```
+
+Si existe `config.env`, el script intenta reutilizarlo. Si ademas quieres dejar el backend operativo desde el principio:
+
+```bash
+php app/tools/install_schema_from_dump.php --database=hg --admin-password="cambia-esto"
+```
+
+Que hace el script:
+
+- crea la base de datos si no existe;
+- crea las 87 tablas del dump;
+- recrea las vistas `vw_sim_characters`, `vw_sim_forms` y `vw_sim_items`;
+- crea valores seguros en `dim_web_configuration`;
+- no importa por defecto la password admin de produccion.
+
+Que no hace:
+
+- no restaura el contenido editorial del dump;
+- no puebla cronicas, realidades, jugadores, personajes, documentos o mapas;
+- no copia secretos de produccion.
+
+## 4. Configuracion sensible: `dim_web_configuration`
+
+La tabla sensible del sistema es `dim_web_configuration`. En conversaciones antiguas puede aparecer como `dim_web_config`, pero el nombre real del esquema actual es `dim_web_configuration`.
+
+Estructura:
+
+```sql
+CREATE TABLE `dim_web_configuration` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `config_name` varchar(255) NOT NULL,
+  `config_value` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+);
+```
+
+Claves observadas en el dump actual:
+
+- `rel_pwd`
+- `error_reporting`
+- `exclude_chronicles`
+- `combat_simulator_ip_limit_enabled`
+- `combat_simulator_ip_limit_max_attempts_per_hour`
+- `combat_simulator_ip_limit_max_attempts_per_day`
+- `combat_simulator_rubberbanding_max_bonus_dice`
+- `combat_simulator_rubberbanding_failures_per_bonus`
+
+Regla importante:
+
+- `rel_pwd` es un valor sensible y no debe copiarse desde produccion a una instalacion nueva.
+
+Comportamiento recomendado:
+
+- crear siempre la tabla;
+- sembrar solo configuracion no sensible;
+- generar `rel_pwd` solo si el admin lo decide, usando la `ENCRYPTION_KEY` del entorno.
+
+Consumidores principales:
+
+- `app/bootstrap/error_reporting.php`
+- `app/modules/combat_simulator/script_rate_limit.php`
+- `app/modules/combat_simulator/battle_turns.php`
+- `app/controllers/admin/admin_get_pwd.php`
+
+Hardening asociado ya aplicado:
+
+- la documentacion tecnica se bloquea por `.htaccess`;
+- el directorio `app/` se bloquea por acceso HTTP directo;
+- el runtime de conexion ya no muestra errores crudos de MariaDB al usuario final.
+
+## 5. Como usar HeavensGate
+
+HeavensGate se usa en dos capas:
+
+- capa publica: consulta de lore, fichas, cronologia, sistemas, mapas y utilidades;
+- capa administrativa: edicion y mantenimiento desde `/talim`.
+
+### 5.1 Capa publica
+
+Dominios principales:
+
+- `/` y `/home`: portada de bienvenida y orientacion
+- `/news`: noticias del proyecto
+- `/status`: estado general y contadores
+- `/timeline`: cronologia y eventos
+- `/seasons`: portada del archivo narrativo
+- `/seasons/complete`, `/seasons/interludes`, `/seasons/personal-stories`, `/seasons/specials`: accesos por tipo de temporada
+- `/chapters`: tabla global de episodios
+- `/chapters/...`: ficha de episodio concreta
+- `/characters`, `/organizations`, `/groups`, `/players`: universo de personajes
+- `/documents`, `/inventory`, `/rules`, `/systems`, `/powers`: enciclopedia mecanica
+- `/maps`: geografia
+- `/music`: banda sonora
+- `/tools/*`: utilidades tecnicas y de juego
+
+### 5.2 Capa administrativa
+
+La entrada es:
+
+- `/talim`
+
+Desde ahi se cargan modulos especializados con `?s=...`. Los mas importantes para el trabajo editorial diario son:
+
+- `admin_characters`
+- `admin_groups`
+- `admin_relations`
+- `admin_docs`
+- `admin_powers`
+- `admin_items`
+- `admin_traits`
+- `admin_systems`
+- `admin_systems_resources`
+- `admin_seasons`
+- `admin_chapters`
+- `admin_timelines`
+- `admin_parties`
+- `admin_pois`
+- `admin_avatar_mass`
+- `admin_characters_worlds`
+- `admin_characters_clone`
+- `admin_character_deaths`
+
+## 6. Orden recomendado para poblar una instalacion vacia
+
+Si la base de datos esta recien creada y no se ha restaurado el contenido del dump, conviene cargar los datos en este orden:
+
+1. Catalogos base:
+   - `dim_systems`
+   - `dim_character_status`
+   - `dim_character_types`
+   - `dim_bibliographies`
+   - `dim_doc_categories`
+   - `dim_item_types`
+   - `dim_timeline_events_types`
+   - `dim_map_categories`
+   - `dim_totem_types`
+   - `dim_gift_types`
+   - `dim_rite_types`
+   - `dim_discipline_types`
+
+2. Estructura de juego:
+   - `dim_forms`
+   - `dim_breeds`
+   - `dim_auspices`
+   - `dim_tribes`
+   - `dim_systems_resources`
+   - `fact_trait_sets`
+   - `fact_misc_systems`
+
+3. Catalogos narrativos:
+   - `dim_chronicles`
+   - `dim_realities`
+   - `dim_players`
+   - `dim_organizations`
+   - `dim_groups`
+   - `dim_parties`
+
+4. Biblioteca jugable:
+   - `dim_traits`
+   - `dim_merits_flaws`
+   - `dim_archetypes`
+   - `fact_gifts`
+   - `fact_rites`
+   - `dim_totems`
+   - `fact_discipline_powers`
+   - `fact_items`
+   - `fact_docs`
+
+5. Narrativa episodica:
+   - `dim_seasons`
+   - `dim_chapters`
+   - `fact_timeline_events`
+
+6. Personajes:
+   - `fact_characters`
+   - todas sus tablas `bridge_characters_*`
+
+7. Capas derivadas:
+   - relaciones
+   - links
+   - participaciones en capitulos
+   - eventos de timeline
+   - parties
+   - mapas
+   - soundtrack
+
+Observacion importante:
+
+- actualmente no hay un CRUD tan evidente para `dim_players`, `dim_chronicles` y `dim_realities` como para otros modulos;
+- en una instancia totalmente vacia conviene sembrarlos por SQL o desde una migracion/seed controlada antes de empezar con personajes.
+
+## 7. Flujo recomendado para dar de alta un personaje
+
+Esta es la parte mas importante del uso de HeavensGate. Un personaje no esta realmente "listo" cuando solo existe en `fact_characters`; necesita varias capas derivadas para comportarse bien en toda la web.
+
+### 7.1 Alta base
+
+Modulo principal:
+
+- `/talim?s=admin_characters`
+
+Tabla central:
 
 - `fact_characters`
-- `fact_timeline_events` (expanded in Events 5.0)
 
-### 3.1 Table counts (from dump-u807926597_hg-202603022117.sql)
+Datos que conviene definir desde el principio:
 
-- Total tables: 72
-- `dim_*`: 33
-- `fact_*`: 19
-- `bridge_*`: 20
+- nombre
+- alias
+- `pretty_id`
+- avatar o `image_url`
+- tipo de personaje
+- estado
+- cronica
+- realidad
+- jugador
+- sistema
+- raza
+- auspicio
+- tribu
+- totem
+- texto de descripcion o biografia
 
-## 4. Core Relational Maps
+Si alguno de esos catalogos no existe todavia, la ficha quedara a medias y otras secciones de la web no podran clasificar bien al personaje.
 
-The model is not a pure warehouse star. It is an operational domain model with two major hubs: character and timeline event.
+### 7.2 Visibilidad publica
 
-### 4.1 Character-centric map (operational)
-```mermaid
-erDiagram
-    fact_characters ||--o{ bridge_characters_groups : has
-    fact_characters ||--o{ bridge_characters_organizations : has
-    fact_characters ||--o{ bridge_characters_traits : has
-    fact_characters ||--o{ bridge_characters_system_resources : has
-    fact_characters ||--o{ bridge_characters_powers : has
-    fact_characters ||--o{ bridge_characters_items : has
-    fact_characters ||--o{ bridge_characters_merits_flaws : has
-    fact_characters ||--o{ bridge_characters_relations : source_target
-    fact_characters ||--o{ bridge_chapters_characters : participates
-    fact_characters ||--o{ bridge_timeline_events_characters : appears_in
-```
+Para que un personaje sea navegable y aparezca bien en la capa publica, conviene revisar:
 
-### 4.2 Timeline event map (Operation Events 5.0)
-```mermaid
-erDiagram
-    dim_timeline_events_types ||--o{ fact_timeline_events : event_type_id
-    fact_timeline_events ||--o{ bridge_timeline_events_characters : event_id
-    fact_timeline_events ||--o{ bridge_timeline_events_chapters : event_id
-    fact_timeline_events ||--o{ bridge_timeline_events_chronicles : event_id
-    fact_timeline_events ||--o{ bridge_timeline_events_realities : event_id
+- que tenga `pretty_id`;
+- que tenga un `status_id` valido;
+- que no quede asociado a una cronica excluida por configuracion;
+- que el slug no choque con otros personajes;
+- que la imagen, si existe, apunte a `/public/img/characters`.
 
-    fact_characters ||--o{ bridge_timeline_events_characters : character_id
-    dim_chapters ||--o{ bridge_timeline_events_chapters : chapter_id
-    dim_chronicles ||--o{ bridge_timeline_events_chronicles : chronicle_id
-    dim_realities ||--o{ bridge_timeline_events_realities : reality_id
-```
+Notas practicas:
 
-### 4.3 Relationship matrix (core domains)
-| Domain | Hub table(s) | Main dimensions | Main bridge tables |
-|---|---|---|---|
-| Characters | `fact_characters` | players, chronicles, systems, breeds, auspices, tribes, totems, archetypes | groups, organizations, traits, resources, powers, items, merits/flaws, relations, chapters, timeline_events_characters |
-| Timeline events | `fact_timeline_events` | timeline event types | timeline_events_characters, timeline_events_chapters, timeline_events_chronicles, timeline_events_realities |
-| Systems/Rules | `dim_systems`, `dim_traits`, `fact_trait_sets`, `dim_systems_resources` | bibliographies, forms, breeds, auspices, tribes, misc | systems_resources_to_system |
-| Powers | `fact_gifts`, `fact_rites`, `dim_totems`, `fact_discipline_powers` | gift/rite/totem/discipline types, systems, bibliographies | characters_powers |
-| Chapters/Seasons | `dim_seasons`, `dim_chapters` | chronicles | chapters_characters, timeline_events_chapters, timeline_links (legacy) |
-| Maps | `dim_maps`, `fact_map_pois`, `fact_map_areas` | map categories | - |
-| Party tracker | `dim_parties`, `fact_party_members` | characters | party_members_changes |
-| Soundtrack | `dim_soundtracks` | - | soundtrack_links |
+- `pretty_id` se usa para URLs publicas;
+- internamente la web sigue trabajando con `id`;
+- si faltan slugs, se puede usar `app/tools/generate_pretty_ids.php`.
 
-## 5. Operational Guidelines
+### 7.3 Afiliacion narrativa
 
-### 5.1 Character memberships
-- Active Group: `bridge_characters_groups.is_active=1`
-- Active Organization: `bridge_characters_organizations.is_active=1`
-- Group/organization ownership: `bridge_organizations_groups`
+Un personaje suele necesitar dos capas de afiliacion:
 
-### 5.2 Character sheet state
-- Traits values: `bridge_characters_traits`
-- System resources values: `bridge_characters_system_resources`
-- Power links: `bridge_characters_powers`
-- Inventory links: `bridge_characters_items`
-- Merits/flaws links: `bridge_characters_merits_flaws`
+- organizacion: `bridge_characters_organizations`
+- grupo o manada: `bridge_characters_groups`
 
-### 5.3 Timeline events (post Events 5.0)
-- Type source of truth: `fact_timeline_events.event_type_id` -> `dim_timeline_events_types.id`
-- `fact_timeline_events.kind` remains LEGACY compatibility field
-- `fact_timeline_events.timeline` remains LEGACY compatibility field
-- Chronicle links must use `bridge_timeline_events_chronicles`
-- Event ordering must use `sort_date` (fallback: `event_date`)
-- Public timeline uses `is_active = 1` when column is present
+Tablas implicadas:
 
-### 5.4 Birthday canonical source
-- Birthday is now represented as a timeline event of type `nacimiento`
-- Character page birthday resolution now reads:
-  - `bridge_timeline_events_characters`
-  - `fact_timeline_events`
-  - `dim_timeline_events_types` (`pretty_id='nacimiento'`)
-- `fact_characters.birthdate_text` is now treated as migration/input support data
+- `dim_organizations`
+- `dim_groups`
+- `bridge_organizations_groups`
 
-### 5.5 Timeline migration scripts
-- `app/tools/migrate_timeline_events_phase1.php`
-- `app/tools/migrate_timeline_events_bridges_phase2.php`
-- `app/tools/migrate_timeline_birthdays_phase3.php`
-- `app/tools/migrate_timeline_birthdays_text_phase4.php`
+Impacto funcional:
 
-### 5.6 Logs/audit tables
-- `bridge_characters_traits_log`
-- `bridge_characters_system_resources_log`
+- se muestra en la ficha publica;
+- afecta a `/chronicles`;
+- alimenta `/organizations`, `/groups` y los mapas relacionales.
+
+### 7.4 Cronica y realidad
+
+Modulo de apoyo:
+
+- `/talim?s=admin_characters_worlds`
+
+Campos implicados:
+
+- `fact_characters.chronicle_id`
+- `fact_characters.reality_id`
+
+Uso:
+
+- reasignacion masiva de personajes;
+- saneado rapido cuando cambian de cronica o mundo;
+- correccion de consistencia en lotes.
+
+### 7.5 Rasgos y recursos
+
+Sin esta capa la ficha mecanica queda incompleta.
+
+Tablas clave:
+
+- `bridge_characters_traits`
+- `dim_traits`
+- `bridge_characters_system_resources`
+- `dim_systems_resources`
+- `fact_trait_sets`
+
+Impacto:
+
+- ficha publica del personaje;
+- tirador de dados `/tools/dice`;
+- vistas mecanicas del simulador;
+- presentacion de rasgos agrupados por sistema.
+
+Flujo recomendado:
+
+1. crear o revisar rasgos en `admin_traits`;
+2. crear recursos de sistema en `admin_systems_resources`;
+3. asegurar que el personaje esta asociado a un sistema valido;
+4. cargar sus valores en las tablas puente.
+
+### 7.6 Poderes
+
+Modulo:
+
+- `/talim?s=admin_powers`
+
+Catalogos:
+
+- `fact_gifts`
+- `fact_rites`
+- `dim_totems`
+- `fact_discipline_powers`
+
+Asignacion al personaje:
+
+- `bridge_characters_powers`
+- `fact_characters.totem_id`
+
+Impacto:
+
+- ficha del personaje;
+- secciones `/powers/*`;
+- integridad mecanica del sistema.
+
+### 7.7 Inventario
+
+Modulo:
+
+- `/talim?s=admin_items`
+
+Tablas:
+
+- `fact_items`
+- `bridge_characters_items`
+
+Impacto:
+
+- ficha del personaje;
+- `/inventory`;
+- simulador de combate cuando los objetos tienen uso mecanico.
+
+### 7.8 Meritos, defectos y arquetipos
+
+Tablas:
+
+- `dim_merits_flaws`
+- `bridge_characters_merits_flaws`
+- `dim_archetypes`
+
+Impacto:
+
+- profundidad de ficha;
+- seccion de reglas;
+- coherencia de conceptos y builds.
+
+### 7.9 Documentacion y enlaces
+
+Modulos:
+
+- `/talim?s=admin_docs`
+- `/talim?s=admin_external_links`
+- `/talim?s=admin_character_links`
+- `/talim?s=admin_doc_links`
+
+Tablas:
+
+- `fact_docs`
+- `bridge_characters_docs`
+- `fact_external_links`
+- `bridge_characters_external_links`
+
+Uso:
+
+- relacionar a cada personaje con documentos de lore;
+- enlazar fuentes externas;
+- enriquecer la ficha para bot, wiki y lectura publica.
+
+### 7.10 Relaciones entre personajes
+
+Modulo:
+
+- `/talim?s=admin_relations`
+
+Tabla:
+
+- `bridge_characters_relations`
+
+Uso:
+
+- red de aliados, rivales, mentores y vinculos;
+- alimenta mapas relacionales;
+- da contexto a biografias y cronologia.
+
+### 7.11 Participacion en temporadas y capitulos
+
+Modulos:
+
+- `/talim?s=admin_seasons`
+- `/talim?s=admin_chapters`
+
+Tablas:
+
+- `dim_seasons`
+- `dim_chapters`
+- `bridge_chapters_characters`
+
+Uso:
+
+- indicar en que capitulos aparece el personaje;
+- calcular protagonismo y asistencia;
+- alimentar `/seasons`, `/chapters/...` y analitica de asistencia.
+
+### 7.12 Timeline, nacimiento y muerte
+
+Modulo:
+
+- `/talim?s=admin_timelines`
+
+Modulos complementarios:
+
+- `/talim?s=admin_birthdays_quick`
+- `/talim?s=admin_character_deaths`
+
+Tablas:
+
+- `fact_timeline_events`
+- `dim_timeline_events_types`
+- `bridge_timeline_events_characters`
+- `bridge_timeline_events_chapters`
+- `bridge_timeline_events_chronicles`
+- `bridge_timeline_events_realities`
+- `fact_characters_deaths`
+
+Reglas actuales:
+
+- el nacimiento se trata como evento de timeline;
+- la muerte debe quedar sincronizada con `fact_characters_deaths` y con el evento de timeline asociado;
+- la timeline es ya el origen de verdad para cronologia publica.
+
+### 7.13 Party tracker
+
+Modulo:
+
+- `/talim?s=admin_parties`
+
+Tablas:
+
+- `dim_parties`
+- `fact_party_members`
 - `fact_party_members_changes`
 
-## 6. Full Data Dictionary (from bdd_structure.txt)
-Note: timeline-related sections above (2.x, 4.2, 5.3, 5.4) reflect the latest dump and take precedence for the Events 5.0 domain.
-Legend: PK=Primary Key, IDX=Indexed, NOT NULL as declared in source inventory.
-
-### bridge_chapters_characters
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `chapter_id` | `int(11)` | [IDX] [NOT NULL] |
-| `character_id` | `int(11)` | [IDX] [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### bridge_characters_groups
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(11)` | [IDX] [NOT NULL] |
-| `group_id` | `int(11)` | [IDX] [NOT NULL] |
-| `position` | `varchar(100)` | [NOT NULL] |
-| `is_active` | `tinyint(1)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_items
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(100)` | [IDX] [NOT NULL] |
-| `item_id` | `int(100)` | [IDX] [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_merits_flaws
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(100)` | [IDX] [NOT NULL] |
-| `merit_flaw_id` | `int(11)` | [IDX] [NOT NULL] |
-| `level` | `tinyint(2)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_organizations
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(11)` | [IDX] [NOT NULL] |
-| `clan_id` | `int(11)` | [IDX] [NOT NULL] |
-| `is_active` | `tinyint(1)` |  |
-| `role` | `varchar(100)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_powers
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(100)` | [IDX] [NOT NULL] |
-| `power_kind` | `enum('dones','disciplinas','rituales')` | [NOT NULL] |
-| `power_id` | `int(11)` | [NOT NULL] |
-| `power_level` | `int(1)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_relations
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `source_id` | `int(11)` | [IDX] [NOT NULL] |
-| `target_id` | `int(11)` | [IDX] [NOT NULL] |
-| `relation_type` | `varchar(100)` | [NOT NULL] |
-| `tag` | `varchar(100)` |  |
-| `importance` | `int(11)` |  |
-| `description` | `text` |  |
-| `arrows` | `varchar(10)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_system_resources
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(100)` | [IDX] [NOT NULL] |
-| `resource_id` | `int(11)` | [IDX] [NOT NULL] |
-| `value_permanent` | `int(11)` | [NOT NULL] |
-| `value_temporary` | `int(11)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_system_resources_log
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `bigint(20) unsigned` | [PK] [NOT NULL] |
-| `character_id` | `int(100)` | [IDX] [NOT NULL] |
-| `resource_id` | `int(11)` | [IDX] [NOT NULL] |
-| `old_permanent` | `int(11)` |  |
-| `new_permanent` | `int(11)` |  |
-| `old_temporary` | `int(11)` |  |
-| `new_temporary` | `int(11)` |  |
-| `delta_permanent` | `int(11)` |  |
-| `delta_temporary` | `int(11)` |  |
-| `reason` | `varchar(255)` |  |
-| `source` | `varchar(50)` | [IDX] [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `created_by` | `varchar(80)` |  |
-
-### bridge_characters_traits
-| Column | Type | Flags |
-|---|---|---|
-| `character_id` | `int(100)` | [PK] [NOT NULL] |
-| `trait_id` | `int(11)` | [PK] [NOT NULL] |
-| `value` | `tinyint(4)` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_characters_traits_log
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `bigint(20) unsigned` | [PK] [NOT NULL] |
-| `character_id` | `int(100)` | [IDX] [NOT NULL] |
-| `trait_id` | `int(11)` | [IDX] [NOT NULL] |
-| `old_value` | `tinyint(4)` |  |
-| `new_value` | `tinyint(4)` |  |
-| `delta` | `smallint(6)` |  |
-| `reason` | `varchar(255)` |  |
-| `source` | `varchar(50)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `created_by` | `varchar(80)` |  |
-
-### bridge_organizations_groups
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `clan_id` | `int(11)` | [IDX] [NOT NULL] |
-| `group_id` | `int(11)` | [IDX] [NOT NULL] |
-| `is_active` | `tinyint(1)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_soundtrack_links
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `soundtrack_id` | `int(11)` | [IDX] [NOT NULL] |
-| `object_type` | `enum('personaje','temporada','episodio')` | [NOT NULL] |
-| `object_id` | `int(11)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_systems_resources_to_system
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] [NOT NULL] |
-| `resource_id` | `int(11)` | [IDX] [NOT NULL] |
-| `sort_order` | `int(11)` | [NOT NULL] |
-| `is_active` | `tinyint(1)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### bridge_timeline_links
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `event_id` | `int(11)` | [IDX] [NOT NULL] |
-| `relation_type` | `enum('capitulo','personaje')` | [NOT NULL] |
-| `ref_id` | `int(11)` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_archetypes
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `willpower_text` | `mediumtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_auspices
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `energy` | `int(11)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_bibliographies
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(10) unsigned` | [PK] [NOT NULL] |
-| `sort_order` | `int(3)` | [NOT NULL] |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `year` | `int(4)` | [NOT NULL] |
-| `publisher` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_breeds
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `forms` | `varchar(100)` | [NOT NULL] |
-| `energy` | `int(11)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_chapters
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `chapter_number` | `int(10)` | [NOT NULL] |
-| `season_number` | `int(10)` | [NOT NULL] |
-| `synopsis` | `longtext` | [NOT NULL] |
-| `played_date` | `date` |  |
-| `in_game_date` | `date` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_character_types
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `kind` | `varchar(100)` | [NOT NULL] |
-| `sort_order` | `int(2)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_chronicles
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(10)` | [PK] [NOT NULL] |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_discipline_types
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(10)` | [PK] [NOT NULL] |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-| `pretty_id` | `varchar(190)` |  |
-
-### dim_doc_categories
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `kind` | `varchar(100)` | [NOT NULL] |
-| `sort_order` | `int(2)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_forms
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `tinyint(4)` | [PK] [NOT NULL] |
-| `affiliation` | `varchar(100)` | [NOT NULL] |
-| `race` | `varchar(30)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `form` | `varchar(30)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `weapons` | `tinyint(1)` | [NOT NULL] |
-| `firearms` | `tinyint(1)` | [NOT NULL] |
-| `strength_bonus` | `varchar(10)` | [NOT NULL] |
-| `dexterity_bonus` | `varchar(10)` | [NOT NULL] |
-| `stamina_bonus` | `varchar(10)` | [NOT NULL] |
-| `regeneration` | `tinyint(1)` | [NOT NULL] |
-| `hpregen` | `int(10)` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-| `pretty_id` | `varchar(190)` |  |
-
-### dim_gift_types
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100) unsigned` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `sort_order` | `int(2)` | [NOT NULL] |
-| `determinant` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_groups
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `chronicle_id` | `int(10)` | [NOT NULL] |
-| `totem_id` | `int(100)` | [NOT NULL] |
-| `is_active` | `tinyint(1)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_item_types
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(10)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `sort_order` | `int(2)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_map_categories
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `name` | `varchar(80)` | [NOT NULL] |
-| `slug` | `varchar(80)` | [NOT NULL] |
-| `color_hex` | `char(7)` | [NOT NULL] |
-| `icon` | `varchar(255)` |  |
-| `sort_order` | `int(11)` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` | [NOT NULL] |
-
-### dim_maps
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `name` | `varchar(120)` | [NOT NULL] |
-| `slug` | `varchar(120)` | [NOT NULL] |
-| `center_lat` | `decimal(9,6)` | [NOT NULL] |
-| `center_lng` | `decimal(9,6)` | [NOT NULL] |
-| `default_zoom` | `tinyint(3) unsigned` | [NOT NULL] |
-| `min_zoom` | `tinyint(3) unsigned` |  |
-| `max_zoom` | `tinyint(3) unsigned` |  |
-| `bounds_sw_lat` | `decimal(9,6)` |  |
-| `bounds_sw_lng` | `decimal(9,6)` |  |
-| `bounds_ne_lat` | `decimal(9,6)` |  |
-| `bounds_ne_lng` | `decimal(9,6)` |  |
-| `default_tile` | `varchar(120)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` | [NOT NULL] |
-
-### dim_menu_items
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `parent_id` | `int(11)` |  |
-| `menu_key` | `varchar(60)` |  |
-| `label` | `varchar(120)` | [NOT NULL] |
-| `href` | `varchar(255)` | [NOT NULL] |
-| `icon` | `varchar(255)` |  |
-| `icon_hover` | `varchar(255)` |  |
-| `item_type` | `enum('static','dynamic','separator')` | [NOT NULL] |
-| `dynamic_source` | `varchar(50)` |  |
-| `sort_order` | `int(11)` | [NOT NULL] |
-| `enabled` | `tinyint(1)` | [NOT NULL] |
-| `target` | `enum('_self','_blank')` | [NOT NULL] |
-| `css_class` | `varchar(120)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_merits_flaws
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [IDX] [NOT NULL] |
-| `kind` | `varchar(100)` | [NOT NULL] |
-| `affiliation` | `varchar(100)` | [NOT NULL] |
-| `cost` | `varchar(3)` | [NOT NULL] |
-| `description` | `longtext` | [IDX] [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_organizations
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `sort_order` | `int(3)` | [NOT NULL] |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `totem_id` | `int(100)` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `color` | `varchar(7)` |  |
-| `is_npc` | `tinyint(1)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-| `pretty_id` | `varchar(190)` |  |
-
-### dim_parties
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `name` | `varchar(255)` | [NOT NULL] |
-| `description` | `text` |  |
-| `active` | `tinyint(1)` | [NOT NULL] |
-| `sort_order` | `int(11)` |  |
-| `created_at` | `datetime` | [NOT NULL] |
-| `updated_at` | `datetime` | [NOT NULL] |
-
-### dim_players
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `surname` | `varchar(100)` | [NOT NULL] |
-| `picture` | `longtext` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_rite_types
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `sort_order` | `int(3)` | [NOT NULL] |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `determinant` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-| `pretty_id` | `varchar(190)` |  |
-
-### dim_seasons
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `season_number` | `int(10)` | [NOT NULL] |
-| `sort_order` | `int(11)` |  |
-| `season` | `tinyint(1)` | [NOT NULL] |
-| `finished` | `tinyint(1)` |  |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_soundtracks
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `title` | `varchar(255)` | [NOT NULL] |
-| `artist` | `varchar(255)` |  |
-| `youtube_url` | `varchar(255)` |  |
-| `context_title` | `varchar(255)` |  |
-| `added_at` | `date` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### dim_systems
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `sort_order` | `int(3)` | [NOT NULL] |
-| `forms` | `tinyint(1)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_systems_resources
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` | [IDX] |
-| `name` | `varchar(100)` | [IDX] [NOT NULL] |
-| `kind` | `varchar(30)` | [IDX] [NOT NULL] |
-| `sort_order` | `int(11)` | [NOT NULL] |
-| `description` | `longtext` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_totem_types
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `sort_order` | `int(3)` | [NOT NULL] |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `determinant` | `varchar(10)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-| `pretty_id` | `varchar(190)` |  |
-
-### dim_totems
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(255)` | [NOT NULL] |
-| `totem_type_id` | `int(3)` | [NOT NULL] |
-| `cost` | `int(2)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `traits` | `longtext` | [NOT NULL] |
-| `prohibited` | `longtext` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_traits
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [IDX] [NOT NULL] |
-| `kind` | `varchar(100)` | [NOT NULL] |
-| `classification` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [IDX] [NOT NULL] |
-| `levels` | `longtext` | [NOT NULL] |
-| `posse` | `longtext` | [NOT NULL] |
-| `special` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### dim_tribes
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `affiliation` | `varchar(100)` | [NOT NULL] |
-| `energy` | `int(11)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `powers` | `mediumtext` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_admin_posts
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `author` | `varchar(30)` | [NOT NULL] |
-| `title` | `varchar(50)` | [NOT NULL] |
-| `posted_at` | `date` | [NOT NULL] |
-| `message` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### fact_characters
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(50)` | [IDX] [NOT NULL] |
-| `alias` | `varchar(20)` | [NOT NULL] |
-| `garou_name` | `varchar(100)` | [NOT NULL] |
-| `gender` | `varchar(1)` |  |
-| `concept` | `varchar(50)` | [NOT NULL] |
-| `chronicle_id` | `int(10)` | [NOT NULL] |
-| `player_id` | `int(10)` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `text_color` | `varchar(100)` | [NOT NULL] |
-| `character_kind` | `varchar(3)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `totem_id` | `int(11)` | [IDX] |
-| `status` | `varchar(30)` | [NOT NULL] |
-| `cause_of_death` | `tinytext` | [IDX] [NOT NULL] |
-| `character_type_id` | `int(10)` | [NOT NULL] |
-| `breed_id` | `int(10)` | [NOT NULL] |
-| `auspice_id` | `int(10)` | [NOT NULL] |
-| `tribe_id` | `int(10)` | [NOT NULL] |
-| `nature_id` | `int(10)` | [NOT NULL] |
-| `demeanor_id` | `int(10)` | [NOT NULL] |
-| `birthdate_text` | `varchar(50)` | [NOT NULL] |
-| `rank` | `varchar(30)` | [NOT NULL] |
-| `info_text` | `longtext` | [NOT NULL] |
-| `notes` | `longtext` | [NOT NULL] |
-| `is_abandoned` | `tinyint(1)` | [NOT NULL] |
-| `created_at` | `datetime` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_characters_comments
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `character_id` | `int(11)` | [NOT NULL] |
-| `nick` | `varchar(25)` | [NOT NULL] |
-| `comment_time` | `time` | [NOT NULL] |
-| `commented_at` | `date` | [NOT NULL] |
-| `message` | `mediumtext` | [NOT NULL] |
-| `ip` | `varchar(50)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### fact_combat_maneuvers
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `image_url` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `text` | `longtext` | [NOT NULL] |
-| `user` | `varchar(100)` | [NOT NULL] |
-| `roll` | `varchar(100)` | [NOT NULL] |
-| `difficulty` | `varchar(100)` | [NOT NULL] |
-| `damage` | `varchar(100)` | [NOT NULL] |
-| `actions` | `varchar(100)` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_csp_posts
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `author` | `varchar(30)` | [NOT NULL] |
-| `title` | `varchar(50)` | [NOT NULL] |
-| `message` | `longtext` | [NOT NULL] |
-| `posted_at` | `varchar(50)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### fact_dice_rolls
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `name` | `varchar(50)` | [NOT NULL] |
-| `roll_name` | `varchar(50)` | [NOT NULL] |
-| `dice_pool` | `int(11)` | [NOT NULL] |
-| `difficulty` | `int(11)` | [NOT NULL] |
-| `roll_results` | `text` | [NOT NULL] |
-| `successes` | `int(11)` | [NOT NULL] |
-| `botch` | `tinyint(1)` | [NOT NULL] |
-| `willpower_spent` | `tinyint(1)` | [NOT NULL] |
-| `ip` | `varchar(45)` | [NOT NULL] |
-| `rolled_at` | `datetime` |  |
-| `updated_at` | `timestamp` |  |
-
-### fact_discipline_powers
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `disc` | `varchar(100)` | [NOT NULL] |
-| `level` | `int(2)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `system_name` | `longtext` | [NOT NULL] |
-| `atributo` | `varchar(100)` | [NOT NULL] |
-| `habilidad` | `varchar(100)` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_docs
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `section_id` | `int(100)` | [NOT NULL] |
-| `title` | `varchar(150)` | [NOT NULL] |
-| `content` | `longtext` | [NOT NULL] |
-| `source` | `longtext` | [NOT NULL] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_gifts
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [IDX] [NOT NULL] |
-| `image_url` | `varchar(190)` |  |
-| `kind` | `varchar(50)` | [NOT NULL] |
-| `gift_group` | `varchar(55)` | [NOT NULL] |
-| `rank` | `varchar(25)` | [NOT NULL] |
-| `attribute_name` | `varchar(50)` | [NOT NULL] |
-| `ability_name` | `varchar(50)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `system_name` | `longtext` | [NOT NULL] |
-| `shifter_system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_items
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [IDX] [NOT NULL] |
-| `item_type_id` | `int(10)` | [NOT NULL] |
-| `level` | `int(2)` | [NOT NULL] |
-| `gnosis` | `int(2)` | [NOT NULL] |
-| `skill_name` | `varchar(50)` | [NOT NULL] |
-| `damage_type` | `varchar(12)` | [NOT NULL] |
-| `metal` | `tinyint(1)` | [NOT NULL] |
-| `rating` | `tinyint(1)` | [NOT NULL] |
-| `bonus` | `int(2)` | [NOT NULL] |
-| `strength_req` | `int(2)` | [NOT NULL] |
-| `dexterity_req` | `int(2)` | [NOT NULL] |
-| `image_url` | `longtext` | [NOT NULL] |
-| `description` | `longtext` |  |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_map_areas
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `map_id` | `int(11)` | [IDX] [NOT NULL] |
-| `category_id` | `int(11)` | [IDX] |
-| `name` | `varchar(150)` | [NOT NULL] |
-| `description` | `text` |  |
-| `color_hex` | `char(7)` |  |
-| `geometry` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` | [NOT NULL] |
-
-### fact_map_pois
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `name` | `varchar(255)` | [IDX] [NOT NULL] |
-| `map_id` | `int(11)` | [IDX] [NOT NULL] |
-| `category_id` | `int(11)` | [IDX] [NOT NULL] |
-| `description` | `text` |  |
-| `thumbnail` | `varchar(255)` |  |
-| `latitude` | `decimal(9,6)` | [NOT NULL] |
-| `longitude` | `decimal(9,6)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` | [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-
-### fact_misc_systems
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `kind` | `varchar(100)` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `energy_name` | `varchar(100)` | [NOT NULL] |
-| `energy_value` | `int(10)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `extra_info` | `longtext` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_party_members
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `plot_id` | `int(11)` | [IDX] [NOT NULL] |
-| `base_char_id` | `int(11)` | [IDX] [NOT NULL] |
-| `alias` | `varchar(255)` |  |
-| `m_hp` | `int(11)` | [NOT NULL] |
-| `m_rage` | `int(11)` |  |
-| `m_gnosis` | `int(11)` |  |
-| `m_glamour` | `int(11)` |  |
-| `m_mana` | `int(11)` |  |
-| `m_blood` | `int(11)` |  |
-| `m_wp` | `int(11)` |  |
-| `notes` | `text` |  |
-| `active` | `tinyint(1)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_party_members_changes
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `plot_char_id` | `int(11)` | [IDX] [NOT NULL] |
-| `resource` | `enum('hp','rage','gnosis','blood','glamour','mana','wp')` | [NOT NULL] |
-| `value` | `int(11)` | [NOT NULL] |
-| `notes` | `text` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### fact_rites
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(100)` | [PK] [NOT NULL] |
-| `pretty_id` | `varchar(190)` |  |
-| `name` | `varchar(100)` | [NOT NULL] |
-| `image_url` | `varchar(190)` |  |
-| `kind` | `varchar(100)` | [NOT NULL] |
-| `level` | `int(100)` | [NOT NULL] |
-| `race` | `varchar(100)` | [NOT NULL] |
-| `description` | `longtext` | [NOT NULL] |
-| `system_text` | `longtext` | [NOT NULL] |
-| `system_name` | `varchar(100)` | [NOT NULL] |
-| `system_id` | `int(100)` | [IDX] |
-| `bibliography_id` | `int(10) unsigned` | [IDX] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-### fact_timeline_events
-| Column | Type | Flags |
-|---|---|---|
-| `id` | `int(11)` | [PK] [NOT NULL] |
-| `event_date` | `date` | [NOT NULL] |
-| `title` | `varchar(255)` | [NOT NULL] |
-| `description` | `text` |  |
-| `kind` | `enum('evento','catastrofe','batalla','descubrimiento','muerte','nacimiento','traicion','romance','fundacion','alianza','enemistad','reclutamiento','otros')` |  |
-| `location` | `varchar(255)` |  |
-| `source` | `varchar(255)` |  |
-| `timeline` | `varchar(100)` |  |
-| `created_at` | `timestamp` | [NOT NULL] |
-
-### fact_trait_sets
-| Column | Type | Flags |
-|---|---|---|
-| `system_id` | `int(100)` | [PK] [NOT NULL] |
-| `trait_id` | `int(11)` | [PK] [NOT NULL] |
-| `sort_order` | `int(11)` | [NOT NULL] |
-| `is_active` | `tinyint(1)` | [NOT NULL] |
-| `created_at` | `timestamp` | [NOT NULL] |
-| `updated_at` | `timestamp` |  |
-
-## 7. Recommended Query Patterns
-- Use prepared statements for all user input.
-- For active bridges, always filter `(is_active=1 OR is_active IS NULL)` where legacy rows may exist.
-- Prefer `*_id` foreign keys over legacy text fields (`system_name`, `system_text`, etc.).
-- For pretty URLs, resolve via `pretty_id` helpers then map to numeric `id` internally.
-
-## 8. Schema Change Checklist
-1. Add migration SQL and backup plan.
-2. Update admin CRUD and public controllers.
-3. Update route/pretty-id behavior if URL entities change.
-4. Update this document and `README.md`.
-5. Re-run data integrity checks (orphan bridges, invalid FK IDs, null critical fields).
+Uso:
+
+- formar grupos activos;
+- registrar HP, rabia, gnosis, glamour, mana, sangre o voluntad;
+- mantener historico de cambios.
+
+### 7.14 Operaciones masivas
+
+Modulos:
+
+- `/talim?s=admin_avatar_mass`
+- `/talim?s=admin_characters_clone`
+- `/talim?s=admin_characters_worlds`
+
+Uso:
+
+- cargar o corregir avatares en lote;
+- clonar personajes entre cronicas o realidades;
+- reasignar mundo/cronica en bloque.
+
+## 8. Que necesita un personaje para considerarse "listo"
+
+Checklist practico:
+
+1. Alta base en `fact_characters`
+2. `pretty_id` unico
+3. Estado valido
+4. Cronica y realidad asignadas
+5. Sistema y taxonomia mecanica resueltos
+6. Organizacion o grupo, si aplica
+7. Rasgos cargados
+8. Recursos de sistema cargados
+9. Poderes y totem, si aplica
+10. Inventario, si aplica
+11. Meritos y defectos, si aplica
+12. Documentos y links, si aplica
+13. Participacion en capitulos
+14. Eventos de timeline relevantes
+15. Relaciones con otros personajes
+
+Si solo se cumple el punto 1, el personaje existe, pero no esta realmente integrado en HeavensGate.
+
+## 9. Secciones publicas y de donde sacan valor
+
+### 9.1 Personajes
+
+Rutas:
+
+- `/characters`
+- `/characters/types`
+- `/characters/worlds`
+- `/characters/{slug}`
+
+Dependen sobre todo de:
+
+- `fact_characters`
+- `dim_character_types`
+- `dim_realities`
+- `bridge_characters_groups`
+- `bridge_characters_organizations`
+- `bridge_characters_traits`
+- `bridge_characters_docs`
+- `bridge_characters_relations`
+- `bridge_timeline_events_characters`
+
+### 9.2 Cronologia
+
+Rutas:
+
+- `/timeline`
+- `/timeline/event/{slug}`
+
+Dependen de:
+
+- `fact_timeline_events`
+- `dim_timeline_events_types`
+- bridges a personajes, capitulos, cronicas y realidades
+
+### 9.3 Temporadas y capitulos
+
+Rutas:
+
+- `/seasons`
+- `/seasons/{slug}`
+- `/seasons/analysis`
+- `/chapters/{slug}`
+
+Dependen de:
+
+- `dim_seasons`
+- `dim_chapters`
+- `bridge_chapters_characters`
+- `bridge_timeline_events_chapters`
+
+### 9.4 Reglas, sistemas, poderes y objetos
+
+Rutas:
+
+- `/systems`
+- `/rules/*`
+- `/powers/*`
+- `/documents/*`
+- `/inventory/*`
+
+Dependen de:
+
+- `dim_systems`
+- `dim_forms`
+- `dim_breeds`
+- `dim_auspices`
+- `dim_tribes`
+- `fact_misc_systems`
+- `dim_traits`
+- `dim_merits_flaws`
+- `dim_archetypes`
+- `fact_combat_maneuvers`
+- `fact_gifts`
+- `fact_rites`
+- `dim_totems`
+- `fact_discipline_powers`
+- `fact_items`
+- `fact_docs`
+
+### 9.5 Mapas
+
+Rutas:
+
+- `/maps`
+- `/maps/poi/{slug}`
+- `/maps/api`
+
+Dependen de:
+
+- `dim_maps`
+- `dim_map_categories`
+- `fact_map_pois`
+- `fact_map_areas`
+
+### 9.6 Herramientas
+
+Rutas relevantes:
+
+- `/tools/dice`
+- `/tools/forum-topic-viewer`
+- `/tools/combat-simulator`
+- `/ajax/tooltip`
+- `/ajax/mentions`
+
+Dependen de fichas y catalogos bien preparados. Si personajes, rasgos o recursos no estan consistentes, estas utilidades se degradan rapido.
+
+## 10. Modelo de datos resumido
+
+### 10.1 Hub principal de personajes
+
+`fact_characters` es la tabla central de HeavensGate.
+
+Se relaciona con:
+
+- `dim_realities`
+- `dim_systems`
+- `dim_character_status`
+- `dim_players`
+- `dim_chronicles`
+- `dim_breeds`
+- `dim_auspices`
+- `dim_tribes`
+- `dim_totems`
+- `dim_character_types`
+- todas las `bridge_characters_*`
+
+### 10.2 Hub principal de timeline
+
+`fact_timeline_events` es el segundo eje del sistema.
+
+Se relaciona con:
+
+- `dim_timeline_events_types`
+- `bridge_timeline_events_characters`
+- `bridge_timeline_events_chapters`
+- `bridge_timeline_events_chronicles`
+- `bridge_timeline_events_realities`
+- `bridge_timeline_links`
+- `fact_characters_deaths`
+
+### 10.3 Eje episodico
+
+- `dim_seasons`
+- `dim_chapters`
+- `bridge_chapters_characters`
+
+### 10.4 Eje mecanico
+
+- `dim_systems`
+- `dim_forms`
+- `dim_breeds`
+- `dim_auspices`
+- `dim_tribes`
+- `dim_systems_resources`
+- `dim_traits`
+- `fact_trait_sets`
+
+## 11. Observaciones practicas para edicion y mantenimiento
+
+- usar siempre `pretty_id` para construir URLs publicas;
+- usar siempre `id` para relaciones internas;
+- no restaurar `rel_pwd` desde dumps productivos;
+- si se crea una instalacion vacia, sembrar primero catalogos antes de personajes;
+- si un personaje "no sale", revisar: estado, slug, cronica, realidad y relaciones puente;
+- si una pagina publica esta vacia, comprobar primero sus tablas puente, no solo la tabla maestra;
+- para automatizacion o bots, la referencia mas exhaustiva por rutas y queries esta en `TELEGRAM_BOT_BACKEND_GUIDE.md`.
+
+## 12. Seguridad de despliegue
+
+Medidas ya presentes o recomendadas:
+
+- `.htaccess` deniega acceso directo a:
+  - `app/`
+  - dumps SQL
+  - notas de upgrade
+  - documentacion markdown sensible
+- `config.env` debe mantenerse fuera de la raiz servida si la infraestructura lo permite;
+- si se despliega con Nginx, Caddy u otro servidor sin soporte `.htaccess`, hay que replicar manualmente esas reglas;
+- no se deben publicar dumps productivos ni documentacion interna detallada en un host publico;
+- las incidencias de conexion a BDD deben registrarse en logs del servidor, no mostrarse al cliente.
+
+## 13. Checklist de cambios de esquema o contenido
+
+Cuando se modifique el modelo o se amplie funcionalidad:
+
+1. actualizar el dump o la migracion correspondiente;
+2. revisar `body_work.php` si aparecen nuevas rutas;
+3. revisar el CRUD admin afectado;
+4. revisar la vista publica relacionada;
+5. revisar `dim_web_configuration` si entra una nueva bandera de sistema;
+6. actualizar este documento;
+7. actualizar `TELEGRAM_BOT_BACKEND_GUIDE.md` si el cambio afecta a routing, tablas o queries.

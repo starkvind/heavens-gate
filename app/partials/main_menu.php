@@ -46,13 +46,13 @@
 	function hg_menu_open_id_static(string $path, $link): ?string {
 		$path = hg_normalize_path($path);
 
-		if (hg_starts_with($path, '/news') || hg_starts_with($path, '/search') || hg_starts_with($path, '/status') || hg_starts_with($path, '/about')) {
+		if ($path === '/' || hg_starts_with($path, '/home') || hg_starts_with($path, '/news') || hg_starts_with($path, '/search') || hg_starts_with($path, '/status') || hg_starts_with($path, '/about')) {
 			return 'startMenu';
 		}
 		if (hg_starts_with($path, '/characters') || hg_starts_with($path, '/organizations') || hg_starts_with($path, '/groups') || hg_starts_with($path, '/relationship-map')) {
 			return 'bioMenu';
 		}
-		if (hg_starts_with($path, '/parties')) {
+		if (hg_starts_with($path, '/parties') || hg_starts_with($path, '/seasons') || hg_starts_with($path, '/chapters')) {
 			return 'archivoMenu';
 		}
 		if (hg_starts_with($path, '/seasons/analysis')) {
@@ -77,59 +77,8 @@
 		if (!$link) return null;
 		$path = hg_normalize_path($path);
 
-		// Resolver temporadas/capitulos a su menu via dynamic_source (seasons_0 / seasons_1)
-		$seasonKind = null;
-		if (preg_match('#^/seasons/([^/]+)#', $path, $m)) {
-			$seasonRaw = (string)$m[1];
-			$seasonId = 0;
-			if (ctype_digit($seasonRaw)) {
-				$seasonId = (int)$seasonRaw;
-			} elseif (function_exists('resolve_pretty_id')) {
-				$seasonId = (int)(resolve_pretty_id($link, 'dim_seasons', $seasonRaw) ?? 0);
-			}
-			if ($seasonId > 0 && ($stmt = mysqli_prepare($link, "SELECT season_kind AS season_value FROM dim_seasons WHERE id = ? LIMIT 1"))) {
-				mysqli_stmt_bind_param($stmt, 'i', $seasonId);
-				mysqli_stmt_execute($stmt);
-				$res = mysqli_stmt_get_result($stmt);
-				if ($row = mysqli_fetch_assoc($res)) {
-					$seasonValue = (string)($row['season_value'] ?? '');
-					$seasonKind = $seasonValue;
-				}
-				mysqli_stmt_close($stmt);
-			}
-		} elseif (preg_match('#^/chapters/([^/]+)#', $path, $m)) {
-			$chapterRaw = (string)$m[1];
-			$chapterId = 0;
-			if (ctype_digit($chapterRaw)) {
-				$chapterId = (int)$chapterRaw;
-			} elseif (function_exists('resolve_pretty_id')) {
-				$chapterId = (int)(resolve_pretty_id($link, 'dim_chapters', $chapterRaw) ?? 0);
-			}
-			if ($chapterId > 0 && ($stmt = mysqli_prepare($link, "SELECT s.season_kind AS season_value FROM dim_chapters c JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1"))) {
-				mysqli_stmt_bind_param($stmt, 'i', $chapterId);
-				mysqli_stmt_execute($stmt);
-				$res = mysqli_stmt_get_result($stmt);
-				if ($row = mysqli_fetch_assoc($res)) {
-					$seasonValue = (string)($row['season_value'] ?? '');
-					$seasonKind = $seasonValue;
-				}
-				mysqli_stmt_close($stmt);
-			}
-		}
-
-		if ($seasonKind !== null && $seasonKind !== '') {
-			$dyn = ($seasonKind === 'historia_personal') ? 'seasons_1' : 'seasons_0';
-			if ($stmt = mysqli_prepare($link, "SELECT p.menu_key FROM dim_menu_items c JOIN dim_menu_items p ON c.parent_id = p.id WHERE c.enabled = 1 AND p.enabled = 1 AND c.dynamic_source = ? LIMIT 1")) {
-				mysqli_stmt_bind_param($stmt, 's', $dyn);
-				mysqli_stmt_execute($stmt);
-				$res = mysqli_stmt_get_result($stmt);
-				if ($row = mysqli_fetch_assoc($res)) {
-					$menuKey = (string)($row['menu_key'] ?? '');
-					mysqli_stmt_close($stmt);
-					if ($menuKey !== '') return $menuKey;
-				}
-				mysqli_stmt_close($stmt);
-			}
+		if ($path === '/' || hg_starts_with($path, '/home')) {
+			return 'startMenu';
 		}
 		$bestMenuKey = null;
 		$bestLen = -1;
@@ -152,12 +101,6 @@
 					$len = strlen($hrefPath);
 					if ($len > $bestLen && $menuKey !== '') {
 						$bestLen = $len;
-						$bestMenuKey = $menuKey;
-					}
-				}
-
-				if ($bestMenuKey === null && $dyn && hg_starts_with($path, '/seasons') && strpos($dyn, 'seasons_') === 0) {
-					if ($menuKey !== '') {
 						$bestMenuKey = $menuKey;
 					}
 				}
@@ -192,6 +135,24 @@
 
 
 	if ($useDbMenu) {
+		function hg_menu_get_children(mysqli $link, int $parentId): array {
+			$rows = [];
+			$sql = "SELECT id, label, href, target, item_type, dynamic_source, css_class
+					FROM dim_menu_items
+					WHERE parent_id = ? AND enabled = 1
+					ORDER BY sort_order, id";
+			if ($stmt = mysqli_prepare($link, $sql)) {
+				mysqli_stmt_bind_param($stmt, 'i', $parentId);
+				mysqli_stmt_execute($stmt);
+				$res = mysqli_stmt_get_result($stmt);
+				while ($row = mysqli_fetch_assoc($res)) {
+					$rows[] = $row;
+				}
+				mysqli_stmt_close($stmt);
+			}
+			return $rows;
+		}
+
 		function render_seasons(mysqli $link, string $seasonFlag): void {
 			if ($seasonFlag === '1') {
 				$consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind = 'historia_personal' ORDER BY sort_order, season_number";
@@ -262,16 +223,27 @@
 			}
 		}
 
-		function render_menu_children(mysqli $link, int $parentId): void {
-			$sql = "SELECT id, label, href, target, item_type, dynamic_source, css_class
-					FROM dim_menu_items
-					WHERE parent_id = ? AND enabled = 1
-					ORDER BY sort_order, id";
-			if ($stmt = mysqli_prepare($link, $sql)) {
-				mysqli_stmt_bind_param($stmt, 'i', $parentId);
-				mysqli_stmt_execute($stmt);
-				$res = mysqli_stmt_get_result($stmt);
-				while ($row = mysqli_fetch_assoc($res)) {
+		function render_menu_children(mysqli $link, int $parentId, string $parentMenuKey = '', ?array $rows = null): void {
+			$rows = $rows ?? hg_menu_get_children($link, $parentId);
+			if (!empty($rows)) {
+				if ($parentMenuKey === 'startMenu') {
+					$hasHomeLink = false;
+					foreach ($rows as $row) {
+						$href = (string)($row['href'] ?? '');
+						$hrefPath = $href ? (string)parse_url($href, PHP_URL_PATH) : '';
+						$hrefPath = $hrefPath ? hg_normalize_path($hrefPath) : '';
+						if ($hrefPath === '/' || $hrefPath === '/home') {
+							$hasHomeLink = true;
+							break;
+						}
+					}
+
+					if (!$hasHomeLink) {
+						echo "<a href='/'><div class='renglonMenu'>Inicio</div></a>";
+					}
+				}
+
+				foreach ($rows as $row) {
 					$type = (string)($row['item_type'] ?? 'static');
 					$label = (string)($row['label'] ?? '');
 					$href = (string)($row['href'] ?? '#');
@@ -286,14 +258,13 @@
 
 					if ($type === 'dynamic') {
 						if ($dyn === 'seasons_0') render_seasons($link, '0');
-						if ($dyn === 'seasons_1') render_seasons($link, '1');
+						elseif ($dyn === 'seasons_1') render_seasons($link, '1');
 						continue;
 					}
 
 					$targetAttr = ($target === '_blank') ? " target='_blank'" : "";
 					echo "<a href='" . h($href) . "'{$targetAttr}><div class='renglonMenu {$css}'>" . h($label) . "</div></a>";
 				}
-				mysqli_stmt_close($stmt);
 			}
 		}
 
@@ -316,6 +287,7 @@
 			$label = (string)($m['label'] ?? '');
 			$icon = (string)($m['icon'] ?? '');
 			$iconHover = (string)($m['icon_hover'] ?? $icon);
+			$childRows = hg_menu_get_children($link, (int)$m['id']);
 
 			echo "<tr><td><br/>";
 			echo "<a onclick=\"MostrarOcultar('{$menuId}')\" id=\"menu{$idx}\" onMouseover=\"Permut(1,'IMG{$idx}');\" onMouseout=\"Permut(0,'IMG{$idx}');\">";
@@ -325,7 +297,7 @@
 			echo "<tr><td class='sekzo'>";
 			$openClass = ($menuOpenId === $menuId) ? ' open' : '';
 			echo "<div class='ocultable{$openClass}' id='{$menuId}'>";
-			render_menu_children($link, (int)$m['id']);
+			render_menu_children($link, (int)$m['id'], $menuId, $childRows);
 			echo "</div></td></tr>";
 		}
 		echo "</table>";
@@ -347,6 +319,7 @@
 	<tr>
 		<td class="sekzo">
 			<div class="ocultable<?= ($menuOpenId === 'startMenu') ? ' open' : '' ?>" id="startMenu">
+				<a href="/"><div class="renglonMenu">Inicio</div></a>
 				<a href="/news"><div class="renglonMenu">Noticias</div></a>
 				<a href="/search"><div class="renglonMenu">Buscar</div></a>
 				<a href="/status"><div class="renglonMenu">Estado</div></a>
@@ -450,55 +423,6 @@
             </div>
         </td>
     </tr> <!-- ARCHIVO -->
-    <!-- ============================================================================ -->
-    <tr> <!-- HISTORIAS PERSONALES -->
-        <td>
-        <br/>
-        <a onclick="MostrarOcultar('personalesMenu')" id="menu3" onMouseover="Permut(1,'IMG3');" onMouseout="Permut(0,'IMG3');">
-            <img src="img/menu/persona_icon.png" class="menuIcon" align="left" name="IMG3" onload="preloadPermut(this,'img/menu/persona_icon_hover.png');">
-        </a>
-        </td>
-    </tr>
-    <tr>
-        <td class='sekzo'>
-            <div class="ocultable<?= ($menuOpenId === 'personalesMenu') ? ' open' : '' ?>" id="personalesMenu">
-                <?php
-                    $consulta = "SELECT id, name, season_number AS numero, finished FROM dim_seasons WHERE season_kind = 'historia_personal' ORDER BY sort_order";
-                    $stmt = mysqli_prepare($link, $consulta);
-                    mysqli_stmt_execute($stmt);
-                    $result = mysqli_stmt_get_result($stmt);
-
-                    while ($ResultQuery = mysqli_fetch_assoc($result)) {
-                        $idHistoria = htmlspecialchars($ResultQuery["id"]);
-                        $nombreHistoria = htmlspecialchars($ResultQuery["name"]);
-						$historiaFinalizada = $ResultQuery["finished"];
-						# Completado
-						if ($historiaFinalizada == 1) {
-							$historiaCheck = '&#10004;';
-						# Abandonado
-						} elseif ($historiaFinalizada == 2) {
-							$historiaCheck = '&#10006;';
-						# En curso
-						} else {
-							$historiaCheck = '';
-						}
-						$hrefHistoria = function_exists('pretty_url')
-							? pretty_url($link, 'dim_seasons', '/seasons', (int)$idHistoria)
-							: ('/seasons/' . (int)$idHistoria);
-						$statusClass = ($historiaCheck === '') ? ' menu-season-row--nostatus' : '';
-                        echo "<a href='" . h($hrefHistoria) . "'><div class='renglonMenu menu-season-row{$statusClass}'>
-							<div class='menu-season-label'>{$nombreHistoria}</div>";
-						if ($historiaCheck !== '') {
-							echo "<div class='menu-season-status'>{$historiaCheck}</div>";
-						}
-						echo "</div></a>";
-                    }
-
-                    mysqli_stmt_close($stmt);
-                ?>
-            </div>
-        </td>
-    </tr> <!-- HISTORIAS PERSONALES -->
     <!-- ============================================================================ -->
 	<tr> <!-- TRASFONDO !-->
 		<td>

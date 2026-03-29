@@ -166,7 +166,7 @@
 						}
 						$stChronNav->close();
 					}
-					echo "<a href='/chronicles' title='Cronicas'>Cronicas</a>";
+					echo "<a href='/chronicles' title='Crónicas'>Crónicas</a>";
 					if ($chronNavName !== '') echo " $pillSeparator " . htmlspecialchars($chronNavName, ENT_QUOTES, 'UTF-8');
 				}
 				break;
@@ -185,9 +185,28 @@
 			// ========================================== //
 			// Archivo
 			// ========================================== //
+			//case "seasons_home":
+				//echo "<a href='/seasons' title='Temporadas'>Temporadas</a>";
+				//break;
+			case "seasons_complete":
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Temporadas completas";
+				break;
+			case "seasons_interludes":
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Incisos";
+				break;
+			case "seasons_personal":
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Historias personales";
+				break;
+			case "seasons_specials":
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Especiales";
+				break;
+			case "chapters_table":
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Capitulos";
+				break;
 			case "seechapter":	// Ver Capitulo
 				$tempHref = pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada);
-				echo "<a href='" . htmlspecialchars($tempHref) . "' title='$nameTemporada'>$nameTemporada</a> $pillSeparator Capitulo $numeracionOK";
+				$chapterBreadcrumbTitle = isset($pageTitle2) ? (string)$pageTitle2 : ('Capitulo ' . $numeracionOK);
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator <a href='" . htmlspecialchars($tempHref) . "' title='$nameTemporada'>$nameTemporada</a> $pillSeparator " . htmlspecialchars($chapterBreadcrumbTitle, ENT_QUOTES, 'UTF-8');
 				break;
 			// ========================================== //
 			// Linea temporal

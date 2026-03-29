@@ -1,5 +1,5 @@
 <?php
-setMetaFromPage("Totems | Heaven's Gate", "Listado completo de totems.", null, 'website');
+setMetaFromPage("Tótems | Heaven's Gate", "Listado completo de tótems.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
 // Cargar tótems con la query indicada
