@@ -24,6 +24,29 @@ function anchor_id_gift($id) {
     return "gift_" . (int)$id;
 }
 
+function current_page_href(array $replaceQuery = []) {
+    $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+    $parts = parse_url($requestUri);
+
+    $path = (string)($parts['path'] ?? '/');
+    $query = [];
+
+    if (!empty($parts['query'])) {
+        parse_str($parts['query'], $query);
+    }
+
+    foreach ($replaceQuery as $key => $value) {
+        if ($value === null || $value === '') {
+            unset($query[$key]);
+            continue;
+        }
+        $query[$key] = $value;
+    }
+
+    $queryString = http_build_query($query);
+    return $path . ($queryString !== '' ? '?' . $queryString : '');
+}
+
 function gift_mechanics_col(mysqli $link): string {
     $rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
     if ($rs && mysqli_num_rows($rs) > 0) {
@@ -34,6 +57,8 @@ function gift_mechanics_col(mysqli $link): string {
     return 'system_name';
 }
 $giftRulesCol = gift_mechanics_col($link);
+$pageHref = h(current_page_href());
+$printHref = h(current_page_href(['print' => '1']));
 
 // =======================
 // 1) Query principal (LA TUYA)
@@ -409,8 +434,7 @@ foreach ($gifts as $g) {
       <p>Listado completo de dones, con acceso rápido y ficha completa (descripción + sistema).</p>
       <?php if (!$printMode): ?>
         <p style="margin-top:12px;">
-          <?php $printHref = htmlspecialchars(strtok($_SERVER['REQUEST_URI'], '?') . '?print=1'); ?>
-          <a href="<?php echo $printHref; ?>" class="hg-print-btn">🖨️ Versión imprimible</a>
+          <a href="<?php echo $printHref; ?>" class="hg-print-btn">&#128424; Versi&oacute;n imprimible</a>
         </p>
       <?php endif; ?>
     </div>
@@ -438,9 +462,9 @@ foreach ($gifts as $g) {
                   $type = h($g['gift_type'] ?? '');
                   $lvl  = h($g['gift_level'] ?? '');
               ?>
-                <a class="item" href="#<?php echo h($anchor); ?>">
+                <a class="item" href="<?php echo $pageHref; ?>#<?php echo h($anchor); ?>">
                   <div class="label">
-                    <div class="badge">â—†</div>
+                    <div class="badge">&diams;</div>
                     <div class="txt">
                       <div class="meta"><?php echo ($type !== '' || $lvl !== '') ? "[{$type} · Nv. {$lvl}]" : ""; ?></div>
                       <div class="name"><?php echo $name; ?></div>
@@ -479,7 +503,7 @@ foreach ($gifts as $g) {
         <article class="card" id="<?php echo h($anchor); ?>">
           <div class="topline">
             <h3 class="name"><?php echo $name; ?></h3>
-            <a class="back" href="#top">â†‘ Arriba</a>
+            <a class="back" href="<?php echo $pageHref; ?>#top">&uarr; Arriba</a>
           </div>
 
           <div class="chips">

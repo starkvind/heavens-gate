@@ -24,6 +24,32 @@ function anchor_id($id) {
     return "ritual_" . (int)$id;
 }
 
+function current_page_href(array $replaceQuery = []) {
+    $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+    $parts = parse_url($requestUri);
+
+    $path = (string)($parts['path'] ?? '/');
+    $query = [];
+
+    if (!empty($parts['query'])) {
+        parse_str($parts['query'], $query);
+    }
+
+    foreach ($replaceQuery as $key => $value) {
+        if ($value === null || $value === '') {
+            unset($query[$key]);
+            continue;
+        }
+        $query[$key] = $value;
+    }
+
+    $queryString = http_build_query($query);
+    return $path . ($queryString !== '' ? '?' . $queryString : '');
+}
+
+$pageHref = h(current_page_href());
+$printHref = h(current_page_href(['print' => '1']));
+
 // =======================
 // 1) Query principal (LA TUYA)
 // =======================
@@ -431,8 +457,7 @@ foreach ($rituales as $r) {
       <p>Listado completo de rituales, con acceso rápido y ficha completa (descripción + sistema).</p>
       <?php if (!$printMode): ?>
         <p style="margin-top:12px;">
-          <?php $printHref = htmlspecialchars(strtok($_SERVER['REQUEST_URI'], '?') . '?print=1'); ?>
-          <a href="<?php echo $printHref; ?>" class="hg-print-btn">🖨️ Versión imprimible</a>
+          <a href="<?php echo $printHref; ?>" class="hg-print-btn">&#128424; Versi&oacute;n imprimible</a>
         </p>
       <?php endif; ?>
     </div>
@@ -460,9 +485,9 @@ foreach ($rituales as $r) {
               $type = h($r['ritual_type']);
               $lvl  = h($r['ritual_level']);
           ?>
-            <a class="item" href="#<?php echo h($anchor); ?>">
+            <a class="item" href="<?php echo $pageHref; ?>#<?php echo h($anchor); ?>">
               <div class="label">
-                <div class="badge">â—†</div>
+                <div class="badge">&diams;</div>
                 <div class="txt">
                   <div class="meta"><?php echo "[{$type} · Nv. {$lvl}]"; ?></div>
                   <div class="name"><?php echo $name; ?></div>
@@ -495,7 +520,7 @@ foreach ($rituales as $r) {
         <article class="card" id="<?php echo h($anchor); ?>">
           <div class="topline">
             <h3 class="name"><?php echo $name; ?></h3>
-            <a class="back" href="#top">â†‘ Arriba</a>
+            <a class="back" href="<?php echo $pageHref; ?>#top">&uarr; Arriba</a>
           </div>
 
           <div class="chips">
@@ -540,4 +565,3 @@ foreach ($rituales as $r) {
 
   </div>
 </div>
-

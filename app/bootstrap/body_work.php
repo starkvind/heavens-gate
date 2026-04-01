@@ -294,6 +294,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'tipototm':
 		case 'muestratotem':
 		case 'listatotems':
+		case 'fulltotem':
 		//, ritos, disciplinas y poderes
             $title = "Totems | Heaven's Gate";
             $description = "Listado de totems (espiritus guia) de Heaven's Gate.";
@@ -470,6 +471,7 @@ $routes = [
 	'totems'       => ['app/controllers/pwrs/totm_category_list.php', null],
 	'tipototm'     => ['app/controllers/pwrs/totm_group_list.php', null],
 	'listatotems'  => ['app/controllers/pwrs/totm_table.php', null],
+	'fulltotem'    => ['app/controllers/pwrs/totm_full_list.php', null],
 	'muestratotem' => ['app/controllers/pwrs/totm_page.php', null],
 	// Disciplinas
 	'disciplinas'  => ['app/controllers/pwrs/disc_table.php', null],
