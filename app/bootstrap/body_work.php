@@ -123,6 +123,21 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         }
     }
 
+    if ($resolved !== null && !preg_match('/^\d+$/', $raw)) {
+        $currentPretty = get_pretty_id($link, $table, (int)$resolved);
+        if ($currentPretty && $currentPretty !== $raw) {
+            $target = rtrim($base, '/') . '/' . rawurlencode($currentPretty);
+            if ($route === 'seegroup') {
+                $target = rtrim($base, '/') . '/' . rawurlencode($currentPretty);
+            }
+            if ($route === 'versistdetalle') {
+                $target = rtrim($base, '/') . '/' . rawurlencode($currentPretty);
+            }
+            header("Location: $target", true, 301);
+            exit;
+        }
+    }
+
     if (preg_match('/^\d+$/', $raw)) {
         $pretty = get_pretty_id($link, $table, (int)$raw);
         if ($pretty) {
@@ -500,6 +515,7 @@ $routes = [
 	'combat_simulator_scores' => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
 	'combat_simulator_weapons' => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
 	'combat_simulator_tournament' => ['app/controllers/tool/combat_simulator.php', 'Torneo del Simulador'],
+	'schema_sanitizer' => ['app/controllers/tool/schema_sanitizer.php', 'Saneador de esquema'],
 
 	// Legacy aliases
 	'simulador'        => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
@@ -547,7 +563,7 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api', 'chronicle_image'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api', 'chronicle_image', 'schema_sanitizer'], true)) {
 		$isBarePage = true;
 	}
 	include($file);

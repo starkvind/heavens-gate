@@ -142,7 +142,31 @@ function resolve_pretty_id(mysqli $link, string $table, string $value): ?int {
     $row = $result ? $result->fetch_assoc() : null;
     $stmt->close();
 
-    return $row ? (int)$row['id'] : null;
+    if ($row) {
+        return (int)$row['id'];
+    }
+
+    if (hg_table_exists($link, 'fact_pretty_id_aliases')) {
+        $aliasStmt = $link->prepare("
+            SELECT entity_id
+            FROM fact_pretty_id_aliases
+            WHERE table_name = ?
+              AND old_pretty_id = ?
+            LIMIT 1
+        ");
+        if ($aliasStmt) {
+            $aliasStmt->bind_param('ss', $table, $value);
+            $aliasStmt->execute();
+            $aliasResult = $aliasStmt->get_result();
+            $aliasRow = $aliasResult ? $aliasResult->fetch_assoc() : null;
+            $aliasStmt->close();
+            if ($aliasRow && isset($aliasRow['entity_id'])) {
+                return (int)$aliasRow['entity_id'];
+            }
+        }
+    }
+
+    return null;
 }
 
 function pretty_url(mysqli $link, string $table, string $base, int $id): string {
@@ -181,6 +205,31 @@ function hg_table_has_column(mysqli $link, string $table, string $column): bool 
     }
 
     $cache[$key] = $ok;
+    return $ok;
+}
+
+function hg_table_exists(mysqli $link, string $table): bool {
+    static $cache = [];
+    $table = trim($table);
+    if ($table === '') return false;
+    if (isset($cache[$table])) return $cache[$table];
+
+    $ok = false;
+    if ($st = $link->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+    ")) {
+        $st->bind_param('s', $table);
+        $st->execute();
+        $st->bind_result($count);
+        $st->fetch();
+        $ok = ((int)$count > 0);
+        $st->close();
+    }
+
+    $cache[$table] = $ok;
     return $ok;
 }
 
