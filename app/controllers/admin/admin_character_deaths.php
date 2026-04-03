@@ -1,7 +1,8 @@
 <?php
 // admin_character_deaths.php - Gestion de muertes de personajes con guardado Ajax por fila.
 
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -326,7 +327,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
         ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
         : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
     if (!$csrfOk) {
-        $jsonExit(['ok' => false, 'msg' => 'CSRF invalido. Recarga la pagina.']);
+        $jsonExit(['ok' => false, 'msg' => 'CSRF inválido. Recarga la página.']);
     }
 
     $ajaxMode = (string)($_POST['ajax'] ?? '');
@@ -340,10 +341,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
         $deathDescription = trim((string)($_POST['death_description'] ?? ''));
         $weight = isset($_POST['narrative_weight']) ? (int)$_POST['narrative_weight'] : 1;
 
-        if ($characterId <= 0) $jsonExit(['ok' => false, 'msg' => 'Personaje invalido']);
-        if ($killerId < 0 || $timelineEventId < 0) $jsonExit(['ok' => false, 'msg' => 'IDs invalidos']);
+        if ($characterId <= 0) $jsonExit(['ok' => false, 'msg' => 'Personaje inválido']);
+        if ($killerId < 0 || $timelineEventId < 0) $jsonExit(['ok' => false, 'msg' => 'IDs inválidos']);
         if ($deathType === '') $deathType = 'otros';
-        if (!in_array($deathType, $deathTypes, true)) $jsonExit(['ok' => false, 'msg' => 'Tipo de muerte invalido']);
+        if (!in_array($deathType, $deathTypes, true)) $jsonExit(['ok' => false, 'msg' => 'Tipo de muerte inválido']);
 
         $killerId = $killerId > 0 ? $killerId : null;
         $timelineEventId = $timelineEventId > 0 ? $timelineEventId : null;
@@ -507,7 +508,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
 
     if ($ajaxMode === 'delete_character_death') {
         $characterId = isset($_POST['character_id']) ? (int)$_POST['character_id'] : 0;
-        if ($characterId <= 0) $jsonExit(['ok' => false, 'msg' => 'Personaje invalido']);
+        if ($characterId <= 0) $jsonExit(['ok' => false, 'msg' => 'Personaje inválido']);
         if ($st = $link->prepare("DELETE FROM `{$deathsTable}` WHERE character_id=? LIMIT 1")) {
             $st->bind_param('i', $characterId);
             if (!$st->execute()) {
@@ -710,7 +711,7 @@ admin_panel_open('Muertes de personajes', $actions);
 <?php else: ?>
   <form method="get" id="acdFilterForm" class="adm-flex-8-m10">
     <input type="hidden" name="s" value="admin_character_deaths">
-    <label class="small">Busqueda
+    <label class="small">Búsqueda
       <input class="inp" type="text" name="q" id="quickFilterAcd" value="<?= hg_acd_h($q) ?>" placeholder="Personaje, tipo, responsable o evento">
     </label>
     <label class="small">Por pag
@@ -836,8 +837,8 @@ admin_panel_open('Muertes de personajes', $actions);
           <label><span>Peso narrativo</span>
             <input class="inp" type="number" min="1" max="10" id="acd_weight" value="1">
           </label>
-          <label class="field-full"><span>Descripcion</span>
-            <textarea class="inp ta-md" id="acd_description" rows="4" placeholder="Descripcion..."></textarea>
+          <label class="field-full"><span>Descripción</span>
+            <textarea class="inp ta-md" id="acd_description" rows="4" placeholder="Descripción..."></textarea>
           </label>
         </div>
 
@@ -1146,3 +1147,4 @@ var ACD_ROWS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT
 <?php endif; ?>
 
 <?php admin_panel_close(); ?>
+

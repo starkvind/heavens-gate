@@ -1,6 +1,7 @@
 <?php
 // admin_systems.php -- CRUD Sistemas (dim_systems)
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -53,7 +54,7 @@ if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name AS
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSystemModal()">+ Nuevo sistema</button>'
-    . '<label class="adm-text-left">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rápido '
     . '<input class="inp" type="text" id="quickFilterSystems" placeholder="En esta pagina..."></label>'
     . '</span>';
 if (!$isAjaxRequest) {
@@ -83,13 +84,7 @@ function systems_csrf_ok(): bool {
 
 // Borrar
 if (!$isAjaxRequest && isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
-    if ($id > 0 && ($st = $link->prepare("DELETE FROM dim_systems WHERE id=?"))) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $st->close();
-        $flash[] = ['type'=>'ok','msg'=>'Sistema eliminado.'];
-    }
+    $flash[] = ['type'=>'error','msg'=>'El borrado por URL ha sido desactivado por seguridad. Usa el boton Borrar.'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '') === 'delete') {
@@ -97,11 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
         hg_admin_require_session(true);
     }
     if (!systems_csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
-            $flash[] = ['type'=>'error','msg'=>'ID invalido para borrar.'];
+            $flash[] = ['type'=>'error','msg'=>'ID inválido para borrar.'];
         } elseif ($st = $link->prepare("DELETE FROM dim_systems WHERE id=?")) {
             $st->bind_param('i', $id);
             if ($st->execute()) {
@@ -122,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
         hg_admin_require_session(true);
     }
     if (!systems_csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
     $id = (int)($_POST['id'] ?? 0);
     $orden = (int)($_POST['orden'] ?? 0);
@@ -283,7 +278,7 @@ if ($ajaxSaveDelete) {
                         <?php endforeach; ?>
                     </select>
 
-                    <label>Descripcion</label>
+                    <label>Descripción</label>
                     <div>
                         <div id="system_toolbar" class="ql-toolbar ql-snow">
                             <?= admin_quill_toolbar_inner(); ?>
@@ -540,6 +535,7 @@ bindRows();
 </script>
 
 <?php admin_panel_close(); ?>
+
 
 
 

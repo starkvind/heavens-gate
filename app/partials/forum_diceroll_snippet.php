@@ -1,20 +1,31 @@
 <?php
-include("app/helpers/db_connection.php");
+require_once(__DIR__ . '/../helpers/runtime_response.php');
+
+if (!isset($link) || !($link instanceof mysqli)) {
+    require_once(__DIR__ . '/../helpers/db_connection.php');
+}
 
 $id_tirada = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 if (!$id_tirada) {
-    die("Tirada no especificada.");
+    hg_runtime_embed_error('Tirada no disponible', 'No se ha indicado ninguna tirada.', 400);
+    return;
 }
 
 $query = "SELECT * FROM fact_dice_rolls WHERE id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $query);
+if (!$stmt) {
+    hg_runtime_log_error('forum_diceroll_snippet.prepare', mysqli_error($link));
+    hg_runtime_embed_error('Tirada no disponible', 'No se pudo preparar la consulta de la tirada.', 500);
+    return;
+}
 mysqli_stmt_bind_param($stmt, "i", $id_tirada);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
 
 if (!$tirada = mysqli_fetch_assoc($res)) {
-    die("Tirada no encontrada.");
+    hg_runtime_embed_error('Tirada no encontrada', 'No existe ninguna tirada con ese identificador.', 404);
+    return;
 }
 
 $nombre = htmlspecialchars($tirada['name']);
@@ -25,7 +36,7 @@ $exitos = (int)$tirada['successes'];
 $pifia = (bool)$tirada['botch'];
 $willpowerSpent = !empty($tirada['willpower_spent']);
 
-$paletteParam = filter_input(INPUT_GET, 'palette', FILTER_SANITIZE_STRING) ?? '';
+$paletteParam = filter_input(INPUT_GET, 'palette', FILTER_UNSAFE_RAW) ?? '';
 $paletteParam = preg_replace('/[^a-zA-Z0-9#(),.\s%-]/', '', (string)$paletteParam);
 
 $palette = $pifia ? '#3A1010' : '#05014E';

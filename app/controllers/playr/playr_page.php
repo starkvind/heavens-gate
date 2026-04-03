@@ -1,13 +1,19 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../helpers/public_response.php');
+
+if (!$link) {
+    hg_public_log_error('playr_page', 'missing DB connection');
+    hg_public_render_error('Jugador no disponible', 'No se pudo cargar la ficha del jugador en este momento.');
+    return;
+}
+
 $pjRaw = $_GET['b'] ?? '';
 $pjId = resolve_pretty_id($link, 'dim_players', (string)$pjRaw) ?? 0;
 
-if (!$link) {
-    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
-}
 if ($pjId <= 0) {
-    die("Jugador invÃ¡lido.");
+    hg_public_render_not_found('Jugador no encontrado', 'El jugador solicitado no esta disponible en el catalogo.', true);
+    return;
 }
 
 $queryPlayer = "
@@ -18,7 +24,9 @@ $queryPlayer = "
 ";
 $stmtPlayer = mysqli_prepare($link, $queryPlayer);
 if (!$stmtPlayer) {
-    die("Error al preparar la consulta: " . mysqli_error($link));
+    hg_public_log_error('playr_page', 'player prepare failed: ' . mysqli_error($link));
+    hg_public_render_error('Jugador no disponible', 'No se pudo cargar la ficha del jugador en este momento.');
+    return;
 }
 
 mysqli_stmt_bind_param($stmtPlayer, 'i', $pjId);
@@ -27,7 +35,8 @@ $resultPlayer = mysqli_stmt_get_result($stmtPlayer);
 
 if (!$resultPlayer || mysqli_num_rows($resultPlayer) <= 0) {
     mysqli_stmt_close($stmtPlayer);
-    die("Jugador no disponible en el catÃ¡logo.");
+    hg_public_render_not_found('Jugador no encontrado', 'El jugador solicitado no esta disponible en el catalogo.', true);
+    return;
 }
 
 $player = mysqli_fetch_assoc($resultPlayer);
@@ -77,7 +86,9 @@ $queryCharacters = "
 ";
 $stmtCharacters = mysqli_prepare($link, $queryCharacters);
 if (!$stmtCharacters) {
-    die("Error al preparar la consulta de personajes: " . mysqli_error($link));
+    hg_public_log_error('playr_page', 'characters prepare failed: ' . mysqli_error($link));
+    hg_public_render_error('Jugador no disponible', 'No se pudieron cargar los personajes relacionados en este momento.');
+    return;
 }
 
 mysqli_stmt_bind_param($stmtCharacters, 'i', $pjId);
@@ -92,14 +103,6 @@ if ($resultCharacters) {
     mysqli_free_result($resultCharacters);
 }
 mysqli_stmt_close($stmtCharacters);
-
-$mapEstado = [
-    'Aun por aparecer' => '(@)',
-    'AÃºn por aparecer' => '(@)',
-    'Paradero desconocido' => '(?)',
-    'Cadaver' => '(&#8224;)',
-    'CadÃ¡ver' => '(&#8224;)'
-];
 ?>
 
 <div class="player-layout">
@@ -147,5 +150,3 @@ $mapEstado = [
         <?php endif; ?>
     </section>
 </div>
-
-

@@ -1,7 +1,6 @@
 <?php
-if (!isset($link) || !$link) {
-    die("Error de conexion a la base de datos.");
-}
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
@@ -45,7 +44,7 @@ function topic_viewer_column_exists(mysqli $link, string $table, string $column)
 
 $actions = '<span class="adm-flex-right-8">'
     . '<a class="btn" href="/app/tools/topic_viewer_setup_20260318.php" target="_blank">Ejecutar setup</a>'
-    . '<label class="adm-text-left">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rápido '
     . '<input class="inp" type="text" id="quickFilterTopicViewer" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Temas de visor de foro', $actions);
@@ -79,14 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         : (is_string($token) && $token !== '' && isset($_SESSION[$csrfKey]) && hash_equals($_SESSION[$csrfKey], $token));
 
     if (!$validCsrf) {
-        $flash[] = ['type' => 'error', 'msg' => 'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
     } else {
         $action = (string)$_POST['crud_action'];
 
         if ($action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID invalido para borrar.'];
+                $flash[] = ['type' => 'error', 'msg' => 'ID inválido para borrar.'];
             } else {
                 $st = $link->prepare("DELETE FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
                 if (!$st) {
@@ -384,7 +383,7 @@ if ($rs) {
         </label>
         <?php endif; ?>
 
-        <label class="field-full">Descripcion (opcional)
+        <label class="field-full">Descripción (opcional)
             <textarea class="ta" name="topic_description" rows="3"><?= h($editRow['topic_description'] ?? '') ?></textarea>
         </label>
 
@@ -398,7 +397,7 @@ if ($rs) {
 
         <div class="field-full adm-flex-right-8">
             <?php if ((int)($editRow['id'] ?? 0) > 0): ?>
-                <a class="btn" href="/talim?s=admin_topic_viewer">Cancelar edicion</a>
+                <a class="btn" href="/talim?s=admin_topic_viewer">Cancelar edición</a>
             <?php endif; ?>
             <button class="btn btn-green" type="submit">Guardar</button>
         </div>
@@ -523,3 +522,4 @@ if ($rs) {
 </script>
 
 <?php admin_panel_close(); ?>
+

@@ -8,7 +8,8 @@
 // - Debe existir $link (mysqli) ya conectado
 // - Opcional: $excludeChronicles (CSV ints) para filtrar fact_characters.chronicle_id
 
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) $link->set_charset('utf8mb4'); else mysqli_set_charset($link,'utf8mb4');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -960,6 +961,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 
 })();
 </script>
+
 
 
 

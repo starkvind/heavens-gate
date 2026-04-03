@@ -53,7 +53,8 @@ if (!$isAjaxRequest):
 <?php
 // admin_characters.php - CRUD Personajes (Clan/Manada + Sistema/Raza/Auspicio/Tribu + Avatar + Afiliacion + Poderes + Meritos/Defectos + Inventario + Campos complejos)
 
-if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 
 // [IMPORTANT] MUY IMPORTANTE: asegura que MySQLi entregue UTF-8 real (evita JSON roto)
 if (method_exists($link, 'set_charset')) {
@@ -751,7 +752,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     // Validaciones
     if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
-    if ($status_id <= 0) $flash[] = ['type'=>'error','msg'=>'? El status no es válido.'];
+    if ($status_id <= 0) $flash[] = ['type'=>'error','msg'=>'El estado no es válido.'];
     if ($manada > 0) {
         $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
         if ($clan_of_manada !== $clan) {
@@ -1198,12 +1199,13 @@ $paramsPage = $params; $paramsPage[] = $offset; $paramsPage[] = $perPage;
 $stmt = $link->prepare($sql);
 
 if ($stmt === false) {
-    die(
-        "<pre>SQL PREPARE ERROR:\n" .
-        $link->errno . " — " . $link->error .
-        "\n\nSQL:\n" . $sql .
-        "</pre>"
+    hg_runtime_log_error('admin_characters.list_prepare', $link->errno . ' - ' . $link->error);
+    hg_admin_render_error(
+        'Personajes no disponibles',
+        'No se pudo preparar el listado de personajes.',
+        500
     );
+    return;
 }
 
 $stmt->bind_param($typesPage, ...$paramsPage);

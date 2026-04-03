@@ -1,7 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
-// Aseguramos que el parÃ¡metro GET 'b' estÃ© definido y es un valor seguro
+// Aseguramos que el parámetro GET 'b' esté definido y sea un valor seguro
 $itemPageID = isset($_GET['b']) ? $_GET['b'] : '';
 $itemId = (int)$itemPageID;
 
@@ -18,7 +18,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $resultQueryItem = $result->fetch_assoc();
 
     // ================================================================== //
-    // DATOS BÃSICOS
+    // DATOS BÁSICOS
     $itemID     = htmlspecialchars($resultQueryItem["id"]);
     $itemName   = htmlspecialchars($resultQueryItem["name"]);
     $itemType   = (int)$resultQueryItem["item_type_id"];
@@ -79,8 +79,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
                 $nameTypeBack = "Protectores";
                 break;
             case 3:
-                $nameTypeItem = "Objeto m?gico";
-                $nameTypeBack = "Objetos m?gicos";
+                $nameTypeItem = "Objeto mágico";
+                $nameTypeBack = "Objetos mágicos";
                 break;
             case 5:
                 $nameTypeItem = "Amuleto";
@@ -94,7 +94,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
 // ================================================================== //
-    // Preparar DaÃ±o
+    // Preparar daño
     switch ($itemMetal) {
         case 1:
             $metalText = " y de plata";
@@ -119,8 +119,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
     // ================================================================== //
-    // ImÃ¡genes y TÃ­tulo
-    $pageSect = "Objeto"; // TÃ­tulo de la PÃ¡gina ( #$itemID )
+    // Imágenes y título
+    $pageSect = "Objeto"; // Título de la página ( #$itemID )
     $pageTitle2 = $itemName;
     setMetaFromPage($itemName . " | Objetos | Heaven's Gate", meta_excerpt($itemInfo), null, 'article');
     if (empty($itemImg)) {
@@ -129,8 +129,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 
     // ================================================================== //
     /* MODERNO NUEVO */
-    include("app/partials/main_nav_bar.php"); // Barra NavegaciÃ³n
-    //echo "<h2>$itemName</h2>"; // Encabezado de pÃ¡gina
+    include("app/partials/main_nav_bar.php"); // Barra de navegación
+    //echo "<h2>$itemName</h2>"; // Encabezado de página
 
     ob_start();
 
@@ -308,7 +308,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         echo $infoHtml;
     }
     /* =========== */
-} // Fin comprobaciÃ³n
+} // Fin comprobación
 
 $stmt->close();
 

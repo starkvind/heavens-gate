@@ -1,20 +1,31 @@
 <?php
-include("app/helpers/db_connection.php");
+require_once(__DIR__ . '/../helpers/runtime_response.php');
+
+if (!isset($link) || !($link instanceof mysqli)) {
+    require_once(__DIR__ . '/../helpers/db_connection.php');
+}
 
 $itemId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 if (!$itemId) {
-    die("Objeto no especificado.");
+    hg_runtime_embed_error('Objeto no disponible', 'No se ha indicado ningun objeto.', 400);
+    return;
 }
 
 $query = "SELECT id, name, image_url, description, item_type_id, rating, pretty_id FROM fact_items WHERE id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $query);
+if (!$stmt) {
+    hg_runtime_log_error('forum_item_snippet.prepare', mysqli_error($link));
+    hg_runtime_embed_error('Objeto no disponible', 'No se pudo preparar la consulta del objeto.', 500);
+    return;
+}
 mysqli_stmt_bind_param($stmt, "i", $itemId);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
 
 if (!$item = mysqli_fetch_assoc($res)) {
-    die("Objeto no encontrado.");
+    hg_runtime_embed_error('Objeto no encontrado', 'No existe ningun objeto con ese identificador.', 404);
+    return;
 }
 
 $name = htmlspecialchars((string)$item['name'], ENT_QUOTES, 'UTF-8');

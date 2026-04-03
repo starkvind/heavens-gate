@@ -1,5 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../helpers/public_response.php');
 
 if (!function_exists('h')) {
   function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -31,14 +32,19 @@ if (!function_exists('docs_page_column_exists')) {
   }
 }
 
+// Asegurarse de que la conexion a la base de datos ($link) este definida y sea valida
+if (!$link) {
+    hg_public_log_error('docs_page', 'missing DB connection');
+    hg_public_render_error('Documento no disponible', 'No se pudo cargar el documento en este momento.');
+    return;
+}
+
 // Obtener id o pretty-id
 $docRaw = $_GET['b'] ?? '';
 $docId = resolve_pretty_id($link, 'fact_docs', (string)$docRaw) ?? 0;
-if ($docId <= 0) { print("Documento invalido."); }
-
-// Asegurarse de que la conexion a la base de datos ($link) este definida y sea valida
-if (!$link) {
-    print("Error de conexion a la base de datos: " . mysqli_connect_error());
+if ($docId <= 0) {
+  hg_public_render_not_found('Documento no encontrado', 'El documento solicitado no esta disponible.', true);
+  return;
 }
 
 // Consulta preparada (id = ?, no LIKE)
@@ -47,19 +53,29 @@ $Query = "SELECT dz.title, d.kind AS section_id, dz.content, dz.source
           LEFT JOIN dim_doc_categories d ON d.id = dz.section_id
           WHERE dz.id = ? LIMIT 1";
 $stmt = mysqli_prepare($link, $Query);
-if (!$stmt) { print("Error al preparar la consulta: " . mysqli_error($link)); }
+if (!$stmt) {
+  hg_public_log_error('docs_page', 'prepare failed: ' . mysqli_error($link));
+  hg_public_render_error('Documento no disponible', 'No se pudo cargar el documento en este momento.');
+  return;
+}
 
 mysqli_stmt_bind_param($stmt, 'i', $docId);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
-if (!$result) { print("Error en la consulta: " . mysqli_error($link)); }
+if (!$result) {
+  hg_public_log_error('docs_page', 'query failed: ' . mysqli_error($link));
+  mysqli_stmt_close($stmt);
+  hg_public_render_error('Documento no disponible', 'No se pudo cargar el documento en este momento.');
+  return;
+}
 
 $ResultQuery = mysqli_fetch_assoc($result);
 mysqli_free_result($result);
 mysqli_stmt_close($stmt);
 
 if (!$ResultQuery) { 
-  print("Documento no encontrado."); 
+  hg_public_render_not_found('Documento no encontrado', 'El documento solicitado no esta disponible.', true);
+  return;
 } else {
 
 $titleDoc = (string)$ResultQuery["title"];

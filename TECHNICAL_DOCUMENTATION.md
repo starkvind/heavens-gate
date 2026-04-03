@@ -1,63 +1,60 @@
-# Technical Documentation - HeavensGate
+# Technical Documentation - Heaven's Gate 5.0
 
 ## 1. Proposito
 
-Este documento explica HeavensGate desde el punto de vista de uso real:
+Este documento describe el estado tecnico real del proyecto despues de la actualizacion 5.0. El objetivo es que cualquier mantenimiento futuro parta del codigo y del dump vigentes, no de supuestos heredados.
 
-- como arrancar una instancia nueva;
-- como preparar la base de datos de forma segura;
-- como entrar al backend y mantener contenido;
-- como dar de alta personajes y dejar sus fichas completas;
-- como funcionan las secciones publicas que dependen de esos datos.
+Se ha contrastado con:
 
-Referencias de trabajo actuales:
-
-- `dump-u807926597_hg-202603282141.sql`
+- `dump-u807926597_hg-202604031114.sql`
 - `app/tools/install_schema_from_dump.php`
-- `app/helpers/db_connection.php`
 - `.htaccess`
 - `index.php`
 - `app/bootstrap/body_work.php`
-- `TELEGRAM_BOT_BACKEND_GUIDE.md`
+- `app/helpers/db_connection.php`
+- `app/helpers/pretty.php`
+- `app/helpers/admin_auth.php`
+- `app/helpers/public_response.php`
+- `app/helpers/runtime_response.php`
 
-Este documento sustituye la version antigua basada en un dump anterior. El esquema vigente tiene 87 tablas:
+Snapshot actual del esquema:
 
+- 87 tablas
 - 33 tablas `dim_*`
 - 27 tablas `fact_*`
 - 27 tablas `bridge_*`
+- 3 vistas del simulador:
+  - `vw_sim_characters`
+  - `vw_sim_forms`
+  - `vw_sim_items`
 
 ## 2. Arquitectura general
 
-HeavensGate es una aplicacion PHP clasica con un unico front controller.
+HeavensGate sigue siendo una aplicacion PHP clasica con un unico front controller.
 
-Flujo de peticion:
+Flujo de una request publica:
 
-1. Apache recibe la URL y aplica `.htaccess`.
+1. El servidor recibe la URL y aplica `.htaccess`.
 2. La ruta amigable se reescribe a `index.php?p=...`.
-3. `index.php` abre la conexion MySQL y carga `app/bootstrap/body_work.php`.
-4. `body_work.php` decide que controlador incluir segun `p`.
-5. El controlador consulta la BDD y renderiza la pagina.
-6. Si la ruta es bare o AJAX, se devuelve solo el contenido. Si no, `index.php` envuelve el resultado con layout completo.
+3. `index.php` carga bootstrap, conexion y layout base.
+4. `app/bootstrap/body_work.php` resuelve `p`, normaliza slugs y decide el controlador fisico.
+5. El controlador consulta la BDD y renderiza HTML completo o salida bare.
+6. Si la ruta es bare/AJAX, se devuelve solo el contenido. Si no, `index.php` envuelve la salida con el layout comun.
 
 Piezas clave:
 
-- `index.php`: entrada unica publica.
-- `.htaccess`: rutas amigables, redirects legacy, alias `/img` y `/sounds`, fallback 404.
-- `app/bootstrap/body_work.php`: mapa real entre `p=` y controlador.
-- `app/controllers/*`: logica por dominio.
-- `app/controllers/admin/admin_main.php`: entrada administrativa en `/talim`.
-- `app/helpers/db_connection.php`: conexion MySQL basada en `config.env`.
+- `index.php`: front controller publico
+- `.htaccess`: routing, redirecciones legacy, bloqueos de seguridad y fallback
+- `app/bootstrap/body_work.php`: dispatch real entre `p=` y fichero fisico
+- `app/bootstrap/head_work.php`: ensamblado del `head`
+- `app/helpers/db_connection.php`: conexion robusta e idempotente
+- `app/helpers/pretty.php`: resolucion y normalizacion de `pretty_id`
 
-## 3. Arranque de una instancia nueva
+## 3. Configuracion y arranque
 
-### 3.1 Requisitos minimos
+### 3.1 `config.env`
 
-- Apache o servidor compatible con `.htaccess`
-- PHP con `mysqli` y `openssl`
-- MariaDB/MySQL con `utf8mb4`
-- un `config.env` valido
-
-Variables esperadas en `config.env`:
+Variables esperadas:
 
 - `MYSQL_HOST`
 - `MYSQL_USER`
@@ -65,718 +62,434 @@ Variables esperadas en `config.env`:
 - `MYSQL_BDD`
 - `ENCRYPTION_KEY`
 
-`ENCRYPTION_KEY` es obligatoria para usar el login admin actual, porque `/talim` lee `rel_pwd` desde `dim_web_configuration` y lo descifra en runtime.
+Resolucion actual de `config.env`:
 
-Ubicaciones aceptadas actualmente para `config.env`:
-
-- directorio padre del repositorio;
-- raiz del repositorio;
-- fallback legacy bajo `app/`.
+1. directorio padre del repositorio
+2. raiz del repositorio
+3. ubicacion legacy bajo `app/`
 
 Recomendacion:
 
-- guardar `config.env` fuera del document root siempre que sea posible.
+- mantener `config.env` fuera del document root siempre que sea posible.
 
-### 3.2 Instalacion del esquema
+### 3.2 Conexion y fallos de arranque
 
-Se ha creado un instalador CLI para dejar la estructura lista incluso si la web todavia no esta configurada:
+`app/helpers/db_connection.php` ya no intenta reconectar sin control dentro de la misma request. Si `$link` ya existe y sigue vivo, reutiliza la conexion.
 
-- `app/tools/install_schema_from_dump.php`
+Si falta configuracion o falla la conexion:
 
-Uso tipico:
+- se registra el error con `hg_runtime_log_error()`
+- se muestra una respuesta controlada via `app/helpers/runtime_response.php`
+- no se exponen errores crudos de MariaDB al usuario final
 
-```bash
-php app/tools/install_schema_from_dump.php --host=127.0.0.1 --user=usuario --password=secreto --database=hg
-```
+### 3.3 Password admin
 
-Si existe `config.env`, el script intenta reutilizarlo. Si ademas quieres dejar el backend operativo desde el principio:
+El valor `rel_pwd` vive en `dim_web_configuration`.
 
-```bash
-php app/tools/install_schema_from_dump.php --database=hg --admin-password="cambia-esto"
-```
+Politica actual:
 
-Que hace el script:
+- instalaciones nuevas pueden sembrarlo con hash usando `--admin-password`
+- `admin_login.php` soporta hash moderno y compatibilidad con valores legacy
+- en login correcto se puede migrar automaticamente a `password_hash()`
+- `ENCRYPTION_KEY` se conserva por compatibilidad con secretos antiguos
 
-- crea la base de datos si no existe;
-- crea las 87 tablas del dump;
-- recrea las vistas `vw_sim_characters`, `vw_sim_forms` y `vw_sim_items`;
-- crea valores seguros en `dim_web_configuration`;
-- no importa por defecto la password admin de produccion.
+## 4. Routing y puntos de entrada
 
-Que no hace:
+### 4.1 Publico
 
-- no restaura el contenido editorial del dump;
-- no puebla cronicas, realidades, jugadores, personajes, documentos o mapas;
-- no copia secretos de produccion.
+Rutas canonicas importantes:
 
-## 4. Configuracion sensible: `dim_web_configuration`
+- `/timeline` -> `index.php?p=timeline` -> `app/controllers/main/events_main.php`
+- `/timeline/event/{slug}` -> `index.php?p=timeline_event&t={slug}` -> `app/controllers/main/events_page.php`
+- `/players/{slug}` -> `index.php?p=seeplayer&b={slug}` -> `app/controllers/playr/playr_page.php`
+- `/chronicles/{slug}` -> `index.php?p=chronicles&t={slug}`
+- `/music` -> `index.php?p=ost` -> `app/controllers/ost/bso_main.php`
+- `/maps/api` -> `index.php?p=maps_api`
+- `/ajax/tooltip` -> `index.php?p=tooltip`
+- `/ajax/mentions` -> `index.php?p=mentions`
+- `/ajax/epis` -> `index.php?p=mentions&type=episode`
 
-La tabla sensible del sistema es `dim_web_configuration`. En conversaciones antiguas puede aparecer como `dim_web_config`, pero el nombre real del esquema actual es `dim_web_configuration`.
+### 4.2 Backend admin
 
-Estructura:
-
-```sql
-CREATE TABLE `dim_web_configuration` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `config_name` varchar(255) NOT NULL,
-  `config_value` varchar(255) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`)
-);
-```
-
-Claves observadas en el dump actual:
-
-- `rel_pwd`
-- `error_reporting`
-- `exclude_chronicles`
-- `combat_simulator_ip_limit_enabled`
-- `combat_simulator_ip_limit_max_attempts_per_hour`
-- `combat_simulator_ip_limit_max_attempts_per_day`
-- `combat_simulator_rubberbanding_max_bonus_dice`
-- `combat_simulator_rubberbanding_failures_per_bonus`
-
-Regla importante:
-
-- `rel_pwd` es un valor sensible y no debe copiarse desde produccion a una instalacion nueva.
-
-Comportamiento recomendado:
-
-- crear siempre la tabla;
-- sembrar solo configuracion no sensible;
-- generar `rel_pwd` solo si el admin lo decide, usando la `ENCRYPTION_KEY` del entorno.
-
-Consumidores principales:
-
-- `app/bootstrap/error_reporting.php`
-- `app/modules/combat_simulator/script_rate_limit.php`
-- `app/modules/combat_simulator/battle_turns.php`
-- `app/controllers/admin/admin_get_pwd.php`
-
-Hardening asociado ya aplicado:
-
-- la documentacion tecnica se bloquea por `.htaccess`;
-- el directorio `app/` se bloquea por acceso HTTP directo;
-- el runtime de conexion ya no muestra errores crudos de MariaDB al usuario final.
-
-## 5. Como usar HeavensGate
-
-HeavensGate se usa en dos capas:
-
-- capa publica: consulta de lore, fichas, cronologia, sistemas, mapas y utilidades;
-- capa administrativa: edicion y mantenimiento desde `/talim`.
-
-### 5.1 Capa publica
-
-Dominios principales:
-
-- `/` y `/home`: portada de bienvenida y orientacion
-- `/news`: noticias del proyecto
-- `/status`: estado general y contadores
-- `/timeline`: cronologia y eventos
-- `/seasons`: portada del archivo narrativo
-- `/seasons/complete`, `/seasons/interludes`, `/seasons/personal-stories`, `/seasons/specials`: accesos por tipo de temporada
-- `/chapters`: tabla global de episodios
-- `/chapters/...`: ficha de episodio concreta
-- `/characters`, `/organizations`, `/groups`, `/players`: universo de personajes
-- `/documents`, `/inventory`, `/rules`, `/systems`, `/powers`: enciclopedia mecanica
-- `/maps`: geografia
-- `/music`: banda sonora
-- `/tools/*`: utilidades tecnicas y de juego
-
-### 5.2 Capa administrativa
-
-La entrada es:
+Entrada administrativa:
 
 - `/talim`
 
-Desde ahi se cargan modulos especializados con `?s=...`. Los mas importantes para el trabajo editorial diario son:
+Router admin:
 
-- `admin_characters`
-- `admin_groups`
-- `admin_relations`
-- `admin_docs`
-- `admin_powers`
-- `admin_items`
-- `admin_traits`
-- `admin_systems`
-- `admin_systems_resources`
-- `admin_seasons`
-- `admin_chapters`
-- `admin_timelines`
-- `admin_parties`
-- `admin_pois`
-- `admin_avatar_mass`
-- `admin_characters_worlds`
-- `admin_characters_clone`
-- `admin_character_deaths`
+- `app/controllers/admin/admin_main.php`
 
-## 6. Orden recomendado para poblar una instalacion vacia
+Ese controlador ya integra los modulos nuevos de 5.0:
 
-Si la base de datos esta recien creada y no se ha restaurado el contenido del dump, conviene cargar los datos en este orden:
+- `admin_chronicles`
+- `admin_realities`
+- `admin_players`
+- `admin_bso`
+- `admin_bso_link`
+- `admin_birthdays_quick`
 
-1. Catalogos base:
-   - `dim_systems`
-   - `dim_character_status`
-   - `dim_character_types`
-   - `dim_bibliographies`
-   - `dim_doc_categories`
-   - `dim_item_types`
-   - `dim_timeline_events_types`
-   - `dim_map_categories`
-   - `dim_totem_types`
-   - `dim_gift_types`
-   - `dim_rite_types`
-   - `dim_discipline_types`
+### 4.3 Rutas bare o especialmente utiles para automatizacion
 
-2. Estructura de juego:
-   - `dim_forms`
-   - `dim_breeds`
-   - `dim_auspices`
-   - `dim_tribes`
-   - `dim_systems_resources`
-   - `fact_trait_sets`
-   - `fact_misc_systems`
+Segun `body_work.php`, estas rutas se sirven sin layout completo:
 
-3. Catalogos narrativos:
-   - `dim_chronicles`
-   - `dim_realities`
-   - `dim_players`
-   - `dim_organizations`
-   - `dim_groups`
-   - `dim_parties`
+- `forum_message`
+- `forum_diceroll`
+- `forum_item`
+- `keygen`
+- `crop`
+- `tooltip`
+- `mentions`
+- `maps_api`
+- `chronicle_image`
 
-4. Biblioteca jugable:
-   - `dim_traits`
-   - `dim_merits_flaws`
-   - `dim_archetypes`
-   - `fact_gifts`
-   - `fact_rites`
-   - `dim_totems`
-   - `fact_discipline_powers`
-   - `fact_items`
-   - `fact_docs`
+Para integraciones internas esto es relevante porque son los puntos mas cercanos a una respuesta utilitaria o parcial.
 
-5. Narrativa episodica:
-   - `dim_seasons`
-   - `dim_chapters`
-   - `fact_timeline_events`
+## 5. Modelo de datos actual
 
-6. Personajes:
-   - `fact_characters`
-   - todas sus tablas `bridge_characters_*`
+### 5.1 Convenciones
 
-7. Capas derivadas:
-   - relaciones
-   - links
-   - participaciones en capitulos
-   - eventos de timeline
-   - parties
-   - mapas
-   - soundtrack
+- `dim_*`: catalogos, taxonomias y entidades maestras
+- `fact_*`: contenido principal o hechos narrativos/operativos
+- `bridge_*`: relaciones N:M y enlaces derivados
 
-Observacion importante:
+La navegacion publica se apoya en `pretty_id`, pero las relaciones internas siguen usando `id`.
 
-- actualmente no hay un CRUD tan evidente para `dim_players`, `dim_chronicles` y `dim_realities` como para otros modulos;
-- en una instancia totalmente vacia conviene sembrarlos por SQL o desde una migracion/seed controlada antes de empezar con personajes.
+### 5.2 Hubs principales
 
-## 7. Flujo recomendado para dar de alta un personaje
-
-Esta es la parte mas importante del uso de HeavensGate. Un personaje no esta realmente "listo" cuando solo existe en `fact_characters`; necesita varias capas derivadas para comportarse bien en toda la web.
-
-### 7.1 Alta base
-
-Modulo principal:
-
-- `/talim?s=admin_characters`
+#### Personajes
 
 Tabla central:
 
 - `fact_characters`
 
-Datos que conviene definir desde el principio:
+Relaciona, entre otros, con:
 
-- nombre
-- alias
-- `pretty_id`
-- avatar o `image_url`
-- tipo de personaje
-- estado
-- cronica
-- realidad
-- jugador
-- sistema
-- raza
-- auspicio
-- tribu
-- totem
-- texto de descripcion o biografia
+- `dim_chronicles`
+- `dim_realities`
+- `dim_players`
+- `dim_systems`
+- `dim_breeds`
+- `dim_auspices`
+- `dim_tribes`
+- `dim_character_status`
 
-Si alguno de esos catalogos no existe todavia, la ficha quedara a medias y otras secciones de la web no podran clasificar bien al personaje.
+La ficha publica y muchas vistas derivadas dependen tambien de varias tablas `bridge_characters_*`.
 
-### 7.2 Visibilidad publica
-
-Para que un personaje sea navegable y aparezca bien en la capa publica, conviene revisar:
-
-- que tenga `pretty_id`;
-- que tenga un `status_id` valido;
-- que no quede asociado a una cronica excluida por configuracion;
-- que el slug no choque con otros personajes;
-- que la imagen, si existe, apunte a `/public/img/characters`.
-
-Notas practicas:
-
-- `pretty_id` se usa para URLs publicas;
-- internamente la web sigue trabajando con `id`;
-- si faltan slugs, se puede usar `app/tools/generate_pretty_ids.php`.
-
-### 7.3 Afiliacion narrativa
-
-Un personaje suele necesitar dos capas de afiliacion:
-
-- organizacion: `bridge_characters_organizations`
-- grupo o manada: `bridge_characters_groups`
-
-Tablas implicadas:
-
-- `dim_organizations`
-- `dim_groups`
-- `bridge_organizations_groups`
-
-Impacto funcional:
-
-- se muestra en la ficha publica;
-- afecta a `/chronicles`;
-- alimenta `/organizations`, `/groups` y los mapas relacionales.
-
-### 7.4 Cronica y realidad
-
-Modulo de apoyo:
-
-- `/talim?s=admin_characters_worlds`
-
-Campos implicados:
-
-- `fact_characters.chronicle_id`
-- `fact_characters.reality_id`
-
-Uso:
-
-- reasignacion masiva de personajes;
-- saneado rapido cuando cambian de cronica o mundo;
-- correccion de consistencia en lotes.
-
-### 7.5 Rasgos y recursos
-
-Sin esta capa la ficha mecanica queda incompleta.
-
-Tablas clave:
-
-- `bridge_characters_traits`
-- `dim_traits`
-- `bridge_characters_system_resources`
-- `dim_systems_resources`
-- `fact_trait_sets`
-
-Impacto:
-
-- ficha publica del personaje;
-- tirador de dados `/tools/dice`;
-- vistas mecanicas del simulador;
-- presentacion de rasgos agrupados por sistema.
-
-Flujo recomendado:
-
-1. crear o revisar rasgos en `admin_traits`;
-2. crear recursos de sistema en `admin_systems_resources`;
-3. asegurar que el personaje esta asociado a un sistema valido;
-4. cargar sus valores en las tablas puente.
-
-### 7.6 Poderes
-
-Modulo:
-
-- `/talim?s=admin_powers`
-
-Catalogos:
-
-- `fact_gifts`
-- `fact_rites`
-- `dim_totems`
-- `fact_discipline_powers`
-
-Asignacion al personaje:
-
-- `bridge_characters_powers`
-- `fact_characters.totem_id`
-
-Impacto:
-
-- ficha del personaje;
-- secciones `/powers/*`;
-- integridad mecanica del sistema.
-
-### 7.7 Inventario
-
-Modulo:
-
-- `/talim?s=admin_items`
-
-Tablas:
-
-- `fact_items`
-- `bridge_characters_items`
-
-Impacto:
-
-- ficha del personaje;
-- `/inventory`;
-- simulador de combate cuando los objetos tienen uso mecanico.
-
-### 7.8 Meritos, defectos y arquetipos
-
-Tablas:
-
-- `dim_merits_flaws`
-- `bridge_characters_merits_flaws`
-- `dim_archetypes`
-
-Impacto:
-
-- profundidad de ficha;
-- seccion de reglas;
-- coherencia de conceptos y builds.
-
-### 7.9 Documentacion y enlaces
-
-Modulos:
-
-- `/talim?s=admin_docs`
-- `/talim?s=admin_external_links`
-- `/talim?s=admin_character_links`
-- `/talim?s=admin_doc_links`
-
-Tablas:
-
-- `fact_docs`
-- `bridge_characters_docs`
-- `fact_external_links`
-- `bridge_characters_external_links`
-
-Uso:
-
-- relacionar a cada personaje con documentos de lore;
-- enlazar fuentes externas;
-- enriquecer la ficha para bot, wiki y lectura publica.
-
-### 7.10 Relaciones entre personajes
-
-Modulo:
-
-- `/talim?s=admin_relations`
+#### Cronicas
 
 Tabla:
 
-- `bridge_characters_relations`
-
-Uso:
-
-- red de aliados, rivales, mentores y vinculos;
-- alimenta mapas relacionales;
-- da contexto a biografias y cronologia.
-
-### 7.11 Participacion en temporadas y capitulos
-
-Modulos:
-
-- `/talim?s=admin_seasons`
-- `/talim?s=admin_chapters`
-
-Tablas:
-
-- `dim_seasons`
-- `dim_chapters`
-- `bridge_chapters_characters`
-
-Uso:
-
-- indicar en que capitulos aparece el personaje;
-- calcular protagonismo y asistencia;
-- alimentar `/seasons`, `/chapters/...` y analitica de asistencia.
-
-### 7.12 Timeline, nacimiento y muerte
-
-Modulo:
-
-- `/talim?s=admin_timelines`
-
-Modulos complementarios:
-
-- `/talim?s=admin_birthdays_quick`
-- `/talim?s=admin_character_deaths`
-
-Tablas:
-
-- `fact_timeline_events`
-- `dim_timeline_events_types`
-- `bridge_timeline_events_characters`
-- `bridge_timeline_events_chapters`
-- `bridge_timeline_events_chronicles`
-- `bridge_timeline_events_realities`
-- `fact_characters_deaths`
-
-Reglas actuales:
-
-- el nacimiento se trata como evento de timeline;
-- la muerte debe quedar sincronizada con `fact_characters_deaths` y con el evento de timeline asociado;
-- la timeline es ya el origen de verdad para cronologia publica.
-
-### 7.13 Party tracker
-
-Modulo:
-
-- `/talim?s=admin_parties`
-
-Tablas:
-
-- `dim_parties`
-- `fact_party_members`
-- `fact_party_members_changes`
-
-Uso:
-
-- formar grupos activos;
-- registrar HP, rabia, gnosis, glamour, mana, sangre o voluntad;
-- mantener historico de cambios.
-
-### 7.14 Operaciones masivas
-
-Modulos:
-
-- `/talim?s=admin_avatar_mass`
-- `/talim?s=admin_characters_clone`
-- `/talim?s=admin_characters_worlds`
-
-Uso:
-
-- cargar o corregir avatares en lote;
-- clonar personajes entre cronicas o realidades;
-- reasignar mundo/cronica en bloque.
-
-## 8. Que necesita un personaje para considerarse "listo"
-
-Checklist practico:
-
-1. Alta base en `fact_characters`
-2. `pretty_id` unico
-3. Estado valido
-4. Cronica y realidad asignadas
-5. Sistema y taxonomia mecanica resueltos
-6. Organizacion o grupo, si aplica
-7. Rasgos cargados
-8. Recursos de sistema cargados
-9. Poderes y totem, si aplica
-10. Inventario, si aplica
-11. Meritos y defectos, si aplica
-12. Documentos y links, si aplica
-13. Participacion en capitulos
-14. Eventos de timeline relevantes
-15. Relaciones con otros personajes
-
-Si solo se cumple el punto 1, el personaje existe, pero no esta realmente integrado en HeavensGate.
-
-## 9. Secciones publicas y de donde sacan valor
-
-### 9.1 Personajes
-
-Rutas:
-
-- `/characters`
-- `/characters/types`
-- `/characters/worlds`
-- `/characters/{slug}`
-
-Dependen sobre todo de:
-
-- `fact_characters`
-- `dim_character_types`
-- `dim_realities`
-- `bridge_characters_groups`
-- `bridge_characters_organizations`
-- `bridge_characters_traits`
-- `bridge_characters_docs`
-- `bridge_characters_relations`
-- `bridge_timeline_events_characters`
-
-### 9.2 Cronologia
-
-Rutas:
-
-- `/timeline`
-- `/timeline/event/{slug}`
-
-Dependen de:
-
-- `fact_timeline_events`
-- `dim_timeline_events_types`
-- bridges a personajes, capitulos, cronicas y realidades
-
-### 9.3 Temporadas y capitulos
-
-Rutas:
-
-- `/seasons`
-- `/seasons/{slug}`
-- `/seasons/analysis`
-- `/chapters/{slug}`
-
-Dependen de:
-
-- `dim_seasons`
-- `dim_chapters`
-- `bridge_chapters_characters`
-- `bridge_timeline_events_chapters`
-
-### 9.4 Reglas, sistemas, poderes y objetos
-
-Rutas:
-
-- `/systems`
-- `/rules/*`
-- `/powers/*`
-- `/documents/*`
-- `/inventory/*`
-
-Dependen de:
-
-- `dim_systems`
-- `dim_forms`
-- `dim_breeds`
-- `dim_auspices`
-- `dim_tribes`
-- `fact_misc_systems`
-- `dim_traits`
-- `dim_merits_flaws`
-- `dim_archetypes`
-- `fact_combat_maneuvers`
-- `fact_gifts`
-- `fact_rites`
-- `dim_totems`
-- `fact_discipline_powers`
-- `fact_items`
-- `fact_docs`
-
-### 9.5 Mapas
-
-Rutas:
-
-- `/maps`
-- `/maps/poi/{slug}`
-- `/maps/api`
-
-Dependen de:
-
-- `dim_maps`
-- `dim_map_categories`
-- `fact_map_pois`
-- `fact_map_areas`
-
-### 9.6 Herramientas
-
-Rutas relevantes:
-
-- `/tools/dice`
-- `/tools/forum-topic-viewer`
-- `/tools/combat-simulator`
-- `/ajax/tooltip`
-- `/ajax/mentions`
-
-Dependen de fichas y catalogos bien preparados. Si personajes, rasgos o recursos no estan consistentes, estas utilidades se degradan rapido.
-
-## 10. Modelo de datos resumido
-
-### 10.1 Hub principal de personajes
-
-`fact_characters` es la tabla central de HeavensGate.
-
-Se relaciona con:
-
-- `dim_realities`
-- `dim_systems`
-- `dim_character_status`
-- `dim_players`
 - `dim_chronicles`
-- `dim_breeds`
-- `dim_auspices`
-- `dim_tribes`
-- `dim_totems`
-- `dim_character_types`
-- todas las `bridge_characters_*`
 
-### 10.2 Hub principal de timeline
+En el dump actual tiene:
 
-`fact_timeline_events` es el segundo eje del sistema.
+- `pretty_id` unico y no nulo
+- `sort_order`
+- `name`
+- `image_url`
+- `description`
+- timestamps
 
-Se relaciona con:
+Dependencias funcionales relevantes:
 
+- `fact_characters.chronicle_id`
+- `bridge_timeline_events_chronicles.chronicle_id`
+- `dim_seasons.chronicle_id`
+
+#### Realidades
+
+Tabla:
+
+- `dim_realities`
+
+En el dump actual tiene:
+
+- `pretty_id` unico y nullable
+- `name`
+- `description`
+- `is_active`
+- timestamps
+
+Dependencias funcionales:
+
+- `fact_characters.reality_id`
+- `bridge_timeline_events_realities.reality_id`
+
+#### Jugadores
+
+Tabla:
+
+- `dim_players`
+
+En el dump actual tiene:
+
+- `pretty_id` unico y nullable
+- `name`
+- `surname`
+- `show_in_catalog`
+- `picture`
+- `description`
+- timestamps
+
+Dependencia principal:
+
+- `fact_characters.player_id`
+
+#### Timeline
+
+Tablas principales:
+
+- `fact_timeline_events`
 - `dim_timeline_events_types`
 - `bridge_timeline_events_characters`
 - `bridge_timeline_events_chapters`
 - `bridge_timeline_events_chronicles`
 - `bridge_timeline_events_realities`
-- `bridge_timeline_links`
-- `fact_characters_deaths`
 
-### 10.3 Eje episodico
+Campos importantes observados en `fact_timeline_events`:
 
-- `dim_seasons`
-- `dim_chapters`
-- `bridge_chapters_characters`
+- `pretty_id`
+- `event_date`
+- `date_precision`
+- `date_note`
+- `sort_date`
+- `title`
+- `description`
+- `event_type_id`
+- `is_active`
+- `location`
+- `source`
+- `timeline` como campo legacy de apoyo
 
-### 10.4 Eje mecanico
+Importante para no documentar mal el estado 5.0:
 
-- `dim_systems`
-- `dim_forms`
-- `dim_breeds`
-- `dim_auspices`
-- `dim_tribes`
-- `dim_systems_resources`
-- `dim_traits`
-- `fact_trait_sets`
+- los puentes actuales usan `event_id`, no `timeline_event_id`
+- el dump vigente no debe tratarse como si mantuviera una columna `kind` operativa en `fact_timeline_events`
 
-## 11. Observaciones practicas para edicion y mantenimiento
+#### Soundtrack / BSO
 
-- usar siempre `pretty_id` para construir URLs publicas;
-- usar siempre `id` para relaciones internas;
-- no restaurar `rel_pwd` desde dumps productivos;
-- si se crea una instalacion vacia, sembrar primero catalogos antes de personajes;
-- si un personaje "no sale", revisar: estado, slug, cronica, realidad y relaciones puente;
-- si una pagina publica esta vacia, comprobar primero sus tablas puente, no solo la tabla maestra;
-- para automatizacion o bots, la referencia mas exhaustiva por rutas y queries esta en `TELEGRAM_BOT_BACKEND_GUIDE.md`.
+Tablas:
 
-## 12. Seguridad de despliegue
+- `dim_soundtracks`
+- `bridge_soundtrack_links`
 
-Medidas ya presentes o recomendadas:
+En el dump actual:
 
-- `.htaccess` deniega acceso directo a:
-  - `app/`
-  - dumps SQL
-  - notas de upgrade
-  - documentacion markdown sensible
-- `config.env` debe mantenerse fuera de la raiz servida si la infraestructura lo permite;
-- si se despliega con Nginx, Caddy u otro servidor sin soporte `.htaccess`, hay que replicar manualmente esas reglas;
-- no se deben publicar dumps productivos ni documentacion interna detallada en un host publico;
-- las incidencias de conexion a BDD deben registrarse en logs del servidor, no mostrarse al cliente.
+- `dim_soundtracks` usa `title`, `artist`, `youtube_url`, `context_title`, `added_at`
+- no debe asumirse `pretty_id` en `dim_soundtracks`
+- `bridge_soundtrack_links` usa:
+  - `soundtrack_id`
+  - `object_type` con valores `personaje`, `temporada`, `episodio`
+  - `object_id`
 
-## 13. Checklist de cambios de esquema o contenido
+El esquema actual ya incorpora endurecimiento seguro en este puente:
 
-Cuando se modifique el modelo o se amplie funcionalidad:
+- `UNIQUE (soundtrack_id, object_type, object_id)`
+- indice `idx_bsl_object_lookup (object_type, object_id)`
 
-1. actualizar el dump o la migracion correspondiente;
-2. revisar `body_work.php` si aparecen nuevas rutas;
-3. revisar el CRUD admin afectado;
-4. revisar la vista publica relacionada;
-5. revisar `dim_web_configuration` si entra una nueva bandera de sistema;
-6. actualizar este documento;
-7. actualizar `TELEGRAM_BOT_BACKEND_GUIDE.md` si el cambio afecta a routing, tablas o queries.
+### 5.3 Politica actual de `pretty_id`
+
+Reglas editoriales consolidadas en 5.0:
+
+- `dim_chronicles`: se genera y persiste a partir del nombre
+- `dim_realities`: se trata como slug manual/editorial en admin
+- `dim_players`: puede ser manual; en alta se admite generacion por defecto si hace falta
+- en enlaces publicos debe preferirse siempre `pretty_id`
+- en consultas internas o joins debe seguir usandose `id`
+
+El helper base para esta logica es `app/helpers/pretty.php`.
+
+## 6. Capa publica
+
+### 6.1 Timeline 5.0
+
+Controladores:
+
+- `app/controllers/main/events_main.php`
+- `app/controllers/main/events_page.php`
+
+Comportamiento actual:
+
+- listado principal con filtro por tipo, cronica y busqueda
+- ECharts en frontend
+- DataTables cuando esta disponible
+- detalle de evento con personajes, capitulos, cronicas y realidades relacionadas
+- el filtro/section de realidades esta preparado pero oculto por defecto para controlar spoilers
+
+### 6.2 Jugadores
+
+Controladores:
+
+- `app/controllers/playr/playr_list.php`
+- `app/controllers/playr/playr_page.php`
+
+Comportamiento actual:
+
+- el listado respeta `show_in_catalog`
+- el filtrado tambien tiene en cuenta cronicas excluidas desde configuracion web
+
+### 6.3 Soundtrack publico
+
+Controlador:
+
+- `app/controllers/ost/bso_main.php`
+
+Mejoras relevantes:
+
+- normalizacion de URLs de YouTube
+- soporte `youtu.be`
+- embed via `youtube-nocookie`
+- degradacion segura si el enlace no es valido
+
+### 6.4 Respuestas publicas seguras
+
+Helper comun:
+
+- `app/helpers/public_response.php`
+
+Patron ya extendido por muchas secciones publicas:
+
+- log del error real en servidor
+- mensaje limpio al usuario
+- `404` publico controlado cuando el recurso no existe
+- sin `die()` ni texto SQL crudo en pagina
+
+## 7. Backend admin
+
+### 7.1 Seguridad y contrato AJAX
+
+Helpers base:
+
+- `app/helpers/admin_auth.php`
+- `app/helpers/admin_ajax.php`
+
+Capacidades clave:
+
+- sesion admin con cookie endurecida
+- `session.use_strict_mode`
+- regeneracion de `session_id` al autenticar
+- logout centralizado
+- CSRF por modulo
+- contrato JSON comun con claves `ok`, `message`, `msg`, `data`, `errors`, `meta`
+- `403` JSON cuando una llamada AJAX no esta autorizada
+
+### 7.2 Modulos 5.0 relevantes
+
+#### `admin_chronicles`
+
+- CRUD completo de cronicas
+- subida de imagen a `public/img/chronicles`
+- guardas de borrado por personajes, timeline y temporadas
+- persistencia segura de `pretty_id`
+
+#### `admin_realities`
+
+- CRUD completo de realidades
+- `pretty_id` obligatorio y editorial
+- soporte `is_active`
+- guardas de borrado por personajes y timeline
+- resumen visual de revision/auditoria
+
+#### `admin_players`
+
+- CRUD completo de jugadores
+- soporte `show_in_catalog`
+- soporte `picture`
+- guardas de borrado por personajes
+- `pretty_id` editable y visible en admin
+
+#### `admin_birthdays_quick`
+
+- edicion rapida de `birthdate_text`
+- crea o actualiza eventos de nacimiento en `fact_timeline_events`
+- asegura el puente en `bridge_timeline_events_characters`
+
+#### `admin_bso`
+
+- catalogo CRUD real de soundtracks
+- normalizacion de YouTube
+- visibilidad de usos por personajes, temporadas y episodios
+- filtros de auditoria y estado
+
+#### `admin_bso_link`
+
+- gestor relacional de `bridge_soundtrack_links`
+- alta y borrado de vinculos
+- deteccion de duplicados y estados inconsistentes
+- acceso rapido al destino publico cuando existe slug
+
+### 7.3 Helpers de soporte creados o consolidados
+
+- `app/helpers/admin_catalog_utils.php`
+- `app/helpers/admin_uploads.php`
+- `app/helpers/pretty.php`
+
+## 8. Provisioning y mantenimiento
+
+### 8.1 Instalacion desde dump
+
+Script:
+
+- `app/tools/install_schema_from_dump.php`
+
+Puntos importantes:
+
+- solo CLI
+- si no se pasa `--dump`, intenta usar el `dump-*.sql` mas reciente de la raiz
+- crea BDD, tablas y vistas finales
+- si se pide, siembra `rel_pwd` con hash
+- evita restaurar secretos de produccion por defecto
+
+Uso base:
+
+```bash
+php app/tools/install_schema_from_dump.php --database=hg
+```
+
+Dry run:
+
+```bash
+php app/tools/install_schema_from_dump.php --database=hg --dry-run=1
+```
+
+### 8.2 Endurecimiento acotado de esquema
+
+Script:
+
+- `app/tools/phase7_schema_hardening_20260403.php`
+
+Objetivo:
+
+- reforzar la integridad de `bridge_soundtrack_links`
+- aplicar un cambio seguro y acotado
+- emitir plan SQL incluso cuando no hay conexion disponible
+
+### 8.3 Herramientas de soporte revisadas en esta tanda
+
+Tambien se han alineado con el runtime actual:
+
+- `app/tools/generate_pretty_ids.php`
+- `app/tools/inspect_db.php`
+- `app/tools/forum_topic_viewer_tool.php`
+
+## 9. Seguridad y hardening operativo
+
+Blindajes ya activos:
+
+- `.htaccess` bloquea acceso HTTP directo a `app/`, dumps, docs markdown y secretos
+- `db_connection.php` falla con pantalla controlada, no con warning crudo
+- `public_response.php` y `runtime_response.php` centralizan el tratamiento de errores visibles
+- muchas rutas publicas y admin dejaron de exponer mensajes SQL al usuario
+- se han eliminado varios patrones de borrado destructivo por GET en admin
+
+Si se despliega en un servidor que no respeta `.htaccess`, esos bloqueos deben replicarse manualmente.
+
+## 10. Checklist rapido para futuras tandas
+
+Antes de documentar o tocar datos, asumir siempre:
+
+1. el dump de referencia actual es `dump-u807926597_hg-202604031114.sql`
+2. el routing real sale de `.htaccess` y `app/bootstrap/body_work.php`
+3. la politica de `pretty_id` ya no es uniforme para todas las tablas
+4. `dim_soundtracks` y `bridge_soundtrack_links` tienen reglas especiales respecto a slugs e integridad
+5. cualquier guia antigua que cite rutas de timeline bajo `app/controllers/timeline/` esta desfasada

@@ -1,7 +1,8 @@
 <?php
 // admin_sim_character_talk.php - CRUD de frases del simulador (fact_sim_characters_talk)
 
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
@@ -617,3 +618,4 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
 </script>
 <?php endif; ?>
 <?php if (!$isAjaxRequest) { admin_panel_close(); } ?>
+

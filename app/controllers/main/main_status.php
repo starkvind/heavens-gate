@@ -1,8 +1,11 @@
 <?php setMetaFromPage("Estado | Heaven's Gate", "Estado general de la campaña y su contenido.", null, 'website'); ?>
 <?php
+include_once(__DIR__ . '/../../helpers/public_response.php');
 
 if (!$link) {
-    die("Error de conexion a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('main_status', 'missing DB connection');
+    hg_public_render_error('Estado no disponible', 'No se pudo cargar el estado general en este momento.');
+    return;
 }
 
 include("app/partials/main_nav_bar.php");
@@ -279,7 +282,7 @@ if (($characters ?? 0) > 0 && $charWithImage !== null) {
     echo "<div class='renglonStatusDe'>" . number_format($charWithImage, 0, ',', '.') . " / " . number_format((int)$characters, 0, ',', '.') . " (" . status_ratio((int)$charWithImage, (int)$characters) . ")</div>";
 
     if (($chapters ?? 0) > 0 && $chapterWithSynopsis !== null) {
-        echo "<div class='renglonStatusIz'>Capitulos con resumen:</div>";
+        echo "<div class='renglonStatusIz'>Capítulos con resumen:</div>";
         echo "<div class='renglonStatusDe'>" . number_format($chapterWithSynopsis, 0, ',', '.') . " / " . number_format((int)$chapters, 0, ',', '.') . " (" . status_ratio((int)$chapterWithSynopsis, (int)$chapters) . ")</div>";
     }
 

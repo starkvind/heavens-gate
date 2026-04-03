@@ -1,8 +1,11 @@
 <?php
 echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+include_once(__DIR__ . '/../../helpers/public_response.php');
 
 if (!$link) {
-    die("Error de conexion a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('main_chronicles', 'missing DB connection');
+    hg_public_render_error('Crónicas no disponibles', 'No se pudieron cargar las crónicas en este momento.');
+    return;
 }
 
 if (!function_exists('hg_ch_h')) {
@@ -176,7 +179,7 @@ if ($chronicleFilterId <= 0) {
     echo "    </div>";
 
     if (count($chronicles) === 0) {
-        echo "<p class='texti chron-empty'>No hay cronicas disponibles.</p>";
+        echo "<p class='texti chron-empty'>No hay crónicas disponibles.</p>";
         echo "  </section>";
         echo "</div>";
         return;
@@ -200,7 +203,7 @@ if ($chronicleFilterId <= 0) {
         echo "  <img src='" . hg_ch_h($img) . "' alt='" . hg_ch_h($name) . "'>";
         echo "  <div class='chron-card-body'>";
         echo "    <h3>" . hg_ch_h($name) . "</h3>";
-        echo "    <p>" . hg_ch_h($descShort !== '' ? $descShort : 'Sin descripcion.') . "</p>";
+        echo "    <p>" . hg_ch_h($descShort !== '' ? $descShort : 'Sin descripción.') . "</p>";
         if ($seasonLabel !== '' || $characterLabel !== '') {
             echo "    <div class='chron-card-meta'>";
             if ($seasonLabel !== '') echo "      <span>" . hg_ch_h($seasonLabel) . "</span>";
@@ -227,9 +230,9 @@ if ($stmtChron = $link->prepare("SELECT id, pretty_id, name, description $chroni
 }
 
 if (!$chronicle) {
-    setMetaFromPage("Crónica no encontrada | Heaven's Gate", "La cronica solicitada no existe.", '/img/og/og_image_bio.jpg', 'article');
+    setMetaFromPage("Crónica no encontrada | Heaven's Gate", "La crónica solicitada no existe.", '/img/og/og_image_bio.jpg', 'article');
     include("app/partials/main_nav_bar.php");
-    echo "<div class='chron-detail'><section class='chron-box'><h2>Crónica no encontrada</h2><p class='texti chron-empty'>La cronica solicitada no existe o no esta disponible.</p></section></div>";
+    echo "<div class='chron-detail'><section class='chron-box'><h2>Crónica no encontrada</h2><p class='texti chron-empty'>La crónica solicitada no existe o no está disponible.</p></section></div>";
     return;
 }
 

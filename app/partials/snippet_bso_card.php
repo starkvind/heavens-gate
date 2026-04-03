@@ -1,4 +1,6 @@
 <?php
+include_once(__DIR__ . '/../helpers/runtime_response.php');
+
 function mostrarTarjetaBSO($link, $tipo, $id) {
 	if (!in_array($tipo, ['personaje', 'temporada', 'episodio'])) return;
 
@@ -13,7 +15,8 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	$stmt = $link->prepare($queryBso);
 	
 	if (!$stmt) {
-		die("Error al preparar la consulta: " . $link->error);
+		hg_runtime_log_error('snippet_bso_card.prepare', $link->error);
+		return;
 	}
 	
 	$stmt->bind_param("si", $tipo, $id);
@@ -31,11 +34,11 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 			if ($youtubeID) {
 				echo "<div class='bioTextData'>"; 
 					echo "<fieldset class='bso-card bioSeccion'>";
-					echo "<legend>&nbsp;🎵 {$tema['context_title']}&nbsp;</legend>";
+					echo "<legend>&nbsp;&#127925; {$tema['context_title']}&nbsp;</legend>";
 					echo "<div class='video-wrapper'>";
 					echo "<iframe width='550' height='315' class='bso-card-iframe' src='https://www.youtube-nocookie.com/embed/{$youtubeID}' frameborder='0' allowfullscreen></iframe>";
 					echo "</div>";
-					echo "<p class='bso-card-caption'><strong>{$tema['titulo_real']}</strong> — {$tema['artist']}</p>";
+					echo "<p class='bso-card-caption'><strong>{$tema['titulo_real']}</strong> - {$tema['artist']}</p>";
 					echo "</fieldset>";
 				echo "</div>";
 			}

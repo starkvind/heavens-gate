@@ -1,15 +1,18 @@
 <?php
+include_once(__DIR__ . '/../../helpers/public_response.php');
 setMetaFromPage("Personajes | Heaven's Gate", "Listado completo de personajes.", null, 'website');
-include("app/partials/main_nav_bar.php");
 if (!$link) {
-    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('bio_table', 'missing DB connection');
+    hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
+    return;
 }
+include("app/partials/main_nav_bar.php");
 if (method_exists($link, 'set_charset')) {
     $link->set_charset('utf8mb4');
 } else {
     mysqli_set_charset($link, 'utf8mb4');
 }
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacÃ­o, devuelve ""
+// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -83,14 +86,20 @@ $whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChro
                   $query = str_replace('p.kind', 'p.tipo', $query);
                   $result = mysqli_query($link, $query);
                   if (!$result) {
-                      die("Error en consulta: " . mysqli_error($link));
+                      hg_public_log_error('bio_table', 'query failed after tipo fallback: ' . mysqli_error($link));
+                      hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
+                      return;
                   }
               } else {
-                  die("Error en consulta: " . $err2);
+                  hg_public_log_error('bio_table', 'query failed after kind fallback: ' . $err2);
+                  hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
+                  return;
               }
           }
       } else {
-          die("Error en consulta: " . $err);
+          hg_public_log_error('bio_table', 'query failed: ' . $err);
+          hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
+          return;
       }
   }
 $personajes = [];
@@ -307,7 +316,7 @@ function escapeHtml(text) {
 		return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
 	});
 }
-// Escape especÃ­fico para atributos (incluye backticks)
+// Escape específico para atributos (incluye backticks)
 function escapeAttr(text) {
 	if (!text) return '';
 	return String(text).replace(/[&<>"'`]/g, function (m) {
@@ -351,7 +360,7 @@ $(document).ready(function () {
         $personajes,
         JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
     ) ?>;
-	// Construimos el array final para DataTables (mÃ¡s rÃ¡pido que append por fila)
+	// Construimos el array final para DataTables (más rápido que append por fila)
 	const data = personajes.map(p => {
 		const imgUrl = safeUrl(p.image_url) || fallbackAvatarByGender(p.gender);
 		const pj_img = imgUrl ? `<img src="${escapeAttr(imgUrl)}" height="12" alt="" loading="lazy" />` : '';
@@ -395,7 +404,7 @@ $(document).ready(function () {
 			emptyTable: "No hay datos en la tabla",
 			paginate: {
 				first: "Primero",
-				last: "Ãšltimo",
+				last: "Último",
 				next: "&#9654;",
 				previous: "&#9664;"
 			}
@@ -519,4 +528,3 @@ $(document).ready(function () {
 	applyFilters();
 });
 </script>
-

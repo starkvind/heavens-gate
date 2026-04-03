@@ -1,5 +1,5 @@
 <?php
-setMetaFromPage("Tabla de episodios | Heaven's Gate", "Listado completo de episodios y capitulos de Heaven's Gate.", null, 'website');
+setMetaFromPage("Tabla de episodios | Heaven's Gate", "Listado completo de episodios y capítulos de Heaven's Gate.", null, 'website');
 include("app/partials/main_nav_bar.php");
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
@@ -85,7 +85,7 @@ if ($result instanceof mysqli_result) {
     mysqli_free_result($result);
 }
 
-$pageSect = "Capitulos";
+$pageSect = "Capítulos";
 ?>
 <link rel="stylesheet" href="/assets/css/hg-docs.css">
 <?php include_once("app/partials/datatable_assets.php"); ?>

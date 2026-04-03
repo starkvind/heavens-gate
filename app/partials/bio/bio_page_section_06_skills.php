@@ -21,7 +21,7 @@ if (!function_exists('hg_bio_skills_fix_mojibake')) {
 
         $out = trim($s);
         for ($i = 0; $i < 2; $i++) {
-            if (strpos($out, 'Ã') === false && strpos($out, 'Â') === false) {
+            if (strpos($out, "\xC3\x83") === false && strpos($out, "\xC3\x82") === false) {
                 break;
             }
             $fixed = @mb_convert_encoding($out, 'UTF-8', 'ISO-8859-1');

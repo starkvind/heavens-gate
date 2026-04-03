@@ -2,7 +2,8 @@
 // admin_birthdays_quick.php
 // Edicion rapida de cumpleanos: personaje + evento de nacimiento.
 
-if (!isset($link) || !$link) { die('Error de conexion a la base de datos.'); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -218,7 +219,7 @@ $hasSchema = hg_abq_table_exists($link, 'fact_characters')
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if (function_exists('hg_admin_require_session')) hg_admin_require_session(true);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        hg_admin_json_error('Metodo invalido', 405, ['method' => 'POST requerido']);
+        hg_admin_json_error('Método inválido', 405, ['method' => 'POST requerido']);
     }
 
     $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
@@ -229,7 +230,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
         : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
     if (!$csrfOk) {
-        hg_admin_json_error('CSRF invalido. Recarga la pagina.', 403, ['csrf' => 'invalid']);
+        hg_admin_json_error('CSRF inválido. Recarga la página.', 403, ['csrf' => 'invalid']);
     }
     if (!$hasSchema) {
         hg_admin_json_error('Falta esquema para este modulo.', 400, ['schema' => 'missing']);
@@ -250,7 +251,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $birthdateText = trim((string)($payload['birthdate_text'] ?? ''));
         $forcedEventDate = trim((string)($payload['event_date'] ?? ''));
         if ($characterId <= 0) {
-            hg_admin_json_error('ID de personaje invalido', 400, ['character_id' => 'required']);
+            hg_admin_json_error('ID de personaje inválido', 400, ['character_id' => 'required']);
         }
 
         $characterName = '';
@@ -312,7 +313,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                     $st->close();
                 }
 
-                $title = 'Cumpleanos de ' . trim($characterName);
+                $title = 'Cumpleaños de ' . trim($characterName);
                 $description = 'Evento de nacimiento del personaje ' . trim($characterName) . ' (id=' . $characterId . ').';
 
                 $hasKindCol = hg_abq_col_exists($link, 'fact_timeline_events', 'kind');
@@ -410,12 +411,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         $savedRow = hg_abq_fetch_row_by_character($link, $characterId);
         $msg = ($parsedDate === null)
-            ? 'Cumpleanos actualizado en personaje. Fecha no valida para evento.'
-            : 'Cumpleanos y evento guardados.';
+            ? 'Cumpleaños actualizado en personaje. Fecha no válida para evento.'
+            : 'Cumpleaños y evento guardados.';
         hg_admin_json_success($savedRow, $msg);
     }
 
-    hg_admin_json_error('Accion no valida', 400, ['action' => 'unsupported']);
+    hg_admin_json_error('Acción no válida', 400, ['action' => 'unsupported']);
 }
 
 $actions = '<span class="adm-flex-right-wrap-8">'
@@ -430,7 +431,7 @@ $actions = '<span class="adm-flex-right-wrap-8">'
     . '<button class="btn btn-green" type="button" id="abqReload">Recargar</button>'
     . '</span>';
 
-admin_panel_open('Cumpleanos Rapidos', $actions);
+admin_panel_open('Cumpleaños Rápidos', $actions);
 ?>
 <div class="adm-callout">
   Revisa y corrige cumpleaños para generar/vincular su evento de nacimiento.
@@ -443,11 +444,11 @@ admin_panel_open('Cumpleanos Rapidos', $actions);
         <th class="adm-w-60">ID</th>
         <th class="adm-w-160">Pretty</th>
         <th>Personaje</th>
-        <th class="adm-w-170">Cumpleanos (texto)</th>
+        <th class="adm-w-170">Cumpleaños (texto)</th>
         <th class="adm-w-120">Fecha evento</th>
         <th class="adm-w-90">Evento ID</th>
         <th class="adm-w-160">Estado</th>
-        <th class="adm-w-100">Accion</th>
+        <th class="adm-w-100">Acción</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -575,3 +576,4 @@ admin_panel_open('Cumpleanos Rapidos', $actions);
 .abq-eventdate { min-width: 120px; }
 </style>
 <?php admin_panel_close(); ?>
+

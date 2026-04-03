@@ -1,6 +1,7 @@
 <?php
 // admin_resources.php - CRUD Catalogo de Recursos (dim_systems_resources)
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -58,11 +59,11 @@ function csrf_ok(): bool {
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openResourceModal()">+ Nuevo recurso</button>'
-    . '<label class="adm-text-left">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rápido '
     . '<input class="inp" type="text" id="quickFilterResources" placeholder="En esta pagina..."></label>'
     . '</span>';
 if (!$isAjaxRequest) {
-    admin_panel_open('Recursos (catalogo)', $actions);
+    admin_panel_open('Recursos (catálogo)', $actions);
 }
 
 $flash = [];
@@ -72,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         hg_admin_require_session(true);
     }
     if (!csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         $action = (string)($_POST['crud_action'] ?? '');
         $id = (int)($_POST['id'] ?? 0);
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 else $flash[] = ['type'=>'error','msg'=>'Error al eliminar: '.$st->error];
                 $st->close();
             } else {
-                $flash[] = ['type'=>'error','msg'=>'ID invalido para eliminar.'];
+                $flash[] = ['type'=>'error','msg'=>'ID inválido para eliminar.'];
             }
         }
 
@@ -101,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             } elseif (mb_strlen($kind) > 30) {
                 $flash[] = ['type'=>'error','msg'=>'Tipo demasiado largo (max 30).'];
             } elseif (!in_array($kind, $kindAllowed, true)) {
-                $flash[] = ['type'=>'error','msg'=>'Tipo invalido. Solo se permite: renombre o estado.'];
+                $flash[] = ['type'=>'error','msg'=>'Tipo inválido. Solo se permite: renombre o estado.'];
             } else {
                 if ($action === 'create') {
                     $sql = "INSERT INTO dim_systems_resources (name, kind, sort_order, description, created_at, updated_at) VALUES (?,?,?,?,NOW(),NOW())";
@@ -121,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     }
                 } else {
                     if ($id <= 0) {
-                        $flash[] = ['type'=>'error','msg'=>'ID invalido para actualizar.'];
+                        $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
                     } else {
                         $sql = "UPDATE dim_systems_resources SET name=?, kind=?, sort_order=?, description=?, updated_at=NOW() WHERE id=?";
                         $st = $link->prepare($sql);
@@ -248,7 +249,7 @@ if ($ajaxSaveDelete) {
                     <label>Orden</label>
                     <input class="inp" type="number" name="sort_order" id="resource_sort_order" value="0">
 
-                    <label>Descripcion</label>
+                    <label>Descripción</label>
                     <textarea class="inp" name="description" id="resource_description" rows="8"></textarea>
                 </div>
             </div>
@@ -264,7 +265,7 @@ if ($ajaxSaveDelete) {
     <div class="modal adm-modal-sm">
         <h3>Confirmar borrado</h3>
         <div class="adm-help-text">
-            Esto eliminara el recurso del catalogo.
+            Esto eliminará el recurso del catálogo.
         </div>
         <form method="post" id="resourceDeleteForm" class="adm-m-0">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
@@ -286,7 +287,7 @@ if ($ajaxSaveDelete) {
             <th class="adm-w-150">Tipo</th>
             <th class="adm-w-80">Orden</th>
             <th class="adm-w-220">Pretty ID</th>
-            <th>Descripcion</th>
+            <th>Descripción</th>
             <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
@@ -518,6 +519,7 @@ bindRows();
 </script>
 
 <?php admin_panel_close(); ?>
+
 
 
 

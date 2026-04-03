@@ -1,7 +1,6 @@
 <?php
-if (!isset($link) || !$link) {
-    die("Error de conexion a la base de datos.");
-}
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -74,9 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         hg_admin_require_session(true);
     }
     if (!admin_character_links_csrf_ok()) {
-        $flash[] = ['type' => 'error', 'msg' => 'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
     } elseif ($selectedCharacterId <= 0) {
-        $flash[] = ['type' => 'error', 'msg' => 'Selecciona un personaje valido.'];
+        $flash[] = ['type' => 'error', 'msg' => 'Selecciona un personaje válido.'];
     } else {
         $action = (string)($_POST['action'] ?? '');
 
@@ -88,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
                 $sortOrder = (int)($_POST['sort_order'] ?? 0);
                 if ($docId <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'Selecciona un documento valido.'];
+                    $flash[] = ['type' => 'error', 'msg' => 'Selecciona un documento válido.'];
                 } else {
                     $sql = "INSERT INTO bridge_characters_docs (character_id, doc_id, relation_label, sort_order)
                             VALUES (?, ?, ?, ?)
@@ -141,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
                 $sortOrder = (int)($_POST['sort_order'] ?? 0);
                 if ($externalId <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'Selecciona un enlace externo valido.'];
+                    $flash[] = ['type' => 'error', 'msg' => 'Selecciona un enlace externo válido.'];
                 } else {
                     $sql = "INSERT INTO bridge_characters_external_links (character_id, external_link_id, relation_label, sort_order)
                             VALUES (?, ?, ?, ?)
@@ -379,7 +378,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
 
 <?php if (!$hasDocs || !$hasBridgeDocs || !$hasExternal || !$hasBridgeExternal): ?>
     <div class="flash">
-        <div class="err">Faltan tablas necesarias para todos los vinculos. Ejecuta: <code>app/tools/setup_character_documentation_links_20260322.php</code></div>
+        <div class="err">Faltan tablas necesarias para todos los vínculos. Ejecuta: <code>app/tools/setup_character_documentation_links_20260322.php</code></div>
     </div>
 <?php endif; ?>
 
@@ -389,7 +388,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
         <input type="hidden" name="s" value="admin_character_links">
         <?php if ($hasChronicles): ?>
             <select class="select" name="fil_cr">
-                <option value="0">Cronica: Todas</option>
+                <option value="0">Crónica: Todas</option>
                 <?php foreach ($chronicles as $ch): ?>
                     <?php $chid = (int)($ch['id'] ?? 0); ?>
                     <option value="<?= $chid ?>" <?= ($chid === $selectedChronicleId ? 'selected' : '') ?>>
@@ -425,7 +424,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
         <p>Personaje actual:
             <strong><?= h($characterName !== '' ? $characterName : ('#'.$selectedCharacterId)) ?></strong>
             <?php if ($characterChronicle !== ''): ?>
-                <span>| Cronica: <?= h($characterChronicle) ?></span>
+                <span>| Crónica: <?= h($characterChronicle) ?></span>
             <?php endif; ?>
             <?php if ($characterReality !== ''): ?>
                 <span>| Realidad: <?= h($characterReality) ?></span>
@@ -712,3 +711,4 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
 </script>
 
 <?php admin_panel_close(); ?>
+

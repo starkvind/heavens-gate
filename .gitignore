@@ -92,6 +92,7 @@ app/tools/migrate_season_kind_phase1.php
 app/tools/migrate_timeline_birthdays_text_phase5.php
 app/tools/migrate_character_status_id_phase1.php
 check_encoding.ps1
+PHP_TESTS.txt
 
 app/tools/recover_zeroed_character_traits.php
 app/tools/simulator_battles_add_season_id_20260309.php
@@ -104,4 +105,8 @@ app/tools/topic_viewer_setup_20260318.php
 app/tools/setup_external_links_20260322.php
 app/tools/setup_character_documentation_links_20260322.php
 app/tools/setup_character_docs_links_20260322.php
+app/helpers/admin_phase7_audit.php
+app/tools/phase7_integrity_audit.php
+app/tools/phase7_schema_hardening_20260403.php
+WEB_MEJORAS_IMPLEMENTADAS.txt
 TELEGRAM_BOT_BACKEND_GUIDE.md

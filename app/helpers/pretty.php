@@ -1,13 +1,102 @@
 <?php
 // Pretty ID helpers
 
-function slugify_pretty_id(string $text): string {
+function hg_pretty_normalize_source(string $text): string {
     $text = trim($text);
     if ($text === '') return '';
 
-    if (function_exists('iconv')) {
-        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    // Repair obvious legacy single-byte payloads before slugging.
+    if (!preg_match('//u', $text)) {
+        $converted = @iconv('Windows-1252', 'UTF-8//IGNORE', $text);
+        if (is_string($converted) && $converted !== '') {
+            $text = $converted;
+        }
     }
+
+    $text = strtr($text, [
+        'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ä' => 'A', 'Ã' => 'A', 'Å' => 'A',
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a',
+        'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+        'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Ö' => 'O', 'Õ' => 'O',
+        'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
+        'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+        'Ñ' => 'N', 'ñ' => 'n',
+        'Ç' => 'C', 'ç' => 'c',
+        'Ý' => 'Y', 'Ÿ' => 'Y', 'ý' => 'y', 'ÿ' => 'y',
+        'Æ' => 'AE', 'æ' => 'ae',
+        'Œ' => 'OE', 'œ' => 'oe',
+        'Ø' => 'O', 'ø' => 'o',
+        'Ð' => 'D', 'ð' => 'd',
+        'Þ' => 'TH', 'þ' => 'th',
+        'ß' => 'ss',
+        'ª' => 'a', 'º' => 'o',
+    ]);
+
+    if (class_exists('Normalizer')) {
+        $normalized = \Normalizer::normalize($text, \Normalizer::FORM_D);
+        if (is_string($normalized) && $normalized !== '') {
+            $text = preg_replace('/\p{Mn}+/u', '', $normalized);
+        }
+    }
+
+    if (function_exists('iconv')) {
+        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        if (is_string($converted) && $converted !== '') {
+            $text = $converted;
+        }
+    }
+
+    return $text;
+}
+
+function hg_pretty_policy_source_key(string $text): string {
+    $text = trim(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    $text = preg_replace('/\s+/u', ' ', $text);
+    if (!is_string($text) || $text === '') return '';
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($text, 'UTF-8');
+    }
+    return strtolower($text);
+}
+
+function hg_pretty_policy_slug(string $table, string $source): string {
+    $table = trim($table);
+    $sourceKey = hg_pretty_policy_source_key($source);
+    if ($table === '' || $sourceKey === '') return '';
+
+    static $policies = [
+        'dim_realities' => [
+            'gaia2' => 'gaia-2a',
+            'gaia2β' => 'gaia-2b',
+            'gaia1' => 'gaia-1',
+            'gaia0' => 'gaia-zero',
+        ],
+    ];
+
+    return (string)($policies[$table][$sourceKey] ?? '');
+}
+
+function hg_pretty_expected_slug(string $table, string $source, int $fallbackId = 0): string {
+    $slug = hg_pretty_policy_slug($table, $source);
+    if ($slug === '') {
+        $slug = slugify_pretty_id($source);
+    }
+    if ($slug === '') {
+        $slug = $fallbackId > 0 ? (string)$fallbackId : '';
+    }
+    return $slug;
+}
+
+function slugify_pretty_id(string $text): string {
+    $text = hg_pretty_normalize_source($text);
+    if ($text === '') return '';
+
     $text = strtolower($text);
     $text = preg_replace('/[^a-z0-9]+/', '-', $text);
     $text = trim($text, '-');
@@ -98,8 +187,7 @@ function hg_table_has_column(mysqli $link, string $table, string $column): bool 
 function hg_update_pretty_id_if_exists(mysqli $link, string $table, int $id, string $source): void {
     if ($id <= 0) return;
     if (!hg_table_has_column($link, $table, 'pretty_id')) return;
-    $slug = slugify_pretty_id($source);
-    if ($slug === '') $slug = (string)$id;
+    $slug = hg_pretty_expected_slug($table, $source, $id);
 
     if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
         $st->bind_param('si', $slug, $id);

@@ -1,7 +1,10 @@
 <?php setMetaFromPage("Linea temporal | Heaven's Gate", "Linea temporal de eventos y sucesos.", null, 'website'); ?>
 <?php
+include_once(__DIR__ . '/../../helpers/public_response.php');
 if (!$link) {
-    die("Error de conexion a la base de datos.");
+    hg_public_log_error('events_main', 'missing DB connection');
+    hg_public_render_error('Linea temporal no disponible', 'No se pudo cargar la linea temporal en este momento.');
+    return;
 }
 
 if (!function_exists('hg_events_h')) {
@@ -460,7 +463,7 @@ include("app/partials/main_nav_bar.php");
         <div class="events-filters events-filters-compact">
             <label class="events-filter-block is-search">
                 <span class="events-filter-label">Búsqueda</span>
-                <input class="events-filter-input" type="text" id="evSearch" placeholder="Titulo, descripcion, fuente...">
+                <input class="events-filter-input" type="text" id="evSearch" placeholder="Título, descripción, fuente...">
             </label>
             <div class="events-filter-block">
                 <span class="events-filter-label">Tipo</span>
@@ -575,7 +578,7 @@ include("app/partials/main_nav_bar.php");
                             <th>Fecha</th>
                             <th>Evento</th>
                             <th>Tipo</th>
-                            <th>Cronica</th>
+                            <th>Crónica</th>
                             <th>Fuente</th>
                         </tr>
                     </thead>
@@ -846,7 +849,7 @@ include("app/partials/main_nav_bar.php");
                         + '<div style="font-weight:bold;margin-bottom:4px;">' + escapeHtml(ev.title || '(Sin titulo)') + '</div>'
                         + '<div><b>Fecha:</b> ' + escapeHtml(ev.date_label || ev.event_date || '-') + '</div>'
                         + '<div><b>Tipo:</b> ' + escapeHtml(ev.type_name || 'Evento') + '</div>'
-                        + '<div><b>Cronica:</b> ' + escapeHtml(ev.chronicle_line || '-') + '</div>';
+                        + '<div><b>Crónica:</b> ' + escapeHtml(ev.chronicle_line || '-') + '</div>';
                 }
             },
             xAxis: {

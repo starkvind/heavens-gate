@@ -1,7 +1,6 @@
 <?php
-if (!isset($link) || !$link) {
-    die('Error de conexion a la base de datos.');
-}
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
@@ -391,8 +390,8 @@ if ($isAjax) {
         hg_admin_require_session(true);
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        if (function_exists('hg_admin_json_error')) hg_admin_json_error('Metodo invalido', 405);
-        echo json_encode(['ok' => false, 'error' => 'Metodo invalido']);
+        if (function_exists('hg_admin_json_error')) hg_admin_json_error('Método inválido', 405);
+        echo json_encode(['ok' => false, 'error' => 'Método inválido']);
         exit;
     }
 
@@ -411,8 +410,8 @@ if ($isAjax) {
         : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
 
     if (!$csrfOk) {
-        if (function_exists('hg_admin_json_error')) hg_admin_json_error('CSRF invalido. Recarga la pagina.', 400);
-        echo json_encode(['ok' => false, 'error' => 'CSRF invalido. Recarga la pagina.']);
+        if (function_exists('hg_admin_json_error')) hg_admin_json_error('CSRF inválido. Recarga la página.', 400);
+        echo json_encode(['ok' => false, 'error' => 'CSRF inválido. Recarga la página.']);
         exit;
     }
 
@@ -421,8 +420,8 @@ if ($isAjax) {
     if ($action === 'delete_event') {
         $eventId = (int)$req('event_id', 0);
         if ($eventId <= 0) {
-            if (function_exists('hg_admin_json_error')) hg_admin_json_error('ID de evento invalido', 400);
-            echo json_encode(['ok' => false, 'error' => 'ID de evento invalido']);
+            if (function_exists('hg_admin_json_error')) hg_admin_json_error('ID de evento inválido', 400);
+            echo json_encode(['ok' => false, 'error' => 'ID de evento inválido']);
             exit;
         }
 
@@ -602,9 +601,9 @@ if ($isAjax) {
     }
 
     if (function_exists('hg_admin_json_error')) {
-        hg_admin_json_error('Accion no valida', 400);
+        hg_admin_json_error('Acción no válida', 400);
     }
-    echo json_encode(['ok' => false, 'error' => 'Accion no valida']);
+    echo json_encode(['ok' => false, 'error' => 'Acción no válida']);
     exit;
 }
 
@@ -673,7 +672,7 @@ foreach ($events as &$row) {
 unset($row);
 
 $actions = '<span class="adm-flex-right-wrap-8">'
-    . '<label class="adm-text-left">Filtro rapido <input class="inp" type="text" id="quickFilter" placeholder="Titulo o fuente..."></label>'
+    . '<label class="adm-text-left">Filtro rápido <input class="inp" type="text" id="quickFilter" placeholder="Título o fuente..."></label>'
     . '<label class="adm-text-left">Tipo <select id="typeFilter" class="select"><option value="">Todos</option>';
 foreach ($eventTypes as $typeRow) {
     $actions .= '<option value="' . (int)$typeRow['id'] . '">' . h((string)$typeRow['name']) . '</option>';
@@ -683,7 +682,7 @@ $actions .= '</select></label>'
     . '<button class="btn btn-green" type="button" onclick="openEventModal(0)">+ Nuevo evento</button>'
     . '</span>';
 
-admin_panel_open('Linea temporal', $actions);
+admin_panel_open('Línea temporal', $actions);
 ?>
 <style>
 .admin-multi{
@@ -725,10 +724,10 @@ admin_panel_open('Linea temporal', $actions);
     <thead>
         <tr>
             <th>Fecha</th>
-            <th>Titulo</th>
+            <th>Título</th>
             <th>Tipo</th>
-            <th>Cronica</th>
-            <th>Vinculos</th>
+            <th>Crónica</th>
+            <th>Vínculos</th>
             <th>Estado</th>
             <th>Acciones</th>
         </tr>
@@ -745,7 +744,7 @@ admin_panel_open('Linea temporal', $actions);
             <input type="hidden" name="id" id="f_id" value="0">
 
             <div class="grid">
-                <label>Titulo
+                <label>Título
                     <input class="inp" type="text" name="title" id="f_title" required>
                 </label>
                 <label>Fecha del evento
@@ -758,11 +757,11 @@ admin_panel_open('Linea temporal', $actions);
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <label>Precision fecha
+                <label>Precisión fecha
                     <select class="select" name="date_precision" id="f_date_precision">
-                        <option value="day">Dia exacto</option>
+                        <option value="day">Día exacto</option>
                         <option value="month">Mes aproximado</option>
-                        <option value="year">Ano aproximado</option>
+                        <option value="year">Año aproximado</option>
                         <option value="approx">Aproximada</option>
                         <option value="unknown">Desconocida</option>
                     </select>
@@ -770,13 +769,13 @@ admin_panel_open('Linea temporal', $actions);
                 <label>Nota de fecha
                     <input class="inp" type="text" name="date_note" id="f_date_note" maxlength="120" placeholder="Ej. mediados de marzo">
                 </label>
-                <label class="field-full">Cronicas vinculadas
+                <label class="field-full">Crónicas vinculadas
                     <select class="select admin-multi" name="chronicle_ids[]" id="f_chronicle_ids" multiple size="6">
                         <?php foreach ($chronicles as $chronicleRow): ?>
                         <option value="<?= (int)$chronicleRow['id'] ?>"><?= h((string)$chronicleRow['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <small class="adm-help">Seleccion multiple. La primera cronica se usa como referencia legacy.</small>
+                    <small class="adm-help">Selección múltiple. La primera crónica se usa como referencia legacy.</small>
                 </label>
                 <label class="field-full">Personajes vinculados
                     <input type="hidden" id="f_character_ids_csv" value="">
@@ -791,11 +790,11 @@ admin_panel_open('Linea temporal', $actions);
                     </div>
                     <div id="relationsCharactersList" class="adm-rel-box small">Sin personajes vinculados.</div>
                 </label>
-                <label class="field-full">Capitulos vinculados
+                <label class="field-full">Capítulos vinculados
                     <input type="hidden" id="f_chapter_ids_csv" value="">
                     <div class="adm-rel-row">
                         <select id="chapterSelect" class="select adm-rel-select">
-                            <option value="">Seleccionar capitulo</option>
+                            <option value="">Seleccionar capítulo</option>
                             <?php foreach ($chapters as $chapterRow):
                                 $seasonNum = (int)($chapterRow['season_number'] ?? 0);
                                 $seasonKind = trim((string)($chapterRow['season_kind'] ?? 'temporada'));
@@ -810,7 +809,7 @@ admin_panel_open('Linea temporal', $actions);
                         </select>
                         <button class="btn" type="button" id="btnAddChapterRel">Agregar</button>
                     </div>
-                    <div id="relationsChaptersList" class="adm-rel-box small">Sin capitulos vinculados.</div>
+                    <div id="relationsChaptersList" class="adm-rel-box small">Sin capítulos vinculados.</div>
                 </label>
                 <label class="field-full">Realidades vinculadas
                     <select class="select admin-multi" name="reality_ids[]" id="f_reality_ids" multiple size="6">
@@ -827,11 +826,11 @@ admin_panel_open('Linea temporal', $actions);
                 </label>
                 <label>Activo
                     <select class="select" name="is_active" id="f_is_active">
-                        <option value="1">Si</option>
+                        <option value="1">Sí</option>
                         <option value="0">No</option>
                     </select>
                 </label>
-                <label class="field-full">Descripcion
+                <label class="field-full">Descripción
                     <textarea class="inp" name="description" id="f_description" rows="8"></textarea>
                 </label>
             </div>
@@ -901,8 +900,8 @@ function renderTable(){
             <td>${esc(e.chronicle_line || '-')}</td>
             <td>
                 <span title="Personajes">P:${Number(e.characters_count || 0)}</span>
-                <span title="Capitulos"> C:${Number(e.chapters_count || 0)}</span>
-                <span title="Cronicas"> Cr:${Number(e.chronicles_count || 0)}</span>
+                <span title="Capítulos"> C:${Number(e.chapters_count || 0)}</span>
+                <span title="Crónicas"> Cr:${Number(e.chronicles_count || 0)}</span>
                 <span title="Realidades"> R:${Number(e.realities_count || 0)}</span>
             </td>
             <td>${Number(e.is_active || 0) === 1 ? 'Activo' : 'Inactivo'}</td>
@@ -1002,7 +1001,7 @@ function renderPendingChapters(){
     const box = document.getElementById('relationsChaptersList');
     if (!box) return;
     if (!pendingChapterIds.length) {
-        box.textContent = 'Sin capitulos vinculados.';
+        box.textContent = 'Sin capítulos vinculados.';
         return;
     }
     let html = '<ul>';
@@ -1180,3 +1179,4 @@ renderTable();
 </script>
 
 <?php admin_panel_close(); ?>
+

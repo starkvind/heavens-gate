@@ -1,29 +1,55 @@
 <?php
-setMetaFromPage("Nebulosa de manadas | Heaven's Gate", "Mapa de relaciones entre manadas.", null, 'website');
+setMetaFromPage(
+    "Nebulosa de manadas | Heaven's Gate",
+    "Mapa de relaciones entre manadas.",
+    null,
+    'website'
+);
+
+include_once(__DIR__ . '/../../helpers/public_response.php');
 
 if (!$link) {
-    die("Error de conexiÃ³n a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('bio_reltree_groups', 'missing DB connection');
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
+    );
+    return;
 }
 
-// Helper: sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints).
-function sanitize_int_csv($csv){
-    $csv = (string)$csv;
-    if (trim($csv) === '') return '';
-    $parts = preg_split('/\s*,\s*/', trim($csv));
-    $ints = [];
-    foreach ($parts as $p) {
-        if ($p === '') continue;
-        if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
+if (!function_exists('hg_bio_reltree_groups_sanitize_int_csv')) {
+    function hg_bio_reltree_groups_sanitize_int_csv($csv): string
+    {
+        $csv = (string)$csv;
+        if (trim($csv) === '') {
+            return '';
+        }
+
+        $parts = preg_split('/\s*,\s*/', trim($csv));
+        $ints = [];
+
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+
+            if (preg_match('/^\d+$/', $part)) {
+                $ints[] = (string)(int)$part;
+            }
+        }
+
+        $ints = array_values(array_unique($ints));
+        return implode(',', $ints);
     }
-    $ints = array_values(array_unique($ints));
-    return implode(',', $ints);
 }
 
-// Excluir crÃ³nicas (si existe la variable global, la usamos; si no, no excluimos nada)
-$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
+$excludeChronicles = isset($excludeChronicles)
+    ? hg_bio_reltree_groups_sanitize_int_csv($excludeChronicles)
+    : '';
+$chronicleIdNotInSQL = ($excludeChronicles !== '')
+    ? " AND p.chronicle_id NOT IN ($excludeChronicles) "
+    : "";
 
-// Personajes con manada activa (bridge)
 $charsSql = "
     SELECT
         p.id,
@@ -39,69 +65,98 @@ $charsSql = "
             ON gbc.character_id = p.id
            AND (gbc.is_active = 1 OR gbc.is_active IS NULL)
     WHERE 1=1
-        $chronicle_idNotInSQL
+        $chronicleIdNotInSQL
 ";
-$characters = $link->query($charsSql)->fetch_all(MYSQLI_ASSOC);
 
-// Map character -> group
+$charactersResult = $link->query($charsSql);
+if (!$charactersResult) {
+    hg_public_log_error('bio_reltree_groups', 'characters query failed: ' . mysqli_error($link));
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
+    );
+    return;
+}
+
+$characters = $charactersResult->fetch_all(MYSQLI_ASSOC);
+$charactersResult->free();
+
 $charGroup = [];
 $groupSizes = [];
-foreach ($characters as $c) {
-    $gid = (int)($c['group_id'] ?? 0);
-    if ($gid > 0) {
-        $charGroup[(int)$c['id']] = $gid;
-        $groupSizes[$gid] = ($groupSizes[$gid] ?? 0) + 1;
+foreach ($characters as $character) {
+    $groupId = (int)($character['group_id'] ?? 0);
+    if ($groupId > 0) {
+        $charGroup[(int)$character['id']] = $groupId;
+        $groupSizes[$groupId] = ($groupSizes[$groupId] ?? 0) + 1;
     }
 }
 
-// Grupos usados
 $groups = [];
 if (!empty($groupSizes)) {
     $in = implode(',', array_map('intval', array_keys($groupSizes)));
-    $rs = $link->query("SELECT id, name FROM dim_groups WHERE id IN ($in) ORDER BY name ASC");
-    if ($rs) { while ($r = $rs->fetch_assoc()) { $groups[(int)$r['id']] = $r['name']; } $rs->free(); }
+    $groupsResult = $link->query("SELECT id, name FROM dim_groups WHERE id IN ($in) ORDER BY name ASC");
+    if (!$groupsResult) {
+        hg_public_log_error('bio_reltree_groups', 'groups query failed: ' . mysqli_error($link));
+        hg_public_render_error(
+            'Mapa no disponible',
+            'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
+        );
+        return;
+    }
+
+    while ($row = $groupsResult->fetch_assoc()) {
+        $groups[(int)$row['id']] = $row['name'];
+    }
+    $groupsResult->free();
 }
 
-// Relaciones entre personajes -> relaciones entre grupos
-$relations = [];
-$resRel = $link->query("SELECT * FROM bridge_characters_relations");
-if ($resRel) {
-    $relations = $resRel->fetch_all(MYSQLI_ASSOC);
-    $resRel->free();
+$relationsResult = $link->query("SELECT * FROM bridge_characters_relations");
+if (!$relationsResult) {
+    hg_public_log_error('bio_reltree_groups', 'relations query failed: ' . mysqli_error($link));
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
+    );
+    return;
 }
+
+$relations = $relationsResult->fetch_all(MYSQLI_ASSOC);
+$relationsResult->free();
 
 $edges = [];
-foreach ($relations as $r) {
-    $sid = (int)($r['source_id'] ?? 0);
-    $tid = (int)($r['target_id'] ?? 0);
-    $g1 = $charGroup[$sid] ?? 0;
-    $g2 = $charGroup[$tid] ?? 0;
-    if ($g1 <= 0 || $g2 <= 0) continue;
-    if ($g1 === $g2) continue;
+foreach ($relations as $relation) {
+    $sourceId = (int)($relation['source_id'] ?? 0);
+    $targetId = (int)($relation['target_id'] ?? 0);
+    $groupSource = $charGroup[$sourceId] ?? 0;
+    $groupTarget = $charGroup[$targetId] ?? 0;
+
+    if ($groupSource <= 0 || $groupTarget <= 0 || $groupSource === $groupTarget) {
+        continue;
+    }
+
     $edges[] = [
-        'from' => $g1,
-        'to' => $g2,
-        'relation_type' => (string)($r['relation_type'] ?? ''),
-        'tag' => (string)($r['tag'] ?? ''),
-        'arrows' => (string)($r['arrows'] ?? 'to'),
-        'importance' => (int)($r['importance'] ?? 1),
+        'from' => $groupSource,
+        'to' => $groupTarget,
+        'relation_type' => (string)($relation['relation_type'] ?? ''),
+        'tag' => (string)($relation['tag'] ?? ''),
+        'arrows' => (string)($relation['arrows'] ?? 'to'),
+        'importance' => (int)($relation['importance'] ?? 1),
     ];
 }
 
 $pageTitle2 = "Manadas";
 ?>
-
 <script type="text/javascript" src="assets/vendor/vis/vis-network.min.10.0.2.js"></script>
 
 <style>
     #network {
         border: 0;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
         height: 70vh;
         width: 100%;
-        border: none;
-        background-color: #05014E;
+        background-color: #05014e;
     }
+
     #fullscreen-btn {
         position: relative;
         z-index: 1000;
@@ -112,12 +167,12 @@ $pageTitle2 = "Manadas";
 
 <h2>Nebulosa de relaciones</h2>
 <div class="bioTextData">
-    <fieldset class='bioSeccion'>
+    <fieldset class="bioSeccion">
         <legend>&nbsp;Relaciones entre manadas&nbsp;</legend>
         <div style="float: right;">
-            <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">ðŸ” Pantalla completa</button>
-            <button class="boton2" onclick="location.href='/relationship-map/characters'">ðŸ‘¤ Personajes</button>
-            <button class="boton2" onclick="location.href='/relationship-map/organizations'">ðŸ·ï¸ Clanes</button>
+            <button class="boton2" id="fullscreen-btn" onclick="toggleFullScreen()">Pantalla completa</button>
+            <button class="boton2" onclick="location.href='/relationship-map/characters'">Personajes</button>
+            <button class="boton2" onclick="location.href='/relationship-map/organizations'">Clanes</button>
         </div>
         <div style="position:relative; width:100%; max-width:600px; height:600px; overflow:hidden; border-radius:10px; background:#05014E;">
             <div id="network" style="width:100%; height:100%;"></div>
@@ -139,7 +194,7 @@ const nodes = new vis.DataSet([
 <?php foreach ($groups as $id => $name): ?>
     {
         id: "group_<?= (int)$id ?>",
-        label: <?= json_encode($name, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        label: <?= json_encode((string)$name, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
         shape: 'box',
         color: { background: '#0b1d4a', border: '#1b4aa0' },
         font: { color: "#fff", size: 12 },
@@ -149,22 +204,38 @@ const nodes = new vis.DataSet([
 ]);
 
 const edges = new vis.DataSet([
-<?php foreach ($edges as $e): ?>
+<?php foreach ($edges as $edge): ?>
     <?php
         $color = '#bdc3c7';
-        switch (($e['tag'] ?? '')) {
-            case 'conflicto': $color = '#e74c3c'; break;
-            case 'amistad':   $color = '#2ecc71'; break;
-            case 'alianza':   $color = '#3498db'; break;
-            case 'familia':   $color = '#f1c40f'; break;
+        switch ((string)($edge['tag'] ?? '')) {
+            case 'conflicto':
+                $color = '#e74c3c';
+                break;
+            case 'amistad':
+                $color = '#2ecc71';
+                break;
+            case 'alianza':
+                $color = '#3498db';
+                break;
+            case 'familia':
+                $color = '#f1c40f';
+                break;
         }
-        $importance = (int)$e['importance']; if ($importance < 1) $importance = 1;
-        $arrows = $e['arrows'] ?: 'to';
+
+        $importance = (int)$edge['importance'];
+        if ($importance < 1) {
+            $importance = 1;
+        }
+
+        $arrows = (string)$edge['arrows'];
+        if ($arrows === '') {
+            $arrows = 'to';
+        }
     ?>
     {
-        from: "group_<?= (int)$e['from'] ?>",
-        to: "group_<?= (int)$e['to'] ?>",
-        label: <?= json_encode((string)$e['relation_type'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        from: "group_<?= (int)$edge['from'] ?>",
+        to: "group_<?= (int)$edge['to'] ?>",
+        label: <?= json_encode((string)$edge['relation_type'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
         width: <?= $importance ?>,
         arrows: <?= json_encode($arrows, JSON_UNESCAPED_UNICODE) ?>,
         color: { color: "<?= $color ?>" },
@@ -188,5 +259,3 @@ const options = {
 
 new vis.Network(container, data, options);
 </script>
-
-

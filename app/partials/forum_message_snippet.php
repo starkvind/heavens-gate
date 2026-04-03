@@ -1,6 +1,10 @@
 <?php
-	include("app/helpers/db_connection.php");
-	include_once("app/helpers/character_avatar.php");
+	require_once(__DIR__ . '/../helpers/runtime_response.php');
+	require_once(__DIR__ . '/../helpers/character_avatar.php');
+
+	if (!isset($link) || !($link instanceof mysqli)) {
+		require_once(__DIR__ . '/../helpers/db_connection.php');
+	}
 
 	if (!function_exists('hg_normalize_palette_value')) {
 		function hg_normalize_palette_value(string $raw, string $fallback = 'SkyBlue'): string {
@@ -32,7 +36,8 @@
 	$msg = filter_input(INPUT_GET, 'msg');
 
 	if (!$char_id || $msg === null || $msg === '') {
-		die("Parametros incorrectos.");
+		hg_runtime_embed_error('Mensaje no disponible', 'Faltan parametros obligatorios para generar el mensaje.', 400);
+		return;
 	}
 	
 	$defaultImgPath = "public/img/ui/avatar/";
@@ -51,12 +56,18 @@
 	} else {
 		$query = "SELECT name, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
 		$stmt = mysqli_prepare($link, $query);
+		if (!$stmt) {
+			hg_runtime_log_error('forum_message_snippet.prepare', mysqli_error($link));
+			hg_runtime_embed_error('Mensaje no disponible', 'No se pudo preparar la consulta del personaje.', 500);
+			return;
+		}
 		mysqli_stmt_bind_param($stmt, "i", $char_id);
 		mysqli_stmt_execute($stmt);
 		$result = mysqli_stmt_get_result($stmt);
 
 		if (!$row = mysqli_fetch_assoc($result)) {
-			die("Personaje no encontrado.");
+			hg_runtime_embed_error('Personaje no encontrado', 'No existe ningun personaje con ese identificador.', 404);
+			return;
 		}
 
 		$nombre = htmlspecialchars($row['name']);

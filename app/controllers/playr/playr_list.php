@@ -1,11 +1,14 @@
 <?php
-setMetaFromPage("Jugadores | Heaven's Gate", "Listado de jugadores de la campaña.", null, 'website');
+setMetaFromPage("Jugadores | Heaven's Gate", "Listado de jugadores de la campana.", null, 'website');
+include_once(__DIR__ . '/../../helpers/public_response.php');
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 include("app/partials/main_nav_bar.php");
 
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('playr_list', 'missing DB connection');
+    hg_public_render_error('Jugadores no disponibles', 'No se pudo cargar el listado de jugadores en este momento.');
+    return;
 }
 
 if (!function_exists('sanitize_int_csv')) {
@@ -42,7 +45,9 @@ $query = "
 
 $result = mysqli_query($link, $query);
 if (!$result) {
-    die("Error en la consulta: " . mysqli_error($link));
+    hg_public_log_error('playr_list', 'query failed: ' . mysqli_error($link));
+    hg_public_render_error('Jugadores no disponibles', 'No se pudo cargar el listado de jugadores en este momento.');
+    return;
 }
 
 $players = [];
@@ -116,4 +121,3 @@ function escapeHtml(text) {
     });
 }
 </script>
-

@@ -250,14 +250,6 @@ if ($result->num_rows > 0) {
         echo "<section class='hg-tab-panel' data-tab='info'>{$infoHtml}</section>";
 
         echo "<section class='hg-tab-panel' data-tab='owners'>";
-        $mapEstado = [
-            "AÃºn por aparecer"     => "(&#64;)",
-            "Paradero desconocido" => "(&#63;)",
-            "CadÃ¡ver"              => "(&#8224;)",
-            "A?n por aparecer"     => "(&#64;)",
-            "Cad?ver"              => "(&#8224;)"
-        ];
-
         $totalOwners = 0;
         foreach ($traitOwners as $value => $owners) {
             $totalOwners += count($owners);
@@ -304,6 +296,4 @@ if ($result->num_rows > 0) {
 $stmt->close();
 
 ?>
-
-
 

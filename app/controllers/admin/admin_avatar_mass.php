@@ -1,7 +1,8 @@
 <?php
 // admin_avatar_mass.php - Actualizacion masiva de avatares de personajes (sin paginacion)
 
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
@@ -111,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
         ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
         : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals((string)$_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
     if (!$csrfOk) {
-        $jsonExit(['ok' => false, 'msg' => 'CSRF invalido']);
+        $jsonExit(['ok' => false, 'msg' => 'CSRF inválido']);
     }
 
     $charId = isset($_POST['character_id']) ? (int)$_POST['character_id'] : 0;
@@ -223,7 +224,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
 <div class="avatar-mass-wrap">
   <div class="avatar-mass-head">
     <h2>Avatares masivos de personajes</h2>
-    <div class="adm-text-9dd-11">Sin paginacion - actualiza por fila via Ajax</div>
+    <div class="adm-text-9dd-11">Sin paginación: actualiza por fila vía Ajax</div>
   </div>
 
   <div class="avatar-mass-filters">
@@ -234,13 +235,13 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
       <?php endforeach; ?>
     </select>
     <select id="f-org">
-      <option value="0">Organizacion: Todas</option>
+      <option value="0">Organización: Todas</option>
       <?php foreach ($orgOpts as $id=>$name): ?>
         <option value="<?= (int)$id ?>"><?= h($name) ?></option>
       <?php endforeach; ?>
     </select>
     <select id="f-chronicle">
-      <option value="0">Cronica: Todas</option>
+      <option value="0">Crónica: Todas</option>
       <?php foreach ($chronOpts as $id=>$name): ?>
         <option value="<?= (int)$id ?>"><?= h($name) ?></option>
       <?php endforeach; ?>
@@ -376,7 +377,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
             statusText: res.statusText,
             bodyPreview: String(raw || '').slice(0, 1200)
           });
-          msg.textContent = 'Respuesta invalida (' + res.status + ')';
+          msg.textContent = 'Respuesta inválida (' + res.status + ')';
           msg.className = 'row-msg err';
           return;
         }
@@ -432,6 +433,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
   });
 })();
 </script>
+
 
 
 

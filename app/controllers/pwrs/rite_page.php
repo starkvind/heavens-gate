@@ -1,6 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener y sanitizar el parÃ¡metro 'b'
+// Obtener y sanitizar el parámetro 'b'
 $ritePageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
 // Consulta segura para obtener los datos del ritual
@@ -19,7 +19,7 @@ $rowsQueryRite = $result->num_rows;
 if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $resultQueryRite = $result->fetch_assoc();
 
-    // DATOS BÃSICOS
+    // DATOS BÁSICOS
     $riteId     = htmlspecialchars($resultQueryRite["id"]);
     $riteName   = htmlspecialchars($resultQueryRite["name"]);
     $riteType   = htmlspecialchars($resultQueryRite["tipo"]);
@@ -58,11 +58,11 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesiÃ³n para breadcrumbs
+    // Guardar en sesión para breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
     // =========================
-    // Personajes con este Ritual (respeta exclusiones de crÃ³nica)
+    // Personajes con este Ritual (respeta exclusiones de crónica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -96,10 +96,10 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
 	$pageTitle2 = $riteName; // PARA CAMBIAR EL TITULO A LA PAGINA
 	setMetaFromPage($riteName . " | Rituales | Heaven's Gate", meta_excerpt($riteDesc), null, 'article');
 
-    // Incluir barra de navegaciÃ³n
+    // Incluir barra de navegación
     include("app/partials/main_nav_bar.php");
 
-    // TÃ­tulo de la pÃ¡gina
+    // Título de la página
     ob_start();
 
     // Imagen del Ritual
@@ -162,7 +162,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         hg_render_owner_tabs_styles(true, 28);
 
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>InformaciÃ³n</button>";
+        echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
@@ -178,12 +178,18 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                 $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
+                $estadoCanon = strtr($estado, [
+                    "A" . "\xC3\x83\xC2\xBAn por aparecer" => "Aún por aparecer",
+                    "Cad" . "\xC3\x83\xC2\xA1ver" => "Cadáver",
+                ]);
                 $mapEstado = [
-                    "AÃºn por aparecer"     => "(&#64;)",
+                    "Aun por aparecer"     => "(&#64;)",
+                    "Aún por aparecer"     => "(&#64;)",
+                    "Cadaver"              => "(&#8224;)",
                     "Paradero desconocido" => "(&#63;)",
-                    "CadÃ¡ver"              => "(&#8224;)"
+                    "Cadáver"              => "(&#8224;)"
                 ];
-                $simboloEstado = $mapEstado[$estado] ?? "";
+                $simboloEstado = $mapEstado[$estadoCanon] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
                 hg_render_character_avatar_tile([
                     'href' => $href,

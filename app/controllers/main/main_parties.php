@@ -1,6 +1,11 @@
 <?php setMetaFromPage("Equipos activos | Heaven's Gate", "Grupos con personajes activos, jugando actualmente.", null, 'website'); ?>
 <?php
-if (!$link) die("Error de conexión a la base de datos.");
+include_once(__DIR__ . '/../../helpers/public_response.php');
+if (!$link) {
+    hg_public_log_error('main_parties', 'missing DB connection');
+    hg_public_render_error('Equipos no disponibles', 'No se pudo cargar el listado de equipos activos en este momento.');
+    return;
+}
 
 // Excluir cr?nicas si aplica
 if (!function_exists('sanitize_int_csv')) {
@@ -27,7 +32,11 @@ $chronicle_idNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT I
 /* 1) Parties activas */
 $sqlParties = "SELECT hp.id, hp.name, hp.description FROM dim_parties hp WHERE hp.active = 1 ORDER BY hp.sort_order ASC";
 $resParties = $link->query($sqlParties);
-if (!$resParties) die("Error al preparar la consulta: " . $link->error);
+if (!$resParties) {
+    hg_public_log_error('main_parties', 'party query failed: ' . $link->error);
+    hg_public_render_error('Equipos no disponibles', 'No se pudo cargar el listado de equipos activos en este momento.');
+    return;
+}
 
 $parties = [];
 while ($row = $resParties->fetch_assoc()) {
@@ -45,7 +54,11 @@ $sqlMembers = "SELECT c.id, c.party_id, c.base_char_id,
 	   LEFT JOIN dim_parties hp ON c.party_id = hp.id
        WHERE c.active = 1 AND hp.active = 1 $chronicle_idNotInSQL";
 $resChars = $link->query($sqlMembers);
-if (!$resChars) die("Error al preparar la consulta: " . $link->error);
+if (!$resChars) {
+    hg_public_log_error('main_parties', 'members query failed: ' . $link->error);
+    hg_public_render_error('Equipos no disponibles', 'No se pudo cargar el listado de equipos activos en este momento.');
+    return;
+}
 
 $characters = []; // indexado por fact_party_members.id
 while ($row = $resChars->fetch_assoc()) {
@@ -69,7 +82,11 @@ $sqlChanges = "SELECT party_member_id, resource, SUM(value) AS total
        FROM fact_party_members_changes
        GROUP BY party_member_id, resource";
 $resChanges = $link->query($sqlChanges);
-if (!$resChanges) die("Error al preparar la consulta de cambios: " . $link->error);
+if (!$resChanges) {
+    hg_public_log_error('main_parties', 'changes query failed: ' . $link->error);
+    hg_public_render_error('Equipos no disponibles', 'No se pudo cargar el listado de equipos activos en este momento.');
+    return;
+}
 
 while ($chg = $resChanges->fetch_assoc()) {
     $cid = (int)$chg['party_member_id'];

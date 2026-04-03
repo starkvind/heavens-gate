@@ -3,18 +3,19 @@ if (!headers_sent()) {
     header('Content-Type: text/html; charset=UTF-8');
 }
 /**
- * admin_docs.php — CRUD autocontenido (Documentos + Secciones)
- * WYSIWYG SIN CKEDITOR: Quill (CDN) — sin API key, sin carpetas de plugins.
+ * admin_docs.php - CRUD autocontenido (Documentos + Secciones)
+ * WYSIWYG SIN CKEDITOR: Quill (CDN) - sin API key, sin carpetas de plugins.
  *
  * Tablas:
- *  - dim_doc_categories: secciones/categorías (id, kind, sort_order, created_at, updated_at)
+ *  - dim_doc_categories: secciones/categorias (id, kind, sort_order, created_at, updated_at)
  *  - fact_docs: documentos (id, section_id, title, content, source, bibliography_id, created_at, updated_at)
  *
  * Requisitos:
  *  - Debe existir $link (mysqli) ya conectado.
  */
 
-if (!isset($link) || !$link) { die("Sin conexión BD"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
@@ -147,9 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     }
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
-        $flash[] = ['type'=>'error','msg'=>'❌ Pestaña inválida.'];
+        $flash[] = ['type'=>'error','msg'=>'Pestaña inválida.'];
     } elseif (!csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'❌ CSRF inválido. Recarga la página.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         // refrescar secciones por si se editaron
         $opts_sections = fetchPairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
@@ -188,20 +189,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
         }
 
-        // validaciones mínimas
+        // Validaciones mínimas
         if ($action !== 'delete') {
             foreach ($M['fields'] as $f) {
                 if (!empty($f['req'])) {
                     $k = $f['k'];
                     if (($f['db'] ?? 's') === 'i') {
-                        if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>'⚠ '.$f['label'].' inválido.'];
+                        if ((int)$vals[$k] < 0) $flash[] = ['type'=>'error','msg'=>$f['label'].' inválido.'];
                     } else {
                         $v = (string)$vals[$k];
                         $plain = trim(strip_tags($v));
                         if (($f['ui'] ?? '') === 'wysiwyg') {
-                            if ($plain === '') $flash[] = ['type'=>'error','msg'=>'âš  '.$f['label'].' es obligatorio.'];
+                            if ($plain === '') $flash[] = ['type'=>'error','msg'=>$f['label'].' es obligatorio.'];
                         } else {
-                            if (trim($v) === '') $flash[] = ['type'=>'error','msg'=>'âš  '.$f['label'].' es obligatorio.'];
+                            if (trim($v) === '') $flash[] = ['type'=>'error','msg'=>$f['label'].' es obligatorio.'];
                         }
                     }
                 }
@@ -218,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             // DELETE (safeguard para secciones con docs)
             if ($action === 'delete') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'âš  Falta ID para borrar.'];
+                    $flash[] = ['type'=>'error','msg'=>'Falta ID para borrar.'];
                 } else {
                     $canDelete = true;
                     if ($postTab === 'sections') {
@@ -230,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $stChk->close();
                         if ($cnt > 0) {
                             $canDelete = false;
-                            $flash[] = ['type'=>'error','msg'=>'❌ No se puede borrar: hay documentos en esa sección ('.$cnt.').'];
+                            $flash[] = ['type'=>'error','msg'=>'No se puede borrar: hay documentos en esa sección ('.$cnt.').'];
                             // evita borrar secciones con documentos vinculados
                         }
                     }
@@ -239,11 +240,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     $sql = "DELETE FROM `$table` WHERE `$pk`=?";
                     $st = $link->prepare($sql);
                     if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar DELETE: '.$link->error];
+                        $flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
                     } else {
                         $st->bind_param("i", $id);
-                        if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'🗑 Eliminado correctamente.'];
-                        else $flash[] = ['type'=>'error','msg'=>'âŒ Error al borrar: '.$st->error];
+                        if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Eliminado correctamente.'];
+                        else $flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
                         $st->close();
                     }
                     }
@@ -273,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                 $st = $link->prepare($sql);
                 if (!$st) {
-                    $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar INSERT: '.$link->error];
+                    $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
                 } else {
                     $st->bind_param($types, ...$bind);
                     if ($st->execute()) {
@@ -291,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             // UPDATE
             if ($action === 'update') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'âš  Falta ID para actualizar.'];
+                    $flash[] = ['type'=>'error','msg'=>'Falta ID para actualizar.'];
                 } else {
                     $sets = [];
                     $types= '';
@@ -312,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                     $st = $link->prepare($sql);
                     if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'âŒ Error al preparar UPDATE: '.$link->error];
+                        $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
                     } else {
                         $st->bind_param($types, ...$bind);
                         if ($st->execute()) {
@@ -504,12 +505,12 @@ function ui_short(string $s, int $n=120): string {
     $s = trim((string)$s);
     $s = preg_replace('/\s+/u',' ', $s);
     if (mb_strlen($s) <= $n) return $s;
-    return mb_substr($s,0,$n).'…';
+    return mb_substr($s,0,$n).'...';
 }
 ?>
 <div class="panel-wrap">
   <div class="hdr">
-    <h2>🧩 CRUD — <?= h(ui_title($tab)) ?></h2>
+    <h2>CRUD - <?= h(ui_title($tab)) ?></h2>
 
     <div class="tabs">
       <?php
@@ -520,14 +521,14 @@ function ui_short(string $s, int $n=120): string {
       <a class="tablnk <?= $tab==='sections'?'active':'' ?>" href="<?= $baseTabs ?>&tab=sections">Secciones</a>
     </div>
 
-    <button class="btn btn-green" id="btnNew">➕ Nuevo</button>
+    <button class="btn btn-green" id="btnNew">Nuevo</button>
 
     <form method="get" class="adm-flex-right-8" id="docsFilterForm">
       <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_docs') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
-        <input class="inp" type="text" id="quickSearchDocs" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título…':'Sección…' ?>">
+        <input class="inp" type="text" id="quickSearchDocs" name="q" value="<?= h($q) ?>" placeholder="<?= $tab==='docs'?'Título...':'Sección...' ?>">
       </label>
       <label class="small adm-ml-auto-left">Filtro rápido
         <input class="inp" type="text" id="quickFilterDocs" placeholder="En esta página...">
@@ -580,15 +581,15 @@ function ui_short(string $s, int $n=120): string {
               <?php if ($k === 'id'): ?>
                 <strong class="adm-color-accent"><?= (int)$r[$pk] ?></strong>
               <?php elseif (str_has($k,'_name')): ?>
-                <?= $val !== '' ? h($val) : '<span class="small">(—)</span>' ?>
+                <?= $val !== '' ? h($val) : '<span class="small">(-)</span>' ?>
               <?php else: ?>
                 <?= h(ui_short($val, 140)) ?>
               <?php endif; ?>
             </td>
           <?php endforeach; ?>
           <td>
-            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">📝 Editar</button>
-            <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">🗑️ Borrar</button>
+            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">Editar</button>
+            <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">Borrar</button>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -605,11 +606,11 @@ function ui_short(string $s, int $n=120): string {
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
     ?>
-    <a href="<?= $base ?>&pg=1">« Primero</a>
-    <a href="<?= $base ?>&pg=<?= $prev ?>">‹ Anterior</a>
+    <a href="<?= $base ?>&pg=1">Primero</a>
+    <a href="<?= $base ?>&pg=<?= $prev ?>">Anterior</a>
     <span class="cur">Pág <?= $page ?>/<?= $pages ?> · Total <?= (int)$total ?></span>
-    <a href="<?= $base ?>&pg=<?= $next ?>">Siguiente ›</a>
-    <a href="<?= $base ?>&pg=<?= $pages ?>">Último »</a>
+    <a href="<?= $base ?>&pg=<?= $next ?>">Siguiente</a>
+    <a href="<?= $base ?>&pg=<?= $pages ?>">Último</a>
   </div>
 
   <div class="small adm-mt-8">
@@ -844,8 +845,8 @@ function syncEditorsToTextarea(){
   function buildSelect(name, opts, includeZero, id){
     var s = el('select', {name:name, class:'select'});
     if (id) s.id = id;
-    if (includeZero) s.appendChild(el('option', {value:'0'}, '—'));
-    else s.appendChild(el('option', {value:''}, '— Selecciona —'));
+    if (includeZero) s.appendChild(el('option', {value:'0'}, '-'));
+    else s.appendChild(el('option', {value:''}, '- Selecciona -'));
 
     (opts||[]).forEach(function(it){
       s.appendChild(el('option', {value:String(it.id)}, escapeHtml(it.name||('ID '+it.id))));
@@ -875,7 +876,7 @@ function syncEditorsToTextarea(){
     }
 
     if (ui === 'wysiwyg') {
-      wrap.className = 'field field-full'; // âœ… Texto ocupa toda la fila
+      wrap.className = 'field field-full'; // Texto ocupa toda la fila
 
       // Hidden textarea (lo que viaja al POST) + Quill toolbar + editor
       var taId = 'f_'+k;
@@ -890,9 +891,9 @@ function syncEditorsToTextarea(){
         'data-toolbar': toolbarId,
         'data-editor': editorId
       });
-      wysWrap.className = 'wys-wrap'; // âœ… para aplicar estilos de scroll interno
+      wysWrap.className = 'wys-wrap'; // Para aplicar estilos de scroll interno
 
-      // Toolbar “sencilla” y estable
+      // Toolbar sencilla y estable
       var tb = el('div', {id:toolbarId, class:'ql-toolbar ql-snow'}, QUILL_TOOLBAR_INNER);
 
       var ed = el('div', {id:editorId, class:'ql-container ql-snow'}, '');
@@ -936,7 +937,7 @@ function syncEditorsToTextarea(){
   }
 
   function openCreate(){
-    document.getElementById('modalTitle').textContent = 'Nuevo — '+(META.title||'');
+    document.getElementById('modalTitle').textContent = 'Nuevo - ' + (META.title || '');
     document.getElementById('crud_action').value = 'create';
     document.getElementById('crud_tab').value = TAB;
     document.getElementById('f_id').value = '0';
@@ -966,7 +967,7 @@ function syncEditorsToTextarea(){
     var row = ROWMAP[String(id)];
     if (!row) return;
 
-    document.getElementById('modalTitle').textContent = 'Editar — '+(META.title||'');
+    document.getElementById('modalTitle').textContent = 'Editar - ' + (META.title || '');
     document.getElementById('crud_action').value = 'update';
     document.getElementById('crud_tab').value = TAB;
     document.getElementById('f_id').value = String(id);
@@ -1054,7 +1055,7 @@ function syncEditorsToTextarea(){
           return;
         }
         if (/_name$/.test(k)) {
-          html += '<td>' + (val ? escapeHtml(val) : '<span class="small">(—)</span>') + '</td>';
+          html += '<td>' + (val ? escapeHtml(val) : '<span class="small">(-)</span>') + '</td>';
           return;
         }
         html += '<td>' + escapeHtml(shortText(val, 140)) + '</td>';
@@ -1207,6 +1208,7 @@ function syncEditorsToTextarea(){
 
 })();
 </script>
+
 
 
 

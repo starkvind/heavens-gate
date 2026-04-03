@@ -6,12 +6,34 @@
     if (function_exists('mb_internal_encoding')) {
         mb_internal_encoding('UTF-8');
     }
+    if (function_exists('mb_http_output')) {
+        mb_http_output('UTF-8');
+    }
+
+    function hg_strip_utf8_bom(string $content): string
+    {
+        return (substr($content, 0, 3) === "\xEF\xBB\xBF") ? substr($content, 3) : $content;
+    }
+
+    function hg_normalize_utf8_output(string $content): string
+    {
+        $content = hg_strip_utf8_bom($content);
+
+        if (function_exists('mb_check_encoding') && !mb_check_encoding($content, 'UTF-8')) {
+            $converted = @mb_convert_encoding($content, 'UTF-8', ['UTF-8', 'Windows-1252', 'ISO-8859-1']);
+            if (is_string($converted) && $converted !== '') {
+                $content = $converted;
+            }
+        }
+
+        return $content;
+    }
 
     $T_inicio = microtime(true);
 
     //include("ip.php");
-    include(__DIR__ . "/app/helpers/db_connection.php");
-    include(__DIR__ . "/app/bootstrap/error_reporting.php");
+    require_once(__DIR__ . "/app/helpers/db_connection.php");
+    require_once(__DIR__ . "/app/bootstrap/error_reporting.php");
 
     $pageTitle = "Heaven's Gate";
     $unknownOrigin = "-";
@@ -26,12 +48,9 @@
     ob_start();
     include("app/bootstrap/body_work.php");
     $pageContent = ob_get_clean();
+    $pageContent = hg_normalize_utf8_output($pageContent);
 
     if (!empty($isBarePage)) {
-        // Strip UTF-8 BOM if present (breaks JSON parsing for AJAX endpoints)
-        if (substr($pageContent, 0, 3) === "\xEF\xBB\xBF") {
-            $pageContent = substr($pageContent, 3);
-        }
         echo $pageContent;
         exit;
     }
@@ -77,31 +96,33 @@
             </table>
             <!-- TIEMPO DE CARGA -->
             <p class="layout-render-time">
-                Pagina generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.
+                Página generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.
             </p>
+
+            <audio id="clickSound" src="sounds/ui/click.ogg" preload="auto"></audio>
+            <audio id="selectSound" src="sounds/ui/hover.ogg" preload="auto"></audio>
+            <audio id="confirmSound" src="sounds/ui/confirm.ogg" preload="auto"></audio>
+            <audio id="closeSound" src="sounds/ui/close.ogg" preload="auto"></audio>
+
+            <script>
+                (function () {
+                    const btn = document.getElementById('btnTop');
+                    if (!btn) {
+                        return;
+                    }
+
+                    window.addEventListener('scroll', function () {
+                        btn.style.display = (window.scrollY > 300) ? 'flex' : 'none';
+                    });
+
+                    btn.addEventListener('click', function () {
+                        window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth'
+                        });
+                    });
+                })();
+            </script>
         </div>
     </body>
 </html>
-
-<script>
-    (function(){
-    const btn = document.getElementById('btnTop');
-
-    // Mostrar / ocultar
-    window.addEventListener('scroll', function(){
-        if (window.scrollY > 300) {
-        btn.style.display = 'flex';
-        } else {
-        btn.style.display = 'none';
-        }
-    });
-
-    // Scroll suave hacia arriba
-    btn.addEventListener('click', function(){
-        window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-        });
-    });
-    })();
-</script>

@@ -1,6 +1,7 @@
 <?php
 // admin_menu.php ? Editor de menu (dim_menu_items)
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
@@ -837,3 +838,4 @@ window.ADMIN_CSRF_TOKEN = <?= json_encode($ADMIN_CSRF_TOKEN, JSON_HEX_TAG|JSON_H
 </script>
 
 <?php admin_panel_close(); ?>
+

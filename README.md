@@ -1,31 +1,50 @@
-# Heaven's Gate - Technical README
+# Heaven's Gate 5.0
 
-Heaven's Gate is a PHP + MySQL narrative platform used to manage and publish a live RPG campaign (characters, chronicles, chapters, systems, powers, timeline events, maps, gallery, soundtrack, and admin workflows).
+Heaven's Gate is a PHP + MySQL narrative platform used to manage and publish a live RPG campaign: characters, chronicles, chapters, rules, systems, powers, timeline events, maps, gallery, soundtrack, and editorial/admin workflows.
 
-This repository is the production codebase.
+This repository is the live production codebase and now documents the 5.0 maintenance and hardening cycle.
 
-## 1. Stack
+## 1. 5.0 Snapshot
 
-- PHP (procedural, include-based routing)
-- MySQL / MariaDB (`dim_*`, `fact_*`, `bridge_*` schema style)
-- jQuery + local vendor assets (`assets/vendor/`)
-- No Composer or npm required for runtime
+Version 5.0 is a major operational update focused on security, data integrity, admin usability, and consistency between the public site, the admin backend, and the current schema dump.
 
-## 2. Runtime Requirements
+Main outcomes:
 
-- PHP 7.4+ (PHP 8.x recommended)
+- hardened admin authentication, sessions, CSRF handling, and password storage;
+- introduced shared safe-response helpers for public runtime and bootstrap failures;
+- cleaned bootstrap/runtime includes, UTF-8 output, and layout rendering;
+- completed the timeline/events 5.0 flow with public list/detail pages and admin maintenance;
+- added full admin CRUD modules for chronicles, realities, and players;
+- rebuilt the soundtrack admin/catalog + link management workflow;
+- formalized `pretty_id` handling for public canonical URLs and admin editing;
+- aligned installation tooling and schema hardening with the current dump snapshot.
+
+## 2. Stack
+
+- PHP 8.0+ (`mysqli`, `openssl`; PHP 8.2 validated in this cycle)
 - MySQL / MariaDB with `utf8mb4`
-- Web server serving repository root
+- Apache-style rewrite rules via [`.htaccess`](./.htaccess)
+- include-based routing from [`index.php`](./index.php) and [`app/bootstrap/body_work.php`](./app/bootstrap/body_work.php)
+- local frontend/vendor assets under [`assets/`](./assets)
+- no Composer or npm required for runtime
+
+## 3. Runtime Requirements
+
+- Web server serving the repository root
 - `mod_rewrite` enabled if Apache is used
-- Write permissions for avatar uploads:
-  - physical path: `public/img/characters`
-  - public URL base: `/img/characters`
+- MySQL/MariaDB database using `utf8mb4`
+- valid `config.env`
+- write permissions for upload directories when admin image uploads are used:
+  - `public/img/characters`
+  - `public/img/player`
+  - `public/img/chronicles`
+  - other image folders already present under `public/img/`
 
-## 3. Configuration
+## 4. Configuration
 
-Database credentials are loaded from `config.env` (resolved by `app/helpers/db_connection.php`).
+Database credentials are loaded by [`app/helpers/db_connection.php`](./app/helpers/db_connection.php).
 
-Required keys:
+Expected keys:
 
 ```ini
 MYSQL_HOST=127.0.0.1
@@ -35,133 +54,163 @@ MYSQL_BDD=your_database
 ENCRYPTION_KEY=your_long_random_secret
 ```
 
+Current config resolution order:
+
+1. parent directory above the repository root
+2. repository root
+3. legacy fallback under `app/`
+
 Notes:
 
-- `ENCRYPTION_KEY` is required for admin authentication because `/talim` reads and decrypts `rel_pwd` from `dim_web_configuration`.
-- Runtime now accepts `config.env` in either:
-  - the parent directory above the repository root;
-  - the repository root;
-  - a legacy fallback under `app/`.
-- For consistency, prefer placing `config.env` outside the web root or one level above the repository root.
+- prefer storing `config.env` outside the document root whenever possible;
+- `ENCRYPTION_KEY` is still required for legacy reversible-secret compatibility and password migration helpers;
+- new or repaired admin passwords are stored hashed with `password_hash()`, not as reversible values.
 
-Bootstrap:
+## 5. Entry Points and Routing
 
-- `index.php` -> `app/helpers/db_connection.php`
-- `db_connection.php` loads env vars, opens `mysqli`, enforces `utf8mb4`
+Core entry points:
 
-## 4. Routing and Entry Point
+- public front controller: [`index.php`](./index.php)
+- route dispatcher: [`app/bootstrap/body_work.php`](./app/bootstrap/body_work.php)
+- web rewrite rules: [`.htaccess`](./.htaccess)
+- admin backend: `/talim`
 
-- Main entry: `index.php`
-- Route map: `app/bootstrap/body_work.php`
-- Main route param: `p`
-- Pretty URL normalization and canonical redirect logic: `app/bootstrap/body_work.php` + `app/helpers/pretty.php`
+Selected canonical routes:
 
-Examples:
+- `/timeline` -> `index.php?p=timeline` -> `app/controllers/main/events_main.php`
+- `/timeline/event/<pretty_id>` -> `index.php?p=timeline_event&t=<pretty_id>` -> `app/controllers/main/events_page.php`
+- `/players` -> `index.php?p=players` -> `app/controllers/playr/playr_list.php`
+- `/players/<pretty_id>` -> `index.php?p=seeplayer&b=<pretty_id>` -> `app/controllers/playr/playr_page.php`
+- `/chronicles/<pretty_id>` -> `index.php?p=chronicles&t=<pretty_id>`
+- `/music` -> `index.php?p=ost` -> `app/controllers/ost/bso_main.php`
+- `/maps/api` -> `index.php?p=maps_api`
+- `/ajax/tooltip` -> `index.php?p=tooltip`
+- `/ajax/mentions` -> `index.php?p=mentions`
+- `/ajax/epis` -> `index.php?p=mentions&type=episode`
 
-- `/` -> welcome landing page
-- `/home` -> welcome landing page
-- `/seasons` -> seasons archive landing page
-- `/seasons/complete` -> complete seasons
-- `/seasons/interludes` -> interludes / incisos
-- `/seasons/personal-stories` -> personal stories
-- `/seasons/specials` -> specials
-- `/chapters` -> global episode table
-- `/?p=bios` -> character list
-- `/?p=muestrabio&b=123` -> character page
-- `/timeline` -> timeline events main page
-- `/timeline/event/<pretty_id>` -> timeline event detail page
-- `/talim?s=admin_timelines` -> timeline admin
+Canonical URL normalization is handled by [`app/helpers/pretty.php`](./app/helpers/pretty.php) together with the bootstrap route resolver.
 
-## 5. Main Functional Areas
+## 6. Current Database Snapshot
 
-- Main: home, news, about, status, bibliography, search
-- Characters: lists, groups/organizations, character pages, relation maps
-- Rules and docs: documents, traits, merits/flaws, archetypes, maneuvers
+Current working dump in the repository root:
+
+- `dump-u807926597_hg-202604031114.sql`
+
+Snapshot validated against the installer and current dump:
+
+- 87 tables
+- 33 `dim_*`
+- 27 `fact_*`
+- 27 `bridge_*`
+- 3 simulator views:
+  - `vw_sim_characters`
+  - `vw_sim_forms`
+  - `vw_sim_items`
+
+Important schema points in the current dump:
+
+- `dim_chronicles` includes `pretty_id`, `sort_order`, `image_url`, and descriptive text;
+- `dim_players` includes `pretty_id`, `show_in_catalog`, `picture`, and `description`;
+- `dim_realities` includes `pretty_id`, `description`, and `is_active`;
+- `dim_seasons` currently includes `chronicle_id`;
+- `fact_timeline_events` includes `pretty_id`, `date_precision`, `date_note`, `sort_date`, `event_type_id`, `is_active`, `location`, `source`, and legacy `timeline` text;
+- timeline links are now represented through:
+  - `bridge_timeline_events_characters`
+  - `bridge_timeline_events_chapters`
+  - `bridge_timeline_events_chronicles`
+  - `bridge_timeline_events_realities`
+- `dim_soundtracks` does not rely on `pretty_id` in the current dump;
+- `bridge_soundtrack_links` currently includes:
+  - unique triplet protection on `(soundtrack_id, object_type, object_id)`
+  - lookup index on `(object_type, object_id)`
+
+## 7. Main Functional Areas
+
+- Core site: home, news, status, about, bibliography, search
+- Narrative archive: chronicles, seasons, chapters, parties
+- Character universe: characters, organizations, groups, worlds, players
+- Rules and systems: traits, merits/flaws, maneuvers, systems, breeds, auspices, tribes, resources
 - Powers: gifts, rites, totems, disciplines
-- Systems: system pages, forms, breed/auspice/tribe details
-- Campaign: seasons, chapters, active parties, timeline events
 - Media: maps, gallery, soundtrack
-- Tools: dice, tooltip, mentions, snippets
-- Admin: `/talim?s=...`
+- Utilities: tooltip, mentions, dice, forum helpers, avatar builder, combat simulator
+- Admin backend: `/talim?s=...`
 
-## 6. Operation Events 5.0 (Recent Major Update)
+## 8. Major 5.0 Change Areas
 
-The timeline/event domain was fully refactored.
+### 8.1 Admin hardening
 
-### 6.1 Frontend
+- new shared admin session/auth helper: [`app/helpers/admin_auth.php`](./app/helpers/admin_auth.php)
+- stricter session cookie settings (`httponly`, `SameSite=Lax`, `secure` when applicable)
+- centralized logout flow
+- AJAX admin requests now fail with controlled JSON `403` responses when unauthorized
+- legacy admin password values are migrated toward `password_hash()`
 
-- Old `main_timeline.php` flow was replaced by:
-  - `app/controllers/main/events_main.php`
-  - `app/controllers/main/events_page.php`
-- Routes wired in `app/bootstrap/body_work.php`:
-  - `p=timeline`
-  - `p=timeline_event`
-- Timeline view now uses Apache ECharts (local vendor asset in `assets/vendor/echarts/`)
-- List view integrates DataTables when available
-- Event detail page includes related characters, chapters, chronicles (and hidden realities toggle for spoiler control)
+### 8.2 Safe public/runtime error handling
 
-### 6.2 Admin
+- shared public helper: [`app/helpers/public_response.php`](./app/helpers/public_response.php)
+- shared runtime/bootstrap helper: [`app/helpers/runtime_response.php`](./app/helpers/runtime_response.php)
+- public controllers now avoid leaking raw SQL or bootstrap failures to end users
 
-- `admin_timelines.php` was upgraded for the new event model:
-  - event type catalog
-  - relations to characters / chapters / chronicles / realities
-  - AJAX CRUD with CSRF and bridge sync
-- New module: `admin_birthdays_quick.php`
-  - route: `/talim?s=admin_birthdays_quick`
-  - fast audit/fix for birthdays and linked birth events
+### 8.3 Bootstrap/runtime cleanup
 
-### 6.3 Database model changes
+- [`index.php`](./index.php) now normalizes UTF-8 output and strips BOM artifacts more safely
+- connection bootstrap is idempotent through [`app/helpers/db_connection.php`](./app/helpers/db_connection.php)
+- head/body assembly was cleaned up in:
+  - [`app/bootstrap/head_work.php`](./app/bootstrap/head_work.php)
+  - [`app/bootstrap/body_work.php`](./app/bootstrap/body_work.php)
+- `assets/js/hg-tooltip.js` is now loaded in a safer deferred flow
 
-Core entities added/refined:
+### 8.4 Timeline/events 5.0
 
-- `dim_timeline_events_types`
-- `fact_timeline_events` (new columns and indexes: `pretty_id`, `date_precision`, `date_note`, `sort_date`, `event_type_id`, `is_active`)
-- `bridge_timeline_events_characters`
-- `bridge_timeline_events_chapters`
-- `bridge_timeline_events_chronicles`
-- `bridge_timeline_events_realities`
+- public timeline list page moved to [`app/controllers/main/events_main.php`](./app/controllers/main/events_main.php)
+- public event detail page moved to [`app/controllers/main/events_page.php`](./app/controllers/main/events_page.php)
+- event model now relies on `fact_timeline_events` plus dedicated bridge tables and event types
+- quick birthday maintenance is available through `admin_birthdays_quick`
 
-Legacy compatibility retained:
+### 8.5 New admin modules
 
-- `fact_timeline_events.kind` kept as LEGACY mirror of type slug
-- `fact_timeline_events.timeline` kept as LEGACY text field
-- `bridge_timeline_links` still exists but is legacy for this domain
+New full CRUD-style narrative modules:
 
-### 6.4 Birthday migration strategy
+- [`app/controllers/admin/admin_chronicles.php`](./app/controllers/admin/admin_chronicles.php)
+- [`app/controllers/admin/admin_realities.php`](./app/controllers/admin/admin_realities.php)
+- [`app/controllers/admin/admin_players.php`](./app/controllers/admin/admin_players.php)
 
-- Birthdays are now modeled as timeline events of type `nacimiento`
-- Character pages now resolve birthday from timeline event bridges (instead of only direct `fact_characters.birthdate_text`)
-- Batch scripts exist for creation/fix text normalization
+Shared support helpers:
 
-## 7. Data Model Convention
+- [`app/helpers/admin_catalog_utils.php`](./app/helpers/admin_catalog_utils.php)
+- [`app/helpers/admin_uploads.php`](./app/helpers/admin_uploads.php)
 
-- `dim_*`: catalogs / dimensions
-- `fact_*`: business entities / narrative facts
-- `bridge_*`: many-to-many and state links
+### 8.6 Soundtrack rework
 
-Main campaign hubs:
+- [`app/controllers/admin/admin_bso.php`](./app/controllers/admin/admin_bso.php) now behaves as a real soundtrack catalog/admin surface
+- [`app/controllers/admin/admin_bso_link.php`](./app/controllers/admin/admin_bso_link.php) provides link audit and relation management
+- public soundtrack page in [`app/controllers/ost/bso_main.php`](./app/controllers/ost/bso_main.php) normalizes YouTube links and uses safer embeds
 
-- `fact_characters`
-- `fact_timeline_events` (post Events 5.0)
+## 9. Installation and Provisioning
 
-## 8. Technical Documentation
+Schema installer:
 
-- Architecture and schema notes: `TECHNICAL_DOCUMENTATION.md`
-- Backend map, routing and query inventory for bot/integration work:
-  - `TELEGRAM_BOT_BACKEND_GUIDE.md`
-
-## 9. Database Provisioning
-
-- Schema installer: `app/tools/install_schema_from_dump.php`
-- Source dump: `dump-u807926597_hg-202603282141.sql`
+- [`app/tools/install_schema_from_dump.php`](./app/tools/install_schema_from_dump.php)
 
 Typical usage:
+
+```bash
+php app/tools/install_schema_from_dump.php --database=hg
+```
+
+With explicit connection values:
 
 ```bash
 php app/tools/install_schema_from_dump.php --host=127.0.0.1 --user=usuario --password=secreto --database=hg
 ```
 
-If you want admin access enabled on first boot:
+Dry run:
+
+```bash
+php app/tools/install_schema_from_dump.php --database=hg --dry-run=1
+```
+
+Seed admin password on first install:
 
 ```bash
 php app/tools/install_schema_from_dump.php --database=hg --admin-password="change-this-now"
@@ -169,42 +218,32 @@ php app/tools/install_schema_from_dump.php --database=hg --admin-password="chang
 
 The installer:
 
-- creates the database if needed;
-- creates the current 87-table schema;
-- recreates simulator views;
+- resolves the latest `dump-*.sql` automatically when `--dump` is omitted;
+- creates the target database if needed;
+- recreates the current table set;
+- recreates the simulator views;
 - seeds safe `dim_web_configuration` values;
-- does not import production `rel_pwd` unless explicitly requested.
+- stores `rel_pwd` hashed when `--admin-password` is provided.
 
-## 10. Development Notes
+Additional schema hardening helper:
 
-- Prefer prepared statements in controllers/services
-- Keep encoding clean (`utf8mb4` end-to-end)
-- Keep admin AJAX responses in strict JSON contract (`ok/message/data/errors/meta`)
-- Avoid destructive migrations without validated backup/dump
+- [`app/tools/phase7_schema_hardening_20260403.php`](./app/tools/phase7_schema_hardening_20260403.php)
 
-## 11. Production Hardening
+Its scope is intentionally narrow and safe: soundtrack-link integrity and related supporting indexes/constraints.
 
-- Keep `config.env` out of the document root whenever possible.
-- Do not restore `dim_web_configuration.rel_pwd` from production dumps into other environments.
-- The current `.htaccess` blocks direct access to:
-  - `app/`
-  - markdown technical docs
-  - SQL dumps
-  - upgrade notes
-- If you deploy behind Nginx or another server that ignores `.htaccess`, replicate those deny rules explicitly.
+## 10. Security and Deployment Notes
 
-## 12. Troubleshooting
+- [`.htaccess`](./.htaccess) blocks direct access to `app/`, SQL dumps, markdown docs, and sensitive config/runtime files;
+- if you deploy behind Nginx or another server that ignores `.htaccess`, replicate those deny rules explicitly;
+- do not import production `rel_pwd` into other environments unless you explicitly intend to preserve the admin secret;
+- keep dumps, runtime secrets, and one-off migration helpers out of version control.
 
-- If an AJAX endpoint returns invalid JSON:
-  - check warnings/notices emitted before JSON output
-  - verify BOM-free PHP files
-  - verify route is called with `ajax=1`
-- If event pages appear empty:
-  - verify `fact_timeline_events` and timeline bridges exist
-  - verify `event_type_id` references valid `dim_timeline_events_types` rows
-  - verify events are active when filters enforce active-only
+## 11. Reference Docs
 
-## 13. License
+- architecture and maintenance notes: [`TECHNICAL_DOCUMENTATION.md`](./TECHNICAL_DOCUMENTATION.md)
+- backend mapping for bot/integration work: `TELEGRAM_BOT_BACKEND_GUIDE.md`
+
+## 12. License
 
 Personal / non-commercial project codebase and campaign content.
 Third-party universe references remain property of their respective owners.

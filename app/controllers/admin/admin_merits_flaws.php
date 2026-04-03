@@ -1,6 +1,7 @@
 <?php
 // admin_merits_flaws.php - CRUD de dim_merits_flaws
-if (!isset($link) || !$link) { die("Sin conexion BD"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -79,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         hg_admin_require_session(true);
     }
     if (!csrf_ok_myd()) {
-        $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         $action = (string)($_POST['crud_action'] ?? '');
         $id = (int)($_POST['id'] ?? 0);
@@ -104,16 +105,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($action !== 'delete') {
             if ($name === '') $flash[] = ['type'=>'error','msg'=>'Nombre obligatorio.'];
             if ($kind === '') $flash[] = ['type'=>'error','msg'=>'Tipo obligatorio.'];
-            if ($affiliation === '') $flash[] = ['type'=>'error','msg'=>'Afiliacion obligatoria.'];
+            if ($affiliation === '') $flash[] = ['type'=>'error','msg'=>'Afiliación obligatoria.'];
             if ($cost === '') $flash[] = ['type'=>'error','msg'=>'Coste obligatorio.'];
             if ($system_name === '') $flash[] = ['type'=>'error','msg'=>'Sistema (texto) obligatorio.'];
-            if (trim(strip_tags($description)) === '') $flash[] = ['type'=>'error','msg'=>'Descripcion obligatoria.'];
+            if (trim(strip_tags($description)) === '') $flash[] = ['type'=>'error','msg'=>'Descripción obligatoria.'];
             if (strlen($cost) > 3) $flash[] = ['type'=>'error','msg'=>'Coste demasiado largo (max 3 caracteres).'];
             if ($system_id > 0 && !isset($opts_systems[$system_id])) {
-                $flash[] = ['type'=>'error','msg'=>'Sistema invalido.'];
+                $flash[] = ['type'=>'error','msg'=>'Sistema inválido.'];
             }
             if ($bibliography_id > 0 && !isset($opts_origins[$bibliography_id])) {
-                $flash[] = ['type'=>'error','msg'=>'Origen invalido.'];
+                $flash[] = ['type'=>'error','msg'=>'Origen inválido.'];
             }
         }
 
@@ -141,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 }
             } elseif ($action === 'update') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'ID invalido para actualizar.'];
+                    $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
                 } else {
                     $sql = "UPDATE dim_merits_flaws
                             SET name=?, kind=?, affiliation=?, cost=?, description=?, system_name=?, system_id=NULLIF(?, 0), bibliography_id=NULLIF(?, 0), updated_at=NOW()
@@ -153,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                         $st->bind_param("ssssssiii", $name, $kind, $affiliation, $cost, $description, $system_name, $system_id, $bibliography_id, $id);
                         if ($st->execute()) {
                             hg_update_pretty_id_if_exists($link, 'dim_merits_flaws', $id, $name);
-                            $flash[] = ['type'=>'ok','msg'=>'Merito/Defecto actualizado.'];
+                            $flash[] = ['type'=>'ok','msg'=>'Mérito/Defecto actualizado.'];
                         } else {
                             $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
                         }
@@ -162,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 }
             } elseif ($action === 'delete') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'ID invalido para borrar.'];
+                    $flash[] = ['type'=>'error','msg'=>'ID inválido para borrar.'];
                 } else {
                     $st = $link->prepare("DELETE FROM dim_merits_flaws WHERE id=?");
                     if (!$st) {
@@ -351,10 +352,10 @@ admin_panel_open('Meritos y Defectos', $actions);
 
 <form method="get" id="mydFilterForm" class="adm-flex-8-m10">
     <input type="hidden" name="s" value="admin_merits_flaws">
-    <label class="small">Busqueda
-        <input class="inp" type="text" name="q" id="quickFilterMyd" value="<?= h($q) ?>" placeholder="Nombre, tipo, afiliacion, coste o sistema (realtime)">
+    <label class="small">Búsqueda
+        <input class="inp" type="text" name="q" id="quickFilterMyd" value="<?= h($q) ?>" placeholder="Nombre, tipo, afiliación, coste o sistema (realtime)">
     </label>
-    <label class="small">Por pag
+    <label class="small">Por pág.
         <select class="select" name="pp" onchange="this.form.submit()">
             <?php foreach ([25,50,100,200] as $pp): ?>
             <option value="<?= $pp ?>" <?= $perPage===$pp?'selected':'' ?>><?= $pp ?></option>
@@ -370,7 +371,7 @@ admin_panel_open('Meritos y Defectos', $actions);
             <th class="adm-w-70">ID</th>
             <th class="adm-w-260">Nombre</th>
             <th class="adm-w-140">Tipo</th>
-            <th class="adm-w-180">Afiliacion</th>
+            <th class="adm-w-180">Afiliación</th>
             <th class="adm-w-80">Coste</th>
             <th class="adm-w-180">Sistema</th>
             <th class="adm-w-180">Origen</th>
@@ -411,14 +412,14 @@ admin_panel_open('Meritos y Defectos', $actions);
     ?>
     <a href="<?= $base ?>&pg=1">&laquo; Primero</a>
     <a href="<?= $base ?>&pg=<?= $prev ?>">&lsaquo; Anterior</a>
-    <span class="cur">Pag <?= $page ?>/<?= $pages ?> - Total <?= (int)$total ?></span>
+    <span class="cur">Pág. <?= $page ?>/<?= $pages ?> - Total <?= (int)$total ?></span>
     <a href="<?= $base ?>&pg=<?= $next ?>">Siguiente &rsaquo;</a>
-    <a href="<?= $base ?>&pg=<?= $pages ?>">Ultimo &raquo;</a>
+    <a href="<?= $base ?>&pg=<?= $pages ?>">Último &raquo;</a>
 </div>
 
 <div class="modal-back" id="mbMyd">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mydModalTitle">
-        <h3 id="mydModalTitle">Nuevo merito/defecto</h3>
+        <h3 id="mydModalTitle">Nuevo mérito/defecto</h3>
         <form method="post" id="mydForm" class="adm-m-0">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="crud_action" id="myd_action" value="create">
@@ -436,7 +437,7 @@ admin_panel_open('Meritos y Defectos', $actions);
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <label><span>Afiliacion</span> <span class="badge">oblig.</span>
+                <label><span>Afiliación</span> <span class="badge">oblig.</span>
                     <select class="select" name="affiliation" id="myd_affiliation" required>
                         <option value="">-- Selecciona --</option>
                         <?php foreach ($opts_affiliations as $affiliation): ?>
@@ -447,7 +448,7 @@ admin_panel_open('Meritos y Defectos', $actions);
                 <label><span>Coste</span> <span class="badge">oblig.</span>
                     <input class="inp" type="text" name="cost" id="myd_cost" maxlength="3" required>
                 </label>
-                <label><span>Sistema (catalogo)</span>
+                <label><span>Sistema (catálogo)</span>
                     <select class="select" name="system_id" id="myd_system_id">
                         <option value="0">-</option>
                         <?php foreach ($opts_systems as $sid => $sname): ?>
@@ -466,7 +467,7 @@ admin_panel_open('Meritos y Defectos', $actions);
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <label class="field-full"><span>Descripcion</span> <span class="badge">oblig.</span>
+                <label class="field-full"><span>Descripción</span> <span class="badge">oblig.</span>
                     <textarea class="inp ta-lg" name="description" id="myd_description"></textarea>
                 </label>
             </div>
@@ -781,6 +782,7 @@ var MYD_ROWS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT
 })();
 </script>
 <?php admin_panel_close(); ?>
+
 
 
 

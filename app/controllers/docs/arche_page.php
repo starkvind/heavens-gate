@@ -71,7 +71,7 @@ echo "  </div>";
 
 if ($archeDesc !== '') {
     echo "  <div class='power-card__desc'>";
-    echo "    <div class='power-card__desc-title'>Descripcion</div>";
+    echo "    <div class='power-card__desc-title'>Descripción</div>";
     echo "    <div class='power-card__desc-body'>{$archeDesc}</div>";
     echo "  </div>";
 }
@@ -151,19 +151,11 @@ if ($hasOwnersTabs) {
     hg_render_owner_tabs_styles(true, 28);
 
     echo "<div class='hg-tabs'>";
-    echo "<button class='boton2 hgTabBtn' data-tab='info'>Informacion</button>";
+    echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
     echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
     echo "</div>";
 
     echo "<section class='hg-tab-panel' data-tab='info'>{$infoHtml}</section>";
-
-    $mapEstado = [
-        'Aun por aparecer'      => '(@)',
-        'AÃºn por aparecer'      => '(@)',
-        'Paradero desconocido'  => '(?)',
-        'Cadaver'               => '(&#8224;)',
-        'CadÃ¡ver'               => '(&#8224;)'
-    ];
 
     echo "<section class='hg-tab-panel' data-tab='owners'>";
 

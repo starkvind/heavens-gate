@@ -2,11 +2,14 @@
 // Generate pretty_id for selected tables.
 // Usage: /sep/tools/generate_pretty_ids.php?force=1
 
-include(__DIR__ . "/../helpers/db_connection.php");
-include(__DIR__ . "/../helpers/pretty.php");
+require_once(__DIR__ . "/../helpers/runtime_response.php");
+require_once(__DIR__ . "/../helpers/db_connection.php");
+require_once(__DIR__ . "/../helpers/pretty.php");
 
-if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+if (!hg_runtime_require_db($link, 'generate_pretty_ids', 'bootstrap', [
+    'message' => 'No se pudo conectar a la base de datos.',
+])) {
+    return;
 }
 
 $force = isset($_GET['force']) && $_GET['force'] == '1';

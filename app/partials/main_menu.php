@@ -1,6 +1,7 @@
-<?php 
-	//global $link; // Asegúrate de que $link sea accesible en el ámbito global
-	include("app/helpers/db_connection.php"); // Archivo de la base de datos
+<?php
+	if (!isset($link) || !($link instanceof mysqli)) {
+		include(__DIR__ . '/../helpers/db_connection.php');
+	}
 ?>
 
 
@@ -117,7 +118,7 @@
 	// Menú desde base de datos (dim_menu_items)
 	// =========================
 	$useDbMenu = false;
-	if (isset($link) && $link) {
+	if (isset($link) && ($link instanceof mysqli)) {
 		if ($res = $link->query("SHOW TABLES LIKE 'dim_menu_items'")) {
 			if ($res->num_rows > 0) $useDbMenu = true;
 			$res->free();

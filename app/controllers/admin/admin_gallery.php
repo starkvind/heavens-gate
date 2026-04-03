@@ -1,7 +1,7 @@
 <?php
 /********************************************************
- * Admin Galería - gestión de carpetas e imágenes
- * Requisitos: extensión GD habilitada
+ * Admin Galeria - gestion de carpetas e imagenes
+ * Requisitos: extension GD habilitada
  * Estructura:
  *   /img/gallery/
  *       /CarpetaA/
@@ -11,7 +11,7 @@
  ********************************************************/
 
 // ==============================
-// Configuración base
+// Configuracion base
 // ==============================
 $GALLERY_BASE_WEB = "/public/img/gallery"; // ruta web
 $GALLERY_BASE_FS  = rtrim($_SERVER['DOCUMENT_ROOT'], "/") . $GALLERY_BASE_WEB; // ruta filesystem
@@ -136,7 +136,7 @@ function gallery_build_state(string $baseFs, string $baseWeb, string $relDir, ar
     $subdirs = listSubdirs($absDir);
     $images = listImages($absDir, $allowed);
     $allDirs = getAllDirsRecursive($baseFs, '');
-    array_unshift($allDirs, '');
+array_unshift($allDirs, ''); // raiz al principio
     $breadcrumbs = ($relDir === '') ? [] : explode('/', $relDir);
 
     $subdirRows = [];
@@ -171,7 +171,7 @@ function gallery_build_state(string $baseFs, string $baseWeb, string $relDir, ar
 }
 
 // ==============================
-// Imagen: compresión + thumb
+// Imagen: compresion + thumb
 // ==============================
 function compressImage(string $srcTmp, string $dest, int $quality = 80): bool {
     [$w, $h, $type] = @getimagesize($srcTmp);
@@ -201,7 +201,7 @@ function createThumbnail(string $src, string $dest, int $maxW = 200, int $maxH =
     }
     if(!$img) return false;
     $thumb = imagecreatetruecolor($nw, $nh);
-    // Transparencia básica para PNG/GIF
+    // Transparencia basica para PNG/GIF
     if (in_array($type, [IMAGETYPE_PNG, IMAGETYPE_GIF], true)) {
         imagealphablending($thumb, false);
         imagesavealpha($thumb, true);
@@ -230,7 +230,7 @@ $messages = [];
 $relDir = isset($_GET['dir']) ? urldecode((string)$_GET['dir']) : '';
 $relDir = trim($relDir);
 if ($relDir !== '' && !isValidRelPath($relDir)) {
-    $messages[] = "⚠️ Ruta no válida. Volviendo a la raíz.";
+    $messages[] = "Ruta no valida. Volviendo a la raiz.";
     $relDir = '';
 }
 $absDir = fsPathJoin($GALLERY_BASE_FS, $relDir);
@@ -284,13 +284,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resp = ["ok" => false, "msg" => ""];
 
         if (!isset($_FILES['imagen'])) {
-            $resp["msg"] = "❌ No se recibió archivo.";
+            $resp["msg"] = "No se recibio archivo.";
         } else {
             $file = $_FILES['imagen'];
             if ($file['error'] === UPLOAD_ERR_OK) {
                 $origName = basename($file['name']);
                 if (!isValidFileName($origName, $ALLOWED_EXT)) {
-                    $resp["msg"] = "❌ Extensión no permitida ($origName).";
+                    $resp["msg"] = "Extension no permitida ($origName).";
                 } else {
                     $tmpName  = $file['tmp_name'];
                     $safeName = uniqueFileName($postAbs, $origName);
@@ -305,23 +305,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $resp["title"] = formatTitle($safeName);
                         $resp["thumb"] = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . 'thumbnails/' . $safeName);
                         $resp["url"]   = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . $safeName);
-                        $resp["msg"]   = "âœ… Subida: $safeName";
+                        $resp["msg"]   = "Subida completada: $safeName";
                     } else {
-                        $resp["msg"] = "âŒ Error al procesar $origName.";
+                        $resp["msg"] = "Error al procesar $origName.";
                     }
                 }
             } else {
-                $resp["msg"] = "âŒ Error en la subida.";
+                $resp["msg"] = "Error en la subida.";
             }
         }
 
-        // âš ï¸ Limpia cualquier salida previa para no romper el JSON:
+        // Limpia cualquier salida previa para no romper el JSON.
         while (ob_get_level()) { ob_end_clean(); }
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store, no-cache, must-revalidate');
         header('Pragma: no-cache');
         echo json_encode($resp);
-        exit; // ¡Importantísimo!
+        exit; // Importantisimo.
     }
     // --- FIN endpoint AJAX ---
 
@@ -337,50 +337,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($csrfValid) switch ($action) {
         case 'create_dir':
             $newName = trim((string)($_POST['new_dir_name'] ?? ''));
-            if (!isValidDirName($newName)) { $messages[] = "❌ Nombre de carpeta no válido."; break; }
+            if (!isValidDirName($newName)) { $messages[] = "Nombre de carpeta no valido."; break; }
             $targetAbs = fsPathJoin($postAbs, $newName);
-            if (is_dir($targetAbs)) { $messages[] = "âš ï¸ La carpeta ya existe."; break; }
+            if (is_dir($targetAbs)) { $messages[] = "La carpeta ya existe."; break; }
             if (ensureDir($targetAbs) && ensureDir($targetAbs . "/thumbnails")) {
-                $messages[] = "âœ… Carpeta creada: " . htmlspecialchars($newName);
+                $messages[] = "Carpeta creada: " . htmlspecialchars($newName);
             } else {
-                $messages[] = "âŒ No se pudo crear la carpeta.";
+                $messages[] = "No se pudo crear la carpeta.";
             }
             break;
 
         case 'rename_dir':
             $old = trim((string)($_POST['old_dir'] ?? ''));
             $new = trim((string)($_POST['new_dir'] ?? ''));
-            if (!isValidDirName($old) || !isValidDirName($new)) { $messages[] = "❌ Nombres inválidos."; break; }
+            if (!isValidDirName($old) || !isValidDirName($new)) { $messages[] = "Nombres invalidos."; break; }
             $oldAbs = fsPathJoin($postAbs, $old);
             $newAbs = fsPathJoin($postAbs, $new);
-            if (!is_dir($oldAbs)) { $messages[] = "âŒ La carpeta origen no existe."; break; }
-            if (is_dir($newAbs)) { $messages[] = "âš ï¸ Ya existe una carpeta con ese nombre."; break; }
+            if (!is_dir($oldAbs)) { $messages[] = "La carpeta origen no existe."; break; }
+            if (is_dir($newAbs)) { $messages[] = "Ya existe una carpeta con ese nombre."; break; }
             if (@rename($oldAbs, $newAbs)) {
-                $messages[] = "âœ… Carpeta renombrada.";
+                $messages[] = "Carpeta renombrada.";
                 if ($relDir === ($postRel === '' ? $old : $postRel . "/" . $old)) {
                     $relDir = ($postRel === '' ? $new : $postRel . "/" . $new);
                 }
             } else {
-                $messages[] = "âŒ No se pudo renombrar.";
+                $messages[] = "No se pudo renombrar.";
             }
             break;
 
         case 'delete_dir':
             $del = trim((string)($_POST['del_dir'] ?? ''));
-            if (!isValidRelPath($del)) { $messages[] = "❌ Carpeta inválida."; break; }
-            if ($del === '') { $messages[] = "❌ No se puede eliminar la raíz."; break; }
+            if (!isValidRelPath($del)) { $messages[] = "Carpeta invalida."; break; }
+            if ($del === '') { $messages[] = "No se puede eliminar la raiz."; break; }
             $delAbs = fsPathJoin($GALLERY_BASE_FS, $del);
-            if (!is_dir($delAbs)) { $messages[] = "âŒ Carpeta no encontrada."; break; }
+            if (!is_dir($delAbs)) { $messages[] = "Carpeta no encontrada."; break; }
             if (rrmdir($delAbs)) {
-                $messages[] = "🗑️ Carpeta eliminada.";
+                $messages[] = "Carpeta eliminada.";
                 if (strpos($relDir, $del) === 0) $relDir = '';
             } else {
-                $messages[] = "âŒ No se pudo eliminar la carpeta.";
+                $messages[] = "No se pudo eliminar la carpeta.";
             }
             break;
 
         case 'upload_images': // fallback no-AJAX
-            if (!isset($_FILES['images'])) { $messages[] = "âŒ No se recibieron archivos."; break; }
+            if (!isset($_FILES['images'])) { $messages[] = "No se recibieron archivos."; break; }
             $count = count($_FILES['images']['name']);
             $okN = 0;
             for ($i = 0; $i < $count; $i++) {
@@ -397,25 +397,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $okN++;
                 }
             }
-            $messages[] = $okN ? "✅ $okN imagen(es) subida(s)." : "⚠️ No se subió ninguna imagen válida.";
+            $messages[] = $okN ? "$okN imagen(es) subida(s)." : "No se subio ninguna imagen valida.";
             break;
 
         case 'delete_image':
             $file = basename((string)($_POST['file'] ?? ''));
-            if (!isValidFileName($file, $ALLOWED_EXT)) { $messages[] = "❌ Archivo inválido."; break; }
+            if (!isValidFileName($file, $ALLOWED_EXT)) { $messages[] = "Archivo invalido."; break; }
             $imgAbs   = fsPathJoin($postAbs, $file);
             $thumbAbs = fsPathJoin($postAbs, "thumbnails/" . $file);
             $ok = true;
             if (is_file($imgAbs))   $ok = $ok && @unlink($imgAbs);
             if (is_file($thumbAbs)) $ok = $ok && @unlink($thumbAbs);
-            $messages[] = $ok ? "🗑️ Imagen eliminada." : "❌ No se pudo eliminar.";
+            $messages[] = $ok ? "Imagen eliminada." : "No se pudo eliminar.";
             break;
 
         case 'move_image':
             $file = basename((string)($_POST['file'] ?? ''));
             $toRel = trim((string)($_POST['to_dir'] ?? ''));
-            if (!isValidFileName($file, $ALLOWED_EXT)) { $messages[] = "❌ Archivo inválido."; break; }
-            if ($toRel === '' || !isValidRelPath($toRel)) { $messages[] = "❌ Carpeta destino inválida."; break; }
+            if (!isValidFileName($file, $ALLOWED_EXT)) { $messages[] = "Archivo invalido."; break; }
+            if ($toRel === '' || !isValidRelPath($toRel)) { $messages[] = "Carpeta destino invalida."; break; }
             $fromAbs = $postAbs;
             $toAbs   = fsPathJoin($GALLERY_BASE_FS, $toRel);
             ensureDir($toAbs);
@@ -423,7 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $srcImg  = fsPathJoin($fromAbs, $file);
             $srcTh   = fsPathJoin($fromAbs, "thumbnails/" . $file);
-            if (!is_file($srcImg)) { $messages[] = "âŒ Imagen origen no encontrada."; break; }
+            if (!is_file($srcImg)) { $messages[] = "Imagen origen no encontrada."; break; }
 
             $destName = uniqueFileName($toAbs, $file);
             $dstImg   = fsPathJoin($toAbs, $destName);
@@ -436,9 +436,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     createThumbnail($dstImg, $dstTh, 200, 200);
                 }
-                $messages[] = "âœ… Imagen movida.";
+                $messages[] = "Imagen movida.";
             } else {
-                $messages[] = "âŒ No se pudo mover la imagen.";
+                $messages[] = "No se pudo mover la imagen.";
             }
             break;
     }
@@ -475,7 +475,7 @@ $breadcrumbs = ($relDir === '') ? [] : explode('/', $relDir);
 $subdirs     = listSubdirs($absDir);
 $images      = listImages($absDir, $ALLOWED_EXT);
 $allDirs     = getAllDirsRecursive($GALLERY_BASE_FS, ''); // para selects de mover
-array_unshift($allDirs, ''); // raíz al principio
+array_unshift($allDirs, ''); // raiz al principio
 $galleryState = gallery_build_state($GALLERY_BASE_FS, $GALLERY_BASE_WEB, $relDir, $ALLOWED_EXT);
 ?>
 
@@ -490,11 +490,11 @@ window.GALLERY_STATE = <?= json_encode($galleryState, JSON_HEX_TAG|JSON_HEX_APOS
 </script>
 
 <script>
-function confirmDeleteDir(name){ return confirm("¿Eliminar la carpeta '" + name + "' y todo su contenido?"); }
-function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name + "'?"); }
+function confirmDeleteDir(name){ return confirm("¿Eliminar la carpeta \"" + name + "\" y todo su contenido?"); }
+function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen \"" + name + "\"?"); }
 </script>
 
-  <h2>🗂️ Admin Galería</h2>
+  <h2>Admin Galeria</h2>
   <div class="breadcrumbs" id="galleryBreadcrumbs">
     <a href="/talim?s=admin_gallery">Inicio</a>
     <?php
@@ -515,7 +515,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
   </div>
 
   <div class="card">
-    <h3>📁 Crear carpeta dentro de: <span class="small" id="galleryCurrentPath"><?= $relDir === '' ? 'public/img/gallery' : 'public/img/gallery/'.htmlspecialchars($relDir) ?></span></h3>
+    <h3>Crear carpeta dentro de: <span class="small" id="galleryCurrentPath"><?= $relDir === '' ? 'public/img/gallery' : 'public/img/gallery/'.htmlspecialchars($relDir) ?></span></h3>
     <form method="post" data-gallery-form="create_dir">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($CSRF) ?>">
       <input type="hidden" name="action" value="create_dir">
@@ -528,7 +528,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
 
   <hr class="sep" id="gallerySubdirsSep"<?= $subdirs ? '' : ' style="display:none;"' ?>>
     <div class="card" id="gallerySubdirsCard"<?= $subdirs ? '' : ' style="display:none;"' ?>>
-      <h3>📂 Subcarpetas</h3>
+      <h3>Subcarpetas</h3>
       <div class="folder-list" id="gallerySubdirsList">
         <?php foreach ($subdirs as $d):
           $childRel = $relDir === '' ? $d : ($relDir . '/' . $d);
@@ -536,7 +536,6 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
         ?>
         <div class="folder card">
           <div>
-            <span class="folder-icon">📁</span>
             <a class="name" href="<?= $link ?>"><?= htmlspecialchars($d) ?></a>
           </div>
           <div class="folder-actions adm-mt-8">
@@ -564,21 +563,21 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
 
   <!-- Subida con progreso (secuencial). Mantiene fallback POST normal si no hay JS -->
   <div class="card">
-    <h3>⬆️ Subir imágenes a: <span class="small"><?= $relDir === '' ? 'public/img/gallery' : 'public/img/gallery/'.htmlspecialchars($relDir) ?></span></h3>
+    <h3>Subir imagenes a: <span class="small"><?= $relDir === '' ? 'public/img/gallery' : 'public/img/gallery/'.htmlspecialchars($relDir) ?></span></h3>
     <form id="uploadForm" method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($CSRF) ?>">
       <input type="hidden" name="action" value="upload_images">
       <input type="hidden" name="relDir" value="<?= htmlspecialchars($relDir) ?>">
       <input class="input" type="file" id="imagesInput" name="images[]" accept=".jpg,.jpeg,.png,.gif,.webp" multiple required>
       <button class="btn" type="submit">Subir</button>
-      <div class="small adm-mt-6">Se comprimen automáticamente (JPG/WEBP ~80%, PNG compresión 8) y se crean thumbnails (200×200).</div>
+      <div class="small adm-mt-6">Se comprimen automaticamente (JPG/WEBP ~80%, PNG compresion 8) y se crean thumbnails (200x200).</div>
       <div id="uploadProgress"></div>
     </form>
   </div>
 
   <hr class="sep" id="galleryImagesSep"<?= $images ? '' : ' style="display:none;"' ?>>
   <div class="card" id="galleryImagesCard"<?= $images ? '' : ' style="display:none;"' ?>>
-    <h3>🖼️ Imágenes en esta carpeta</h3>
+    <h3>Imagenes en esta carpeta</h3>
     <div class="img-grid" id="imgGrid">
       <?php foreach ($images as $img):
         $title = formatTitle($img);
@@ -617,7 +616,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
       <?php endforeach; ?>
     </div>
   </div>
-  <div class="msg" id="galleryEmptyBox"<?= (!$subdirs && !$images) ? '' : ' style="display:none;"' ?>>Esta carpeta está vacía. Crea subcarpetas o sube imágenes.</div>
+  <div class="msg" id="galleryEmptyBox"<?= (!$subdirs && !$images) ? '' : ' style="display:none;"' ?>>Esta carpeta esta vacia. Crea subcarpetas o sube imagenes.</div>
 
 </div>
 
@@ -698,7 +697,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
             bar.style.width = '100%';
             bar.textContent = '100%';
 
-            // Añadir a la grilla, si existe en DOM
+            // Anadir a la grilla, si existe en DOM
             if (imgGrid) {
               const item = document.createElement('div');
               item.className = 'img-item';
@@ -715,7 +714,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
             row.classList.add('error');
             bar.textContent = (resp && resp.msg) ? resp.msg : 'Error de respuesta';
           }
-          // Siguiente fichero tras finalizar éste (éxito o error)
+          // Siguiente fichero tras finalizar este (exito o error)
           index++;
           next();
         }
@@ -795,7 +794,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
     let html = '';
     rows.forEach(function(d){
       html += '<div class="folder card">';
-      html += '<div><span class="folder-icon">📁</span> <a class="name" href="' + esc(d.link || '#') + '">' + esc(d.name || '') + '</a></div>';
+      html += '<div><a class="name" href="' + esc(d.link || '#') + '">' + esc(d.name || '') + '</a></div>';
       html += '<div class="folder-actions adm-mt-8">';
       html += '<form class="inline" method="post" data-gallery-form="rename_dir" onsubmit="return confirm(\'¿Renombrar carpeta ' + esc(d.name || '') + '?\');">';
       html += '<input type="hidden" name="csrf" value="' + esc(window.ADMIN_CSRF_TOKEN || '') + '">';
@@ -929,6 +928,4 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen '" + name 
   applyState(window.GALLERY_STATE || {});
 })();
 </script>
-
-
 

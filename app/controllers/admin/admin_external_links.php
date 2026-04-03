@@ -1,7 +1,6 @@
 <?php
-if (!isset($link) || !$link) {
-    die("Error de conexion a la base de datos.");
-}
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -57,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         hg_admin_require_session(true);
     }
     if (!admin_external_links_csrf_ok()) {
-        $flash[] = ['type' => 'error', 'msg' => 'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
     } elseif (!$hasTable) {
         $flash[] = ['type' => 'error', 'msg' => 'La tabla fact_external_links no existe todavia.'];
     } else {
@@ -95,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 } else {
                     if ($id <= 0) {
-                        $flash[] = ['type' => 'error', 'msg' => 'ID invalido para actualizar.'];
+                        $flash[] = ['type' => 'error', 'msg' => 'ID inválido para actualizar.'];
                     } else {
                         $sql = "UPDATE fact_external_links
                                 SET title=?, url=?, kind=?, source_label=?, description=?, is_active=?, updated_at=NOW()
@@ -117,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         } elseif ($action === 'delete') {
             if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID invalido para borrar.'];
+                $flash[] = ['type' => 'error', 'msg' => 'ID inválido para borrar.'];
             } else {
                 if ($st = $link->prepare("DELETE FROM fact_external_links WHERE id=?")) {
                     $st->bind_param('i', $id);
@@ -199,7 +198,7 @@ if ($hasTable) {
     }
 }
 
-$actions = "<span class='adm-flex-right-8'><a class='btn' href='/talim?s=admin_character_links'>Gestionar vinculos de personajes</a></span>";
+$actions = "<span class='adm-flex-right-8'><a class='btn' href='/talim?s=admin_character_links'>Gestionar vínculos de personajes</a></span>";
 admin_panel_open('Enlaces Externos', $actions);
 echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>";
 ?>
@@ -225,7 +224,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
         <input type="hidden" name="action" id="ael_action" value="create">
         <input type="hidden" name="id" id="ael_id" value="0">
 
-        <label>Titulo
+        <label>Título
             <input class="inp" type="text" name="title" id="ael_title" maxlength="180" required>
         </label>
         <label>URL
@@ -237,7 +236,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
         <label>Fuente
             <input class="inp" type="text" name="source_label" id="ael_source_label" maxlength="140" placeholder="El Naufragio...">
         </label>
-        <label class="adm-col-span-2">Descripcion
+        <label class="adm-col-span-2">Descripción
             <textarea class="ta" name="description" id="ael_description" rows="3"></textarea>
         </label>
         <label><input type="checkbox" name="is_active" id="ael_is_active" checked> Activo</label>
@@ -252,7 +251,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
     <legend>Listado</legend>
     <form method="GET" class="adm-inline-filters">
         <input type="hidden" name="s" value="admin_external_links">
-        <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="Buscar por titulo, url, tipo o fuente...">
+        <input class="inp" type="text" name="q" value="<?= h($q) ?>" placeholder="Buscar por título, url, tipo o fuente...">
         <button class="btn" type="submit">Buscar</button>
         <a class="btn" href="/talim?s=admin_external_links">Limpiar</a>
     </form>
@@ -262,7 +261,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Titulo</th>
+                    <th>Título</th>
                     <th>URL</th>
                     <th>Tipo</th>
                     <th>Fuente</th>
@@ -362,3 +361,4 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
 </script>
 
 <?php admin_panel_close(); ?>
+

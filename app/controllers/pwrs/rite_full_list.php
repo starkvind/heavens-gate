@@ -513,7 +513,7 @@ foreach ($rituales as $r) {
           $sys  = h($r['ritual_fera_system']);
           $orig = h($r['ritual_origin'] ?? '');
 
-          // CAMPOS LARGOS â†’ NO htmlspecialchars (permitimos HTML guardado)
+          // CAMPOS LARGOS: no usar htmlspecialchars() (permitimos HTML guardado)
           $desc = $r['ritual_description'] ?: "<p>Descripción no disponible</p>";
           $roll = $r['ritual_roll_description'] ?: "<p><i>Sistema no disponible</i></p>";
       ?>

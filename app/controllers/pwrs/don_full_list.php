@@ -493,7 +493,7 @@ foreach ($gifts as $g) {
           $fera = h($g['gift_fera_system'] ?? '');
           $orig = h($g['gift_origin'] ?? '');
 
-          // CAMPOS LARGOS â†’ NO htmlspecialchars()
+          // CAMPOS LARGOS: no usar htmlspecialchars()
           $desc = $g['gift_description'] ?: "<p>Descripción no disponible</p>";
           $roll = $g['gift_roll_description'] ?: "<p><i>Sistema no disponible</i></p>";
 

@@ -1,9 +1,31 @@
 <?php
 
-function hg_maps_require_connection($link): void
+include_once(__DIR__ . '/runtime_response.php');
+
+function hg_maps_require_connection($link, bool $asJson = false): void
 {
     if (!($link instanceof mysqli)) {
-        die("Error de conexion a la base de datos: " . mysqli_connect_error());
+        hg_runtime_log_error('maps.db', mysqli_connect_error());
+
+        if ($asJson) {
+            if (!headers_sent()) {
+                http_response_code(500);
+                header('Content-Type: application/json; charset=UTF-8');
+            }
+            echo json_encode([
+                'ok' => false,
+                'error' => 'No se pudo conectar a la base de datos.',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+
+        hg_runtime_public_error(
+            'Mapas no disponibles',
+            'No se pudo conectar a la base de datos.',
+            500,
+            false
+        );
+        exit;
     }
 }
 

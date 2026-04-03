@@ -1,12 +1,16 @@
 <?php setMetaFromPage("Tiradados | Heaven's Gate", "Herramienta para tirar dados d10 y registrar tiradas.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
+<?php include_once("app/helpers/runtime_response.php"); ?>
 
 <link rel="stylesheet" href="/assets/css/hg-tools.css">
 
 <?php
-if (!$link) {
-    die("Error de conexion: " . mysqli_connect_error());
+if (!hg_runtime_require_db($link, 'dice_roller', 'public', [
+    'title' => 'Tiradados no disponible',
+    'message' => 'No se pudo conectar a la base de datos.',
+])) {
+    return;
 }
 
 echo "<h2>Tiradados</h2>";
@@ -692,7 +696,6 @@ $(function(){
     });
 });
 </script>
-
 
 
 

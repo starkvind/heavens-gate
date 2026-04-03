@@ -60,14 +60,20 @@ if ($resultOwners->num_rows === 0) {
         $pjAlias  = htmlspecialchars($rowOwner['alias'] ?? '');
         $pjImg    = htmlspecialchars(hg_character_avatar_url($rowOwner['image_url'] ?? '', $rowOwner['gender'] ?? ''));
         $pjState  = htmlspecialchars($rowOwner['status'] ?? '');
+        $pjStateCanon = strtr($pjState, [
+            "A" . "\xC3\x83\xC2\xBAn por aparecer" => "Aún por aparecer",
+            "Cad" . "\xC3\x83\xC2\xA1ver" => "Cadáver",
+        ]);
 
         $pjLabel = $pjAlias !== '' ? $pjAlias : $pjName;
         $mapEstado = [
-            "AÃºn por aparecer"     => "(&#64;)",
+            "Aun por aparecer"     => "(&#64;)",
+            "Aún por aparecer"     => "(&#64;)",
+            "Cadaver"              => "(&#8224;)",
             "Paradero desconocido" => "(&#63;)",
-            "CadÃ¡ver"              => "(&#8224;)"
+            "Cadáver"              => "(&#8224;)"
         ];
-        $simboloEstado = $mapEstado[$pjState] ?? "";
+        $simboloEstado = $mapEstado[$pjStateCanon] ?? "";
 
         $href = pretty_url($link, 'fact_characters', '/characters', (int)$pjId);
         hg_render_character_avatar_tile([

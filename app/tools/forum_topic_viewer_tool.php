@@ -2,13 +2,16 @@
 
 $hgfvEmbedded = defined('HG_FORUM_TOPIC_VIEWER_EMBED') && HG_FORUM_TOPIC_VIEWER_EMBED;
 
-if (!isset($link) || !$link) {
+if (!isset($link) || !($link instanceof mysqli)) {
     require_once __DIR__ . '/../helpers/db_connection.php';
 }
+require_once __DIR__ . '/../helpers/runtime_response.php';
 require_once __DIR__ . '/../helpers/character_avatar.php';
 
-if (!isset($link) || !$link) {
-    die('DB connection error.');
+if (!hg_runtime_require_db($link, 'forum_topic_viewer_tool', 'bootstrap', [
+    'message' => 'No se pudo conectar a la base de datos.',
+])) {
+    return;
 }
 
 mysqli_set_charset($link, 'utf8mb4');

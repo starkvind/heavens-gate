@@ -1,6 +1,7 @@
 <?php
 // admin_seasons.php - CRUD Temporadas (dim_seasons)
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
@@ -68,7 +69,7 @@ if ($hasChronicleId) {
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSeasonModal()">+ Nueva temporada</button>'
-    . '<label class="adm-text-left">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rápido '
     . '<input class="inp" type="text" id="quickFilterSeasons" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Temporadas', $actions);
@@ -86,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             else $flash[] = ['type'=>'error','msg'=>'Error al eliminar: '.$st->error];
             $st->close();
         } else {
-            $flash[] = ['type'=>'error','msg'=>'ID invalido para eliminar.'];
+            $flash[] = ['type'=>'error','msg'=>'ID inválido para eliminar.'];
         }
     }
 
@@ -169,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 }
             } else {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'ID invalido para actualizar.'];
+                    $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
                 } else {
                     $sets = ['`name`=?', '`season_number`=?'];
                     $vals = [$name, $seasonNumber];
@@ -313,11 +314,11 @@ if ($rs) {
                     <label>Finalizada</label>
                     <label class="adm-flex-8-center">
                         <input type="checkbox" name="finished" id="season_finished" value="1">
-                        <span>Si</span>
+                        <span>Sí</span>
                     </label>
                     <?php endif; ?>
 
-                    <label>Descripcion</label>
+                    <label>Descripción</label>
                     <div>
                         <div id="season_description_toolbar" class="ql-toolbar ql-snow">
                             <?= admin_quill_toolbar_inner(); ?>
@@ -361,7 +362,7 @@ if ($rs) {
     <div class="modal adm-modal-sm">
         <h3>Confirmar borrado</h3>
         <div class="adm-help-text">
-            Se eliminara la temporada y puede afectar al archivo de capitulos.
+            Se eliminará la temporada y puede afectar al archivo de capítulos.
         </div>
         <form method="post" id="seasonDeleteForm" class="adm-m-0">
             <input type="hidden" name="crud_action" value="delete">
@@ -378,14 +379,14 @@ if ($rs) {
     <thead>
         <tr>
             <th class="adm-w-60">ID</th>
-            <th class="adm-w-90">Numero</th>
+            <th class="adm-w-90">Número</th>
             <th>Nombre</th>
             <?php if ($hasSortOrder): ?><th class="adm-w-80">Orden</th><?php endif; ?>
             <?php if ($hasSeasonCol): ?><th class="adm-w-140">Tipo</th><?php endif; ?>
             <?php if ($hasChronicleId): ?><th class="adm-w-180">Cr&oacute;nica</th><?php endif; ?>
             <?php if ($hasFinished): ?><th class="adm-w-90">Finalizada</th><?php endif; ?>
             <?php if ($hasPrettyId): ?><th class="adm-w-220">Pretty ID</th><?php endif; ?>
-            <?php if ($hasDescription): ?><th>Descripcion</th><?php endif; ?>
+            <?php if ($hasDescription): ?><th>Descripción</th><?php endif; ?>
             <th class="adm-w-160">Acciones</th>
         </tr>
     </thead>
@@ -542,6 +543,7 @@ document.getElementById('seasonForm').addEventListener('submit', function(){
 </script>
 
 <?php admin_panel_close(); ?>
+
 
 
 

@@ -1,6 +1,7 @@
 <?php
 // admin_traits.php - CRUD de dim_traits
-if (!isset($link) || !$link) { die("Sin conexion BD"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -78,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         hg_admin_require_session(true);
     }
     if (!csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         $action = (string)($_POST['crud_action'] ?? '');
         $id = (int)($_POST['id'] ?? 0);
@@ -101,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             if ($name === '') $flash[] = ['type'=>'error','msg'=>'Nombre obligatorio.'];
             if ($kind === '') $flash[] = ['type'=>'error','msg'=>'Tipo obligatorio.'];
             if ($classification === '') $flash[] = ['type'=>'error','msg'=>'Clasificacion obligatoria.'];
-            if (trim(strip_tags($description)) === '') $flash[] = ['type'=>'error','msg'=>'Descripcion obligatoria.'];
+            if (trim(strip_tags($description)) === '') $flash[] = ['type'=>'error','msg'=>'Descripción obligatoria.'];
         }
 
         $hasErr = false;
@@ -127,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 }
             } elseif ($action === 'update') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'ID invalido para actualizar.'];
+                    $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
                 } else {
                     $sql = "UPDATE dim_traits
                             SET name=?, kind=?, classification=?, description=?, levels=?, posse=?, special=?, bibliography_id=NULLIF(?, 0), updated_at=NOW()
@@ -148,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 }
             } elseif ($action === 'delete') {
                 if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'ID invalido para borrar.'];
+                    $flash[] = ['type'=>'error','msg'=>'ID inválido para borrar.'];
                 } else {
                     $st = $link->prepare("DELETE FROM dim_traits WHERE id=?");
                     if (!$st) {
@@ -413,7 +414,7 @@ admin_panel_open('Traits', $actions);
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <label class="field-full"><span>Descripcion</span> <span class="badge">oblig.</span>
+                <label class="field-full"><span>Descripción</span> <span class="badge">oblig.</span>
                     <textarea class="inp ta-lg" name="description" id="trait_description"></textarea>
                 </label>
                 <label class="field-full"><span>Niveles</span>
@@ -716,6 +717,7 @@ var TRAITS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|J
 })();
 </script>
 <?php admin_panel_close(); ?>
+
 
 
 

@@ -1,22 +1,52 @@
 <?php
 // admin_login.php
 
+include_once(__DIR__ . '/../../helpers/admin_auth.php');
+hg_admin_session_start();
 include 'admin_get_pwd.php';
 
 // Si ya esta logueado, redirigir al panel
-if (isset($_SESSION['is_admin'])) {
-    header("Location: /talim");
-    exit;
+if (hg_admin_is_authenticated()) {
+    hg_admin_redirect('/talim');
 }
 
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
-    if ($_POST['admin_pass'] === $adminPassword) {
-        $_SESSION['is_admin'] = true;
-        header("Location: /talim");
-        exit;
+if (!empty($adminPasswordLoadError)) {
+    $error = (string)$adminPasswordLoadError;
+}
+
+if ($error === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
+    $submittedPassword = (string)$_POST['admin_pass'];
+    $storedPassword = is_string($adminPassword) ? $adminPassword : '';
+    $storedPasswordMode = (string)($adminPasswordMode ?? 'legacy');
+    $loginOk = false;
+
+    if ($storedPassword !== '') {
+        if ($storedPasswordMode === 'hash') {
+            $loginOk = password_verify($submittedPassword, $storedPassword);
+            if ($loginOk && password_needs_rehash($storedPassword, PASSWORD_DEFAULT)) {
+                $rehash = password_hash($submittedPassword, PASSWORD_DEFAULT);
+                if (is_string($rehash) && $rehash !== '') {
+                    hg_admin_store_password_value($link, $rehash);
+                }
+            }
+        } else {
+            $loginOk = hash_equals($storedPassword, $submittedPassword);
+            if ($loginOk) {
+                $newHash = password_hash($submittedPassword, PASSWORD_DEFAULT);
+                if (is_string($newHash) && $newHash !== '') {
+                    hg_admin_store_password_value($link, $newHash);
+                }
+            }
+        }
+    }
+
+    if ($loginOk) {
+        hg_admin_mark_authenticated();
+        hg_admin_redirect('/talim');
     } else {
+        usleep(250000);
         $error = "Contrase&ntilde;a incorrecta.";
     }
 }
@@ -32,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
     <div class="adm-login-wrap">
     	<form method="post" class="adm-text-center">
     		<label>Introduce la contrase&ntilde;a:</label><br><br>
-    		<input type="password" name="admin_pass" required><br><br>
+    		<input type="password" name="admin_pass" autocomplete="current-password" required><br><br>
     		<button type="submit">Entrar</button>
     	</form>
     </div>

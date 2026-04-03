@@ -1,12 +1,16 @@
 <?php
 setMetaFromPage("Creador de mensajes de foro | Heaven's Gate", "Genera snippets hg_avatar con color y efectos de texto para el foro.", null, 'website');
 include("app/partials/main_nav_bar.php");
+include_once("app/helpers/runtime_response.php");
 ?>
 <link rel="stylesheet" href="/assets/css/hg-tools.css">
 
 <?php
-if (!isset($link) || !$link) {
-    die("No DB connection.");
+if (!hg_runtime_require_db($link, 'forum_avatar_builder', 'public', [
+    'title' => 'Herramienta no disponible',
+    'message' => 'No se pudo conectar a la base de datos.',
+])) {
+    return;
 }
 
 function sanitize_int_csv($csv) {
@@ -120,8 +124,8 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
                 <button type="button" class="hg-dice-tab-btn" data-transform="mountain">MoNtAnA RuSa</button>
                 <button type="button" class="hg-dice-tab-btn" data-transform="upper">MAYUSCULAS</button>
                 <button type="button" class="hg-dice-tab-btn" data-transform="lower">minusculas</button>
-                <button type="button" class="hg-dice-tab-btn" data-transform="dialog">Anadir comillas</button>
-                <button type="button" class="hg-dice-tab-btn" data-transform="pause">Anadir pausas</button>
+                <button type="button" class="hg-dice-tab-btn" data-transform="dialog">Añadir comillas</button>
+                <button type="button" class="hg-dice-tab-btn" data-transform="pause">Añadir pausas</button>
             </div>
 
             <p class="hg-dice-help">Los efectos se aplican al texto seleccionado. Si no seleccionas nada, se aplican a todo el mensaje.</p>

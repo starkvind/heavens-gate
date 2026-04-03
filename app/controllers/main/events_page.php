@@ -1,6 +1,9 @@
 <?php
+include_once(__DIR__ . '/../../helpers/public_response.php');
 if (!$link) {
-    die("Error de conexion a la base de datos.");
+    hg_public_log_error('events_page', 'missing DB connection');
+    hg_public_render_error('Evento no disponible', 'No se pudo cargar el evento solicitado en este momento.');
+    return;
 }
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
@@ -415,7 +418,7 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
         </div>
 
         <div class="power-card__desc">
-            <div class="power-card__desc-title">Descripcion</div>
+            <div class="power-card__desc-title">Descripción</div>
             <div class="power-card__desc-body">
                 <?php if ($description !== ''): ?>
                 <?= nl2br(($description)) ?>
@@ -456,7 +459,7 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
                     <?php foreach ($chaptersBySeason as $seasonNum => $seasonChapters): ?>
                     <div class="event-rel-group">
                         <?php
-                            $seasonHeader = 'Capitulos sin temporada';
+                            $seasonHeader = 'Capítulos sin temporada';
                             if ($seasonNum !== 9999 && !empty($seasonChapters)) {
                                 $firstSeason = $seasonChapters[0];
                                 $sk = trim((string)($firstSeason['season_kind'] ?? 'temporada'));
@@ -557,13 +560,13 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
             var prefix = '';
             var suffix = '';
 
-            if (/^Â«\s*/.test(text)) {
-                prefix = 'Â« ';
-                text = text.replace(/^Â«\s*/, '');
+            if (/^«\s*/.test(text)) {
+                prefix = '« ';
+                text = text.replace(/^«\s*/, '');
             }
-            if (/\s*Â»$/.test(text)) {
-                suffix = ' Â»';
-                text = text.replace(/\s*Â»$/, '');
+            if (/\s*»$/.test(text)) {
+                suffix = ' »';
+                text = text.replace(/\s*»$/, '');
             }
 
             var lo = 0;

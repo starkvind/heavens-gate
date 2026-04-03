@@ -1,5 +1,5 @@
 <?php
-setMetaFromPage("BiografÃ­as por realidad | Heaven's Gate", "Listado de personajes agrupados por realidad.", null, 'website');
+setMetaFromPage("Biografías por realidad | Heaven's Gate", "Listado de personajes agrupados por realidad.", null, 'website');
 ?>
 <style>
     .toggleAfiliacion {
@@ -27,8 +27,11 @@ setMetaFromPage("BiografÃ­as por realidad | Heaven's Gate", "Listado de person
 </style>
 
 <?php
+include_once(__DIR__ . '/../../helpers/public_response.php');
 if (!$link) {
-    die("Error de conexion a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('bio_worlds', 'missing DB connection');
+    hg_public_render_error('Biografías no disponibles', 'No se pudo cargar el listado por realidad en este momento.');
+    return;
 }
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
@@ -56,7 +59,7 @@ $realityFilterId = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 $realityFilterSQL = ($realityFilterId > 0) ? " AND p.reality_id = " . $realityFilterId . " " : "";
 
 include("app/partials/main_nav_bar.php");
-echo "<h2>Biografias por realidad</h2>";
+echo "<h2>Biografías por realidad</h2>";
 
 $hasTable = false;
 $rsChk = mysqli_query($link, "SHOW TABLES LIKE 'dim_realities'");
@@ -103,6 +106,7 @@ $sql = "
 
 $res = mysqli_query($link, $sql);
 if (!$res) {
+    hg_public_log_error('bio_worlds', 'query failed: ' . mysqli_error($link));
     echo "<p class='texti'>No se pudo cargar la lista de personajes.</p>";
     return;
 }
@@ -154,10 +158,9 @@ foreach ($keys as $k) {
         if ($aliasPJ === '') $aliasPJ = $nombrePJ;
 
         $mapEstado = [
-            "AÃºn por aparecer"     => "(&#64;)",
+            "Aun por aparecer" => "(&#64;)",
             "Paradero desconocido" => "(&#63;)",
-            "CadÃ¡ver"              => "(&#8224;)",
-            "Cadaver "             => "(&#8224;)"
+            "Cadaver" => "(&#8224;)",
         ];
         $simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
@@ -194,4 +197,3 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 });
 </script>
-

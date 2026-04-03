@@ -1,9 +1,13 @@
 <?php
 // admin_relations.php - Editor de relaciones entre personajes
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
+include_once(__DIR__ . '/../../helpers/admin_auth.php');
+hg_admin_session_start();
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" onclick="openRelModal()">+ Nueva relacion</button>');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -20,46 +24,77 @@ $personajesById = [];
 foreach ($personajes as $p) { $personajesById[(int)$p['id']] = (string)$p['name']; }
 
 $flash = [];
+$ADMIN_CSRF_SESSION_KEY = 'csrf_admin_relations';
+if (function_exists('hg_admin_ensure_csrf_token')) {
+	$CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
+} else {
+	if (empty($_SESSION[$ADMIN_CSRF_SESSION_KEY])) {
+		$_SESSION[$ADMIN_CSRF_SESSION_KEY] = bin2hex(random_bytes(16));
+	}
+	$CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
+}
+function relations_csrf_ok(): bool {
+	$payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
+	$t = function_exists('hg_admin_extract_csrf_token')
+		? hg_admin_extract_csrf_token($payload)
+		: (string)($_POST['csrf'] ?? '');
+	if (function_exists('hg_admin_csrf_valid')) {
+		return hg_admin_csrf_valid($t, 'csrf_admin_relations');
+	}
+	return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_relations']) && hash_equals($_SESSION['csrf_admin_relations'], $t);
+}
 
 // Eliminar relacion
 if (isset($_GET['delete'])) {
-	$id = (int)$_GET['delete'];
-	if ($id > 0 && ($st = $link->prepare("DELETE FROM bridge_characters_relations WHERE id = ?"))) {
-		$st->bind_param("i", $id);
-		$st->execute();
-		$st->close();
-		$flash[] = ['type'=>'ok','msg'=>'Relacion eliminada.'];
+	$flash[] = ['type'=>'error','msg'=>'El borrado por URL ha sido desactivado por seguridad. Usa el boton Borrar.'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '') === 'delete') {
+	if (!relations_csrf_ok()) {
+		$flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+	} else {
+		$id = (int)($_POST['id'] ?? 0);
+		if ($id > 0 && ($st = $link->prepare("DELETE FROM bridge_characters_relations WHERE id = ?"))) {
+			$st->bind_param("i", $id);
+			$st->execute();
+			$st->close();
+			$flash[] = ['type'=>'ok','msg'=>'Relacion eliminada.'];
+		}
 	}
 }
 
 // Crear / editar relacion (modal)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_POST['rel'])) {
-	$mode = (string)($_POST['rel']['mode'] ?? '');
-	$id = (int)($_POST['rel']['id'] ?? 0);
-	$source = (int)($_POST['rel']['source_id'] ?? 0);
-	$target = (int)($_POST['rel']['target_id'] ?? 0);
-	$type = (string)($_POST['rel']['relation_type'] ?? '');
-	$tag = (string)($_POST['rel']['tag'] ?? '');
-	$importance = (int)($_POST['rel']['importance'] ?? 0);
-	$description = (string)($_POST['rel']['description'] ?? '');
-	$ar = (string)($_POST['rel']['arrows'] ?? '');
+	if (!relations_csrf_ok()) {
+		$flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
+	} else {
+		$mode = (string)($_POST['rel']['mode'] ?? '');
+		$id = (int)($_POST['rel']['id'] ?? 0);
+		$source = (int)($_POST['rel']['source_id'] ?? 0);
+		$target = (int)($_POST['rel']['target_id'] ?? 0);
+		$type = (string)($_POST['rel']['relation_type'] ?? '');
+		$tag = (string)($_POST['rel']['tag'] ?? '');
+		$importance = (int)($_POST['rel']['importance'] ?? 0);
+		$description = (string)($_POST['rel']['description'] ?? '');
+		$ar = (string)($_POST['rel']['arrows'] ?? '');
 
-	if ($source > 0 && $target > 0 && $type !== '') {
-		if ($mode === 'create') {
-			$st = $link->prepare("INSERT INTO bridge_characters_relations (source_id, target_id, relation_type, tag, importance, description, arrows) VALUES (?,?,?,?,?,?,?)");
-			if ($st) {
-				$st->bind_param("iississ", $source, $target, $type, $tag, $importance, $description, $ar);
-				$st->execute();
-				$st->close();
-				$flash[] = ['type'=>'ok','msg'=>'Relacion creada.'];
-			}
-		} elseif ($mode === 'edit' && $id > 0) {
-			$st = $link->prepare("UPDATE bridge_characters_relations SET source_id=?, target_id=?, relation_type=?, tag=?, importance=?, description=?, arrows=? WHERE id=?");
-			if ($st) {
-				$st->bind_param("iississi", $source, $target, $type, $tag, $importance, $description, $ar, $id);
-				$st->execute();
-				$st->close();
-				$flash[] = ['type'=>'ok','msg'=>'Relacion actualizada.'];
+		if ($source > 0 && $target > 0 && $type !== '') {
+			if ($mode === 'create') {
+				$st = $link->prepare("INSERT INTO bridge_characters_relations (source_id, target_id, relation_type, tag, importance, description, arrows) VALUES (?,?,?,?,?,?,?)");
+				if ($st) {
+					$st->bind_param("iississ", $source, $target, $type, $tag, $importance, $description, $ar);
+					$st->execute();
+					$st->close();
+					$flash[] = ['type'=>'ok','msg'=>'Relacion creada.'];
+				}
+			} elseif ($mode === 'edit' && $id > 0) {
+				$st = $link->prepare("UPDATE bridge_characters_relations SET source_id=?, target_id=?, relation_type=?, tag=?, importance=?, description=?, arrows=? WHERE id=?");
+				if ($st) {
+					$st->bind_param("iississi", $source, $target, $type, $tag, $importance, $description, $ar, $id);
+					$st->execute();
+					$st->close();
+					$flash[] = ['type'=>'ok','msg'=>'Relacion actualizada.'];
+				}
 			}
 		}
 	}
@@ -127,7 +162,12 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close();
 					data-description="<?= h((string)($r['description'] ?? '')) ?>"
 					onclick="openRelModal(this)"
 				>Editar</button>
-				<a class="btn btn-red" href="/talim?s=admin_relations&delete=<?= (int)$r['id'] ?>" onclick="return confirm('Eliminar relacion?');">Borrar</a>
+				<form method="post" style="display:inline" onsubmit="return confirm('Eliminar relacion?');">
+					<input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
+					<input type="hidden" name="crud_action" value="delete">
+					<input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+					<button class="btn btn-red" type="submit">Borrar</button>
+				</form>
 			</td>
 		</tr>
 	<?php endforeach; ?>
@@ -144,6 +184,7 @@ if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close();
 	<div class="modal adm-u-070">
 		<h3 id="relModalTitle">+ Nueva relacion</h3>
 		<form method="post" id="relForm">
+			<input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
 			<input type="hidden" name="rel[mode]" id="rel_mode" value="create">
 			<input type="hidden" name="rel[id]" id="rel_id" value="0">
 			<div class="grid adm-u-032">
@@ -295,3 +336,4 @@ document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeR
 })();
 </script>
 <?php admin_panel_close(); ?>
+

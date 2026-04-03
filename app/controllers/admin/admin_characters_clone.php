@@ -1,7 +1,8 @@
 <?php
 // admin_characters_clone.php - Clonado de personajes entre cronicas/realidades.
 
-if (!isset($link) || !$link) { die("Sin conexion BD"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -744,3 +745,4 @@ window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON
 })();
 </script>
 <?php admin_panel_close(); ?>
+

@@ -18,7 +18,8 @@
  *      * Disciplinas: atributo, sistema
  */
 
-if (!isset($link) || !$link) { die("Sin conexión BD"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
 header('Content-Type: text/html; charset=utf-8');
@@ -310,9 +311,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     }
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
-        $flash[] = ['type'=>'error','msg'=>'? Pestaña inválida.'];
+        $flash[] = ['type'=>'error','msg'=>'Pestaña inválida.'];
     } elseif (!csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'? CSRF inválido. Recarga la página.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         $M = meta_for($postTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         $action = (string)$_POST['crud_action'];
@@ -513,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     }
                 }
             } else {
-                $flash[] = ['type'=>'error','msg'=>'? Acción inválida.'];
+                $flash[] = ['type'=>'error','msg'=>'Acción inválida.'];
             }
 
             // Mantener tab actual tras POST

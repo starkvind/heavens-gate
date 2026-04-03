@@ -1,5 +1,7 @@
 <?php
 // security.php
+include_once(__DIR__ . '/runtime_response.php');
+
 if (!defined('ENCRYPTION_KEY')) {
 	$candidates = [
 		__DIR__ . '/../../config.env',   // project root
@@ -14,7 +16,9 @@ if (!defined('ENCRYPTION_KEY')) {
 		}
 	}
 	if (!is_array($env) || empty($env['ENCRYPTION_KEY'])) {
-		die("Error: ENCRYPTION_KEY no encontrado. Revisa config.env.");
+		hg_runtime_log_error('security.encryption_key', 'ENCRYPTION_KEY no encontrado en config.env.');
+		hg_runtime_bootstrap_error('Error: no se pudo cargar la clave de seguridad.', 500);
+		exit;
 	}
 	define('ENCRYPTION_KEY', $env['ENCRYPTION_KEY']);
 }

@@ -131,7 +131,7 @@ $quickLinks = [
 
 $suggestions = [
     'Personajes' => [],
-    'Capitulos' => [],
+    'Capítulos' => [],
     'Dones' => [],
     'Inventario' => [],
 ];
@@ -209,7 +209,7 @@ if (!$isSensitiveRequest && isset($link) && $link instanceof mysqli) {
                         $href = function_exists('pretty_url')
                             ? pretty_url($link, 'dim_chapters', '/chapters', $id)
                             : '/chapters/' . rawurlencode($slug);
-                        hg404_add_group_item($suggestions, 'Capitulos', (string)($row['name'] ?? ''), $href, $meta);
+                        hg404_add_group_item($suggestions, 'Capítulos', (string)($row['name'] ?? ''), $href, $meta);
                     }
                     $rs->close();
                 }
@@ -294,16 +294,16 @@ if (!$isSensitiveRequest && isset($link) && $link instanceof mysqli) {
 }
 
 if (empty($suggestions['Personajes'])) {
-    hg404_add_group_item($suggestions, 'Personajes', 'Archivo de personajes', '/characters', 'Listado general de biografias');
-    hg404_add_group_item($suggestions, 'Personajes', 'Tipos de personaje', '/characters/types', 'Entrada por categorias');
+    hg404_add_group_item($suggestions, 'Personajes', 'Archivo de personajes', '/characters', 'Listado general de biografías');
+    hg404_add_group_item($suggestions, 'Personajes', 'Tipos de personaje', '/characters/types', 'Entrada por categorías');
 }
-if (empty($suggestions['Capitulos'])) {
-    hg404_add_group_item($suggestions, 'Capitulos', 'Archivo de temporadas', '/seasons', 'Consulta temporadas y capitulos');
-    hg404_add_group_item($suggestions, 'Capitulos', 'Analisis de temporadas', '/seasons/analysis', 'Resumen de actividad');
+if (empty($suggestions['Capítulos'])) {
+    hg404_add_group_item($suggestions, 'Capítulos', 'Archivo de temporadas', '/seasons', 'Consulta temporadas y capítulos');
+    hg404_add_group_item($suggestions, 'Capítulos', 'Análisis de temporadas', '/seasons/analysis', 'Resumen de actividad');
 }
 if (empty($suggestions['Dones'])) {
     hg404_add_group_item($suggestions, 'Dones', 'Archivo de dones', '/powers/gifts', 'Listado general');
-    hg404_add_group_item($suggestions, 'Dones', 'Rituales', '/powers/rites', 'Catalogo de ritos');
+    hg404_add_group_item($suggestions, 'Dones', 'Rituales', '/powers/rites', 'Catálogo de ritos');
 }
 if (empty($suggestions['Inventario'])) {
     hg404_add_group_item($suggestions, 'Inventario', 'Archivo de inventario', '/inventory', 'Objetos y artefactos');

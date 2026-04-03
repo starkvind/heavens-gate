@@ -1,6 +1,7 @@
 <?php
-// admin_items.php — CRUD Objetos (fact_items)
-if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
+// admin_items.php - CRUD Objetos (fact_items)
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -131,13 +132,7 @@ if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name AS
 
 // Borrar legacy
 if (!$isAjaxRequest && isset($_GET['delete'])) {
-	$id = (int)$_GET['delete'];
-	if ($id > 0 && ($st = $link->prepare("DELETE FROM fact_items WHERE id = ?"))) {
-		$st->bind_param("i", $id);
-		$st->execute();
-		$st->close();
-		$flash[] = ['type'=>'ok','msg'=>'Objeto eliminado.'];
-	}
+	$flash[] = ['type'=>'error','msg'=>'El borrado por URL ha sido desactivado por seguridad. Usa el boton Borrar.'];
 }
 
 // Borrar AJAX
@@ -734,6 +729,7 @@ document.getElementById('quickFilterItems').addEventListener('input', applyQuick
 bindRows();
 </script>
 <?php admin_panel_close(); ?>
+
 
 
 

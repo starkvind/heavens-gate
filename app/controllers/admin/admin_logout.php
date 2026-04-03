@@ -1,7 +1,4 @@
 <?php
-	session_start();
-	session_unset();
-	session_destroy();
-	header("Location: /talim");
-	exit;
+	include_once(__DIR__ . '/../../helpers/admin_auth.php');
+	hg_admin_logout('/talim');
 ?>

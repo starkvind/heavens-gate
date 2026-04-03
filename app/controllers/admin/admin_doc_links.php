@@ -1,7 +1,6 @@
 <?php
-if (!isset($link) || !$link) {
-    die("Error de conexion a la base de datos.");
-}
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
@@ -412,7 +411,7 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ? hg_admin_csrf_valid((string)$csrfToken, $ADMIN_CSRF_SESSION_KEY)
         : false;
     if (!$csrfOk) {
-        hg_admin_json_error('CSRF invalido. Recarga la pagina.', 403, ['csrf' => 'invalid']);
+        hg_admin_json_error('CSRF inválido. Recarga la página.', 403, ['csrf' => 'invalid']);
     }
     if (!$schemaReady) {
         hg_admin_json_error('Falta esquema necesario para este modulo.', 400, ['schema' => 'missing']);
@@ -429,7 +428,7 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'list_state') {
         if ($docId <= 0) {
-            hg_admin_json_error('Selecciona un documento valido.', 400, ['doc_id' => 'required']);
+            hg_admin_json_error('Selecciona un documento válido.', 400, ['doc_id' => 'required']);
         }
         $rows = adl_fetch_characters_for_doc(
             $link,
@@ -456,7 +455,7 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'save_links') {
         if ($docId <= 0) {
-            hg_admin_json_error('Selecciona un documento valido.', 400, ['doc_id' => 'required']);
+            hg_admin_json_error('Selecciona un documento válido.', 400, ['doc_id' => 'required']);
         }
         $characterIds = $req('character_ids', []);
         if (!is_array($characterIds) && array_key_exists('character_ids[]', $_POST)) {
@@ -465,7 +464,7 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stats = adl_sync_doc_characters($link, $docId, is_array($characterIds) ? $characterIds : []);
         } catch (Throwable $e) {
-            hg_admin_json_error('Error al guardar vinculos.', 500, ['sql' => $e->getMessage()]);
+            hg_admin_json_error('Error al guardar vínculos.', 500, ['sql' => $e->getMessage()]);
         }
         $rows = adl_fetch_characters_for_doc(
             $link,
@@ -488,7 +487,7 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ], 'Vinculos guardados', ['count' => count($rows)]);
     }
 
-    hg_admin_json_error('Accion no valida', 400, ['action' => 'unsupported']);
+    hg_admin_json_error('Acción no válida', 400, ['action' => 'unsupported']);
 }
 
 $selectedDocId = (int)($_GET['doc_id'] ?? $_POST['doc_id'] ?? 0);
@@ -567,7 +566,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
         </select>
         <?php if ($hasChronicles): ?>
             <select class="select" name="fil_cr">
-                <option value="0">Cronica: Todas</option>
+                <option value="0">Crónica: Todas</option>
                 <?php foreach ($chronicles as $ch): ?>
                     <?php $cid = (int)($ch['id'] ?? 0); ?>
                     <option value="<?= $cid ?>" <?= ($cid === $selectedChronicleId ? 'selected' : '') ?>>
@@ -600,7 +599,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
         <?php endif; ?>
         <?php if ($hasOrgFilter): ?>
             <select class="select" name="fil_or">
-                <option value="0">Organizacion: Todas</option>
+                <option value="0">Organización: Todas</option>
                 <?php foreach ($organizations as $or): ?>
                     <?php $oid = (int)($or['id'] ?? 0); ?>
                     <option value="<?= $oid ?>" <?= ($oid === $selectedOrganizationId ? 'selected' : '') ?>>
@@ -652,20 +651,20 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
         <div class="adm-flex-right-8" style="margin-bottom: 10px;">
             <button class="btn" type="button" id="adlCheckAll">Seleccionar todos</button>
             <button class="btn" type="button" id="adlUncheckAll">Deseleccionar todos</button>
-            <button class="btn btn-blue" type="submit">Guardar vinculos</button>
+            <button class="btn btn-blue" type="submit">Guardar vínculos</button>
         </div>
 
         <div class="adm-table-wrap">
             <table class="adm-table">
                 <thead>
                     <tr>
-                        <th class="adm-w-80">Vinculo</th>
+                        <th class="adm-w-80">Vínculo</th>
                         <th class="adm-w-80">ID</th>
                         <th>Personaje</th>
-                        <th>Cronica</th>
+                        <th>Crónica</th>
                         <?php if ($hasRealityFilter): ?><th>Realidad</th><?php endif; ?>
                         <?php if ($hasSystems): ?><th>Sistema</th><?php endif; ?>
-                        <?php if ($hasOrgFilter): ?><th>Organizacion</th><?php endif; ?>
+                        <?php if ($hasOrgFilter): ?><th>Organización</th><?php endif; ?>
                         <?php if ($hasGroupFilter): ?><th>Grupo</th><?php endif; ?>
                     </tr>
                 </thead>
@@ -823,3 +822,4 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
 </script>
 
 <?php admin_panel_close(); ?>
+

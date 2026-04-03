@@ -1,6 +1,7 @@
 <?php
-// admin_news.php — CRUD Noticias (fact_admin_posts)
-if (!isset($link) || !$link) { die("Error de conexión a la base de datos."); }
+// admin_news.php - CRUD Noticias (fact_admin_posts)
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -45,13 +46,7 @@ function news_csrf_ok(): bool {
 
 // Borrar
 if (!$isAjaxRequest && isset($_GET['delete'])) {
-	$id = (int)$_GET['delete'];
-	if ($id > 0 && ($st = $link->prepare("DELETE FROM fact_admin_posts WHERE id = ?"))) {
-		$st->bind_param("i", $id);
-		$st->execute();
-		$st->close();
-		$flash[] = ['type'=>'ok','msg'=>'Noticia eliminada.'];
-	}
+	$flash[] = ['type'=>'error','msg'=>'El borrado por URL ha sido desactivado por seguridad. Usa el boton Borrar.'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '') === 'delete') {
@@ -469,6 +464,7 @@ bindRows();
 </script>
 
 <?php admin_panel_close(); ?>
+
 
 
 

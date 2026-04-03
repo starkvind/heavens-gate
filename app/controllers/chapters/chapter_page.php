@@ -1,6 +1,12 @@
 <?php
-if (!$link) {
-    die("Error de conexion a la base de datos: " . mysqli_connect_error());
+include_once(__DIR__ . '/../../helpers/runtime_response.php');
+
+if (!hg_runtime_require_db($link, 'chapter_page', 'public', [
+    'title' => 'Capítulo no disponible',
+    'message' => 'No se pudo conectar a la base de datos.',
+    'include_nav' => true,
+])) {
+    return;
 }
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 

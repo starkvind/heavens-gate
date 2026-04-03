@@ -2,8 +2,8 @@
 // ===================== //
 // ✨ Validación de entradas
 // ===================== //
-$routeKey = htmlspecialchars($_GET['p'] ?? '');
-$routeParam = htmlspecialchars($_GET['t'] ?? '');
+$routeKey = trim((string)($_GET['p'] ?? ''));
+$routeParam = trim((string)($_GET['t'] ?? ''));
 $pageTitle = $pageTitle ?? "Heaven's Gate";
 $pageSect = $pageSect ?? null;
 $metaTitle = $metaTitle ?? null;
@@ -146,8 +146,8 @@ function setMetaTitle($custom = null) {
 	global $pageTitle, $pageSect, $pageTitle2;
 	$parts = [];
 	if ($custom) $parts[] = $custom;
-	if (!empty($pageSect)) $parts[] = $pageTitle2;
-	if (!empty($pageTitle2)) $parts[] = $pageSect;
+	if (!empty($pageTitle2)) $parts[] = $pageTitle2;
+	if (!empty($pageSect)) $parts[] = $pageSect;
 	$parts[] = $pageTitle;
 	return implode(" | ", $parts);
 }
@@ -178,10 +178,14 @@ function normalize_meta_image($image, $baseURL) {
 	return rtrim($baseURL, '/') . '/' . ltrim($img, '/');
 }
 
+function hg_meta_attr($value): string {
+	return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heavensgate.duckdns.org') {
 	global $metaTitle, $metaDescription, $metaImage, $metaType;
     $title = "Heaven's Gate";
-    $description = "Heaven's Gate es una campaña de rol ambientada en el Mundo de Tinieblas. Explora biografías, poderes, clanes y más.";
+    $description = "Heaven's Gate es una campana de rol ambientada en el Mundo de Tinieblas. Explora biografias, poderes, clanes y mas.";
 	$image = $baseURL . "/img/og/og_image.jpg"; // ahora correcto
 	$type = "website";
 
@@ -222,7 +226,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             break;
         case 'news':
             $title = "Noticias - Heaven's Gate";
-            $description = "Últimas novedades de la campaña Heaven's Gate.";
+            $description = "Ultimas novedades de la campana Heaven's Gate.";
             break;
         case 'players':
             $title = "Jugadores - Heaven's Gate";
@@ -240,8 +244,8 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'chronicles':
 		case 'bio_chronicles':
 		case 'muestrabio':
-            $title = "Biografías - Heaven's Gate";
-            $description = "Explora las biografías de los personajes clave de Heaven's Gate.";
+            $title = "Biografias - Heaven's Gate";
+            $description = "Explora las biografias de los personajes clave de Heaven's Gate.";
 			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
             break;
         case 'nebula_clan':
@@ -251,7 +255,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             break;
         case 'doc':
             $title = "Documentación - Heaven's Gate";
-            $description = "Accede a la documentación oficial y trasfondo de la campaña.";
+            $description = "Accede a la documentacion oficial y trasfondo de la campana.";
             break;
         case 'inv':
         case 'verobj':
@@ -263,7 +267,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             break;
         case 'sistemas':
             $title = "Sistemas de juego | Heaven's Gate";
-            $description = "Explora sistemas, formas y mecánicas empleadas en la campaña.";
+            $description = "Explora sistemas, formas y mecanicas empleadas en la campana.";
             break;
         case 'powers':
             $title = "Poderes | Heaven's Gate";
@@ -338,15 +342,15 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 			$image = $baseURL . "/img/og/og_image_power.jpg";
             break;
 		case 'gallery':
-            $title = "Galería de imágenes | Heaven's Gate";
-            $description = "Lista de imágenes utilizadas en la campaña.";
+            $title = "Galeria de imagenes | Heaven's Gate";
+            $description = "Lista de imagenes utilizadas en la campana.";
 			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
             break;
 		case 'maps':
 		case 'maps_detail':
 		case 'maps_api':
             $title = "Mapas | Heaven's Gate";
-            $description = "Mapas interactivos sobre lugares de interés en la campaña.";
+            $description = "Mapas interactivos sobre lugares de interes en la campana.";
 			$image = $baseURL . "/img/og/og_image_power.jpg"; // ahora correcto
             break;
 		case 'plots':
@@ -364,17 +368,22 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 	if (!empty($metaImage)) $image = normalize_meta_image($metaImage, $baseURL);
 	if (!empty($metaType)) $type = $metaType;
 
-    echo "<meta name=\"description\" content=\"{$description}\">\n";
-    echo "<meta property=\"og:title\" content=\"{$title}\">\n";
-    echo "<meta property=\"og:description\" content=\"{$description}\">\n";
-    echo "<meta property=\"og:type\" content=\"{$type}\">\n";
+	$titleAttr = hg_meta_attr($title);
+	$descriptionAttr = hg_meta_attr($description);
+	$typeAttr = hg_meta_attr($type);
+	$pageUrlAttr = hg_meta_attr($pageURL);
+	$imageAttr = hg_meta_attr($image);
 
-	echo '<meta property="og:url" content="' . htmlspecialchars($pageURL) . '">';
-    echo "<meta property=\"og:image\" content=\"{$image}\">\n";
-    echo "<meta name=\"twitter:card\" content=\"summary_large_image\">\n";
-    echo "<meta name=\"twitter:title\" content=\"{$title}\">\n";
-    echo "<meta name=\"twitter:description\" content=\"{$description}\">\n";
-    echo "<meta name=\"twitter:image\" content=\"{$image}\">\n";
+    echo '<meta name="description" content="' . $descriptionAttr . '">' . "\n";
+    echo '<meta property="og:title" content="' . $titleAttr . '">' . "\n";
+    echo '<meta property="og:description" content="' . $descriptionAttr . '">' . "\n";
+    echo '<meta property="og:type" content="' . $typeAttr . '">' . "\n";
+	echo '<meta property="og:url" content="' . $pageUrlAttr . '">' . "\n";
+    echo '<meta property="og:image" content="' . $imageAttr . '">' . "\n";
+    echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+    echo '<meta name="twitter:title" content="' . $titleAttr . '">' . "\n";
+    echo '<meta name="twitter:description" content="' . $descriptionAttr . '">' . "\n";
+    echo '<meta name="twitter:image" content="' . $imageAttr . '">' . "\n";
 }
 
 // ===================== //
@@ -389,7 +398,7 @@ $routes = [
 	'biblio'     => ['app/controllers/main/main_biblio.php', 'Bibliografía'],
 	'busq'       => ['app/controllers/main/main_search_form.php', 'Búsqueda'],
 	'busk'       => ['app/controllers/main/main_search_result.php', 'Resultado de la búsqueda'],
-	'talim'      => ['app/controllers/admin/admin_main.php', 'Administración'],
+	'talim'      => ['app/controllers/admin/admin_main.php', 'Administracion'],
 	'error404'   => ['app/controllers/main/error404.php', 'Error'],
 
 	// 🗃️ Temporadas
@@ -406,10 +415,10 @@ $routes = [
 	// Plots
 	'party'		   => ['app/controllers/main/main_parties.php', 'Equipos activos'],
 
-	// 🧬 Biografías
-	'bios'         => ['app/controllers/bio/bio_list.php', 'Biografías'],
-	'biogroup'     => ['app/controllers/bio/bio_group.php', 'Biografías por Grupo'],
-	'muestrabio'   => ['app/controllers/bio/bio_page2.php', 'Biografía'],
+	// 🧬 Biografias
+	'bios'         => ['app/controllers/bio/bio_list.php', 'Biografias'],
+	'biogroup'     => ['app/controllers/bio/bio_group.php', 'Biografias por Grupo'],
+	'muestrabio'   => ['app/controllers/bio/bio_page2.php', 'Biografia'],
 	'listgroups'   => ['app/controllers/bio/bio_pack_list.php', null],
 	'seegroup'     => ['app/controllers/bio/bio_pack_page.php', null],
 	'chronicles'     => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
@@ -510,8 +519,8 @@ $routes = [
 	'timeline' => ['app/controllers/main/events_main.php', 'Línea temporal'],
 	'timeline_event' => ['app/controllers/main/events_page.php', 'Evento'],
 	
-	// Galería
-	'gallery' => ['app/controllers/main/main_gallery.php', 'Galería de imágenes'],
+	// Galeria
+	'gallery' => ['app/controllers/main/main_gallery.php', 'Galeria de imagenes'],
 	'tooltip' => ['app/controllers/tool/tooltip.php', null],
 	'mentions' => ['app/controllers/tool/mentions.php', null],
 	
@@ -556,4 +565,3 @@ if (isset($routes[$routeKey])) {
 if (empty($metaTitle)) {
 $metaTitle = trim(($pageTitle2 ?? '') . ' | ' . ($pageSect ?? '') . ' | ' . $pageTitle, ' |');
 }
-

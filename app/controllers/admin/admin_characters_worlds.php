@@ -1,7 +1,8 @@
 <?php
 // admin_characters_worlds.php - Asignacion masiva de cronica y realidad en personajes.
 
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'save_c
         ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
         : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals((string)$_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
     if (!$csrfOk) {
-        $jsonExit(['ok' => false, 'msg' => 'CSRF invalido']);
+        $jsonExit(['ok' => false, 'msg' => 'CSRF inválido']);
     }
 
     if (!hg_acw_has_table($link, 'dim_realities') || !hg_acw_has_column($link, 'fact_characters', 'reality_id')) {
@@ -71,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'save_c
     $chronicleId = isset($_POST['chronicle_id']) ? (int)$_POST['chronicle_id'] : 0;
     $realityId = isset($_POST['reality_id']) ? (int)$_POST['reality_id'] : 0;
     if ($characterId <= 0 || $chronicleId <= 0 || $realityId <= 0) {
-        $jsonExit(['ok' => false, 'msg' => 'IDs invalidos']);
+        $jsonExit(['ok' => false, 'msg' => 'IDs inválidos']);
     }
 
     $exists = 0;
@@ -92,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'save_c
         $st->fetch();
         $st->close();
     }
-    if ($existsChron <= 0) { $jsonExit(['ok' => false, 'msg' => 'Cronica no encontrada']); }
+    if ($existsChron <= 0) { $jsonExit(['ok' => false, 'msg' => 'Crónica no encontrada']); }
 
     $existsReality = 0;
     if ($st = $link->prepare("SELECT COUNT(*) FROM dim_realities WHERE id = ?")) {
@@ -182,7 +183,7 @@ if ($hasRealitySchema) {
   <?php else: ?>
     <div class="worlds-filter">
       <select id="f-chronicle-worlds">
-        <option value="0">Cronica: Todas</option>
+        <option value="0">Crónica: Todas</option>
         <?php foreach ($chronicles as $o):
             $oid = (int)($o['id'] ?? 0);
             $on = (string)($o['name'] ?? '');
@@ -191,7 +192,7 @@ if ($hasRealitySchema) {
         <?php endforeach; ?>
       </select>
       <select id="f-org-worlds">
-        <option value="0">Organizacion: Todas</option>
+        <option value="0">Organización: Todas</option>
         <?php foreach ($organizations as $o):
             $oid = (int)($o['id'] ?? 0);
             $on = (string)($o['name'] ?? '');
@@ -209,8 +210,8 @@ if ($hasRealitySchema) {
             <th class="adm-w-80">ID</th>
             <!--<th class="adm-w-190">Pretty ID</th>-->
             <th>Personaje</th>
-            <th class="adm-w-220">Organizacion</th>
-            <th class="adm-w-280">Cronica</th>
+            <th class="adm-w-220">Organización</th>
+            <th class="adm-w-280">Crónica</th>
             <th class="adm-w-280">Realidad</th>
             <th class="adm-w-140">Estado</th>
           </tr>
@@ -362,5 +363,6 @@ if ($hasRealitySchema) {
 })();
 </script>
 <?php endif; ?>
+
 
 

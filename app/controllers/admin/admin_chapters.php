@@ -1,6 +1,7 @@
 <?php
 // admin_chapters.php
-if (!isset($link) || !$link) { die('Error de conexion a la base de datos.'); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -150,11 +151,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         hg_admin_require_session(true);
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        echo json_encode(['ok' => false, 'error' => 'Metodo invalido']);
+        echo json_encode(['ok' => false, 'error' => 'Método inválido']);
         exit;
     }
     if (!chapter_csrf_ok($ADMIN_CSRF_SESSION_KEY)) {
-        echo json_encode(['ok' => false, 'error' => 'CSRF invalido. Recarga la pagina.']);
+        echo json_encode(['ok' => false, 'error' => 'CSRF inválido. Recarga la página.']);
         exit;
     }
 
@@ -262,7 +263,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($action === 'delete_chapter') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         if ($chapterId <= 0) {
-            echo json_encode(['ok' => false, 'error' => 'ID de capitulo invalido']);
+            echo json_encode(['ok' => false, 'error' => 'ID de capítulo inválido']);
             exit;
         }
         $ok = false;
@@ -271,7 +272,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             $ok = $st->execute();
             $st->close();
         }
-        echo json_encode(['ok' => (bool)$ok, 'message' => $ok ? 'Capitulo eliminado.' : 'No se pudo eliminar.']);
+        echo json_encode(['ok' => (bool)$ok, 'message' => $ok ? 'Capítulo eliminado.' : 'No se pudo eliminar.']);
         exit;
     }
 
@@ -336,31 +337,25 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         echo json_encode([
             'ok' => true,
-            'message' => $id > 0 ? 'Capitulo actualizado.' : 'Capitulo creado.',
+            'message' => $id > 0 ? 'Capítulo actualizado.' : 'Capítulo creado.',
             'data' => $chapterRow,
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    echo json_encode(['ok' => false, 'error' => 'Accion no valida']);
+    echo json_encode(['ok' => false, 'error' => 'Acción no válida']);
     exit;
 }
 
 $flash = [];
 
 if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
-    if ($id > 0 && ($st = $link->prepare('DELETE FROM dim_chapters WHERE id = ?'))) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $st->close();
-        $flash[] = ['type' => 'ok', 'msg' => 'Capitulo eliminado.'];
-    }
+    $flash[] = ['type' => 'err', 'msg' => 'El borrado por URL ha sido desactivado por seguridad. Usa el boton Borrar.'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
     if (!chapter_csrf_ok($ADMIN_CSRF_SESSION_KEY)) {
-        $flash[] = ['type' => 'err', 'msg' => 'CSRF invalido. Recarga la pagina.'];
+        $flash[] = ['type' => 'err', 'msg' => 'CSRF inválido. Recarga la página.'];
     } else {
     $id = (int)($_POST['id'] ?? 0);
     $name = trim((string)($_POST['name'] ?? ''));
@@ -392,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
             if ($ok) {
                 hg_update_pretty_id_if_exists($link, 'dim_chapters', $id, $name);
                 attach_chapter_characters($link, $id, $pendingRelations);
-                $flash[] = ['type' => 'ok', 'msg' => 'Capitulo actualizado.'];
+                $flash[] = ['type' => 'ok', 'msg' => 'Capítulo actualizado.'];
             }
         } else {
             $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
@@ -404,7 +399,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
             if ($ok) {
                 hg_update_pretty_id_if_exists($link, 'dim_chapters', $newId, $name);
                 attach_chapter_characters($link, $newId, $pendingRelations);
-                $flash[] = ['type' => 'ok', 'msg' => 'Capitulo creado.'];
+                $flash[] = ['type' => 'ok', 'msg' => 'Capítulo creado.'];
             }
         }
     }
@@ -430,7 +425,7 @@ if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, s.season_number A
 }
 
 $actions = '<span class="adm-flex-right-wrap-8">'
-    . '<label class="adm-text-left">Filtro rapido <input class="inp" type="text" id="quickFilter" placeholder="Nombre..."></label>'
+    . '<label class="adm-text-left">Filtro rápido <input class="inp" type="text" id="quickFilter" placeholder="Nombre..."></label>'
     . '<label class="adm-text-left">Temporada <select id="seasonFilter" class="select"><option value="">Todas</option>';
 foreach ($temporadasCatalogo as $t) {
     $actions .= '<option value="' . (int)$t['id'] . '">' . h($t['name']) . '</option>';
@@ -440,7 +435,7 @@ $actions .= '</select></label>'
     . '</span>';
 
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
-admin_panel_open('Capitulos', $actions);
+admin_panel_open('Capítulos', $actions);
 ?>
 
 <?php if (!empty($flash)): ?>
@@ -467,7 +462,7 @@ admin_panel_open('Capitulos', $actions);
 
 <div class="chap-modal-back" id="chapterModalBack" aria-hidden="true">
     <div class="chap-modal adm-modal-980">
-        <h3 id="chapterModalTitle">Capitulo</h3>
+        <h3 id="chapterModalTitle">Capítulo</h3>
         <form method="post" action="/talim?s=admin_chapters" id="chapterForm">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="save_chapter" value="1">
@@ -478,7 +473,7 @@ admin_panel_open('Capitulos', $actions);
                 <label>Nombre
                     <input class="inp" type="text" name="name" id="f_name" required>
                 </label>
-                <label>Capitulo
+                <label>Capítulo
                     <input class="inp" type="number" min="1" name="chapter_number" id="f_chapter" required>
                 </label>
                 <label>Temporada
@@ -518,7 +513,7 @@ admin_panel_open('Capitulos', $actions);
                     <button class="btn" type="button" id="btnAddRel">Agregar</button>
                 </div>
                 <?php if (!$hasChapterParticipationRole): ?>
-                <div class="small adm-mb8">El rol `player|npc` aun no existe en la tabla `bridge_chapters_characters`. Cuando ejecutes la migracion, este selector quedara operativo.</div>
+                <div class="small adm-mb8">El rol `player|npc` aún no existe en la tabla `bridge_chapters_characters`. Cuando ejecutes la migración, este selector quedará operativo.</div>
                 <?php endif; ?>
                 <div id="relationsList" class="small">Sin participantes.</div>
             </div>
@@ -834,7 +829,7 @@ async function deleteChapter(chapterId){
         if (currentId === id) closeChapterModal();
         renderTable();
         if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
-            window.HGAdminHttp.notify(data.message || 'Capitulo eliminado.', 'ok');
+            window.HGAdminHttp.notify(data.message || 'Capítulo eliminado.', 'ok');
         }
     } catch (e) {
         alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(e) : (e.message || 'Error al eliminar.'));
@@ -863,7 +858,7 @@ document.getElementById('chapterForm').addEventListener('submit', async (ev) => 
         renderTable();
         closeChapterModal();
         if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
-            window.HGAdminHttp.notify(data.message || 'Capitulo guardado.', 'ok');
+            window.HGAdminHttp.notify(data.message || 'Capítulo guardado.', 'ok');
         }
     } catch (e) {
         alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(e) : (e.message || 'Error al guardar.'));
@@ -878,6 +873,7 @@ renderTable();
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 
 <?php admin_panel_close(); ?>
+
 
 
 

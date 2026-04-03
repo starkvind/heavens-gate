@@ -28,7 +28,7 @@
 			case "talim": // 
 				if (isset($_GET['s'])) {
 					$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
-					echo "<a href='/talim' title='Administracion'>Administracion</a>";
+					echo "<a href='/talim' title='Administraci&oacute;n'>Administraci&oacute;n</a>";
 					switch ($seccion) {
 						case 'admin_pjs':
 						case 'admin_characters':
@@ -49,10 +49,19 @@
 							break;
 						case 'admin_epis':
 						case 'admin_chapters':
-							echo " $pillSeparator Capitulos";
+							echo " $pillSeparator Capítulos";
 							break;
 						case 'admin_pois':
 							echo " $pillSeparator Mapas";
+							break;
+						case 'admin_players':
+							echo " $pillSeparator Jugadores";
+							break;
+						case 'admin_chronicles':
+							echo " $pillSeparator Cr&oacute;nicas";
+							break;
+						case 'admin_realities':
+							echo " $pillSeparator Realidades";
 							break;
 						case 'admin_timelines':
 							echo " $pillSeparator L&iacute;nea temporal";
@@ -111,7 +120,7 @@
 						echo " $pillSeparator Asignar recursos por sistema";
 						break;
 					case 'admin_resources':
-						echo " $pillSeparator Gestionar recursos (catalogo)";
+						echo " $pillSeparator Gestionar recursos (catálogo)";
 						break;
 					case 'admin_resources_migration':
 						echo " $pillSeparator Migracion de recursos";
@@ -120,7 +129,7 @@
 						echo " $pillSeparator Inspeccionar BDD";
 						break;
 					case 'admin_characters_worlds':
-						echo " $pillSeparator Asignacion cronicas y realidades";
+						echo " $pillSeparator Asignación crónicas y realidades";
 						break;
 					case 'admin_character_deaths':
 						echo " $pillSeparator Muertes de personajes";
@@ -132,7 +141,7 @@
 						echo " $pillSeparator Ayuda mentions";
 						break;
 					case 'logout':
-						echo " $pillSeparator Cerrar sesion";
+						echo " $pillSeparator Cerrar sesión";
 						break;
 					}
 					echo "<br />";
@@ -145,12 +154,12 @@
 				echo "<a href='/players' title='Lista de Jugadores'>Jugadores</a> $pillSeparator $namePJ $surnamePJ";
 				break;
 			// ========================================== //
-			// Biografias
+			// Biografías
 			// ========================================== //
 			case "biogroup":    // Lista de Personajes
 				// Antes dependia de afiliacion, ahora solo mostramos clan
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$idTipo);
-				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator $nombreTipo";
+				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator $nombreTipo";
 				break;
 			case "chronicles":
 			case "bio_chronicles":
@@ -171,15 +180,15 @@
 				}
 				break;
 			case "bio_worlds":
-				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator Realidades";
+				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator Realidades";
 				break;
 			case "muestrabio":  // Ver Personaje
 				// Igual: quitamos afiliacion, mostramos Clan $pillSeparator Nombre del PJ
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$bioType);
-				echo "<a href='/characters/types' title='Biografias'>Biografias</a> $pillSeparator 
+				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator 
 					<a href='" . htmlspecialchars($typeHref) . "'>$nameTipo</a> $pillSeparator $bioName";
 				break;
-			case "seegroup":	// Ver Organizacion
+			case "seegroup":	// Ver Organización
 				echo "<a href='/organizations' title='Grupos y Sociedades'>Grupos y Sociedades</a> $pillSeparator $packNavLinks";
 				break;
 			// ========================================== //
@@ -201,11 +210,11 @@
 				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Especiales";
 				break;
 			case "chapters_table":
-				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Capitulos";
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Capítulos";
 				break;
-			case "seechapter":	// Ver Capitulo
+			case "seechapter":	// Ver Capítulo
 				$tempHref = pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada);
-				$chapterBreadcrumbTitle = isset($pageTitle2) ? (string)$pageTitle2 : ('Capitulo ' . $numeracionOK);
+				$chapterBreadcrumbTitle = isset($pageTitle2) ? (string)$pageTitle2 : ('Capítulo ' . $numeracionOK);
 				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator <a href='" . htmlspecialchars($tempHref) . "' title='$nameTemporada'>$nameTemporada</a> $pillSeparator " . htmlspecialchars($chapterBreadcrumbTitle, ENT_QUOTES, 'UTF-8');
 				break;
 			// ========================================== //
@@ -315,14 +324,14 @@
 				echo "<a href='/powers/rites' title='Rituales'>Rituales</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $riteName";
 				break;
 			// ========================================== //
-			// Totems
+			// Tótems
 			// ========================================== //
-			case "tipototm":	// Lista de Totems
-				echo "<a href='/powers/totems' title='Totems'>Totems</a> $pillSeparator $totemName";
+			case "tipototm":	// Lista de Tótems
+				echo "<a href='/powers/totems' title='Tótems'>Tótems</a> $pillSeparator $totemName";
 				break;
-			case "muestratotem":// Ver Totem
+			case "muestratotem":// Ver Tótem
 				$typeHref = pretty_url($link, 'dim_totem_types', '/powers/totem/type', $totemTypeNav);
-				echo "<a href='/powers/totems' title='Totems'>Totems</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $totemName";
+				echo "<a href='/powers/totems' title='Tótems'>Tótems</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $totemName";
 				break;
 			// ========================================== //
 			// Disciplinas
@@ -369,5 +378,3 @@ if ($nav !== '') {
     echo '</div><br/>';
 }
 ?>
-
-

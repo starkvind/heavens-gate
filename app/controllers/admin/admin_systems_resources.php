@@ -3,7 +3,8 @@
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
-if (!isset($link) || !($link instanceof mysqli)) { die('DB no disponible.'); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
@@ -489,3 +490,4 @@ if (asrForm) {
 </script>
 
 <?php if (!$isAjaxRequest) { admin_panel_close(); } ?>
+

@@ -1,20 +1,25 @@
 <?php
 // admin_main.php - Menú principal de administración
-	if (session_status() === PHP_SESSION_NONE) {
-		session_start();
-	}
+	include_once(__DIR__ . '/../../helpers/admin_auth.php');
+	hg_admin_session_start();
 
 	// Verificar la conexión a la base de datos
-	if (!$link) {
-		die("Error de conexión a la base de datos: " . mysqli_connect_error());
-	}
+	include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 
 	// Si no está logueado, incluir el login
-	if (!isset($_SESSION['is_admin'])) {
+	$isAjaxAdminRequest = isset($_GET['ajax'], $_GET['s']) && $_GET['ajax'] === '1';
+	if (!hg_admin_is_authenticated()) {
+		if ($isAjaxAdminRequest) {
+			http_response_code(403);
+			header('Content-Type: application/json; charset=UTF-8');
+			echo json_encode(['ok' => false, 'error' => 'No autorizado', 'message' => 'No autorizado']);
+			return;
+		}
 		include("admin_login.php");
 	} else {
 		// Modo AJAX: responder sin navbar/layout para no romper JSON.
-		if (isset($_GET['ajax']) && $_GET['ajax'] === '1' && isset($_GET['s'])) {
+		if ($isAjaxAdminRequest) {
 			$seccionAjax = htmlspecialchars($_GET['s']);
 			switch ($seccionAjax) {
 				case 'admin_pjs': // legacy alias
@@ -37,6 +42,15 @@
 					break;
 				case 'admin_pois':
 					include("admin_pois.php");
+					break;
+				case 'admin_players':
+					include("admin_players.php");
+					break;
+				case 'admin_chronicles':
+					include("admin_chronicles.php");
+					break;
+				case 'admin_realities':
+					include("admin_realities.php");
 					break;
 				case 'admin_plots': // legacy alias
 				case 'admin_parties':
@@ -179,6 +193,15 @@
 				case 'admin_pois':
 					include("admin_pois.php");
 					break;
+				case 'admin_players':
+					include("admin_players.php");
+					break;
+				case 'admin_chronicles':
+					include("admin_chronicles.php");
+					break;
+				case 'admin_realities':
+					include("admin_realities.php");
+					break;
 				case 'admin_bso':
 					include("admin_bso.php");
 					break;
@@ -268,7 +291,7 @@
 					include("admin_logout.php");
 					break;
 				default:
-					echo "<p class='adm-admin-error'>⚠ Sección no reconocida.</p>";
+					echo "<p class='adm-admin-error'>Sección no reconocida.</p>";
 					break;
 			}
 
@@ -289,6 +312,11 @@
 					<a href='/talim?s=admin_groups'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Grupos
+						</div>
+					</a>
+					<a href='/talim?s=admin_players'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Jugadores
 						</div>
 					</a>
 					<a href='/talim?s=admin_parties'>
@@ -384,6 +412,16 @@
 				// MUNDO
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Mundo&nbsp;</legend>";
 				echo "
+					<a href='/talim?s=admin_chronicles'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Cr&oacute;nicas
+						</div>
+					</a>
+					<a href='/talim?s=admin_realities'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Realidades
+						</div>
+					</a>
 					<a href='/talim?s=admin_pois'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Mapas
@@ -520,3 +558,4 @@
 		}
 	}
 ?>
+

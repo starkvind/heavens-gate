@@ -1,7 +1,7 @@
 <?php
-setMetaFromPage("Totems | Heaven's Gate", "Listado completo de totems en formato extendido.", null, 'website');
+setMetaFromPage("Tótems | Heaven's Gate", "Listado completo de tótems en formato extendido.", null, 'website');
 
-$pageSect = "Totems";
+$pageSect = "Tótems";
 $_SESSION['punk2'] = $pageSect;
 $printMode = isset($_GET['print']) && $_GET['print'] == '1';
 
@@ -62,7 +62,7 @@ select
     t.id as totem_id,
     t.name as totem_name,
     CONCAT(
-        'Totem',
+        'Tótem',
         CASE
             WHEN tt.determinant <> '' THEN CONCAT(' ', tt.determinant)
             ELSE ''
@@ -490,7 +490,7 @@ foreach ($totems as $t) {
           $origin = h($t['totem_origin'] ?? '');
           $imageSrc = h(totem_image_src($t['totem_image_url'] ?? ''));
 
-          $desc = $t['totem_description'] ?: "<p>Descripcion no disponible.</p>";
+          $desc = $t['totem_description'] ?: "<p>Descripción no disponible.</p>";
           $traits = $t['totem_traits'] ?: '';
           $prohibited = $t['totem_prohibited'] ?: '';
       ?>
@@ -513,7 +513,7 @@ foreach ($totems as $t) {
 
           <div class="sections">
             <div class="box">
-              <h3>Descripcion</h3>
+              <h3>Descripción</h3>
               <div class="content"><?php echo $desc; ?></div>
             </div>
 
@@ -536,7 +536,7 @@ foreach ($totems as $t) {
     </div>
 
     <div class="footer">
-      Totems hallados: <b><?php echo (int)$total; ?></b>
+      Tótems hallados: <b><?php echo (int)$total; ?></b>
     </div>
 
   </div>

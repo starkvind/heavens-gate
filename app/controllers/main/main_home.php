@@ -1,7 +1,10 @@
 <?php setMetaFromPage("Heaven's Gate", "Archivo vivo de una cronica alternativa de Hombre Lobo: El Apocalipsis. Explora personajes, temporadas, eventos, mapas y material de juego.", null, 'website'); ?>
 <?php
+include_once(__DIR__ . '/../../helpers/public_response.php');
 if (!$link) {
-    die("Error de conexion a la base de datos.");
+    hg_public_log_error('main_home', 'missing DB connection');
+    hg_public_render_error('Inicio no disponible', 'No se pudo cargar la pagina de inicio en este momento.');
+    return;
 }
 
 include("app/partials/main_nav_bar.php");
@@ -58,7 +61,7 @@ $stats = [
         'href' => '/characters',
     ],
     [
-        'label' => 'Capitulos',
+        'label' => 'Capítulos',
         'value' => hg_home_count_table($link, 'dim_chapters'),
         'href' => '/chapters',
     ],
@@ -73,7 +76,7 @@ $stats = [
         'href' => '/documents',
     ],
     [
-        'label' => 'Cronicas',
+        'label' => 'Crónicas',
         'value' => hg_home_count_table($link, 'dim_chronicles'),
         'href' => '/chronicles',
     ],

@@ -9,7 +9,8 @@
 // Iniciamos buffering para evitar que cualquier salida previa contamine el JSON
 if (!headers_sent()) { @ob_start(); }
 
-if (!$link) { die("Error de conexión a la base de datos: " . mysqli_connect_error()); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -1405,7 +1406,7 @@ async function saveMap(ev){
 }
 
 async function delMap(id){
-  if (!confirm('⚠️ Al borrar el mapa, sus POIs y Áreas (si FK CASCADE) también se borrarán.\n¿Seguro?')) return;
+  if (!confirm('Aviso: al borrar el mapa, sus POIs y Áreas (si FK CASCADE) también se borrarán.\n¿Seguro?')) return;
   const fd = new FormData(); fd.append('id', id);
   try {
     const json = await fetchJson(`${BASE}&ajax=delete_map`, { method:'POST', body:fd });

@@ -1,6 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Verificar si se recibe el parÃ¡metro 'b' y sanitizarlo
+// Verificar si se recibe el parámetro 'b' y sanitizarlo
 $donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
 
 if (!function_exists('gift_has_column')) {
@@ -18,7 +18,7 @@ if (!function_exists('gift_has_column')) {
 $giftSystemCol = gift_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
 $giftRulesCol = gift_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
 
-// Consulta para obtener informaciÃ³n del Don
+// Consulta para obtener información del Don
 $queryDon = "
     SELECT g.*, s.name AS system_name, g.name AS nombre, g.kind AS tipo, g.rank AS rango, g.description AS descripcion, g.`$giftRulesCol` AS sistema, g.`$giftSystemCol` AS ferasistema
     FROM fact_gifts g
@@ -34,7 +34,7 @@ $rowsQueryDon = $result->num_rows;
 if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $resultQueryDon = $result->fetch_assoc();
 
-    // DATOS BÃSICOS
+    // DATOS BÁSICOS
     $donId     = htmlspecialchars($resultQueryDon["id"]);
     $donName   = htmlspecialchars($resultQueryDon["nombre"]);
     $donType   = htmlspecialchars($resultQueryDon["tipo"]);
@@ -75,11 +75,11 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesiÃ³n para los breadcrumbs
+    // Guardar en sesión para los breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
     // =========================
-    // Personajes con este Don (respeta exclusiones de crÃ³nica)
+    // Personajes con este Don (respeta exclusiones de crónica)
     // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
@@ -113,10 +113,10 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
 	$pageTitle2 = $donName; // PARA CAMBIAR EL TITULO A LA PAGINA
 	setMetaFromPage($donName . " | Dones | Heaven's Gate", meta_excerpt($donDesc), null, 'article');
 
-    // Incluir barra de navegaciÃ³n
+    // Incluir barra de navegación
     include("app/partials/main_nav_bar.php");
 
-    // TÃ­tulo de la pÃ¡gina
+    // Título de la página
     //echo "<h2>$donName</h2>";
 
     ob_start();
@@ -202,12 +202,18 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
                 $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
                 $estado = (string)($o['status'] ?? '');
                 $label = $alias !== '' ? $alias : $name;
+                $estadoCanon = strtr($estado, [
+                    "A" . "\xC3\x83\xC2\xBAn por aparecer" => "Aún por aparecer",
+                    "Cad" . "\xC3\x83\xC2\xA1ver" => "Cadáver",
+                ]);
                 $mapEstado = [
-                    "AÃºn por aparecer"     => "(&#64;)",
+                    "Aun por aparecer"     => "(&#64;)",
+                    "Aún por aparecer"     => "(&#64;)",
+                    "Cadaver"              => "(&#8224;)",
                     "Paradero desconocido" => "(&#63;)",
-                    "CadÃ¡ver"              => "(&#8224;)"
+                    "Cadáver"              => "(&#8224;)"
                 ];
-                $simboloEstado = $mapEstado[$estado] ?? "";
+                $simboloEstado = $mapEstado[$estadoCanon] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
                 hg_render_character_avatar_tile([
                     'href' => $href,
@@ -235,8 +241,5 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     echo "<p>Error: Don no encontrado.</p>";
 }
 ?>
-
-
-
 
 

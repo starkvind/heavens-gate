@@ -1,10 +1,15 @@
 <?php setMetaFromPage("Temporadas | Heaven's Gate", "Consulta temporadas y capitulos de la campana.", null, 'website'); ?>
 <?php include_once(__DIR__ . '/../../helpers/character_avatar.php'); ?>
+<?php include_once(__DIR__ . '/../../helpers/runtime_response.php'); ?>
 <link rel="stylesheet" href="/assets/css/hg-chapters.css">
 
 <?php
-if (!$link) {
-    die("Error de conexion a la base de datos: " . mysqli_connect_error());
+if (!hg_runtime_require_db($link, 'season_archive', 'public', [
+    'title' => 'Temporadas no disponibles',
+    'message' => 'No se pudo conectar a la base de datos.',
+    'include_nav' => true,
+])) {
+    return;
 }
 
 if (!function_exists('hg_sa_col_exists')) {
@@ -69,7 +74,7 @@ if ($temporadaId > 0 && $stmt) {
 
         $titleSinop = "Sinopsis";
         $titleProta = "Protagonistas";
-        $titleChapt = "Capitulos";
+        $titleChapt = "Capítulos";
 
         $seasonKind = trim((string)($ResultQuery['season_kind'] ?? 'temporada'));
         if ($seasonKind === '') $seasonKind = 'temporada';
@@ -188,7 +193,7 @@ if ($temporadaId > 0 && $stmt) {
                     }
 
                     $hrefChap = pretty_url($link, 'dim_chapters', '/chapters', $idEpi);
-                    echo "<a class='chapters-item' href='" . htmlspecialchars($hrefChap) . "' title='Capitulo {$chapterCode}'>";
+                    echo "<a class='chapters-item' href='" . htmlspecialchars($hrefChap) . "' title='Capítulo {$chapterCode}'>";
                     echo "<span class='chapters-code'>{$chapterCode}</span>";
                     echo "<span class='chapters-name'>" . htmlspecialchars($nameEpi) . "</span>";
                     echo "<span class='chapters-code'>&rsaquo;</span>";

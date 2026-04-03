@@ -1,7 +1,8 @@
 <?php
 // admin_sim_browser.php - Gestion de browser del simulador por temporadas.
 
-if (!isset($link) || !$link) { die("Error de conexion a la base de datos."); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
@@ -181,7 +182,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
             : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
         if (!$csrfOk) {
-            hg_admin_json_error('CSRF invalido. Recarga la pagina.', 403, array('csrf' => 'invalid'));
+            hg_admin_json_error('CSRF inválido. Recarga la página.', 403, array('csrf' => 'invalid'));
         }
     }
 
@@ -242,7 +243,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'delete_season') {
         $id = isset($payload['id']) ? (int)$payload['id'] : 0;
         if ($id <= 0) {
-            hg_admin_json_error('ID invalido.', 422, array('id' => 'invalid'));
+            hg_admin_json_error('ID inválido.', 422, array('id' => 'invalid'));
         }
 
         $isActive = 0;
@@ -271,7 +272,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'set_active') {
         $id = isset($payload['id']) ? (int)$payload['id'] : 0;
         if ($id <= 0) {
-            hg_admin_json_error('ID invalido.', 422, array('id' => 'invalid'));
+            hg_admin_json_error('ID inválido.', 422, array('id' => 'invalid'));
         }
         $exists = 0;
         if ($st = $link->prepare("SELECT COUNT(*) FROM fact_sim_seasons WHERE id=?")) {
@@ -336,7 +337,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             $validCount = ($rsValid) ? $rsValid->num_rows : 0;
             if ($rsValid) $rsValid->close();
             if ($validCount !== count($ids)) {
-                hg_admin_json_error('Hay personajes no validos para el simulador.', 422, array('character_ids' => 'invalid_kind'));
+                hg_admin_json_error('Hay personajes no válidos para el simulador.', 422, array('character_ids' => 'invalid_kind'));
             }
         }
 
@@ -389,7 +390,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
         );
     }
 
-    hg_admin_json_error('Accion no soportada.', 400, array('action' => 'unsupported'));
+    hg_admin_json_error('Acción no soportada.', 400, array('action' => 'unsupported'));
 }
 
 if (!$isAjaxRequest) {
@@ -413,12 +414,12 @@ if (!$isAjaxRequest) {
           <input class="inp" type="text" id="asbSeasonName" maxlength="120" placeholder="Ej: Temporada 1">
         </div>
         <div>
-          <label>Limite de personajes</label>
+          <label>Límite de personajes</label>
           <input class="inp" type="number" id="asbSeasonLimit" min="1" max="200" value="35">
         </div>
       </div>
-      <label>Descripcion</label>
-      <textarea class="ta" id="asbSeasonDesc" rows="2" maxlength="500" placeholder="Descripcion corta"></textarea>
+      <label>Descripción</label>
+      <textarea class="ta" id="asbSeasonDesc" rows="2" maxlength="500" placeholder="Descripción corta"></textarea>
       <div style="margin:8px 0;">
         <label><input type="checkbox" id="asbSeasonActive"> Temporada activa</label>
       </div>
@@ -869,3 +870,4 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
 </script>
 <?php endif; ?>
 <?php if (!$isAjaxRequest) { admin_panel_close(); } ?>
+

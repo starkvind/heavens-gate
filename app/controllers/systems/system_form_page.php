@@ -154,7 +154,7 @@ echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
   </div>
 
   <div class="form-box">
-    <h3>Descripcion</h3>
+    <h3>Descripción</h3>
     <div><?= $infoDesc ?></div>
   </div>
 

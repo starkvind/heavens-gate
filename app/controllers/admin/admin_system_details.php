@@ -1,6 +1,7 @@
 <?php
 // admin_system_details.php -- CRUD detalles de sistemas (breeds/auspices/tribes/misc)
-if (!isset($link) || !$link) { die("Sin conexion BD"); }
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
@@ -112,16 +113,16 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
                 ['k'=>'forms', 'label'=>'Formas', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-                ['k'=>'energy', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+                ['k'=>'energy', 'label'=>'Energía', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
-                ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+                ['k'=>'description', 'label'=>'Descripción', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
                 ['k'=>'system_name','label'=>'Sistema','w'=>160],
-                ['k'=>'energy','label'=>'Energia','w'=>80],
+                ['k'=>'energy','label'=>'Energía','w'=>80],
             ],
             'has_timestamps' => true,
         ];
@@ -136,16 +137,16 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'energy', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+                ['k'=>'energy', 'label'=>'Energía', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
-                ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+                ['k'=>'description', 'label'=>'Descripción', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
                 ['k'=>'system_name','label'=>'Sistema','w'=>160],
-                ['k'=>'energy','label'=>'Energia','w'=>80],
+                ['k'=>'energy','label'=>'Energía','w'=>80],
             ],
             'has_timestamps' => true,
         ];
@@ -160,18 +161,18 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'affiliation', 'label'=>'Afiliacion', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-                ['k'=>'energy', 'label'=>'Energia', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+                ['k'=>'affiliation', 'label'=>'Afiliación', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+                ['k'=>'energy', 'label'=>'Energía', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
-                ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+                ['k'=>'description', 'label'=>'Descripción', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
                 ['k'=>'powers', 'label'=>'Poderes', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
             ],
             'list_cols' => [
                 ['k'=>'id','label'=>'ID','w'=>60],
                 ['k'=>'name','label'=>'Nombre','w'=>220],
                 ['k'=>'system_name','label'=>'Sistema','w'=>160],
-                ['k'=>'energy','label'=>'Energia','w'=>80],
+                ['k'=>'energy','label'=>'Energía','w'=>80],
             ],
             'has_timestamps' => true,
         ];
@@ -187,9 +188,9 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
             ['k'=>'kind', 'label'=>'Tipo', 'ui'=>'text', 'db'=>'s', 'req'=>false],
             ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-            ['k'=>'energy_name', 'label'=>'Energia (nombre)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
-            ['k'=>'energy_value', 'label'=>'Energia (valor)', 'ui'=>'number', 'db'=>'i', 'req'=>false],
-            ['k'=>'description', 'label'=>'Descripcion', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
+            ['k'=>'energy_name', 'label'=>'Energía (nombre)', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+            ['k'=>'energy_value', 'label'=>'Energía (valor)', 'ui'=>'number', 'db'=>'i', 'req'=>false],
+            ['k'=>'description', 'label'=>'Descripción', 'ui'=>'wysiwyg', 'db'=>'s', 'req'=>false],
             ['k'=>'extra_info', 'label'=>'Info extra', 'ui'=>'textarea', 'db'=>'s', 'req'=>false],
         ],
         'list_cols' => [
@@ -221,9 +222,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     }
     $postTab = (string)$_POST['crud_tab'];
     if (!in_array($postTab, $tabsAllowed, true)) {
-        $flash[] = ['type'=>'error','msg'=>'Pestana invalida.'];
+        $flash[] = ['type'=>'error','msg'=>'Pestaña inválida.'];
     } elseif (!csrf_ok()) {
-        $flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga.'];
+        $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga.'];
     } else {
         $opts_origins = [];
         if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name ASC")) {
@@ -614,7 +615,7 @@ $actions = '<span class="adm-flex-right-8">'
     . '<label class="adm-text-left">Sistema '
     . '<select class="select" id="filterSystemDetails">'.$sysOptions.'</select></label>'
     . '<button class="btn btn-green" id="btnNew" type="button">+ Nuevo</button>'
-    . '<label class="adm-text-left">Filtro rapido '
+    . '<label class="adm-text-left">Filtro rápido '
     . '<input class="inp" type="text" id="quickFilterSystemDetails" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Detalles de sistemas', $actions);
@@ -1262,6 +1263,7 @@ function syncEditorsToTextarea(){
 </script>
 
 <?php admin_panel_close(); ?>
+
 
 
 

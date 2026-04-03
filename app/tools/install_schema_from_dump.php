@@ -34,7 +34,6 @@ function main(array $argv): void
     $createViews = cliBool($options, 'create-views', true);
     $seedSafeConfig = cliBool($options, 'seed-safe-config', true);
     $adminPassword = $options['admin-password'] ?? null;
-    $encryptionKey = firstNonEmpty($options['encryption-key'] ?? null, $env['ENCRYPTION_KEY'] ?? null, getenv('ENCRYPTION_KEY') ?: null);
 
     if ($user === null || $user === '') {
         throw new InvalidArgumentException("Missing MySQL user. Pass --user or configure MYSQL_USER.");
@@ -71,9 +70,6 @@ function main(array $argv): void
     echo "Dry run: " . ($dryRun ? 'yes' : 'no') . "\n\n";
 
     if ($dryRun) {
-        if ($adminPassword !== null && $adminPassword !== '' && ($encryptionKey === null || $encryptionKey === '')) {
-            throw new InvalidArgumentException("Dry-run validation failed: --admin-password requires --encryption-key or ENCRYPTION_KEY.");
-        }
         echo "Dry-run completed. No changes were executed.\n";
         return;
     }
@@ -99,11 +95,8 @@ function main(array $argv): void
         }
 
         if ($adminPassword !== null && $adminPassword !== '') {
-            if ($encryptionKey === null || $encryptionKey === '') {
-                throw new InvalidArgumentException("--admin-password requires --encryption-key or ENCRYPTION_KEY.");
-            }
-            $encryptedPassword = encryptAdminPassword($adminPassword, $encryptionKey);
-            upsertConfigValue($mysqli, 'rel_pwd', $encryptedPassword);
+            $hashedPassword = hashAdminPassword($adminPassword);
+            upsertConfigValue($mysqli, 'rel_pwd', $hashedPassword);
             echo "Admin password stored in dim_web_configuration as rel_pwd.\n";
         } else {
             echo "rel_pwd was intentionally not imported. Configure it manually or rerun with --admin-password.\n";
@@ -155,8 +148,7 @@ function printUsage(): void
     echo "  --drop-existing=1|0          Default: 1\n";
     echo "  --create-views=1|0           Default: 1\n";
     echo "  --seed-safe-config=1|0       Default: 1\n";
-    echo "  --admin-password=plaintext   Optional, stored encrypted as rel_pwd\n";
-    echo "  --encryption-key=value       Optional if ENCRYPTION_KEY is already available\n";
+    echo "  --admin-password=plaintext   Optional, stored hashed as rel_pwd\n";
     echo "  --dry-run=1                  Validate config and count statements only\n";
     echo "  --help=1\n";
 }
@@ -391,21 +383,12 @@ function upsertConfigValue(mysqli $mysqli, string $name, string $value): void
     $insert->close();
 }
 
-function encryptAdminPassword(string $plainPassword, string $encryptionKey): string
+function hashAdminPassword(string $plainPassword): string
 {
-    $method = 'AES-256-CBC';
-    $hashedKey = hash('sha256', $encryptionKey);
-    $ivLength = openssl_cipher_iv_length($method);
-    $iv = openssl_random_pseudo_bytes($ivLength);
-
-    if ($iv === false) {
-        throw new RuntimeException("Could not generate IV for admin password encryption.");
+    $hashed = password_hash($plainPassword, PASSWORD_DEFAULT);
+    if (!is_string($hashed) || $hashed === '') {
+        throw new RuntimeException("Could not hash admin password.");
     }
 
-    $encrypted = openssl_encrypt($plainPassword, $method, $hashedKey, 0, $iv);
-    if ($encrypted === false) {
-        throw new RuntimeException("Could not encrypt admin password.");
-    }
-
-    return base64_encode($iv . '::' . $encrypted);
+    return $hashed;
 }

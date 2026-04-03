@@ -1,9 +1,26 @@
-<?php setMetaFromPage("Banda sonora | Heaven's Gate", "Temas musicales usados en la campaña.", null, 'website'); ?>
+<?php setMetaFromPage("Banda sonora | Heaven's Gate", "Temas musicales usados en la campana.", null, 'website'); ?>
 <?php
-if (!$link) die("Error de conexión a la base de datos.");
+include_once(__DIR__ . '/../../helpers/runtime_response.php');
+
+if (!hg_runtime_require_db($link, 'bso_main', 'public', [
+    'title' => 'Banda sonora no disponible',
+    'message' => 'No se pudo conectar a la base de datos.',
+    'include_nav' => true,
+])) {
+    return;
+}
 
 $result = $link->query("SELECT id, context_title, artist, youtube_url, title, added_at FROM dim_soundtracks ORDER BY context_title ASC");
-if (!$result) die("Error al preparar la consulta: " . $link->error);
+if (!$result) {
+    hg_runtime_log_error('bso_main.query', $link->error);
+    hg_runtime_public_error(
+        'Banda sonora no disponible',
+        'No se pudo cargar el listado musical.',
+        500,
+        true
+    );
+    return;
+}
 
 $canciones = [];
 while ($row = $result->fetch_assoc()) $canciones[] = $row;
@@ -14,7 +31,7 @@ mysqli_free_result($result);
 
 <h2 class="ost-title">Banda sonora</h2>
 
-<p class="ost-intro">Los siguientes temas musicales se han empleado para dar más dimensión a personajes, agrupaciones y situaciones de Heaven's Gate. Se proporciona el título, el artista y un enlace a YouTube para poder disfrutar de la música en todo su esplendor.</p>
+<p class="ost-intro">Los siguientes temas musicales se han empleado para dar mas dimension a personajes, agrupaciones y situaciones de Heaven's Gate. Se proporciona el titulo, el artista y un enlace a YouTube para poder disfrutar de la musica en todo su esplendor.</p>
 
 <div class="ost-wrap">
   <div class="ost-inner">
@@ -47,10 +64,20 @@ $(document).ready(function () {
 	const tbody = $('#tabla-canciones tbody');
 
 	canciones.forEach(c => {
-		const linkTitulo = `<a href="${escapeHtml(c.youtube_url)}&referrer=heavensgate" target="_blank">${escapeHtml(c.title)}</a>`;
-		const linkArtista = `<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.artist)}" target="_blank">${escapeHtml(c.artist)}</a>`;
+		const normalizedYoutubeUrl = normalizeYoutubeUrl(c.youtube_url || '');
+		const externalYoutubeUrl = normalizedYoutubeUrl ? withReferrer(normalizedYoutubeUrl) : '';
+		const safeTitle = escapeHtml(c.title || '(Sin titulo)');
+		const safeArtist = escapeHtml(c.artist || '-');
+		const linkTitulo = externalYoutubeUrl
+			? `<a href="${escapeAttr(externalYoutubeUrl)}" target="_blank" rel="noopener noreferrer">${safeTitle}</a>`
+			: safeTitle;
+		const linkArtista = c.artist
+			? `<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.artist)}" target="_blank" rel="noopener noreferrer">${safeArtist}</a>`
+			: safeArtist;
 		const hg = escapeHtml(c.context_title || '');
-		const btn = `<button class="boton2 js-play-song" type="button" data-url="${escapeAttr(c.youtube_url)}" data-hg="${escapeAttr(c.context_title || '')}">&#9654;&#65039;</button>`;
+		const btn = normalizedYoutubeUrl
+			? `<button class="boton2 js-play-song" type="button" data-url="${escapeAttr(normalizedYoutubeUrl)}" data-hg="${escapeAttr(c.context_title || '')}">&#9654;&#65039;</button>`
+			: '-';
 
 		const row = `<tr>
 			<td>${linkTitulo}</td>
@@ -88,7 +115,11 @@ $(document).ready(function () {
 });
 
 function abrirPopup(url, hgTitle = "") {
-	const embedUrl = url.replace("watch?v=", "embed/");
+	const embedUrl = buildEmbedUrl(url);
+	if (!embedUrl) {
+		if (url) window.open(withReferrer(url), '_blank', 'noopener');
+		return;
+	}
 	const frame = document.getElementById("youtubeFrame");
 	const container = document.getElementById("popupPlayer");
 	const titleSpan = document.getElementById("titleSong");
@@ -99,7 +130,7 @@ function abrirPopup(url, hgTitle = "") {
 
 	frame.onerror = () => {
 		container.style.display = "none";
-		window.open(url, '_blank');
+		window.open(withReferrer(url), '_blank', 'noopener');
 	};
 }
 
@@ -114,6 +145,31 @@ function escapeHtml(text) {
 }
 function escapeAttr(text) {
 	return escapeHtml(text ?? '');
+}
+function extractYoutubeId(url) {
+	const text = String(url || '').trim();
+	if (!text) return '';
+	if (/^[A-Za-z0-9_-]{11}$/.test(text)) return text;
+	const match = text.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{11})/i)
+		|| text.match(/[?&]v=([A-Za-z0-9_-]{11})/i);
+	return match ? String(match[1] || '') : '';
+}
+function normalizeYoutubeUrl(url) {
+	const id = extractYoutubeId(url);
+	return id ? ('https://www.youtube.com/watch?v=' + id) : '';
+}
+function buildEmbedUrl(url) {
+	const id = extractYoutubeId(url);
+	return id ? ('https://www.youtube-nocookie.com/embed/' + id) : '';
+}
+function withReferrer(url) {
+	try {
+		const parsed = new URL(String(url || '').trim(), window.location.origin);
+		parsed.searchParams.set('referrer', 'heavensgate');
+		return parsed.toString();
+	} catch (e) {
+		return String(url || '').trim();
+	}
 }
 </script>
 

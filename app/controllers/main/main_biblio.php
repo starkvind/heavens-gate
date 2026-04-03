@@ -1,23 +1,28 @@
-<?php setMetaFromPage("Bibliografía | Heaven's Gate", "Bibliografía y referencias de la campaña.", null, 'website'); ?>
-<?php include("app/partials/main_nav_bar.php"); // Barra Navegación ?>
+<?php setMetaFromPage("Bibliografia | Heaven's Gate", "Bibliografia y referencias de la campana.", null, 'website'); ?>
+<?php include_once(__DIR__ . '/../../helpers/public_response.php'); ?>
+<?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
 <link rel="stylesheet" href="/assets/css/hg-main.css">
 <h2>Bibliograf&iacute;a</h2>
 <fieldset class="grupoHabilidad">
     <?php
-    // Verificar si la conexión a la base de datos ($link) está definida y es válida
+    // Verificar si la conexion a la base de datos ($link) esta definida y es valida
     if (!$link) {
-        die("Error de conexión a la base de datos: " . mysqli_connect_error());
+        hg_public_log_error('main_biblio', 'missing DB connection');
+        hg_public_render_error('Bibliografia no disponible', 'No se pudo cargar la bibliografia en este momento.');
+        return;
     }
 
-    // Consulta para obtener la bibliografía ordenada por 'orden'
+    // Consulta para obtener la bibliografia ordenada por 'orden'
     $consulta = "SELECT id, name, year, description FROM dim_bibliographies ORDER BY sort_order";
     $IdConsulta = mysqli_query($link, $consulta);
 
     if (!$IdConsulta) {
-        die("Error en la consulta: " . mysqli_error($link));
+        hg_public_log_error('main_biblio', 'query failed: ' . mysqli_error($link));
+        hg_public_render_error('Bibliografia no disponible', 'No se pudo cargar la bibliografia en este momento.');
+        return;
     }
 
-    // Obtener el número de filas del resultado
+    // Obtener el numero de filas del resultado
     $NFilas = mysqli_num_rows($IdConsulta);
 
     // Recorrer los resultados de la consulta y mostrar los datos

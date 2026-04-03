@@ -1,4 +1,6 @@
 <?php
+include_once(__DIR__ . '/../../helpers/runtime_response.php');
+
 if (!function_exists('hg_sh_h')) {
     function hg_sh_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
@@ -105,8 +107,12 @@ $routeConfig = $seasonRouteConfigs[$routeKey] ?? $seasonRouteConfigs['seasons_ho
 setMetaFromPage($routeConfig['meta_title'], $routeConfig['meta_desc'], null, 'website');
 echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 
-if (!$link) {
-    die("Error de conexion a la base de datos: " . mysqli_connect_error());
+if (!hg_runtime_require_db($link, 'seasons_home', 'public', [
+    'title' => 'Archivo de temporadas no disponible',
+    'message' => 'No se pudo conectar a la base de datos.',
+    'include_nav' => true,
+])) {
+    return;
 }
 
 include("app/partials/main_nav_bar.php");

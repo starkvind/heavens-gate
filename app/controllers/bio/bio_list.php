@@ -1,14 +1,15 @@
 <?php
 setMetaFromPage("Biografías | Heaven's Gate", "Listado de biografías y personajes.", null, 'website');
-// Verificar la conexión a la base de datos
+include_once(__DIR__ . '/../../helpers/public_response.php');
+
 if (!$link) {
-    die("Error de conexión a la base de datos: " . mysqli_connect_error());
+    hg_public_log_error('bio_list', 'missing DB connection');
+    hg_public_render_error('Biografías no disponibles', 'No se pudo cargar el listado de biografías en este momento.');
+    return;
 }
 
-// Helper escape (mantengo estilo)
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-// Sanitiza lista tipo "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
 function sanitize_int_csv($csv){
     $csv = (string)$csv;
     if (trim($csv) === '') return '';
@@ -22,20 +23,14 @@ function sanitize_int_csv($csv){
     return implode(',', $ints);
 }
 
-// Excluir crónicas (si existe la variable, la sanitizamos)
 $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
 $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 
-// Orden Guay
-include("app/partials/main_nav_bar.php"); // Barra Navegación
+include("app/partials/main_nav_bar.php");
 echo "<h2>Biografías por tipo</h2>";
-
-// Imprimir el campo de biografías
 print("<fieldset class='grupoBioClan'>");
 
 $howMuch = 0;
-
-// Obtener todos los tipos de personaje
 $types = [];
 $queryType = "SELECT id, kind FROM dim_character_types ORDER BY sort_order";
 $resultType = mysqli_query($link, $queryType);
@@ -47,6 +42,11 @@ if ($resultType) {
         ];
     }
     mysqli_free_result($resultType);
+} else {
+    hg_public_log_error('bio_list', 'type query failed: ' . mysqli_error($link));
+    print("</fieldset>");
+    hg_public_render_error('Biografías no disponibles', 'No se pudo cargar el listado de biografías en este momento.');
+    return;
 }
 
 function renderTypesByColumn($link, $types, $typeCol, $cronicaNotInSQL){
@@ -59,7 +59,7 @@ function renderTypesByColumn($link, $types, $typeCol, $cronicaNotInSQL){
     ";
     $stmtCount = mysqli_prepare($link, $countQuery);
     if (!$stmtCount) {
-        return -1; // columna inexistente
+        return -1;
     }
 
     foreach ($types as $t) {
@@ -107,6 +107,5 @@ if (!empty($types)) {
 }
 
 print("</fieldset>");
-print("<p align='right'>Categorías: " . h($howMuch) . "</p>");
+print("<p align='right'>Categorias: " . h($howMuch) . "</p>");
 ?>
-

@@ -2,7 +2,7 @@
 
 include_once(__DIR__ . '/../../helpers/maps.php');
 
-hg_maps_require_connection($link);
+hg_maps_require_connection($link, true);
 
 if (function_exists('header_remove')) {
     @header_remove();

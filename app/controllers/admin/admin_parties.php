@@ -13,7 +13,8 @@
  *  - Incluyelo en tu zona admin (por ejemplo /talim?s=admin_parties).
  */
 
-if (!isset($link) || !$link) die("Sin conexion BD");
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
@@ -1081,7 +1082,7 @@ function openChanges(plotCharId){
       html += '<td>'+esc(p.sort_order || 0)+'</td>';
       html += '<td>';
       html += '<button class="btn js-plot-edit" type="button" data-id="'+id+'">Editar</button> ';
-      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+id+'">Anadir personaje</button> ';
+      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+id+'">Añadir personaje</button> ';
       html += '<button class="btn btn-ghost js-plot-scroll" type="button" data-id="'+id+'">Ver personajes</button>';
       html += '</td></tr>';
     });
@@ -1098,7 +1099,7 @@ function openChanges(plotCharId){
       html += '<h3>'+esc(p.name || '')+'</h3>';
       html += '<span class="badge">'+(active ? 'Activa' : 'Inactiva')+'</span>';
       html += '<span class="badge">Orden: '+esc(p.sort_order || 0)+'</span>';
-      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+pid+'">Anadir personaje</button>';
+      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+pid+'">Añadir personaje</button>';
       html += '</div>';
       html += '<table class="table"><thead><tr>'
         + '<th class="adm-w-60">ID</th><th>Alias</th><th>Base</th><th class="adm-w-80">Act.</th><th class="adm-w-420">Stats (base)</th><th class="adm-w-220">Acciones</th>'
