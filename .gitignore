@@ -108,5 +108,8 @@ app/tools/setup_character_docs_links_20260322.php
 app/helpers/admin_phase7_audit.php
 app/tools/phase7_integrity_audit.php
 app/tools/phase7_schema_hardening_20260403.php
+app/tools/phaseA_schema_prep_20260403.php
+app/tools/phaseB_schema_fk_20260403.php
+app/tools/phaseC_relations_arrows_20260403.php
 WEB_MEJORAS_IMPLEMENTADAS.txt
 TELEGRAM_BOT_BACKEND_GUIDE.md

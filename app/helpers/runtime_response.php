@@ -127,8 +127,10 @@ if (!function_exists('hg_runtime_require_db')) {
         $message = (string)($options['message'] ?? 'No se pudo conectar a la base de datos.');
         $status = (int)($options['status'] ?? 500);
         $includeNav = (bool)($options['include_nav'] ?? false);
+        $detail = mysqli_connect_error();
+        $detail = is_string($detail) ? $detail : '';
 
-        hg_runtime_log_error($context, mysqli_connect_error());
+        hg_runtime_log_error($context, $detail);
 
         switch ($mode) {
             case 'embed':

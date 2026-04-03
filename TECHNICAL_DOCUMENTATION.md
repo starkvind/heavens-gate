@@ -144,6 +144,40 @@ Segun `body_work.php`, estas rutas se sirven sin layout completo:
 
 Para integraciones internas esto es relevante porque son los puntos mas cercanos a una respuesta utilitaria o parcial.
 
+### 4.4 Restriccion deliberada sobre `app/` y patron para tools temporales
+
+El proyecto bloquea por `.htaccess` cualquier acceso web directo a `app/`.
+
+Regla relevante:
+
+- `RewriteRule ^app(?:/|$) index.php?p=error404 [L,NC,QSA]`
+
+Consecuencia practica:
+
+- cualquier fichero nuevo creado bajo `app/tools/` o `app/controllers/` no debe asumirse accesible por URL directa
+- si una tool temporal necesita abrirse desde navegador, debe cablearse por el front controller
+
+Patron vigente para exponer una tool web temporal:
+
+1. crear el fichero real en `app/tools/` o `app/controllers/tool/`
+2. dar de alta un `routeKey` en `app/bootstrap/body_work.php`
+3. si la salida debe renderizar HTML propio, marcar la ruta como bare
+4. anadir una regla amigable en `.htaccess` dentro del bloque `^tools/...`
+5. documentar expresamente que la ruta es temporal y candidata a borrado al cierre de fase
+
+Estado actual:
+
+- no hay tools temporales de esquema activas en este momento dentro del repo
+- cualquier tool futura de este tipo debe desmontarse al cerrar la tanda para no dejar rutas tecnicas expuestas innecesariamente
+
+Checklist de desmontaje al cerrar la fase:
+
+- borrar el fichero temporal de la tool
+- retirar la regla temporal correspondiente de `.htaccess`
+- retirar su `routeKey` temporal del router en `app/bootstrap/body_work.php`
+- retirar el flag bare asociado si ya no lo usa ninguna otra ruta
+- actualizar `WEB_MEJORAS_IMPLEMENTADAS.txt` para dejar constancia del borrado
+
 ## 5. Modelo de datos actual
 
 ### 5.1 Convenciones

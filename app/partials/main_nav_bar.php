@@ -3,8 +3,36 @@
 	<?php
 		// <p class="navegacion_secciones">
 		// include("app/partials/main_nav_bar.php");	// Barra Navegacion
+		$routeKey = isset($routeKey)
+			? (string)$routeKey
+			: (isset($GLOBALS['routeKey']) ? (string)$GLOBALS['routeKey'] : trim((string)($_GET['p'] ?? '')));
 		$pillSeparator = "&raquo;";
 		$systemSeresSobrenaturales = "<a href='/systems'> Seres sobrenaturales</a> $pillSeparator ";
+		$namePJ = isset($namePJ) ? (string)$namePJ : '';
+		$surnamePJ = isset($surnamePJ) ? (string)$surnamePJ : '';
+		$nombreTipo = isset($nombreTipo) ? (string)$nombreTipo : '';
+		$nameTipo = isset($nameTipo) ? (string)$nameTipo : '';
+		$bioName = isset($bioName) ? (string)$bioName : '';
+		$packNavLinks = isset($packNavLinks) ? (string)$packNavLinks : '';
+		$pageTitle2 = isset($pageTitle2) ? (string)$pageTitle2 : '';
+		$nameTemporada = isset($nameTemporada) ? (string)$nameTemporada : '';
+		$numeracionOK = isset($numeracionOK) ? (string)$numeracionOK : '';
+		$title = isset($title) ? (string)$title : '';
+		$titleDoc = isset($titleDoc) ? (string)$titleDoc : '';
+		$nameTypeBack = isset($nameTypeBack) ? (string)$nameTypeBack : '';
+		$itemName = isset($itemName) ? (string)$itemName : '';
+		$systemName = isset($systemName) ? (string)$systemName : '';
+		$returnType = isset($returnType) ? (string)$returnType : '';
+		$nameWereForm = isset($nameWereForm) ? (string)$nameWereForm : '';
+		$nameSyst = isset($nameSyst) ? (string)$nameSyst : '';
+		$nameSkill = isset($nameSkill) ? (string)$nameSkill : '';
+		$mafName = isset($mafName) ? (string)$mafName : '';
+		$maneName = isset($maneName) ? (string)$maneName : '';
+		$archeName = isset($archeName) ? (string)$archeName : '';
+		$routeLabel = isset($routeLabel) ? (string)$routeLabel : '';
+		$donName = isset($donName) ? (string)$donName : '';
+		$riteName = isset($riteName) ? (string)$riteName : '';
+		$totemName = isset($totemName) ? (string)$totemName : '';
 		$playerIdNav = isset($pjId) ? (int)$pjId : (isset($idPlayer) ? (int)$idPlayer : 0);
 		$bioIdNav = isset($bioId) ? (int)$bioId : (isset($characterId) ? (int)$characterId : 0);
 		$docIdNav = isset($docId) ? (int)$docId : (isset($idDoc) ? (int)$idDoc : 0);

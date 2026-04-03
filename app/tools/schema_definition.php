@@ -179,7 +179,7 @@ return array (
   `tag` varchar(100) DEFAULT NULL,
   `importance` int(11) DEFAULT 0,
   `description` text DEFAULT NULL,
-  `arrows` varchar(10) DEFAULT \'\',
+  `arrows` enum(\'\',\'to\',\'from\',\'to,from\') NOT NULL DEFAULT \'\',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
