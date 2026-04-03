@@ -123,6 +123,7 @@ function attach_chapter_characters(mysqli $link, int $chapterId, array $relation
 }
 $hasChapterSeasonId = true;
 $hasChapterParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
+$hasChapterBridgeId = ac_col_exists($link, 'bridge_chapters_characters', 'id');
 
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_chapters';
 if (function_exists('hg_admin_ensure_csrf_token')) {
@@ -164,23 +165,25 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($action === 'get_relations') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         $rows = [];
-        if ($chapterId > 0 && ($clean = $link->prepare("
-            DELETE b1
-            FROM bridge_chapters_characters b1
-            INNER JOIN bridge_chapters_characters b2
-                ON b1.chapter_id = b2.chapter_id
-               AND b1.character_id = b2.character_id
-               AND b1.id > b2.id
-            WHERE b1.chapter_id = ?
-        "))) {
-            $clean->bind_param('i', $chapterId);
-            $clean->execute();
-            $clean->close();
+        if ($hasChapterBridgeId) {
+            if ($chapterId > 0 && ($clean = $link->prepare("
+                DELETE b1
+                FROM bridge_chapters_characters b1
+                INNER JOIN bridge_chapters_characters b2
+                    ON b1.chapter_id = b2.chapter_id
+                   AND b1.character_id = b2.character_id
+                   AND b1.id > b2.id
+                WHERE b1.chapter_id = ?
+            "))) {
+                $clean->bind_param('i', $chapterId);
+                $clean->execute();
+                $clean->close();
+            }
         }
         $roleExpr = $hasChapterParticipationRole
             ? "COALESCE(NULLIF(TRIM(b.participation_role), ''), 'npc')"
             : "CASE WHEN c.character_kind = 'pj' THEN 'player' ELSE 'npc' END";
-        if ($chapterId > 0 && ($st = $link->prepare("SELECT b.id, b.character_id, c.name, ch.name AS chronicle_name, {$roleExpr} AS participation_role FROM bridge_chapters_characters b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id WHERE b.chapter_id = ? ORDER BY c.name ASC, c.id ASC"))) {
+        if ($chapterId > 0 && ($st = $link->prepare("SELECT b.character_id, c.name, ch.name AS chronicle_name, {$roleExpr} AS participation_role FROM bridge_chapters_characters b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id WHERE b.chapter_id = ? ORDER BY c.name ASC, c.id ASC"))) {
             $st->bind_param('i', $chapterId);
             $st->execute();
             $rs = $st->get_result();
@@ -197,19 +200,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $participationRole = normalize_participation_role($_POST['participation_role'] ?? 'npc');
         $ok = false;
         if ($chapterId > 0 && $characterId > 0) {
-            $existingRelId = 0;
-            if ($chk = $link->prepare('SELECT id FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ? LIMIT 1')) {
+            $exists = 0;
+            if ($chk = $link->prepare('SELECT COUNT(*) FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ?')) {
                 $chk->bind_param('ii', $chapterId, $characterId);
                 $chk->execute();
-                $rs = $chk->get_result();
-                $row = $rs ? $rs->fetch_assoc() : null;
-                $existingRelId = (int)($row['id'] ?? 0);
+                $chk->bind_result($exists);
+                $chk->fetch();
                 $chk->close();
             }
 
-            if ($existingRelId > 0) {
-                if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE id = ?'))) {
-                    $st->bind_param('si', $participationRole, $existingRelId);
+            if ($exists > 0) {
+                if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE chapter_id = ? AND character_id = ?'))) {
+                    $st->bind_param('sii', $participationRole, $chapterId, $characterId);
                     $ok = $st->execute();
                     $st->close();
                 } else {
@@ -232,12 +234,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     }
 
     if ($action === 'update_relation_role') {
-        $relId = (int)($_POST['rel_id'] ?? 0);
+        $chapterId = (int)($_POST['chapter_id'] ?? 0);
+        $characterId = (int)($_POST['character_id'] ?? 0);
         $participationRole = normalize_participation_role($_POST['participation_role'] ?? 'npc');
         $ok = false;
-        if ($relId > 0) {
-            if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE id = ?'))) {
-                $st->bind_param('si', $participationRole, $relId);
+        if ($chapterId > 0 && $characterId > 0) {
+            if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE chapter_id = ? AND character_id = ?'))) {
+                $st->bind_param('sii', $participationRole, $chapterId, $characterId);
                 $ok = $st->execute();
                 $st->close();
             } elseif (!$hasChapterParticipationRole) {
@@ -249,10 +252,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     }
 
     if ($action === 'del_relation') {
-        $relId = (int)($_POST['rel_id'] ?? 0);
+        $chapterId = (int)($_POST['chapter_id'] ?? 0);
+        $characterId = (int)($_POST['character_id'] ?? 0);
         $ok = false;
-        if ($relId > 0 && ($st = $link->prepare('DELETE FROM bridge_chapters_characters WHERE id = ?'))) {
-            $st->bind_param('i', $relId);
+        if ($chapterId > 0 && $characterId > 0 && ($st = $link->prepare('DELETE FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ?'))) {
+            $st->bind_param('ii', $chapterId, $characterId);
             $ok = $st->execute();
             $st->close();
         }
@@ -745,8 +749,8 @@ async function loadRelations(){
         let html = '<ul class="adm-ul-reset">';
         for (const rel of data.data) {
             const chron = rel.chronicle_name ? ` - "${rel.chronicle_name}"` : '';
-            const roleSel = relationRoleSelectHtml(rel.participation_role, `changeRelationRole(${Number(rel.id)}, this.value)`, !hasChapterParticipationRole);
-            html += `<li class="adm-flex-8-mb8">${esc(rel.name)} (#${Number(rel.character_id)}${esc(chron)}) ${roleSel} <span class="small">${esc(participationRoleLabel(rel.participation_role))}</span> <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removeRelation(${Number(rel.id)})">Quitar</button></li>`;
+            const roleSel = relationRoleSelectHtml(rel.participation_role, `changeRelationRole(${Number(rel.character_id)}, this.value)`, !hasChapterParticipationRole);
+            html += `<li class="adm-flex-8-mb8">${esc(rel.name)} (#${Number(rel.character_id)}${esc(chron)}) ${roleSel} <span class="small">${esc(participationRoleLabel(rel.participation_role))}</span> <button class="btn btn-red adm-pad-2-6-fs10" type="button" onclick="removeRelation(${Number(rel.character_id)})">Quitar</button></li>`;
         }
         html += '</ul>';
         box.innerHTML = html;
@@ -798,19 +802,19 @@ function removePendingRelation(characterId){
     renderPendingRelations();
 }
 
-async function changeRelationRole(relId, role){
+async function changeRelationRole(characterId, role){
     if (!hasChapterParticipationRole) return;
     try {
-        const data = await postAjax({ action: 'update_relation_role', rel_id: relId, participation_role: normalizeParticipationRole(role) });
+        const data = await postAjax({ action: 'update_relation_role', chapter_id: currentId, character_id: characterId, participation_role: normalizeParticipationRole(role) });
         if (data.ok) loadRelations();
     } catch (e) {
         loadRelations();
     }
 }
 
-async function removeRelation(relId){
+async function removeRelation(characterId){
     try {
-        const data = await postAjax({ action: 'del_relation', rel_id: relId });
+        const data = await postAjax({ action: 'del_relation', chapter_id: currentId, character_id: characterId });
         if (data.ok) loadRelations();
     } catch (e) {
         // no-op

@@ -6,6 +6,7 @@
 
 require_once(__DIR__ . "/../helpers/runtime_response.php");
 require_once(__DIR__ . "/../helpers/db_connection.php");
+require_once(__DIR__ . "/../helpers/pretty.php");
 
 /* ---------- CONFIGURACIÓN ---------- */
 
@@ -84,6 +85,379 @@ function ends_with($haystack, $needle) {
     return substr($haystack, -$length) === $needle;
 }
 
+function table_exists(mysqli $link, string $table): bool
+{
+    if (function_exists('hg_table_exists')) {
+        return hg_table_exists($link, $table);
+    }
+
+    $stmt = $link->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+    ");
+    if (!$stmt) return false;
+
+    $count = 0;
+    $stmt->bind_param('s', $table);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+
+    return ((int)$count > 0);
+}
+
+function inspect_scalar(mysqli $link, string $sql): int
+{
+    $rs = $link->query($sql);
+    if (!$rs) return 0;
+
+    $row = $rs->fetch_row();
+    $rs->free();
+    return (int)($row[0] ?? 0);
+}
+
+function table_has_column(mysqli $link, string $table, string $column): bool
+{
+    if (function_exists('hg_table_has_column')) {
+        return hg_table_has_column($link, $table, $column);
+    }
+
+    $stmt = $link->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+    ");
+    if (!$stmt) return false;
+
+    $count = 0;
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+
+    return ((int)$count > 0);
+}
+
+function inspect_fk_count(mysqli $link, string $table): int
+{
+    $stmt = $link->prepare("
+        SELECT COUNT(DISTINCT CONSTRAINT_NAME)
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND REFERENCED_TABLE_NAME IS NOT NULL
+    ");
+    if (!$stmt) return 0;
+
+    $count = 0;
+    $stmt->bind_param('s', $table);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+
+    return (int)$count;
+}
+
+function inspect_unique_count(mysqli $link): int
+{
+    return inspect_scalar($link, "
+        SELECT COUNT(*)
+        FROM (
+            SELECT DISTINCT TABLE_NAME, INDEX_NAME
+            FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND NON_UNIQUE = 0
+              AND INDEX_NAME <> 'PRIMARY'
+        ) t
+    ");
+}
+
+function inspect_health_summary(mysqli $link): array
+{
+    $summary = [
+        'tables' => inspect_scalar($link, "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'"),
+        'fks' => inspect_scalar($link, "
+            SELECT COUNT(*)
+            FROM (
+                SELECT DISTINCT TABLE_NAME, CONSTRAINT_NAME
+                FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND REFERENCED_TABLE_NAME IS NOT NULL
+            ) t
+        "),
+        'unique_indexes' => inspect_unique_count($link),
+        'chapters_zero_dates' => table_exists($link, 'dim_chapters')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM dim_chapters WHERE played_date = '0000-00-00'")
+            : 0,
+        'comments_zero_dates' => table_exists($link, 'fact_characters_comments')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_characters_comments WHERE commented_at = '0000-00-00'")
+            : 0,
+        'nature_zero' => table_exists($link, 'fact_characters')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_characters WHERE nature_id = 0")
+            : 0,
+        'demeanor_zero' => table_exists($link, 'fact_characters')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_characters WHERE demeanor_id = 0")
+            : 0,
+        'nature_null' => table_exists($link, 'fact_characters')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_characters WHERE nature_id IS NULL")
+            : 0,
+        'demeanor_null' => table_exists($link, 'fact_characters')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_characters WHERE demeanor_id IS NULL")
+            : 0,
+        'groups_zero_totem' => table_exists($link, 'dim_groups')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM dim_groups WHERE totem_id = 0")
+            : 0,
+        'organizations_zero_totem' => table_exists($link, 'dim_organizations')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM dim_organizations WHERE totem_id = 0")
+            : 0,
+        'bcc_orphans' => table_exists($link, 'bridge_chapters_characters')
+            ? inspect_scalar($link, "
+                SELECT COUNT(*)
+                FROM bridge_chapters_characters b
+                LEFT JOIN dim_chapters c ON c.id = b.chapter_id
+                LEFT JOIN fact_characters f ON f.id = b.character_id
+                WHERE c.id IS NULL OR f.id IS NULL
+            ")
+            : 0,
+        'bog_orphans' => table_exists($link, 'bridge_organizations_groups')
+            ? inspect_scalar($link, "
+                SELECT COUNT(*)
+                FROM bridge_organizations_groups b
+                LEFT JOIN dim_organizations o ON o.id = b.organization_id
+                LEFT JOIN dim_groups g ON g.id = b.group_id
+                WHERE o.id IS NULL OR g.id IS NULL
+            ")
+            : 0,
+        'relations_orphans' => table_exists($link, 'bridge_characters_relations')
+            ? inspect_scalar($link, "
+                SELECT COUNT(*)
+                FROM bridge_characters_relations r
+                LEFT JOIN fact_characters s ON s.id = r.source_id
+                LEFT JOIN fact_characters t ON t.id = r.target_id
+                WHERE s.id IS NULL OR t.id IS NULL
+            ")
+            : 0,
+        'pretty_aliases' => table_exists($link, 'fact_pretty_id_aliases')
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_pretty_id_aliases")
+            : 0,
+        'csp_normalized' => (
+            table_exists($link, 'fact_csp_posts')
+            && table_has_column($link, 'fact_csp_posts', 'posted_date')
+            && table_has_column($link, 'fact_csp_posts', 'posted_time')
+        )
+            ? inspect_scalar($link, "SELECT COUNT(*) FROM fact_csp_posts WHERE posted_date IS NOT NULL OR posted_time IS NOT NULL")
+            : 0,
+        'tracked' => [],
+    ];
+
+    foreach ([
+        'fact_characters_comments',
+        'dim_groups',
+        'dim_organizations',
+        'bridge_chapters_characters',
+        'bridge_organizations_groups',
+        'bridge_characters_relations',
+    ] as $table) {
+        if (!table_exists($link, $table)) continue;
+        $summary['tracked'][$table] = inspect_fk_count($link, $table);
+    }
+
+    return $summary;
+}
+
+function inspect_one_assoc(mysqli $link, string $sql): ?array
+{
+    $rs = $link->query($sql);
+    if (!$rs) return null;
+
+    $row = $rs->fetch_assoc();
+    $rs->free();
+
+    return $row ?: null;
+}
+
+function inspect_fake_empties_summary(mysqli $link): array
+{
+    $checks = [
+        [
+            'label' => 'bridge_characters_groups.position',
+            'table' => 'bridge_characters_groups',
+            'column' => 'position',
+            'note' => 'Cargo o posicion editorial en la relacion personaje/grupo.',
+        ],
+        [
+            'label' => 'bridge_characters_organizations.role',
+            'table' => 'bridge_characters_organizations',
+            'column' => 'role',
+            'note' => 'Rol editorial en la relacion personaje/organizacion.',
+        ],
+        [
+            'label' => 'fact_characters.image_url',
+            'table' => 'fact_characters',
+            'column' => 'image_url',
+            'note' => 'Avatar o imagen publica del personaje.',
+        ],
+        [
+            'label' => 'fact_characters.text_color',
+            'table' => 'fact_characters',
+            'column' => 'text_color',
+            'note' => 'Color editorial asociado al personaje.',
+        ],
+        [
+            'label' => 'bridge_systems_detail_labels.label_misc',
+            'table' => 'bridge_systems_detail_labels',
+            'column' => 'label_misc',
+            'note' => 'Etiqueta editorial libre por sistema.',
+        ],
+        [
+            'label' => 'bridge_characters_system_resources_log.source',
+            'table' => 'bridge_characters_system_resources_log',
+            'column' => 'source',
+            'note' => 'Origen del apunte de recursos del sistema.',
+        ],
+    ];
+
+    $summary = [
+        'total_empty' => 0,
+        'checked_fields' => 0,
+        'rows' => [],
+    ];
+
+    foreach ($checks as $check) {
+        if (!table_exists($link, $check['table']) || !table_has_column($link, $check['table'], $check['column'])) {
+            continue;
+        }
+
+        $table = $check['table'];
+        $column = $check['column'];
+        $count = inspect_scalar(
+            $link,
+            "SELECT COUNT(*) FROM `{$table}` WHERE TRIM(COALESCE(`{$column}`, '')) = ''"
+        );
+
+        $summary['checked_fields']++;
+        $summary['total_empty'] += $count;
+        $summary['rows'][] = [
+            'label' => $check['label'],
+            'count' => $count,
+            'note' => $check['note'],
+        ];
+    }
+
+    return $summary;
+}
+
+function inspect_birthdate_text_summary(mysqli $link): array
+{
+    $summary = [
+        'total' => 0,
+        'empty' => 0,
+        'unknown' => 0,
+        'iso' => 0,
+        'spanish' => 0,
+        'narrative' => 0,
+        'other' => 0,
+    ];
+
+    if (!table_exists($link, 'fact_characters') || !table_has_column($link, 'fact_characters', 'birthdate_text')) {
+        return $summary;
+    }
+
+    $row = inspect_one_assoc($link, "
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN TRIM(COALESCE(birthdate_text, '')) = '' THEN 1 ELSE 0 END) AS empty_count,
+            SUM(CASE WHEN LOWER(TRIM(COALESCE(birthdate_text, ''))) IN ('desconocido', 'unknown', 'n/a', 'no consta') THEN 1 ELSE 0 END) AS unknown_count,
+            SUM(CASE WHEN TRIM(COALESCE(birthdate_text, '')) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN 1 ELSE 0 END) AS iso_count,
+            SUM(CASE WHEN TRIM(COALESCE(birthdate_text, '')) REGEXP '^[0-9]{2}/[0-9]{2}/[0-9]{4}$' THEN 1 ELSE 0 END) AS spanish_count,
+            SUM(CASE
+                WHEN TRIM(COALESCE(birthdate_text, '')) <> ''
+                 AND LOWER(TRIM(COALESCE(birthdate_text, ''))) NOT IN ('desconocido', 'unknown', 'n/a', 'no consta')
+                 AND TRIM(COALESCE(birthdate_text, '')) NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                 AND TRIM(COALESCE(birthdate_text, '')) NOT REGEXP '^[0-9]{2}/[0-9]{2}/[0-9]{4}$'
+                 AND TRIM(COALESCE(birthdate_text, '')) REGEXP '[[:alpha:]]'
+                THEN 1 ELSE 0 END
+            ) AS narrative_count
+        FROM fact_characters
+    ");
+
+    if (!$row) {
+        return $summary;
+    }
+
+    $summary['total'] = (int)($row['total'] ?? 0);
+    $summary['empty'] = (int)($row['empty_count'] ?? 0);
+    $summary['unknown'] = (int)($row['unknown_count'] ?? 0);
+    $summary['iso'] = (int)($row['iso_count'] ?? 0);
+    $summary['spanish'] = (int)($row['spanish_count'] ?? 0);
+    $summary['narrative'] = (int)($row['narrative_count'] ?? 0);
+    $summary['other'] = max(
+        0,
+        $summary['total']
+        - $summary['empty']
+        - $summary['unknown']
+        - $summary['iso']
+        - $summary['spanish']
+        - $summary['narrative']
+    );
+
+    return $summary;
+}
+
+function inspect_editorial_content_summary(mysqli $link): array
+{
+    $summary = [
+        'gift_empty_description' => 0,
+        'gift_empty_mechanics' => 0,
+        'gift_possible_mojibake' => 0,
+        'lanza_de_hielo' => null,
+    ];
+
+    if (!table_exists($link, 'fact_gifts')) {
+        return $summary;
+    }
+
+    $summary['gift_empty_description'] = inspect_scalar(
+        $link,
+        "SELECT COUNT(*) FROM fact_gifts WHERE TRIM(COALESCE(description, '')) = ''"
+    );
+    $summary['gift_empty_mechanics'] = inspect_scalar(
+        $link,
+        "SELECT COUNT(*) FROM fact_gifts WHERE TRIM(COALESCE(mechanics_text, '')) = ''"
+    );
+    $summary['gift_possible_mojibake'] = inspect_scalar(
+        $link,
+        "SELECT COUNT(*) FROM fact_gifts WHERE name LIKE '%Ã%' OR description LIKE '%Ã%' OR mechanics_text LIKE '%Ã%'"
+    );
+
+    $summary['lanza_de_hielo'] = inspect_one_assoc($link, "
+        SELECT
+            id,
+            name,
+            pretty_id,
+            CHAR_LENGTH(TRIM(COALESCE(description, ''))) AS description_len,
+            CHAR_LENGTH(TRIM(COALESCE(mechanics_text, ''))) AS mechanics_len,
+            CASE WHEN TRIM(COALESCE(description, '')) = '' THEN 1 ELSE 0 END AS description_empty,
+            CASE WHEN TRIM(COALESCE(mechanics_text, '')) = '' THEN 1 ELSE 0 END AS mechanics_empty,
+            CASE WHEN description = mechanics_text AND TRIM(COALESCE(description, '')) <> '' THEN 1 ELSE 0 END AS duplicated_blocks,
+            CASE WHEN name LIKE '%Ã%' OR description LIKE '%Ã%' OR mechanics_text LIKE '%Ã%' THEN 1 ELSE 0 END AS possible_mojibake,
+            updated_at
+        FROM fact_gifts
+        WHERE name = 'Lanza de Hielo' OR pretty_id = 'lanza-de-hielo'
+        ORDER BY id ASC
+        LIMIT 1
+    ");
+
+    return $summary;
+}
+
 /* ---------- ejecución ---------- */
 
 // Modo: full (tablas + columnas + muestra) / schema (solo tablas + columnas)
@@ -115,6 +489,89 @@ echo "========================================\n\n";
 if ($encConn !== '' || $encDb !== '') {
     echo "Codificación conexión: " . $encConn . "\n";
     echo "Codificación BDD: " . $encDb . "\n\n";
+}
+
+$health = inspect_health_summary($link);
+$fakeEmpties = inspect_fake_empties_summary($link);
+$birthdateSummary = inspect_birthdate_text_summary($link);
+$editorialSummary = inspect_editorial_content_summary($link);
+echo "========================================\n";
+echo " ESTADO DE SALUD DE LA BDD\n";
+echo "========================================\n";
+echo "- Tablas base: " . $health['tables'] . "\n";
+echo "- Foreign keys reales: " . $health['fks'] . "\n";
+echo "- UNIQUEs no primarias: " . $health['unique_indexes'] . "\n";
+echo "- pretty_id aliases preservados: " . $health['pretty_aliases'] . "\n";
+echo "- fact_csp_posts normalizados en posted_date/posted_time: " . $health['csp_normalized'] . "\n\n";
+echo "[Sentinelas saneados]\n";
+echo "- dim_chapters.played_date = 0000-00-00: " . $health['chapters_zero_dates'] . "\n";
+echo "- fact_characters_comments.commented_at = 0000-00-00: " . $health['comments_zero_dates'] . "\n";
+echo "- fact_characters.nature_id = 0: " . $health['nature_zero'] . "\n";
+echo "- fact_characters.demeanor_id = 0: " . $health['demeanor_zero'] . "\n";
+echo "- dim_groups.totem_id = 0: " . $health['groups_zero_totem'] . "\n";
+echo "- dim_organizations.totem_id = 0: " . $health['organizations_zero_totem'] . "\n\n";
+echo "[Campos opcionales reales]\n";
+echo "- fact_characters con nature_id NULL: " . $health['nature_null'] . "\n";
+echo "- fact_characters con demeanor_id NULL: " . $health['demeanor_null'] . "\n\n";
+echo "[Puentes e integridad]\n";
+echo "- bridge_chapters_characters huerfanos: " . $health['bcc_orphans'] . "\n";
+echo "- bridge_organizations_groups huerfanos: " . $health['bog_orphans'] . "\n";
+echo "- bridge_characters_relations huerfanos: " . $health['relations_orphans'] . "\n";
+foreach ($health['tracked'] as $table => $fkCount) {
+    echo "- {$table} foreign keys activas: {$fkCount}\n";
+}
+echo "\n";
+echo "[Vacios fingidos auditados]\n";
+echo "- Campos vigilados: " . $fakeEmpties['checked_fields'] . "\n";
+echo "- Filas con '' en campos NOT NULL seleccionados: " . $fakeEmpties['total_empty'] . "\n";
+foreach ($fakeEmpties['rows'] as $row) {
+    echo "- {$row['label']}: {$row['count']} vacios | {$row['note']}\n";
+}
+echo "\n";
+echo "[birthdate_text en fact_characters]\n";
+echo "- Total de personajes auditados: " . $birthdateSummary['total'] . "\n";
+echo "- ISO yyyy-mm-dd: " . $birthdateSummary['iso'] . "\n";
+echo "- Formato espanol dd/mm/yyyy: " . $birthdateSummary['spanish'] . "\n";
+echo "- Narrativo o libre: " . $birthdateSummary['narrative'] . "\n";
+echo "- Desconocido o equivalente: " . $birthdateSummary['unknown'] . "\n";
+echo "- Vacio real: " . $birthdateSummary['empty'] . "\n";
+echo "- Otros formatos mixtos: " . $birthdateSummary['other'] . "\n\n";
+echo "[Revision editorial localizada]\n";
+echo "- Dones con descripcion vacia: " . $editorialSummary['gift_empty_description'] . "\n";
+echo "- Dones con mechanics_text vacio: " . $editorialSummary['gift_empty_mechanics'] . "\n";
+echo "- Dones con posible mojibake visible: " . $editorialSummary['gift_possible_mojibake'] . "\n";
+if (is_array($editorialSummary['lanza_de_hielo'])) {
+    $lanza = $editorialSummary['lanza_de_hielo'];
+    echo "- Lanza de Hielo (#" . (int)$lanza['id'] . "): descripcion="
+        . (int)$lanza['description_len']
+        . " chars, mechanics="
+        . (int)$lanza['mechanics_len']
+        . " chars, bloques_duplicados="
+        . (int)$lanza['duplicated_blocks']
+        . ", mojibake="
+        . (int)$lanza['possible_mojibake']
+        . ", updated_at="
+        . ($lanza['updated_at'] ?? 'NULL')
+        . "\n";
+} else {
+    echo "- Lanza de Hielo: no localizada en fact_gifts.\n";
+}
+echo "\n";
+echo "[Lectura rapida]\n";
+if (
+    $health['chapters_zero_dates'] === 0
+    && $health['comments_zero_dates'] === 0
+    && $health['nature_zero'] === 0
+    && $health['demeanor_zero'] === 0
+    && $health['groups_zero_totem'] === 0
+    && $health['organizations_zero_totem'] === 0
+    && $health['bcc_orphans'] === 0
+    && $health['bog_orphans'] === 0
+    && $health['relations_orphans'] === 0
+) {
+    echo "- La BDD ha quedado claramente mas saneada: sin sentinelas legacy gordos en zonas clave y con puentes principales ya blindados.\n\n";
+} else {
+    echo "- Queda deuda localizada, pero esta seccion resume exactamente donde mirar.\n\n";
 }
 
 $resTables = mysqli_query($link, "SHOW TABLES");

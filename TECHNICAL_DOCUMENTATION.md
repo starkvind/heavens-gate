@@ -591,9 +591,17 @@ Limites deliberados:
 
 Tambien se han alineado con el runtime actual:
 
-- `app/tools/generate_pretty_ids.php`
+- `app/controllers/tool/schema_sanitizer.php`
 - `app/tools/inspect_db.php`
 - `app/tools/forum_topic_viewer_tool.php`
+
+Notas importantes tras el saneado:
+
+- `nature_id` y `demeanor_id` en `fact_characters` ya son opcionales reales y el valor canonico cuando no aplica es `NULL`, no `0`
+- la politica de `pretty_id` ya no consiste en regenerar slugs en bruto: ahora el runtime resuelve aliases historicos en `fact_pretty_id_aliases`
+- `app/tools/generate_pretty_ids.php` queda como legado retirado; no es la via valida para normalizar slugs ni para preservar URLs antiguas
+- la via operativa para saneados estructurales y editoriales de bajo riesgo es `/tools/schema-sanitizer`
+- `app/tools/inspect_db.php` ahora incluye una lectura de salud, auditoria ligera de vacios fingidos, clasificacion de `birthdate_text` y revision editorial localizada
 
 ## 9. Seguridad y hardening operativo
 
@@ -611,8 +619,8 @@ Si se despliega en un servidor que no respeta `.htaccess`, esos bloqueos deben r
 
 Antes de documentar o tocar datos, asumir siempre:
 
-1. el dump de referencia actual es `dump-u807926597_hg-202604031114.sql`
+1. el dump de referencia actual es `dump-u807926597_hg-202604032133.sql`
 2. el routing real sale de `.htaccess` y `app/bootstrap/body_work.php`
-3. la politica de `pretty_id` ya no es uniforme para todas las tablas
+3. la politica de `pretty_id` pasa por slugs canonicos + aliases historicos; no usar `generate_pretty_ids.php` como herramienta operativa
 4. `dim_soundtracks` y `bridge_soundtrack_links` tienen reglas especiales respecto a slugs e integridad
 5. cualquier guia antigua que cite rutas de timeline bajo `app/controllers/timeline/` esta desfasada

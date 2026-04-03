@@ -33,124 +33,110 @@ return array (
     array (
       'name' => 'bridge_chapters_characters',
       'create_sql' => 'CREATE TABLE `bridge_chapters_characters` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `chapter_id` int(10) unsigned NOT NULL,
   `character_id` int(10) unsigned NOT NULL,
   `participation_role` enum(\'npc\',\'player\') NOT NULL DEFAULT \'npc\',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_capitulo` (`chapter_id`),
+  PRIMARY KEY (`chapter_id`,`character_id`),
   KEY `id_personaje` (`character_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=766 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     2 => 
     array (
       'name' => 'bridge_characters_docs',
       'create_sql' => 'CREATE TABLE `bridge_characters_docs` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `character_id` int(10) unsigned NOT NULL,
   `doc_id` int(10) unsigned NOT NULL,
   `relation_label` varchar(120) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_bcd_character_doc` (`character_id`,`doc_id`),
+  PRIMARY KEY (`character_id`,`doc_id`),
   KEY `idx_bcd_doc` (`doc_id`),
   KEY `idx_bcd_character_sort` (`character_id`,`sort_order`),
   CONSTRAINT `fk_bcd_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bcd_doc` FOREIGN KEY (`doc_id`) REFERENCES `fact_docs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     3 => 
     array (
       'name' => 'bridge_characters_external_links',
       'create_sql' => 'CREATE TABLE `bridge_characters_external_links` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `character_id` int(10) unsigned NOT NULL,
   `external_link_id` int(10) unsigned NOT NULL,
   `relation_label` varchar(120) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_bcel_character_link` (`character_id`,`external_link_id`),
+  PRIMARY KEY (`character_id`,`external_link_id`),
   KEY `idx_bcel_external_link` (`external_link_id`),
   KEY `idx_bcel_character_sort` (`character_id`,`sort_order`),
   CONSTRAINT `fk_bcel_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bcel_external_link` FOREIGN KEY (`external_link_id`) REFERENCES `fact_external_links` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     4 => 
     array (
       'name' => 'bridge_characters_groups',
       'create_sql' => 'CREATE TABLE `bridge_characters_groups` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `character_id` int(10) unsigned NOT NULL,
   `group_id` int(10) unsigned NOT NULL,
   `position` varchar(100) NOT NULL DEFAULT \'\',
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_char_group` (`character_id`,`group_id`),
+  PRIMARY KEY (`character_id`,`group_id`),
   KEY `fk_bcg_group` (`group_id`),
   CONSTRAINT `fk_bcg_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bcg_group` FOREIGN KEY (`group_id`) REFERENCES `dim_groups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=579 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     5 => 
     array (
       'name' => 'bridge_characters_items',
       'create_sql' => 'CREATE TABLE `bridge_characters_items` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `character_id` int(10) unsigned NOT NULL,
   `item_id` int(10) unsigned NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_personaje` (`character_id`),
+  PRIMARY KEY (`character_id`,`item_id`),
   KEY `idx_objeto` (`item_id`),
   CONSTRAINT `fk_bci_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bci_item` FOREIGN KEY (`item_id`) REFERENCES `fact_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=249 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     6 => 
     array (
       'name' => 'bridge_characters_merits_flaws',
       'create_sql' => 'CREATE TABLE `bridge_characters_merits_flaws` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `character_id` int(10) unsigned NOT NULL,
   `merit_flaw_id` int(10) unsigned NOT NULL,
   `level` tinyint(2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_personaje` (`character_id`),
+  PRIMARY KEY (`character_id`,`merit_flaw_id`),
   KEY `idx_mer_y_def` (`merit_flaw_id`),
   CONSTRAINT `fk_bcmf_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bcmf_merit_flaw` FOREIGN KEY (`merit_flaw_id`) REFERENCES `dim_merits_flaws` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=627 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     7 => 
     array (
       'name' => 'bridge_characters_organizations',
       'create_sql' => 'CREATE TABLE `bridge_characters_organizations` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `character_id` int(10) unsigned NOT NULL,
   `organization_id` int(10) unsigned NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `role` varchar(100) NOT NULL DEFAULT \'\',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_char_clan` (`character_id`,`organization_id`),
+  PRIMARY KEY (`character_id`,`organization_id`),
   KEY `idx_hccb_char_active` (`character_id`,`is_active`),
   KEY `idx_hccb_clan` (`organization_id`),
   CONSTRAINT `fk_bco_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bco_organization` FOREIGN KEY (`organization_id`) REFERENCES `dim_organizations` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=563 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     8 => 
     array (
@@ -267,16 +253,14 @@ return array (
     array (
       'name' => 'bridge_organizations_groups',
       'create_sql' => 'CREATE TABLE `bridge_organizations_groups` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `organization_id` int(10) unsigned NOT NULL,
   `group_id` int(10) unsigned NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_clan_group` (`organization_id`,`group_id`),
+  PRIMARY KEY (`organization_id`,`group_id`),
   KEY `group_id` (`group_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     15 => 
     array (
@@ -1136,9 +1120,8 @@ return array (
   `breed_id` int(10) unsigned NOT NULL,
   `auspice_id` int(10) unsigned NOT NULL,
   `tribe_id` int(10) unsigned NOT NULL,
-  `nature_id` int(10) unsigned NOT NULL,
-  `demeanor_id` int(10) unsigned NOT NULL,
-  `birthdate_text` varchar(50) NOT NULL DEFAULT \'Desconocido\',
+  `nature_id` int(10) unsigned DEFAULT NULL,
+  `demeanor_id` int(10) unsigned DEFAULT NULL,
   `rank` varchar(30) NOT NULL DEFAULT \'\',
   `image_url` varchar(600) NOT NULL,
   `text_color` varchar(100) NOT NULL DEFAULT \'SkyBlue\',

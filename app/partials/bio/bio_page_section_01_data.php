@@ -116,7 +116,7 @@ $sql = "
   SELECT cgb.group_id
   FROM bridge_characters_groups AS cgb
   WHERE cgb.character_id = ? AND cgb.is_active = 1
-  ORDER BY cgb.id DESC
+  ORDER BY cgb.updated_at DESC, cgb.created_at DESC, cgb.group_id DESC
   LIMIT 1
 ";
 if ($stmt = mysqli_prepare($link, $sql)) {
@@ -140,7 +140,7 @@ if ($bioPack > 0) {
       SELECT cgb2.organization_id
       FROM bridge_organizations_groups AS cgb2
       WHERE cgb2.group_id = ? AND cgb2.is_active = 1
-      ORDER BY cgb2.id DESC
+      ORDER BY cgb2.updated_at DESC, cgb2.created_at DESC, cgb2.organization_id DESC
       LIMIT 1
     ";
     if ($stmt = mysqli_prepare($link, $sql)) {
@@ -158,7 +158,7 @@ if ($bioClan === 0) {
       SELECT h.organization_id
       FROM bridge_characters_organizations h
       WHERE h.character_id = ? AND h.is_active = 1
-      ORDER BY h.id DESC
+      ORDER BY h.updated_at DESC, h.created_at DESC, h.organization_id DESC
       LIMIT 1
     ";
     if ($stmt = mysqli_prepare($link, $sql)) {
@@ -374,55 +374,160 @@ if (!function_exists('hg_bio_event_date_label')) {
     }
 }
 
-$bioBday = '';
-$canUseTimelineBirthdays =
-    isset($characterId) &&
-    hg_bio_timeline_table_exists($link, 'bridge_timeline_events_characters') &&
-    hg_bio_timeline_table_exists($link, 'fact_timeline_events');
-
-if ($canUseTimelineBirthdays) {
-    $hasTypeTable = hg_bio_timeline_table_exists($link, 'dim_timeline_events_types');
-    $hasEventTypeId = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'event_type_id');
-    $joinTypes = ($hasTypeTable && $hasEventTypeId) ? 'LEFT JOIN dim_timeline_events_types tet ON tet.id = e.event_type_id' : '';
-    $matchType = ($hasTypeTable && $hasEventTypeId)
-        ? "(tet.pretty_id = 'nacimiento' OR e.kind = 'nacimiento')"
-        : "e.kind = 'nacimiento'";
-    $datePrecisionExpr = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'date_precision') ? 'e.date_precision' : "'day'";
-    $dateNoteExpr = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'date_note') ? 'e.date_note' : 'NULL';
-    $sortDateExpr = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'sort_date')
-        ? 'COALESCE(e.sort_date, e.event_date)'
-        : 'e.event_date';
-    $activeCond = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'is_active') ? 'AND e.is_active = 1' : '';
-
-    $sqlBirthday = "
-        SELECT
-            e.event_date,
-            {$datePrecisionExpr} AS date_precision,
-            {$dateNoteExpr} AS date_note
-        FROM bridge_timeline_events_characters bec
-        INNER JOIN fact_timeline_events e ON e.id = bec.event_id
-        {$joinTypes}
-        WHERE bec.character_id = ?
-          {$activeCond}
-          AND {$matchType}
-        ORDER BY {$sortDateExpr} ASC, e.id ASC
-        LIMIT 1
-    ";
-
-    if ($stBirthday = $link->prepare($sqlBirthday)) {
-        $stBirthday->bind_param('i', $characterId);
-        $stBirthday->execute();
-        $rsBirthday = $stBirthday->get_result();
-        if ($rsBirthday && ($rowBirthday = $rsBirthday->fetch_assoc())) {
-            $bioBday = hg_bio_event_date_label(
-                (string)($rowBirthday['event_date'] ?? ''),
-                (string)($rowBirthday['date_precision'] ?? 'day'),
-                (string)($rowBirthday['date_note'] ?? '')
-            );
+if (!function_exists('hg_bio_fetch_birth_label')) {
+    function hg_bio_fetch_birth_data(mysqli $link, int $characterId): array {
+        if (
+            $characterId <= 0 ||
+            !hg_bio_timeline_table_exists($link, 'fact_timeline_events') ||
+            !hg_bio_timeline_table_exists($link, 'bridge_timeline_events_characters')
+        ) {
+            return [
+                'label' => 'Desconocido',
+                'event_date' => '',
+                'date_precision' => 'unknown',
+                'date_note' => '',
+            ];
         }
-        $stBirthday->close();
+
+        $hasTypeTable = hg_bio_timeline_table_exists($link, 'dim_timeline_events_types');
+        $hasEventTypeId = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'event_type_id');
+        $hasKind = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'kind');
+        $hasPretty = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'pretty_id');
+        $hasPrecision = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'date_precision');
+        $hasNote = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'date_note');
+        $hasSortDate = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'sort_date');
+        $hasActive = hg_bio_timeline_col_exists($link, 'fact_timeline_events', 'is_active');
+
+        $datePrecisionExpr = $hasPrecision ? 'e.date_precision' : "'day'";
+        $dateNoteExpr = $hasNote ? 'e.date_note' : 'NULL';
+        $sortDateExpr = $hasSortDate ? 'COALESCE(e.sort_date, e.event_date)' : 'e.event_date';
+        $joinTypes = ($hasTypeTable && $hasEventTypeId) ? 'LEFT JOIN dim_timeline_events_types tet ON tet.id = e.event_type_id' : '';
+        $activeCond = $hasActive ? 'AND e.is_active = 1' : '';
+
+        $prettyId = 'birthday-char-' . $characterId;
+        $prettyIdSql = "'" . mysqli_real_escape_string($link, $prettyId) . "'";
+        $whereParts = [];
+        if ($hasPretty) $whereParts[] = 'e.pretty_id = ' . $prettyIdSql;
+        if ($hasTypeTable && $hasEventTypeId) $whereParts[] = "tet.pretty_id = 'nacimiento'";
+        if ($hasKind) $whereParts[] = "e.kind = 'nacimiento'";
+        if (empty($whereParts)) {
+            return [
+                'label' => 'Desconocido',
+                'event_date' => '',
+                'date_precision' => 'unknown',
+                'date_note' => '',
+            ];
+        }
+
+        $rankExpr = '9';
+        if ($hasPretty && $hasTypeTable && $hasEventTypeId && $hasKind) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 WHEN tet.pretty_id = 'nacimiento' THEN 1 WHEN e.kind = 'nacimiento' THEN 2 ELSE 9 END";
+        } elseif ($hasPretty && $hasTypeTable && $hasEventTypeId) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 WHEN tet.pretty_id = 'nacimiento' THEN 1 ELSE 9 END";
+        } elseif ($hasPretty && $hasKind) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 WHEN e.kind = 'nacimiento' THEN 1 ELSE 9 END";
+        } elseif ($hasPretty) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 ELSE 9 END";
+        } elseif ($hasTypeTable && $hasEventTypeId && $hasKind) {
+            $rankExpr = "CASE WHEN tet.pretty_id = 'nacimiento' THEN 0 WHEN e.kind = 'nacimiento' THEN 1 ELSE 9 END";
+        } elseif ($hasTypeTable && $hasEventTypeId) {
+            $rankExpr = "CASE WHEN tet.pretty_id = 'nacimiento' THEN 0 ELSE 9 END";
+        } elseif ($hasKind) {
+            $rankExpr = "CASE WHEN e.kind = 'nacimiento' THEN 0 ELSE 9 END";
+        }
+
+        $sql = "
+            SELECT
+                e.event_date,
+                {$datePrecisionExpr} AS date_precision,
+                {$dateNoteExpr} AS date_note
+            FROM fact_timeline_events e
+            LEFT JOIN bridge_timeline_events_characters bec ON bec.event_id = e.id
+            {$joinTypes}
+            WHERE (bec.character_id = ?" . ($hasPretty ? ' OR e.pretty_id = ' . $prettyIdSql : '') . ")
+              {$activeCond}
+              AND (" . implode(' OR ', $whereParts) . ")
+            ORDER BY {$rankExpr} ASC, {$sortDateExpr} ASC, e.id ASC
+            LIMIT 1
+        ";
+
+        if (!$st = $link->prepare($sql)) {
+            return [
+                'label' => 'Desconocido',
+                'event_date' => '',
+                'date_precision' => 'unknown',
+                'date_note' => '',
+            ];
+        }
+
+        $types = 'i';
+        $params = [$characterId];
+        $st->bind_param($types, ...$params);
+        $st->execute();
+        $eventDate = null;
+        $datePrecision = null;
+        $dateNote = null;
+        $st->bind_result($eventDate, $datePrecision, $dateNote);
+        $label = 'Desconocido';
+        if ($st->fetch()) {
+            $label = hg_bio_event_date_label(
+                (string)($eventDate ?? ''),
+                (string)($datePrecision ?? 'day'),
+                (string)($dateNote ?? '')
+            );
+            if (trim($label) === '') $label = 'Desconocido';
+        }
+        $st->close();
+
+        return [
+            'label' => $label,
+            'event_date' => (string)($eventDate ?? ''),
+            'date_precision' => (string)($datePrecision ?? 'unknown'),
+            'date_note' => (string)($dateNote ?? ''),
+        ];
     }
 }
+
+$bioBirthLabel = 'Fecha de nacimiento';
+$bioBirthData = hg_bio_fetch_birth_data($link, (int)($characterId ?? 0));
+$bioBday = (string)($bioBirthData['label'] ?? 'Desconocido');
+
+if (!function_exists('hg_bio_format_death_display')) {
+    function hg_bio_format_death_display(string $deathCause, string $deathDateRaw, array $birthData = []): string
+    {
+        $deathCause = trim($deathCause);
+        $deathDateRaw = trim($deathDateRaw);
+        if ($deathCause === '') return '';
+
+        $parts = [ucfirst($deathCause)];
+        $hasRealDeathDate = ($deathDateRaw !== '' && $deathDateRaw !== '1000-01-01' && $deathDateRaw !== '0000-00-00');
+        if ($hasRealDeathDate) {
+            $deathTs = strtotime($deathDateRaw);
+            if ($deathTs !== false) {
+                $parts[0] .= ' (' . date('d/m/Y', $deathTs) . ')';
+            }
+        }
+
+        $birthDate = trim((string)($birthData['event_date'] ?? ''));
+        $birthPrecision = trim((string)($birthData['date_precision'] ?? 'unknown'));
+        if ($hasRealDeathDate && $birthDate !== '' && $birthPrecision === 'day') {
+            $birthTs = strtotime($birthDate);
+            $deathTs = strtotime($deathDateRaw);
+            if ($birthTs !== false && $deathTs !== false && $deathTs >= $birthTs) {
+                $age = date_diff(date_create(date('Y-m-d', $birthTs)), date_create(date('Y-m-d', $deathTs)))->y;
+                $parts[] = $age . ' años';
+            }
+        }
+
+        return implode(' - ', $parts);
+    }
+}
+
+$bioDeathDisplay = hg_bio_format_death_display(
+    (string)($bioDethCaus ?? ''),
+    (string)($bioDeathDateRaw ?? ''),
+    (array)($bioBirthData ?? [])
+);
 
 ?>
 

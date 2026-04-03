@@ -15,11 +15,11 @@
 		echo"<div class='bioSheetSectionLeft'>Tótem:</div>";
 		echo"<div class='bioSheetSectionRight'>".($totemLink !== '' ? $totemLink : $bioTotem)."</div>";
 	}
-	if ($bioNature != 0) {		// Naturaleza del Personaje
+	if ((int)($bioNature ?? 0) > 0) {		// Naturaleza del Personaje
 		echo"<div class='bioSheetSectionLeft'>Naturaleza:</div>";
 		echo"<div class='bioSheetSectionRight'>$natureLink</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
-	if ($bioBehavior != 0) {	// Conducta del Personaje
+	if ((int)($bioBehavior ?? 0) > 0) {	// Conducta del Personaje
 		echo"<div class='bioSheetSectionLeft'>Conducta:</div>";
 		echo"<div class='bioSheetSectionRight'>$demeanorLink</div>"; // Variable obtenida de #bio_page_section_01_data
 	}

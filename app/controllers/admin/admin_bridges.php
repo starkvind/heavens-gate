@@ -45,6 +45,17 @@ function fetchPairs(mysqli $link, string $sql): array {
   return $out;
 }
 
+function bridges_table_has_column(mysqli $link, string $table, string $column): bool {
+  $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+  $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+  if ($t === '' || $c === '') return false;
+  $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
+  if (!$rs = $link->query($sql)) return false;
+  $ok = ($rs->num_rows > 0);
+  $rs->close();
+  return $ok;
+}
+
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_bridges';
 if (function_exists('hg_admin_ensure_csrf_token')) {
   $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
@@ -92,24 +103,8 @@ function set_active_character_group(mysqli $link, string $T_CHAR_GROUP, int $cha
   if ($charId <= 0) return;
 
   if ($groupId > 0) {
-    // Upsert (requiere UNIQUE(character_id, group_id) para ser perfecto; si no, funciona igual, pero no evita duplicados antiguos)
-    if ($st = $link->prepare("SELECT id FROM {$T_CHAR_GROUP} WHERE character_id=? AND group_id=? ORDER BY id DESC LIMIT 1")) {
-      $st->bind_param("ii", $charId, $groupId);
-      $st->execute();
-      $rs = $st->get_result();
-      $idRow = 0;
-      if ($rs && ($row=$rs->fetch_assoc())) $idRow = (int)$row['id'];
-      $st->close();
-
-      if ($idRow > 0) {
-        if ($u = $link->prepare("UPDATE {$T_CHAR_GROUP} SET is_active=1 WHERE id=?")) {
-          $u->bind_param("i",$idRow); $u->execute(); $u->close();
-        }
-      } else {
-        if ($ins = $link->prepare("INSERT INTO {$T_CHAR_GROUP} (character_id, group_id, is_active) VALUES (?,?,1)")) {
-          $ins->bind_param("ii",$charId,$groupId); $ins->execute(); $ins->close();
-        }
-      }
+    if ($ins = $link->prepare("INSERT INTO {$T_CHAR_GROUP} (character_id, group_id, is_active) VALUES (?,?,1) ON DUPLICATE KEY UPDATE is_active=1")) {
+      $ins->bind_param("ii",$charId,$groupId); $ins->execute(); $ins->close();
     }
 
     // Desactiva otras manadas del PJ
@@ -131,23 +126,8 @@ function set_active_character_clan(mysqli $link, string $T_CHAR_CLAN, int $charI
   if ($charId <= 0) return;
 
   if ($clanId > 0) {
-    if ($st = $link->prepare("SELECT id FROM {$T_CHAR_CLAN} WHERE character_id=? AND organization_id=? ORDER BY id DESC LIMIT 1")) {
-      $st->bind_param("ii",$charId,$clanId);
-      $st->execute();
-      $rs = $st->get_result();
-      $idRow = 0;
-      if ($rs && ($row=$rs->fetch_assoc())) $idRow = (int)$row['id'];
-      $st->close();
-
-      if ($idRow > 0) {
-        if ($u = $link->prepare("UPDATE {$T_CHAR_CLAN} SET is_active=1 WHERE id=?")) {
-          $u->bind_param("i",$idRow); $u->execute(); $u->close();
-        }
-      } else {
-        if ($ins = $link->prepare("INSERT INTO {$T_CHAR_CLAN} (character_id, organization_id, is_active) VALUES (?,?,1)")) {
-          $ins->bind_param("ii",$charId,$clanId); $ins->execute(); $ins->close();
-        }
-      }
+    if ($ins = $link->prepare("INSERT INTO {$T_CHAR_CLAN} (character_id, organization_id, is_active) VALUES (?,?,1) ON DUPLICATE KEY UPDATE is_active=1")) {
+      $ins->bind_param("ii",$charId,$clanId); $ins->execute(); $ins->close();
     }
     if ($off = $link->prepare("UPDATE {$T_CHAR_CLAN} SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
       $off->bind_param("ii",$charId,$clanId); $off->execute(); $off->close();
@@ -166,7 +146,9 @@ function set_active_character_clan(mysqli $link, string $T_CHAR_CLAN, int $charI
 function resolve_clan_for_group(mysqli $link, string $T_CLAN_GROUP, int $groupId): int {
   if ($groupId <= 0) return 0;
   $cid = 0;
-  $sql = "SELECT organization_id FROM {$T_CLAN_GROUP} WHERE group_id=? AND (is_active=1 OR is_active IS NULL) ORDER BY id DESC LIMIT 1";
+  $hasId = bridges_table_has_column($link, $T_CLAN_GROUP, 'id');
+  $orderBy = $hasId ? 'ORDER BY id DESC' : 'ORDER BY updated_at DESC, created_at DESC, organization_id DESC';
+  $sql = "SELECT organization_id FROM {$T_CLAN_GROUP} WHERE group_id=? AND (is_active=1 OR is_active IS NULL) {$orderBy} LIMIT 1";
   if ($st = $link->prepare($sql)) {
     $st->bind_param("i",$groupId);
     $st->execute();
@@ -185,24 +167,8 @@ function set_clan_group(mysqli $link, string $T_CLAN_GROUP, int $clanId, int $gr
   if ($clanId<=0 || $groupId<=0) return;
   $isActive = $isActive ? 1 : 0;
 
-  // Si existe, update; si no, insert
-  $idRow = 0;
-  if ($st = $link->prepare("SELECT id FROM {$T_CLAN_GROUP} WHERE organization_id=? AND group_id=? ORDER BY id DESC LIMIT 1")) {
-    $st->bind_param("ii",$clanId,$groupId);
-    $st->execute();
-    $rs = $st->get_result();
-    if ($rs && ($r=$rs->fetch_assoc())) $idRow = (int)$r['id'];
-    $st->close();
-  }
-
-  if ($idRow > 0) {
-    if ($u = $link->prepare("UPDATE {$T_CLAN_GROUP} SET is_active=? WHERE id=?")) {
-      $u->bind_param("ii",$isActive,$idRow); $u->execute(); $u->close();
-    }
-  } else {
-    if ($ins = $link->prepare("INSERT INTO {$T_CLAN_GROUP} (organization_id, group_id, is_active) VALUES (?,?,?)")) {
-      $ins->bind_param("iii",$clanId,$groupId,$isActive); $ins->execute(); $ins->close();
-    }
+  if ($ins = $link->prepare("INSERT INTO {$T_CLAN_GROUP} (organization_id, group_id, is_active) VALUES (?,?,?) ON DUPLICATE KEY UPDATE is_active=VALUES(is_active)")) {
+    $ins->bind_param("iii",$clanId,$groupId,$isActive); $ins->execute(); $ins->close();
   }
 
   // Si activas una (clanId, groupId) y quieres que la manada tenga SOLO un clan activo a la vez:
@@ -280,13 +246,37 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if ($action === 'deactivate_row') {
       $table = (string)($_POST['table'] ?? '');
       $id    = max(0,(int)($_POST['id'] ?? 0));
+      $characterId = max(0,(int)($_POST['character_id'] ?? 0));
+      $organizationId = max(0,(int)($_POST['organization_id'] ?? 0));
+      $groupId = max(0,(int)($_POST['group_id'] ?? 0));
       $allowed = [$T_CHAR_GROUP, $T_CHAR_CLAN, $T_CLAN_GROUP];
-      if ($id>0 && in_array($table,$allowed,true)) {
-        if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE id=?")) {
-          $st->bind_param("i",$id); $st->execute(); $st->close();
+      if (in_array($table,$allowed,true)) {
+        $done = false;
+        if ($table === $T_CHAR_GROUP && $characterId > 0 && $groupId > 0) {
+          if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE character_id=? AND group_id=?")) {
+            $st->bind_param("ii",$characterId,$groupId); $st->execute(); $st->close();
+            $done = true;
+          }
+        } elseif ($table === $T_CHAR_CLAN && $characterId > 0 && $organizationId > 0) {
+          if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE character_id=? AND organization_id=?")) {
+            $st->bind_param("ii",$characterId,$organizationId); $st->execute(); $st->close();
+            $done = true;
+          }
+        } elseif ($table === $T_CLAN_GROUP && $organizationId > 0 && $groupId > 0) {
+          if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE organization_id=? AND group_id=?")) {
+            $st->bind_param("ii",$organizationId,$groupId); $st->execute(); $st->close();
+            $done = true;
+          }
+        } elseif ($id>0 && bridges_table_has_column($link, $table, 'id')) {
+          if ($st = $link->prepare("UPDATE {$table} SET is_active=0 WHERE id=?")) {
+            $st->bind_param("i",$id); $st->execute(); $st->close();
+            $done = true;
+          }
         }
-        $lastMsg = "Relacion desactivada (#{$id}).";
-        $flash[] = ['type'=>'ok','msg'=>$lastMsg];
+        if ($done) {
+          $lastMsg = "Relacion desactivada.";
+          $flash[] = ['type'=>'ok','msg'=>$lastMsg];
+        }
       }
     }
 
@@ -313,6 +303,10 @@ $opts_manadas= fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name"
 // ============================
 // Tab 1: Personajes + relaciones activas
 // ============================
+$charGroupHasId = bridges_table_has_column($link, $T_CHAR_GROUP, 'id');
+$charClanHasId = bridges_table_has_column($link, $T_CHAR_CLAN, 'id');
+$clanGroupHasId = bridges_table_has_column($link, $T_CLAN_GROUP, 'id');
+
 $chars = [];
 $sqlChars = "
   SELECT
@@ -322,11 +316,11 @@ $sqlChars = "
     p.gender,
     COALESCE(dcs.label, '') AS status, p.status_id,
 
-    cg.id  AS char_group_bridge_id,
+    " . ($charGroupHasId ? "cg.id" : "NULL") . " AS char_group_bridge_id,
     cg.group_id AS active_group_id,
     m.name AS active_group_name,
 
-    cc.id  AS char_clan_bridge_id,
+    " . ($charClanHasId ? "cc.id" : "NULL") . " AS char_clan_bridge_id,
     cc.organization_id AS active_clan_id,
     c.name AS active_clan_name
   FROM fact_characters p
@@ -357,14 +351,14 @@ if ($rs = $link->query($sqlChars)) {
 $clanGroups = []; // filas
 $sqlCG = "
   SELECT
-    b.id,
+    " . ($clanGroupHasId ? "b.id" : "NULL") . " AS id,
     b.organization_id, c.name AS clan_name,
     b.group_id, m.name AS group_name,
     COALESCE(b.is_active,0) AS is_active
   FROM {$T_CLAN_GROUP} b
   LEFT JOIN dim_organizations c ON c.id=b.organization_id
   LEFT JOIN dim_groups m ON m.id=b.group_id
-  ORDER BY c.name ASC, m.name ASC, b.id DESC
+  ORDER BY c.name ASC, m.name ASC, b.organization_id DESC, b.group_id DESC
 ";
 if ($rs = $link->query($sqlCG)) {
   while($r = $rs->fetch_assoc()) $clanGroups[] = $r;
@@ -518,7 +512,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
     <table class="table" id="tblClanGroups">
       <thead>
         <tr>
-          <th class="adm-w-70">ID</th>
+          <th class="adm-w-90">Relacion</th>
           <th>Clan</th>
           <th>Manada</th>
           <th>Estado</th>
@@ -535,7 +529,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
           $act = (int)($r['is_active'] ?? 0);
         ?>
         <tr data-text="<?= strtolower(h($cln.' '.$grp)) ?>">
-          <td><strong class="adm-color-accent"><?= $rid ?></strong></td>
+          <td><strong class="adm-color-accent">#<?= $cid ?> → #<?= $gid ?></strong></td>
           <td><?= $cln ? h($cln) : "<span class='badge off'>(sin clan)</span>" ?> <span class="small">#<?= $cid ?></span></td>
           <td><?= $grp ? h($grp) : "<span class='badge off'>(sin manada)</span>" ?> <span class="small">#<?= $gid ?></span></td>
           <td><?= $act ? "<span class='badge'>Activo</span>" : "<span class='badge off'>Inactivo</span>" ?></td>
@@ -553,6 +547,8 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
               <input type="hidden" name="action" value="deactivate_row">
               <input type="hidden" name="table" value="<?= h($T_CLAN_GROUP) ?>">
               <input type="hidden" name="id" value="<?= $rid ?>">
+              <input type="hidden" name="organization_id" value="<?= $cid ?>">
+              <input type="hidden" name="group_id" value="<?= $gid ?>">
               <button class="btn btn-gray" type="submit">Desactivar</button>
             </form>
 

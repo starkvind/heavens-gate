@@ -357,7 +357,7 @@
 	if ($deathTable !== null) {
 		$deathJoin = " LEFT JOIN `{$deathTable}` fd ON fd.character_id = p.id ";
 	}
-	$orderData = "SELECT p.*, s.name AS system_label, COALESCE(fd.death_description, '') AS death_description
+	$orderData = "SELECT p.*, s.name AS system_label, COALESCE(fd.death_description, '') AS death_description, COALESCE(fd.death_date, '') AS death_date
 		FROM fact_characters p
 		LEFT JOIN dim_systems s ON p.system_id = s.id
 		{$deathJoin}
@@ -388,7 +388,7 @@
 			$bioPackName = $dataResult["garou_name"]; 	// Nombre de manada. Como "Cláusula", "Churrasco", "Chili-Chingón", etc.
 			$bioPhoto	 = hg_character_avatar_url($dataResult["image_url"] ?? '', $dataResult["gender"] ?? ''); 	// Imagen del personaje.
 			$bioType	 = $dataResult["kind"] ?? $dataResult["character_type_id"] ?? 0; // Tipo de personaje.
-			$bioBday	 = ''; // Se calcula desde timeline en bio_page_section_01_data.php
+			$bioBday	 = 'Desconocido'; // Se resuelve desde timeline en bio_page_section_01_data.php
 			$bioConcept	 = $dataResult["concept"]; 		// Concepto del personaje.
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
@@ -417,6 +417,8 @@
 			$bioChronic	  = $dataResult["chronicle_id"]; // Crónica a la que pertenece el personaje.
 			$bioStatus	  = $dataResult["status"] ?? ""; 	// Estado legacy; puede no venir desde fact_characters.
 			$bioDethCaus  = $dataResult["death_description"] ?? ""; // Causa de la muerte.
+			$bioDeathDateRaw = (string)($dataResult["death_date"] ?? '');
+			$bioDeathDisplay = '';
 			$bioSheetRaw  = strtolower(trim((string)($dataResult["character_kind"] ?? $dataResult["kind"] ?? "")));
 			$bioSheet	  = $bioSheetRaw; // Compatibilidad con código legacy.
 			$bioIsMonster = in_array($bioSheetRaw, ["mon", "monster"], true);
@@ -1199,4 +1201,3 @@
 			setTimeout(() => { btn.innerHTML = old; }, 1400);
 		});
 	</script>
-

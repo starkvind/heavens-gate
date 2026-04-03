@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/character_birth_events.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 if (function_exists('hg_admin_session_start')) {
@@ -417,6 +418,36 @@ if (!function_exists('hg_ss_alias_exists')) {
     }
 }
 
+if (!function_exists('hg_ss_alias_owner')) {
+    function hg_ss_alias_owner(mysqli $link, string $table, string $oldPrettyId): int
+    {
+        if ($oldPrettyId === '' || !hg_ss_table_exists($link, 'fact_pretty_id_aliases')) {
+            return 0;
+        }
+
+        $stmt = $link->prepare("
+            SELECT entity_id
+            FROM fact_pretty_id_aliases
+            WHERE table_name = ?
+              AND old_pretty_id = ?
+            LIMIT 1
+        ");
+        if (!$stmt) {
+            return 0;
+        }
+
+        $foundId = 0;
+        $stmt->bind_param('ss', $table, $oldPrettyId);
+        if ($stmt->execute()) {
+            $stmt->bind_result($foundId);
+            $stmt->fetch();
+        }
+        $stmt->close();
+
+        return (int)$foundId;
+    }
+}
+
 if (!function_exists('hg_ss_next_pretty_id')) {
     function hg_ss_next_pretty_id(mysqli $link, string $table, string $baseSlug, int $id): string
     {
@@ -579,6 +610,80 @@ if (!function_exists('hg_ss_apply_character_comments')) {
             hg_ss_exec($link, "ALTER TABLE `fact_characters_comments` ADD CONSTRAINT `fk_fcc_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE");
             hg_ss_note($messages, 'FK de comentarios -> personaje creada.');
         }
+
+        return ['messages' => $messages];
+    }
+}
+
+if (!function_exists('hg_ss_analyze_character_archetypes_optional')) {
+    function hg_ss_analyze_character_archetypes_optional(mysqli $link): array
+    {
+        $natureZero = hg_ss_scalar($link, "SELECT COUNT(*) FROM fact_characters WHERE nature_id = 0");
+        $demeanorZero = hg_ss_scalar($link, "SELECT COUNT(*) FROM fact_characters WHERE demeanor_id = 0");
+        $natureOrphans = hg_ss_scalar($link, "
+            SELECT COUNT(*)
+            FROM fact_characters c
+            LEFT JOIN dim_archetypes a ON a.id = c.nature_id
+            WHERE c.nature_id IS NOT NULL
+              AND c.nature_id <> 0
+              AND a.id IS NULL
+        ");
+        $demeanorOrphans = hg_ss_scalar($link, "
+            SELECT COUNT(*)
+            FROM fact_characters c
+            LEFT JOIN dim_archetypes a ON a.id = c.demeanor_id
+            WHERE c.demeanor_id IS NOT NULL
+              AND c.demeanor_id <> 0
+              AND a.id IS NULL
+        ");
+        $natureNullable = hg_ss_column_is_nullable($link, 'fact_characters', 'nature_id');
+        $demeanorNullable = hg_ss_column_is_nullable($link, 'fact_characters', 'demeanor_id');
+
+        return [
+            'issue_count' => $natureZero + $demeanorZero + $natureOrphans + $demeanorOrphans + ($natureNullable ? 0 : 1) + ($demeanorNullable ? 0 : 1),
+            'status' => ($natureZero === 0 && $demeanorZero === 0 && $natureOrphans === 0 && $demeanorOrphans === 0 && $natureNullable && $demeanorNullable) ? 'clean' : 'pending',
+            'details' => [
+                $natureZero . ' personajes con nature_id = 0',
+                $demeanorZero . ' personajes con demeanor_id = 0',
+                $natureOrphans . ' nature_id huerfanos',
+                $demeanorOrphans . ' demeanor_id huerfanos',
+            ],
+        ];
+    }
+}
+
+if (!function_exists('hg_ss_apply_character_archetypes_optional')) {
+    function hg_ss_apply_character_archetypes_optional(mysqli $link): array
+    {
+        $messages = [];
+
+        if (!hg_ss_column_is_nullable($link, 'fact_characters', 'nature_id')) {
+            hg_ss_exec($link, "ALTER TABLE `fact_characters` MODIFY `nature_id` int(10) unsigned DEFAULT NULL");
+            hg_ss_note($messages, 'nature_id ahora admite NULL.');
+        }
+
+        if (!hg_ss_column_is_nullable($link, 'fact_characters', 'demeanor_id')) {
+            hg_ss_exec($link, "ALTER TABLE `fact_characters` MODIFY `demeanor_id` int(10) unsigned DEFAULT NULL");
+            hg_ss_note($messages, 'demeanor_id ahora admite NULL.');
+        }
+
+        $natureUpdated = hg_ss_exec($link, "
+            UPDATE `fact_characters` c
+            LEFT JOIN `dim_archetypes` a ON a.id = c.nature_id
+            SET c.nature_id = NULL
+            WHERE c.nature_id = 0
+               OR (c.nature_id IS NOT NULL AND c.nature_id <> 0 AND a.id IS NULL)
+        ");
+        hg_ss_note($messages, 'nature_id saneados en fact_characters: ' . $natureUpdated . '.');
+
+        $demeanorUpdated = hg_ss_exec($link, "
+            UPDATE `fact_characters` c
+            LEFT JOIN `dim_archetypes` a ON a.id = c.demeanor_id
+            SET c.demeanor_id = NULL
+            WHERE c.demeanor_id = 0
+               OR (c.demeanor_id IS NOT NULL AND c.demeanor_id <> 0 AND a.id IS NULL)
+        ");
+        hg_ss_note($messages, 'demeanor_id saneados en fact_characters: ' . $demeanorUpdated . '.');
 
         return ['messages' => $messages];
     }
@@ -985,6 +1090,7 @@ if (!function_exists('hg_ss_analyze_pretty_ids')) {
             'missing' => 0,
             'invalid' => 0,
             'non_canonical' => 0,
+            'blocked_alias_conflicts' => 0,
             'tables' => [],
         ];
 
@@ -998,10 +1104,13 @@ if (!function_exists('hg_ss_analyze_pretty_ids')) {
             $missing = 0;
             $invalid = 0;
             $nonCanonical = 0;
+            $blockedConflicts = 0;
+            $stableCollisions = 0;
 
             foreach ($rows as $row) {
+                $id = (int)$row['id'];
                 $pretty = (string)$row['pretty_id'];
-                $expected = hg_pretty_expected_slug($table, (string)$row['source'], (int)$row['id']);
+                $expected = hg_pretty_expected_slug($table, (string)$row['source'], $id);
 
                 if ($pretty === '') {
                     $missing++;
@@ -1013,7 +1122,17 @@ if (!function_exists('hg_ss_analyze_pretty_ids')) {
                 }
 
                 if ($expected !== '' && $pretty !== $expected) {
+                    $target = hg_ss_next_pretty_id($link, $table, $expected, $id);
+                    if ($target === $pretty) {
+                        $stableCollisions++;
+                        continue;
+                    }
+
                     $nonCanonical++;
+                    $aliasOwner = hg_ss_alias_owner($link, $table, $pretty);
+                    if ($aliasOwner > 0 && $aliasOwner !== $id) {
+                        $blockedConflicts++;
+                    }
                 }
             }
 
@@ -1024,12 +1143,16 @@ if (!function_exists('hg_ss_analyze_pretty_ids')) {
                     'missing' => $missing,
                     'invalid' => $invalid,
                     'non_canonical' => $nonCanonical,
+                    'blocked_alias_conflicts' => $blockedConflicts,
+                    'stable_collisions' => $stableCollisions,
                 ];
             }
 
             $totals['missing'] += $missing;
             $totals['invalid'] += $invalid;
             $totals['non_canonical'] += $nonCanonical;
+            $totals['blocked_alias_conflicts'] += $blockedConflicts;
+            $totals['stable_collisions'] = (int)($totals['stable_collisions'] ?? 0) + $stableCollisions;
         }
 
         $issueCount = (int)$totals['missing'] + (int)$totals['invalid'] + (int)$totals['non_canonical'];
@@ -1038,9 +1161,22 @@ if (!function_exists('hg_ss_analyze_pretty_ids')) {
             $totals['invalid'] . ' pretty_id con formato roto',
             $totals['non_canonical'] . ' pretty_id fuera de la politica actual',
         ];
+        if ((int)$totals['blocked_alias_conflicts'] > 0) {
+            $details[] = $totals['blocked_alias_conflicts'] . ' pretty_id bloqueados porque su slug actual ya esta preservado como alias de otra entidad';
+        }
+        if ((int)($totals['stable_collisions'] ?? 0) > 0) {
+            $details[] = (int)$totals['stable_collisions'] . ' pretty_id se mantienen como slug estable porque el canonico ideal colisiona y el slug actual ya es la resolucion segura';
+        }
 
         foreach (array_slice((array)$totals['tables'], 0, 6) as $row) {
-            $details[] = $row['label'] . ': ' . $row['non_canonical'] . ' desalineados, ' . $row['invalid'] . ' rotos, ' . $row['missing'] . ' vacios';
+            $detail = $row['label'] . ': ' . $row['non_canonical'] . ' desalineados, ' . $row['invalid'] . ' rotos, ' . $row['missing'] . ' vacios';
+            if ((int)($row['blocked_alias_conflicts'] ?? 0) > 0) {
+                $detail .= ', ' . (int)$row['blocked_alias_conflicts'] . ' bloqueados por conflicto de alias';
+            }
+            if ((int)($row['stable_collisions'] ?? 0) > 0) {
+                $detail .= ', ' . (int)$row['stable_collisions'] . ' estables por colision';
+            }
+            $details[] = $detail;
         }
 
         return [
@@ -1059,6 +1195,8 @@ if (!function_exists('hg_ss_apply_pretty_ids')) {
         $updated = 0;
         $aliased = 0;
         $skipped = 0;
+        $skippedAliasConflicts = 0;
+        $samples = [];
 
         if (!hg_ss_table_exists($link, 'fact_pretty_id_aliases')) {
             hg_ss_exec($link, hg_ss_alias_table_sql());
@@ -1086,12 +1224,20 @@ if (!function_exists('hg_ss_apply_pretty_ids')) {
                 }
 
                 if ($current !== '') {
-                    if (hg_ss_alias_exists($link, $table, $current, $id)) {
+                    $aliasOwner = hg_ss_alias_owner($link, $table, $current);
+                    if ($aliasOwner > 0 && $aliasOwner !== $id) {
                         $skipped++;
+                        $skippedAliasConflicts++;
+                        if (count($samples) < 8) {
+                            $samples[] = $table . '#' . $id . ' (' . $current . ' -> ' . $target . ') bloqueado por alias de entidad #' . $aliasOwner;
+                        }
                         continue;
                     }
                     if (!hg_ss_upsert_alias($link, $table, $id, $current, $target)) {
                         $skipped++;
+                        if (count($samples) < 8) {
+                            $samples[] = $table . '#' . $id . ' (' . $current . ' -> ' . $target . ') fallo al registrar alias';
+                        }
                         continue;
                     }
                     $aliased++;
@@ -1099,6 +1245,9 @@ if (!function_exists('hg_ss_apply_pretty_ids')) {
 
                 if (!hg_ss_update_pretty($link, $table, $id, $target)) {
                     $skipped++;
+                    if (count($samples) < 8) {
+                        $samples[] = $table . '#' . $id . ' (' . $current . ' -> ' . $target . ') fallo al actualizar pretty_id';
+                    }
                     continue;
                 }
 
@@ -1115,6 +1264,12 @@ if (!function_exists('hg_ss_apply_pretty_ids')) {
         hg_ss_note($messages, 'Aliases registrados: ' . $aliased . '.');
         if ($skipped > 0) {
             hg_ss_note($messages, 'Filas omitidas por conflicto o error: ' . $skipped . '.');
+        }
+        if ($skippedAliasConflicts > 0) {
+            hg_ss_note($messages, 'Bloqueadas porque el slug actual ya es alias historico de otra entidad: ' . $skippedAliasConflicts . '.');
+        }
+        if (!empty($samples)) {
+            hg_ss_note($messages, 'Muestras: ' . implode(' | ', $samples));
         }
 
         return ['messages' => $messages];
@@ -1201,6 +1356,215 @@ if (!function_exists('hg_ss_apply_csp_posts_dates')) {
     }
 }
 
+if (!function_exists('hg_ss_analyze_character_items_bridge_key')) {
+    function hg_ss_analyze_character_items_bridge_key(mysqli $link): array
+    {
+        if (!hg_ss_table_exists($link, 'bridge_characters_items')) {
+            return [
+                'issue_count' => 0,
+                'status' => 'clean',
+                'details' => ['bridge_characters_items no existe en esta instancia.'],
+            ];
+        }
+
+        $hasId = hg_ss_column_exists($link, 'bridge_characters_items', 'id');
+        $primaryComposite = false;
+        foreach (hg_ss_index_definitions($link, 'bridge_characters_items') as $name => $info) {
+            if ($name === 'PRIMARY' && (array)($info['columns'] ?? []) === ['character_id', 'item_id']) {
+                $primaryComposite = true;
+                break;
+            }
+        }
+
+        $duplicates = hg_ss_scalar($link, "
+            SELECT COALESCE(SUM(dup_count - 1), 0)
+            FROM (
+                SELECT COUNT(*) AS dup_count
+                FROM bridge_characters_items
+                GROUP BY character_id, item_id
+                HAVING COUNT(*) > 1
+            ) d
+        ");
+
+        $issueCount = ($hasId ? 1 : 0) + ($primaryComposite ? 0 : 1) + $duplicates;
+
+        return [
+            'issue_count' => $issueCount,
+            'status' => ($issueCount === 0) ? 'clean' : 'pending',
+            'details' => [
+                ($hasId ? 'La tabla aun usa id autoincremental.' : 'La tabla ya no usa id autoincremental.'),
+                ($primaryComposite ? 'La PK ya es compuesta (character_id, item_id).' : 'La PK compuesta aun no esta consolidada.'),
+                'Duplicados exactos en bridge_characters_items: ' . $duplicates . '.',
+            ],
+        ];
+    }
+}
+
+if (!function_exists('hg_ss_apply_character_items_bridge_key')) {
+    function hg_ss_apply_character_items_bridge_key(mysqli $link): array
+    {
+        $messages = [];
+
+        if (!hg_ss_table_exists($link, 'bridge_characters_items')) {
+            hg_ss_note($messages, 'bridge_characters_items no existe en esta instancia.');
+            return ['messages' => $messages];
+        }
+
+        $duplicatesRemoved = 0;
+        if (hg_ss_column_exists($link, 'bridge_characters_items', 'id')) {
+            $duplicatesRemoved = hg_ss_exec($link, "
+                DELETE b1
+                FROM bridge_characters_items b1
+                INNER JOIN bridge_characters_items b2
+                    ON b1.character_id = b2.character_id
+                   AND b1.item_id = b2.item_id
+                   AND b1.id > b2.id
+            ");
+        }
+        hg_ss_note($messages, 'Duplicados exactos eliminados en bridge_characters_items: ' . $duplicatesRemoved . '.');
+
+        $primaryComposite = false;
+        foreach (hg_ss_index_definitions($link, 'bridge_characters_items') as $name => $info) {
+            if ($name === 'PRIMARY' && (array)($info['columns'] ?? []) === ['character_id', 'item_id']) {
+                $primaryComposite = true;
+                break;
+            }
+        }
+
+        if (hg_ss_column_exists($link, 'bridge_characters_items', 'id')) {
+            hg_ss_exec($link, "
+                ALTER TABLE `bridge_characters_items`
+                DROP PRIMARY KEY,
+                DROP COLUMN `id`,
+                ADD PRIMARY KEY (`character_id`, `item_id`)
+            ");
+            hg_ss_note($messages, 'id eliminado y PK compuesta creada en bridge_characters_items.');
+        } elseif (!$primaryComposite) {
+            hg_ss_exec($link, "ALTER TABLE `bridge_characters_items` ADD PRIMARY KEY (`character_id`, `item_id`)");
+            hg_ss_note($messages, 'PK compuesta creada en bridge_characters_items.');
+        } else {
+            hg_ss_note($messages, 'bridge_characters_items ya estaba consolidada con PK compuesta.');
+        }
+
+        return ['messages' => $messages];
+    }
+}
+
+if (!function_exists('hg_ss_analyze_birthdate_text_retire')) {
+    function hg_ss_analyze_birthdate_text_retire(mysqli $link): array
+    {
+        if (!hg_ss_table_exists($link, 'fact_characters') || !hg_ss_column_exists($link, 'fact_characters', 'birthdate_text')) {
+            return [
+                'issue_count' => 0,
+                'status' => 'clean',
+                'details' => ['birthdate_text ya no existe en fact_characters.'],
+            ];
+        }
+
+        $meaningful = 0;
+        $mappable = 0;
+        $narrative = 0;
+        $samples = [];
+
+        $rs = $link->query("SELECT id, name, birthdate_text FROM fact_characters ORDER BY id ASC");
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $parsed = hg_cbe_parse_birth_text((string)($row['birthdate_text'] ?? ''));
+            if (in_array((string)$parsed['kind'], ['empty', 'unknown'], true)) {
+                continue;
+            }
+            $meaningful++;
+            if (!empty($parsed['can_event'])) {
+                $mappable++;
+            } else {
+                $narrative++;
+                if (count($samples) < 6) {
+                    $samples[] = '#' . (int)$row['id'] . ' ' . (string)$row['name'] . ': ' . trim((string)$row['birthdate_text']);
+                }
+            }
+        }
+        if ($rs) $rs->free();
+
+        $details = [
+            $meaningful . ' valores con informacion real en birthdate_text',
+            $mappable . ' valores mapeables a evento de timeline',
+            $narrative . ' valores narrativos o no mapeables',
+        ];
+        if (!empty($samples)) {
+            $details[] = 'Muestras bloqueantes: ' . implode(' | ', $samples);
+        }
+
+        return [
+            'issue_count' => $meaningful + $narrative + 1,
+            'status' => 'pending',
+            'details' => $details,
+        ];
+    }
+}
+
+if (!function_exists('hg_ss_apply_birthdate_text_retire')) {
+    function hg_ss_apply_birthdate_text_retire(mysqli $link): array
+    {
+        $messages = [];
+
+        if (!hg_ss_table_exists($link, 'fact_characters') || !hg_ss_column_exists($link, 'fact_characters', 'birthdate_text')) {
+            hg_ss_note($messages, 'birthdate_text ya no existe en fact_characters.');
+            return ['messages' => $messages];
+        }
+
+        $migrated = 0;
+        $ignored = 0;
+        $narrative = 0;
+        $samples = [];
+
+        $rs = $link->query("SELECT id, name, birthdate_text FROM fact_characters ORDER BY id ASC");
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $raw = (string)($row['birthdate_text'] ?? '');
+            $parsed = hg_cbe_parse_birth_text($raw);
+
+            if (in_array((string)$parsed['kind'], ['empty', 'unknown'], true)) {
+                $ignored++;
+                continue;
+            }
+
+            if (!empty($parsed['can_event'])) {
+                $result = hg_cbe_upsert_birth_event_from_text(
+                    $link,
+                    (int)$row['id'],
+                    (string)($row['name'] ?? ''),
+                    $raw,
+                    'schema_sanitizer.birthdate_text'
+                );
+                if (!empty($result['ok'])) {
+                    $migrated++;
+                }
+                continue;
+            }
+
+            $narrative++;
+            if (count($samples) < 6) {
+                $samples[] = '#' . (int)$row['id'] . ' ' . (string)$row['name'] . ': ' . trim($raw);
+            }
+        }
+        if ($rs) $rs->free();
+
+        hg_ss_note($messages, 'Valores migrados a fact_timeline_events: ' . $migrated . '.');
+        hg_ss_note($messages, 'Valores vacios o desconocidos ignorados: ' . $ignored . '.');
+
+        if ($narrative > 0) {
+            hg_ss_note($messages, 'No se elimina birthdate_text porque quedan ' . $narrative . ' valores narrativos o no mapeables.');
+            if (!empty($samples)) {
+                hg_ss_note($messages, 'Muestras bloqueantes: ' . implode(' | ', $samples));
+            }
+            return ['messages' => $messages];
+        }
+
+        hg_ss_exec($link, "ALTER TABLE `fact_characters` DROP COLUMN `birthdate_text`");
+        hg_ss_note($messages, 'birthdate_text eliminado de fact_characters.');
+
+        return ['messages' => $messages];
+    }
+}
+
 if (!function_exists('hg_ss_action_definitions')) {
     function hg_ss_action_definitions(): array
     {
@@ -1218,6 +1582,20 @@ if (!function_exists('hg_ss_action_definitions')) {
                 'kind' => 'integridad',
                 'analyze' => 'hg_ss_analyze_character_comments',
                 'apply' => 'hg_ss_apply_character_comments',
+            ],
+            'character_archetypes_optional' => [
+                'title' => 'Hacer opcionales naturaleza y conducta',
+                'summary' => 'Convierte nature_id y demeanor_id en NULL real cuando no aplican, en lugar de usar 0 como sentinel.',
+                'kind' => 'sentinelas',
+                'analyze' => 'hg_ss_analyze_character_archetypes_optional',
+                'apply' => 'hg_ss_apply_character_archetypes_optional',
+            ],
+            'character_items_bridge_key' => [
+                'title' => 'Compactar puente personaje/objeto',
+                'summary' => 'Elimina el id artificial de bridge_characters_items y deja la PK compuesta (character_id, item_id) como contrato real.',
+                'kind' => 'integridad',
+                'analyze' => 'hg_ss_analyze_character_items_bridge_key',
+                'apply' => 'hg_ss_apply_character_items_bridge_key',
             ],
             'groups_totem' => [
                 'title' => 'Terminar migracion de totems en grupos',
@@ -1267,6 +1645,13 @@ if (!function_exists('hg_ss_action_definitions')) {
                 'kind' => 'legacy',
                 'analyze' => 'hg_ss_analyze_csp_posts_dates',
                 'apply' => 'hg_ss_apply_csp_posts_dates',
+            ],
+            'birthdate_text_retire' => [
+                'title' => 'Retirar birthdate_text en favor de timeline',
+                'summary' => 'Migra fechas de nacimiento mapeables a fact_timeline_events y elimina birthdate_text solo cuando ya no queda texto narrativo bloqueante.',
+                'kind' => 'legacy',
+                'analyze' => 'hg_ss_analyze_birthdate_text_retire',
+                'apply' => 'hg_ss_apply_birthdate_text_retire',
             ],
         ];
     }
@@ -1405,6 +1790,7 @@ if (!function_exists('hg_ss_render_page')) {
                               <?php endforeach; ?>
                             </tbody>
                           </table>
+                          <p style="margin:10px 0 0;color:#c7c0b3">Si algun slug queda bloqueado, suele significar que su valor actual ya fue reservado como alias historico de otra entidad y el cambio automatico dejaria una redireccion ambigua.</p>
                         </div>
                       <?php endif; ?>
                     </div>

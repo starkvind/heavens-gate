@@ -5,8 +5,8 @@
  * Requisitos:
  * - $link: conexión mysqli abierta (body_work.php)
  * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,chronicle_id,totem_id,is_active,`description`)
- * - Puentes: bridge_organizations_groups(id,organization_id,group_id,is_active)
- *            bridge_characters_groups(id,character_id,group_id,is_active,position)
+ * - Puentes: bridge_organizations_groups(organization_id,group_id,is_active)
+ *            bridge_characters_groups(character_id,group_id,is_active,position)
  * - fact_characters(id,nombre,alias,nombregarou)
  */
 
@@ -476,13 +476,13 @@ if(!empty($_POST['action'])){
 
     // Bridge (opcional) si seleccionó organization_id
     if($organization_id>0){
-      // activar si existe, si no crear
-      [$ok0,$err0,$rs0] = q($link,"SELECT id FROM bridge_organizations_groups WHERE organization_id=? AND group_id=? LIMIT 1",'ii',[$organization_id,$newId]);
-      if($ok0 && $rs0 && ($row=mysqli_fetch_assoc($rs0))){
-        q($link,"UPDATE bridge_organizations_groups SET is_active=1 WHERE id=?",'i',[(int)$row['id']]);
-      } else {
-        q($link,"INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)",'ii',[$organization_id,$newId]);
-      }
+      q(
+        $link,
+        "INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)
+         ON DUPLICATE KEY UPDATE is_active=1",
+        'ii',
+        [$organization_id,$newId]
+      );
     }
     render_group_modal($link,$newId); exit;
   }
@@ -492,12 +492,13 @@ if(!empty($_POST['action'])){
     $organization_id=(int)($_POST['organization_id']??0);
     $group_id=(int)($_POST['group_id']??0);
     if($organization_id>0 && $group_id>0){
-      [$ok,$err,$rs] = q($link,"SELECT id FROM bridge_organizations_groups WHERE organization_id=? AND group_id=? LIMIT 1",'ii',[$organization_id,$group_id]);
-      if($ok && $rs && ($row=mysqli_fetch_assoc($rs))){
-        q($link,"UPDATE bridge_organizations_groups SET is_active=1 WHERE id=?",'i',[(int)$row['id']]);
-      } else {
-        q($link,"INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)",'ii',[$organization_id,$group_id]);
-      }
+      q(
+        $link,
+        "INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)
+         ON DUPLICATE KEY UPDATE is_active=1",
+        'ii',
+        [$organization_id,$group_id]
+      );
     }
     render_clan_detail($link,$organization_id); exit;
   }
@@ -516,12 +517,13 @@ if(!empty($_POST['action'])){
     $character_id=(int)($_POST['character_id']??0);
     $position=trim((string)($_POST['position']??''));
     if($group_id>0 && $character_id>0){
-      [$ok,$err,$rs] = q($link,"SELECT id FROM bridge_characters_groups WHERE group_id=? AND character_id=? LIMIT 1",'ii',[$group_id,$character_id]);
-      if($ok && $rs && ($row=mysqli_fetch_assoc($rs))){
-        q($link,"UPDATE bridge_characters_groups SET is_active=1, position=? WHERE id=?",'si',[$position,(int)$row['id']]);
-      } else {
-        q($link,"INSERT INTO bridge_characters_groups (character_id,group_id,is_active,position) VALUES (?,?,1,?)",'iis',[$character_id,$group_id,$position]);
-      }
+      q(
+        $link,
+        "INSERT INTO bridge_characters_groups (character_id,group_id,is_active,position) VALUES (?,?,1,?)
+         ON DUPLICATE KEY UPDATE is_active=1, position=VALUES(position)",
+        'iis',
+        [$character_id,$group_id,$position]
+      );
     }
     render_group_detail($link,$group_id); exit;
   }

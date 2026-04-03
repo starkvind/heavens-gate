@@ -290,6 +290,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_inspect_db':
 					include(__DIR__ . "/../../tools/inspect_db.php");
 					break;
+				case 'admin_schema_hardening_audit':
+					include(__DIR__ . "/../../tools/schema_hardening_audit.php");
+					break;
 				case 'admin_mentions_help':
 					include("mentions_help.html");
 					break;
@@ -564,6 +567,11 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_inspect_db'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Inspeccionar BDD
+						</div>
+					</a>
+					<a href='/talim?s=admin_schema_hardening_audit'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Auditar endurecimiento
 						</div>
 					</a>
 					<a href='/talim?s=admin_mentions_help'>

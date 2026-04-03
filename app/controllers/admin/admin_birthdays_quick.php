@@ -9,6 +9,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/character_birth_events.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 if (!function_exists('hg_abq_h')) {
@@ -79,9 +80,7 @@ if (!function_exists('hg_abq_find_birth_type_id')) {
 
 if (!function_exists('hg_abq_birthtext_expr')) {
     function hg_abq_birthtext_expr(mysqli $db): string {
-        return hg_abq_col_exists($db, 'fact_characters', 'birthdate_text')
-            ? 'p.birthdate_text'
-            : "''";
+        return hg_cbe_birthtext_expr($db, 'p');
     }
 }
 
@@ -276,18 +275,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $prettyId = 'birthday-char-' . $characterId;
         $eventId = 0;
 
-        $hasBirthTextCol = hg_abq_col_exists($link, 'fact_characters', 'birthdate_text');
-
         $link->begin_transaction();
         try {
-            if ($hasBirthTextCol) {
-                if ($st = $link->prepare('UPDATE fact_characters SET birthdate_text = ? WHERE id = ?')) {
-                    $st->bind_param('si', $birthdateText, $characterId);
-                    $st->execute();
-                    $st->close();
-                }
-            }
-
             if ($parsedDate !== null) {
                 if ($st = $link->prepare('SELECT id FROM fact_timeline_events WHERE pretty_id = ? LIMIT 1')) {
                     $st->bind_param('s', $prettyId);
@@ -323,7 +312,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             UPDATE fact_timeline_events
                             SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
                                 title = ?, description = ?, event_type_id = ?, kind = 'nacimiento', is_active = 1,
-                                source = 'fact_characters.birthdate_text', updated_at = NOW()
+                                source = 'admin_birthdays_quick', updated_at = NOW()
                             WHERE id = ?
                         ";
                     } else {
@@ -331,7 +320,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             UPDATE fact_timeline_events
                             SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
                                 title = ?, description = ?, event_type_id = ?, is_active = 1,
-                                source = 'fact_characters.birthdate_text', updated_at = NOW()
+                                source = 'admin_birthdays_quick', updated_at = NOW()
                             WHERE id = ?
                         ";
                     }
@@ -345,13 +334,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         $sqlInsertEvent = "
                             INSERT INTO fact_timeline_events
                             (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, kind, is_active, source, timeline)
-                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 'nacimiento', 1, 'fact_characters.birthdate_text', NULL)
+                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 'nacimiento', 1, 'admin_birthdays_quick', NULL)
                         ";
                     } else {
                         $sqlInsertEvent = "
                             INSERT INTO fact_timeline_events
                             (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, is_active, source, timeline)
-                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 1, 'fact_characters.birthdate_text', NULL)
+                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 1, 'admin_birthdays_quick', NULL)
                         ";
                     }
                     if ($st = $link->prepare($sqlInsertEvent)) {
@@ -411,8 +400,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         $savedRow = hg_abq_fetch_row_by_character($link, $characterId);
         $msg = ($parsedDate === null)
-            ? 'Cumpleaños actualizado en personaje. Fecha no válida para evento.'
-            : 'Cumpleaños y evento guardados.';
+            ? 'La fecha indicada no se ha podido convertir en evento de nacimiento.'
+            : 'Evento de nacimiento guardado.';
         hg_admin_json_success($savedRow, $msg);
     }
 
@@ -434,7 +423,7 @@ $actions = '<span class="adm-flex-right-wrap-8">'
 admin_panel_open('Cumpleaños Rápidos', $actions);
 ?>
 <div class="adm-callout">
-  Revisa y corrige cumpleaños para generar/vincular su evento de nacimiento.
+  Revisa y corrige la fecha de nacimiento directamente sobre el evento de timeline.
 </div>
 
 <div class="adm-grid-table">
@@ -444,7 +433,7 @@ admin_panel_open('Cumpleaños Rápidos', $actions);
         <th class="adm-w-60">ID</th>
         <th class="adm-w-160">Pretty</th>
         <th>Personaje</th>
-        <th class="adm-w-170">Cumpleaños (texto)</th>
+        <th class="adm-w-170">Fecha nacimiento</th>
         <th class="adm-w-120">Fecha evento</th>
         <th class="adm-w-90">Evento ID</th>
         <th class="adm-w-160">Estado</th>

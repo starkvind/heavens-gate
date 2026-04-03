@@ -103,14 +103,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         } elseif ($action === 'update_doc_link') {
-            $rowId = (int)($_POST['row_id'] ?? 0);
+            $docId = (int)($_POST['doc_id'] ?? 0);
             $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
             $sortOrder = (int)($_POST['sort_order'] ?? 0);
-            if ($rowId <= 0 || !$hasBridgeDocs) {
+            if ($docId <= 0 || !$hasBridgeDocs) {
                 $flash[] = ['type' => 'error', 'msg' => 'Fila de documento invalida.'];
             } else {
-                if ($st = $link->prepare("UPDATE bridge_characters_docs SET relation_label=?, sort_order=?, updated_at=NOW() WHERE id=? AND character_id=?")) {
-                    $st->bind_param('siii', $relationLabel, $sortOrder, $rowId, $selectedCharacterId);
+                if ($st = $link->prepare("UPDATE bridge_characters_docs SET relation_label=?, sort_order=?, updated_at=NOW() WHERE character_id=? AND doc_id=?")) {
+                    $st->bind_param('siii', $relationLabel, $sortOrder, $selectedCharacterId, $docId);
                     if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de documento actualizado.'];
                     else $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar vinculo de documento: '.$st->error];
                     $st->close();
@@ -119,12 +119,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         } elseif ($action === 'unlink_doc') {
-            $rowId = (int)($_POST['row_id'] ?? 0);
-            if ($rowId <= 0 || !$hasBridgeDocs) {
+            $docId = (int)($_POST['doc_id'] ?? 0);
+            if ($docId <= 0 || !$hasBridgeDocs) {
                 $flash[] = ['type' => 'error', 'msg' => 'Fila de documento invalida.'];
             } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_docs WHERE id=? AND character_id=?")) {
-                    $st->bind_param('ii', $rowId, $selectedCharacterId);
+                if ($st = $link->prepare("DELETE FROM bridge_characters_docs WHERE character_id=? AND doc_id=?")) {
+                    $st->bind_param('ii', $selectedCharacterId, $docId);
                     if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de documento eliminado.'];
                     else $flash[] = ['type' => 'error', 'msg' => 'Error al eliminar vinculo de documento: '.$st->error];
                     $st->close();
@@ -156,14 +156,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         } elseif ($action === 'update_external_link') {
-            $rowId = (int)($_POST['row_id'] ?? 0);
+            $externalId = (int)($_POST['external_link_id'] ?? 0);
             $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
             $sortOrder = (int)($_POST['sort_order'] ?? 0);
-            if ($rowId <= 0 || !$hasBridgeExternal) {
+            if ($externalId <= 0 || !$hasBridgeExternal) {
                 $flash[] = ['type' => 'error', 'msg' => 'Fila de enlace externo invalida.'];
             } else {
-                if ($st = $link->prepare("UPDATE bridge_characters_external_links SET relation_label=?, sort_order=?, updated_at=NOW() WHERE id=? AND character_id=?")) {
-                    $st->bind_param('siii', $relationLabel, $sortOrder, $rowId, $selectedCharacterId);
+                if ($st = $link->prepare("UPDATE bridge_characters_external_links SET relation_label=?, sort_order=?, updated_at=NOW() WHERE character_id=? AND external_link_id=?")) {
+                    $st->bind_param('siii', $relationLabel, $sortOrder, $selectedCharacterId, $externalId);
                     if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de enlace externo actualizado.'];
                     else $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar vinculo externo: '.$st->error];
                     $st->close();
@@ -172,12 +172,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         } elseif ($action === 'unlink_external') {
-            $rowId = (int)($_POST['row_id'] ?? 0);
-            if ($rowId <= 0 || !$hasBridgeExternal) {
+            $externalId = (int)($_POST['external_link_id'] ?? 0);
+            if ($externalId <= 0 || !$hasBridgeExternal) {
                 $flash[] = ['type' => 'error', 'msg' => 'Fila de enlace externo invalida.'];
             } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_external_links WHERE id=? AND character_id=?")) {
-                    $st->bind_param('ii', $rowId, $selectedCharacterId);
+                if ($st = $link->prepare("DELETE FROM bridge_characters_external_links WHERE character_id=? AND external_link_id=?")) {
+                    $st->bind_param('ii', $selectedCharacterId, $externalId);
                     if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de enlace externo eliminado.'];
                     else $flash[] = ['type' => 'error', 'msg' => 'Error al eliminar vinculo externo: '.$st->error];
                     $st->close();
@@ -290,7 +290,7 @@ if ($hasExternal) {
 
 $linkedDocs = [];
 if ($selectedCharacterId > 0 && $hasBridgeDocs && $hasDocs) {
-    $sql = "SELECT b.id, b.doc_id, COALESCE(b.relation_label, '') AS relation_label, COALESCE(b.sort_order, 0) AS sort_order,
+    $sql = "SELECT b.doc_id, COALESCE(b.relation_label, '') AS relation_label, COALESCE(b.sort_order, 0) AS sort_order,
                    d.title, d.pretty_id, COALESCE(c.kind, '') AS category_name
             FROM bridge_characters_docs b
             INNER JOIN fact_docs d ON d.id = b.doc_id
@@ -308,7 +308,7 @@ if ($selectedCharacterId > 0 && $hasBridgeDocs && $hasDocs) {
 
 $linkedExternal = [];
 if ($selectedCharacterId > 0 && $hasBridgeExternal && $hasExternal) {
-    $sql = "SELECT b.id, b.external_link_id, COALESCE(b.relation_label, '') AS relation_label, COALESCE(b.sort_order, 0) AS sort_order,
+    $sql = "SELECT b.external_link_id, COALESCE(b.relation_label, '') AS relation_label, COALESCE(b.sort_order, 0) AS sort_order,
                    l.title, l.url, l.kind, l.is_active
             FROM bridge_characters_external_links b
             INNER JOIN fact_external_links l ON l.id = b.external_link_id
@@ -500,7 +500,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
                                     <input type="hidden" name="character_id" value="<?= (int)$selectedCharacterId ?>">
                                     <input type="hidden" name="fil_cr" value="<?= (int)$selectedChronicleId ?>">
                                     <input type="hidden" name="fil_re" value="<?= (int)$selectedRealityId ?>">
-                                    <input type="hidden" name="row_id" value="<?= (int)$row['id'] ?>">
+                                    <input type="hidden" name="doc_id" value="<?= (int)$row['doc_id'] ?>">
                                     <input class="inp" type="text" name="relation_label" maxlength="120" value="<?= h((string)$row['relation_label']) ?>">
                             </td>
                             <td>
@@ -515,7 +515,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
                                     <input type="hidden" name="character_id" value="<?= (int)$selectedCharacterId ?>">
                                     <input type="hidden" name="fil_cr" value="<?= (int)$selectedChronicleId ?>">
                                     <input type="hidden" name="fil_re" value="<?= (int)$selectedRealityId ?>">
-                                    <input type="hidden" name="row_id" value="<?= (int)$row['id'] ?>">
+                                    <input type="hidden" name="doc_id" value="<?= (int)$row['doc_id'] ?>">
                                     <button class="btn btn-red btn-small" type="submit">Quitar</button>
                                 </form>
                             </td>
@@ -592,7 +592,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
                                     <input type="hidden" name="character_id" value="<?= (int)$selectedCharacterId ?>">
                                     <input type="hidden" name="fil_cr" value="<?= (int)$selectedChronicleId ?>">
                                     <input type="hidden" name="fil_re" value="<?= (int)$selectedRealityId ?>">
-                                    <input type="hidden" name="row_id" value="<?= (int)$row['id'] ?>">
+                                    <input type="hidden" name="external_link_id" value="<?= (int)$row['external_link_id'] ?>">
                                     <input class="inp" type="text" name="relation_label" maxlength="120" value="<?= h((string)$row['relation_label']) ?>">
                             </td>
                             <td>
@@ -607,7 +607,7 @@ $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
                                     <input type="hidden" name="character_id" value="<?= (int)$selectedCharacterId ?>">
                                     <input type="hidden" name="fil_cr" value="<?= (int)$selectedChronicleId ?>">
                                     <input type="hidden" name="fil_re" value="<?= (int)$selectedRealityId ?>">
-                                    <input type="hidden" name="row_id" value="<?= (int)$row['id'] ?>">
+                                    <input type="hidden" name="external_link_id" value="<?= (int)$row['external_link_id'] ?>">
                                     <button class="btn btn-red btn-small" type="submit">Quitar</button>
                                 </form>
                             </td>

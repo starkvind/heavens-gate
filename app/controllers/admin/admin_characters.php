@@ -632,8 +632,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $raza        = max(0, intval($_POST['raza'] ?? 0));
     $auspice_id    = max(0, intval($_POST['auspice_id'] ?? 0));
     $tribe_id       = max(0, intval($_POST['tribe_id'] ?? 0));
-    $nature_id      = max(0, intval($_POST['nature_id'] ?? 0));
-    $demeanor_id    = max(0, intval($_POST['demeanor_id'] ?? 0));
+    $nature_id_raw  = max(0, intval($_POST['nature_id'] ?? 0));
+    $demeanor_id_raw= max(0, intval($_POST['demeanor_id'] ?? 0));
+    $nature_id      = $nature_id_raw > 0 ? $nature_id_raw : null;
+    $demeanor_id    = $demeanor_id_raw > 0 ? $demeanor_id_raw : null;
     $manada      = max(0, intval($_POST['manada'] ?? 0));
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
@@ -653,7 +655,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
     // Campos complejos
     $status_id   = max(0, (int)($_POST['status_id'] ?? 0));
-    $cumple      = trim($_POST['cumple'] ?? '');
     $rango       = trim($_POST['rango'] ?? '');
     $infotext    = trim($_POST['infotext'] ?? '');
     $infotext    = hg_mentions_convert($link, $infotext);
@@ -817,17 +818,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
             $sql = "INSERT INTO fact_characters
                 (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, `$character_kind_column`, system_id,
-                 totem_id, status_id, birthdate_text, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                 totem_id, status_id, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if ($stmt = $link->prepare($sql)) {
                 $img='';
                 $stmt->bind_param(
-                    "sssssiiissssiiisssiiiii",
+                    "sssssiiissssiiissiiiii",
                     $nombre, $alias, $nombregarou, $gender, $concept,
                     $cronica, $jugador, $afili,
                     $img, $notas, $text_color, $kind, $system_id,
                     $totem_id,
-                    $status_id, $cumple, $rango, $infotext,
+                    $status_id, $rango, $infotext,
                     $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
                 );
                 if ($stmt->execute()) {
@@ -924,27 +925,26 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
                   breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
                   totem_id=?,
-                  status_id=?, birthdate_text=?, rank=?, info_text=?, notes=?
+                  status_id=?, rank=?, info_text=?, notes=?
                   WHERE id=?";
 
           if ($stmt = $link->prepare($sql)) {
 
               // 13 strings/ints + 5 strings + id (int)
               $stmt->bind_param(
-                  "sssssiiiissiiiiiiissssi",
+                  "sssssiiiissiiiiiiisssi",
                   $nombre, $alias, $nombregarou, $gender, $concept,
                   $cronica, $jugador, $afili, $system_id, $text_color,
                   $kind,
                   $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
                   $totem_id,
-                  $status_id, $cumple, $rango, $infotext, $notas,
+                  $status_id, $rango, $infotext, $notas,
                   $id
               );
 
               if ($stmt->execute()) {
                   $saved_character_id = (int)$id;
                   hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
-
                   // Avatar
                   if ($rm_avatar && $current_img) {
                       safe_unlink_avatar($current_img, $AV_UPLOADDIR);
@@ -1220,7 +1220,7 @@ $stmt->close();
 $char_details = [];
 if (!empty($ids_page)) {
     $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, '') AS status, fc.status_id, fc.birthdate_text, fc.rank, fc.info_text, fc.notes FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
+    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, '') AS status, fc.status_id, fc.rank, fc.info_text, fc.notes FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
     if ($qdet) {
         while ($d = $qdet->fetch_assoc()) {
             $cid = (int)($d['id'] ?? 0);
@@ -1229,7 +1229,6 @@ if (!empty($ids_page)) {
                 'status'      => (string)($d['status'] ?? ''),
                 'status_id'   => (int)($d['status_id'] ?? 0),
                 'causamuerte' => '',
-                'cumple'      => (string)($d['birthdate_text'] ?? ''),
                 'rango'       => (string)($d['rank'] ?? ''),
                 'infotext'    => (string)($d['info_text'] ?? ''),
                 'notes'       => (string)($d['notes'] ?? ''),
@@ -1546,11 +1545,6 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
           </label>
         </div>
         <div>
-          <label>Cumpleaños <span class="small-note">(ej: 1990-05-21)</span>
-            <input class="inp" type="text" name="cumple" id="f_cumple" placeholder="YYYY-MM-DD">
-          </label>
-        </div>
-        <div>
           <label>Rango
             <input class="inp" type="text" name="rango" id="f_rango" maxlength="100">
           </label>
@@ -1838,13 +1832,3 @@ window.HG_ADMIN_CHARACTERS_BOOT = <?= json_encode($jsBoot, $jsBootFlags); ?>;
 </script>
 <script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <script src="<?= h($adminCharactersJs) ?>?v=<?= (int)$adminCharactersJsVer ?>"></script>
-
-
-
-
-
-
-
-
-
-

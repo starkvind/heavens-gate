@@ -162,6 +162,9 @@
 					case 'admin_inspect_db':
 						echo " $pillSeparator Inspeccionar BDD";
 						break;
+					case 'admin_schema_hardening_audit':
+						echo " $pillSeparator Auditar endurecimiento";
+						break;
 					case 'admin_avatar_mass':
 						echo " $pillSeparator Avatares masivos";
 						break;
