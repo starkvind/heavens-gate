@@ -418,7 +418,51 @@ Capacidades clave:
 - deteccion de duplicados y estados inconsistentes
 - acceso rapido al destino publico cuando existe slug
 
-### 7.3 Helpers de soporte creados o consolidados
+#### `admin_systems_extra_details`
+
+- editor compacto para vincular detalles de otros sistemas al sistema seleccionado
+- trabaja sobre:
+  - `bridge_systems_ex_races`
+  - `bridge_systems_ex_auspices`
+  - `bridge_systems_ex_tribes`
+- no altera los catalogos base `dim_breeds`, `dim_auspices` o `dim_tribes`
+- UI centrada en seleccion por desplegable y chips removibles
+- muestra el sistema de origen de cada detalle vinculado para evitar ambiguedades
+
+### 7.3 Detalles extra por sistema
+
+Objetivo:
+
+- permitir que un sistema reutilice Razas, Auspicios o Tribus definidas originalmente en otro sistema sin duplicar filas del catalogo
+
+Tablas implicadas:
+
+- `bridge_systems_ex_races`
+- `bridge_systems_ex_auspices`
+- `bridge_systems_ex_tribes`
+
+Estructura funcional comun:
+
+- `system_id`: sistema destino
+- FK al detalle origen:
+  - `race_id` o `breed_id` en razas, segun instalacion
+  - `auspice_id`
+  - `tribe_id`
+- `is_active` cuando la tabla lo soporta
+
+Punto de entrada admin:
+
+- `/talim?s=admin_systems_extra_details`
+
+Comportamiento:
+
+- seleccion de sistema destino
+- alta por desplegable filtrado para evitar mostrar los detalles ya nativos del mismo sistema base
+- visualizacion compacta de vinculados mediante chips
+- borrado rapido desde cada chip
+- persistencia transaccional por bloque completo
+
+### 7.4 Helpers de soporte creados o consolidados
 
 - `app/helpers/admin_catalog_utils.php`
 - `app/helpers/admin_uploads.php`
@@ -464,7 +508,52 @@ Objetivo:
 - aplicar un cambio seguro y acotado
 - emitir plan SQL incluso cuando no hay conexion disponible
 
-### 8.3 Herramientas de soporte revisadas en esta tanda
+### 8.3 Inicializador de esquema embebido
+
+Scripts y puntos de entrada:
+
+- `app/tools/schema_definition.php`
+- `app/tools/schema_initializer.php`
+- `app/controllers/admin/admin_schema_initializer.php`
+
+Objetivo:
+
+- no depender del dump en runtime
+- comparar la base de datos actual contra una definicion PHP embebida del esquema
+- detectar y reparar tablas, columnas, indices, claves foraneas, vistas y configuracion segura faltantes
+
+Modos de uso:
+
+- CLI dry-run:
+
+```bash
+php app/tools/schema_initializer.php
+```
+
+- CLI apply:
+
+```bash
+php app/tools/schema_initializer.php --apply
+```
+
+- Admin web:
+  - `/talim?s=admin_schema_initializer`
+
+Alcance actual:
+
+- crea tablas completas cuando faltan
+- agrega columnas faltantes en tablas existentes
+- agrega indices y claves foraneas faltantes cuando no existen por nombre o firma equivalente
+- crea vistas finales faltantes
+- si `dim_web_configuration` existe, siembra la configuracion segura base que falte
+
+Limites deliberados:
+
+- no intenta borrar columnas, indices o FKs extra
+- no reescribe una definicion existente si ya hay una variante funcional
+- no sustituye una migracion editorial o de datos cuando el problema no es estructural sino semantico
+
+### 8.4 Herramientas de soporte revisadas en esta tanda
 
 Tambien se han alineado con el runtime actual:
 

@@ -59,6 +59,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_system_details':
 					include("admin_system_details.php");
 					break;
+				case 'admin_systems_extra_details':
+					include("admin_systems_extra_details.php");
+					break;
 				case 'admin_traits':
 					include("admin_traits.php");
 					break;
@@ -263,6 +266,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_system_details':
 					include("admin_system_details.php");
 					break;
+				case 'admin_systems_extra_details':
+					include("admin_systems_extra_details.php");
+					break;
 				case 'admin_trait_sets':
 					include("admin_trait_sets.php");
 					break;
@@ -286,6 +292,9 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_mentions_help':
 					include("mentions_help.html");
+					break;
+				case 'admin_schema_initializer':
+					include("admin_schema_initializer.php");
 					break;
 				case 'logout':
 					include("admin_logout.php");
@@ -332,22 +341,12 @@ if (!hg_admin_require_db($link)) { return; }
 					echo "
 					<a href='/talim?s=admin_avatar_mass'>
 					  <div class='bioSheetPower adm-admin-tile'>
-						Avatares Masivos
-					  </div>
-					</a>
-					<a href='/talim?s=admin_characters_worlds'>
-					  <div class='bioSheetPower adm-admin-tile'>
-						Crónicas y Realidades
+						Editar avatares de forma masiva
 					  </div>
 					</a>
 					<a href='/talim?s=admin_character_deaths'>
 					  <div class='bioSheetPower adm-admin-tile'>
-						Muertes de Personajes
-					  </div>
-					</a>
-					<a href='/talim?s=admin_characters_clone'>
-					  <div class='bioSheetPower adm-admin-tile'>
-						Copiar Personajes
+						Editar muertes de personajes
 					  </div>
 					</a>
 					<a href='/talim?s=admin_bridges'>
@@ -360,20 +359,35 @@ if (!hg_admin_require_db($link)) { return; }
 							Editar Relaciones
 						</div>
 					</a>
+					<a href='/talim?s=admin_birthdays_quick'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Editar Cumplea&ntilde;os
+						</div>
+					</a>
+					<a href='/talim?s=admin_characters_worlds'>
+					  <div class='bioSheetPower adm-admin-tile'>
+						Asignar Crónicas y Realidades
+					  </div>
+					</a>
+					<a href='/talim?s=admin_characters_clone'>
+					  <div class='bioSheetPower adm-admin-tile'>
+						Copiar Personajes
+					  </div>
+					</a>
 					";
 				echo "</fieldset>";
 					echo "<br />";
-				// CONTENIDO
-				echo "<fieldset class='bioSeccion'><legend>&nbsp;Contenido&nbsp;</legend>";
+				// TEMPORADAS Y EPISODIOS
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Temporadas & Episodios&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_news'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Noticias
 						</div>
 					</a>
-					<a href='/talim?s=admin_docs'>
+					<a href='/talim?s=admin_topic_viewer'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Documentaci&oacute;n
+							Gestionar Topics del Foro
 						</div>
 					</a>
 					<a href='/talim?s=admin_seasons'>
@@ -386,9 +400,20 @@ if (!hg_admin_require_db($link)) { return; }
 							Gestionar Episodios
 						</div>
 					</a>
+					";
+				echo "</fieldset>";
+					echo "<br />";
+				// DOCUMENTOS
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Documentaci&oacute;n&nbsp;</legend>";
+				echo "
+					<a href='/talim?s=admin_docs'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Documentaci&oacute;n
+						</div>
+					</a>
 					<a href='/talim?s=admin_external_links'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Enlaces Externos
+							Gestionar Documentos Externos
 						</div>
 					</a>
 					<a href='/talim?s=admin_character_links'>
@@ -400,17 +425,12 @@ if (!hg_admin_require_db($link)) { return; }
 						<div class='bioSheetPower adm-admin-tile'>
 							Vincular Documento a PJs
 						</div>
-					</a>
-					<a href='/talim?s=admin_topic_viewer'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Topics del Foro
-						</div>
-					</a>
-					";
+					</a>				
+				";
 				echo "</fieldset>";
 					echo "<br />";
-				// MUNDO
-				echo "<fieldset class='bioSeccion'><legend>&nbsp;Mundo&nbsp;</legend>";
+				// AMBIENTACION
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Ambientaci&oacute;n&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_chronicles'>
 						<div class='bioSheetPower adm-admin-tile'>
@@ -430,11 +450,6 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_timelines'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar L&iacute;nea temporal
-						</div>
-					</a>
-					<a href='/talim?s=admin_birthdays_quick'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Cumplea&ntilde;os R&aacute;pidos
 						</div>
 					</a>
 					<a href='/talim?s=admin_gallery'>
@@ -463,30 +478,25 @@ if (!hg_admin_require_db($link)) { return; }
 							Gestionar Poderes
 						</div>
 					</a>
+					<a href='/talim?s=admin_merits_flaws'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar M&eacute;ritos y Defectos
+						</div>
+					</a>
 					";
 				echo "</fieldset>";
 					echo "<br />";
 				// REGLAMENTO
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Reglamento&nbsp;</legend>";
 				echo "
-					<a href='/talim?s=admin_traits'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Rasgos
-						</div>
-					</a>
-					<a href='/talim?s=admin_merits_flaws'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Meritos y Defectos
-						</div>
-					</a>
 					<a href='/talim?s=admin_systems'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Sistemas
 						</div>
 					</a>
-					<a href='/talim?s=admin_system_details'>
+					<a href='/talim?s=admin_traits'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Razas / Auspicios / Tribus
+							Gestionar Rasgos
 						</div>
 					</a>
 					<a href='/talim?s=admin_trait_sets'>
@@ -502,6 +512,16 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_resources'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Recursos (Catalogo)
+						</div>
+					</a>
+					<a href='/talim?s=admin_system_details'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Razas / Auspicios / Tribus
+						</div>
+					</a>
+					<a href='/talim?s=admin_systems_extra_details'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Extra Details to System
 						</div>
 					</a>
 					<a href='/talim?s=admin_forms'>
@@ -536,6 +556,11 @@ if (!hg_admin_require_db($link)) { return; }
 							Editar Men&uacute;
 						</div>
 					</a>
+					<a href='/talim?s=admin_schema_initializer'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Inicializar Esquema
+						</div>
+					</a>
 					<a href='/talim?s=admin_inspect_db'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Inspeccionar BDD
@@ -558,4 +583,3 @@ if (!hg_admin_require_db($link)) { return; }
 		}
 	}
 ?>
-

@@ -66,6 +66,9 @@
 						case 'admin_timelines':
 							echo " $pillSeparator L&iacute;nea temporal";
 							break;
+						case 'admin_birthdays_quick':
+							echo " $pillSeparator Cumplea&ntilde;os r&aacute;pidos";
+							break;
 						case 'admin_bso':
 						case 'admin_bso_link':
 							echo " $pillSeparator Banda sonora";
@@ -107,6 +110,9 @@
 					case 'admin_system_details':
 						echo " $pillSeparator Detalles de sistemas";
 						break;
+					case 'admin_systems_extra_details':
+						echo " $pillSeparator Extra details to system";
+						break;
 					case 'admin_bridges':
 							echo " $pillSeparator Bridges";
 							break;
@@ -128,14 +134,35 @@
 					case 'admin_inspect_db':
 						echo " $pillSeparator Inspeccionar BDD";
 						break;
+					case 'admin_avatar_mass':
+						echo " $pillSeparator Avatares masivos";
+						break;
 					case 'admin_characters_worlds':
 						echo " $pillSeparator Asignación crónicas y realidades";
 						break;
 					case 'admin_character_deaths':
 						echo " $pillSeparator Muertes de personajes";
 						break;
+					case 'admin_characters_clone':
+						echo " $pillSeparator Copiar personajes";
+						break;
+					case 'admin_external_links':
+						echo " $pillSeparator Enlaces externos";
+						break;
+					case 'admin_character_links':
+						echo " $pillSeparator Enlaces y documentos a personajes";
+						break;
+					case 'admin_doc_links':
+						echo " $pillSeparator Documentos vinculados a personajes";
+						break;
+					case 'admin_sim_browser':
+						echo " $pillSeparator Temporadas simulador";
+						break;
 					case 'admin_sim_character_talk':
 						echo " $pillSeparator Frases de simulador";
+						break;
+					case 'admin_schema_initializer':
+						echo " $pillSeparator Inicializador de esquema";
 						break;
 					case 'admin_mentions_help':
 						echo " $pillSeparator Ayuda mentions";
