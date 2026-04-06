@@ -196,7 +196,7 @@ function adl_fetch_characters_for_doc(
                 {$systemNameExpr},
                 {$orgNameExpr},
                 {$groupNameExpr},
-                CASE WHEN b.id IS NULL THEN 0 ELSE 1 END AS is_linked,
+                CASE WHEN b.character_id IS NULL THEN 0 ELSE 1 END AS is_linked,
                 {$relExpr} AS relation_label,
                 {$sortExpr} AS sort_order
             FROM fact_characters c
@@ -280,6 +280,8 @@ function adl_fetch_characters_for_doc(
         $rs = $st->get_result();
         while ($rs && ($row = $rs->fetch_assoc())) { $rows[] = $row; }
         $st->close();
+    } else {
+        error_log('admin_doc_links: prepare failed in adl_fetch_characters_for_doc: ' . $db->error);
     }
     return $rows;
 }

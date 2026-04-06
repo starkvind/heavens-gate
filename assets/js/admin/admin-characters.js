@@ -134,7 +134,6 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
   // Campos complejos
   var fEstado     = document.getElementById('f_estado');
-  var fCumple     = document.getElementById('f_cumple');
   var fRango      = document.getElementById('f_rango');
   var fInfo       = document.getElementById('f_infotext');
   var fNotes      = document.getElementById('f_notes');
@@ -1013,7 +1012,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     document.getElementById('crud_action').value = 'create';
     document.getElementById('f_id').value = '0';
 
-    ['nombre','alias','nombregarou','gender','concept','text_color','cumple','rango'].forEach(function(k){
+    ['nombre','alias','nombregarou','gender','concept','text_color','rango'].forEach(function(k){
       var el=document.getElementById('f_'+k); if(el) el.value='';
     });
     ['cronica','jugador','system_id'].forEach(function(k){
@@ -1158,7 +1157,6 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     applyKindVisibility(selKind ? selKind.value : 'pnj', false);
 
     fInfo.value   = '';
-    fCumple.value = '';
     fRango.value  = '';
     if (fNotes) fNotes.value = '';
     ensureEstadoOption(DEFAULT_STATUS_ID);
@@ -1166,7 +1164,6 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     var d = CHAR_DETAILS[cid];
     if (d) {
       ensureEstadoOption(d.status_id || DEFAULT_STATUS_ID, d.status || '');
-      fCumple.value = d.cumple || '';
       fRango.value  = d.rango || '';
       fInfo.value   = d.infotext || '';
       if (fNotes) fNotes.value = d.notes || '';

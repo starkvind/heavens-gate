@@ -735,7 +735,7 @@
 			$docOrder = $hasDocSortOrder ? 'b.sort_order ASC, d.title ASC' : 'd.title ASC';
 
 			$sqlDocLinks = "SELECT
-							b.id AS bridge_id,
+							CONCAT(b.character_id, ':', b.doc_id) AS bridge_id,
 							b.doc_id,
 							{$docRelExpr} AS relation_label,
 							{$docSortExpr} AS sort_order,
@@ -765,7 +765,7 @@
 			$extActiveExpr = $hasExternalActive ? 'COALESCE(l.is_active, 1)' : '1';
 
 			$sqlExternalLinks = "SELECT
-								b.id AS bridge_id,
+								CONCAT(b.character_id, ':', b.external_link_id) AS bridge_id,
 								b.external_link_id,
 								{$extRelExpr} AS relation_label,
 								{$extSortExpr} AS sort_order,

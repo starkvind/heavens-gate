@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * admin_groups.php — Modales + creación/renombrado + HTML server-side
  *
@@ -271,11 +271,12 @@ function render_clan_modal($link,$organization_id){
 
 function render_group_modal($link,$group_id){
   $group_id = (int)$group_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,is_active AS activa,IFNULL(chronicle_id,1) AS cronica, totem_id AS totem FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
+  [$ok,$err,$rs] = q($link,"SELECT id,name,is_active AS activa,IFNULL(chronicle_id,1) AS cronica, totem_id AS totem, `description` FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
   if(!$ok || !$rs || !($g=mysqli_fetch_assoc($rs))){
     echo "<div class='err'>Manada no encontrada.</div>"; return;
   }
   $totems = get_totems($link);
+  $groupDesc = (string)($g['description'] ?? '');
   $totemSel = (int)($g['totem'] ?? 0);
   echo "<div class='modal-header'>
           <h3>Editar manada</h3>
@@ -296,7 +297,10 @@ function render_group_modal($link,$group_id){
                 <input id='groupActiva' type='checkbox' ".((int)$g['activa']===1?'checked':'')."> Activa
               </label>
               <button class='btn btn-ok' id='btnSaveGroupBasic' data-id='".e($g['id'])."'>Guardar</button>
-              <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver página</a>
+              <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver p?gina</a>
+            </div>
+            <div class='toolbar adm-mt-8'>
+              <textarea id='groupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripci?n'>".e($groupDesc)."</textarea>
             </div>
           </div>
           <div class='hr'></div>
@@ -358,7 +362,10 @@ function render_group_create_form($link,$prefill_clan_id=0){
                 <label class='adm-flex-6-center'>
                   <input id='newGroupActiva' type='checkbox' checked> Activa
                 </label>
+              <div class='toolbar adm-mt-8'>
+                <textarea id='newGroupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripci?n'></textarea>
               </div>
+            </div>
             </div>
             <div class='card'>
               <h4>Asignación inicial</h4>
@@ -451,8 +458,9 @@ if(!empty($_POST['action'])){
     $activa = (int)($_POST['activa']??0)===1?1:0;
     $cronica = (int)($_POST['cronica']??1); if($cronica<1){ $cronica=1; }
     $totem = (int)($_POST['totem']??0);
+    $description=(string)($_POST['description']??'');
     if($id>0 && $name!==''){
-      q($link,"UPDATE dim_groups SET name=?, is_active=?, chronicle_id=?, totem_id=? WHERE id=?",'siiii',[$name,$activa,$cronica,$totem,$id]);
+      q($link,"UPDATE dim_groups SET name=?, is_active=?, chronicle_id=?, totem_id=?, `description`=? WHERE id=?",'siiisi',[$name,$activa,$cronica,$totem,$description,$id]);
       hg_update_pretty_id_if_exists($link, 'dim_groups', $id, $name);
     }
     render_group_modal($link,$id); exit;
@@ -465,12 +473,13 @@ if(!empty($_POST['action'])){
     $activa=(int)($_POST['activa']??1)===1?1:0;
     $organization_id=(int)($_POST['organization_id']??0);
     $totem=(int)($_POST['totem']??0);
+    $description=(string)($_POST['description']??'');
     if($name===''){ render_group_create_form($link,$organization_id); echo "<div class='err'>Indica un nombre.</div>"; exit; }
 
     // dim_groups: name, chronicle_id, totem_id, is_active, description (NOT NULL)
     [$ok,$err,$rs,$newId] = q($link,
       "INSERT INTO dim_groups (name, chronicle_id, totem_id, is_active, `description`) VALUES (?,?,?,?,?)",
-      'siiis', [$name, $cronica, $totem, $activa, '']);
+      'siiis', [$name, $cronica, $totem, $activa, $description]);
     if(!$ok){ render_group_create_form($link,$organization_id); echo "<div class='err'>".e($err)."</div>"; exit; }
     hg_update_pretty_id_if_exists($link, 'dim_groups', (int)$newId, $name);
 
@@ -733,8 +742,9 @@ function bindModalInside(){
       const cronica = ($('#newGroupCronica', root).value||'1').trim();
       const activa = $('#newGroupActiva', root).checked ? 1 : 0;
       const organization_id = ($('#newGroupClan', root).value||'0').trim();
-      const totem = ($('#newGroupTotem', root).value||'0').trim();
-      openModal(await htmlPost('group_create',{name,cronica,activa,organization_id,totem}));
+      const totem = ($("#newGroupTotem", root).value||'0').trim();
+      const description = ($("#newGroupDescription", root).value||'');
+      openModal(await htmlPost('group_create',{name,cronica,activa,organization_id,totem,description}));
       reloadGroups();
       reloadClans(); // por si asignó al clan
     };
@@ -808,8 +818,9 @@ function bindModalInside(){
       const name = ($('#groupName', root).value||'').trim();
       const activa = $('#groupActiva', root).checked ? 1 : 0;
       const cronica = ($('#groupCronica', root).value||'1').trim();
-      const totem = ($('#groupTotem', root).value||'0').trim();
-      openModal(await htmlPost('group_update_basic',{group_id,name,activa,cronica,totem}));
+      const totem = ($("#groupTotem", root).value||'0').trim();
+      const description = ($("#groupDescription", root).value||'');
+      openModal(await htmlPost('group_update_basic',{group_id,name,activa,cronica,totem,description}));
       reloadGroups();
     };
   }
