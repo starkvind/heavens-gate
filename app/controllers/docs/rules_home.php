@@ -1,5 +1,4 @@
 <?php 
-    //include("app/partials/main_nav_bar.php"); // Barra de Navegacion
     setMetaFromPage("Reglamento | Heaven's Gate", "Resumen y acceso al reglamento del juego.", null, 'website');
 
     $pageSect = "Reglamento";
@@ -14,6 +13,11 @@ $rulesTypes = [
         'name' => 'Méritos y Defectos',
         'href' => '/rules/merits-flaws',
         'desc' => 'Rasgos que definen ventajas y debilidades del personaje.',
+    ],
+    [
+        'name' => 'Condiciones',
+        'href' => '/rules/conditions',
+        'desc' => 'Deformidades, heridas de guerra y trastornos mentales que afectan a los personajes.',
     ],
     [
         'name' => 'Personalidades',
@@ -36,13 +40,13 @@ $rulesTypes = [
         foreach ($rulesTypes as $rule) {
             $name = htmlspecialchars($rule['name']);
             $href = htmlspecialchars($rule['href']);
-            $desc = htmlspecialchars($rule['description']);
+            $desc = htmlspecialchars((string)($rule['desc'] ?? $rule['description'] ?? ''));
 
             echo "
                 <a href='$href' title='$name'>
                     <div class='renglon2col rules-card'>
-                        <strong>$name</strong>
-                        <p><span class='rules-card-desc'>$desc</span></p>
+                        <strong class='rules-card-title'>$name</strong>
+                        <div class='rules-card-desc'>$desc</div>
                     </div>
                 </a>
             ";

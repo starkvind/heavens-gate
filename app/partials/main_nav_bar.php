@@ -174,6 +174,13 @@
 					case 'admin_character_deaths':
 						echo " $pillSeparator Muertes de personajes";
 						break;
+					case 'admin_character_conditions':
+						echo " $pillSeparator Cat&aacute;logo de condiciones";
+						break;
+					case 'admin_character_conditions_bridge':
+					case 'admin_characters_conditions_brige':
+						echo " $pillSeparator Condiciones de personajes";
+						break;
 					case 'admin_characters_clone':
 						echo " $pillSeparator Copiar personajes";
 						break;
@@ -336,27 +343,49 @@
 			// ========================================== //
 			// Habilidades
 			// ========================================== //
+			case "rules":
+				echo "Reglamento";
+				break;
+			case "listarasgos":
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator Rasgos";
+				break;
 			case "verrasgo":
 				$traitNavName = isset($nameSkill) ? $nameSkill : (isset($pageTitle2) ? $pageTitle2 : '');
-				echo "<a href='/rules/traits' title='Rasgos'>Rasgos</a> $pillSeparator $traitNavName";
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/traits' title='Rasgos'>Rasgos</a> $pillSeparator $traitNavName";
+				break;
+			case "listconditions":
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator Condiciones";
+				break;
+			case "vercondition":
+				$conditionNavName = isset($pageTitle2) ? $pageTitle2 : '';
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/conditions' title='Condiciones'>Condiciones</a> $pillSeparator $conditionNavName";
 				break;
 			// ========================================== //
 			// Meritos y Defectos
 			// ========================================== //
+			case "listamyd":
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator Meritos y Defectos";
+				break;
 			case "vermyd":
-				echo "<a href='/rules/merits-flaws' title='Meritos y Defectos'>Meritos y Defectos</a> $pillSeparator $mafName";
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/merits-flaws' title='Meritos y Defectos'>Meritos y Defectos</a> $pillSeparator $mafName";
 				break;
 			// ========================================== //
 			// Maniobras de Combate
 			// ========================================== //
+			case "maneuver":
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator Maniobras";
+				break;
 			case "vermaneu":	// Ver Maniobra
-				echo "<a href='/rules/maneuvers' title='Maniobras'>Maniobras</a> $pillSeparator $maneName";
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/maneuvers' title='Maniobras'>Maniobras</a> $pillSeparator $maneName";
 				break;
 			// ========================================== //
 			// Arquetipos de Personalidad
 			// ========================================== //
+			case "arquetip":
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator Arquetipos de personalidad";
+				break;
 			case "verarch":		// Ver Arquetipo
-				echo "<a href='/rules/archetypes' title='Arquetipos de personalidad'>Arquetipos de personalidad</a> $pillSeparator $archeName";
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/archetypes' title='Arquetipos de personalidad'>Arquetipos de personalidad</a> $pillSeparator $archeName";
 				break;
 			// ========================================== //
 			// Dones

@@ -68,6 +68,13 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_merits_flaws':
 					include("admin_merits_flaws.php");
 					break;
+				case 'admin_character_conditions':
+					include("admin_character_conditions.php");
+					break;
+				case 'admin_character_conditions_bridge':
+				case 'admin_characters_conditions_brige':
+					include("admin_character_conditions_bridge.php");
+					break;
 				case 'admin_powers':
 					include("admin_powers.php");
 					break;
@@ -278,6 +285,13 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_merits_flaws':
 					include("admin_merits_flaws.php");
 					break;
+				case 'admin_character_conditions':
+					include("admin_character_conditions.php");
+					break;
+				case 'admin_character_conditions_bridge':
+				case 'admin_characters_conditions_brige':
+					include("admin_character_conditions_bridge.php");
+					break;
 				case 'admin_systems_resources':
 					include("admin_systems_resources.php");
 					break;
@@ -350,6 +364,11 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_character_deaths'>
 					  <div class='bioSheetPower adm-admin-tile'>
 						Editar muertes de personajes
+					  </div>
+					</a>
+					<a href='/talim?s=admin_character_conditions_bridge'>
+					  <div class='bioSheetPower adm-admin-tile'>
+						Asignar Condiciones a PJs
 					  </div>
 					</a>
 					<a href='/talim?s=admin_bridges'>
@@ -484,6 +503,11 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_merits_flaws'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar M&eacute;ritos y Defectos
+						</div>
+					</a>
+					<a href='/talim?s=admin_character_conditions'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Condiciones
 						</div>
 					</a>
 					";

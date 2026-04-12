@@ -1378,6 +1378,9 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
   <div class="hdr">
     <h2>Personajes - Lista y CRUD</h2>
     <button class="btn btn-green" id="btnNew">+ Nuevo personaje</button>
+    <a class="btn" href="/talim?s=admin_character_conditions_bridge">Condiciones</a>
+    <a class="btn" href="/talim?s=admin_character_deaths">Muertes</a>
+    <a class="btn" href="/talim?s=admin_birthdays_quick">Cumplea&ntilde;os</a>
 
     <form method="get" id="charactersFilterForm" action="/talim" class="adm-flex-8-center-spaced">
       <input type="hidden" name="p" value="talim">

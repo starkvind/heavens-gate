@@ -404,6 +404,7 @@
 			$titleSkill	 = "&nbsp;Habilidades&nbsp;";		// Titulo de la seccion "Habilidades"
 			$titleBackg	 = "&nbsp;Trasfondos&nbsp;";		// Titulo de la seccion "Trasfondos"
 			$titleMerits = "&nbsp;M&eacute;ritos y Defectos&nbsp;";// Titulo de la seccion "Meritos y Defectos"
+			$titleConditions = "&nbsp;Condiciones&nbsp;";		// Titulo de la seccion "Condiciones"
 			$titleSocial = "&nbsp;Renombre&nbsp;"; 			// Titulo de la seccion "Social"
 			$titleAdvant = "&nbsp;Estado&nbsp;";			// Titulo de la seccion "Estado"
 			$titlePowers = "&nbsp;Poderes&nbsp;";			// Titulo de la seccion "Poderes"
@@ -955,6 +956,10 @@
 			// RECURSOS DEL PERSONAJE
 			// ================================================================== //
 			include ("app/partials/bio/bio_page_section_07_resources.php"); // Utilizamos "include" para no sobrecargar la página con código
+			// ================================================================== //
+			// CONDICIONES DEL PERSONAJE
+			// ================================================================== //
+			include ("app/partials/bio/bio_page_section_09_conditions.php"); // Condiciones del personaje, estilo inventario
 			// ================================================================== //
 			// PODERES, DONES, RITUALES Y DISCIPLINAS
 			// ================================================================== //

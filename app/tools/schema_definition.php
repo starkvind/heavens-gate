@@ -121,6 +121,48 @@ return array (
   CONSTRAINT `fk_bcmf_merit_flaw` FOREIGN KEY (`merit_flaw_id`) REFERENCES `dim_merits_flaws` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
+    1007 => 
+    array (
+      'name' => 'bridge_character_conditions_traits',
+      'create_sql' => 'CREATE TABLE `bridge_character_conditions_traits` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `condition_id` int(10) unsigned NOT NULL,
+  `trait_id` int(10) unsigned NOT NULL,
+  `modifier_value` smallint(6) NOT NULL DEFAULT 0,
+  `description` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_bcct_condition_trait` (`condition_id`,`trait_id`),
+  KEY `idx_bcct_trait` (`trait_id`),
+  CONSTRAINT `fk_bcct_condition` FOREIGN KEY (`condition_id`) REFERENCES `dim_character_conditions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_bcct_trait` FOREIGN KEY (`trait_id`) REFERENCES `dim_traits` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+    ),
+    1008 => 
+    array (
+      'name' => 'bridge_characters_conditions',
+      'create_sql' => 'CREATE TABLE `bridge_characters_conditions` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `character_id` int(10) unsigned NOT NULL,
+  `condition_id` int(10) unsigned NOT NULL,
+  `instance_no` smallint(5) unsigned NOT NULL DEFAULT 1,
+  `location` varchar(120) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `source` varchar(150) DEFAULT NULL,
+  `acquired_at` datetime DEFAULT NULL,
+  `healed_at` datetime DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_bcc_character_condition_instance` (`character_id`,`condition_id`,`instance_no`),
+  KEY `idx_bcc_condition` (`condition_id`),
+  KEY `idx_bcc_character_active` (`character_id`,`is_active`),
+  CONSTRAINT `fk_bcharscond_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_bcharscond_condition` FOREIGN KEY (`condition_id`) REFERENCES `dim_character_conditions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+    ),
     7 => 
     array (
       'name' => 'bridge_characters_organizations',
@@ -587,6 +629,27 @@ return array (
   UNIQUE KEY `uniq_dcs_label` (`label`),
   UNIQUE KEY `uniq_dcs_pretty_id` (`pretty_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+    ),
+    1033 => 
+    array (
+      'name' => 'dim_character_conditions',
+      'create_sql' => 'CREATE TABLE `dim_character_conditions` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `pretty_id` varchar(190) DEFAULT NULL,
+  `name` varchar(100) NOT NULL,
+  `category` varchar(100) NOT NULL DEFAULT \'\',
+  `description` longtext NOT NULL,
+  `max_instances` smallint(5) unsigned DEFAULT 1,
+  `bibliography_id` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_pretty_id` (`pretty_id`),
+  KEY `idx_dim_character_conditions_biblio` (`bibliography_id`),
+  FULLTEXT KEY `name` (`name`),
+  FULLTEXT KEY `description` (`description`),
+  CONSTRAINT `fk_dim_character_conditions_biblio` FOREIGN KEY (`bibliography_id`) REFERENCES `dim_bibliographies` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ),
     33 => 
     array (

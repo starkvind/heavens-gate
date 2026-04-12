@@ -36,6 +36,7 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         'muestradisc'  => ['b', 'fact_discipline_powers', '/powers/discipline'],
         'tipodisc'     => ['b', 'dim_discipline_types', '/powers/discipline/type'],
         'verrasgo'     => ['b', 'dim_traits', '/rules/traits'],
+        'vercondition' => ['b', 'dim_character_conditions', '/rules/conditions'],
         'vermyd'       => ['b', 'dim_merits_flaws', '/rules/merits-flaws'],
         'verarch'      => ['b', 'dim_archetypes', '/rules/archetypes'],
         'vermaneu'     => ['b', 'fact_combat_maneuvers', '/rules/maneuvers'],
@@ -468,6 +469,8 @@ $routes = [
 	// 🧠 Rasgos
 	'listarasgos' => ['app/controllers/docs/traits_table.php', null],
 	'verrasgo'    => ['app/controllers/docs/traits_page.php', null],
+	'listconditions' => ['app/controllers/docs/conditions_table.php', null],
+	'vercondition'   => ['app/controllers/docs/condition_page.php', null],
 	'maneuver'    => ['app/controllers/docs/maneuver_list.php', null],
 	'vermaneu'    => ['app/controllers/docs/maneuver_page.php', null],
 	'arquetip'    => ['app/controllers/docs/arche_table.php', null],

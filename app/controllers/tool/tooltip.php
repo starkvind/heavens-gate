@@ -161,6 +161,20 @@ if ($type === 'don') {
         }
         $st->close();
     }
+} elseif ($type === 'condition' || $type === 'character_condition' || $type === 'dim_character_condition') {
+    if ($st = $link->prepare("SELECT name, category, description FROM dim_character_conditions WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $category = trim((string)($r['category'] ?? ''));
+            $outMeta = 'Condici&oacute;n';
+            if ($category !== '') $outMeta .= ' - ' . h($category);
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
 } elseif ($type === 'item' || $type === 'items' || $type === 'fact_items') {
     if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, image_url, skill_name, damage_type, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);

@@ -295,14 +295,27 @@
 }
 
 .rules-card {
-    height: 52px;
+    height: auto;
+    min-height: 52px;
     text-align: left;
     padding: 1em;
+    overflow: hidden;
+}
+
+.rules-card-title {
+    display: block;
+    margin-bottom: 8px;
 }
 
 .rules-card-desc {
+    display: block;
     font-size: 12px;
     opacity: .8;
+    line-height: 1.4;
+}
+
+.rules-card p {
+    margin: 0;
 }
 
 @media (max-width: 720px) {
