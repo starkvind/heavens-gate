@@ -49,6 +49,114 @@
 		$totemTypeNav = isset($totemType) ? (int)$totemType : (isset($routeParam) ? (int)$routeParam : 0);
 		$formIdNav = isset($systemIdWere) ? (int)$systemIdWere : (isset($formId) ? (int)$formId : 0);
 
+		if (!function_exists('hg_main_nav_h')) {
+			function hg_main_nav_h($value): string
+			{
+				return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+			}
+		}
+
+		if (!function_exists('hg_main_nav_seegroup_links')) {
+			function hg_main_nav_seegroup_links(mysqli $link, int $typePack, int $packId, string $fallback): string
+			{
+				if ($packId <= 0) {
+					return $fallback;
+				}
+
+				if ($typePack === 2) {
+					if ($stmt = mysqli_prepare($link, "SELECT name FROM dim_organizations WHERE id = ? LIMIT 1")) {
+						mysqli_stmt_bind_param($stmt, 'i', $packId);
+						mysqli_stmt_execute($stmt);
+						$result = mysqli_stmt_get_result($stmt);
+						$row = $result ? mysqli_fetch_assoc($result) : null;
+						mysqli_stmt_close($stmt);
+
+						if ($row) {
+							return hg_main_nav_h($row['name'] ?? '');
+						}
+					}
+
+					return $fallback;
+				}
+
+				if ($typePack !== 1) {
+					return $fallback;
+				}
+
+				$preferredOrganizationId = 0;
+				if (isset($_GET['org'])) {
+					$orgRaw = trim((string)$_GET['org']);
+					if (preg_match('/^\d+$/', $orgRaw)) {
+						$preferredOrganizationId = (int)$orgRaw;
+					} elseif (function_exists('resolve_pretty_id')) {
+						$preferredOrganizationId = (int)(resolve_pretty_id($link, 'dim_organizations', $orgRaw) ?? 0);
+					}
+				}
+
+				if ($preferredOrganizationId > 0) {
+					$sqlPreferred = "
+						SELECT m.name AS group_name, c.id AS organization_id, c.name AS organization_name
+						FROM bridge_organizations_groups b
+						INNER JOIN dim_groups m ON m.id = b.group_id
+						INNER JOIN dim_organizations c ON c.id = b.organization_id
+						WHERE b.organization_id = ?
+						  AND m.id = ?
+						  AND (b.is_active = 1 OR b.is_active IS NULL)
+						LIMIT 1
+					";
+
+					if ($stmt = mysqli_prepare($link, $sqlPreferred)) {
+						mysqli_stmt_bind_param($stmt, 'ii', $preferredOrganizationId, $packId);
+						mysqli_stmt_execute($stmt);
+						$result = mysqli_stmt_get_result($stmt);
+						$row = $result ? mysqli_fetch_assoc($result) : null;
+						mysqli_stmt_close($stmt);
+
+						if ($row) {
+							$groupName = hg_main_nav_h($row['group_name'] ?? '');
+							$orgHref = pretty_url($link, 'dim_organizations', '/organizations', (int)($row['organization_id'] ?? 0));
+							return "<a href='" . hg_main_nav_h($orgHref) . "'>" . hg_main_nav_h($row['organization_name'] ?? '') . "</a> &raquo;&nbsp;" . $groupName;
+						}
+					}
+				}
+
+				$sql = "
+					SELECT g.name AS group_name, o.id AS organization_id, o.name AS organization_name
+					FROM dim_groups g
+					LEFT JOIN bridge_organizations_groups bog
+						ON bog.group_id = g.id
+					   AND (bog.is_active = 1 OR bog.is_active IS NULL)
+					LEFT JOIN dim_organizations o ON o.id = bog.organization_id
+					WHERE g.id = ?
+					ORDER BY bog.id ASC
+					LIMIT 1
+				";
+
+				if ($stmt = mysqli_prepare($link, $sql)) {
+					mysqli_stmt_bind_param($stmt, 'i', $packId);
+					mysqli_stmt_execute($stmt);
+					$result = mysqli_stmt_get_result($stmt);
+					$row = $result ? mysqli_fetch_assoc($result) : null;
+					mysqli_stmt_close($stmt);
+
+					if ($row) {
+						$groupName = hg_main_nav_h($row['group_name'] ?? '');
+						$orgId = (int)($row['organization_id'] ?? 0);
+						$orgName = (string)($row['organization_name'] ?? '');
+
+						if ($orgId > 0 && $orgName !== '') {
+							$orgHref = pretty_url($link, 'dim_organizations', '/organizations', $orgId);
+							return "<a href='" . hg_main_nav_h($orgHref) . "'>" . hg_main_nav_h($orgName) . "</a> &raquo;&nbsp;" . $groupName;
+						}
+
+						return $groupName;
+					}
+				}
+
+				return $fallback;
+			}
+		}
+
 		switch ($routeKey) {
 			// ========================================== //
 			// Administracion
@@ -253,8 +361,14 @@
 				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator 
 					<a href='" . htmlspecialchars($typeHref) . "'>$nameTipo</a> $pillSeparator $bioName";
 				break;
-			case "seegroup":	// Ver Organización
-				echo "<a href='/organizations' title='Grupos y Sociedades'>Grupos y Sociedades</a> $pillSeparator $packNavLinks";
+			case "seegroup":	// Ver organizacion o grupo
+				$seegroupTypeNav = isset($_GET['t']) ? (int)$_GET['t'] : 0;
+				$seegroupIdNav = isset($_GET['b']) ? (int)$_GET['b'] : 0;
+				$seegroupLinks = hg_main_nav_seegroup_links($link, $seegroupTypeNav, $seegroupIdNav, $packNavLinks);
+				echo "<a href='/organizations' title='Grupos y Sociedades'>Grupos y Sociedades</a>";
+				if (trim($seegroupLinks) !== '') {
+					echo " $pillSeparator $seegroupLinks";
+				}
 				break;
 			// ========================================== //
 			// Archivo

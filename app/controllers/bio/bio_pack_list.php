@@ -16,6 +16,18 @@ $pageTitle2 = $nameTypePack;
 
 $excludeChronicles = isset($excludeChronicles) && trim($excludeChronicles) !== '' ? $excludeChronicles : '';
 
+if (!function_exists('hg_bio_pack_group_url')) {
+    function hg_bio_pack_group_url(mysqli $link, int $organizationId, int $groupId): string
+    {
+        $orgPath = (string)parse_url(pretty_url($link, 'dim_organizations', '/organizations', $organizationId), PHP_URL_PATH);
+        $groupPath = (string)parse_url(pretty_url($link, 'dim_groups', '/groups', $groupId), PHP_URL_PATH);
+        $orgSlug = basename($orgPath);
+        $groupSlug = basename($groupPath);
+
+        return '/groups/' . $orgSlug . '/' . $groupSlug;
+    }
+}
+
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . htmlspecialchars($nameTypePack, ENT_QUOTES, 'UTF-8') . "</h2>";
 
@@ -86,7 +98,7 @@ foreach ($clanes as $clan) {
             $gname = (string)$rowGrupo["name"];
 
             print("<li class='listaManadas'>");
-            $hrefGroup = pretty_url($link, 'dim_groups', '/groups', (int)$gid);
+            $hrefGroup = hg_bio_pack_group_url($link, $clanId, $gid);
             print("<a href='" . htmlspecialchars($hrefGroup, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "'>");
             print("<img src='" . htmlspecialchars($iconManada, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' class='valign'/>");
             print(" " . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8'));

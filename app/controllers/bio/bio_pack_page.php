@@ -44,6 +44,108 @@ if (!function_exists('hg_bio_pack_page_sanitize_int_csv')) {
     }
 }
 
+if (!function_exists('hg_bio_pack_page_group_url')) {
+    function hg_bio_pack_page_group_url(mysqli $link, int $organizationId, int $groupId): string
+    {
+        $orgPath = (string)parse_url(pretty_url($link, 'dim_organizations', '/organizations', $organizationId), PHP_URL_PATH);
+        $groupPath = (string)parse_url(pretty_url($link, 'dim_groups', '/groups', $groupId), PHP_URL_PATH);
+        $orgSlug = basename($orgPath);
+        $groupSlug = basename($groupPath);
+
+        return '/groups/' . $orgSlug . '/' . $groupSlug;
+    }
+}
+
+if (!function_exists('hg_bio_pack_page_resolve_organization_id')) {
+    function hg_bio_pack_page_resolve_organization_id(mysqli $link, $value): int
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return 0;
+        }
+
+        if (preg_match('/^\d+$/', $value)) {
+            return (int)$value;
+        }
+
+        return function_exists('resolve_pretty_id')
+            ? (int)(resolve_pretty_id($link, 'dim_organizations', $value) ?? 0)
+            : 0;
+    }
+}
+
+if (!function_exists('hg_bio_pack_page_group_organization')) {
+    function hg_bio_pack_page_group_organization(mysqli $link, int $groupId, int $preferredOrganizationId = 0): array
+    {
+        if ($groupId <= 0) {
+            return ['id' => 0, 'name' => ''];
+        }
+
+        if ($preferredOrganizationId > 0) {
+            $sql = "
+                SELECT c.id AS organization_id, c.name AS organization_name
+                FROM bridge_organizations_groups b
+                INNER JOIN dim_groups m ON m.id = b.group_id
+                INNER JOIN dim_organizations c ON c.id = b.organization_id
+                WHERE b.organization_id = ?
+                  AND m.id = ?
+                  AND (b.is_active = 1 OR b.is_active IS NULL)
+                LIMIT 1
+            ";
+
+            $stmt = mysqli_prepare($link, $sql);
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'ii', $preferredOrganizationId, $groupId);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $row = $result ? mysqli_fetch_assoc($result) : null;
+                if ($result) {
+                    mysqli_free_result($result);
+                }
+                mysqli_stmt_close($stmt);
+
+                if ($row) {
+                    return [
+                        'id' => (int)($row['organization_id'] ?? 0),
+                        'name' => (string)($row['organization_name'] ?? ''),
+                    ];
+                }
+            }
+        }
+
+        $sql = "
+            SELECT c.id AS organization_id, c.name AS organization_name
+            FROM bridge_organizations_groups b
+            INNER JOIN dim_organizations c ON c.id = b.organization_id
+            WHERE b.group_id = ?
+              AND (b.is_active = 1 OR b.is_active IS NULL)
+            ORDER BY b.id ASC
+            LIMIT 1
+        ";
+
+        $stmt = mysqli_prepare($link, $sql);
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 'i', $groupId);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $row = $result ? mysqli_fetch_assoc($result) : null;
+            if ($result) {
+                mysqli_free_result($result);
+            }
+            mysqli_stmt_close($stmt);
+
+            if ($row) {
+                return [
+                    'id' => (int)($row['organization_id'] ?? 0),
+                    'name' => (string)($row['organization_name'] ?? ''),
+                ];
+            }
+        }
+
+        return ['id' => 0, 'name' => ''];
+    }
+}
+
 if (!function_exists('hg_bio_pack_page_render_character_tile')) {
     function hg_bio_pack_page_render_character_tile(mysqli $link, array $row): void
     {
@@ -180,41 +282,33 @@ setMetaFromPage(
 );
 
 $clanLink = '';
+$clanDataId = 0;
 if ($typePack === 1) {
-    $clanBridgeQuery = "
-        SELECT c.id AS organization_id, c.name AS clan_name
-        FROM bridge_organizations_groups b
-        INNER JOIN dim_organizations c ON c.id = b.organization_id
-        WHERE b.group_id = ?
-          AND (b.is_active = 1 OR b.is_active IS NULL)
-        ORDER BY b.id ASC
-        LIMIT 1
-    ";
+    $preferredClanId = isset($_GET['org'])
+        ? hg_bio_pack_page_resolve_organization_id($link, $_GET['org'])
+        : 0;
+    $clanData = hg_bio_pack_page_group_organization($link, $packId, $preferredClanId);
+    $clanDataId = (int)($clanData['id'] ?? 0);
+    $clanName = (string)($clanData['name'] ?? '');
 
-    $clanStmt = mysqli_prepare($link, $clanBridgeQuery);
-    if ($clanStmt) {
-        mysqli_stmt_bind_param($clanStmt, 'i', $packId);
+    if ($clanDataId > 0 && $clanName !== '') {
+        $clanHref = pretty_url($link, 'dim_organizations', '/organizations', $clanDataId);
+        $clanLink = "<a href='" . hg_bio_pack_page_h($clanHref) . "'>" . hg_bio_pack_page_h($clanName) . "</a>";
+    }
+}
 
-        if (mysqli_stmt_execute($clanStmt)) {
-            $clanResult = mysqli_stmt_get_result($clanStmt);
-            if ($clanResult && mysqli_num_rows($clanResult) > 0) {
-                $clanRow = mysqli_fetch_assoc($clanResult);
-                $clanDataId = (int)($clanRow['organization_id'] ?? 0);
-                $clanName = (string)($clanRow['clan_name'] ?? '');
-                $clanHref = pretty_url($link, 'dim_organizations', '/organizations', $clanDataId);
-                $clanLink = "<a href='" . hg_bio_pack_page_h($clanHref) . "'>" . hg_bio_pack_page_h($clanName) . "</a>";
-            }
+if ($typePack === 1 && $clanDataId > 0) {
+    $canonicalGroupPath = hg_bio_pack_page_group_url($link, $clanDataId, $packId);
+    $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+    $currentPath = (string)(parse_url($requestUri, PHP_URL_PATH) ?? '');
+    $normalizePath = static function (string $path): string {
+        $path = rtrim(rawurldecode($path), '/');
+        return $path === '' ? '/' : $path;
+    };
 
-            if ($clanResult) {
-                mysqli_free_result($clanResult);
-            }
-        } else {
-            hg_public_log_error('bio_pack_page', 'clan bridge execute failed: ' . mysqli_error($link));
-        }
-
-        mysqli_stmt_close($clanStmt);
-    } else {
-        hg_public_log_error('bio_pack_page', 'clan bridge prepare failed: ' . mysqli_error($link));
+    if ($normalizePath($currentPath) !== $normalizePath($canonicalGroupPath)) {
+        header('Location: ' . $canonicalGroupPath, true, 301);
+        exit;
     }
 }
 
@@ -436,7 +530,8 @@ if ($typePack === 2) {
         if ($packsOfSeptFilas > 0) {
             echo "<td class='texti' style='width:$widthCelda; vertical-align:top;'><b>En activo</b>:<br/><ul>";
             while ($rowA = mysqli_fetch_assoc($packsOfSeptResult)) {
-                echo "<li><a href='" . hg_bio_pack_page_h(pretty_url($link, 'dim_groups', '/groups', (int)$rowA['id'])) . "'>" . hg_bio_pack_page_h($rowA['name']) . "</a></li>";
+                $groupHref = hg_bio_pack_page_group_url($link, $packId, (int)$rowA['id']);
+                echo "<li><a href='" . hg_bio_pack_page_h($groupHref) . "'>" . hg_bio_pack_page_h($rowA['name']) . "</a></li>";
             }
             echo "</ul></td>";
         }
@@ -444,7 +539,8 @@ if ($typePack === 2) {
         if ($packsOfSeptFilas2 > 0) {
             echo "<td class='texti' style='width:$widthCelda; vertical-align:top;'><b>Grupos antiguos</b>:<br/><ul>";
             while ($rowI = mysqli_fetch_assoc($packsOfSeptResult2)) {
-                echo "<li><a href='" . hg_bio_pack_page_h(pretty_url($link, 'dim_groups', '/groups', (int)$rowI['id'])) . "'>" . hg_bio_pack_page_h($rowI['name']) . "</a></li>";
+                $groupHref = hg_bio_pack_page_group_url($link, $packId, (int)$rowI['id']);
+                echo "<li><a href='" . hg_bio_pack_page_h($groupHref) . "'>" . hg_bio_pack_page_h($rowI['name']) . "</a></li>";
             }
             echo "</ul></td>";
         }

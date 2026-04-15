@@ -297,6 +297,7 @@ RewriteRule ^chronicles/?$ index.php?p=chronicles [L,QSA]
 
 RewriteRule ^organizations/([^/]+)/?$ index.php?p=seegroup&t=2&b=$1 [L,QSA]
 RewriteRule ^organizations/?$ index.php?p=listgroups [L,QSA]
+RewriteRule ^groups/([^/]+)/([^/]+)/?$ index.php?p=seegroup&t=1&org=$1&b=$2 [L,QSA]
 RewriteRule ^groups/([^/]+)/?$ index.php?p=seegroup&t=1&b=$1 [L,QSA]
 
 RewriteRule ^relationship-map/organizations/?$ index.php?p=nebula_clan [L,QSA]

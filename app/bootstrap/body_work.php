@@ -57,6 +57,19 @@ function normalize_pretty_request(mysqli $link, string $route): void {
         if ($t === '1') {
             $table = 'dim_groups';
             $base = '/groups';
+            if (isset($_GET['org']) && trim((string)$_GET['org']) !== '') {
+                $orgRaw = trim((string)$_GET['org']);
+                $orgResolved = resolve_pretty_id($link, 'dim_organizations', $orgRaw);
+                $orgSegment = $orgRaw;
+                if ($orgResolved !== null) {
+                    $_GET['org'] = (string)$orgResolved;
+                    $orgPretty = get_pretty_id($link, 'dim_organizations', (int)$orgResolved);
+                    if ($orgPretty) {
+                        $orgSegment = $orgPretty;
+                    }
+                }
+                $base = '/groups/' . rawurlencode($orgSegment);
+            }
         } elseif ($t === '2') {
             $table = 'dim_organizations';
             $base = '/organizations';
