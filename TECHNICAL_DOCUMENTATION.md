@@ -6,12 +6,19 @@ Este documento describe el estado tecnico real del proyecto despues de la actual
 
 Se ha contrastado con:
 
-- `dump-u807926597_hg-202604031114.sql`
+- `dump-u807926597_hg-202604262235.sql`
 - `app/tools/install_schema_from_dump.php`
+- `app/tools/schema_definition.php`
+- `app/tools/schema_hardening_audit.php`
 - `.htaccess`
 - `index.php`
 - `app/bootstrap/body_work.php`
+- `app/controllers/admin/admin_main.php`
+- `app/controllers/admin/admin_map_kmz_import.php`
+- `app/controllers/maps/maps_main.php`
+- `app/controllers/maps/maps_api.php`
 - `app/helpers/db_connection.php`
+- `app/helpers/maps.php`
 - `app/helpers/pretty.php`
 - `app/helpers/admin_auth.php`
 - `app/helpers/public_response.php`
@@ -19,14 +26,20 @@ Se ha contrastado con:
 
 Snapshot actual del esquema:
 
-- 87 tablas
-- 33 tablas `dim_*`
-- 27 tablas `fact_*`
-- 27 tablas `bridge_*`
+- 91 tablas
+- 34 tablas `dim_*`
+- 28 tablas `fact_*`
+- 29 tablas `bridge_*`
 - 3 vistas del simulador:
   - `vw_sim_characters`
   - `vw_sim_forms`
   - `vw_sim_items`
+
+Matiz importante del estado actual:
+
+- `app/tools/schema_definition.php` sigue declarando `generated_from = dump-u807926597_hg-202604031114.sql`
+- ese metadata ya no coincide con el dump mas reciente presente en la raiz
+- a nivel estructural, el unico desfase confirmado hoy entre dump y definicion embebida es `fact_pretty_id_aliases`
 
 ## 2. Arquitectura general
 
@@ -119,7 +132,7 @@ Router admin:
 
 - `app/controllers/admin/admin_main.php`
 
-Ese controlador ya integra los modulos nuevos de 5.0:
+Ese controlador ya integra los modulos nuevos de 5.0 y varias utilidades operativas actuales:
 
 - `admin_chronicles`
 - `admin_realities`
@@ -127,6 +140,10 @@ Ese controlador ya integra los modulos nuevos de 5.0:
 - `admin_bso`
 - `admin_bso_link`
 - `admin_birthdays_quick`
+- `admin_map_kmz_import`
+- `admin_schema_initializer`
+- `admin_schema_hardening_audit`
+- `admin_inspect_db`
 
 ### 4.3 Rutas bare o especialmente utiles para automatizacion
 
@@ -141,6 +158,7 @@ Segun `body_work.php`, estas rutas se sirven sin layout completo:
 - `mentions`
 - `maps_api`
 - `chronicle_image`
+- `schema_sanitizer`
 
 Para integraciones internas esto es relevante porque son los puntos mas cercanos a una respuesta utilitaria o parcial.
 
@@ -167,7 +185,8 @@ Patron vigente para exponer una tool web temporal:
 
 Estado actual:
 
-- no hay tools temporales de esquema activas en este momento dentro del repo
+- existe una tool operativa de saneado expuesta por front controller en `/tools/schema-sanitizer`
+- hay utilidades administrativas embebidas en `/talim?s=admin_schema_initializer`, `/talim?s=admin_schema_hardening_audit` y `/talim?s=admin_inspect_db`
 - cualquier tool futura de este tipo debe desmontarse al cerrar la tanda para no dejar rutas tecnicas expuestas innecesariamente
 
 Checklist de desmontaje al cerrar la fase:
@@ -321,6 +340,34 @@ El esquema actual ya incorpora endurecimiento seguro en este puente:
 - `UNIQUE (soundtrack_id, object_type, object_id)`
 - indice `idx_bsl_object_lookup (object_type, object_id)`
 
+#### Mapas
+
+Tablas:
+
+- `dim_maps`
+- `dim_map_categories`
+- `fact_map_pois`
+- `fact_map_areas`
+
+Estado funcional actual:
+
+- `dim_maps` define centro, bounds, zoom y `default_tile` por mapa
+- `dim_map_categories` centraliza nombre, color y orden editorial
+- `fact_map_pois` ya trabaja con esquema moderno por `map_id` y `category_id`, pero `app/helpers/maps.php` conserva compatibilidad con instalaciones legacy basadas en texto
+- `fact_map_areas` almacena overlays poligonales serializados como GeoJSON para render publico
+
+#### Aliases historicos de `pretty_id`
+
+Tabla:
+
+- `fact_pretty_id_aliases`
+
+Uso actual:
+
+- `app/helpers/pretty.php` resuelve slugs antiguos por `table_name` + `old_pretty_id`
+- `app/controllers/tool/schema_sanitizer.php` puede sembrar y mantener aliases al normalizar slugs
+- el dump actual la incluye, pero `schema_definition.php` no la declara hoy
+
 ### 5.3 Politica actual de `pretty_id`
 
 Reglas editoriales consolidadas en 5.0:
@@ -375,7 +422,23 @@ Mejoras relevantes:
 - embed via `youtube-nocookie`
 - degradacion segura si el enlace no es valido
 
-### 6.4 Respuestas publicas seguras
+### 6.4 Mapas publicos
+
+Controladores y helper:
+
+- `app/controllers/maps/maps_main.php`
+- `app/controllers/maps/maps_api.php`
+- `app/helpers/maps.php`
+
+Comportamiento actual:
+
+- seleccion de mapa por slug, nombre o id
+- soporte de mapas globales `gaia-1` y `gaia-2` con overlay opcional de POIs de otros mapas y exclusion cruzada para evitar solapes
+- `/maps/api` expone acciones JSON `search` y `areas`
+- renderiza POIs y areas con Leaflet + MarkerCluster
+- tolera tanto el esquema moderno (`dim_maps`, `dim_map_categories`, `fact_map_areas`) como variantes legacy de `fact_map_pois`
+
+### 6.5 Respuestas publicas seguras
 
 Helper comun:
 
@@ -451,6 +514,14 @@ Capacidades clave:
 - alta y borrado de vinculos
 - deteccion de duplicados y estados inconsistentes
 - acceso rapido al destino publico cuando existe slug
+
+#### `admin_map_kmz_import`
+
+- importa `.kmz` o `.kml` exportados de Google My Maps
+- puede crear un `dim_maps` nuevo o reutilizar uno existente
+- inserta POIs en `fact_map_pois` y areas en `fact_map_areas`
+- requiere categorias previas en `dim_map_categories`
+- usa `ZipArchive` cuando esta disponible y puede degradar a `unzip`/`tar` si existen en el host
 
 #### `admin_systems_extra_details`
 
@@ -532,15 +603,16 @@ php app/tools/install_schema_from_dump.php --database=hg --dry-run=1
 
 ### 8.2 Endurecimiento acotado de esquema
 
-Script:
+Script y entrada admin:
 
-- `app/tools/phase7_schema_hardening_20260403.php`
+- `app/tools/schema_hardening_audit.php`
+- `/talim?s=admin_schema_hardening_audit`
 
 Objetivo:
 
-- reforzar la integridad de `bridge_soundtrack_links`
-- aplicar un cambio seguro y acotado
-- emitir plan SQL incluso cuando no hay conexion disponible
+- auditar que bridges todavia mantienen `id` artificial y cuales ya son candidatos a PK compuesta
+- medir si `birthdate_text` ya puede retirarse a favor de `fact_timeline_events`
+- ofrecer migraciones puntuales solo en los bridges soportados expresamente por la herramienta
 
 ### 8.3 Inicializador de esquema embebido
 
@@ -587,6 +659,14 @@ Limites deliberados:
 - no reescribe una definicion existente si ya hay una variante funcional
 - no sustituye una migracion editorial o de datos cuando el problema no es estructural sino semantico
 
+Desfase conocido hoy entre artefactos:
+
+- `schema_definition.php` sigue anclado al snapshot `2026-04-03`
+- el dump mas reciente del repo es `dump-u807926597_hg-202604262235.sql`
+- comparando ambos, el dump actual incluye `fact_pretty_id_aliases` y la definicion embebida no
+- en esta fecha ya no se observan tablas declaradas solo en `schema_definition.php` y ausentes del dump actual
+- por tanto, el inicializador embebido esta mucho mas cerca del dump vigente que en snapshots anteriores, pero el provisionamiento canonico completo sigue siendo el dump actual
+
 ### 8.4 Herramientas de soporte revisadas en esta tanda
 
 Tambien se han alineado con el runtime actual:
@@ -619,8 +699,10 @@ Si se despliega en un servidor que no respeta `.htaccess`, esos bloqueos deben r
 
 Antes de documentar o tocar datos, asumir siempre:
 
-1. el dump de referencia actual es `dump-u807926597_hg-202604032133.sql`
-2. el routing real sale de `.htaccess` y `app/bootstrap/body_work.php`
-3. la politica de `pretty_id` pasa por slugs canonicos + aliases historicos; no usar `generate_pretty_ids.php` como herramienta operativa
-4. `dim_soundtracks` y `bridge_soundtrack_links` tienen reglas especiales respecto a slugs e integridad
-5. cualquier guia antigua que cite rutas de timeline bajo `app/controllers/timeline/` esta desfasada
+1. el dump de referencia actual es `dump-u807926597_hg-202604262235.sql`
+2. `app/tools/schema_definition.php` sigue sin coincidir 1:1 con ese dump porque no declara `fact_pretty_id_aliases`, y no debe tratarse como snapshot canonico del esquema
+3. el routing real sale de `.htaccess` y `app/bootstrap/body_work.php`
+4. la politica de `pretty_id` pasa por slugs canonicos + aliases historicos; no usar `generate_pretty_ids.php` como herramienta operativa
+5. la pila de mapas actual usa `dim_maps`, `dim_map_categories`, `fact_map_pois`, `fact_map_areas` y `/maps/api` con acciones JSON `search` y `areas`
+6. `dim_soundtracks` y `bridge_soundtrack_links` tienen reglas especiales respecto a slugs e integridad
+7. cualquier guia antigua que cite rutas de timeline bajo `app/controllers/timeline/` esta desfasada

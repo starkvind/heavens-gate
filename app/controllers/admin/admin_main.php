@@ -43,6 +43,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_pois':
 					include("admin_pois.php");
 					break;
+				case 'admin_map_kmz_import':
+					include("admin_map_kmz_import.php");
+					break;
 				case 'admin_players':
 					include("admin_players.php");
 					break;
@@ -202,6 +205,9 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_pois':
 					include("admin_pois.php");
+					break;
+				case 'admin_map_kmz_import':
+					include("admin_map_kmz_import.php");
 					break;
 				case 'admin_players':
 					include("admin_players.php");
@@ -467,6 +473,11 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_pois'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Mapas
+						</div>
+					</a>
+					<a href='/talim?s=admin_map_kmz_import'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Importar KMZ/KML
 						</div>
 					</a>
 					<a href='/talim?s=admin_timelines'>

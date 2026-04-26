@@ -289,7 +289,7 @@
       showStatus(
         state,
         includeAllMaps(state)
-          ? 'Mostrando ' + items.length + ' lugares sobre Gaia2.'
+          ? 'Mostrando ' + items.length + ' lugares sobre ' + (state.config.selectedMap.name || 'el mapa global') + '.'
           : 'Mostrando ' + items.length + ' lugares visibles.',
         false
       );

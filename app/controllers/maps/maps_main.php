@@ -17,10 +17,16 @@ if (!$selectedMap) {
     $selectedMap = $maps[0];
 }
 
+$excludedGlobalMapIds = hg_maps_global_scope_excluded_ids($maps, $selectedMap);
+$excludedGlobalMapName = hg_maps_global_scope_excluded_name($maps, $selectedMap);
+
 $mapNamesById = [];
 $sourceMaps = [];
 foreach ($maps as $mapItem) {
     $mapNamesById[(int)$mapItem['id']] = (string)$mapItem['name'];
+    if (in_array((int)$mapItem['id'], $excludedGlobalMapIds, true)) {
+        continue;
+    }
     $sourceMaps[] = [
         'id' => (int)$mapItem['id'],
         'name' => (string)$mapItem['name'],
@@ -34,6 +40,7 @@ $defaultFilters = [
     'selected_map_name' => (string)$selectedMap['name'],
     'include_all_maps' => $defaultIncludeAllMaps,
     'source_map_id' => 0,
+    'excluded_map_ids' => $excludedGlobalMapIds,
     'limit' => $defaultIncludeAllMaps ? 1000 : 600,
     'offset' => 0,
     'from_map_slug' => (string)$selectedMap['slug'],
@@ -45,11 +52,10 @@ $initialAreas = hg_maps_fetch_areas($link, (int)$selectedMap['id'], 0);
 $tile = hg_maps_tile_for_map($selectedMap);
 $bounds = hg_maps_map_bounds($selectedMap);
 
-$metaTitle = $allowGlobalPoiScope
-    ? "Gaia2 | Mapas | Heaven's Gate"
-    : $selectedMap['name'] . " | Mapas | Heaven's Gate";
+$metaTitle = $selectedMap['name'] . " | Mapas | Heaven's Gate";
 $metaDescription = $allowGlobalPoiScope
-    ? "Mapa global de Gaia2 con lugares agregados de toda la campana."
+    ? "Mapa global de " . $selectedMap['name'] . " con lugares agregados de toda la campana."
+        . ($excludedGlobalMapName !== '' ? " Se excluye " . $excludedGlobalMapName . " para evitar solapes." : '')
     : "Mapa interactivo de " . $selectedMap['name'] . " con lugares, categorias y busqueda.";
 setMetaFromPage($metaTitle, $metaDescription, null, 'website');
 
@@ -128,7 +134,7 @@ $mainConfig = [
 
       <div class="map-statusbar map-statusbar-inline">
         <div id="mapStatusText" class="map-status-copy">
-          <?= $allowGlobalPoiScope ? 'Gaia2 cargado como mapa global.' : 'Mapa cargado.' ?>
+          <?= $allowGlobalPoiScope ? htmlspecialchars((string)$selectedMap['name'], ENT_QUOTES, 'UTF-8') . ' cargado como mapa global.' : 'Mapa cargado.' ?>
         </div>
       </div>
 
@@ -149,7 +155,11 @@ $mainConfig = [
       <?php if ($allowGlobalPoiScope): ?>
         <label class="map-check-row" for="toggleAllMaps">
           <input type="checkbox" id="toggleAllMaps" checked>
-          <span>Mostrar tambien los POIs del resto de mapas sobre Gaia2</span>
+          <span>
+            Mostrar tambien los POIs del resto de mapas sobre
+            <?= htmlspecialchars((string)$selectedMap['name'], ENT_QUOTES, 'UTF-8') ?>
+            <?= $excludedGlobalMapName !== '' ? '(excepto ' . htmlspecialchars($excludedGlobalMapName, ENT_QUOTES, 'UTF-8') . ')' : '' ?>
+          </span>
         </label>
 
         <div class="map-field" id="sourceMapRow">
@@ -165,8 +175,10 @@ $mainConfig = [
         </div>
 
         <p class="map-help-text">
-          Gaia2 funciona como visor global: puedes ver todos los POIs sobre el mapa mundial
-          y luego limitar por mapa de origen cuando quieras limpiar la lectura.
+          <?= htmlspecialchars((string)$selectedMap['name'], ENT_QUOTES, 'UTF-8') ?> funciona como visor global:
+          puedes ver los POIs del resto de mapas sobre esta capa
+          <?= $excludedGlobalMapName !== '' ? ' sin mezclar ' . htmlspecialchars($excludedGlobalMapName, ENT_QUOTES, 'UTF-8') . '.' : '.' ?>
+          Luego puedes limitar por mapa de origen cuando quieras limpiar la lectura.
         </p>
       <?php else: ?>
         <p class="map-help-text">

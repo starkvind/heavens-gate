@@ -22,8 +22,8 @@ Key admin capabilities include:
 
 - character, group, player, chronicle, and reality management;
 - season, chapter, timeline, and birthday maintenance;
-- docs, links, maps, gallery, powers, systems, and soundtrack administration;
-- schema inspection and schema initialization from the admin panel.
+- docs, links, maps, KMZ/KML imports, gallery, powers, systems, and soundtrack administration;
+- schema inspection, hardening audit, and schema initialization from the admin panel.
 
 ## 5.0 Highlights
 

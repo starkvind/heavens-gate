@@ -234,10 +234,35 @@ function hg_maps_fetch_maps(mysqli $link): array
     return $maps;
 }
 
+function hg_maps_global_scope_key(array $map): string
+{
+    $slug = strtolower(trim((string)($map['slug'] ?? '')));
+    $name = strtolower(hg_maps_slugify((string)($map['name'] ?? '')));
+    $candidates = array_values(array_unique(array_filter([$slug, $name], static function ($value) {
+        return $value !== '';
+    })));
+
+    foreach ($candidates as $candidate) {
+        if ($candidate === 'gaia2' || $candidate === 'gaia-2') {
+            return 'gaia2';
+        }
+        if ($candidate === 'gaia1' || $candidate === 'gaia-1') {
+            return 'gaia1';
+        }
+    }
+
+    return '';
+}
+
 function hg_maps_find_map(array $maps, string $mapParam): ?array
 {
     $mapParam = trim($mapParam);
     if ($mapParam === '') {
+        foreach ($maps as $map) {
+            if (hg_maps_global_scope_key($map) === 'gaia2') {
+                return $map;
+            }
+        }
         foreach ($maps as $map) {
             if (hg_maps_is_global_map($map)) {
                 return $map;
@@ -269,10 +294,106 @@ function hg_maps_find_map(array $maps, string $mapParam): ?array
 
 function hg_maps_is_global_map(array $map): bool
 {
-    $slug = strtolower((string)($map['slug'] ?? ''));
-    $name = strtolower(hg_maps_slugify((string)($map['name'] ?? '')));
+    return hg_maps_global_scope_key($map) !== '';
+}
 
-    return $slug === 'gaia2' || $name === 'gaia2';
+function hg_maps_global_scope_excluded_ids(array $maps, array $selectedMap): array
+{
+    $scopeKey = hg_maps_global_scope_key($selectedMap);
+    if ($scopeKey === '') {
+        return [];
+    }
+
+    $excludedKey = $scopeKey === 'gaia2' ? 'gaia1' : 'gaia2';
+    $ids = [];
+
+    foreach ($maps as $map) {
+        if (hg_maps_global_scope_key($map) === $excludedKey) {
+            $ids[] = (int)($map['id'] ?? 0);
+        }
+    }
+
+    return array_values(array_unique(array_filter($ids, static function ($value) {
+        return $value > 0;
+    })));
+}
+
+function hg_maps_global_scope_excluded_name(array $maps, array $selectedMap): string
+{
+    $excludedIds = hg_maps_global_scope_excluded_ids($maps, $selectedMap);
+    if (empty($excludedIds)) {
+        return '';
+    }
+
+    foreach ($maps as $map) {
+        $mapId = (int)($map['id'] ?? 0);
+        if (in_array($mapId, $excludedIds, true)) {
+            return (string)($map['name'] ?? '');
+        }
+    }
+
+    return '';
+}
+
+function hg_maps_filter_excluded_map_ids(array $filters): array
+{
+    $raw = $filters['excluded_map_ids'] ?? [];
+    if (!is_array($raw)) {
+        return [];
+    }
+
+    $ids = [];
+    foreach ($raw as $value) {
+        $id = (int)$value;
+        if ($id > 0) {
+            $ids[] = $id;
+        }
+    }
+
+    return array_values(array_unique($ids));
+}
+
+function hg_maps_filter_excluded_map_names(array $filters, array $mapNamesById): array
+{
+    $ids = hg_maps_filter_excluded_map_ids($filters);
+    $names = [];
+
+    foreach ($ids as $id) {
+        $name = trim((string)($mapNamesById[$id] ?? ''));
+        if ($name !== '') {
+            $names[] = $name;
+        }
+    }
+
+    return array_values(array_unique($names));
+}
+
+function hg_maps_sql_append_not_in_ids(string &$sql, string &$types, array &$params, string $column, array $ids): void
+{
+    if (empty($ids)) {
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $sql .= " AND {$column} NOT IN ({$placeholders})";
+    $types .= str_repeat('i', count($ids));
+    foreach ($ids as $id) {
+        $params[] = (int)$id;
+    }
+}
+
+function hg_maps_sql_append_not_in_strings(string &$sql, string &$types, array &$params, string $column, array $values): void
+{
+    if (empty($values)) {
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($values), '?'));
+    $sql .= " AND {$column} NOT IN ({$placeholders})";
+    $types .= str_repeat('s', count($values));
+    foreach ($values as $value) {
+        $params[] = (string)$value;
+    }
 }
 
 function hg_maps_build_detail_url(array $poi, string $fromMapSlug = ''): string
@@ -347,6 +468,8 @@ function hg_maps_fetch_categories(mysqli $link, array $schema, array $filters, a
     $selectedMapName = (string)($filters['selected_map_name'] ?? '');
     $sourceMapId = isset($filters['source_map_id']) ? (int)$filters['source_map_id'] : 0;
     $sourceMapName = hg_maps_source_map_name($filters, $mapNamesById);
+    $excludedMapIds = hg_maps_filter_excluded_map_ids($filters);
+    $excludedMapNames = hg_maps_filter_excluded_map_names($filters, $mapNamesById);
 
     if ($schema['has_map_id'] && $schema['has_cat_id']) {
         $sql = "SELECT DISTINCT c.id, c.name, c.color_hex, c.sort_order
@@ -367,6 +490,8 @@ function hg_maps_fetch_categories(mysqli $link, array $schema, array $filters, a
             $types .= 'i';
             $params[] = $selectedMapId;
         }
+
+        hg_maps_sql_append_not_in_ids($sql, $types, $params, 'p.map_id', $excludedMapIds);
 
         $sql .= " ORDER BY c.sort_order, c.name";
         $stmt = $link->prepare($sql);
@@ -401,6 +526,8 @@ function hg_maps_fetch_categories(mysqli $link, array $schema, array $filters, a
             $types .= 's';
             $params[] = $selectedMapName;
         }
+
+        hg_maps_sql_append_not_in_strings($sql, $types, $params, 'map', $excludedMapNames);
 
         $sql .= " ORDER BY category";
         $stmt = $link->prepare($sql);
@@ -459,6 +586,8 @@ function hg_maps_fetch_pois(mysqli $link, array $schema, array $filters, array $
     $selectedMapName = (string)($filters['selected_map_name'] ?? '');
     $sourceMapId = isset($filters['source_map_id']) ? (int)$filters['source_map_id'] : 0;
     $sourceMapName = hg_maps_source_map_name($filters, $mapNamesById);
+    $excludedMapIds = hg_maps_filter_excluded_map_ids($filters);
+    $excludedMapNames = hg_maps_filter_excluded_map_names($filters, $mapNamesById);
     $categoryId = isset($filters['category_id']) ? (int)$filters['category_id'] : 0;
     $categoryName = trim((string)($filters['category_name'] ?? ''));
     $query = trim((string)($filters['q'] ?? ''));
@@ -511,6 +640,8 @@ function hg_maps_fetch_pois(mysqli $link, array $schema, array $filters, array $
             $types .= 'i';
             $params[] = $selectedMapId;
         }
+
+        hg_maps_sql_append_not_in_ids($sql, $types, $params, 'p.map_id', $excludedMapIds);
 
         if ($schema['has_cat_id'] && $categoryId > 0) {
             $sql .= " AND p.category_id = ?";
@@ -578,6 +709,8 @@ function hg_maps_fetch_pois(mysqli $link, array $schema, array $filters, array $
         $types .= 's';
         $params[] = $selectedMapName;
     }
+
+    hg_maps_sql_append_not_in_strings($sql, $types, $params, 'p.map', $excludedMapNames);
 
     if ($categoryName !== '') {
         $sql .= " AND p.category = ?";

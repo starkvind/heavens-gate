@@ -34,6 +34,7 @@
     //include("ip.php");
     require_once(__DIR__ . "/app/helpers/db_connection.php");
     require_once(__DIR__ . "/app/bootstrap/error_reporting.php");
+    require_once(__DIR__ . "/app/bootstrap/request_router.php");
 
     $pageTitle = "Heaven's Gate";
     $unknownOrigin = "-";
@@ -44,6 +45,8 @@
 
     $pageURL = $scheme . '://' . $host . $uri;
     $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+
+    hg_request_router_bootstrap($link);
 
     ob_start();
     include("app/bootstrap/body_work.php");

@@ -45,6 +45,7 @@ if (!$selectedMap) {
 $allowGlobalPoiScope = hg_maps_is_global_map($selectedMap);
 $includeAllMaps = $allowGlobalPoiScope
     && in_array(strtolower((string)($_GET['include_all_maps'] ?? '0')), ['1', 'true', 'yes'], true);
+$excludedGlobalMapIds = hg_maps_global_scope_excluded_ids($maps, $selectedMap);
 
 $sourceMapId = isset($_GET['source_map_id']) ? (int)$_GET['source_map_id'] : 0;
 if ($sourceMapId > 0 && !isset($mapsById[$sourceMapId])) {
@@ -56,6 +57,7 @@ $filters = [
     'selected_map_name' => (string)$selectedMap['name'],
     'include_all_maps' => $includeAllMaps,
     'source_map_id' => $sourceMapId,
+    'excluded_map_ids' => $excludedGlobalMapIds,
     'category_id' => isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0,
     'category_name' => trim((string)($_GET['category_name'] ?? '')),
     'q' => trim((string)($_GET['q'] ?? '')),
