@@ -60,7 +60,12 @@ function get_totems($link): array {
 /* ----------------------- Renders (HTML) ----------------------- */
 function render_clans_table($link){
   $sql = "SELECT c.id, c.name,
-          (SELECT COUNT(*) FROM bridge_organizations_groups b WHERE b.organization_id=c.id AND b.is_active=1) AS groups_active
+          (SELECT COUNT(*)
+             FROM bridge_organizations_groups b
+             INNER JOIN dim_groups m ON m.id = b.group_id
+            WHERE b.organization_id = c.id
+              AND b.is_active = 1
+              AND COALESCE(m.is_active, 1) = 1) AS groups_active
           FROM dim_organizations c
           ORDER BY c.name ASC";
   [$ok,$err,$rs] = q($link,$sql);
@@ -107,7 +112,7 @@ function render_groups_table($link){
 function render_clan_detail($link,$organization_id){
   $organization_id = (int)$organization_id;
 
-  $sqlL = "SELECT m.id, m.name, b.is_active
+  $sqlL = "SELECT m.id, m.name, m.is_active AS group_is_active, b.is_active
            FROM bridge_organizations_groups b
            INNER JOIN dim_groups m ON m.id=b.group_id
            WHERE b.organization_id=?
@@ -120,17 +125,24 @@ function render_clan_detail($link,$organization_id){
 
   if(count($ids)){
     $in = implode(',', array_map('intval',$ids));
-    $sqlA = "SELECT id,name FROM dim_groups WHERE id NOT IN ($in) ORDER BY name ASC";
+    $sqlA = "SELECT id,name
+             FROM dim_groups
+             WHERE COALESCE(is_active, 1) = 1
+               AND id NOT IN ($in)
+             ORDER BY name ASC";
     [$ok2,$err2,$rs2] = q($link,$sqlA);
   } else {
-    $sqlA = "SELECT id,name FROM dim_groups ORDER BY name ASC";
+    $sqlA = "SELECT id,name
+             FROM dim_groups
+             WHERE COALESCE(is_active, 1) = 1
+             ORDER BY name ASC";
     [$ok2,$err2,$rs2] = q($link,$sqlA);
   }
   if(!$ok2){ echo "<div class='err'>".e($err2)."</div>"; return; }
 
   $avail=[]; while($r=mysqli_fetch_assoc($rs2)){ $avail[]=$r; }
-  $active = array_values(array_filter($linked, fn($x)=>(int)$x['is_active']===1));
-  $inactive = array_values(array_filter($linked, fn($x)=>(int)$x['is_active']!==1));
+  $active = array_values(array_filter($linked, fn($x)=>(int)$x['is_active']===1 && (int)($x['group_is_active'] ?? 1)===1));
+  $inactive = array_values(array_filter($linked, fn($x)=>!((int)$x['is_active']===1 && (int)($x['group_is_active'] ?? 1)===1)));
 
   echo "<div class='split'>
           <div>
@@ -160,13 +172,23 @@ function render_clan_detail($link,$organization_id){
           <h4>Manadas inactivas</h4>
           <div class='grid' id='packsInactive'>";
   foreach($inactive as $p){
+    $bridgeActive = (int)($p['is_active'] ?? 0) === 1;
+    $groupActive = (int)($p['group_is_active'] ?? 1) === 1;
+    $notes = [];
+    if(!$groupActive){ $notes[] = 'manada desactivada'; }
+    if(!$bridgeActive){ $notes[] = 'vinculo inactivo'; }
+    $statusHtml = empty($notes) ? '' : "<div class='small adm-mt-4'>".e(implode(' · ', $notes))."</div>";
+    $actionHtml = $groupActive
+      ? "<button class='btn btn-pack-activate' data-gid='".e($p['id'])."' data-clan='$organization_id'>Activar</button>"
+      : "<span class='small'>Actívala desde la propia manada</span>";
     echo "<div class='card'>
             <h4><span>".e($p['name'])."</span>
                 <span>
-                  <button class='btn btn-pack-activate' data-gid='".e($p['id'])."' data-clan='$organization_id'>Activar</button>
+                  $actionHtml
                   <a class='btn' href='/groups/".e($p['id'])."' target='_blank'>Ver</a>
                 </span>
             </h4>
+            $statusHtml
           </div>";
   }
   echo   "</div>
@@ -822,6 +844,7 @@ function bindModalInside(){
       const description = ($("#groupDescription", root).value||'');
       openModal(await htmlPost('group_update_basic',{group_id,name,activa,cronica,totem,description}));
       reloadGroups();
+      reloadClans();
     };
   }
 

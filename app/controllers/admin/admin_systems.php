@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
@@ -15,26 +16,6 @@ $isAjaxRequest = (
 );
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function slugify_pretty(string $text): string {
-    $text = trim((string)$text);
-    if ($text === '') return '';
-    if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
-    $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-    $text = trim($text, '-');
-    $text = strtolower($text);
-    $text = preg_replace('~[^-a-z0-9]+~', '', $text);
-    return $text;
-}
-function update_pretty_id(mysqli $link, string $table, int $id, string $source): void {
-    if ($id <= 0) return;
-    $slug = slugify_pretty($source);
-    if ($slug === '') $slug = (string)$id;
-    if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
-        $st->bind_param("si", $slug, $id);
-        $st->execute();
-        $st->close();
-    }
-}
 function sanitize_utf8_text(string $s): string {
     if (function_exists('mb_check_encoding') && !mb_check_encoding($s, 'UTF-8')) {
         if (function_exists('iconv')) {
@@ -136,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
             if ($st = $link->prepare($sql)) {
                 $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $bibliographyId, $id);
                 if ($st->execute()) {
-                    update_pretty_id($link, 'dim_systems', $id, $name);
+                    hg_update_pretty_id_if_exists($link, 'dim_systems', $id, $name);
                     $flash[] = ['type'=>'ok','msg'=>'Sistema actualizado.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
@@ -151,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                 $st->bind_param('issisi', $orden, $name, $img, $formas, $desc, $bibliographyId);
                 if ($st->execute()) {
                     $newId = (int)$st->insert_id;
-                    update_pretty_id($link, 'dim_systems', $newId, $name);
+                    hg_update_pretty_id_if_exists($link, 'dim_systems', $newId, $name);
                     $flash[] = ['type'=>'ok','msg'=>'Sistema creado.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];

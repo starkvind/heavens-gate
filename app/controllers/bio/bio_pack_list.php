@@ -28,8 +28,36 @@ if (!function_exists('hg_bio_pack_group_url')) {
     }
 }
 
+if (!function_exists('hg_bio_pack_org_chart_available')) {
+    function hg_bio_pack_org_chart_available(mysqli $link, int $organizationId): bool
+    {
+        if ($organizationId <= 0 || !function_exists('hg_table_exists')) {
+            return false;
+        }
+        if (!hg_table_exists($link, 'dim_organization_departments') || !hg_table_exists($link, 'bridge_characters_org')) {
+            return false;
+        }
+
+        $stmt = $link->prepare("
+            SELECT
+                (SELECT COUNT(*) FROM dim_organization_departments WHERE organization_id = ? AND is_active = 1)
+              + (SELECT COUNT(*) FROM bridge_characters_org WHERE organization_id = ? AND is_active = 1) AS total
+        ");
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('ii', $organizationId, $organizationId);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $row = $rs ? $rs->fetch_assoc() : null;
+        $stmt->close();
+        return (int)($row['total'] ?? 0) > 0;
+    }
+}
+
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . htmlspecialchars($nameTypePack, ENT_QUOTES, 'UTF-8') . "</h2>";
+echo "<style>.bio-pack-org-chart-link{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;font-size:10px;text-decoration:none}.bio-pack-org-chart-link:hover{background:#003b8f;color:#fff!important}</style>";
 
 $consulta = "SELECT id, name FROM dim_organizations ORDER BY sort_order";
 $result = mysqli_query($link, $consulta);
@@ -79,32 +107,41 @@ foreach ($clanes as $clan) {
     mysqli_stmt_bind_param($stmtGrupo, 'i', $clanId);
     mysqli_stmt_execute($stmtGrupo);
     $resultGrupo = mysqli_stmt_get_result($stmtGrupo);
+    $groupRows = $resultGrupo ? mysqli_num_rows($resultGrupo) : 0;
+    $hasOrgChart = hg_bio_pack_org_chart_available($link, (int)$clanId);
 
-    if ($resultGrupo && mysqli_num_rows($resultGrupo) > 0) {
+    if ($groupRows > 0 || $hasOrgChart) {
         print("<fieldset id='renglonArchivos'>");
         print("<legend id='archivosLegend'>");
         $hrefClan = pretty_url($link, 'dim_organizations', '/organizations', (int)$clanId);
         print("<a href='" . htmlspecialchars($hrefClan, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($clanName, ENT_QUOTES, 'UTF-8') . "'>");
         print("&nbsp;" . htmlspecialchars($clanName, ENT_QUOTES, 'UTF-8') . "&nbsp;");
         print("</a>");
+        if ($hasOrgChart) {
+            print("<a class='bio-pack-org-chart-link' href='" . htmlspecialchars(rtrim($hrefClan, '/') . '/org-chart', ENT_QUOTES, 'UTF-8') . "' title='Organigrama de " . htmlspecialchars($clanName, ENT_QUOTES, 'UTF-8') . "'>Organigrama</a>");
+        }
         print("</legend>");
         print("<ul class='listaManadas'>");
 
-        while ($rowGrupo = mysqli_fetch_assoc($resultGrupo)) {
-            $enActivo = (int)$rowGrupo["is_active"];
-            $iconManada = ($enActivo === 0) ? $iconSept : $iconPack;
+        if ($resultGrupo && $groupRows > 0) {
+            while ($rowGrupo = mysqli_fetch_assoc($resultGrupo)) {
+                $enActivo = (int)$rowGrupo["is_active"];
+                $iconManada = ($enActivo === 0) ? $iconSept : $iconPack;
 
-            $gid = (int)$rowGrupo["id"];
-            $gname = (string)$rowGrupo["name"];
+                $gid = (int)$rowGrupo["id"];
+                $gname = (string)$rowGrupo["name"];
 
-            print("<li class='listaManadas'>");
-            $hrefGroup = hg_bio_pack_group_url($link, $clanId, $gid);
-            print("<a href='" . htmlspecialchars($hrefGroup, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "'>");
-            print("<img src='" . htmlspecialchars($iconManada, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' class='valign'/>");
-            print(" " . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8'));
-            print("</a></li>");
+                print("<li class='listaManadas'>");
+                $hrefGroup = hg_bio_pack_group_url($link, $clanId, $gid);
+                print("<a href='" . htmlspecialchars($hrefGroup, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "'>");
+                print("<img src='" . htmlspecialchars($iconManada, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' class='valign'/>");
+                print(" " . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8'));
+                print("</a></li>");
 
-            $numeroDeGruposHallados++;
+                $numeroDeGruposHallados++;
+            }
+        } else {
+            print("<li class='listaManadas'>Organizacion sin grupos vinculados.</li>");
         }
 
         print("</ul>");

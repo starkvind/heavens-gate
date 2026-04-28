@@ -262,7 +262,7 @@ function get_character_embed_data($link, $charId)
     ];
 
     if ($charId > 0) {
-        $sql = 'SELECT name, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1';
+        $sql = 'SELECT name, alias, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1';
         $stmt = mysqli_prepare($link, $sql);
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, 'i', $charId);
@@ -279,8 +279,13 @@ function get_character_embed_data($link, $charId)
                         $pretty = (string)$charId;
                     }
 
+                    $displayName = trim((string)($row['alias'] ?? ''));
+                    if ($displayName === '') {
+                        $displayName = (string)($row['name'] ?? 'Desconocido');
+                    }
+
                     $data = [
-                        'name' => (string)($row['name'] ?? 'Desconocido'),
+                        'name' => $displayName,
                         'img' => $avatar,
                         'pretty_id' => $pretty,
                         'text_color' => hg_normalize_palette_value((string)($row['text_color'] ?? ''), ''),

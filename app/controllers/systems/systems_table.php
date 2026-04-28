@@ -1,5 +1,6 @@
 <?php
 setMetaFromPage("Sistemas | Heaven's Gate", "Listado de sistemas y categorias disponibles.", null, 'website');
+include_once(__DIR__ . '/../../helpers/pretty.php');
 include("app/partials/main_nav_bar.php");
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 
@@ -24,6 +25,7 @@ $result = mysqli_query($link, $query);
 
 $systems = [];
 while ($row = mysqli_fetch_assoc($result)) {
+	$row['system_href'] = pretty_url($link, 'dim_systems', '/systems', (int)($row['system_id'] ?? 0));
 	$systems[] = $row;
 }
 mysqli_free_result($result);
@@ -120,7 +122,8 @@ $(document).ready(function () {
 	systems.forEach(s => {
 		const sysName = escapeHtml(s.system_name);
 		// AJUSTA p=... a tu página real (esto es un ejemplo)
-		const titulo = `<a href="/systems/${s.system_id}">${sysName}</a>`;
+		const href = s.system_href ? String(s.system_href) : `/systems/${s.system_id}`;
+		const titulo = `<a href="${escapeHtml(href)}">${sysName}</a>`;
 		const formas = ynBadge(s.system_forms);
 		const origen = s.system_origin ? escapeHtml(s.system_origin) : '-';
 

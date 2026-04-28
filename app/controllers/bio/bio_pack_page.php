@@ -56,6 +56,33 @@ if (!function_exists('hg_bio_pack_page_group_url')) {
     }
 }
 
+if (!function_exists('hg_bio_pack_org_chart_available')) {
+    function hg_bio_pack_org_chart_available(mysqli $link, int $organizationId): bool
+    {
+        if ($organizationId <= 0 || !function_exists('hg_table_exists')) {
+            return false;
+        }
+        if (!hg_table_exists($link, 'dim_organization_departments') || !hg_table_exists($link, 'bridge_characters_org')) {
+            return false;
+        }
+
+        $stmt = $link->prepare("
+            SELECT
+                (SELECT COUNT(*) FROM dim_organization_departments WHERE organization_id = ? AND is_active = 1)
+              + (SELECT COUNT(*) FROM bridge_characters_org WHERE organization_id = ? AND is_active = 1) AS total
+        ");
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('ii', $organizationId, $organizationId);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $row = $rs ? $rs->fetch_assoc() : null;
+        $stmt->close();
+        return (int)($row['total'] ?? 0) > 0;
+    }
+}
+
 if (!function_exists('hg_bio_pack_page_resolve_organization_id')) {
     function hg_bio_pack_page_resolve_organization_id(mysqli $link, $value): int
     {
@@ -352,6 +379,7 @@ if ($typePack === 1) {
 
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . hg_bio_pack_page_h($namePack) . "</h2>";
+echo "<style>.bio-pack-action-link{display:inline-block;margin:10px 0 0;padding:5px 10px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;text-decoration:none}.bio-pack-action-link:hover{background:#003b8f;color:#fff!important}</style>";
 
 echo "<table class='notix'>";
 echo "<tr><td colspan='2' class='texti'>";
@@ -365,6 +393,10 @@ if ($totemLink !== '') {
 }
 
 echo "<b>Descripción</b>:<br/><br/>" . $infoPack;
+if ($typePack === 2 && hg_bio_pack_org_chart_available($link, $packId)) {
+    $orgChartHref = rtrim(pretty_url($link, 'dim_organizations', '/organizations', $packId), '/') . '/org-chart';
+    echo "<br/><a class='bio-pack-action-link' href='" . hg_bio_pack_page_h($orgChartHref) . "'>Ver organigrama</a>";
+}
 echo "</td></tr>";
 
 if ($typePack === 1) {

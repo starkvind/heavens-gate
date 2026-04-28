@@ -78,11 +78,21 @@ function normalize_pretty_request(mysqli $link, string $route): void {
 
     if ($route === 'versistdetalle' && isset($_GET['tc'], $_GET['b'])) {
         $tc = (string)$_GET['tc'];
-        if ($tc === '1') $table = 'dim_breeds';
-        elseif ($tc === '2') $table = 'dim_auspices';
-        elseif ($tc === '3') $table = 'dim_tribes';
-        elseif ($tc === '4') $table = 'fact_misc_systems';
-        $base = "/systems/detail/$tc";
+        if ($tc === '1') {
+            $table = 'dim_breeds';
+            $base = '/systems/breeds';
+        } elseif ($tc === '2') {
+            $table = 'dim_auspices';
+            $base = '/systems/auspices';
+        } elseif ($tc === '3') {
+            $table = 'dim_tribes';
+            $base = '/systems/tribes';
+        } elseif ($tc === '4') {
+            $table = 'fact_misc_systems';
+            $base = '/systems/misc';
+        } else {
+            $base = "/systems/detail/$tc";
+        }
         $param = 'b';
     }
 
@@ -134,6 +144,16 @@ function normalize_pretty_request(mysqli $link, string $route): void {
                     exit;
                 }
             }
+        }
+    }
+
+    if ($route === 'versistdetalle' && $resolved !== null) {
+        $currentPretty = get_pretty_id($link, $table, (int)$resolved);
+        $currentPath = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? '');
+        $target = rtrim($base, '/') . '/' . rawurlencode($currentPretty ?: $raw);
+        if ($target !== '' && rtrim(rawurldecode($currentPath), '/') !== rtrim($target, '/')) {
+            header("Location: $target", true, 301);
+            exit;
         }
     }
 
@@ -459,6 +479,7 @@ $routes = [
 	'nebula_clan'  => ['app/controllers/bio/bio_reltree_clans.php', 'Nebulosa de relaciones'],
 	'nebula_character' => ['app/controllers/bio/bio_reltree_characters.php', 'Nebulosa de relaciones'],
 	'nebula_groups' => ['app/controllers/bio/bio_reltree_groups.php', 'Nebulosa de relaciones'],
+	'org_chart' => ['app/controllers/bio/bio_org_chart.php', 'Organigrama'],
 
 	// 📚 Documentación
 	'listadocs' => ['app/controllers/docs/docs_table.php', null],

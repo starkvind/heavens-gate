@@ -54,7 +54,7 @@
 		$colortexto = '';
 		$char_pretty = (string)$char_id;
 	} else {
-		$query = "SELECT name, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
+		$query = "SELECT name, alias, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
 		$stmt = mysqli_prepare($link, $query);
 		if (!$stmt) {
 			hg_runtime_log_error('forum_message_snippet.prepare', mysqli_error($link));
@@ -70,7 +70,11 @@
 			return;
 		}
 
-		$nombre = htmlspecialchars($row['name']);
+		$displayName = trim((string)($row['alias'] ?? ''));
+		if ($displayName === '') {
+			$displayName = (string)($row['name'] ?? '');
+		}
+		$nombre = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
 		$img = htmlspecialchars(ltrim(hg_character_avatar_url($row['image_url'] ?? '', $row['gender'] ?? ''), '/'));
 		$colortexto = hg_normalize_palette_value((string)($row['text_color'] ?? ''), '');
 		$char_pretty = trim((string)($row['pretty_id'] ?? ''));

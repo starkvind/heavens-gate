@@ -15,6 +15,8 @@
 		$bioName = isset($bioName) ? (string)$bioName : '';
 		$packNavLinks = isset($packNavLinks) ? (string)$packNavLinks : '';
 		$pageTitle2 = isset($pageTitle2) ? (string)$pageTitle2 : '';
+		$orgChartNavName = isset($orgChartNavName) ? (string)$orgChartNavName : '';
+		$orgChartNavHref = isset($orgChartNavHref) ? (string)$orgChartNavHref : '';
 		$nameTemporada = isset($nameTemporada) ? (string)$nameTemporada : '';
 		$numeracionOK = isset($numeracionOK) ? (string)$numeracionOK : '';
 		$title = isset($title) ? (string)$title : '';
@@ -179,6 +181,9 @@
 						case 'admin_groups':
 							echo " $pillSeparator Grupos (Manadas & Clanes)";
 							break;
+						case 'admin_organizations':
+							echo " $pillSeparator Organizaciones";
+							break;
 						case 'admin_temp':
 						case 'admin_seasons':
 							echo " $pillSeparator Temporadas";
@@ -267,11 +272,11 @@
 					case 'admin_resources_migration':
 						echo " $pillSeparator Migracion de recursos";
 						break;
+					case 'admin_schema_hardening_audit':
+						echo " $pillSeparator Evaluar schema";
+						break;
 					case 'admin_inspect_db':
 						echo " $pillSeparator Inspeccionar BDD";
-						break;
-					case 'admin_schema_hardening_audit':
-						echo " $pillSeparator Auditar endurecimiento";
 						break;
 					case 'admin_avatar_mass':
 						echo " $pillSeparator Avatares masivos";
@@ -307,8 +312,8 @@
 					case 'admin_sim_character_talk':
 						echo " $pillSeparator Frases de simulador";
 						break;
-					case 'admin_schema_initializer':
-						echo " $pillSeparator Inicializador de esquema";
+					case 'admin_org_chart_schema':
+						echo " $pillSeparator Organigramas";
 						break;
 					case 'admin_mentions_help':
 						echo " $pillSeparator Ayuda mentions";
@@ -333,6 +338,14 @@
 				// Antes dependia de afiliacion, ahora solo mostramos clan
 				$typeHref = pretty_url($link, 'dim_character_types', '/characters/type', (int)$idTipo);
 				echo "<a href='/characters/types' title='Biografías'>Biografías</a> $pillSeparator $nombreTipo";
+				break;
+			case "org_chart":
+				echo "<a href='/organizations' title='Organizaciones'>Organizaciones</a>";
+				if (trim($orgChartNavName) !== '') {
+					$orgHrefNav = trim($orgChartNavHref) !== '' ? $orgChartNavHref : '/organizations';
+					echo " $pillSeparator <a href='" . hg_main_nav_h($orgHrefNav) . "'>" . hg_main_nav_h($orgChartNavName) . "</a>";
+				}
+				echo " $pillSeparator Organigrama";
 				break;
 			case "chronicles":
 			case "bio_chronicles":

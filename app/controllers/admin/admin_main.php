@@ -40,11 +40,11 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_groups':
 					include("admin_groups.php");
 					break;
+				case 'admin_organizations':
+					include("admin_organizations.php");
+					break;
 				case 'admin_pois':
 					include("admin_pois.php");
-					break;
-				case 'admin_map_kmz_import':
-					include("admin_map_kmz_import.php");
 					break;
 				case 'admin_players':
 					include("admin_players.php");
@@ -195,6 +195,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_groups':
 					include("admin_groups.php");
 					break;
+				case 'admin_organizations':
+					include("admin_organizations.php");
+					break;
 				case 'admin_temp': // legacy alias
 				case 'admin_seasons':
 					include("admin_seasons.php");
@@ -205,9 +208,6 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_pois':
 					include("admin_pois.php");
-					break;
-				case 'admin_map_kmz_import':
-					include("admin_map_kmz_import.php");
 					break;
 				case 'admin_players':
 					include("admin_players.php");
@@ -316,8 +316,8 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_mentions_help':
 					include("mentions_help.html");
 					break;
-				case 'admin_schema_initializer':
-					include("admin_schema_initializer.php");
+				case 'admin_org_chart_schema':
+					include("admin_org_chart_schema.php");
 					break;
 				case 'logout':
 					include("admin_logout.php");
@@ -343,7 +343,12 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=admin_groups'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Grupos
+							Gestionar Grupos y manadas
+						</div>
+					</a>
+					<a href='/talim?s=admin_organizations'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Organizaciones
 						</div>
 					</a>
 					<a href='/talim?s=admin_players'>
@@ -475,11 +480,6 @@ if (!hg_admin_require_db($link)) { return; }
 							Gestionar Mapas
 						</div>
 					</a>
-					<a href='/talim?s=admin_map_kmz_import'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Importar KMZ/KML
-						</div>
-					</a>
 					<a href='/talim?s=admin_timelines'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar L&iacute;nea temporal
@@ -594,19 +594,14 @@ if (!hg_admin_require_db($link)) { return; }
 							Editar Men&uacute;
 						</div>
 					</a>
-					<a href='/talim?s=admin_schema_initializer'>
+					<a href='/talim?s=admin_schema_hardening_audit'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Inicializar Esquema
+							Evaluar schema
 						</div>
 					</a>
 					<a href='/talim?s=admin_inspect_db'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Inspeccionar BDD
-						</div>
-					</a>
-					<a href='/talim?s=admin_schema_hardening_audit'>
-						<div class='bioSheetPower adm-admin-tile'>
-							Auditar endurecimiento
 						</div>
 					</a>
 					<a href='/talim?s=admin_mentions_help'>

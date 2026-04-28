@@ -176,11 +176,11 @@ if (!$ordenQueryResult) {
                     echo "<div class='syst-subhead' data-group='$groupKey'>".htmlspecialchars($race)."</div>";
                     echo "<div class='syst-grid'>";
                     foreach ($items as $it) {
-                        $href = "/systems/form/".(int)$it['id'];
+                        $href = pretty_url($link, 'dim_forms', '/systems/form', (int)$it['id']);
                         $label = htmlspecialchars($it['name']);
                         $cardIdx = $showToggle ? $globalIdx : -1;
                         $dataIdx = $cardIdx >= 0 ? " data-idx='$cardIdx'" : "";
-                        echo "<a class='syst-card'$dataIdx data-group='$groupKey' href='$href'>$label</a>";
+                        echo "<a class='syst-card'$dataIdx data-group='$groupKey' href='" . htmlspecialchars($href) . "'>$label</a>";
                         $globalIdx++;
                     }
                     echo "</div>";
@@ -189,11 +189,11 @@ if (!$ordenQueryResult) {
                 echo "<div class='syst-grid'>";
                 $idx = 0;
                 foreach ($formsByRace['__all'] ?? [] as $it) {
-                    $href = "/systems/form/".(int)$it['id'];
+                    $href = pretty_url($link, 'dim_forms', '/systems/form', (int)$it['id']);
                     $label = htmlspecialchars($it['name']);
                     $cardIdx = $showToggle ? $idx : -1;
                     $dataIdx = $cardIdx >= 0 ? " data-idx='$cardIdx'" : "";
-                    echo "<a class='syst-card'$dataIdx href='$href'>$label</a>";
+                    echo "<a class='syst-card'$dataIdx href='" . htmlspecialchars($href) . "'>$label</a>";
                     $idx++;
                 }
                 echo "</div>";

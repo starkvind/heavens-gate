@@ -57,6 +57,32 @@ function hg_request_router_query(array $query, array $exclude = []): string
     return $qs === '' ? '' : ('?' . $qs);
 }
 
+function hg_request_router_allowed_query(array $query, array $allowed): string
+{
+    $filtered = [];
+    foreach ($allowed as $key) {
+        if (array_key_exists($key, $query)) {
+            $filtered[$key] = $query[$key];
+        }
+    }
+
+    return hg_request_router_query($filtered);
+}
+
+function hg_request_router_forum_embed_query(string $route, array $query): string
+{
+    switch ($route) {
+        case 'forum_message':
+            return hg_request_router_allowed_query($query, ['id', 'palette', 'msg']);
+        case 'forum_diceroll':
+            return hg_request_router_allowed_query($query, ['id', 'palette']);
+        case 'forum_item':
+            return hg_request_router_allowed_query($query, ['id']);
+        default:
+            return '';
+    }
+}
+
 function hg_request_router_current_pretty_or_raw(mysqli $link, string $table, string $value): string
 {
     $value = trim($value);
@@ -251,6 +277,7 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'maps_api' => '/maps/api',
         'forum_message' => '/forum/message',
         'forum_diceroll' => '/forum/diceroll',
+        'forum_item' => '/forum/item',
         'keygen' => '/tools/keygen',
         'crop' => '/tools/crop',
     ];
@@ -284,6 +311,9 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
                 return '/characters/worlds';
             }
             return '/characters/worlds/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'dim_realities', (string)$query['t']));
+        case 'org_chart':
+            $orgValue = isset($query['org']) ? (string)$query['org'] : (string)($query['b'] ?? 'justicia-metalica');
+            return '/organizations/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'dim_organizations', $orgValue)) . '/org-chart';
         case 'chronicles':
         case 'bio_chronicles':
             if (!isset($query['t'])) {
@@ -463,6 +493,11 @@ function hg_request_router_legacy_query_result(mysqli $link, string $path, array
                 $queryString = hg_request_router_query($query, ['p']);
             }
             break;
+        case 'forum_message':
+        case 'forum_diceroll':
+        case 'forum_item':
+            $queryString = hg_request_router_forum_embed_query($route, $query);
+            break;
         default:
             $queryString = '';
             break;
@@ -502,6 +537,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/relationship-map/organizations' => ['p' => 'nebula_clan'],
         '/relationship-map/characters' => ['p' => 'nebula_character'],
         '/relationship-map/groups' => ['p' => 'nebula_groups'],
+        '/organizations/org-chart' => ['p' => 'org_chart', 'org' => 'justicia-metalica'],
         '/players' => ['p' => 'players'],
         '/documents' => ['p' => 'listadocs'],
         '/inventory' => ['p' => 'inv'],
@@ -527,6 +563,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/admin/merits-flaws' => ['p' => 'talim', 's' => 'admin_merits_flaws'],
         '/forum/message' => ['p' => 'forum_message'],
         '/forum/diceroll' => ['p' => 'forum_diceroll'],
+        '/forum/item' => ['p' => 'forum_item'],
         '/tools/keygen' => ['p' => 'keygen'],
         '/tools/crop' => ['p' => 'crop'],
         '/tools/dice' => ['p' => 'dados'],
@@ -604,6 +641,9 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         },
         '#^/organizations/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'seegroup', 't' => '2', 'b' => $m[1]];
+        },
+        '#^/organizations/([^/]+)/org-chart$#' => static function (array $m): array {
+            return ['p' => 'org_chart', 'org' => $m[1]];
         },
         '#^/groups/([^/]+)/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'seegroup', 't' => '1', 'org' => $m[1], 'b' => $m[2]];
@@ -706,6 +746,10 @@ function hg_request_router_match_path(mysqli $link, string $path): array
 function hg_request_router_resolve(mysqli $link, string $requestUri, array $query): array
 {
     $path = hg_request_router_normalize_path((string)(parse_url($requestUri, PHP_URL_PATH) ?? '/'));
+
+    if ($path === '/sep/snippet_forum_hg.php' && hg_request_router_is_safe_method()) {
+        return hg_request_router_redirect('/forum/message' . hg_request_router_forum_embed_query('forum_message', $query), 301);
+    }
 
     if (!empty($query['p']) && hg_request_router_is_safe_method()) {
         return hg_request_router_legacy_query_result($link, $path, $query);

@@ -60,6 +60,8 @@ cache/
 tmp/
 img/
 
+_old_things/
+_old_things/*
 __legacy_sim/
 __legacy_sim/*
 bdd_structure.txt

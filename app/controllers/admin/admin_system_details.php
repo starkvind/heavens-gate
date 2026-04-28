@@ -8,29 +8,10 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function slugify_pretty(string $text): string {
-    $text = trim((string)$text);
-    if ($text === '') return '';
-    if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
-    $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-    $text = trim($text, '-');
-    $text = strtolower($text);
-    $text = preg_replace('~[^-a-z0-9]+~', '', $text);
-    return $text;
-}
-function update_pretty_id(mysqli $link, string $table, int $id, string $source): void {
-    if ($id <= 0) return;
-    $slug = slugify_pretty($source);
-    if ($slug === '') $slug = (string)$id;
-    if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
-        $st->bind_param("si", $slug, $id);
-        $st->execute();
-        $st->close();
-    }
-}
 function sanitize_utf8_text(string $s): string {
     if (function_exists('mb_check_encoding') && !mb_check_encoding($s, 'UTF-8')) {
         if (function_exists('iconv')) {
@@ -307,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     $orig = $_FILES['file_image_url']['name'] ?? 'img';
                     $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
                     if ($ext === '') $ext = 'jpg';
-                    $base = slugify_pretty(pathinfo($orig, PATHINFO_FILENAME));
+                    $base = slugify_pretty_id(pathinfo($orig, PATHINFO_FILENAME));
                     if ($base === '') $base = 'img';
                     $name = $base . '-' . date('YmdHis') . '.' . $ext;
                     $destDir = __DIR__ . '/../../../public/img/system';
@@ -363,7 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                     if ($st->execute()) {
                         $newId = (int)$st->insert_id;
                         $src = (string)($vals['name'] ?? '');
-                        update_pretty_id($link, $table, $newId, $src);
+                        hg_update_pretty_id_if_exists($link, $table, $newId, $src);
                         $flash[] = ['type'=>'ok','msg'=>'Creado correctamente.'];
                     } else {
                         $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
@@ -399,7 +380,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $st->bind_param($types, ...$bind);
                         if ($st->execute()) {
                             $src = (string)($vals['name'] ?? '');
-                            update_pretty_id($link, $table, $id, $src);
+                            hg_update_pretty_id_if_exists($link, $table, $id, $src);
                             $flash[] = ['type'=>'ok','msg'=>'Actualizado.'];
                         } else {
                             $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
