@@ -83,9 +83,53 @@ if (!function_exists('pjs_fetch_discipline_power_type_map')) {
         return $out;
     }
 }
+if (!function_exists('pjs_resolve_group_owner_organization')) {
+    function pjs_resolve_group_owner_organization(mysqli $link, int $groupId): int {
+        if ($groupId <= 0) return 0;
+        if (!pjs_table_exists($link, 'bridge_organizations_groups')) return 0;
+
+        $hasActive = pjs_table_has_column($link, 'bridge_organizations_groups', 'is_active');
+        $hasUpdated = pjs_table_has_column($link, 'bridge_organizations_groups', 'updated_at');
+        $hasCreated = pjs_table_has_column($link, 'bridge_organizations_groups', 'created_at');
+
+        $sql = "SELECT organization_id FROM bridge_organizations_groups WHERE group_id=?";
+        if ($hasActive) {
+            $sql .= " AND (is_active=1 OR is_active IS NULL)";
+        }
+        $sql .= " ORDER BY";
+        if ($hasUpdated) {
+            $sql .= " updated_at DESC,";
+        }
+        if ($hasCreated) {
+            $sql .= " created_at DESC,";
+        }
+        $sql .= " organization_id DESC LIMIT 1";
+
+        $organizationId = 0;
+        if ($st = $link->prepare($sql)) {
+            $st->bind_param("i", $groupId);
+            $st->execute();
+            if ($rs = $st->get_result()) {
+                if ($row = $rs->fetch_assoc()) {
+                    $organizationId = (int)($row['organization_id'] ?? 0);
+                }
+            }
+            $st->close();
+        }
+
+        return $organizationId;
+    }
+}
 if (!function_exists('sync_character_bridges')) {
     function sync_character_bridges(mysqli $link, int $characterId, int $groupId, int $organizationId): void {
         if ($characterId <= 0) return;
+
+        if ($groupId > 0) {
+            $resolvedOrganizationId = pjs_resolve_group_owner_organization($link, $groupId);
+            if ($resolvedOrganizationId > 0) {
+                $organizationId = $resolvedOrganizationId;
+            }
+        }
 
         $hasGroups = pjs_table_exists($link, 'bridge_characters_groups');
         $hasOrgs = pjs_table_exists($link, 'bridge_characters_organizations');

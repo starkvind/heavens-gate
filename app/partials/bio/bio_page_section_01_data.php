@@ -19,6 +19,43 @@ function createLink($href, $text, $target = '_blank', $title = '', $extraAttrs =
     return "<a href='$href' target='$target' $titleAttr$extra>$text</a>";
 }
 
+if (!function_exists('hg_bio_misc_table_exists')) {
+    function hg_bio_misc_table_exists(mysqli $link, string $table): bool {
+        static $cache = [];
+        if (isset($cache[$table])) return $cache[$table];
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
+            $st->bind_param('s', $table);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+        $cache[$table] = $ok;
+        return $ok;
+    }
+}
+
+if (!function_exists('hg_bio_misc_column_exists')) {
+    function hg_bio_misc_column_exists(mysqli $link, string $table, string $column): bool {
+        static $cache = [];
+        $key = $table . ':' . $column;
+        if (isset($cache[$key])) return $cache[$key];
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            $st->bind_param('ss', $table, $column);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+        $cache[$key] = $ok;
+        return $ok;
+    }
+}
+
 // JUGADOR
 $idJugador = $bioPlayer;
 if ($idJugador != "PNJ") {
@@ -101,6 +138,53 @@ if ($resultTribe) {
     );
 } else {
     $tribeLink = htmlspecialchars($idTribe);
+}
+
+if (!isset($characterId)) {
+    $characterId = (int)($_GET['b'] ?? 0);
+}
+
+// MISC SYSTEMS
+$bioMiscLinksByKind = [];
+if (
+    hg_bio_misc_table_exists($link, 'bridge_characters_misc_systems')
+    && hg_bio_misc_table_exists($link, 'fact_misc_systems')
+    && $characterId > 0
+) {
+    $hasActiveMisc = hg_bio_misc_column_exists($link, 'bridge_characters_misc_systems', 'is_active');
+    $hasSortMisc = hg_bio_misc_column_exists($link, 'bridge_characters_misc_systems', 'sort_order');
+    $sqlMisc = "
+      SELECT
+        b.misc_system_id,
+        m.name,
+        COALESCE(m.kind, '') AS kind
+      FROM bridge_characters_misc_systems b
+      INNER JOIN fact_misc_systems m ON m.id = b.misc_system_id
+      WHERE b.character_id = ?
+      " . ($hasActiveMisc ? "AND (b.is_active = 1 OR b.is_active IS NULL)" : "") . "
+      ORDER BY " . ($hasSortMisc ? "b.sort_order ASC, " : "") . "m.kind ASC, m.name ASC, b.id ASC
+    ";
+    if ($st = $link->prepare($sqlMisc)) {
+        $st->bind_param('i', $characterId);
+        $st->execute();
+        $rs = $st->get_result();
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $miscId = (int)($row['misc_system_id'] ?? 0);
+            $miscName = trim((string)($row['name'] ?? ''));
+            $miscKind = trim((string)($row['kind'] ?? ''));
+            if ($miscId <= 0 || $miscName === '') continue;
+            if ($miscKind === '') $miscKind = 'Misc';
+            if (!isset($bioMiscLinksByKind[$miscKind])) $bioMiscLinksByKind[$miscKind] = [];
+            $bioMiscLinksByKind[$miscKind][$miscId] = createLink(
+                pretty_url($link, 'fact_misc_systems', '/systems/misc', $miscId),
+                htmlspecialchars($miscName, ENT_QUOTES, 'UTF-8'),
+                '_blank',
+                '',
+                "class='hg-tooltip' data-tip='misc_system' data-id='" . $miscId . "'"
+            );
+        }
+        $st->close();
+    }
 }
 
 /* Cambio septiembre 2025 */

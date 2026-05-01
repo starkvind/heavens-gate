@@ -373,6 +373,23 @@ if ($type === 'don') {
         }
         $st->close();
     }
+} elseif ($type === 'misc_system' || $type === 'misc' || $type === 'fact_misc_systems') {
+    if ($st = $link->prepare("SELECT name, kind, system_name, description FROM fact_misc_systems WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = $r['name'] ?? '';
+            $parts = [];
+            $kind = trim((string)($r['kind'] ?? ''));
+            $systemName = trim((string)($r['system_name'] ?? ''));
+            if ($kind !== '') $parts[] = $kind;
+            if ($systemName !== '') $parts[] = $systemName;
+            $outMeta = tt_join_meta($parts);
+            $outDesc = short_text($r['description'] ?? '', 360);
+        }
+        $st->close();
+    }
 } elseif ($type === 'chapter' || $type === 'dim_chapter' || $type === 'dim_chapters') {
     $hasSeasonKind = tt_has_column($link, 'dim_seasons', 'season_kind');
     $seasonKindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";

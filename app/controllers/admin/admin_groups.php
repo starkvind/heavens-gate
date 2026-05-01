@@ -509,6 +509,14 @@ if(!empty($_POST['action'])){
     if($organization_id>0){
       q(
         $link,
+        "UPDATE bridge_organizations_groups
+         SET is_active=0
+         WHERE group_id=? AND organization_id<>?",
+        'ii',
+        [$newId,$organization_id]
+      );
+      q(
+        $link,
         "INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)
          ON DUPLICATE KEY UPDATE is_active=1",
         'ii',
@@ -523,6 +531,14 @@ if(!empty($_POST['action'])){
     $organization_id=(int)($_POST['organization_id']??0);
     $group_id=(int)($_POST['group_id']??0);
     if($organization_id>0 && $group_id>0){
+      q(
+        $link,
+        "UPDATE bridge_organizations_groups
+         SET is_active=0
+         WHERE group_id=? AND organization_id<>?",
+        'ii',
+        [$group_id,$organization_id]
+      );
       q(
         $link,
         "INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)

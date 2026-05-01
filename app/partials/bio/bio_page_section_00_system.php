@@ -1,7 +1,7 @@
 <?php
 	/* =============================================================================================== //
 	|	Aplicamos etiquetas de detalle definidas en bridge_systems_detail_labels para el sistema del PJ.|
-	|	Si alguna etiqueta no existe, se mantienen los títulos por defecto definidos en bio_page2.php. |
+	|	Si alguna etiqueta no existe, se mantienen los títulos por defecto definidos en bio_page.php. |
 	*/ // ============================================================================================ //
 	$systemDetailLabels = (isset($systemDetailLabels) && is_array($systemDetailLabels)) ? $systemDetailLabels : [];
 

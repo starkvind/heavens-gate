@@ -294,6 +294,12 @@
 					case 'admin_characters_conditions_brige':
 						echo " $pillSeparator Condiciones de personajes";
 						break;
+					case 'admin_character_misc_bridge':
+						echo " $pillSeparator Misc systems de personajes";
+						break;
+					case 'admin_character_affiliations_canonical':
+						echo " $pillSeparator Canonizar afiliaciones";
+						break;
 					case 'admin_characters_clone':
 						echo " $pillSeparator Copiar personajes";
 						break;

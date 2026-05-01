@@ -1097,7 +1097,8 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     if (selTotem) {
       var tId = parseInt(btn.getAttribute('data-totem_id')||'0',10)||0;
-      selTotem.value = String(tId||0);
+      var tMode = (btn.getAttribute('data-totem_mode') || '').toLowerCase();
+      selTotem.value = (tId > 0) ? String(tId) : (tMode === 'none' ? '-1' : '0');
     }
 
 	    var razaId = parseInt(btn.getAttribute('data-raza')||'0',10)||0;

@@ -467,7 +467,7 @@ $routes = [
 	// 🧬 Biografias
 	'bios'         => ['app/controllers/bio/bio_list.php', 'Biografias'],
 	'biogroup'     => ['app/controllers/bio/bio_group.php', 'Biografias por Grupo'],
-	'muestrabio'   => ['app/controllers/bio/bio_page2.php', 'Biografia'],
+	'muestrabio'   => ['app/controllers/bio/bio_page.php', 'Biografia'],
 	'listgroups'   => ['app/controllers/bio/bio_pack_list.php', null],
 	'seegroup'     => ['app/controllers/bio/bio_pack_page.php', null],
 	'chronicles'     => ['app/controllers/main/main_chronicles.php', 'Crónicas'],

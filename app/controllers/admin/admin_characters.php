@@ -589,13 +589,18 @@ $sqlMap = "
     INNER JOIN dim_groups m ON m.id = b.group_id
     INNER JOIN dim_organizations  c ON c.id = b.organization_id
     WHERE (b.is_active = 1 OR b.is_active IS NULL)
-    ORDER BY b.organization_id, m.name
+    ORDER BY b.group_id ASC, b.updated_at DESC, b.created_at DESC, b.organization_id DESC, m.name ASC
 ";
 if ($stmtM = $link->prepare($sqlMap)) {
     $stmtM->execute();
     $resM = $stmtM->get_result();
+    $seenManadas = [];
     while ($row = $resM->fetch_assoc()) {
         $mid = (int)$row['manada_id'];
+        if ($mid <= 0 || isset($seenManadas[$mid])) {
+            continue;
+        }
+        $seenManadas[$mid] = true;
         $cid = (int)$row['organization_id'];
         $manadas_map_id_to_clan[$mid] = $cid;
         $manadas_by_clan[$cid][] = ['id'=>$mid, 'name'=>$row['manada_name']];
@@ -639,7 +644,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $manada      = max(0, intval($_POST['manada'] ?? 0));
     $clan        = max(0, intval($_POST['clan'] ?? 0));
     $system_id   = isset($_POST['system_id']) ? (int)$_POST['system_id'] : 0;
-    $totem_id = isset($_POST['totem_id']) ? (int)$_POST['totem_id'] : 0;
+    $totem_choice = isset($_POST['totem_id']) ? (int)$_POST['totem_id'] : 0;
+    $totem_id = $totem_choice;
     $kind_raw = strtolower(trim((string)($_POST['kind'] ?? 'pnj')));
     if ($kind_raw === 'monster' || $kind_raw === 'mon') {
         $kind = 'mon';
@@ -772,8 +778,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         }
     }
 
-    // Totem: si no elige, hereda de manada o clan
-    if ($totem_id <= 0) {
+    // Totem:
+    //   0  = heredar de Manada o Clan
+    //  -1  = sin totem (guardar NULL)
+    //  >0  = totem explicito
+    if ($totem_choice === -1) {
+        $totem_id = null;
+    } elseif ($totem_id <= 0) {
         $totem_from_group = 0;
         if ($manada > 0) {
             if ($st = $link->prepare("SELECT totem_id FROM dim_groups WHERE id=? LIMIT 1")) {
@@ -1379,6 +1390,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
     <h2>Personajes - Lista y CRUD</h2>
     <button class="btn btn-green" id="btnNew">+ Nuevo personaje</button>
     <a class="btn" href="/talim?s=admin_character_conditions_bridge">Condiciones</a>
+    <a class="btn" href="/talim?s=admin_character_misc_bridge">Misc Systems</a>
     <a class="btn" href="/talim?s=admin_character_deaths">Muertes</a>
     <a class="btn" href="/talim?s=admin_birthdays_quick">Cumplea&ntilde;os</a>
 
@@ -1454,6 +1466,7 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
               data-jugador="<?= (int)$r['player_id'] ?>"
               data-system_id="<?= (int)($r['system_id'] ?? 0) ?>"
               data-totem_id="<?= (int)($r['totem_id'] ?? 0) ?>"
+              data-totem_mode="<?= ((int)($r['totem_id'] ?? 0) > 0 ? 'direct' : 'none') ?>"
               data-text_color="<?= h($r['text_color']) ?>"
               data-raza="<?= (int)$r['breed_id'] ?>"
               data-auspice_id="<?= (int)$r['auspice_id'] ?>"
@@ -1671,12 +1684,13 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
         <div>
           <label>Tótem (opcional)
             <select class="select" name="totem_id" id="f_totem_id">
-              <option value="0">— Sin tótem —</option>
+              <option value="0">— Heredar de Manada / Clan —</option>
+              <option value="-1">— Sin Tótem —</option>
               <?php foreach($opts_totems as $id=>$name): ?>
                 <option value="<?= (int)$id ?>"><?= h($name) ?></option>
               <?php endforeach; ?>
             </select>
-            <span class="small-note">Si no eliges, se usa el tótem de la Manada o del Clan</span>
+            <span class="small-note">Puedes heredar el tótem de la Manada o del Clan, o dejar el personaje sin tótem.</span>
           </label>
         </div>
 

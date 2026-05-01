@@ -61,11 +61,48 @@ if ($idTipo <= 0) {
     return;
 }
 
+$activePackIdExpr = "
+    SELECT cgb.group_id
+    FROM bridge_characters_groups AS cgb
+    WHERE cgb.character_id = p.id
+      AND (cgb.is_active = 1 OR cgb.is_active IS NULL)
+    ORDER BY cgb.updated_at DESC, cgb.created_at DESC, cgb.group_id DESC
+    LIMIT 1
+";
+
+$activePackOrgIdExpr = "
+    SELECT bog.organization_id
+    FROM bridge_organizations_groups AS bog
+    WHERE bog.group_id = (($activePackIdExpr))
+      AND (bog.is_active = 1 OR bog.is_active IS NULL)
+    ORDER BY bog.updated_at DESC, bog.created_at DESC, bog.organization_id DESC
+    LIMIT 1
+";
+
+$activeDirectOrgIdExpr = "
+    SELECT bco.organization_id
+    FROM bridge_characters_organizations AS bco
+    WHERE bco.character_id = p.id
+      AND (bco.is_active = 1 OR bco.is_active IS NULL)
+    ORDER BY bco.updated_at DESC, bco.created_at DESC, bco.organization_id DESC
+    LIMIT 1
+";
+
 $valuePJ = "p.id, p.name, p.alias, COALESCE(dcs.label, '') AS status, p.status_id, p.image_url, p.gender, p.character_kind, p.character_type_id,
-                    COALESCE(nc2.id, nc_from_pack.id, 0) AS organization_id,
-                    COALESCE(nc2.pretty_id, nc_from_pack.pretty_id) AS clan_pretty_id,
-                    COALESCE(nc2.name, nc_from_pack.name, 'Sin clan') AS clan_name,
-                    IFNULL(COALESCE(nc2.sort_order, nc_from_pack.sort_order), 999999) AS organization_sort_order";
+                    COALESCE(({$activePackOrgIdExpr}), ({$activeDirectOrgIdExpr}), 0) AS organization_id,
+                    COALESCE(
+                        (SELECT o.pretty_id FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.pretty_id FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
+                    ) AS clan_pretty_id,
+                    COALESCE(
+                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
+                        'Sin clan'
+                    ) AS clan_name,
+                    IFNULL(COALESCE(
+                        (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
+                    ), 999999) AS organization_sort_order";
 
 $excludeChronicles = isset($excludeChronicles)
     ? hg_bio_group_sanitize_int_csv($excludeChronicles)
@@ -143,21 +180,6 @@ $queryPJBase = "
     FROM fact_characters p
         LEFT JOIN dim_character_status dcs
             ON dcs.id = p.status_id
-        LEFT JOIN bridge_characters_groups hcg
-            ON hcg.character_id = p.id
-           AND (hcg.is_active = 1 OR hcg.is_active IS NULL)
-        LEFT JOIN dim_groups nm2
-            ON nm2.id = hcg.group_id
-        LEFT JOIN bridge_characters_organizations hcc
-            ON hcc.character_id = p.id
-           AND (hcc.is_active = 1 OR hcc.is_active IS NULL)
-        LEFT JOIN dim_organizations nc2
-            ON nc2.id = hcc.organization_id
-        LEFT JOIN bridge_organizations_groups hcg2
-            ON hcg2.group_id = nm2.id
-           AND (hcg2.is_active = 1 OR hcg2.is_active IS NULL)
-        LEFT JOIN dim_organizations nc_from_pack
-            ON nc_from_pack.id = hcg2.organization_id
     WHERE p.__TYPE_COL__ = ?
       $cronicaNotInSQL
     ORDER BY organization_id ASC, p.name ASC
