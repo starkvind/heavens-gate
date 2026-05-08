@@ -2,6 +2,8 @@
 // Tooltip endpoint (HTML fragment)
 header('Content-Type: text/html; charset=UTF-8');
 
+include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
+
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function short_text($html, $limit=520){
     $raw = (string)$html;
@@ -237,7 +239,22 @@ if ($type === 'don') {
         $st->close();
     }
 } elseif ($type === 'breed') {
-    if ($st = $link->prepare("SELECT name, system_name, forms, energy, description FROM dim_breeds WHERE id=? LIMIT 1")) {
+    $energySql = hg_ser_energy_sql_parts($link, 'dim_breeds', 'b');
+    $energyExpr = hg_ser_energy_value_sql_expr($link, 'dim_breeds', 'b');
+    $sql = "
+        SELECT
+            b.name,
+            b.system_name,
+            b.forms,
+            {$energyExpr} AS energy,
+            b.description
+            {$energySql['select']}
+        FROM dim_breeds b
+        {$energySql['join']}
+        WHERE b.id = ?
+        LIMIT 1
+    ";
+    if ($st = $link->prepare($sql)) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -245,16 +262,34 @@ if ($type === 'don') {
             $outTitle = $r['name'] ?? '';
             $parts = [];
             $system = trim((string)($r['system_name'] ?? ''));
-            $energy = (int)($r['energy'] ?? 0);
+            $entries = hg_ser_energy_entries_for_row($link, 'dim_breeds', $id, $r, $system);
             if ($system !== '') $parts[] = $system;
-            if ($energy > 0) $parts[] = 'Gnosis ' . $energy;
+            foreach ($entries as $entry) {
+                $label = trim((string)($entry['resource_name'] ?? ''));
+                $value = (int)($entry['energy_value'] ?? 0);
+                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
+            }
             $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
     }
 } elseif ($type === 'auspice') {
-    if ($st = $link->prepare("SELECT name, system_name, energy, description FROM dim_auspices WHERE id=? LIMIT 1")) {
+    $energySql = hg_ser_energy_sql_parts($link, 'dim_auspices', 'a');
+    $energyExpr = hg_ser_energy_value_sql_expr($link, 'dim_auspices', 'a');
+    $sql = "
+        SELECT
+            a.name,
+            a.system_name,
+            {$energyExpr} AS energy,
+            a.description
+            {$energySql['select']}
+        FROM dim_auspices a
+        {$energySql['join']}
+        WHERE a.id = ?
+        LIMIT 1
+    ";
+    if ($st = $link->prepare($sql)) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -262,16 +297,35 @@ if ($type === 'don') {
             $outTitle = $r['name'] ?? '';
             $parts = [];
             $system = trim((string)($r['system_name'] ?? ''));
-            $energy = (int)($r['energy'] ?? 0);
+            $entries = hg_ser_energy_entries_for_row($link, 'dim_auspices', $id, $r, $system);
             if ($system !== '') $parts[] = $system;
-            if ($energy > 0) $parts[] = 'Rabia ' . $energy;
+            foreach ($entries as $entry) {
+                $label = trim((string)($entry['resource_name'] ?? ''));
+                $value = (int)($entry['energy_value'] ?? 0);
+                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
+            }
             $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
         $st->close();
     }
 } elseif ($type === 'tribe') {
-    if ($st = $link->prepare("SELECT name, system_name, affiliation, energy, description FROM dim_tribes WHERE id=? LIMIT 1")) {
+    $energySql = hg_ser_energy_sql_parts($link, 'dim_tribes', 't');
+    $energyExpr = hg_ser_energy_value_sql_expr($link, 'dim_tribes', 't');
+    $sql = "
+        SELECT
+            t.name,
+            t.system_name,
+            t.affiliation,
+            {$energyExpr} AS energy,
+            t.description
+            {$energySql['select']}
+        FROM dim_tribes t
+        {$energySql['join']}
+        WHERE t.id = ?
+        LIMIT 1
+    ";
+    if ($st = $link->prepare($sql)) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -279,9 +333,13 @@ if ($type === 'don') {
             $outTitle = $r['name'] ?? '';
             $parts = [];
             $system = trim((string)($r['system_name'] ?? ''));
-            $energy = (int)($r['energy'] ?? 0);
+            $entries = hg_ser_energy_entries_for_row($link, 'dim_tribes', $id, $r, $system);
             if ($system !== '') $parts[] = $system;
-            if ($energy > 0) $parts[] = 'Fuerza de Voluntad ' . $energy;
+            foreach ($entries as $entry) {
+                $label = trim((string)($entry['resource_name'] ?? ''));
+                $value = (int)($entry['energy_value'] ?? 0);
+                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
+            }
             $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }
@@ -374,7 +432,24 @@ if ($type === 'don') {
         $st->close();
     }
 } elseif ($type === 'misc_system' || $type === 'misc' || $type === 'fact_misc_systems') {
-    if ($st = $link->prepare("SELECT name, kind, system_name, description FROM fact_misc_systems WHERE id=? LIMIT 1")) {
+    $energySql = hg_ser_energy_sql_parts($link, 'fact_misc_systems', 'm');
+    $energyExpr = hg_ser_energy_value_sql_expr($link, 'fact_misc_systems', 'm');
+    $energyNameExpr = hg_ser_has_legacy_energy_name_column($link, 'fact_misc_systems') ? "m.energy_name" : "''";
+    $sql = "
+        SELECT
+            m.name,
+            m.kind,
+            m.system_name,
+            {$energyExpr} AS energy_value,
+            {$energyNameExpr} AS energy_name,
+            m.description
+            {$energySql['select']}
+        FROM fact_misc_systems m
+        {$energySql['join']}
+        WHERE m.id=?
+        LIMIT 1
+    ";
+    if ($st = $link->prepare($sql)) {
         $st->bind_param('i', $id);
         $st->execute();
         $rs = $st->get_result();
@@ -385,6 +460,12 @@ if ($type === 'don') {
             $systemName = trim((string)($r['system_name'] ?? ''));
             if ($kind !== '') $parts[] = $kind;
             if ($systemName !== '') $parts[] = $systemName;
+            $entries = hg_ser_energy_entries_for_row($link, 'fact_misc_systems', $id, $r, $systemName);
+            foreach ($entries as $entry) {
+                $label = trim((string)($entry['resource_name'] ?? ''));
+                $value = (int)($entry['energy_value'] ?? 0);
+                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
+            }
             $outMeta = tt_join_meta($parts);
             $outDesc = short_text($r['description'] ?? '', 360);
         }

@@ -9,6 +9,7 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -80,11 +81,69 @@ foreach ($opts_systems as $sysRow) {
     $systemsById[(int)$sysRow['id']] = (string)$sysRow['name'];
 }
 
+$energyResourcesAll = hg_ser_fetch_state_resources_all($link);
+$energyResourcesBySystem = hg_ser_fetch_state_resources_by_system($link);
+$energyBridgeSupport = [
+    'dim_breeds' => hg_ser_has_energy_bridge_table($link, 'dim_breeds') && hg_ser_has_energy_config_column($link, 'dim_breeds'),
+    'dim_auspices' => hg_ser_has_energy_bridge_table($link, 'dim_auspices') && hg_ser_has_energy_config_column($link, 'dim_auspices'),
+    'dim_tribes' => hg_ser_has_energy_bridge_table($link, 'dim_tribes') && hg_ser_has_energy_config_column($link, 'dim_tribes'),
+    'fact_misc_systems' => hg_ser_has_energy_bridge_table($link, 'fact_misc_systems') && hg_ser_has_energy_config_column($link, 'fact_misc_systems'),
+];
+
 $sys = isset($_GET['sys']) ? (int)$_GET['sys'] : 0;
 
-function meta_for(string $tab, array $opts_origins, array $opts_systems): array {
+function system_detail_meta_add_energy_bridge(array $meta, string $table, array $energyBridgeSupport): array {
+    $meta['list_cols'][] = ['k' => 'energy_resources_summary', 'label' => 'Recursos', 'w' => 220];
+    if (empty($energyBridgeSupport[$table])) return $meta;
+
+    $inserted = false;
+    $fields = [];
+    foreach ($meta['fields'] as $field) {
+        $fields[] = $field;
+        if (in_array((string)($field['k'] ?? ''), ['energy', 'energy_value'], true)) {
+            $fields[] = ['k' => 'energy_bridge', 'label' => 'Recursos de energía', 'ui' => 'energy_bridge', 'db' => 'x', 'req' => false];
+            $inserted = true;
+        }
+    }
+    if ($inserted) {
+        $meta['fields'] = $fields;
+    }
+
+    return $meta;
+}
+
+function system_detail_meta_apply_legacy_energy(mysqli $link, array $meta, string $table): array {
+    $metaMap = hg_ser_energy_bridge_meta($table);
+    $legacyValueColumn = (string)($metaMap['legacy_value_column'] ?? 'energy');
+    $legacyNameColumn = (string)($metaMap['legacy_name_column'] ?? '');
+
+    if (!hg_ser_has_legacy_energy_value_column($link, $table)) {
+        $meta['fields'] = array_values(array_filter($meta['fields'], function($field) use ($legacyValueColumn){
+            return (string)($field['k'] ?? '') !== $legacyValueColumn;
+        }));
+        $meta['list_cols'] = array_values(array_filter($meta['list_cols'], function($col) use ($legacyValueColumn){
+            return (string)($col['k'] ?? '') !== $legacyValueColumn;
+        }));
+    }
+    if ($legacyNameColumn !== '' && !hg_ser_has_legacy_energy_name_column($link, $table)) {
+        $meta['fields'] = array_values(array_filter($meta['fields'], function($field) use ($legacyNameColumn){
+            return (string)($field['k'] ?? '') !== $legacyNameColumn;
+        }));
+        $meta['list_cols'] = array_values(array_filter($meta['list_cols'], function($col) use ($legacyNameColumn){
+            return (string)($col['k'] ?? '') !== $legacyNameColumn;
+        }));
+    }
+
+    if (hg_ser_has_legacy_energy_value_column($link, $table) || ($legacyNameColumn !== '' && hg_ser_has_legacy_energy_name_column($link, $table))) {
+        return $meta;
+    }
+
+    return $meta;
+}
+
+function meta_for(mysqli $link, string $tab, array $opts_origins, array $opts_systems, array $energyBridgeSupport): array {
     if ($tab === 'breeds') {
-        return [
+        $meta = [
             'title' => 'Razas',
             'table' => 'dim_breeds',
             'pk' => 'id',
@@ -107,9 +166,11 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             ],
             'has_timestamps' => true,
         ];
+        $meta = system_detail_meta_add_energy_bridge($meta, 'dim_breeds', $energyBridgeSupport);
+        return system_detail_meta_apply_legacy_energy($link, $meta, 'dim_breeds');
     }
     if ($tab === 'auspices') {
-        return [
+        $meta = [
             'title' => 'Auspicios',
             'table' => 'dim_auspices',
             'pk' => 'id',
@@ -131,9 +192,11 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             ],
             'has_timestamps' => true,
         ];
+        $meta = system_detail_meta_add_energy_bridge($meta, 'dim_auspices', $energyBridgeSupport);
+        return system_detail_meta_apply_legacy_energy($link, $meta, 'dim_auspices');
     }
     if ($tab === 'tribes') {
-        return [
+        $meta = [
             'title' => 'Tribus',
             'table' => 'dim_tribes',
             'pk' => 'id',
@@ -157,9 +220,11 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
             ],
             'has_timestamps' => true,
         ];
+        $meta = system_detail_meta_add_energy_bridge($meta, 'dim_tribes', $energyBridgeSupport);
+        return system_detail_meta_apply_legacy_energy($link, $meta, 'dim_tribes');
     }
     // misc
-    return [
+    $meta = [
         'title' => 'Misc Systems',
         'table' => 'fact_misc_systems',
         'pk' => 'id',
@@ -182,9 +247,11 @@ function meta_for(string $tab, array $opts_origins, array $opts_systems): array 
         ],
         'has_timestamps' => false,
     ];
+    $meta = system_detail_meta_add_energy_bridge($meta, 'fact_misc_systems', $energyBridgeSupport);
+    return system_detail_meta_apply_legacy_energy($link, $meta, 'fact_misc_systems');
 }
 
-$META = meta_for($tab, $opts_origins, $opts_systems);
+$META = meta_for($link, $tab, $opts_origins, $opts_systems, $energyBridgeSupport);
 $isAjaxCrudRequest = (
     $_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['crud_action'], $_POST['crud_tab'])
@@ -221,13 +288,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         foreach ($opts_systems as $sysRow) {
             $systemsById[(int)$sysRow['id']] = (string)$sysRow['name'];
         }
-        $M = meta_for($postTab, $opts_origins, $opts_systems);
+        $M = meta_for($link, $postTab, $opts_origins, $opts_systems, $energyBridgeSupport);
         $action = (string)$_POST['crud_action'];
         $id = (int)($_POST['id'] ?? 0);
 
         $vals = [];
+        $energyAssignments = [];
         foreach ($M['fields'] as $f) {
             $k = $f['k'];
+            if (($f['db'] ?? 's') === 'x') continue;
             if (($f['db'] ?? 's') === 'i') {
                 $raw = $_POST[$k] ?? 0;
                 $vals[$k] = (int)$raw;
@@ -250,10 +319,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
         }
 
+        if (!empty($energyBridgeSupport[$M['table'] ?? ''])) {
+            $energyAssignments = hg_ser_normalize_posted_energy_assignments($_POST['energy_bridge'] ?? []);
+            $energySystemId = (int)($vals['system_id'] ?? 0);
+            $allowAllStateResources = ((int)($_POST['allow_all_state_resources'] ?? 0) === 1);
+            $energyError = hg_ser_validate_energy_assignments($energyAssignments, $energySystemId, $energyResourcesBySystem, $energyResourcesAll, $allowAllStateResources);
+            if ($energyError !== null) {
+                $flash[] = ['type'=>'error','msg'=>$energyError];
+            }
+        }
+
         if ($action !== 'delete') {
             foreach ($M['fields'] as $f) {
                 if (!empty($f['req'])) {
                     $k = $f['k'];
+                    if (($f['db'] ?? 's') === 'x') {
+                        continue;
+                    }
                     if (($f['db'] ?? 's') === 'i') {
                         if ((int)$vals[$k] <= 0) $flash[] = ['type'=>'error','msg'=>'Campo '.$f['label'].' obligatorio.'];
                     } else {
@@ -269,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         if (!$hasErr) {
             $table = $M['table'];
             $pk = $M['pk'];
-            $fieldKeys = array_map(fn($f)=>(string)$f['k'], $M['fields']);
+            $fieldKeys = array_map(fn($f)=>(string)$f['k'], array_values(array_filter($M['fields'], fn($f)=>(($f['db'] ?? 's') !== 'x'))));
             $extraWrite = [];
             if (has_column($link, $table, 'system_name') && !in_array('system_name', $fieldKeys, true)) {
                 $sid = (int)($vals['system_id'] ?? 0);
@@ -323,8 +405,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             if ($action === 'create') {
                 $cols = []; $ph = []; $types = ''; $bind = [];
                 foreach ($M['fields'] as $f) {
+                    if (($f['db'] ?? 's') === 'x') continue;
+                    $isNullableSelectInt = (($f['ui'] ?? '') === 'select_int') && empty($f['req']) && (($f['db'] ?? 's') === 'i');
                     $cols[] = $f['k'];
-                    $ph[] = '?';
+                    $ph[] = $isNullableSelectInt ? 'NULLIF(?, 0)' : '?';
                     $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
                     $bind[] = $vals[$f['k']];
                 }
@@ -345,6 +429,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $newId = (int)$st->insert_id;
                         $src = (string)($vals['name'] ?? '');
                         hg_update_pretty_id_if_exists($link, $table, $newId, $src);
+                        if (!empty($energyBridgeSupport[$table])) {
+                            $energySave = hg_ser_save_energy_assignments($link, $table, $newId, $energyAssignments);
+                            if (empty($energySave['ok'])) {
+                                $flash[] = ['type'=>'error','msg'=>(string)($energySave['message'] ?? 'No se pudieron guardar los recursos de energia.')];
+                            }
+                        }
                         $flash[] = ['type'=>'ok','msg'=>'Creado correctamente.'];
                     } else {
                         $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
@@ -361,7 +451,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 } else {
                     $sets = []; $types = ''; $bind = [];
                     foreach ($M['fields'] as $f) {
-                        $sets[] = "`".$f['k']."`=?";
+                        if (($f['db'] ?? 's') === 'x') continue;
+                        $isNullableSelectInt = (($f['ui'] ?? '') === 'select_int') && empty($f['req']) && (($f['db'] ?? 's') === 'i');
+                        $sets[] = "`".$f['k']."`=" . ($isNullableSelectInt ? 'NULLIF(?, 0)' : '?');
                         $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
                         $bind[] = $vals[$f['k']];
                     }
@@ -381,6 +473,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         if ($st->execute()) {
                             $src = (string)($vals['name'] ?? '');
                             hg_update_pretty_id_if_exists($link, $table, $id, $src);
+                            if (!empty($energyBridgeSupport[$table])) {
+                                $energySave = hg_ser_save_energy_assignments($link, $table, $id, $energyAssignments);
+                                if (empty($energySave['ok'])) {
+                                    $flash[] = ['type'=>'error','msg'=>(string)($energySave['message'] ?? 'No se pudieron guardar los recursos de energia.')];
+                                }
+                            }
                             $flash[] = ['type'=>'ok','msg'=>'Actualizado.'];
                         } else {
                             $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
@@ -393,7 +491,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
 
             $tab = $postTab;
-            $META = meta_for($tab, $opts_origins, $opts_systems);
+            $META = meta_for($link, $tab, $opts_origins, $opts_systems, $energyBridgeSupport);
         }
     }
 
@@ -446,7 +544,7 @@ if (($_GET['ajax'] ?? '') === 'list') {
     $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'breeds';
     $qAjax = trim((string)($_GET['q'] ?? ''));
     $sysAjax = isset($_GET['sys']) ? (int)$_GET['sys'] : 0;
-    $MAjax = meta_for($tabAjax, $opts_origins, $opts_systems);
+    $MAjax = meta_for($link, $tabAjax, $opts_origins, $opts_systems, $energyBridgeSupport);
 
     $tableAjax = $MAjax['table'];
     $pkAjax = $MAjax['pk'];
@@ -466,10 +564,15 @@ if (($_GET['ajax'] ?? '') === 'list') {
         $paramsAjax[] = $sysAjax;
     }
 
-    $fromAjax = "`$tableAjax` t LEFT JOIN dim_systems s ON s.id = t.system_id";
-    $colsAjax = array_map(fn($f)=>"t.`".$f['k']."`", $MAjax['fields']);
+    $sqlFieldsAjax = array_values(array_filter($MAjax['fields'], fn($f)=>(($f['db'] ?? 's') !== 'x')));
+    $energyAjaxSql = hg_ser_energy_sql_parts($link, $tableAjax, 't', 'er_ajax');
+    $fromAjax = "`$tableAjax` t LEFT JOIN dim_systems s ON s.id = t.system_id{$energyAjaxSql['join']}";
+    $colsAjax = array_map(fn($f)=>"t.`".$f['k']."`", $sqlFieldsAjax);
     $colsAjax[] = "t.`$pkAjax`";
     $colsAjax[] = "s.name AS system_name";
+    if ($energyAjaxSql['select'] !== '') {
+        $colsAjax[] = "COALESCE(er_ajax.name, '') AS energy_resource_name";
+    }
     $colsAjax = array_values(array_unique($colsAjax));
     $sqlAjax = "SELECT ".implode(',', $colsAjax)." FROM $fromAjax $whereAjax ORDER BY ".$MAjax['order_by'];
 
@@ -495,11 +598,14 @@ if (($_GET['ajax'] ?? '') === 'list') {
     $rowsAjax = [];
     $rowMapAjax = [];
     while ($r = $rsAjax->fetch_assoc()) {
-        $idv = (int)($r[$pkAjax] ?? 0);
         $rowsAjax[] = $r;
-        $rowMapAjax[$idv] = $r;
     }
     $stAjax->close();
+    $rowsAjax = hg_ser_attach_energy_summary($link, $tableAjax, $rowsAjax);
+    foreach ($rowsAjax as $r) {
+        $idv = (int)($r[$pkAjax] ?? 0);
+        $rowMapAjax[$idv] = $r;
+    }
 
     if (function_exists('hg_admin_json_success')) {
         hg_admin_json_success([
@@ -531,7 +637,8 @@ if ($q !== '') {
     $types .= 's';
     $params[] = "%".$q."%";
 }
-$from = "`$table` t LEFT JOIN dim_systems s ON s.id = t.system_id";
+$energyListSql = hg_ser_energy_sql_parts($link, $table, 't', 'er_list');
+$from = "`$table` t LEFT JOIN dim_systems s ON s.id = t.system_id{$energyListSql['join']}";
 if ($sys > 0) {
     $where .= " AND t.`system_id` = ?";
     $types .= 'i';
@@ -550,9 +657,13 @@ $pages = max(1, (int)ceil($total / $perPage));
 $page = min($page, $pages);
 $offset = ($page-1)*$perPage;
 
-$colsAll = array_map(fn($f)=>"t.`".$f['k']."`", $META['fields']);
+$sqlFields = array_values(array_filter($META['fields'], fn($f)=>(($f['db'] ?? 's') !== 'x')));
+$colsAll = array_map(fn($f)=>"t.`".$f['k']."`", $sqlFields);
 $colsAll[] = "t.`$pk`";
 $colsAll[] = "s.name AS system_name";
+if ($energyListSql['select'] !== '') {
+    $colsAll[] = "COALESCE(er_list.name, '') AS energy_resource_name";
+}
 $colsAll = array_values(array_unique($colsAll));
 
 $sqlList = "SELECT ".implode(',', $colsAll)." FROM $from $where ORDER BY ".$META['order_by']." LIMIT ?, ?";
@@ -564,11 +675,14 @@ $stL->execute();
 $rsL = $stL->get_result();
 $rows = []; $rowMap = [];
 while ($r = $rsL->fetch_assoc()) {
-    $idv = (int)$r[$pk];
     $rows[] = $r;
-    $rowMap[$idv] = $r;
 }
 $stL->close();
+$rows = hg_ser_attach_energy_summary($link, $table, $rows);
+foreach ($rows as $r) {
+    $idv = (int)$r[$pk];
+    $rowMap[$idv] = $r;
+}
 
 function ui_title(string $tab): string {
     switch ($tab) {
@@ -718,6 +832,17 @@ admin_panel_open('Detalles de sistemas', $actions);
   </div>
 </div>
 
+<style>
+.energy-bridge-editor{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.energy-bridge-grid{display:grid;grid-template-columns:minmax(240px,2fr) 110px 90px 90px;gap:8px;align-items:center}
+.energy-bridge-grid-head{font-size:12px;color:#8ea7cf}
+.energy-bridge-list{display:flex;flex-direction:column;gap:8px}
+.energy-bridge-row{display:grid;grid-template-columns:minmax(240px,2fr) 110px 90px 90px;gap:8px;align-items:center}
+.energy-bridge-actions{display:flex;justify-content:flex-start}
+.energy-bridge-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+@media (max-width: 900px){.energy-bridge-grid,.energy-bridge-row{grid-template-columns:1fr}}
+</style>
+
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
@@ -739,14 +864,49 @@ var QUILL_TOOLBAR_INNER = <?= json_encode($quillToolbarInner, JSON_HEX_TAG|JSON_
 var ROWMAP = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var OPTS_ORIGINS = <?= json_encode(array_map(fn($r)=>['id'=>(int)$r['id'], 'name'=>$r['name']], $opts_origins), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var OPTS_SYSTEMS = <?= json_encode(array_values($opts_systems), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var ENERGY_RESOURCES_ALL = <?= json_encode(array_values($energyResourcesAll), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+var ENERGY_RESOURCES_BY_SYSTEM = <?= json_encode($energyResourcesBySystem, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
+
+function shouldAllowAllStateResources(){
+  var chk = document.getElementById('f_allow_all_state_resources');
+  return !!(chk && chk.checked);
+}
+
+function energyResourcesForSystem(systemId){
+  if (shouldAllowAllStateResources()) {
+    return Array.isArray(ENERGY_RESOURCES_ALL) ? ENERGY_RESOURCES_ALL : [];
+  }
+  var key = String(parseInt(systemId || '0', 10) || 0);
+  var rows = (ENERGY_RESOURCES_BY_SYSTEM && (ENERGY_RESOURCES_BY_SYSTEM[key] || ENERGY_RESOURCES_BY_SYSTEM[parseInt(key, 10)])) || [];
+  if (Array.isArray(rows) && rows.length) return rows;
+  return Array.isArray(ENERGY_RESOURCES_ALL) ? ENERGY_RESOURCES_ALL : [];
+}
+
+function systemSpecificEnergyResources(systemId){
+  var key = String(parseInt(systemId || '0', 10) || 0);
+  return (ENERGY_RESOURCES_BY_SYSTEM && (ENERGY_RESOURCES_BY_SYSTEM[key] || ENERGY_RESOURCES_BY_SYSTEM[parseInt(key, 10)])) || [];
+}
+
+function energyResourceBelongsToSystem(resourceId, systemId){
+  var rid = parseInt(resourceId || '0', 10) || 0;
+  if (!rid) return true;
+  var rows = systemSpecificEnergyResources(systemId);
+  if (!Array.isArray(rows) || !rows.length) return true;
+  return rows.some(function(row){ return (parseInt(row.id || 0, 10) || 0) === rid; });
+}
 
 function pickOptsForField(fieldKey){
   if (TAB !== 'misc' && fieldKey === 'bibliography_id') return OPTS_ORIGINS;
   if (fieldKey === 'system_id') return OPTS_SYSTEMS;
+  if (fieldKey === 'energy_resource_id') return ENERGY_RESOURCES_ALL;
   return [];
 }
 
 var QUILL_MAP = {};
+
+function resetEditors(){
+  QUILL_MAP = {};
+}
 
 function initEditors(){
   if (typeof Quill === 'undefined') return;
@@ -845,6 +1005,149 @@ function syncEditorsToTextarea(){
     }
   }
 
+  function rebuildSelect(select, opts, includeZero, selectedValue, selectedLabel){
+    if (!select) return;
+    var target = String(selectedValue ?? '');
+    select.innerHTML = '';
+    if (includeZero) select.appendChild(el('option', {value:'0'}, '--'));
+    else select.appendChild(el('option', {value:''}, '--'));
+    (opts || []).forEach(function(it){
+      select.appendChild(el('option', {value:String(it.id)}, escapeHtml(it.name || ('ID ' + it.id))));
+    });
+    if (selectedLabel && target !== '' && target !== '0') {
+      ensureOption(select, target);
+      var opt = Array.prototype.find.call(select.options, function(o){ return String(o.value) === target; });
+      if (opt && (!opt.textContent || opt.textContent === target)) opt.textContent = selectedLabel;
+    }
+    select.value = target !== '' ? target : (includeZero ? '0' : '');
+  }
+
+  function bindEnergyResourceSelect(row){
+    var systemSelect = document.getElementById('f_system_id');
+    var resourceSelect = document.getElementById('f_energy_resource_id');
+    if (!systemSelect || !resourceSelect) return;
+
+    function applyOptions(preferredValue, preferredLabel){
+      var currentSystemId = parseInt(systemSelect.value || '0', 10) || 0;
+      var valueToKeep = preferredValue;
+      if (valueToKeep === undefined || valueToKeep === null) {
+        valueToKeep = resourceSelect.value || '0';
+      }
+      rebuildSelect(resourceSelect, energyResourcesForSystem(currentSystemId), true, String(valueToKeep || '0'), preferredLabel || '');
+    }
+
+    applyOptions(String((row && row.energy_resource_id) || resourceSelect.value || '0'), String((row && row.energy_resource_name) || ''));
+    systemSelect.addEventListener('change', function(){
+      applyOptions(resourceSelect.value || '0', '');
+    });
+  }
+
+
+  function createEnergyBridgeRow(index, entry, options){
+    var row = el('div', {class:'energy-bridge-row'});
+    var resourceWrap = el('div', {class:'energy-bridge-col energy-bridge-col-resource'});
+    var valueWrap = el('div', {class:'energy-bridge-col energy-bridge-col-value'});
+    var sortWrap = el('div', {class:'energy-bridge-col energy-bridge-col-sort'});
+    var actionWrap = el('div', {class:'energy-bridge-col energy-bridge-col-action'});
+
+    var resource = buildSelect('energy_bridge[' + index + '][resource_id]', options || [], true);
+    resource.className = 'select energy-bridge-resource';
+    rebuildSelect(resource, options || [], true, String((entry && entry.resource_id) || 0), String((entry && entry.resource_name) || ''));
+
+    var value = el('input', {
+      type:'number',
+      min:'0',
+      name:'energy_bridge[' + index + '][energy_value]',
+      class:'inp energy-bridge-value',
+      value:String((entry && entry.energy_value) || '')
+    });
+
+    var sort = el('input', {
+      type:'number',
+      name:'energy_bridge[' + index + '][sort_order]',
+      class:'inp energy-bridge-sort',
+      value:String((entry && entry.sort_order) || 0)
+    });
+
+    var active = el('input', {
+      type:'hidden',
+      name:'energy_bridge[' + index + '][is_active]',
+      value:String(entry && entry.is_active === 0 ? 0 : 1)
+    });
+
+    var removeBtn = el('button', {type:'button', class:'btn btn-red', 'data-energy-remove':'1'}, 'Quitar');
+
+    resourceWrap.appendChild(resource);
+    valueWrap.appendChild(value);
+    sortWrap.appendChild(sort);
+    actionWrap.appendChild(removeBtn);
+    row.appendChild(resourceWrap);
+    row.appendChild(valueWrap);
+    row.appendChild(sortWrap);
+    row.appendChild(actionWrap);
+    row.appendChild(active);
+    return row;
+  }
+
+  function bindEnergyBridgeEditor(row){
+    var systemSelect = document.getElementById('f_system_id');
+    var host = document.getElementById('energyBridgeEditor');
+    var allowAll = document.getElementById('f_allow_all_state_resources');
+    if (!host) return;
+    var list = host.querySelector('.energy-bridge-list');
+    var addBtn = host.querySelector('[data-energy-add]');
+    if (!list || !addBtn) return;
+
+    var seq = 0;
+    function currentOptions(){
+      return energyResourcesForSystem(parseInt((systemSelect && systemSelect.value) || '0', 10) || 0);
+    }
+    function refreshAllOptions(){
+      Array.prototype.forEach.call(list.querySelectorAll('select.energy-bridge-resource'), function(select){
+        var currentValue = select.value || '0';
+        var currentLabel = '';
+        if (select.selectedOptions && select.selectedOptions[0]) currentLabel = select.selectedOptions[0].textContent || '';
+        rebuildSelect(select, currentOptions(), true, currentValue, currentLabel);
+      });
+    }
+    function addRow(entry){
+      list.appendChild(createEnergyBridgeRow(seq++, entry || {}, currentOptions()));
+    }
+
+    list.innerHTML = '';
+    var initialRows = (row && Array.isArray(row.energy_resources_rows)) ? row.energy_resources_rows : [];
+    if (allowAll) {
+      var currentSystemId = parseInt((systemSelect && systemSelect.value) || ((row && row.system_id) || 0), 10) || 0;
+      allowAll.checked = initialRows.some(function(entry){
+        return !energyResourceBelongsToSystem(entry && entry.resource_id, currentSystemId);
+      });
+    }
+    initialRows.forEach(function(entry){ addRow(entry); });
+
+    addBtn.onclick = function(){ addRow({}); };
+    host.onclick = function(ev){
+      var btn = ev.target && ev.target.closest ? ev.target.closest('[data-energy-remove]') : null;
+      if (!btn) return;
+      ev.preventDefault();
+      var energyRow = btn.closest('.energy-bridge-row');
+      if (energyRow) energyRow.remove();
+    };
+    if (systemSelect) {
+      systemSelect.onchange = (function(prev){
+        return function(ev){
+          if (typeof prev === 'function') prev.call(this, ev);
+          refreshAllOptions();
+        };
+      })(systemSelect.onchange);
+    }
+    if (allowAll) {
+      allowAll.onchange = function(){
+        refreshAllOptions();
+      };
+    }
+    refreshAllOptions();
+  }
+
   function buildField(f){
     var wrap = el('div');
     wrap.className = 'field';
@@ -887,6 +1190,19 @@ function syncEditorsToTextarea(){
       label.appendChild(input);
       wrap.appendChild(label);
       wrap.appendChild(wysWrap);
+      return wrap;
+    }
+
+    if (ui === 'energy_bridge') {
+      wrap.className = 'field field-full';
+      var eb = el('div', {class:'energy-bridge-editor', id:'energyBridgeEditor'});
+      eb.appendChild(el('div', {class:'energy-bridge-head'}, '<strong>Recursos</strong><span class="adm-color-muted"> Anade una o varias filas para esta raza, auspicio o tribu.</span>'));
+      eb.appendChild(el('label', {class:'adm-text-left'}, '<input type="checkbox" id="f_allow_all_state_resources" name="allow_all_state_resources" value="1"> Mostrar todos los recursos de estado'));
+      eb.appendChild(el('div', {class:'energy-bridge-grid energy-bridge-grid-head'}, '<div>Recurso</div><div>Valor</div><div>Orden</div><div></div>'));
+      eb.appendChild(el('div', {class:'energy-bridge-list'}));
+      eb.appendChild(el('div', {class:'energy-bridge-actions'}, '<button type="button" class="btn" data-energy-add="1">+ Recurso</button>'));
+      label.appendChild(eb);
+      wrap.appendChild(label);
       return wrap;
     }
 
@@ -947,18 +1263,20 @@ function syncEditorsToTextarea(){
   }
 
   function openModal(action, id){
+    resetEditors();
     grid.innerHTML = '';
     document.getElementById('crud_action').value = action;
     document.getElementById('crud_tab').value = TAB;
     document.getElementById('f_id').value = id || 0;
+    var activeRow = (action === 'update' && id && ROWMAP[String(id)]) ? ROWMAP[String(id)] : null;
 
     (META.fields||[]).forEach(function(f){
       var field = buildField(f);
       grid.appendChild(field);
     });
 
-    if (action === 'update' && id && ROWMAP[String(id)]) {
-      var row = ROWMAP[String(id)];
+    if (activeRow) {
+      var row = activeRow;
       (META.fields||[]).forEach(function(f){
         var k = f.k;
         var ui = f.ui || 'text';
@@ -974,6 +1292,12 @@ function syncEditorsToTextarea(){
           e.value = String(val ?? '');
         }
       });
+    } else if (action === 'create') {
+      var systemField = document.getElementById('f_system_id');
+      var currentFilter = document.getElementById('filterSystemDetails');
+      if (systemField && currentFilter && currentFilter.value) {
+        systemField.value = String(currentFilter.value);
+      }
     }
 
     (META.fields||[]).forEach(function(f){
@@ -987,12 +1311,17 @@ function syncEditorsToTextarea(){
       }
     });
 
+    bindEnergyBridgeEditor(activeRow);
     initEditors();
     document.getElementById('modalTitle').textContent = (action==='create'?'Nuevo - ':'Editar - ') + (META.title||'');
     mb.style.display = 'flex';
   }
 
-  function closeModal(){ mb.style.display = 'none'; grid.innerHTML=''; }
+  function closeModal(){
+    resetEditors();
+    mb.style.display = 'none';
+    grid.innerHTML='';
+  }
   function openCreate(){ openModal('create', 0); }
   function openEdit(id){ openModal('update', id); }
   function openDelete(id){ delId.value = String(id||0); mbDel.style.display='flex'; }
@@ -1115,16 +1444,39 @@ function syncEditorsToTextarea(){
     var s = String(str||'').replace(/\s+/g,' ').trim();
     return s.length <= n ? s : (s.slice(0, n) + '...');
   }
+  function currentSystemFilterValue(){
+    return sel ? String(sel.value || '') : '';
+  }
+  function syncTabLinks(){
+    Array.prototype.forEach.call(document.querySelectorAll('.tabs .tablnk'), function(link){
+      var href = link.getAttribute('href');
+      if (!href) return;
+      var url = new URL(href, window.location.origin);
+      var sysValue = currentSystemFilterValue();
+      if (sysValue) url.searchParams.set('sys', sysValue);
+      else url.searchParams.delete('sys');
+      url.searchParams.delete('_ts');
+      link.setAttribute('href', url.pathname + '?' + url.searchParams.toString());
+    });
+  }
   function currentListUrl(){
     var url = new URL(window.location.href);
     url.searchParams.set('ajax', 'list');
     url.searchParams.set('tab', TAB);
     url.searchParams.set('_ts', Date.now());
-    if (sel) {
-      var v = sel.value || '';
-      if (v) url.searchParams.set('sys', v);
-      else url.searchParams.delete('sys');
-    }
+    var v = currentSystemFilterValue();
+    if (v) url.searchParams.set('sys', v);
+    else url.searchParams.delete('sys');
+    return url;
+  }
+  function currentActionUrl(){
+    var url = new URL(window.location.href);
+    url.searchParams.set('tab', TAB);
+    url.searchParams.delete('ajax');
+    url.searchParams.delete('_ts');
+    var v = currentSystemFilterValue();
+    if (v) url.searchParams.set('sys', v);
+    else url.searchParams.delete('sys');
     return url;
   }
   function request(url, opts){
@@ -1177,8 +1529,10 @@ function syncEditorsToTextarea(){
     renderRows(data.rows || [], data.rowMap || {});
     if (pushState) {
       listUrl.searchParams.delete('ajax');
+      listUrl.searchParams.delete('_ts');
       history.pushState({ sys: sel ? (sel.value || '') : '' }, '', listUrl.pathname + '?' + listUrl.searchParams.toString());
     }
+    syncTabLinks();
   }
 
   if (sel) {
@@ -1194,7 +1548,7 @@ function syncEditorsToTextarea(){
       ev.preventDefault();
       var fd = new FormData(formCrud);
       fd.set('ajax', '1');
-      request(window.location.pathname + window.location.search, {
+      request(currentActionUrl().toString(), {
         method: 'POST',
         body: fd,
         loadingEl: document.getElementById('btnSave') || formCrud
@@ -1220,7 +1574,7 @@ function syncEditorsToTextarea(){
       ev.preventDefault();
       var fd = new FormData(formDel);
       fd.set('ajax', '1');
-      request(window.location.pathname + window.location.search, {
+      request(currentActionUrl().toString(), {
         method: 'POST',
         body: fd,
         loadingEl: formDel
@@ -1240,6 +1594,8 @@ function syncEditorsToTextarea(){
       });
     });
   }
+
+  syncTabLinks();
 })();
 </script>
 

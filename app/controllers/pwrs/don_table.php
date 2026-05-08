@@ -71,7 +71,9 @@ $pageSect = "Lista de Dones";
 
 <link rel="stylesheet" href="/assets/css/hg-powers.css">
 <?php include_once("app/partials/datatable_assets.php"); ?>
+<?php include_once("app/partials/power_catalog_tabs.php"); ?>
 
+<?php hg_render_power_catalog_tabs('gifts', 'table'); ?>
 <h2 class="pwrs-table-title">Lista de Dones</h2>
 
 <div class="pwrs-table-wrap">

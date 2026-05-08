@@ -11,6 +11,7 @@ $printMode = isset($_GET['print']) && $_GET['print'] == '1';
 
 if (!$printMode) {
     include("app/partials/main_nav_bar.php");
+    include_once("app/partials/power_catalog_tabs.php");
 }
 
 // =======================
@@ -446,6 +447,7 @@ foreach ($rituales as $r) {
 
 <div class="hg-rituales<?php echo $printMode ? ' hg-print' : ''; ?>">
   <div class="wrap">
+    <?php if (!$printMode) { hg_render_power_catalog_tabs('rites', 'full'); } ?>
 
     <a id="top"></a>
 

@@ -66,7 +66,9 @@ $pageSect = "Lista de Rituales";
 
 <link rel="stylesheet" href="/assets/css/hg-powers.css">
 <?php include_once("app/partials/datatable_assets.php"); ?>
+<?php include_once("app/partials/power_catalog_tabs.php"); ?>
 
+<?php hg_render_power_catalog_tabs('rites', 'table'); ?>
 <h2 class="pwrs-table-title">Lista de Rituales</h2>
 
 <div class="pwrs-table-wrap">

@@ -328,6 +328,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'muestradon':
 		case 'listadones':
 		case 'fulldon':
+		case 'customdon':
 		//, ritos, disciplinas y poderes
             $title = "Dones | Heaven's Gate";
             $description = "Listado de dones usados en Heaven's Gate.";
@@ -338,6 +339,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'seerite':
 		case 'ritelist':
 		case 'fullrite':
+		case 'customrite':
 		//, ritos, disciplinas y poderes
             $title = "Rituales | Heaven's Gate";
             $description = "Listado de ritos usados en Heaven's Gate.";
@@ -348,6 +350,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'muestratotem':
 		case 'listatotems':
 		case 'fulltotem':
+		case 'customtotem':
 		//, ritos, disciplinas y poderes
             $title = "Totems | Heaven's Gate";
             $description = "Listado de totems (espiritus guia) de Heaven's Gate.";
@@ -356,6 +359,8 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
         case 'disciplinas':
 		case 'tipodisc':
 		case 'muestradisc':
+		case 'fulldisc':
+		case 'customdisc':
 		//, ritos,  y poderes
             $title = "Disciplinas | Heaven's Gate";
             $description = "Listado de Disciplinas vampíricas utilizadas en Heaven's Gate.";
@@ -522,22 +527,27 @@ $routes = [
 	'muestradon'   => ['app/controllers/pwrs/don_page.php', null],
 	'listadones'   => ['app/controllers/pwrs/don_table.php', null],
 	'fulldon'      => ['app/controllers/pwrs/don_full_list.php', null],
+	'customdon'    => ['app/controllers/pwrs/don_custom_list.php', null],
 	// Rituales
 	'rites'        => ['app/controllers/pwrs/rite_category_list.php', null],
 	'tiporite'     => ['app/controllers/pwrs/rite_group_list.php', null],
 	'seerite'      => ['app/controllers/pwrs/rite_page.php', null],
 	'ritelist'	   => ['app/controllers/pwrs/rite_table.php', null],
 	'fullrite'     => ['app/controllers/pwrs/rite_full_list.php', null],
+	'customrite'   => ['app/controllers/pwrs/rite_custom_list.php', null],
 	// Totems
 	'totems'       => ['app/controllers/pwrs/totm_category_list.php', null],
 	'tipototm'     => ['app/controllers/pwrs/totm_group_list.php', null],
 	'listatotems'  => ['app/controllers/pwrs/totm_table.php', null],
 	'fulltotem'    => ['app/controllers/pwrs/totm_full_list.php', null],
 	'muestratotem' => ['app/controllers/pwrs/totm_page.php', null],
+	'customtotem'  => ['app/controllers/pwrs/totm_custom_list.php', null],
 	// Disciplinas
 	'disciplinas'  => ['app/controllers/pwrs/disc_table.php', null],
 	'tipodisc'     => ['app/controllers/pwrs/disc_group_list.php', null],
 	'muestradisc'  => ['app/controllers/pwrs/disc_page.php', null],
+	'fulldisc'     => ['app/controllers/pwrs/disc_full_list.php', null],
+	'customdisc'   => ['app/controllers/pwrs/disc_custom_list.php', null],
 
 	// 🛠️ Herramientas
 	'csp'     		   => ['app/controllers/tool/csp_board.php', null],

@@ -47,6 +47,8 @@ $categoryOptions = [
     'Deformidad Metis',
     'Cicatrices de Batalla',
     'Trastorno Mental',
+    'Características Mokolé',
+    'Herencias Hidrianas'
 ];
 
 $perPage = isset($_GET['pp']) ? max(10, min(200, (int)$_GET['pp'])) : 25;

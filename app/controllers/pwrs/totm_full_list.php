@@ -7,6 +7,7 @@ $printMode = isset($_GET['print']) && $_GET['print'] == '1';
 
 if (!$printMode) {
     include("app/partials/main_nav_bar.php");
+    include_once("app/partials/power_catalog_tabs.php");
 }
 
 function h($s) {
@@ -425,6 +426,7 @@ foreach ($totems as $t) {
 
 <div class="hg-totems<?php echo $printMode ? ' hg-print' : ''; ?>">
   <div class="wrap">
+    <?php if (!$printMode) { hg_render_power_catalog_tabs('totems', 'full'); } ?>
 
     <a id="top"></a>
 

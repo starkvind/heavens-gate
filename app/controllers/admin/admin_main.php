@@ -1,13 +1,13 @@
 <?php
-// admin_main.php - MenÃº principal de administraciÃ³n
+// admin_main.php - Menú principal de administración
 	include_once(__DIR__ . '/../../helpers/admin_auth.php');
 	hg_admin_session_start();
 
-	// Verificar la conexiÃ³n a la base de datos
+	// Verificar la conexión a la base de datos
 	include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 
-	// Si no estÃ¡ logueado, incluir el login
+	// Si no está logueado, incluir el login
 	$isAjaxAdminRequest = isset($_GET['ajax'], $_GET['s']) && $_GET['ajax'] === '1';
 	if (!hg_admin_is_authenticated()) {
 		if ($isAjaxAdminRequest) {
@@ -64,6 +64,9 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_systems_extra_details':
 					include("admin_systems_extra_details.php");
+					break;
+				case 'admin_systems_energy':
+					include("admin_systems_energy.php");
 					break;
 				case 'admin_traits':
 					include("admin_traits.php");
@@ -162,16 +165,16 @@ if (!hg_admin_require_db($link)) { return; }
 				default:
 					http_response_code(400);
 					header('Content-Type: application/json; charset=UTF-8');
-					echo json_encode(['ok' => false, 'error' => 'Seccion AJAX no soportada']);
+					echo json_encode(['ok' => false, 'error' => 'Sección AJAX no soportada']);
 					break;
 			}
 			return;
 		}
 
 		/* MODERNO NUEVO */
-		include(__DIR__ . "/../../partials/main_nav_bar.php");	// Barra Navegacion
+		include(__DIR__ . "/../../partials/main_nav_bar.php");	// Barra Navegación
 		echo '<link rel="stylesheet" href="/assets/css/hg-admin.css">';
-		// Si hay parÃ¡metro "s", incluimos la secciÃ³n correspondiente
+		// Si hay parámetro "s", incluimos la sección correspondiente
 		if (isset($_GET['s'])) {
 			$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
 
@@ -288,6 +291,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_systems_extra_details':
 					include("admin_systems_extra_details.php");
 					break;
+				case 'admin_systems_energy':
+					include("admin_systems_energy.php");
+					break;
 				case 'admin_trait_sets':
 					include("admin_trait_sets.php");
 					break;
@@ -335,14 +341,14 @@ if (!hg_admin_require_db($link)) { return; }
 					include("admin_logout.php");
 					break;
 				default:
-					echo "<p class='adm-admin-error'>SecciÃ³n no reconocida.</p>";
+					echo "<p class='adm-admin-error'>Sección no reconocida.</p>";
 					break;
 			}
 
 		} else {
-			// MenÃº principal si no hay secciÃ³n especÃ­fica
-			$pageSect = "Panel de AdministraciÃ³n";
-			echo "<h2>Panel de Administraci&oacute;n</h2>";
+			// Menú principal si no hay sección específica
+			$pageSect = "Panel de Administración";
+			echo "<h2>Panel de Administración</h2>";
 				echo "<div class='bioSheetPowers'>";
 
 				// PERSONAJES
@@ -370,7 +376,7 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=admin_birthdays_quick'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Editar Cumplea&ntilde;os
+							Editar Cumpleaños
 						</div>
 					</a>
 					<a href='/talim?s=admin_characters_clone'>
@@ -434,7 +440,7 @@ if (!hg_admin_require_db($link)) { return; }
 				echo "
 					<a href='/talim?s=admin_chronicles'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Cr&oacute;nicas
+							Gestionar Crónicas
 						</div>
 					</a>
 					<a href='/talim?s=admin_parties'>
@@ -464,15 +470,15 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=admin_timelines'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar L&iacute;nea temporal
+							Gestionar Línea temporal
 						</div>
 					</a>
 					";
 				echo "</fieldset>";
 					echo "<br />";
 
-				// AMBIENTACION
-				echo "<fieldset class='bioSeccion'><legend>&nbsp;Ambientaci&oacute;n&nbsp;</legend>";
+				// AMBIENTACIÓN
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Ambientación&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_realities'>
 						<div class='bioSheetPower adm-admin-tile'>
@@ -486,7 +492,7 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=admin_gallery'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Galer&iacute;a
+							Gestionar Galería
 						</div>
 					</a>
 					<a href='/talim?s=admin_bso'>
@@ -516,6 +522,11 @@ if (!hg_admin_require_db($link)) { return; }
 							Extra Details to System
 						</div>
 					</a>
+					<a href='/talim?s=admin_systems_energy'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Vincular Energía a Recursos
+						</div>
+					</a>
 					<a href='/talim?s=admin_traits'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Rasgos
@@ -528,12 +539,12 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=admin_systems_resources'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Asginar Recursos por Sistema
+							Asignar Recursos por Sistema
 						</div>
 					</a>
 					<a href='/talim?s=admin_resources'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Recursos (Catalogo)
+							Gestionar Recursos (Catálogo)
 						</div>
 					</a>
 					<a href='/talim?s=admin_forms'>
@@ -560,7 +571,7 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=admin_merits_flaws'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar M&eacute;ritos y Defectos
+							Gestionar Méritos y Defectos
 						</div>
 					</a>
 					<a href='/talim?s=admin_character_conditions'>
@@ -572,12 +583,12 @@ if (!hg_admin_require_db($link)) { return; }
 				echo "</fieldset>";
 					echo "<br />";
 
-				// DOCUMENTACION
-				echo "<fieldset class='bioSeccion'><legend>&nbsp;Documentaci&oacute;n&nbsp;</legend>";
+				// DOCUMENTACIÓN
+				echo "<fieldset class='bioSeccion'><legend>&nbsp;Documentación&nbsp;</legend>";
 				echo "
 					<a href='/talim?s=admin_docs'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Gestionar Documentaci&oacute;n
+							Gestionar Documentación
 						</div>
 					</a>
 					<a href='/talim?s=admin_external_links'>
@@ -621,7 +632,7 @@ if (!hg_admin_require_db($link)) { return; }
 				echo "
 					<a href='/talim?s=admin_menu'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Editar Men&uacute;
+							Editar Menú
 						</div>
 					</a>
 					<a href='/talim?s=admin_schema_hardening_audit'>
@@ -641,7 +652,7 @@ if (!hg_admin_require_db($link)) { return; }
 					</a>
 					<a href='/talim?s=logout'>
 						<div class='bioSheetPower adm-admin-tile'>
-							Cerrar sesi&oacute;n
+							Cerrar sesión
 						</div>
 					</a>
 					";
