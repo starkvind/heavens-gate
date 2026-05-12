@@ -90,6 +90,9 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_powers':
 					include("admin_powers.php");
 					break;
+				case 'admin_game_cards':
+					include("admin_game_cards.php");
+					break;
 				case 'admin_docs':
 					include("admin_docs.php");
 					break;
@@ -248,6 +251,9 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_powers':
 					include("admin_powers.php");
+					break;
+				case 'admin_game_cards':
+					include("admin_game_cards.php");
 					break;
 				case 'admin_docs':
 					include("admin_docs.php");
@@ -562,6 +568,11 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_powers'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Poderes
+						</div>
+					</a>
+					<a href='/talim?s=admin_game_cards'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Gestionar Cartas del Gacha
 						</div>
 					</a>
 					<a href='/talim?s=admin_items'>

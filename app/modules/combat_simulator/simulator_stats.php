@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once("sim_character_scope.php");
 include_once("sim_battles_table.php");
 
@@ -41,7 +41,7 @@ $ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
 $combatesTotales = (int)($ResultQuery['total'] ?? 0);
 
 if ($combatesTotales > 0) {
-    echo "<div class='sim-actions-row'><a class='sim-classic-btn' href='/tools/combat-simulator/log'>Mostrar todos</a></div>";
+    echo "<div class='sim-actions-row'><a class='sim-classic-btn' href='/games/combat-simulator/log'>Mostrar todos</a></div>";
 }
 ?>
 
@@ -151,7 +151,7 @@ $ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
 $NFilas = (int)($ResultQuery['total'] ?? 0);
 
 if ($NFilas > 0) {
-    echo "<a class='sim-classic-btn' href='/tools/combat-simulator/scores'>Puntuaciones</a>";
+    echo "<a class='sim-classic-btn' href='/games/combat-simulator/scores'>Puntuaciones</a>";
 }
 
 $consulta = "SELECT COUNT(*) AS total FROM fact_sim_item_usage{$statsItemWhere}";
@@ -160,8 +160,8 @@ $ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
 $NFilas = (int)($ResultQuery['total'] ?? 0);
 
 if ($NFilas > 0) {
-    echo " <a class='sim-classic-btn' href='/tools/combat-simulator/weapons'>Armas utilizadas</a>";
+    echo " <a class='sim-classic-btn' href='/games/combat-simulator/weapons'>Armas utilizadas</a>";
 }
-echo " <a class='sim-classic-btn' href='/tools/combat-simulator/tournament'>Torneo</a>";
+echo " <a class='sim-classic-btn' href='/games/combat-simulator/tournament'>Torneo</a>";
 ?>
 </div>

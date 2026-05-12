@@ -1,4 +1,4 @@
-<?php include("app/partials/main_nav_bar.php"); ?>
+﻿<?php include("app/partials/main_nav_bar.php"); ?>
 
 <div class="sim-ui">
 <h2>Listado de Armas</h2>
@@ -89,7 +89,7 @@ mysql_free_result($result);
 </table>
 
 <div class="sim-actions-row">
-<a class="sim-classic-btn" href="/tools/combat-simulator">Volver</a>
+<a class="sim-classic-btn" href="/games/combat-simulator">Volver</a>
 </div>
 
 </center>

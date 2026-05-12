@@ -269,15 +269,18 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'forum_avatar_tool' => '/tools/forum-avatar',
         'forum_topic_viewer' => '/tools/forum-topic-viewer',
         'schema_sanitizer' => '/tools/schema-sanitizer',
-        'combat_simulator' => '/tools/combat-simulator',
-        'combat_simulator_result' => '/tools/combat-simulator/result',
-        'combat_simulator_scores' => '/tools/combat-simulator/scores',
-        'combat_simulator_weapons' => '/tools/combat-simulator/weapons',
-        'combat_simulator_tournament' => '/tools/combat-simulator/tournament',
-        'simulador' => '/tools/combat-simulator',
-        'punts' => '/tools/combat-simulator/scores',
-        'arms' => '/tools/combat-simulator/weapons',
-        'sim_tournament' => '/tools/combat-simulator/tournament',
+        'combat_simulator' => '/games/combat-simulator',
+        'combat_simulator_result' => '/games/combat-simulator/result',
+        'combat_simulator_scores' => '/games/combat-simulator/scores',
+        'combat_simulator_weapons' => '/games/combat-simulator/weapons',
+        'combat_simulator_tournament' => '/games/combat-simulator/tournament',
+        'game_cards' => '/games/card-game',
+        'game_cards_collection' => '/games/card-game/collection',
+        'game_cards_explanation' => '/games/card-game/explanation',
+        'simulador' => '/games/combat-simulator',
+        'punts' => '/games/combat-simulator/scores',
+        'arms' => '/games/combat-simulator/weapons',
+        'sim_tournament' => '/games/combat-simulator/tournament',
         'tooltip' => '/ajax/tooltip',
         'maps_api' => '/maps/api',
         'forum_message' => '/forum/message',
@@ -451,12 +454,12 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         case 'combat_simulator_log':
         case 'vercombat':
             if (!isset($query['b'])) {
-                return '/tools/combat-simulator/log';
+                return '/games/combat-simulator/log';
             }
-            return '/tools/combat-simulator/log/' . rawurlencode(trim((string)$query['b']));
+            return '/games/combat-simulator/log/' . rawurlencode(trim((string)$query['b']));
         case 'combat_simulator_logs':
         case 'combtodo':
-            return '/tools/combat-simulator/log';
+            return '/games/combat-simulator/log';
         case 'mentions':
             if (trim((string)($query['type'] ?? '')) === 'episode') {
                 return '/ajax/epis';
@@ -582,12 +585,23 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/tools/forum-avatar' => ['p' => 'forum_avatar_tool'],
         '/tools/forum-topic-viewer' => ['p' => 'forum_topic_viewer'],
         '/tools/schema-sanitizer' => ['p' => 'schema_sanitizer'],
+        '/games/combat-simulator' => ['p' => 'combat_simulator'],
+        '/games/combat-simulator/result' => ['p' => 'combat_simulator_result'],
+        '/games/combat-simulator/log' => ['p' => 'combat_simulator_logs'],
+        '/games/combat-simulator/scores' => ['p' => 'combat_simulator_scores'],
+        '/games/combat-simulator/weapons' => ['p' => 'combat_simulator_weapons'],
+        '/games/combat-simulator/tournament' => ['p' => 'combat_simulator_tournament'],
         '/tools/combat-simulator' => ['p' => 'combat_simulator'],
         '/tools/combat-simulator/result' => ['p' => 'combat_simulator_result'],
         '/tools/combat-simulator/log' => ['p' => 'combat_simulator_logs'],
         '/tools/combat-simulator/scores' => ['p' => 'combat_simulator_scores'],
         '/tools/combat-simulator/weapons' => ['p' => 'combat_simulator_weapons'],
         '/tools/combat-simulator/tournament' => ['p' => 'combat_simulator_tournament'],
+        '/games/card-game' => ['p' => 'game_cards'],
+        '/games/card-game/collection' => ['p' => 'game_cards_collection'],
+        '/games/card-game/explanation' => ['p' => 'game_cards_explanation'],
+        '/game-cards' => ['p' => 'game_cards'],
+        '/tools/game-cards' => ['p' => 'game_cards'],
         '/ajax/tooltip' => ['p' => 'tooltip'],
         '/ajax/mentions' => ['p' => 'mentions'],
         '/ajax/epis' => ['p' => 'mentions', 'type' => 'episode'],
@@ -600,6 +614,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
 
     $redirects = [
         '#^/index\.php$#' => '/',
+        '#^/game_cards\.php$#' => '/games/card-game',
         '#^/generador_claves\.php$#' => '/tools/keygen',
         '#^/crop\.html$#' => '/tools/crop',
         '#^/sep/snippet_forum_hg\.php$#' => '/forum/message',
@@ -738,6 +753,9 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         },
         '#^/maps/poi/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'maps_detail', 'id' => $m[1]];
+        },
+        '#^/games/combat-simulator/log/([0-9]+)$#' => static function (array $m): array {
+            return ['p' => 'combat_simulator_log', 'b' => $m[1]];
         },
         '#^/tools/combat-simulator/log/([0-9]+)$#' => static function (array $m): array {
             return ['p' => 'combat_simulator_log', 'b' => $m[1]];

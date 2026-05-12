@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once("sim_character_scope.php");
 include_once("sim_battles_table.php");
 
@@ -133,7 +133,7 @@ for ($i = 0; $i < $NFilas; $i++) {
 </table>
 
 <div class="sim-actions-row">
-    <a class="sim-classic-btn" href="/tools/combat-simulator">Volver</a>
+    <a class="sim-classic-btn" href="/games/combat-simulator">Volver</a>
 </div>
 
 </center>

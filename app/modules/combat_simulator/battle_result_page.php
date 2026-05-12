@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 $pageSect = 'Resultados del combate';
 
@@ -57,7 +57,7 @@ if (!function_exists('sim_combat_mode_title')) {
         $normalTitles = array(
             'serio' => 'Duelo a muerte',
             'epico' => 'Choque de leyendas',
-            'brutal' => 'Carnicería total',
+            'brutal' => 'CarnicerÃ­a total',
             'ironico' => 'Pelea de malas ideas',
             'random' => 'Combate a muerte'
         );
@@ -141,8 +141,8 @@ if (!function_exists('sim_normalize_relation_token')) {
     {
         $value = strtolower((string)$value);
         $value = strtr($value, array(
-            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u',
-            'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u', 'Ü' => 'u'
+            'Ã¡' => 'a', 'Ã©' => 'e', 'Ã­' => 'i', 'Ã³' => 'o', 'Ãº' => 'u', 'Ã¼' => 'u',
+            'Ã' => 'a', 'Ã‰' => 'e', 'Ã' => 'i', 'Ã“' => 'o', 'Ãš' => 'u', 'Ãœ' => 'u'
         ));
         return trim($value);
     }
@@ -464,7 +464,7 @@ if ($isTournamentContext) {
         if ($tournamentName === '') {
             $tournamentName = 'Torneo #' . $tournamentId;
         }
-        $combatModeTitleHtml = 'Combate de <a href="/tools/combat-simulator/tournament?tid=' . $tournamentId . '">' . htmlspecialchars($tournamentName, ENT_QUOTES, 'UTF-8') . '</a>';
+        $combatModeTitleHtml = 'Combate de <a href="/games/combat-simulator/tournament?tid=' . $tournamentId . '">' . htmlspecialchars($tournamentName, ENT_QUOTES, 'UTF-8') . '</a>';
     } else {
         $combatModeTitleHtml = 'Combate de torneo';
     }
@@ -993,11 +993,11 @@ $bioHref2 = ($bioSlug2 !== '') ? ('/characters/' . rawurlencode($bioSlug2)) : ''
     ?>
 
     <div class="sim-rematch-row sim-final-actions" id="simFinalActions" style="display:none;">
-        <form method="get" action="/tools/combat-simulator" class="sim-rematch-form">
+        <form method="get" action="/games/combat-simulator" class="sim-rematch-form">
             <button type="submit" class="boton1 sim-final-action-btn" title="Simulador de Combate">Volver</button>
         </form>
 
-        <form method="post" action="/tools/combat-simulator/result" class="sim-rematch-form">
+        <form method="post" action="/games/combat-simulator/result" class="sim-rematch-form">
             <?php
             if ($rematchUsesRandomCharacters) {
                 if ($randomCharactersToggle === 'yes') {

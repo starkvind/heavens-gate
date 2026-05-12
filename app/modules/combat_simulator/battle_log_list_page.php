@@ -1,4 +1,4 @@
-<?php include("app/partials/main_nav_bar.php"); ?>
+﻿<?php include("app/partials/main_nav_bar.php"); ?>
 <?php include_once("sim_battles_table.php"); ?>
 
 <div class="sim-ui">
@@ -60,7 +60,7 @@ if ($IdConsulta) {
 }
 
 if ($hasSeasonColumn && !empty($seasonOptions)) {
-    echo "<form method='get' id='simLogSeasonForm' action='/tools/combat-simulator/log' style='margin:0 0 10px 0; text-align:left;'>";
+    echo "<form method='get' id='simLogSeasonForm' action='/games/combat-simulator/log' style='margin:0 0 10px 0; text-align:left;'>";
     echo "<label style='display:inline-block; margin-right:8px;'>Temporada</label>";
     echo "<select name='season_id' id='simLogSeasonSelect' class='inp' style='max-width:260px;'>";
     echo "<option value='0'>Todas</option>";
@@ -99,7 +99,7 @@ if ($total_paginas > 1) {
             if ($selectedSeasonId > 0) {
                 $qs .= "&season_id=" . (int)$selectedSeasonId;
             }
-            echo "<a href='/tools/combat-simulator/log?$qs'>" . $ix . "</a> ";
+            echo "<a href='/games/combat-simulator/log?$qs'>" . $ix . "</a> ";
         }
     }
 }
@@ -107,7 +107,7 @@ if ($total_paginas > 1) {
 </p>
 
 <div class="sim-actions-row">
-    <a class="sim-classic-btn" href="/tools/combat-simulator">Regresar</a>
+    <a class="sim-classic-btn" href="/games/combat-simulator">Regresar</a>
 </div>
 
 <script>

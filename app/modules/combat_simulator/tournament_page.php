@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once('sim_character_scope.php');
 include_once('app/helpers/character_avatar.php');
 
@@ -478,7 +478,7 @@ if (!function_exists('sim_tournament_render_match_card')) {
         $title = trim(($summary !== '' ? ($summary . ' | ') : '') . $name1 . ' vs ' . $name2);
         $html = '';
         if ($battleLogId > 0) {
-            $html .= '<a class="sim-tournament-match-link" href="/tools/combat-simulator/log/' . (int)$battleLogId . '" title="' . sim_tournament_h($title) . '">';
+            $html .= '<a class="sim-tournament-match-link" href="/games/combat-simulator/log/' . (int)$battleLogId . '" title="' . sim_tournament_h($title) . '">';
         } else {
             $html .= '<div class="sim-tournament-match-link is-disabled" title="' . sim_tournament_h($title) . '">';
         }
@@ -1060,7 +1060,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sim_tournament_sync($newTournament);
             $newId = sim_tournament_insert_row($link, $name, $newTournament);
             if ($newId > 0) {
-                header('Location: /tools/combat-simulator/tournament?tid=' . (int)$newId);
+                header('Location: /games/combat-simulator/tournament?tid=' . (int)$newId);
                 exit;
             }
             $flash = 'No se pudo guardar el torneo en base de datos.';
@@ -1072,7 +1072,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $flash = 'No se encontro el torneo seleccionado.';
         } elseif ($action === 'reset_tournament') {
             sim_tournament_cancel_row($link, $rowId);
-            header('Location: /tools/combat-simulator/tournament');
+            header('Location: /games/combat-simulator/tournament');
             exit;
         } elseif ((string)($row['status'] ?? '') !== 'active') {
             $flash = 'El torneo seleccionado no esta activo.';
@@ -1099,7 +1099,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 sim_tournament_sync($state);
                 sim_tournament_update_row($link, $rowId, $state);
-                header('Location: /tools/combat-simulator/tournament?tid=' . (int)$rowId);
+                header('Location: /games/combat-simulator/tournament?tid=' . (int)$rowId);
                 exit;
             }
         }
@@ -1123,8 +1123,8 @@ include('app/partials/main_nav_bar.php');
 <div class="sim-ui">
     <h2>Torneo del Simulador</h2>
     <div class="sim-actions-row">
-        <a class="sim-classic-btn" href="/tools/combat-simulator">Simulador</a>
-        <a class="sim-classic-btn" href="/tools/combat-simulator/log">Registro</a>
+        <a class="sim-classic-btn" href="/games/combat-simulator">Simulador</a>
+        <a class="sim-classic-btn" href="/games/combat-simulator/log">Registro</a>
     </div>
 
     <?php if (!$tableReady): ?>
@@ -1147,7 +1147,7 @@ include('app/partials/main_nav_bar.php');
         <?php if ($isAdmin): ?>
             <fieldset class="sim-fieldset-inline">
                 <legend>Crear torneo</legend>
-                <form method="post" action="/tools/combat-simulator/tournament" class="sim-tournament-create">
+                <form method="post" action="/games/combat-simulator/tournament" class="sim-tournament-create">
                     <input type="hidden" name="action" value="create_tournament">
                     <label>Nombre
                         <input type="text" name="tournament_name" maxlength="120" placeholder="Ej: Torneo Tenkaichi #1" required="required">
@@ -1179,7 +1179,7 @@ include('app/partials/main_nav_bar.php');
         <?php if (!empty($recentTournaments)): ?>
             <fieldset class="sim-fieldset-inline">
                 <legend>Torneos guardados</legend>
-                <form method="get" action="/tools/combat-simulator/tournament" class="sim-tournament-picker">
+                <form method="get" action="/games/combat-simulator/tournament" class="sim-tournament-picker">
                     <label for="simTournamentPickerSelect">Seleccionar torneo</label>
                     <select id="simTournamentPickerSelect" name="tid" onchange="this.form.submit()">
                         <?php foreach ($recentTournaments as $row): ?>
@@ -1219,19 +1219,19 @@ include('app/partials/main_nav_bar.php');
                 <legend>Control del torneo</legend>
                 <div class="sim-tournament-toolbar">
                     <?php if ($canRun): ?>
-                        <form method="post" action="/tools/combat-simulator/tournament">
+                        <form method="post" action="/games/combat-simulator/tournament">
                             <input type="hidden" name="tournament_db_id" value="<?php echo $dbId; ?>">
                             <button type="submit" name="action" value="simulate_next">Simular siguiente combate</button>
                         </form>
-                        <form method="post" action="/tools/combat-simulator/tournament">
+                        <form method="post" action="/games/combat-simulator/tournament">
                             <input type="hidden" name="tournament_db_id" value="<?php echo $dbId; ?>">
                             <button type="submit" name="action" value="simulate_round">Simular ronda</button>
                         </form>
-                        <form method="post" action="/tools/combat-simulator/tournament">
+                        <form method="post" action="/games/combat-simulator/tournament">
                             <input type="hidden" name="tournament_db_id" value="<?php echo $dbId; ?>">
                             <button type="submit" name="action" value="simulate_all">Simular todo</button>
                         </form>
-                        <form method="post" action="/tools/combat-simulator/tournament">
+                        <form method="post" action="/games/combat-simulator/tournament">
                             <input type="hidden" name="tournament_db_id" value="<?php echo $dbId; ?>">
                             <button type="submit" name="action" value="reset_tournament">Cancelar torneo</button>
                         </form>

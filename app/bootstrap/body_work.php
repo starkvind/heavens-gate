@@ -395,6 +395,13 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Simulador de combate de personajes usando datos reales de la web.";
 			$image = $baseURL . "/img/og/og_image_power.jpg";
             break;
+		case 'game_cards':
+		case 'game_cards_collection':
+		case 'game_cards_explanation':
+            $title = "Archivo de mnemógeno | Heaven's Gate";
+            $description = "Minijuego coleccionable de cartas de Heaven's Gate con colección guardada en el navegador.";
+			$image = $baseURL . "/img/og/og_image_power.jpg";
+            break;
 		case 'gallery':
             $title = "Galeria de imagenes | Heaven's Gate";
             $description = "Lista de imagenes utilizadas en la campana.";
@@ -562,6 +569,9 @@ $routes = [
 	'combat_simulator_scores' => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
 	'combat_simulator_weapons' => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
 	'combat_simulator_tournament' => ['app/controllers/tool/combat_simulator.php', 'Torneo del Simulador'],
+	'game_cards' => ['app/controllers/tool/game_cards.php', 'Archivo de mnemógeno'],
+	'game_cards_collection' => ['app/controllers/tool/game_cards.php', 'Colección de mnemógeno'],
+	'game_cards_explanation' => ['app/controllers/tool/game_cards.php', 'Explicación del Archivo de Mnemógeno'],
 	'schema_sanitizer' => ['app/controllers/tool/schema_sanitizer.php', 'Saneador de esquema'],
 
 	// Legacy aliases

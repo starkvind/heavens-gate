@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once("sim_character_scope.php");
 include_once("app/helpers/character_avatar.php");
 if (session_status() === PHP_SESSION_NONE) {
@@ -232,7 +232,7 @@ if (!empty($characterIds) && sim_table_exists($link, 'bridge_characters_items'))
                     $skillShort = 'T';
                 } elseif ($habilidad === 'Armas de Fuego') {
                     $skillShort = 'F';
-                } elseif ($habilidad === 'Informatica' || $habilidad === 'Informática') {
+                } elseif ($habilidad === 'Informatica' || $habilidad === 'InformÃ¡tica') {
                     $skillShort = 'I';
                 }
 
@@ -272,7 +272,7 @@ if ($itemsJson === false) {
       </div>
     <?php endif; ?>
 
-    <form action="/tools/combat-simulator/result" method="post" name="simulador" id="simFightForm">
+    <form action="/games/combat-simulator/result" method="post" name="simulador" id="simFightForm">
         <input type="hidden" name="pj1" id="simPj1" value="">
         <input type="hidden" name="pj2" id="simPj2" value="">
         <input type="hidden" name="season_id" id="simSeasonId" value="<?php echo (int)$activeSeasonId; ?>">
@@ -722,10 +722,10 @@ if ($itemsJson === false) {
 
     function updateConfigTitles() {
         if (configTitleP1) {
-            configTitleP1.textContent = 'Configuración ' + selectedAlias('p1');
+            configTitleP1.textContent = 'ConfiguraciÃ³n ' + selectedAlias('p1');
         }
         if (configTitleP2) {
-            configTitleP2.textContent = 'Configuración ' + selectedAlias('p2');
+            configTitleP2.textContent = 'ConfiguraciÃ³n ' + selectedAlias('p2');
         }
     }
 

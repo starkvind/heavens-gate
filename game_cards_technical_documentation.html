@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Documentación técnica del módulo de cartas</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0b0f18;
+            --panel: #121826;
+            --panel-2: #172033;
+            --line: #31415f;
+            --text: #eef5ff;
+            --muted: #aebbd0;
+            --accent: #ffc400;
+            --code: #07101f;
+            --ok: #75e0a1;
+            --warn: #ffcf70;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.58;
+        }
+
+        header {
+            padding: 34px clamp(18px, 5vw, 72px);
+            background: linear-gradient(180deg, #151c2e, #0b0f18);
+            border-bottom: 1px solid var(--line);
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+            gap: 28px;
+            padding: 28px clamp(18px, 5vw, 72px) 56px;
+        }
+
+        nav {
+            position: sticky;
+            top: 18px;
+            align-self: start;
+            padding: 16px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        nav a {
+            display: block;
+            padding: 7px 0;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        nav a:hover { color: var(--accent); }
+
+        section {
+            margin: 0 0 22px;
+            padding: 22px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        h1, h2, h3 { line-height: 1.15; }
+        h1 { margin: 0 0 8px; font-size: clamp(2rem, 5vw, 3.4rem); }
+        h2 { margin: 0 0 14px; color: var(--accent); }
+        h3 { margin: 22px 0 8px; color: #dfeaff; }
+        p { margin: 0 0 12px; }
+        ul, ol { margin-top: 8px; padding-left: 22px; }
+        li { margin: 5px 0; }
+
+        code, pre {
+            font-family: Consolas, "Liberation Mono", monospace;
+            background: var(--code);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+        }
+
+        code { padding: 1px 5px; color: #d8e7ff; }
+
+        pre {
+            margin: 12px 0;
+            padding: 14px;
+            overflow-x: auto;
+            color: #d8e7ff;
+        }
+
+        table {
+            width: 100%;
+            margin: 12px 0 18px;
+            border-collapse: collapse;
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+        }
+
+        th, td {
+            padding: 9px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--accent);
+            background: rgba(255,255,255,0.04);
+        }
+
+        .note {
+            padding: 12px 14px;
+            background: rgba(255, 196, 0, 0.11);
+            border: 1px solid rgba(255, 196, 0, 0.36);
+            border-radius: 8px;
+        }
+
+        .ok { color: var(--ok); }
+        .warn { color: var(--warn); }
+
+        @media (max-width: 900px) {
+            main { grid-template-columns: 1fr; }
+            nav { position: static; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Módulo de cartas: documentación técnica</h1>
+    <p>Referencia de mantenimiento para el Archivo de Mnemógeno, el gacha, la tienda, la colección local y el catálogo de cartas.</p>
+    <p><strong>Última revisión:</strong> 2026-05-13.</p>
+</header>
+
+<main>
+    <nav aria-label="Índice">
+        <a href="#resumen">Resumen</a>
+        <a href="#archivos">Archivos y rutas</a>
+        <a href="#datos">Modelo de datos</a>
+        <a href="#seed">Seed y generación</a>
+        <a href="#api">API del catálogo</a>
+        <a href="#cliente">Estado local</a>
+        <a href="#gacha">Gacha y tienda</a>
+        <a href="#coleccion">Colección</a>
+        <a href="#admin">Administración</a>
+        <a href="#ampliar">Cómo ampliar</a>
+        <a href="#checklists">Checklists</a>
+    </nav>
+
+    <article>
+        <section id="resumen">
+            <h2>1. Resumen funcional</h2>
+            <p>El módulo de cartas es un minijuego frontend con catálogo maestro en MySQL. El servidor expone cartas activas desde <code>fact_game_card_collection</code> mediante <code>/api/game_cards.php</code>. El navegador guarda el progreso del jugador en <code>localStorage</code>: cartas obtenidas, copias, Mnemones, sobres comprados y recompensas gratuitas.</p>
+            <p>La experiencia tiene tres superficies principales:</p>
+            <ul>
+                <li><strong>Sobres/gacha:</strong> abre sobres, genera copias con estadísticas aleatorias y reproduce animaciones/sonidos.</li>
+                <li><strong>Tienda:</strong> permite comprar sobres con Mnemones.</li>
+                <li><strong>Colección:</strong> muestra álbum con huecos de todas las cartas y tabla de cartas obtenidas, filtrable por tipo.</li>
+            </ul>
+            <p class="note">El progreso del usuario no se sincroniza con la base de datos. Si se borra el navegador o se limpia <code>localStorage</code>, se pierde salvo que el usuario haya exportado el JSON.</p>
+        </section>
+
+        <section id="archivos">
+            <h2>2. Archivos y rutas</h2>
+            <table>
+                <thead><tr><th>Elemento</th><th>Ruta</th><th>Responsabilidad</th></tr></thead>
+                <tbody>
+                <tr><td>Controlador público</td><td><code>app/controllers/tool/game_cards.php</code></td><td>Decide qué vista incluir según la ruta.</td></tr>
+                <tr><td>Vista de sobres desktop</td><td><code>app/modules/game_cards/game_cards_page.php</code></td><td>Markup de sobres, tienda y resultados.</td></tr>
+                <tr><td>Vista de colección desktop</td><td><code>app/modules/game_cards/game_cards_collection_page.php</code></td><td>Resumen, export/import, venta, álbum, tabla y paginación.</td></tr>
+                <tr><td>Vista móvil</td><td><code>app/modules/game_cards/game_cards_mobile_page.php</code></td><td>Paneles móviles: sobres, tienda, colección e información.</td></tr>
+                <tr><td>Explicación pública</td><td><code>app/modules/game_cards/game_cards_explanation_page.php</code></td><td>Texto explicativo para usuarios.</td></tr>
+                <tr><td>Catálogo y esquema</td><td><code>app/modules/game_cards/game_cards_catalog.php</code></td><td>Whitelist de tipos, URLs, imágenes fallback, rarezas y SQL de esquema.</td></tr>
+                <tr><td>API JSON</td><td><code>api/game_cards.php</code></td><td>Devuelve cartas activas normalizadas al cliente.</td></tr>
+                <tr><td>Lógica frontend</td><td><code>assets/js/game-cards.js</code></td><td>Gacha, tienda, colección, localStorage, filtros, modal, sonidos.</td></tr>
+                <tr><td>Estilos</td><td><code>assets/css/game-cards.css</code></td><td>Layout, cartas, sobres, álbum, tabla, responsive.</td></tr>
+                <tr><td>Seed</td><td><code>app/tools/seed_game_cards.php</code></td><td>Crea/actualiza esquema y genera cartas desde tablas existentes.</td></tr>
+                <tr><td>Admin</td><td><code>app/controllers/admin/admin_game_cards.php</code></td><td>Listado y edición manual de cartas del catálogo.</td></tr>
+                <tr><td>Entrada móvil standalone</td><td><code>game_cards_mobile.php</code></td><td>Página independiente para <code>/games/card-game/mobile</code>.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Rutas públicas</h3>
+            <ul>
+                <li><code>/games/card-game</code>: sobres y tienda.</li>
+                <li><code>/games/card-game/collection</code>: colección desktop.</li>
+                <li><code>/games/card-game/explanation</code>: explicación.</li>
+                <li><code>/games/card-game/mobile</code>: versión móvil standalone.</li>
+                <li><code>/api/game_cards.php</code>: catálogo JSON.</li>
+            </ul>
+        </section>
+
+        <section id="datos">
+            <h2>3. Modelo de datos</h2>
+            <h3>Tabla principal</h3>
+            <p><code>fact_game_card_collection</code> es el catálogo maestro del juego. Cada fila representa una carta coleccionable, no una copia del jugador.</p>
+            <table>
+                <thead><tr><th>Campo</th><th>Uso</th></tr></thead>
+                <tbody>
+                <tr><td><code>card_id</code></td><td>ID interno de carta. Es el identificador que usa la colección local.</td></tr>
+                <tr><td><code>source_type</code></td><td>Categoría jugable: <code>character</code>, <code>gift</code>, <code>form</code>, etc.</td></tr>
+                <tr><td><code>source_table</code></td><td>Tabla origen permitida para ese tipo.</td></tr>
+                <tr><td><code>source_id</code></td><td>ID de la fila original en la tabla fuente.</td></tr>
+                <tr><td><code>card_name</code>, <code>card_slug</code>, <code>card_text</code>, <code>card_image_url</code></td><td>Datos visuales y enlace público de la carta.</td></tr>
+                <tr><td><code>card_rarity</code></td><td>Rareza: <code>common</code>, <code>unusual</code>, <code>rare</code>, <code>epic</code>, <code>legendary</code>, <code>mythic</code>.</td></tr>
+                <tr><td><code>hp_min/max</code>, <code>atk_min/max</code>, <code>def_min/max</code></td><td>Rangos desde los que el cliente genera estadísticas de cada copia.</td></tr>
+                <tr><td><code>is_active</code></td><td>Solo las cartas activas aparecen en la API y en la colección.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Tipos soportados</h3>
+            <table>
+                <thead><tr><th>Tipo</th><th>Tabla origen</th><th>URL pública</th></tr></thead>
+                <tbody>
+                <tr><td><code>character</code></td><td><code>fact_characters</code></td><td><code>/characters/{slug}</code></td></tr>
+                <tr><td><code>episode</code></td><td><code>dim_chapters</code></td><td><code>/chapters/{slug}</code></td></tr>
+                <tr><td><code>season</code></td><td><code>dim_seasons</code></td><td><code>/seasons/{slug}</code></td></tr>
+                <tr><td><code>chronicle</code></td><td><code>dim_chronicles</code></td><td><code>/chronicles/{slug}</code></td></tr>
+                <tr><td><code>system</code></td><td><code>dim_systems</code></td><td><code>/systems/{slug}</code></td></tr>
+                <tr><td><code>tribe</code></td><td><code>dim_tribes</code></td><td><code>/systems/tribes/{slug}</code></td></tr>
+                <tr><td><code>auspice</code></td><td><code>dim_auspices</code></td><td><code>/systems/auspices/{slug}</code></td></tr>
+                <tr><td><code>form</code></td><td><code>dim_forms</code></td><td><code>/systems/form/{slug}</code></td></tr>
+                <tr><td><code>object</code></td><td><code>fact_items</code></td><td><code>/inventory/items/{slug}</code></td></tr>
+                <tr><td><code>document</code></td><td><code>fact_docs</code></td><td><code>/documents/{slug}</code></td></tr>
+                <tr><td><code>gift</code></td><td><code>fact_gifts</code></td><td><code>/powers/gift/{slug}</code></td></tr>
+                <tr><td><code>rite</code></td><td><code>fact_rites</code></td><td><code>/powers/rite/{slug}</code></td></tr>
+                <tr><td><code>totem</code></td><td><code>dim_totems</code></td><td><code>/powers/totem/{slug}</code></td></tr>
+                <tr><td><code>discipline</code></td><td><code>fact_discipline_powers</code></td><td><code>/powers/discipline/{slug}</code></td></tr>
+                </tbody>
+            </table>
+
+            <h3>Exclusión de crónicas</h3>
+            <p>El seed respeta <code>dim_web_configuration.config_name = 'exclude_chronicles'</code>. Es una lista CSV de IDs de crónica. Se aplica a personajes, crónicas, temporadas y episodios. Además, las cartas ya existentes de crónicas excluidas se marcan como <code>is_active = 0</code>.</p>
+        </section>
+
+        <section id="seed">
+            <h2>4. Seed y generación del catálogo</h2>
+            <p>El seed se ejecuta por CLI:</p>
+            <pre><code>php app/tools/seed_game_cards.php</code></pre>
+            <p>Para borrar el catálogo y regenerar desde cero:</p>
+            <pre><code>php app/tools/seed_game_cards.php --reset</code></pre>
+            <p><code>--reset</code> hace <code>DELETE FROM fact_game_card_collection</code>, reinicia el autoincrement y vuelve a insertar todas las cartas generables.</p>
+
+            <h3>Qué hace el seed</h3>
+            <ol>
+                <li>Incluye <code>game_cards_catalog.php</code>.</li>
+                <li>Ejecuta <code>hg_gc_schema_sql()</code> para crear/actualizar la tabla.</li>
+                <li>Lee <code>exclude_chronicles</code>.</li>
+                <li>Genera arrays de cartas desde tablas fuente.</li>
+                <li>Inserta con <code>ON DUPLICATE KEY UPDATE</code> usando la clave única <code>(source_type, source_table, source_id)</code>.</li>
+                <li>Activa cartas insertadas/actualizadas con <code>is_active = 1</code>.</li>
+            </ol>
+
+            <h3>Criterios de rareza principales</h3>
+            <ul>
+                <li><strong>Personajes:</strong> combinan puntuación por rango, tipo <code>pj</code> y número de relaciones.</li>
+                <li><strong>Niveles/coste:</strong> objetos, dones, ritos, tótems y disciplinas usan niveles o coste para mapear rareza.</li>
+                <li><strong>Formas:</strong> suman bonos positivos de Fuerza, Destreza y Resistencia, más regeneración y <code>hpregen</code> limitado. Escala actual: <code>&gt;=11 mythic</code>, <code>&gt;=8 legendary</code>, <code>&gt;=6 epic</code>, <code>&gt;=4 rare</code>, <code>&gt;=2 unusual</code>, resto <code>common</code>.</li>
+                <li><strong>Crónicas/sistemas/linaje:</strong> tienen criterios simples y conservadores para evitar sobrepoblar rarezas altas.</li>
+            </ul>
+        </section>
+
+        <section id="api">
+            <h2>5. API del catálogo</h2>
+            <p><code>/api/game_cards.php</code> devuelve JSON con todas las cartas activas. Solo acepta <code>GET</code> y <code>HEAD</code>.</p>
+            <pre><code>{
+  "success": true,
+  "cards": [
+    {
+      "card_id": 1,
+      "source_type": "character",
+      "source_id": 23,
+      "card_name": "Nombre",
+      "card_text": "Extracto",
+      "card_image_url": "/img/...",
+      "card_url": "/characters/slug",
+      "card_rarity": "rare",
+      "hp_min": 50,
+      "hp_max": 85,
+      "atk_min": 50,
+      "atk_max": 85,
+      "def_min": 50,
+      "def_max": 85
+    }
+  ]
+}</code></pre>
+            <p>La API valida cada fila con <code>hg_gc_allowed_source()</code> y <code>hg_gc_valid_rarity()</code>. También normaliza imágenes con <code>hg_gc_normalize_image_url()</code>. Para personajes, si la imagen de carta está vacía o es fallback, intenta usar <code>fact_characters.image_url</code>.</p>
+        </section>
+
+        <section id="cliente">
+            <h2>6. Estado local del jugador</h2>
+            <p>La colección se crea en el navegador, no en PHP. Al cargar el JS, <code>loadCollection()</code> lee <code>localStorage</code>. Si no hay datos o el JSON está roto, crea una colección vacía.</p>
+            <table>
+                <thead><tr><th>Clave</th><th>Contenido</th></tr></thead>
+                <tbody>
+                <tr><td><code>hg_card_collection_v1</code></td><td>Colección, cartas obtenidas, moneda, inventario de sobres y fecha de actualización.</td></tr>
+                <tr><td><code>hg_card_free_rewards_v1</code></td><td>Sobres gratis acumulados, timestamps de recompensas.</td></tr>
+                <tr><td><code>hg_card_collection_mode_v1</code></td><td>Modo de vista preferido: <code>album</code> o <code>table</code>.</td></tr>
+                <tr><td><code>hg_card_collection_page_size_v1</code></td><td>Tamaño de página: 10, 20 o 50.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Estructura de una copia obtenida</h3>
+            <pre><code>{
+  "instanceId": "uuid/local",
+  "cardId": 123,
+  "rarity": "rare",
+  "hp": 72,
+  "atk": 80,
+  "def": 64,
+  "obtainedAt": "2026-05-13T10:00:00.000Z",
+  "packKind": "essence"
+}</code></pre>
+            <p>El cliente agrupa copias por <code>cardId</code> para renderizar álbum, tabla, contadores, venta y modal.</p>
+        </section>
+
+        <section id="gacha">
+            <h2>7. Gacha, tienda y recompensas</h2>
+            <h3>Sobres disponibles</h3>
+            <table>
+                <thead><tr><th>Pack</th><th>Precio</th><th>Filtro</th></tr></thead>
+                <tbody>
+                <tr><td><code>standard</code></td><td>50</td><td>Todas las cartas.</td></tr>
+                <tr><td><code>echoes</code></td><td>90</td><td>Solo común e inusual.</td></tr>
+                <tr><td><code>magic</code></td><td>220</td><td>Todas, con mejores pesos de rareza.</td></tr>
+                <tr><td><code>characters</code></td><td>240</td><td>Solo personajes.</td></tr>
+                <tr><td><code>lineage</code></td><td>420</td><td>Personajes, tribus y auspicios.</td></tr>
+                <tr><td><code>essence</code></td><td>300</td><td>Sistemas, tribus, auspicios y formas.</td></tr>
+                <tr><td><code>powers</code></td><td>240</td><td>Poderes: dones, ritos, tótems y disciplinas.</td></tr>
+                <tr><td><code>chronicles</code></td><td>140</td><td>Crónicas, temporadas y episodios.</td></tr>
+                <tr><td><code>relics</code></td><td>160</td><td>Objetos, documentos y tótems.</td></tr>
+                <tr><td><code>omens</code></td><td>650</td><td>Solo raro o superior.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Funcionamiento de apertura</h3>
+            <ol>
+                <li>El usuario pulsa un sobre.</li>
+                <li><code>openPack(packKind)</code> valida que el pack exista y que haya stock.</li>
+                <li>Selecciona rareza con pesos de <code>PACK_RARITY_WEIGHTS</code>.</li>
+                <li>Filtra cartas compatibles con <code>cardAllowedForPack()</code>.</li>
+                <li>Elige cartas aleatorias y genera estadísticas dentro de rangos.</li>
+                <li>Añade copias a <code>ownedCards</code> y guarda en localStorage.</li>
+                <li>Renderiza reveal, resultados, contadores y colección.</li>
+            </ol>
+
+            <h3>Recompensas gratuitas</h3>
+            <ul>
+                <li>1 sobre mnemónico cada 10 minutos.</li>
+                <li>Máximo acumulable: 10 sobres gratis.</li>
+                <li>100 Mnemones cada 60 minutos.</li>
+                <li>Máximo de dinero gratuito acumulable por ticks pendientes: 1000 Mnemones.</li>
+            </ul>
+            <p>La web no recibe eventos push del servidor. El cliente calcula ticks al cargar, al renderizar y mediante temporizador, comparando <code>Date.now()</code> con los timestamps guardados.</p>
+        </section>
+
+        <section id="coleccion">
+            <h2>8. Colección</h2>
+            <p>La colección usa el catálogo completo para mostrar huecos. Esto significa que una carta no obtenida aparece en álbum como hueco, con rareza y posición, pero sin imagen ni nombre real visible.</p>
+
+            <h3>Álbum</h3>
+            <ul>
+                <li>Muestra todas las cartas activas del catálogo, obtenidas o no.</li>
+                <li>Se filtra por categoría: todos, personaje, sistema, tribu, auspicio, forma, etc.</li>
+                <li>Cada filtro muestra icono, etiqueta y contador <code>obtenidas / total</code>.</li>
+                <li>Al pulsar una carta obtenida abre modal y reproduce <code>/sounds/ui/card.ogg</code>.</li>
+            </ul>
+
+            <h3>Tabla</h3>
+            <ul>
+                <li>Muestra solo cartas obtenidas.</li>
+                <li>Ordena por mejor puntuación total.</li>
+                <li>Incluye rareza, calidad, nombre, categoría, ID, PS, ATQ, DEF, total, copias y fecha.</li>
+                <li>En móvil se reduce a columnas compactas.</li>
+            </ul>
+
+            <h3>Paginación y vista</h3>
+            <ul>
+                <li>Modos: <code>album</code> y <code>table</code>.</li>
+                <li>Tamaños: 10, 20 o 50 cartas por página.</li>
+                <li>La preferencia se guarda en localStorage.</li>
+            </ul>
+
+            <h3>Exportar, importar y borrar</h3>
+            <ul>
+                <li><strong>Exportar JSON:</strong> descarga la colección local completa.</li>
+                <li><strong>Importar JSON:</strong> reemplaza la colección local por un JSON válido.</li>
+                <li><strong>Borrar colección local:</strong> reinicia progreso del navegador.</li>
+            </ul>
+        </section>
+
+        <section id="admin">
+            <h2>9. Administración</h2>
+            <p><code>admin_game_cards.php</code> permite revisar y editar cartas del catálogo en <code>fact_game_card_collection</code>. Sirve para correcciones manuales después del seed: nombre, texto, imagen, rareza, stats e <code>is_active</code>.</p>
+            <p>Si una carta procede de una tabla fuente y se vuelve a ejecutar el seed, puede ser actualizada por <code>ON DUPLICATE KEY UPDATE</code>. Para cambios permanentes conviene modificar la lógica del seed o la tabla origen, no solo la carta generada.</p>
+        </section>
+
+        <section id="ampliar">
+            <h2>10. Cómo ampliar el módulo</h2>
+            <h3>Añadir un nuevo tipo de carta</h3>
+            <ol>
+                <li>Elegir <code>source_type</code> estable en inglés, singular y corto.</li>
+                <li>Añadirlo a <code>hg_gc_source_whitelist()</code> con su tabla origen.</li>
+                <li>Añadir etiqueta a <code>hg_gc_type_labels()</code>.</li>
+                <li>Añadir URL en <code>hg_gc_card_url()</code>.</li>
+                <li>Añadir fallback en <code>hg_gc_fallback_image_url()</code>.</li>
+                <li>Añadir el valor al ENUM <code>source_type</code> en <code>hg_gc_schema_sql()</code>, tanto en <code>CREATE TABLE</code> como en <code>ALTER TABLE ... MODIFY source_type</code>.</li>
+                <li>Añadir bloque de seed en <code>hg_gc_seed_rows()</code>.</li>
+                <li>Añadir etiqueta, orden, icono y alias si hace falta en <code>assets/js/game-cards.js</code>.</li>
+                <li>Si el tipo debe aparecer en un sobre específico, actualizar arrays de tipos y <code>cardAllowedForPack()</code>.</li>
+                <li>Ejecutar <code>php -l</code> y luego <code>php app/tools/seed_game_cards.php</code>.</li>
+            </ol>
+
+            <h3>Añadir cartas individuales</h3>
+            <ul>
+                <li><strong>Vía tabla origen:</strong> crear una fila en la tabla fuente y ejecutar el seed. Es la opción preferida.</li>
+                <li><strong>Vía admin:</strong> editar o activar cartas directamente en <code>fact_game_card_collection</code>. Útil para ajustes rápidos.</li>
+                <li><strong>Vía seed manual:</strong> ampliar <code>hg_gc_generic_seed_cards()</code> solo para fallback o pruebas; no es el flujo normal.</li>
+            </ul>
+
+            <h3>Añadir un nuevo sobre</h3>
+            <ol>
+                <li>Añadir clave a <code>PACK_KINDS</code>.</li>
+                <li>Añadir precio en <code>PACK_PRICES</code>.</li>
+                <li>Añadir pesos en <code>PACK_RARITY_WEIGHTS</code>.</li>
+                <li>Añadir nombre en <code>PACK_LABELS</code>.</li>
+                <li>Añadir filtro en <code>cardAllowedForPack()</code>.</li>
+                <li>Añadir botón de sobre y botón de tienda en <code>game_cards_page.php</code>.</li>
+                <li>Añadir lo mismo en <code>game_cards_mobile_page.php</code>.</li>
+                <li>Añadir clase visual <code>.hg-pack--nuevo</code> en CSS.</li>
+            </ol>
+
+            <h3>Añadir una nueva colección</h3>
+            <p>El módulo actual solo tiene una colección local por navegador. Para añadir colecciones separadas hay dos caminos:</p>
+            <ul>
+                <li><strong>Colección local separada:</strong> crear una nueva clave <code>localStorage</code>, un nuevo <code>STORAGE_KEY</code> y una ruta/vista dedicada. Es rápido pero sigue sin sincronización server-side.</li>
+                <li><strong>Colección persistente por usuario:</strong> crear tablas nuevas de usuario/copia, endpoints de lectura/escritura y autenticación. Requiere migrar funciones de <code>ownedCards</code> desde localStorage a API.</li>
+            </ul>
+            <p>Si se quiere soportar varias colecciones con el mismo catálogo, la abstracción mínima es parametrizar <code>STORAGE_KEY</code>, textos y filtros iniciales por atributo del contenedor <code>.hg-cards</code>.</p>
+        </section>
+
+        <section id="checklists">
+            <h2>11. Checklists para futuras iteraciones</h2>
+            <h3>Después de tocar PHP</h3>
+            <pre><code>php -l app/modules/game_cards/game_cards_catalog.php
+php -l app/tools/seed_game_cards.php
+php -l api/game_cards.php
+php -l app/modules/game_cards/game_cards_page.php
+php -l app/modules/game_cards/game_cards_mobile_page.php
+php -l app/modules/game_cards/game_cards_collection_page.php</code></pre>
+
+            <h3>Después de tocar catálogo</h3>
+            <ol>
+                <li>Ejecutar seed normal o con <code>--reset</code>.</li>
+                <li>Abrir <code>/api/game_cards.php</code> y confirmar JSON válido.</li>
+                <li>Comprobar que los tipos nuevos aparecen en filtros de álbum.</li>
+                <li>Comprobar que cada tipo abre su URL pública correcta.</li>
+                <li>Probar un sobre que incluya ese tipo.</li>
+            </ol>
+
+            <h3>Riesgos conocidos</h3>
+            <ul>
+                <li>El estado local depende de <code>card_id</code>. Si se usa <code>--reset</code> y cambian IDs, colecciones exportadas antiguas pueden quedar desalineadas.</li>
+                <li>El cliente usa reloj local para recompensas gratis. Cambios manuales en hora del dispositivo pueden alterar ticks.</li>
+                <li>La API no pagina; devuelve todo el catálogo activo. Si crece mucho, habrá que añadir paginación o caché.</li>
+                <li>Algunas etiquetas antiguas pueden estar mojibakeadas en archivos existentes; nuevas ediciones deberían guardarse en UTF-8.</li>
+            </ul>
+        </section>
+    </article>
+</main>
+</body>
+</html>

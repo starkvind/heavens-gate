@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 $idDelCombate = isset($_GET['b']) ? (int)$_GET['b'] : 0;
 include_once('sim_achievements.php');
@@ -9,7 +9,7 @@ if (!function_exists('sim_log_error_box')) {
     function sim_log_error_box($message)
     {
         echo "<div class='sim-ui'><center>" . $message . "<br/><br/>"
-            . "<a class='boton1' href='/tools/combat-simulator/log'>Volver</a>"
+            . "<a class='boton1' href='/games/combat-simulator/log'>Volver</a>"
             . "</center></div>";
     }
 }
@@ -278,7 +278,7 @@ if (!function_exists('sim_log_lines_from_payload')) {
             'sin embargo',
             'mientras ',
             'ademas ',
-            'además ',
+            'ademÃ¡s ',
             'causa ',
             'provoca '
         );
@@ -403,7 +403,7 @@ if ($tournamentKey !== '') {
         if ($tournamentName === '') {
             $tournamentName = 'Torneo #' . $tournamentId;
         }
-        $combatModeLabelHtml = 'Combate de <a href="/tools/combat-simulator/tournament?tid=' . $tournamentId . '">' . htmlspecialchars($tournamentName, ENT_QUOTES, 'UTF-8') . '</a>';
+        $combatModeLabelHtml = 'Combate de <a href="/games/combat-simulator/tournament?tid=' . $tournamentId . '">' . htmlspecialchars($tournamentName, ENT_QUOTES, 'UTF-8') . '</a>';
     } else {
         $combatModeLabelHtml = 'Combate de torneo';
     }
@@ -638,7 +638,7 @@ include('app/partials/main_nav_bar.php');
     </table>
 
     <div class="sim-rematch-row sim-final-actions" id="simFinalActions" style="display:none;">
-        <form method="get" action="/tools/combat-simulator/log" class="sim-rematch-form">
+        <form method="get" action="/games/combat-simulator/log" class="sim-rematch-form">
             <button type="submit" class="boton1 sim-final-action-btn">Volver</button>
         </form>
     </div>

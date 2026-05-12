@@ -59,6 +59,7 @@ config.env
 cache/
 tmp/
 img/
+hidden/
 
 _old_things/
 _old_things/*

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 	if (!isset($link) || !($link instanceof mysqli)) {
 		include(__DIR__ . '/../helpers/db_connection.php');
 	}
@@ -68,7 +68,7 @@
 		if (hg_starts_with($path, '/powers')) {
 			return 'powersMenu';
 		}
-		if (hg_starts_with($path, '/tools')) {
+		if (hg_starts_with($path, '/tools') || hg_starts_with($path, '/games') || hg_starts_with($path, '/game-cards')) {
 			return 'toolsMenu';
 		}
 		return null;
@@ -115,7 +115,7 @@
 
 <?php
 	// =========================
-	// Menú desde base de datos (dim_menu_items)
+	// MenÃº desde base de datos (dim_menu_items)
 	// =========================
 	$useDbMenu = false;
 	if (isset($link) && ($link instanceof mysqli)) {
@@ -343,7 +343,7 @@
         <div class="ocultable<?= ($menuOpenId === 'bioMenu') ? ' open' : '' ?>" id="bioMenu">
             <?php
 				echo "<a href='/characters'><div class='renglonMenu'>Lista de personajes</div></a>";
-				echo "<a href='/characters/types'><div class='renglonMenu'>Biografías por tipo</div></a>";
+				echo "<a href='/characters/types'><div class='renglonMenu'>BiografÃ­as por tipo</div></a>";
 				echo "<a href='/organizations'><div class='renglonMenu'>Grupos y sociedades</div></a>";
 				echo "<a href='/relationship-map/characters'><div class='renglonMenu'>Nebulosa relaciones</div></a>";
 				//echo "<a href='?p=list_by_id'><div class='renglonMenu'>Lista por ID</div></a>";
@@ -368,7 +368,7 @@
 				<a href="/parties"><div class="renglonMenu">Tramas en curso</div></a>
 				<div class='renglonMenu menuSeparator'>&nbsp;</div>
                 <?php
-                    // Conexión a la base de datos usando MySQLi
+                    // ConexiÃ³n a la base de datos usando MySQLi
                     $consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind IN ('temporada','inciso','especial') ORDER BY FIELD(season_kind, 'temporada','inciso','especial'), sort_order";
                     $stmt = mysqli_prepare($link, $consulta);
                     mysqli_stmt_execute($stmt);
@@ -379,16 +379,16 @@
                         $numeroTemp = htmlspecialchars($ResultQuery["numero"]);
 						$tituloTemp = htmlspecialchars($ResultQuery["name"]);
 						$tempFinalizada = $ResultQuery["finished"];
-                        $nombreTemporada = $numeroTemp . "ª Temporada";
+                        $nombreTemporada = $numeroTemp . "Âª Temporada";
 						$claseTemporada = "";
                         if ($numeroTemp < 101) {
-                            $nombreTemporada = $numeroTemp . "ª Temporada";
+                            $nombreTemporada = $numeroTemp . "Âª Temporada";
 							//$nombreTemporada = $tituloTemp;
                         } elseif ($numeroTemp == 999) {
                             $nombreTemporada = $tituloTemp;
                         } else {
                             $numeroTemp -= 100;
-                            $nombreTemporada = "Inciso " . $numeroTemp . "º";
+                            $nombreTemporada = "Inciso " . $numeroTemp . "Âº";
 							//$nombreTemporada = $tituloTemp;
 							$claseTemporada = "renglonMenuInciso";
 							//"i" . $numeroTemp . "";
@@ -437,16 +437,16 @@
 		<td class="sekzo">
 			<div class="ocultable<?= ($menuOpenId === 'loreMenu') ? ' open' : '' ?>" id="loreMenu">
 				<a href="/documents"><div class="renglonMenu">Lista de Documentos</div></a>
-				<a href="/timeline"><div class="renglonMenu">Línea Temporal</div></a>
+				<a href="/timeline"><div class="renglonMenu">LÃ­nea Temporal</div></a>
 				<a href="/maps"><div class="renglonMenu">Mapas</div></a>
 				<a href="/music"><div class="renglonMenu">Banda sonora</div></a>
-				<a href="/gallery"><div class="renglonMenu">Galería de Imágenes</div></a>
+				<a href="/gallery"><div class="renglonMenu">GalerÃ­a de ImÃ¡genes</div></a>
 			</div>
 		</td>
 	</tr> <!-- TRASFONDO !-->
 	<!-- ============================================================================ -->
-	 <!-- Sigue con el mismo patrón para el resto de secciones -->
-	<tr> <!-- MECÁNICAS !-->
+	 <!-- Sigue con el mismo patrÃ³n para el resto de secciones -->
+	<tr> <!-- MECÃNICAS !-->
 		<td>
 		<br/>
 		<a onclick="MostrarOcultar('systemMenu')" id="menu5" onMouseover="Permut(1,'IMG5');" onMouseout="Permut(0,'IMG5');">
@@ -459,13 +459,13 @@
 		<div class="ocultable<?= ($menuOpenId === 'systemMenu') ? ' open' : '' ?>" id="systemMenu">
 			<a href="/systems"><div class="renglonMenu">Seres sobrenaturales</div></a>
 			<a href="/rules/traits"><div class="renglonMenu">Lista de Rasgos</div></a>
-			<a href="/rules/merits-flaws"><div class="renglonMenu">Méritos y Defectos</div></a>
+			<a href="/rules/merits-flaws"><div class="renglonMenu">MÃ©ritos y Defectos</div></a>
 			<a href="/inventory"><div class="renglonMenu">Inventario</div></a>
 			<a href="/rules/archetypes"><div class="renglonMenu">Personalidades</div></a>
 			<a href="/rules/maneuvers"><div class="renglonMenu">Maniobras de pelea</div></a>
 		</div>
 		</td>
-	</tr> <!-- MECÁNICAS !-->
+	</tr> <!-- MECÃNICAS !-->
 	<!-- ============================================================================ !-->
 	<tr> <!-- PODERES !-->
 		<td>
@@ -497,17 +497,18 @@
 		<td class="sekzo">
 			<div class="ocultable<?= ($menuOpenId === 'toolsMenu') ? ' open' : '' ?>" id="toolsMenu">
 				<a href="/tools/dice"><div class="renglonMenu">Tiradados</div></a>
-				<a href="/tools/combat-simulator"><div class="renglonMenu">Simulador de Combate</div></a>
+				<a href="/games/combat-simulator"><div class="renglonMenu">Simulador de Combate</div></a>
+				<a href="/games/card-game"><div class="renglonMenu">Archivo de Mnemogeno</div></a>
 				<a href="/tools/forum-avatar"><div class="renglonMenu">Creador Mensajes Foro</div></a>
 				<a href="/tools/forum-topic-viewer"><div class="renglonMenu">Visor de temas foro</div></a>
-				<a href="/tools/csp"><div class="renglonMenu">Tablón de Mensajes</div></a>
-				<a href="/seasons/analysis"><div class="renglonMenu ">Análisis temporadas</div></a>
+				<a href="/tools/csp"><div class="renglonMenu">TablÃ³n de Mensajes</div></a>
+				<a href="/seasons/analysis"><div class="renglonMenu ">AnÃ¡lisis temporadas</div></a>
 				<a href="/tools/garou-name-generator?n=20"><div class="renglonMenu">Generador Nombres</div></a>
-				<a href="crop.html" target="_blank"><div class="renglonMenu">Recortador imágenes</div></a>
+				<a href="crop.html" target="_blank"><div class="renglonMenu">Recortador imÃ¡genes</div></a>
 			</div>
 		</td>
 	</tr> <!-- HERRAMIENTAS !-->
 	<!-- ============================================================================ !-->
-    <!-- Pie del menú -->
+    <!-- Pie del menÃº -->
 </table>
 

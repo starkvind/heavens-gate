@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once("app/helpers/character_avatar.php");
 
 if (!function_exists('sim_btl_h')) {
@@ -201,7 +201,7 @@ if (!function_exists('sim_btl_fight_cell_html')) {
         $safe1 = sim_btl_h($name1 !== '' ? $name1 : 'P1');
         $safe2 = sim_btl_h($name2 !== '' ? $name2 : 'P2');
 
-        return "<a class='sim-fight-row-link' href='/tools/combat-simulator/log/$kid'>"
+        return "<a class='sim-fight-row-link' href='/games/combat-simulator/log/$kid'>"
             . "<span class='sim-fight-row-side sim-fight-row-side--p1'>{$avatar1}<span class='sim-fight-row-name'>{$safe1}</span></span>"
             . "<span class='sim-fight-row-vs'>VS</span>"
             . "<span class='sim-fight-row-side sim-fight-row-side--p2'><span class='sim-fight-row-name'>{$safe2}</span>{$avatar2}</span>"
@@ -225,7 +225,7 @@ if (!function_exists('sim_btl_type_html')) {
             if ($tname === '') {
                 $tname = 'Torneo #' . $tid;
             }
-            return "<a href='/tools/combat-simulator/tournament?tid=$tid'>Combate de " . sim_btl_h($tname) . "</a>";
+            return "<a href='/games/combat-simulator/tournament?tid=$tid'>Combate de " . sim_btl_h($tname) . "</a>";
         }
         return "Combate de torneo";
     }
@@ -304,7 +304,7 @@ if (!function_exists('sim_btl_render_table')) {
             $resultHtml = sim_btl_result_html($link, $row);
 
             echo "<tr>"
-                . "<td class='sim-col-id'>#<a href='/tools/combat-simulator/log/$kid'>$kid</a></td>"
+                . "<td class='sim-col-id'>#<a href='/games/combat-simulator/log/$kid'>$kid</a></td>"
                 . "<td class='sim-col-fight'>{$fightHtml}</td>"
                 . "<td class='sim-col-type'>{$typeHtml}</td>"
                 . "<td class='sim-col-result'>{$resultHtml}</td>"
