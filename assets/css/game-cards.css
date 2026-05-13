@@ -335,7 +335,7 @@
 .hg-import-export {
     display: flex;
     flex-wrap: wrap;
-    align-items: end;
+    align-items: center;
     gap: 12px;
 }
 
@@ -368,13 +368,29 @@
 .hg-primary-btn,
 .hg-cards .hg-import-export button,
 .hg-file-btn {
-    /*min-height: 38px;*/
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 6px;
-    padding: 8px 14px;
-    color: #eef6f6;
-    background: #1a2630;
+    padding: 6px 11px;
+    color: #cdd9e6;
+    background: rgba(26, 38, 48, 0.72);
     cursor: pointer;
+    font-size: 0.86rem;
+    line-height: 1.1;
+}
+
+.hg-cards .hg-import-export > button,
+.hg-cards .hg-import-export > .hg-file-btn {
+    box-sizing: border-box;
+    min-width: 132px;
+    height: 34px;
+    margin: 0;
+    appearance: none;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .hg-primary-btn {
@@ -393,6 +409,12 @@
 .hg-danger-btn {
     background: #3a161d !important;
     color: #ffd8dc !important;
+}
+
+.hg-cards .hg-import-export .hg-danger-btn {
+    color: #cdd9e6 !important;
+    background: rgba(26, 38, 48, 0.72) !important;
+    border-color: rgba(255,255,255,0.2);
 }
 
 .hg-counter {
@@ -835,7 +857,7 @@
 
 .hg-bulk-sell {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto minmax(150px, 220px) auto minmax(150px, auto);
+    grid-template-columns: minmax(220px, 1fr) auto minmax(150px, 220px) minmax(190px, 260px) auto minmax(150px, auto);
     gap: 12px;
     align-items: center;
     margin-top: 20px;
@@ -872,6 +894,26 @@
     border: 1px solid rgba(120,156,205,0.35);
     border-radius: 6px;
     padding: 6px 10px;
+}
+
+.hg-bulk-sell__keep,
+.hg-filter-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 7px 10px;
+    color: #dce8f8;
+    background: rgba(8, 14, 28, 0.62);
+    border: 1px solid rgba(120, 156, 205, 0.24);
+    border-radius: 8px;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.hg-bulk-sell__keep input,
+.hg-filter-check input {
+    accent-color: #ffc400;
 }
 
 .hg-bulk-sell button:disabled {
@@ -1001,16 +1043,39 @@
     margin-top: 22px;
 }
 
+.hg-collection-tools {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hg-line);
+}
+
+.hg-collection-tools .hg-import-export {
+    margin-bottom: 12px;
+}
+
 .hg-collection-toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
     margin: 0 0 14px;
     padding: 10px;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--hg-line);
     border-radius: 8px;
+}
+
+.hg-collection-toolbar__main,
+.hg-collection-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.hg-collection-filters {
+    justify-content: flex-start;
 }
 
 .hg-view-toggle {
@@ -1057,7 +1122,17 @@
     font-weight: 900;
 }
 
-.hg-page-size select {
+.hg-collection-select {
+    display: inline-grid;
+    gap: 4px;
+    min-width: 160px;
+    color: #a8b3bd;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.hg-page-size select,
+.hg-collection-select select {
     min-height: 38px;
     padding: 6px 10px;
     color: #ffffff;
@@ -1277,6 +1352,10 @@
     margin-top: 14px;
 }
 
+.hg-pagination--top {
+    margin: 0 0 14px;
+}
+
 .hg-pagination__label {
     color: #dce8f8;
     font-weight: 900;
@@ -1446,9 +1525,18 @@
 
 .hg-import-export--mobile {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     margin: 0 0 12px;
+}
+
+.hg-cards--mobile .hg-import-export button,
+.hg-cards--mobile .hg-file-btn {
+    min-width: 0;
+    height: 40px;
+    min-height: 40px;
+    padding: 6px 8px;
+    font-size: 0.78rem;
 }
 
 .hg-cards--mobile .hg-bulk-sell {
@@ -1516,10 +1604,25 @@
 }
 
 .hg-cards--mobile .hg-collection-toolbar {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     padding: 8px;
+}
+
+.hg-cards--mobile .hg-collection-toolbar__main,
+.hg-cards--mobile .hg-collection-filters {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+}
+
+.hg-cards--mobile .hg-collection-filters {
+    grid-template-columns: 1fr 1fr;
+}
+
+.hg-cards--mobile .hg-filter-check {
+    grid-column: 1 / -1;
 }
 
 .hg-cards--mobile .hg-view-toggle {
@@ -1528,7 +1631,8 @@
 
 .hg-cards--mobile .hg-view-toggle button,
 .hg-cards--mobile .hg-pagination__button,
-.hg-cards--mobile .hg-page-size select {
+.hg-cards--mobile .hg-page-size select,
+.hg-cards--mobile .hg-collection-select select {
     min-height: 44px;
 }
 
@@ -1538,6 +1642,10 @@
 
 .hg-cards--mobile .hg-page-size span {
     display: none;
+}
+
+.hg-cards--mobile .hg-collection-select {
+    min-width: 0;
 }
 
 .hg-cards--mobile .hg-album-tabs {
@@ -2190,9 +2298,17 @@
     }
 
     .hg-pack-grid--mobile,
-    .hg-shop-grid--mobile,
-    .hg-import-export--mobile {
+    .hg-shop-grid--mobile {
         grid-template-columns: 1fr;
+    }
+
+    .hg-cards--mobile .hg-import-export--mobile {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .hg-cards--mobile .hg-import-export button,
+    .hg-cards--mobile .hg-file-btn {
+        width: auto;
     }
 
     .hg-mobile-stats {

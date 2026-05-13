@@ -144,6 +144,8 @@
         mobile: root.getAttribute('data-mobile') === '1',
         isAdmin: root.getAttribute('data-is-admin') === '1',
         albumCategory: 'all',
+        collectionOwnedOnly: false,
+        collectionRarity: 'all',
         collectionMode: 'album',
         collectionPage: 1,
         collectionPageSize: 20,
@@ -171,11 +173,15 @@
         bulkSellRarity: document.getElementById('hgBulkSellRarity'),
         bulkSellBtn: document.getElementById('hgBulkSellButton'),
         bulkSellPreview: document.getElementById('hgBulkSellPreview'),
+        bulkSellKeepBest: document.getElementById('hgBulkSellKeepBest'),
         collectionTable: document.getElementById('hgCollectionTable'),
         albumTabs: document.querySelector('[data-album-tabs]'),
         albumGrid: document.querySelector('[data-album-grid]'),
         collectionModeButtons: Array.prototype.slice.call(document.querySelectorAll('[data-collection-mode]')),
         collectionPageSize: document.querySelector('[data-collection-page-size]'),
+        collectionOwnedFilter: document.querySelector('[data-collection-owned-filter]'),
+        collectionRarityFilter: document.querySelector('[data-collection-rarity-filter]'),
+        collectionTypeFilter: document.querySelector('[data-collection-type-filter]'),
         collectionViews: Array.prototype.slice.call(document.querySelectorAll('[data-collection-view]')),
         collectionPagers: Array.prototype.slice.call(document.querySelectorAll('[data-collection-pager]')),
         mobileTabs: Array.prototype.slice.call(document.querySelectorAll('[data-mobile-panel-tab]')),
@@ -254,12 +260,24 @@
         return [10, 20, 50].indexOf(size) === -1 ? 20 : size;
     }
 
+    function normalizeCollectionRarity(value) {
+        value = String(value || 'all');
+        return value === 'all' || RARITY_ORDER.indexOf(value) !== -1 ? value : 'all';
+    }
+
     function loadCollectionViewPrefs() {
         var mode = readText(COLLECTION_MODE_KEY, 'album');
         state.collectionMode = mode === 'table' ? 'table' : 'album';
         state.collectionPageSize = normalizePageSize(readText(COLLECTION_PAGE_SIZE_KEY, '20'));
         if (els.collectionPageSize) {
             els.collectionPageSize.value = String(state.collectionPageSize);
+        }
+        if (els.collectionOwnedFilter) {
+            state.collectionOwnedOnly = !!els.collectionOwnedFilter.checked;
+        }
+        if (els.collectionRarityFilter) {
+            state.collectionRarity = normalizeCollectionRarity(els.collectionRarityFilter.value);
+            els.collectionRarityFilter.value = state.collectionRarity;
         }
     }
 
@@ -866,9 +884,17 @@
         return Number(card && card.card_id || 0);
     }
 
+    function cardPassesCollectionFilters(card, groups) {
+        if (!card) { return false; }
+        if (state.collectionRarity !== 'all' && card.card_rarity !== state.collectionRarity) { return false; }
+        if (state.collectionOwnedOnly && !groups[String(card.card_id)]) { return false; }
+        return true;
+    }
+
     function albumCategories(groups) {
         var present = {};
         state.catalog.forEach(function (card) {
+            if (!cardPassesCollectionFilters(card, groups)) { return; }
             present[card.source_type] = true;
         });
         var ordered = TYPE_ORDER.filter(function (type) {
@@ -878,9 +904,10 @@
             if (ordered.indexOf(type) === -1) { ordered.push(type); }
         });
         return ordered.map(function (type) {
-            var cards = type === 'all'
+            var cards = (type === 'all'
                 ? state.catalog
-                : state.catalog.filter(function (card) { return card.source_type === type; });
+                : state.catalog.filter(function (card) { return card.source_type === type; }))
+                .filter(function (card) { return cardPassesCollectionFilters(card, groups); });
             var owned = cards.filter(function (card) {
                 return !!groups[String(card.card_id)];
             }).length;
@@ -928,6 +955,22 @@
             });
             els.albumTabs.appendChild(button);
         });
+    }
+
+    function renderCollectionTypeFilter(categories) {
+        if (!els.collectionTypeFilter) { return; }
+        var signature = categories.map(function (entry) {
+            return entry.type + ':' + entry.owned + ':' + entry.total;
+        }).join('|');
+        if (els.collectionTypeFilter.getAttribute('data-options-signature') !== signature) {
+            els.collectionTypeFilter.innerHTML = categories.map(function (entry) {
+                return '<option value="' + escapeHtml(entry.type) + '">' +
+                    escapeHtml(entry.label) + ' (' + entry.owned + '/' + entry.total + ')' +
+                    '</option>';
+            }).join('');
+            els.collectionTypeFilter.setAttribute('data-options-signature', signature);
+        }
+        els.collectionTypeFilter.value = state.albumCategory;
     }
 
     function renderAlbumSlot(card, group) {
@@ -1012,11 +1055,13 @@
         });
     }
 
-    function cardsForCurrentCategory() {
+    function cardsForCurrentCategory(groups) {
         var cards = state.albumCategory === 'all'
             ? state.catalog
             : state.catalog.filter(function (card) { return card.source_type === state.albumCategory; });
-        return sortedCatalogCards(cards);
+        return sortedCatalogCards(cards.filter(function (card) {
+            return cardPassesCollectionFilters(card, groups || {});
+        }));
     }
 
     function pageBounds(total) {
@@ -1070,14 +1115,14 @@
     function renderAlbum() {
         if (!els.albumGrid || !isCollectionContext()) { return 0; }
         var groups = collectionGroups();
-        var cards = cardsForCurrentCategory();
+        var cards = cardsForCurrentCategory(groups);
         var bounds = pageBounds(cards.length);
         var pageCards = cards.slice(bounds.start, bounds.end);
         els.albumGrid.innerHTML = '';
         if (!pageCards.length) {
             var empty = document.createElement('p');
             empty.className = 'hg-empty-state';
-            empty.textContent = 'No hay cartas en esta categoría.';
+            empty.textContent = 'No hay cartas con estos filtros.';
             els.albumGrid.appendChild(empty);
             return cards.length;
         }
@@ -1124,7 +1169,8 @@
                 ]
             };
         }).filter(function (entry) {
-            return state.albumCategory === 'all' || entry.sourceType === state.albumCategory;
+            return (state.albumCategory === 'all' || entry.sourceType === state.albumCategory)
+                && (state.collectionRarity === 'all' || entry.rarity === state.collectionRarity);
         }).sort(function (a, b) {
             return (b.score || 0) - (a.score || 0);
         });
@@ -1136,6 +1182,7 @@
         var categories = albumCategories(groups);
         ensureAlbumCategory(categories);
         renderAlbumTabs(categories);
+        renderCollectionTypeFilter(categories);
         applyCollectionMode();
 
         var totalItems = 0;
@@ -1152,7 +1199,7 @@
             return '<tr class="hg-collection-row--' + entry.rarity + '" data-card-id="' + entry.cardId + '">' + entry.row.map(function (cell) { return '<td>' + cell + '</td>'; }).join('') + '</tr>';
                 }).join('');
                 if (!pageRows.length) {
-                    tbody.innerHTML = '<tr><td colspan="' + (state.mobile ? '6' : '11') + '">No hay cartas obtenidas en esta categoría.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="' + (state.mobile ? '6' : '11') + '">No hay cartas obtenidas con estos filtros.</td></tr>';
                 }
                 bindCollectionTableClicks();
             }
@@ -1610,27 +1657,46 @@
         return true;
     }
 
-    function bulkSellStats(rarity) {
+    function bulkSellStats(rarity, keepBest) {
         if (!state.collection) { loadCollection(); }
+        keepBest = !!keepBest;
+        var byCard = {};
         var remove = {};
         var count = 0;
         var gained = 0;
+        var kept = 0;
+
         (state.collection.ownedCards || []).forEach(function (copy) {
             var card = state.catalogById[String(copy.cardId || '')];
             if (!card || card.card_rarity !== rarity) { return; }
-            remove[String(copy.instanceId)] = true;
-            count += 1;
-            gained += recycleValue(card);
+            var cardId = String(card.card_id);
+            if (!byCard[cardId]) { byCard[cardId] = { card: card, copies: [] }; }
+            byCard[cardId].copies.push(copy);
         });
-        return { count: count, gained: gained, remove: remove };
+
+        Object.keys(byCard).forEach(function (cardId) {
+            var entry = byCard[cardId];
+            var copies = sortedCopies(entry.copies);
+            var toSell = keepBest ? copies.slice(1) : copies;
+            if (keepBest && copies.length) { kept += 1; }
+            toSell.forEach(function (copy) {
+                remove[String(copy.instanceId)] = true;
+                count += 1;
+                gained += recycleValue(entry.card);
+            });
+        });
+
+        return { count: count, gained: gained, remove: remove, kept: kept, keepBest: keepBest };
     }
 
     function renderBulkSellPreview() {
         if (!els.bulkSellRarity || !els.bulkSellBtn || !els.bulkSellPreview) { return; }
         var rarity = els.bulkSellRarity.value || 'common';
-        var stats = bulkSellStats(rarity);
+        var keepBest = !els.bulkSellKeepBest || els.bulkSellKeepBest.checked;
+        var stats = bulkSellStats(rarity, keepBest);
         var label = RARITY_LABELS[rarity] || rarity;
-        els.bulkSellPreview.textContent = stats.count + ' cartas ' + label.toLowerCase() + ' - +' + stats.gained + ' Mnemones';
+        els.bulkSellPreview.textContent = stats.count + ' cartas ' + label.toLowerCase() + ' - +' + stats.gained + ' Mnemones'
+            + (stats.keepBest && stats.kept ? ' · conserva ' + stats.kept + ' mejores' : '');
         els.bulkSellBtn.disabled = stats.count <= 0;
     }
 
@@ -1646,15 +1712,17 @@
             return false;
         }
 
-        var stats = bulkSellStats(rarity);
+        var keepBest = !els.bulkSellKeepBest || els.bulkSellKeepBest.checked;
+        var stats = bulkSellStats(rarity, keepBest);
         if (stats.count <= 0) {
-            setStatus('No tienes cartas de esa rareza para vender.');
+            setStatus(stats.keepBest ? 'No tienes duplicadas de esa rareza para vender.' : 'No tienes cartas de esa rareza para vender.');
             renderBulkSellPreview();
             return false;
         }
 
         var label = RARITY_LABELS[rarity] || rarity;
-        if (!window.confirm('Vas a vender ' + stats.count + ' cartas de rareza ' + label.toLowerCase() + ' por ' + stats.gained + ' Mnemones. Esta accion no se puede deshacer. Continuar?')) {
+        var keepText = stats.keepBest ? ' Se conservará la copia con mayor PS + ATQ + DEF de cada carta.' : '';
+        if (!window.confirm('Vas a vender ' + stats.count + ' cartas de rareza ' + label.toLowerCase() + ' por ' + stats.gained + ' Mnemones.' + keepText + ' Esta acción no se puede deshacer. ¿Continuar?')) {
             return false;
         }
 
@@ -1848,6 +1916,28 @@
                 renderCollectionTable();
             });
         }
+        if (els.collectionOwnedFilter) {
+            els.collectionOwnedFilter.addEventListener('change', function () {
+                state.collectionOwnedOnly = !!els.collectionOwnedFilter.checked;
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
+        if (els.collectionRarityFilter) {
+            els.collectionRarityFilter.addEventListener('change', function () {
+                state.collectionRarity = normalizeCollectionRarity(els.collectionRarityFilter.value);
+                els.collectionRarityFilter.value = state.collectionRarity;
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
+        if (els.collectionTypeFilter) {
+            els.collectionTypeFilter.addEventListener('change', function () {
+                state.albumCategory = els.collectionTypeFilter.value || 'all';
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
     }
 
     function startFreeRewardTimer() {
@@ -1904,6 +1994,7 @@
         }
         if (els.resetBtn) { els.resetBtn.addEventListener('click', resetCollection); }
         if (els.bulkSellRarity) { els.bulkSellRarity.addEventListener('change', renderBulkSellPreview); }
+        if (els.bulkSellKeepBest) { els.bulkSellKeepBest.addEventListener('change', renderBulkSellPreview); }
         if (els.bulkSellBtn) { els.bulkSellBtn.addEventListener('click', sellCardsByRarity); }
     }
 

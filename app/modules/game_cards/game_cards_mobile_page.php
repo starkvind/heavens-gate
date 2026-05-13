@@ -131,53 +131,53 @@ $isAdmin = !empty($hgCardsIsAdmin);
         </section>
 
         <section class="hg-mobile-panel" data-mobile-panel="collection" aria-label="Colección local">
-            <div class="hg-import-export hg-import-export--mobile">
-                <button type="button" id="hgExportCollection">Exportar JSON</button>
-                <label class="hg-file-btn" for="hgImportFile">Importar JSON</label>
-                <input type="file" id="hgImportFile" accept="application/json,.json">
-                <button type="button" class="hg-danger-btn" id="hgResetCollection">Borrar colección</button>
-            </div>
-
-            <section class="hg-bulk-sell" aria-label="Venta de cartas por rareza">
-                <div>
-                    <h3>Vender cartas</h3>
-                    <p>Convierte una rareza completa en Mnemones.</p>
-                </div>
-                <label for="hgBulkSellRarity">Rareza</label>
-                <select id="hgBulkSellRarity">
-                    <option value="common">Común</option>
-                    <option value="unusual">Inusual</option>
-                    <option value="rare">Raro</option>
-                    <option value="epic">Épico</option>
-                    <option value="legendary">Legendario</option>
-                    <option value="mythic">Mítico</option>
-                </select>
-                <button type="button" class="hg-danger-btn" id="hgBulkSellButton">Vender todas...</button>
-                <strong id="hgBulkSellPreview" class="hg-bulk-sell__preview" aria-live="polite"></strong>
-            </section>
-
             <section class="hg-collection-browser hg-collection-browser--mobile" aria-label="Colección de cartas">
                 <div class="hg-section-head">
                     <h3>Colección</h3>
-                    <p>Vista de álbum o tabla, ordenada por categoría.</p>
+                    <p>Vista de álbum o tabla, filtrable por obtenidas, rareza y colección.</p>
                 </div>
 
                 <div class="hg-collection-toolbar" aria-label="Opciones de vista de colección">
-                    <div class="hg-view-toggle" role="group" aria-label="Modo de vista">
-                        <button type="button" class="is-active" data-collection-mode="album">Álbum</button>
-                        <button type="button" data-collection-mode="table">Tabla</button>
+                    <div class="hg-collection-toolbar__main">
+                        <div class="hg-view-toggle" role="group" aria-label="Modo de vista">
+                            <button type="button" class="is-active" data-collection-mode="album">Álbum</button>
+                            <button type="button" data-collection-mode="table">Tabla</button>
+                        </div>
+                        <label class="hg-page-size">
+                            <span>Por página</span>
+                            <select data-collection-page-size>
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </label>
                     </div>
-                    <label class="hg-page-size">
-                        <span>Por página</span>
-                        <select data-collection-page-size>
-                            <option value="10">10</option>
-                            <option value="20" selected>20</option>
-                            <option value="50">50</option>
-                        </select>
-                    </label>
+                    <div class="hg-collection-filters" aria-label="Filtros de colección">
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-owned-filter>
+                            <span>Sólo obtenidas</span>
+                        </label>
+                        <label class="hg-collection-select">
+                            <span>Rareza</span>
+                            <select data-collection-rarity-filter>
+                                <option value="all">Todas</option>
+                                <option value="common">Común</option>
+                                <option value="unusual">Inusual</option>
+                                <option value="rare">Raro</option>
+                                <option value="epic">Épico</option>
+                                <option value="legendary">Legendario</option>
+                                <option value="mythic">Mítico</option>
+                            </select>
+                        </label>
+                        <label class="hg-collection-select">
+                            <span>Colección</span>
+                            <select data-collection-type-filter></select>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="hg-album-tabs" data-album-tabs role="tablist" aria-label="Categorías del álbum"></div>
+                <div class="hg-pagination hg-pagination--top" data-collection-pager aria-live="polite"></div>
 
                 <div class="hg-collection-view is-active" data-collection-view="album">
                     <div class="hg-album__grid" data-album-grid aria-live="polite"></div>
@@ -202,6 +202,42 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 </div>
 
                 <div class="hg-pagination" data-collection-pager aria-live="polite"></div>
+            </section>
+
+            <section class="hg-collection-tools hg-collection-tools--mobile" aria-label="Gestión de colección">
+                <div class="hg-section-head">
+                    <h3>Gestión</h3>
+                    <p>Respaldo, borrado local y venta de copias.</p>
+                </div>
+
+                <div class="hg-import-export hg-import-export--mobile">
+                    <button type="button" id="hgExportCollection">Exportar JSON</button>
+                    <label class="hg-file-btn" for="hgImportFile">Importar JSON</label>
+                    <input type="file" id="hgImportFile" accept="application/json,.json">
+                    <button type="button" class="hg-danger-btn" id="hgResetCollection">Borrar colección</button>
+                </div>
+
+                <section class="hg-bulk-sell" aria-label="Venta de cartas por rareza">
+                    <div>
+                        <h3>Vender cartas</h3>
+                        <p>Convierte una rareza en Mnemones.</p>
+                    </div>
+                    <label for="hgBulkSellRarity">Rareza</label>
+                    <select id="hgBulkSellRarity">
+                        <option value="common">Común</option>
+                        <option value="unusual">Inusual</option>
+                        <option value="rare">Raro</option>
+                        <option value="epic">Épico</option>
+                        <option value="legendary">Legendario</option>
+                        <option value="mythic">Mítico</option>
+                    </select>
+                    <label class="hg-bulk-sell__keep">
+                        <input type="checkbox" id="hgBulkSellKeepBest" checked>
+                        <span>Conservar la mejor copia de cada carta</span>
+                    </label>
+                    <button type="button" class="hg-danger-btn" id="hgBulkSellButton">Vender cartas...</button>
+                    <strong id="hgBulkSellPreview" class="hg-bulk-sell__preview" aria-live="polite"></strong>
+                </section>
             </section>
         </section>
 
