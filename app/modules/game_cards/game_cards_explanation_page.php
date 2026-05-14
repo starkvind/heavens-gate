@@ -6,6 +6,7 @@ include("app/partials/main_nav_bar.php");
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
         <a href="/games/card-game">Sobres</a>
         <a href="/games/card-game/collection">Colección</a>
+        <a href="/games/card-game/combat">Combate</a>
         <a class="is-active" href="/games/card-game/explanation">Información</a>
     </nav>
 

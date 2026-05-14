@@ -5,6 +5,8 @@ $gameCardsRoute = (string)($routeKey ?? ($_GET['p'] ?? 'game_cards'));
 $gameCardsView = 'gacha';
 if ($gameCardsRoute === 'game_cards_collection') {
     $gameCardsView = 'collection';
+} elseif ($gameCardsRoute === 'game_cards_combat') {
+    $gameCardsView = 'combat';
 } elseif ($gameCardsRoute === 'game_cards_explanation') {
     $gameCardsView = 'explanation';
 }
@@ -12,6 +14,7 @@ if ($gameCardsRoute === 'game_cards_collection') {
 $gameCardsTitles = [
     'gacha' => 'Archivo de mnemogeno',
     'collection' => 'Coleccion de mnemogeno',
+    'combat' => 'Combate del Archivo de Mnemogeno',
     'explanation' => 'Explicacion del Archivo de Mnemogeno',
 ];
 
@@ -30,6 +33,8 @@ echo '<link rel="stylesheet" href="/assets/css/game-cards.css">';
 echo '<section class="hg-card-game-shell">';
 if ($gameCardsView === 'collection') {
     include dirname(__DIR__, 2) . '/partials/tool/game_cards/game_cards_collection_page.php';
+} elseif ($gameCardsView === 'combat') {
+    include dirname(__DIR__, 2) . '/partials/tool/game_cards/game_cards_combat_page.php';
 } elseif ($gameCardsView === 'explanation') {
     include dirname(__DIR__, 2) . '/partials/tool/game_cards/game_cards_explanation_page.php';
 } else {

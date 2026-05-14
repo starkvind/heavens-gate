@@ -5,9 +5,24 @@
     var FREE_REWARDS_KEY = 'hg_card_free_rewards_v1';
     var COLLECTION_MODE_KEY = 'hg_card_collection_mode_v1';
     var COLLECTION_PAGE_SIZE_KEY = 'hg_card_collection_page_size_v1';
+    var COMBAT_TEAMS_KEY = 'hg_card_combat_teams_v1';
+    var COMBAT_PROFILE_KEY = 'hg_card_combat_profile_v1';
     var STARTING_MNEMONES = 500;
     var MAX_MNEMONES = 9999999;
     var PACK_SIZE = 5;
+    var COMBAT_SOUNDS = {
+        attack: '',
+        defend: '',
+        switch: '',
+        damage: '',
+        victory: '',
+        defeat: ''
+    };
+    var COMBAT_ATTACK_MS = 420;
+    var COMBAT_DEFEND_MS = 560;
+    var COMBAT_DEFEAT_MS = 760;
+    var COMBAT_ENTRY_MS = 620;
+    var COMBAT_TURN_GAP_MS = 80;
     var FREE_PACK_INTERVAL_MS = 10 * 60 * 1000;
     var FREE_PACK_CAP = 10;
     var FREE_MNEMONES_INTERVAL_MS = 60 * 60 * 1000;
@@ -52,6 +67,18 @@
         chronicles: 'Sobre de crónica',
         relics: 'Sobre de reliquias',
         omens: 'Sobre de presagios'
+    };
+    var PACK_CONTENTS = {
+        standard: '5 cartas de cualquier coleccion.',
+        echoes: '5 cartas comunes o inusuales.',
+        magic: '5 cartas de cualquier coleccion, con mejores pesos de rareza.',
+        characters: '5 cartas de personaje.',
+        lineage: '5 cartas de personajes, tribus o auspicios.',
+        essence: '5 cartas de sistemas, tribus, auspicios o formas.',
+        powers: '5 cartas de dones, ritos, totems o disciplinas.',
+        chronicles: '5 cartas de cronicas, temporadas o episodios.',
+        relics: '5 cartas de objetos, documentos o totems.',
+        omens: '5 cartas raras o superiores.'
     };
     var POWER_TYPES = ['power', 'gift', 'rite', 'totem', 'discipline'];
     var CHRONICLE_TYPES = ['chronicle', 'season', 'episode'];
@@ -101,7 +128,8 @@
         totem: 'Tótem',
         gift: 'Don',
         rite: 'Rito',
-        discipline: 'Disciplina'
+        discipline: 'Disciplina',
+        creature: 'Criatura'
     };
     var TYPE_ORDER = ['all', 'character', 'system', 'tribe', 'auspice', 'form', 'gift', 'rite', 'power', 'discipline', 'totem', 'chronicle', 'season', 'episode', 'object', 'document'];
     var TYPE_EMOJI = {
@@ -120,7 +148,8 @@
         totem: '🪶',
         gift: '🎁',
         rite: '🕯️',
-        discipline: '🩸'
+        discipline: '🩸',
+        creature: '◆'
     };
 
     var TYPE_ALIASES = {
@@ -149,6 +178,15 @@
         collectionMode: 'album',
         collectionPage: 1,
         collectionPageSize: 20,
+        combat: null,
+        combatTeams: null,
+        combatProfile: null,
+        activeCombatTeam: 0,
+        draftCombatTeam: [],
+        activeCombatScreen: 'battle',
+        combatAnimating: false,
+        combatRarityFilter: 'all',
+        combatTypeFilter: 'all',
         catalog: [],
         catalogById: {},
         freeRewards: null,
@@ -185,13 +223,122 @@
         collectionViews: Array.prototype.slice.call(document.querySelectorAll('[data-collection-view]')),
         collectionPagers: Array.prototype.slice.call(document.querySelectorAll('[data-collection-pager]')),
         mobileTabs: Array.prototype.slice.call(document.querySelectorAll('[data-mobile-panel-tab]')),
-        mobilePanels: Array.prototype.slice.call(document.querySelectorAll('[data-mobile-panel]'))
+        mobilePanels: Array.prototype.slice.call(document.querySelectorAll('[data-mobile-panel]')),
+        combatScreenTabs: Array.prototype.slice.call(document.querySelectorAll('[data-combat-screen-tab]')),
+        combatScreenPanels: Array.prototype.slice.call(document.querySelectorAll('[data-combat-screen]')),
+        combatTeamSelects: Array.prototype.slice.call(document.querySelectorAll('[data-combat-team-select], [data-combat-team-select-mirror]')),
+        combatTeamSelect: document.querySelector('[data-combat-team-select]'),
+        combatTeamPreviews: Array.prototype.slice.call(document.querySelectorAll('[data-combat-team-preview]')),
+        combatProfileNames: Array.prototype.slice.call(document.querySelectorAll('[data-combat-profile-name]')),
+        combatProfileFavorites: Array.prototype.slice.call(document.querySelectorAll('[data-combat-profile-favorite]')),
+        combatTeamSlots: document.querySelector('[data-combat-team-slots]'),
+        combatSaveTeam: document.querySelector('[data-combat-save-team]'),
+        combatClearTeam: document.querySelector('[data-combat-clear-team]'),
+        combatOnlyReady: document.querySelector('[data-combat-only-ready]'),
+        combatRarityFilter: document.querySelector('[data-combat-rarity-filter]'),
+        combatTypeFilter: document.querySelector('[data-combat-type-filter]'),
+        combatCardList: document.querySelector('[data-combat-card-list]'),
+        combatDifficulty: document.querySelector('[data-combat-difficulty]'),
+        combatSetups: Array.prototype.slice.call(document.querySelectorAll('.hg-combat-setup')),
+        combatStart: document.querySelector('[data-combat-start]'),
+        combatActions: Array.prototype.slice.call(document.querySelectorAll('[data-combat-action]')),
+        combatBench: document.querySelector('[data-combat-bench]'),
+        combatLog: document.querySelector('[data-combat-log]'),
+        combatMessage: document.querySelector('[data-combat-message]'),
+        combatPlayerCard: document.querySelector('[data-combat-player-card]'),
+        combatEnemyCard: document.querySelector('[data-combat-enemy-card]'),
+        combatPlayerName: document.querySelector('[data-combat-player-name]'),
+        combatEnemyName: document.querySelector('[data-combat-enemy-name]'),
+        combatPlayerHp: document.querySelector('[data-combat-player-hp]'),
+        combatEnemyHp: document.querySelector('[data-combat-enemy-hp]'),
+        combatPlayerShields: document.querySelector('[data-combat-player-shields]'),
+        combatEnemyShields: document.querySelector('[data-combat-enemy-shields]'),
+        combatPlayerHpBar: document.querySelector('[data-combat-player-hp-bar]'),
+        combatEnemyHpBar: document.querySelector('[data-combat-enemy-hp-bar]'),
+        combatPlayerAtk: document.querySelector('[data-combat-player-atk]'),
+        combatPlayerDef: document.querySelector('[data-combat-player-def]'),
+        combatEnemyAtk: document.querySelector('[data-combat-enemy-atk]'),
+        combatEnemyDef: document.querySelector('[data-combat-enemy-def]')
     };
 
     function setStatus(message) {
         if (els.statusText) {
             els.statusText.textContent = message;
         }
+    }
+
+    function packContents(packKind) {
+        return PACK_CONTENTS[packKind] || PACK_CONTENTS.standard;
+    }
+
+    function closeConfirmModal() {
+        var current = document.querySelector('.hg-confirm-modal');
+        if (current) {
+            current.remove();
+        }
+        document.removeEventListener('keydown', confirmEscapeHandler);
+    }
+
+    function confirmEscapeHandler(event) {
+        if (event.key === 'Escape') {
+            closeConfirmModal();
+        }
+    }
+
+    function confirmGameAction(message, options, onConfirm) {
+        options = options || {};
+        closeConfirmModal();
+
+        var overlay = document.createElement('div');
+        overlay.className = 'hg-confirm-modal';
+        if (state.mobile) { overlay.className += ' hg-confirm-modal--mobile'; }
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', options.title || 'Confirmar accion');
+
+        var panel = document.createElement('div');
+        panel.className = 'hg-confirm-modal__panel';
+        panel.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+
+        var title = document.createElement('h3');
+        title.textContent = options.title || 'Confirmar accion';
+
+        var text = document.createElement('p');
+        text.textContent = message;
+
+        var actions = document.createElement('div');
+        actions.className = 'hg-confirm-modal__actions';
+
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'hg-confirm-modal__cancel';
+        cancel.textContent = options.cancelLabel || 'Cancelar';
+        cancel.addEventListener('click', closeConfirmModal);
+
+        var accept = document.createElement('button');
+        accept.type = 'button';
+        accept.className = 'hg-confirm-modal__accept';
+        accept.textContent = options.confirmLabel || 'Confirmar';
+        accept.addEventListener('click', function () {
+            closeConfirmModal();
+            if (typeof onConfirm === 'function') {
+                onConfirm();
+            }
+        });
+
+        actions.appendChild(cancel);
+        actions.appendChild(accept);
+        panel.appendChild(title);
+        panel.appendChild(text);
+        panel.appendChild(actions);
+        overlay.appendChild(panel);
+        overlay.addEventListener('click', closeConfirmModal);
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', confirmEscapeHandler);
+        accept.focus();
+        return false;
     }
 
     function nowIso() {
@@ -486,9 +633,13 @@
         });
         els.packButtons.forEach(function (button) {
             var kind = button.getAttribute('data-pack-kind') || 'standard';
+            var stock = packStock(kind);
+            var visible = kind === 'standard' || state.isAdmin || stock > 0;
             var available = canOpenPack(kind);
+            button.hidden = !visible;
             button.disabled = !available;
             button.classList.toggle('is-empty', !available);
+            button.classList.toggle('is-hidden', !visible);
             button.setAttribute('aria-disabled', available ? 'false' : 'true');
         });
         renderShop();
@@ -503,6 +654,14 @@
             var kind = button.getAttribute('data-buy-pack') || 'standard';
             var price = packPrice(kind);
             var canBuy = state.isAdmin || money >= price;
+            var description = button.querySelector('.hg-shop-item__contents');
+            if (!description) {
+                description = document.createElement('span');
+                description.className = 'hg-shop-item__contents';
+                button.appendChild(description);
+            }
+            description.textContent = packContents(kind);
+            button.title = packLabel(kind) + ': ' + packContents(kind) + ' Precio: ' + price + ' Mnemones.';
             button.disabled = !canBuy;
             button.classList.toggle('is-empty', !canBuy);
             button.setAttribute('aria-disabled', canBuy ? 'false' : 'true');
@@ -591,6 +750,7 @@
                 setStatus(state.catalog.length ? 'Listo.' : 'No hay cartas activas en el catálogo.');
                 renderSummary();
                 renderCollectionTable();
+                renderCombat();
                 return state.catalog;
             })
             .catch(function (err) {
@@ -599,6 +759,7 @@
                 setStatus(err.message || 'No se pudo cargar el catálogo.');
                 renderSummary();
                 renderCollectionTable();
+                renderCombat();
                 return [];
             });
     }
@@ -734,6 +895,10 @@
     function playCardSound() { playUiSound('/sounds/ui/card.ogg', 0.72); }
     function playMoneySound() { playUiSound('/sounds/ui/money.ogg', 0.78); }
     function playDustSound() { playUiSound('/sounds/ui/dust.ogg', 0.78); }
+    function playCombatSound(kind) {
+        var path = COMBAT_SOUNDS[kind] || '';
+        if (path) { playUiSound(path, 0.74); }
+    }
 
     function openPack(packKind) {
         packKind = packKind || 'standard';
@@ -855,6 +1020,7 @@
         renderDailyCounter();
         renderShop();
         renderBulkSellPreview();
+        renderCombatSetup();
     }
 
     function qualityScore(copy, card) {
@@ -1222,13 +1388,932 @@
         });
     }
 
+    function isCombatContext() {
+        return state.view === 'combat' || state.mobile;
+    }
+
+    function createEmptyCombatTeams() {
+        return {
+            version: 1,
+            activeTeam: 0,
+            teams: [0, 1, 2, 3, 4].map(function (index) {
+                return { name: 'Equipo ' + (index + 1), cards: [] };
+            })
+        };
+    }
+
+    function normalizeCombatTeams(data) {
+        var out = createEmptyCombatTeams();
+        if (!data || typeof data !== 'object') { return out; }
+        out.activeTeam = Math.max(0, Math.min(4, clampInt(data.activeTeam, 0)));
+        if (Array.isArray(data.teams)) {
+            data.teams.slice(0, 5).forEach(function (team, index) {
+                if (!team || typeof team !== 'object') { return; }
+                out.teams[index] = {
+                    name: String(team.name || ('Equipo ' + (index + 1))).slice(0, 40),
+                    cards: Array.isArray(team.cards) ? team.cards.map(function (id) {
+                        return String(id || '').slice(0, 80);
+                    }).filter(Boolean).slice(0, 5) : []
+                };
+            });
+        }
+        return out;
+    }
+
+    function loadCombatTeams() {
+        if (state.combatTeams) { return state.combatTeams; }
+        state.combatTeams = normalizeCombatTeams(readJson(COMBAT_TEAMS_KEY, null));
+        state.activeCombatTeam = state.combatTeams.activeTeam;
+        state.draftCombatTeam = state.combatTeams.teams[state.activeCombatTeam].cards.slice();
+        return state.combatTeams;
+    }
+
+    function saveCombatTeams() {
+        if (!state.combatTeams) { loadCombatTeams(); }
+        state.combatTeams.activeTeam = state.activeCombatTeam;
+        writeJson(COMBAT_TEAMS_KEY, state.combatTeams);
+    }
+
+    function normalizeCombatProfile(data) {
+        data = data && typeof data === 'object' ? data : {};
+        return {
+            playerName: String(data.playerName || '').slice(0, 32),
+            favoriteCard: String(data.favoriteCard || '').slice(0, 80)
+        };
+    }
+
+    function loadCombatProfile() {
+        if (state.combatProfile) { return state.combatProfile; }
+        state.combatProfile = normalizeCombatProfile(readJson(COMBAT_PROFILE_KEY, null));
+        return state.combatProfile;
+    }
+
+    function saveCombatProfile() {
+        if (!state.combatProfile) { loadCombatProfile(); }
+        writeJson(COMBAT_PROFILE_KEY, state.combatProfile);
+    }
+
+    function combatPlayerName() {
+        var profile = loadCombatProfile();
+        return profile.playerName.trim() || 'Jugador';
+    }
+
+    function copyByInstanceId(instanceId) {
+        if (!state.collection) { loadCollection(); }
+        var id = String(instanceId || '');
+        for (var i = 0; i < (state.collection.ownedCards || []).length; i++) {
+            var copy = state.collection.ownedCards[i];
+            if (String(copy.instanceId || '') === id) { return copy; }
+        }
+        return null;
+    }
+
+    function combatEntryFromCopy(copy) {
+        var card = copy ? state.catalogById[String(copy.cardId || '')] : null;
+        if (!card) { return null; }
+        return { card: card, copy: copy, score: totalStats(copy) };
+    }
+
+    function combatOwnedEntries() {
+        if (!state.collection) { loadCollection(); }
+        return (state.collection.ownedCards || []).map(combatEntryFromCopy).filter(Boolean).sort(function (a, b) {
+            var dateDiff = String(b.copy.obtainedAt || '').localeCompare(String(a.copy.obtainedAt || ''));
+            if (dateDiff !== 0) { return dateDiff; }
+            return String(b.copy.instanceId || '').localeCompare(String(a.copy.instanceId || ''));
+        });
+    }
+
+    function renderCombatTypeFilter(entries) {
+        if (!els.combatTypeFilter) { return; }
+        var counts = { all: entries.length };
+        entries.forEach(function (entry) {
+            counts[entry.card.source_type] = (counts[entry.card.source_type] || 0) + 1;
+        });
+        var types = TYPE_ORDER.filter(function (type) {
+            return type === 'all' || counts[type] > 0;
+        });
+        Object.keys(counts).sort().forEach(function (type) {
+            if (types.indexOf(type) === -1) { types.push(type); }
+        });
+        var signature = types.map(function (type) { return type + ':' + counts[type]; }).join('|');
+        if (els.combatTypeFilter.getAttribute('data-options-signature') !== signature) {
+            els.combatTypeFilter.innerHTML = types.map(function (type) {
+                var label = type === 'all' ? 'Todas' : typeLabel(type);
+                return '<option value="' + escapeHtml(type) + '">' + escapeHtml(label) + ' (' + (counts[type] || 0) + ')</option>';
+            }).join('');
+            els.combatTypeFilter.setAttribute('data-options-signature', signature);
+        }
+        if (!counts[state.combatTypeFilter] && state.combatTypeFilter !== 'all') {
+            state.combatTypeFilter = 'all';
+        }
+        els.combatTypeFilter.value = state.combatTypeFilter;
+    }
+
+    function validDraftTeam() {
+        var seen = {};
+        return state.draftCombatTeam.filter(function (id) {
+            if (seen[id] || !copyByInstanceId(id)) { return false; }
+            seen[id] = true;
+            return true;
+        }).slice(0, 5);
+    }
+
+    function renderCombatTeamSelect() {
+        if (!els.combatTeamSelects.length) { return; }
+        loadCombatTeams();
+        var html = state.combatTeams.teams.map(function (team, index) {
+            return '<option value="' + index + '">' + escapeHtml(team.name) + ' (' + team.cards.length + '/5)</option>';
+        }).join('');
+        els.combatTeamSelects.forEach(function (select) {
+            select.innerHTML = html;
+            select.value = String(state.activeCombatTeam);
+        });
+    }
+
+    function renderCombatTeamPreview() {
+        if (!els.combatTeamPreviews.length) { return; }
+        loadCombatTeams();
+        var team = state.combatTeams.teams[state.activeCombatTeam] || state.combatTeams.teams[0];
+        var ids = team ? (team.cards || []).slice(0, 5) : [];
+        els.combatTeamPreviews.forEach(function (preview) {
+            preview.innerHTML = '';
+            if (!ids.length) {
+                var empty = document.createElement('span');
+                empty.className = 'hg-combat-team-preview__empty';
+                empty.textContent = 'Equipo vacío. Prepáralo antes de combatir.';
+                preview.appendChild(empty);
+                return;
+            }
+            for (var i = 0; i < 5; i++) {
+                var id = ids[i] || '';
+                var entry = combatEntryFromCopy(copyByInstanceId(id));
+                var item = document.createElement('span');
+                item.className = 'hg-combat-team-preview__card' + (entry ? ' hg-collection-row--' + entry.card.card_rarity : ' is-empty');
+                if (entry) {
+                    item.innerHTML =
+                        '<strong>' + escapeHtml(entry.card.card_name) + '</strong>' +
+                        '<small>PS ' + escapeHtml(entry.copy.hp) + ' · ATQ ' + escapeHtml(entry.copy.atk) + ' · DEF ' + escapeHtml(entry.copy.def) + '</small>';
+                } else {
+                    item.innerHTML = '<strong>Hueco ' + (i + 1) + '</strong><small>Sin carta</small>';
+                }
+                preview.appendChild(item);
+            }
+        });
+    }
+
+    function renderCombatProfile() {
+        if (!els.combatProfileNames.length && !els.combatProfileFavorites.length) { return; }
+        var profile = loadCombatProfile();
+        els.combatProfileNames.forEach(function (input) {
+            if (input.value !== profile.playerName) { input.value = profile.playerName; }
+        });
+        var entries = combatOwnedEntries();
+        var hasFavorite = !profile.favoriteCard;
+        var signature = entries.map(function (entry) { return String(entry.copy.instanceId || ''); }).join('|');
+        var html = '<option value="">Sin favorita</option>' + entries.map(function (entry) {
+            var id = String(entry.copy.instanceId || '');
+            if (id === profile.favoriteCard) { hasFavorite = true; }
+            return '<option value="' + escapeHtml(id) + '">' + escapeHtml(entry.card.card_name) + ' · ' + escapeHtml(RARITY_LABELS[entry.card.card_rarity] || entry.card.card_rarity) + '</option>';
+        }).join('');
+        if (!hasFavorite) {
+            profile.favoriteCard = '';
+            saveCombatProfile();
+        }
+        els.combatProfileFavorites.forEach(function (select) {
+            if (select.getAttribute('data-options-signature') !== signature) {
+                select.innerHTML = html;
+                select.setAttribute('data-options-signature', signature);
+            }
+            select.value = profile.favoriteCard;
+        });
+    }
+
+    function renderCombatTeamSlots() {
+        if (!els.combatTeamSlots) { return; }
+        state.draftCombatTeam = validDraftTeam();
+        els.combatTeamSlots.innerHTML = '';
+        for (var i = 0; i < 5; i++) {
+            var id = state.draftCombatTeam[i] || '';
+            var entry = combatEntryFromCopy(copyByInstanceId(id));
+            var slot = document.createElement('button');
+            slot.type = 'button';
+            slot.className = 'hg-combat-team-slot' + (entry ? ' is-filled' : '');
+            slot.setAttribute('data-combat-slot', String(i));
+            if (entry) {
+                slot.innerHTML =
+                    '<strong>' + escapeHtml(entry.card.card_name) + '</strong>' +
+                    '<span>' + escapeHtml(RARITY_LABELS[entry.card.card_rarity] || entry.card.card_rarity) + ' · Total ' + entry.score + '</span>' +
+                    '<small>Quitar</small>';
+                slot.addEventListener('click', function () {
+                    state.draftCombatTeam.splice(Number(this.getAttribute('data-combat-slot') || 0), 1);
+                    renderCombatSetup();
+                });
+            } else {
+                slot.innerHTML = '<strong>Hueco ' + (i + 1) + '</strong><span>Elige una carta</span>';
+            }
+            els.combatTeamSlots.appendChild(slot);
+        }
+    }
+
+    function renderCombatCardList() {
+        if (!els.combatCardList) { return; }
+        var selected = {};
+        state.draftCombatTeam.forEach(function (id) { selected[id] = true; });
+        var onlyReady = !els.combatOnlyReady || els.combatOnlyReady.checked;
+        var allEntries = combatOwnedEntries();
+        renderCombatTypeFilter(allEntries);
+        var entries = allEntries.filter(function (entry) {
+            return (!onlyReady || !selected[String(entry.copy.instanceId || '')])
+                && (state.combatRarityFilter === 'all' || entry.card.card_rarity === state.combatRarityFilter)
+                && (state.combatTypeFilter === 'all' || entry.card.source_type === state.combatTypeFilter);
+        });
+        els.combatCardList.innerHTML = '';
+        if (!entries.length) {
+            var empty = document.createElement('p');
+            empty.className = 'hg-empty-state';
+            empty.textContent = state.catalog.length ? 'No hay cartas disponibles con esos filtros.' : 'Cargando cartas...';
+            els.combatCardList.appendChild(empty);
+            return;
+        }
+        entries.forEach(function (entry) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'hg-combat-card-pick hg-collection-row--' + entry.card.card_rarity;
+            button.disabled = state.draftCombatTeam.length >= 5 || !!selected[String(entry.copy.instanceId || '')];
+            button.innerHTML =
+                '<strong>' + escapeHtml(entry.card.card_name) + '</strong>' +
+                '<span>' + escapeHtml(typeLabel(entry.card.source_type)) + ' · ' + escapeHtml(RARITY_LABELS[entry.card.card_rarity] || entry.card.card_rarity) + '</span>' +
+                '<b>PS ' + escapeHtml(entry.copy.hp) + ' / ATQ ' + escapeHtml(entry.copy.atk) + ' / DEF ' + escapeHtml(entry.copy.def) + '</b>';
+            button.addEventListener('click', function () {
+                if (state.draftCombatTeam.length >= 5) {
+                    setCombatMessage('El equipo ya tiene 5 cartas.');
+                    return;
+                }
+                state.draftCombatTeam.push(String(entry.copy.instanceId || ''));
+                renderCombatSetup();
+            });
+            els.combatCardList.appendChild(button);
+        });
+    }
+
+    function renderCombatSetup() {
+        if (!isCombatContext() || !els.combatTeamSlots) { return; }
+        loadCombatTeams();
+        renderCombatTeamSelect();
+        renderCombatTeamPreview();
+        renderCombatProfile();
+        renderCombatTeamSlots();
+        renderCombatCardList();
+    }
+
+    function showCombatScreen(screen) {
+        state.activeCombatScreen = screen === 'loadout' ? 'loadout' : 'battle';
+        els.combatScreenTabs.forEach(function (button) {
+            var active = (button.getAttribute('data-combat-screen-tab') || 'battle') === state.activeCombatScreen;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        els.combatScreenPanels.forEach(function (panel) {
+            var activePanel = (panel.getAttribute('data-combat-screen') || 'battle') === state.activeCombatScreen;
+            panel.hidden = !activePanel;
+            panel.classList.toggle('is-active', activePanel);
+        });
+        if (state.activeCombatScreen === 'loadout') { renderCombatSetup(); }
+        if (state.activeCombatScreen === 'battle') { renderCombatBattle(); }
+    }
+
+    function saveDraftCombatTeam() {
+        loadCombatTeams();
+        state.draftCombatTeam = validDraftTeam();
+        state.combatTeams.teams[state.activeCombatTeam].cards = state.draftCombatTeam.slice();
+        saveCombatTeams();
+        renderCombatSetup();
+        setCombatMessage(state.draftCombatTeam.length + '/5 cartas guardadas en ' + state.combatTeams.teams[state.activeCombatTeam].name + '.');
+    }
+
+    function clearDraftCombatTeam() {
+        state.draftCombatTeam = [];
+        saveDraftCombatTeam();
+    }
+
+    function combatDifficultyConfig() {
+        var value = els.combatDifficulty ? els.combatDifficulty.value : 'apprentice';
+        var configs = {
+            apprentice: { label: 'Aprendiz', weights: { common: 72, unusual: 22, rare: 6, epic: 0, legendary: 0, mythic: 0 } },
+            hobbyist: { label: 'Aficionado', weights: { common: 44, unusual: 34, rare: 17, epic: 5, legendary: 0, mythic: 0 } },
+            expert: { label: 'Experto', weights: { common: 12, unusual: 28, rare: 34, epic: 18, legendary: 6, mythic: 2 } },
+            master: { label: 'Maestro', weights: { common: 0, unusual: 8, rare: 32, epic: 36, legendary: 18, mythic: 6 } },
+            nemesis: { label: 'Némesis', weights: { common: 0, unusual: 0, rare: 12, epic: 34, legendary: 36, mythic: 18 } }
+        };
+        return configs[value] || configs.apprentice;
+    }
+
+    function combatRewardMultiplier() {
+        var value = els.combatDifficulty ? els.combatDifficulty.value : 'apprentice';
+        var multipliers = {
+            apprentice: 1,
+            hobbyist: 1.25,
+            expert: 1.5,
+            master: 2,
+            nemesis: 3
+        };
+        return multipliers[value] || multipliers.apprentice;
+    }
+
+    function createCombatUnit(card, copy, side, index) {
+        var shields = rarityShieldCount(card && card.card_rarity);
+        return {
+            side: side,
+            index: index,
+            card: card,
+            copy: copy,
+            hp: Math.max(1, clampInt(copy.hp, 1)),
+            maxHp: Math.max(1, clampInt(copy.hp, 1)),
+            atk: Math.max(1, clampInt(copy.atk, 1)),
+            def: Math.max(1, clampInt(copy.def, 1)),
+            shields: shields,
+            maxShields: shields,
+            defending: false,
+            defeated: false
+        };
+    }
+
+    function rarityRank(rarity) {
+        var index = RARITY_ORDER.indexOf(String(rarity || 'common'));
+        return index === -1 ? 0 : index;
+    }
+
+    function rarityShieldCount(rarity) {
+        return rarityRank(rarity) + 1;
+    }
+
+    function pickWeightedEnemyRarity(config) {
+        var weights = config.weights || RARITY_WEIGHTS;
+        var total = RARITY_ORDER.reduce(function (sum, rarity) {
+            return sum + Math.max(0, weights[rarity] || 0);
+        }, 0);
+        var roll = Math.random() * Math.max(1, total);
+        var acc = 0;
+        for (var i = 0; i < RARITY_ORDER.length; i++) {
+            var rarity = RARITY_ORDER[i];
+            acc += Math.max(0, weights[rarity] || 0);
+            if (roll <= acc) { return rarity; }
+        }
+        return 'common';
+    }
+
+    function pickEnemyCatalogCard(config, excluded) {
+        for (var attempt = 0; attempt < 12; attempt++) {
+            var rarity = pickWeightedEnemyRarity(config);
+            var pool = state.catalog.filter(function (card) {
+                return card.card_rarity === rarity && !excluded[String(card.card_id)];
+            });
+            if (pool.length) { return pool[Math.floor(Math.random() * pool.length)]; }
+        }
+        var fallback = state.catalog.filter(function (card) {
+            return !excluded[String(card.card_id)];
+        });
+        if (!fallback.length) { fallback = state.catalog.slice(); }
+        return fallback.length ? fallback[Math.floor(Math.random() * fallback.length)] : null;
+    }
+
+    function createEnemyCard(config, index, excluded) {
+        var card = pickEnemyCatalogCard(config, excluded || {});
+        if (!card) { return null; }
+        excluded[String(card.card_id)] = true;
+        var hp = rollStat(card.hp_min, card.hp_max);
+        var atk = rollStat(card.atk_min, card.atk_max);
+        var def = rollStat(card.def_min, card.def_max);
+        return {
+            card: card,
+            copy: {
+                instanceId: 'enemy-' + Date.now() + '-' + index,
+                cardId: card.card_id,
+                hp: hp,
+                atk: atk,
+                def: def,
+                obtainedAt: nowIso()
+            }
+        };
+    }
+
+    function startTrainingCombat() {
+        if (!isCombatContext()) { return false; }
+        var teamIds = validDraftTeam();
+        if (teamIds.length !== 5) {
+            setCombatMessage('Necesitas 5 cartas guardadas o elegidas para entrenar.');
+            return false;
+        }
+        var playerUnits = teamIds.map(function (id, index) {
+            var entry = combatEntryFromCopy(copyByInstanceId(id));
+            return entry ? createCombatUnit(entry.card, entry.copy, 'player', index) : null;
+        }).filter(Boolean);
+        if (playerUnits.length !== 5) {
+            setCombatMessage('Alguna carta del equipo ya no existe en la colección.');
+            return false;
+        }
+        var config = combatDifficultyConfig();
+        var excludedEnemies = {};
+        var enemyUnits = [0, 1, 2, 3, 4].map(function (index) {
+            var enemy = createEnemyCard(config, index, excludedEnemies);
+            return enemy ? createCombatUnit(enemy.card, enemy.copy, 'enemy', index) : null;
+        }).filter(Boolean);
+        if (enemyUnits.length !== 5) {
+            setCombatMessage('No hay suficientes cartas en el catálogo para generar rival.');
+            return false;
+        }
+        state.combat = {
+            mode: 'training',
+            difficultyLabel: config.label,
+            rewardMultiplier: combatRewardMultiplier(),
+            player: playerUnits,
+            enemy: enemyUnits,
+            playerActive: 0,
+            enemyActive: 0,
+            over: false,
+            result: '',
+            reward: 0,
+            log: []
+        };
+        pushCombatLog('Entrenamiento contra ' + config.label + '.');
+        pushCombatLog(combatPlayerName() + ' saca una carta.');
+        pushCombatLog('El rival saca una carta.');
+        setCombatMessage('¡Combate iniciado!');
+        showCombatScreen('battle');
+        renderCombatBattle();
+        animateCombatEntry('player');
+        animateCombatEntry('enemy');
+        return true;
+    }
+
+    function activeCombatUnit(side) {
+        if (!state.combat) { return null; }
+        var list = side === 'enemy' ? state.combat.enemy : state.combat.player;
+        var index = side === 'enemy' ? state.combat.enemyActive : state.combat.playerActive;
+        return list[index] || null;
+    }
+
+    function livingCombatIndexes(side) {
+        if (!state.combat) { return []; }
+        var list = side === 'enemy' ? state.combat.enemy : state.combat.player;
+        return list.map(function (unit, index) {
+            return unit && !unit.defeated && unit.hp > 0 ? index : -1;
+        }).filter(function (index) { return index >= 0; });
+    }
+
+    function effectiveDef(unit) {
+        return Math.round((unit.def || 0) * (unit.defending ? 1.5 : 1));
+    }
+
+    function combatDamage(attacker, defender) {
+        var base = Math.max(1, Math.round((attacker.atk || 0) - effectiveDef(defender)));
+        var rarityDiff = rarityRank(attacker.card && attacker.card.card_rarity) - rarityRank(defender.card && defender.card.card_rarity);
+        var multiplier = rarityDiff >= 0
+            ? 1 + (rarityDiff * 0.2)
+            : Math.max(0.35, 1 + (rarityDiff * 0.13));
+        var randomExtra = Math.max(1, Math.round(rollStat(1, 20) * multiplier));
+        return Math.max(1, base + randomExtra);
+    }
+
+    function healDefendingUnit(unit) {
+        var amount = Math.max(1, Math.round(unit.maxHp * 0.33));
+        var before = unit.hp;
+        unit.hp = Math.min(unit.maxHp, unit.hp + amount);
+        return unit.hp - before;
+    }
+
+    function applyCombatDamage(target, amount) {
+        target.hp = Math.max(0, target.hp - amount);
+        target.defending = false;
+        if (target.hp <= 0) {
+            target.defeated = true;
+        }
+    }
+
+    function awardTrainingVictory() {
+        var multiplier = state.combat ? Math.max(1, Number(state.combat.rewardMultiplier) || 1) : 1;
+        var reward = clampInt(5 * rollStat(1, 5) * multiplier, 5);
+        addMnemones(reward);
+        saveCollection();
+        renderSummary();
+        return reward;
+    }
+
+    function advanceDefeatedSide(side) {
+        if (!state.combat) { return false; }
+        var living = livingCombatIndexes(side);
+        if (!living.length) {
+            state.combat.over = true;
+            if (side === 'enemy') {
+                state.combat.enemyActive = -1;
+            } else {
+                state.combat.playerActive = -1;
+            }
+            if (side === 'enemy') {
+                var reward = awardTrainingVictory();
+                state.combat.result = 'victory';
+                state.combat.reward = reward;
+                setCombatMessage('Victoria de entrenamiento. +' + reward + ' Mnemones.');
+                pushCombatLog('Has vencido al equipo rival. Ganas ' + reward + ' Mnemones.');
+            } else {
+                state.combat.result = 'defeat';
+                state.combat.reward = 0;
+                setCombatMessage('Derrota de entrenamiento.');
+                pushCombatLog('Tu equipo ha caído. No pierdes cartas en entrenamiento.');
+            }
+            return false;
+        }
+        if (side === 'enemy') {
+            state.combat.enemyActive = living[0];
+            pushCombatLog('El rival saca una carta.');
+        } else {
+            state.combat.playerActive = living[0];
+            pushCombatLog(combatPlayerName() + ' saca una carta.');
+        }
+        return true;
+    }
+
+    function playerAttack() {
+        if (!state.combat || state.combat.over || state.combatAnimating) { return; }
+        var player = activeCombatUnit('player');
+        var enemy = activeCombatUnit('enemy');
+        if (!player || !enemy) { return; }
+        setCombatBusy(true);
+        player.defending = false;
+        var damage = combatDamage(player, enemy);
+        applyCombatDamage(enemy, damage);
+        pushCombatLog(player.card.card_name + ' ataca e inflige ' + damage + ' PS.');
+        var defeatedEnemy = enemy.defeated;
+        if (defeatedEnemy) {
+            pushCombatLog(enemy.card.card_name + ' cae.');
+        }
+        renderCombatBattle();
+        animateCombatAttack('player', 'enemy', damage);
+        window.setTimeout(function () {
+            if (defeatedEnemy && state.combat && !state.combat.over) {
+                resolveDefeatedSide('enemy', function () {
+                    setCombatBusy(false);
+                });
+                return;
+            }
+            if (!state.combat || state.combat.over) {
+                setCombatBusy(false);
+                return;
+            }
+            var enemyAction = enemyTurn();
+            renderCombatBattle();
+            animateEnemyAction(enemyAction);
+            finishEnemyAction(enemyAction);
+        }, COMBAT_ATTACK_MS + COMBAT_TURN_GAP_MS);
+    }
+
+    function playerDefend() {
+        if (!state.combat || state.combat.over || state.combatAnimating) { return; }
+        var player = activeCombatUnit('player');
+        if (!player) { return; }
+        if (player.shields <= 0) {
+            setCombatMessage('Esta carta ya no tiene escudos.');
+            return;
+        }
+        setCombatBusy(true);
+        player.shields = Math.max(0, player.shields - 1);
+        player.defending = true;
+        var healed = healDefendingUnit(player);
+        pushCombatLog(player.card.card_name + ' gasta 1 escudo, defiende y recupera ' + healed + ' PS.');
+        renderCombatBattle();
+        animateCombatDefend('player');
+        window.setTimeout(function () {
+            if (!state.combat || state.combat.over) {
+                setCombatBusy(false);
+                return;
+            }
+            var enemyAction = enemyTurn();
+            renderCombatBattle();
+            animateEnemyAction(enemyAction);
+            finishEnemyAction(enemyAction);
+        }, COMBAT_DEFEND_MS);
+    }
+
+    function switchPlayerCard(index, consumeTurn) {
+        if (!state.combat || state.combat.over || state.combatAnimating) { return; }
+        index = clampInt(index, state.combat.playerActive);
+        var unit = state.combat.player[index];
+        if (!unit || unit.defeated || unit.hp <= 0 || index === state.combat.playerActive) { return; }
+        setCombatBusy(true);
+        activeCombatUnit('player').defending = false;
+        state.combat.playerActive = index;
+        pushCombatLog('Cambias a ' + unit.card.card_name + '.');
+        playCombatSound('switch');
+        renderCombatBattle();
+        animateCombatEntry('player');
+        if (!consumeTurn) {
+            window.setTimeout(function () {
+                setCombatBusy(false);
+            }, COMBAT_ENTRY_MS);
+            return;
+        }
+        window.setTimeout(function () {
+            if (!state.combat || state.combat.over) {
+                setCombatBusy(false);
+                return;
+            }
+            var enemyAction = enemyTurn();
+            renderCombatBattle();
+            animateEnemyAction(enemyAction);
+            finishEnemyAction(enemyAction);
+        }, COMBAT_ENTRY_MS);
+    }
+
+    function fleeCombat() {
+        if (!state.combat || state.combat.over || state.combatAnimating) { return; }
+        state.combat.over = true;
+        pushCombatLog('Huyes del entrenamiento. Sin coste y sin pérdida de cartas.');
+        setCombatMessage('Combate terminado por huida.');
+        renderCombatBattle();
+    }
+
+    function enemyTurn() {
+        if (!state.combat || state.combat.over) { return null; }
+        var enemy = activeCombatUnit('enemy');
+        var player = activeCombatUnit('player');
+        if (!enemy || !player) { return null; }
+        enemy.defending = false;
+        var shouldDefend = enemy.shields > 0 && enemy.hp < enemy.maxHp * 0.35 && Math.random() < 0.34;
+        if (shouldDefend) {
+            enemy.shields = Math.max(0, enemy.shields - 1);
+            enemy.defending = true;
+            var healed = healDefendingUnit(enemy);
+            pushCombatLog(enemy.card.card_name + ' gasta 1 escudo, defiende y recupera ' + healed + ' PS.');
+            return { type: 'defend', side: 'enemy' };
+        }
+        var damage = combatDamage(enemy, player);
+        applyCombatDamage(player, damage);
+        pushCombatLog(enemy.card.card_name + ' ataca e inflige ' + damage + ' PS.');
+        if (player.defeated) {
+            pushCombatLog(player.card.card_name + ' cae.');
+        }
+        return { type: 'attack', side: 'enemy', target: 'player', damage: damage, defeatedTarget: player.defeated };
+    }
+
+    function animateEnemyAction(action) {
+        if (!action) { return; }
+        if (action.type === 'defend') {
+            animateCombatDefend('enemy');
+        } else if (action.type === 'attack') {
+            animateCombatAttack('enemy', 'player', action.damage);
+        }
+    }
+
+    function finishEnemyAction(action) {
+        window.setTimeout(function () {
+            if (action && action.defeatedTarget && state.combat && !state.combat.over) {
+                resolveDefeatedSide('player', function () {
+                    setCombatBusy(false);
+                });
+                return;
+            }
+            setCombatBusy(false);
+        }, action && action.type === 'defend' ? COMBAT_DEFEND_MS : COMBAT_ATTACK_MS);
+    }
+
+    function setCombatMessage(message) {
+        if (els.combatMessage) { els.combatMessage.textContent = message; }
+        setStatus(message);
+    }
+
+    function pushCombatLog(message) {
+        if (!state.combat) { return; }
+        state.combat.log.unshift(message);
+        state.combat.log = state.combat.log.slice(0, 8);
+    }
+
+    function combatStand(side) {
+        return side === 'enemy' ? els.combatEnemyCard : els.combatPlayerCard;
+    }
+
+    function restartCombatAnimation(node, className, duration) {
+        if (!node) { return; }
+        node.classList.remove(className);
+        void node.offsetWidth;
+        node.classList.add(className);
+        window.setTimeout(function () {
+            node.classList.remove(className);
+        }, duration || 620);
+    }
+
+    function showCombatDamage(side, amount) {
+        var stand = combatStand(side);
+        if (!stand || !amount) { return; }
+        var number = document.createElement('span');
+        number.className = 'hg-combat-damage';
+        number.textContent = '-' + amount;
+        stand.appendChild(number);
+        window.setTimeout(function () {
+            number.remove();
+        }, 900);
+    }
+
+    function animateCombatAttack(attackerSide, targetSide, damage) {
+        restartCombatAnimation(combatStand(attackerSide), attackerSide === 'enemy' ? 'is-attacking-enemy' : 'is-attacking-player');
+        restartCombatAnimation(combatStand(targetSide), 'is-hit');
+        showCombatDamage(targetSide, damage);
+        playCombatSound('attack');
+        if (damage > 0) { playCombatSound('damage'); }
+    }
+
+    function animateCombatDefend(side) {
+        restartCombatAnimation(combatStand(side), 'is-defending', COMBAT_DEFEND_MS);
+        playCombatSound('defend');
+    }
+
+    function animateCombatDefeat(side) {
+        restartCombatAnimation(combatStand(side), 'is-defeated', COMBAT_DEFEAT_MS);
+        playCombatSound('defeat');
+    }
+
+    function animateCombatEntry(side) {
+        restartCombatAnimation(combatStand(side), side === 'enemy' ? 'is-entering-enemy' : 'is-entering-player', COMBAT_ENTRY_MS);
+    }
+
+    function resolveDefeatedSide(side, done) {
+        window.setTimeout(function () {
+            if (!state.combat) {
+                if (done) { done(); }
+                return;
+            }
+            animateCombatDefeat(side);
+            window.setTimeout(function () {
+                var advanced = advanceDefeatedSide(side);
+                renderCombatBattle();
+                if (advanced) {
+                    animateCombatEntry(side);
+                    window.setTimeout(function () {
+                        if (done) { done(); }
+                    }, COMBAT_ENTRY_MS);
+                    return;
+                }
+                if (done) { done(); }
+            }, COMBAT_DEFEAT_MS);
+        }, COMBAT_TURN_GAP_MS);
+    }
+
+    function setCombatBusy(value) {
+        state.combatAnimating = !!value;
+        renderCombatActionState();
+    }
+
+    function renderCombatActionState() {
+        var combat = state.combat;
+        var combatInProgress = !!combat && !combat.over;
+        var active = !!combat && !combat.over && !state.combatAnimating;
+        var player = activeCombatUnit('player');
+        root.classList.toggle('is-combat-active', combatInProgress);
+        if (els.combatStart) { els.combatStart.hidden = combatInProgress; }
+        els.combatSetups.forEach(function (setup) {
+            setup.classList.toggle('is-combat-running', combatInProgress);
+        });
+        els.combatActions.forEach(function (button) {
+            var action = button.getAttribute('data-combat-action') || '';
+            button.disabled = !active
+                || (action === 'switch' && livingCombatIndexes('player').length <= 1)
+                || (action === 'defend' && (!player || player.shields <= 0));
+        });
+    }
+
+    function renderCombatShields(unit, node) {
+        if (!node) { return; }
+        node.innerHTML = '';
+        var max = unit ? Math.max(0, clampInt(unit.maxShields, 0)) : 0;
+        var current = unit ? Math.max(0, clampInt(unit.shields, 0)) : 0;
+        for (var i = 0; i < max; i++) {
+            var shield = document.createElement('span');
+            shield.className = i < current ? 'is-active' : 'is-spent';
+            shield.setAttribute('aria-hidden', 'true');
+            node.appendChild(shield);
+        }
+        node.setAttribute('title', unit ? 'Escudos ' + current + ' / ' + max : 'Escudos 0 / 0');
+    }
+
+    function renderCombatUnit(unit, cardWrap, nameNode, hpNode, hpBar, shieldNode, atkNode, defNode) {
+        if (nameNode) { nameNode.textContent = unit ? unit.card.card_name : '-'; }
+        if (hpNode) { hpNode.textContent = unit ? 'PS ' + unit.hp + ' / ' + unit.maxHp : 'PS 0 / 0'; }
+        if (hpBar) { hpBar.style.width = unit ? Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100)) + '%' : '0%'; }
+        renderCombatShields(unit, shieldNode);
+        if (atkNode) { atkNode.textContent = unit ? String(unit.atk) : '0'; }
+        if (defNode) { defNode.textContent = unit ? String(effectiveDef(unit)) : '0'; }
+        if (cardWrap) {
+            cardWrap.innerHTML = '';
+            if (unit) {
+                var cardNode = renderCard(unit.card, unit.copy, { noLink: true });
+                cardNode.classList.add('hg-card--combat-unit');
+                cardWrap.appendChild(cardNode);
+            }
+        }
+    }
+
+    function renderCombatBench() {
+        if (!els.combatBench || !state.combat) { return; }
+        els.combatBench.innerHTML = '';
+        if (state.combat.over) {
+            els.combatBench.hidden = true;
+            return;
+        }
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'hg-combat-bench__cancel';
+        cancel.innerHTML = '<strong>Cancelar</strong><span>Volver</span>';
+        cancel.addEventListener('click', function () {
+            els.combatBench.hidden = true;
+        });
+        els.combatBench.appendChild(cancel);
+        state.combat.player.forEach(function (unit, index) {
+            if (index === state.combat.playerActive || unit.defeated || unit.hp <= 0) { return; }
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.innerHTML = '<strong>' + escapeHtml(unit.card.card_name) + '</strong><span>PS ' + unit.hp + '/' + unit.maxHp + '</span>';
+            button.addEventListener('click', function () {
+                els.combatBench.hidden = true;
+                switchPlayerCard(index, true);
+            });
+            els.combatBench.appendChild(button);
+        });
+        if (els.combatBench.children.length <= 1) {
+            var empty = document.createElement('span');
+            empty.textContent = 'No hay cartas disponibles para cambiar.';
+            els.combatBench.appendChild(empty);
+        }
+    }
+
+    function combatScreenElement() {
+        return els.combatPlayerCard ? els.combatPlayerCard.closest('.hg-combat-screen') : null;
+    }
+
+    function renderCombatEndOverlay() {
+        var screen = combatScreenElement();
+        if (!screen) { return; }
+        var current = screen.querySelector('.hg-combat-end');
+        if (current) { current.remove(); }
+        if (!state.combat || !state.combat.over || !state.combat.result) { return; }
+
+        var victory = state.combat.result === 'victory';
+        var overlay = document.createElement('div');
+        overlay.className = 'hg-combat-end hg-combat-end--' + (victory ? 'victory' : 'defeat');
+
+        var panel = document.createElement('div');
+        panel.className = 'hg-combat-end__panel';
+
+        var title = document.createElement('h3');
+        title.textContent = victory ? '¡Superaste el entrenamiento!' : '¡Te han derrotado!';
+
+        var text = document.createElement('p');
+        text.textContent = victory
+            ? 'Recompensa: +' + clampInt(state.combat.reward, 0) + ' Mnemones.'
+            : 'No pierdes cartas en entrenamiento.';
+
+        var restart = document.createElement('button');
+        restart.type = 'button';
+        restart.className = 'hg-combat-end__restart';
+        restart.textContent = 'Empezar otro combate';
+        restart.addEventListener('click', startTrainingCombat);
+
+        panel.appendChild(title);
+        panel.appendChild(text);
+        panel.appendChild(restart);
+        overlay.appendChild(panel);
+        screen.appendChild(overlay);
+    }
+
+    function renderCombatBattle() {
+        if (!isCombatContext() || !els.combatPlayerCard) { return; }
+        var combat = state.combat;
+        var player = activeCombatUnit('player');
+        var enemy = activeCombatUnit('enemy');
+        renderCombatUnit(player, els.combatPlayerCard, els.combatPlayerName, els.combatPlayerHp, els.combatPlayerHpBar, els.combatPlayerShields, els.combatPlayerAtk, els.combatPlayerDef);
+        renderCombatUnit(enemy, els.combatEnemyCard, els.combatEnemyName, els.combatEnemyHp, els.combatEnemyHpBar, els.combatEnemyShields, els.combatEnemyAtk, els.combatEnemyDef);
+        renderCombatActionState();
+        if (els.combatLog) {
+            els.combatLog.innerHTML = combat && combat.log.length
+                ? combat.log.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
+                : '<p>El registro del combate aparecerá aquí.</p>';
+        }
+        renderCombatBench();
+        renderCombatEndOverlay();
+    }
+
+    function renderCombat() {
+        if (!isCombatContext()) { return; }
+        renderCombatSetup();
+        showCombatScreen(state.activeCombatScreen);
+        renderCombatBattle();
+    }
+
     function renderCard(card, copy, options) {
         options = options || {};
         var article = document.createElement('article');
         article.className = 'hg-card hg-card--' + card.card_rarity;
         article.setAttribute('data-rarity', RARITY_LABELS[card.card_rarity] || card.card_rarity);
         article.setAttribute('data-type', card.source_type);
-        if (card.card_url) {
+        if (card.card_url && !options.noLink) {
             article.className += ' hg-card--linked';
             article.setAttribute('role', 'link');
             article.setAttribute('tabindex', '0');
@@ -1573,11 +2658,15 @@
         });
     }
 
-    function recycleCopy(card, copy) {
+    function recycleCopy(card, copy, confirmed) {
         if (!copy || !copy.instanceId) { return false; }
         var copies = ownedCopiesForCard(card.card_id);
-        if ((card.card_rarity === 'legendary' || card.card_rarity === 'mythic') && !window.confirm('Vas a desintegrar una copia ' + (RARITY_LABELS[card.card_rarity] || card.card_rarity).toLowerCase() + '. ¿Continuar?')) {
-            return false;
+        if ((card.card_rarity === 'legendary' || card.card_rarity === 'mythic') && !confirmed) {
+            return confirmGameAction(
+                'Vas a desintegrar una copia ' + (RARITY_LABELS[card.card_rarity] || card.card_rarity).toLowerCase() + '.',
+                { title: 'Desintegrar carta', confirmLabel: 'Desintegrar' },
+                function () { recycleCopy(card, copy, true); }
+            );
         }
         state.collection.ownedCards = state.collection.ownedCards.filter(function (item) {
             return String(item.instanceId) !== String(copy.instanceId);
@@ -1599,7 +2688,7 @@
         return true;
     }
 
-    function recycleDuplicateCopies(card) {
+    function recycleDuplicateCopies(card, confirmed) {
         var copies = sortedCopies(ownedCopiesForCard(card.card_id));
         if (copies.length <= 1) {
             setStatus('No hay duplicadas que desintegrar.');
@@ -1608,8 +2697,12 @@
         var keep = copies[0];
         var recycled = copies.slice(1);
         var gained = recycleValue(card) * recycled.length;
-        if (!window.confirm('Se conservará la mejor copia y se desintegrarán ' + recycled.length + ' duplicadas por ' + gained + ' Mnemones. ¿Continuar?')) {
-            return false;
+        if (!confirmed) {
+            return confirmGameAction(
+                'Se conservara la mejor copia y se desintegraran ' + recycled.length + ' duplicadas por ' + gained + ' Mnemones.',
+                { title: 'Desintegrar duplicadas', confirmLabel: 'Desintegrar' },
+                function () { recycleDuplicateCopies(card, true); }
+            );
         }
         var remove = {};
         recycled.forEach(function (copy) {
@@ -1629,15 +2722,19 @@
         return true;
     }
 
-    function recycleAllCopies(card) {
+    function recycleAllCopies(card, confirmed) {
         var copies = sortedCopies(ownedCopiesForCard(card.card_id));
         if (!copies.length) {
             setStatus('No hay copias que desintegrar.');
             return false;
         }
         var gained = recycleValue(card) * copies.length;
-        if (!window.confirm('Se desintegrarán todas las copias de esta carta (' + copies.length + ') por ' + gained + ' Mnemones. ¿Continuar?')) {
-            return false;
+        if (!confirmed) {
+            return confirmGameAction(
+                'Se desintegraran todas las copias de esta carta (' + copies.length + ') por ' + gained + ' Mnemones.',
+                { title: 'Desintegrar todas', confirmLabel: 'Desintegrar' },
+                function () { recycleAllCopies(card, true); }
+            );
         }
         var remove = {};
         copies.forEach(function (copy) {
@@ -1700,7 +2797,7 @@
         els.bulkSellBtn.disabled = stats.count <= 0;
     }
 
-    function sellCardsByRarity() {
+    function sellCardsByRarity(confirmed) {
         if (!els.bulkSellRarity) { return false; }
         if (!state.catalog.length) {
             setStatus('Espera a que cargue el catalogo.');
@@ -1722,8 +2819,12 @@
 
         var label = RARITY_LABELS[rarity] || rarity;
         var keepText = stats.keepBest ? ' Se conservará la copia con mayor PS + ATQ + DEF de cada carta.' : '';
-        if (!window.confirm('Vas a vender ' + stats.count + ' cartas de rareza ' + label.toLowerCase() + ' por ' + stats.gained + ' Mnemones.' + keepText + ' Esta acción no se puede deshacer. ¿Continuar?')) {
-            return false;
+        if (!confirmed) {
+            return confirmGameAction(
+                'Vas a vender ' + stats.count + ' cartas de rareza ' + label.toLowerCase() + ' por ' + stats.gained + ' Mnemones.' + keepText + ' Esta accion no se puede deshacer.',
+                { title: 'Vender cartas', confirmLabel: 'Vender' },
+                function () { sellCardsByRarity(true); }
+            );
         }
 
         state.collection.ownedCards = state.collection.ownedCards.filter(function (copy) {
@@ -1833,8 +2934,14 @@
         }
     }
 
-    function resetCollection() {
-        if (!window.confirm('Esto borrará la colección local de este navegador. ¿Continuar?')) { return; }
+    function resetCollection(confirmed) {
+        if (!confirmed) {
+            return confirmGameAction(
+                'Esto borrara la coleccion local de este navegador.',
+                { title: 'Borrar coleccion', confirmLabel: 'Borrar' },
+                function () { resetCollection(true); }
+            );
+        }
         state.collection = createEmptyCollection();
         state.freeRewards = createFreeRewards();
         try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { saveCollection(); }
@@ -1892,6 +2999,8 @@
                 });
                 if (target === 'collection') {
                     renderCollectionTable();
+                } else if (target === 'combat') {
+                    renderCombat();
                 }
             });
         });
@@ -1938,6 +3047,65 @@
                 renderCollectionTable();
             });
         }
+        els.combatScreenTabs.forEach(function (button) {
+            button.addEventListener('click', function () {
+                showCombatScreen(button.getAttribute('data-combat-screen-tab') || 'battle');
+            });
+        });
+        els.combatTeamSelects.forEach(function (select) {
+            select.addEventListener('change', function () {
+                loadCombatTeams();
+                state.activeCombatTeam = Math.max(0, Math.min(4, clampInt(select.value, 0)));
+                state.combatTeams.activeTeam = state.activeCombatTeam;
+                state.draftCombatTeam = state.combatTeams.teams[state.activeCombatTeam].cards.slice();
+                saveCombatTeams();
+                renderCombatSetup();
+            });
+        });
+        els.combatProfileNames.forEach(function (input) {
+            input.addEventListener('input', function () {
+                var profile = loadCombatProfile();
+                profile.playerName = String(input.value || '').slice(0, 32);
+                saveCombatProfile();
+            });
+        });
+        els.combatProfileFavorites.forEach(function (select) {
+            select.addEventListener('change', function () {
+                var profile = loadCombatProfile();
+                profile.favoriteCard = String(select.value || '').slice(0, 80);
+                saveCombatProfile();
+                renderCombatProfile();
+            });
+        });
+        if (els.combatSaveTeam) { els.combatSaveTeam.addEventListener('click', saveDraftCombatTeam); }
+        if (els.combatClearTeam) { els.combatClearTeam.addEventListener('click', clearDraftCombatTeam); }
+        if (els.combatOnlyReady) { els.combatOnlyReady.addEventListener('change', renderCombatCardList); }
+        if (els.combatRarityFilter) {
+            els.combatRarityFilter.addEventListener('change', function () {
+                state.combatRarityFilter = normalizeCollectionRarity(els.combatRarityFilter.value);
+                els.combatRarityFilter.value = state.combatRarityFilter;
+                renderCombatCardList();
+            });
+        }
+        if (els.combatTypeFilter) {
+            els.combatTypeFilter.addEventListener('change', function () {
+                state.combatTypeFilter = els.combatTypeFilter.value || 'all';
+                renderCombatCardList();
+            });
+        }
+        if (els.combatStart) { els.combatStart.addEventListener('click', startTrainingCombat); }
+        els.combatActions.forEach(function (button) {
+            button.addEventListener('click', function () {
+                var action = button.getAttribute('data-combat-action') || '';
+                if (action === 'attack') { playerAttack(); }
+                if (action === 'defend') { playerDefend(); }
+                if (action === 'switch' && els.combatBench) {
+                    renderCombatBench();
+                    els.combatBench.hidden = false;
+                }
+                if (action === 'flee') { fleeCombat(); }
+            });
+        });
     }
 
     function startFreeRewardTimer() {
@@ -1992,10 +3160,10 @@
                 reader.readAsText(file);
             });
         }
-        if (els.resetBtn) { els.resetBtn.addEventListener('click', resetCollection); }
+        if (els.resetBtn) { els.resetBtn.addEventListener('click', function () { resetCollection(); }); }
         if (els.bulkSellRarity) { els.bulkSellRarity.addEventListener('change', renderBulkSellPreview); }
         if (els.bulkSellKeepBest) { els.bulkSellKeepBest.addEventListener('change', renderBulkSellPreview); }
-        if (els.bulkSellBtn) { els.bulkSellBtn.addEventListener('click', sellCardsByRarity); }
+        if (els.bulkSellBtn) { els.bulkSellBtn.addEventListener('click', function () { sellCardsByRarity(); }); }
     }
 
     loadCollectionViewPrefs();
