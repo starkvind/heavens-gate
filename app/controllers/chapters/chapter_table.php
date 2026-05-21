@@ -6,6 +6,18 @@ if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 if (!function_exists('hg_ct_h')) {
     function hg_ct_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
+if (!function_exists('hg_ct_table_exists')) {
+    function hg_ct_table_exists(mysqli $link, string $table): bool {
+        static $cache = [];
+        $table = str_replace('`', '', $table);
+        if (isset($cache[$table])) return $cache[$table];
+        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
+        if (!$rs) return $cache[$table] = false;
+        $ok = ($rs->num_rows > 0);
+        $rs->close();
+        return $cache[$table] = $ok;
+    }
+}
 if (!function_exists('hg_ct_col_exists')) {
     function hg_ct_col_exists(mysqli $link, string $table, string $column): bool {
         static $cache = [];
@@ -40,8 +52,19 @@ if (!function_exists('hg_ct_season_label')) {
         return $name !== '' ? ($prefix . ' - ' . $name) : $prefix;
     }
 }
+if (!function_exists('hg_ct_season_kind_label')) {
+    function hg_ct_season_kind_label(string $kind): string {
+        $kind = trim($kind);
+        if ($kind === 'historia_personal') return 'Historia personal';
+        if ($kind === 'especial') return 'Especial';
+        if ($kind === 'inciso') return 'Inciso';
+        return 'Temporada';
+    }
+}
 
 $hasSeasonChronicle = hg_ct_col_exists($link, 'dim_seasons', 'chronicle_id');
+$hasChapterSynopsis = hg_ct_col_exists($link, 'dim_chapters', 'synopsis');
+$hasChapterCharacters = hg_ct_table_exists($link, 'bridge_chapters_characters');
 $rows = [];
 $selectChronicle = $hasSeasonChronicle
     ? ",
@@ -53,19 +76,28 @@ $selectChronicle = $hasSeasonChronicle
         NULL AS chronicle_pretty_id,
         NULL AS chronicle_name";
 $joinChronicle = $hasSeasonChronicle ? " LEFT JOIN dim_chronicles ch ON ch.id = s.chronicle_id" : "";
+$selectSynopsis = $hasChapterSynopsis ? "COALESCE(c.synopsis, '') AS chapter_synopsis" : "'' AS chapter_synopsis";
+$selectCharactersCount = $hasChapterCharacters
+    ? "(
+            SELECT COUNT(DISTINCT bcc.character_id)
+            FROM bridge_chapters_characters bcc
+            WHERE bcc.chapter_id = c.id
+        ) AS character_count"
+    : "0 AS character_count";
 $sql = "
     SELECT
         c.id AS chapter_id,
         c.pretty_id AS chapter_pretty_id,
         c.name AS chapter_name,
         c.chapter_number,
-        c.played_date,
         s.id AS season_id,
         s.pretty_id AS season_pretty_id,
         s.name AS season_name,
         s.season_number,
         COALESCE(s.season_kind, 'temporada') AS season_kind,
-        COALESCE(s.sort_order, 999999) AS season_sort_order
+        COALESCE(s.sort_order, 999999) AS season_sort_order,
+        {$selectSynopsis},
+        {$selectCharactersCount}
         {$selectChronicle}
     FROM dim_chapters c
     LEFT JOIN dim_seasons s ON s.id = c.season_id
@@ -89,6 +121,40 @@ $pageSect = "Capítulos";
 ?>
 <link rel="stylesheet" href="/assets/css/hg-docs.css">
 <?php include_once("app/partials/datatable_assets.php"); ?>
+<style>
+    .docs-table-inner .dt-toolbar {
+        justify-content: flex-start;
+    }
+
+    .docs-table-inner .dt-toolbar .left {
+        justify-content: flex-start;
+        flex: 0 1 auto;
+    }
+
+    .docs-table-inner .ms-wrap {
+        width: 210px;
+    }
+
+    .docs-table-inner .ms-wrap--wide {
+        width: 260px;
+    }
+
+    .docs-table-inner .ms-btn {
+        display: block;
+        text-align: left;
+    }
+
+    .docs-table-inner .ms-btn .ms-label,
+    .docs-table-inner .ms-btn .ms-summary {
+        display: inline;
+        margin-left: 0;
+        text-align: left;
+    }
+
+    .docs-table-inner .ms-btn .ms-summary::before {
+        content: " ";
+    }
+</style>
 
 <h2 class="docs-table-title">Tabla de episodios</h2>
 
@@ -96,16 +162,16 @@ $pageSect = "Capítulos";
     <div class="docs-table-inner">
         <div class="dt-toolbar">
             <div class="left">
-                <div class="ms-wrap ms-wrap--wide" id="filter-season">
-                    <div class="ms-btn" id="ms-toggle-season" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
-                        <span class="ms-label">Temporada</span>
-                        <span class="ms-summary" id="ms-summary-season">Todas</span>
+                <div class="ms-wrap" id="filter-kind">
+                    <div class="ms-btn" id="ms-toggle-kind" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+                        <span class="ms-label">Tipo de temporada</span>
+                        <span class="ms-summary" id="ms-summary-kind">Todos</span>
                     </div>
-                    <div class="ms-panel" id="ms-panel-season" aria-hidden="true">
-                        <div id="ms-options-season"></div>
+                    <div class="ms-panel" id="ms-panel-kind" aria-hidden="true">
+                        <div id="ms-options-kind"></div>
                         <div class="ms-actions">
-                            <button type="button" id="ms-select-all-season">Todo</button>
-                            <button type="button" id="ms-clear-season">Limpiar</button>
+                            <button type="button" id="ms-select-all-kind">Todo</button>
+                            <button type="button" id="ms-clear-kind">Limpiar</button>
                         </div>
                     </div>
                 </div>
@@ -130,10 +196,12 @@ $pageSect = "Capítulos";
         <table id="tabla-capitulos" class="display docs-table">
             <thead>
                 <tr>
-                    <th>T&iacute;tulo episodio</th>
+                    <th>Episodio</th>
                     <th>N&ordm;</th>
                     <th>Temporada</th>
-                    <th>Fecha de juego</th>
+                    <th>Cr&oacute;nica</th>
+                    <th>Descripci&oacute;n</th>
+                    <th>N&ordm; personajes</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -183,37 +251,58 @@ $(document).ready(function () {
         return String(row.chronicle_name || '').trim() || '-';
     }
 
+    function seasonKindLabel(row) {
+        const kind = String(row.season_kind || 'temporada').trim();
+        if (kind === 'historia_personal') return 'Historia personal';
+        if (kind === 'especial') return 'Especial';
+        if (kind === 'inciso') return 'Inciso';
+        return 'Temporada';
+    }
+
+    function descriptionLength(row) {
+        const source = String(row.chapter_synopsis || '');
+        const plain = source
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return plain.length;
+    }
+
     rows.forEach(r => {
         const chapterSlug = r.chapter_pretty_id || r.chapter_id;
         const chapterName = `<a href="/chapters/${escapeHtml(chapterSlug)}">${escapeHtml(r.chapter_name || 'Sin titulo')}</a>`;
         const chapterNumber = Number(r.chapter_number || 0);
+        const seasonNumber = Number(r.season_number || 0);
         const seasonSlug = r.season_pretty_id || r.season_id || '';
         const seasonText = seasonLabel(r);
+        const seasonKind = String(r.season_kind || 'temporada').trim();
         const seasonSort = `${String(r.season_sort_order || 999999).padStart(6, '0')}-${String(r.season_number || 0).padStart(4, '0')}-${escapeHtml(seasonText)}`;
         const seasonCell = seasonSlug
             ? `<a href="/seasons/${escapeHtml(seasonSlug)}">${escapeHtml(seasonText)}</a>`
             : escapeHtml(seasonText);
-        let played = '-';
-        let playedSort = '9999-99-99';
-        if (r.played_date && r.played_date !== '0000-00-00') {
-            const parts = String(r.played_date).split('-');
-            if (parts.length === 3) played = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            else played = escapeHtml(r.played_date);
-            playedSort = escapeHtml(r.played_date);
-        }
+        const episodeCode = seasonKind === 'temporada'
+            ? `${seasonNumber > 0 ? seasonNumber : '?'}x${String(chapterNumber > 0 ? chapterNumber : 0).padStart(2, '0')}`
+            : `${chapterNumber > 0 ? chapterNumber : 0}`;
+        const episodeSort = `${String(seasonNumber > 0 ? seasonNumber : 0).padStart(4, '0')}-${String(chapterNumber > 0 ? chapterNumber : 0).padStart(4, '0')}`;
+        const chronicleText = chronicleLabel(r);
+        const descLen = descriptionLength(r);
+        const characterCount = Number(r.character_count || 0);
 
         tbody.append(`<tr>
             <td>${chapterName}</td>
-            <td data-order="${chapterNumber || 0}">${chapterNumber || '-'}</td>
+            <td data-order="${episodeSort}">${escapeHtml(episodeCode)}</td>
             <td data-order="${seasonSort}">${seasonCell}</td>
-            <td data-order="${playedSort}">${played}</td>
+            <td>${escapeHtml(chronicleText)}</td>
+            <td data-order="${descLen}">${descLen}</td>
+            <td data-order="${characterCount}">${characterCount}</td>
         </tr>`);
     });
 
     const dt = $('#tabla-capitulos').DataTable({
         pageLength: 25,
         lengthMenu: [10, 25, 50, 100],
-        order: [[2, "asc"], [1, "asc"], [0, "asc"]],
+        order: [[1, "asc"], [0, "asc"]],
         language: {
             search: "&#128269; Buscar:&nbsp;",
             lengthMenu: "Mostrar _MENU_ episodios",
@@ -232,7 +321,7 @@ $(document).ready(function () {
             const $inp = $('#tabla-capitulos_filter input');
             if ($inp.length) {
                 const cs = window.getComputedStyle($inp[0]);
-                ['#ms-toggle-season', '#ms-toggle-chronicle'].forEach(sel => {
+                ['#ms-toggle-kind', '#ms-toggle-chronicle'].forEach(sel => {
                     const $btn = $(sel);
                     if (!$btn.length) return;
                     $btn.css({
@@ -267,20 +356,20 @@ $(document).ready(function () {
         }
     });
 
-    const seasonSet = new Set();
+    const kindSet = new Set();
     const chronicleSet = new Set();
     rows.forEach(r => {
-        seasonSet.add(seasonLabel(r) || '-');
+        kindSet.add(seasonKindLabel(r));
         chronicleSet.add(chronicleLabel(r));
     });
 
     const filterConfigs = [
         {
-            key: 'season',
-            allLabel: 'Todas',
-            noneLabel: 'Ninguna',
-            values: sortValues(Array.from(seasonSet)),
-            getValue: seasonLabel
+            key: 'kind',
+            allLabel: 'Todos',
+            noneLabel: 'Ninguno',
+            values: sortValues(Array.from(kindSet)),
+            getValue: seasonKindLabel
         }
     ];
     <?php if ($hasSeasonChronicle): ?>
