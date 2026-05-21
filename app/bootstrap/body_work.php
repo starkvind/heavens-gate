@@ -464,15 +464,15 @@ $routes = [
 	'error404'   => ['app/controllers/main/error404.php', 'Error'],
 
 	// 🗃️ Temporadas
-	'seasons_home'    => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
-	'seasons_complete' => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
+	'seasons_home'       => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
+	'seasons_complete'   => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
 	'seasons_interludes' => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
-	'seasons_personal' => ['app/controllers/chapters/seasons_home.php', 'Historias personales'],
-	'seasons_specials' => ['app/controllers/chapters/seasons_home.php', 'Especiales'],
-	'temp'            => ['app/controllers/chapters/season_archive.php', 'Temporadas'],
-	'chapters_table'  => ['app/controllers/chapters/chapter_table.php', 'Capítulos'],
-	'seechapter'      => ['app/controllers/chapters/chapter_page.php', 'Capítulos'],
-	'temp_analisis'   => ['app/controllers/chapters/season_attendance_analysis.php', 'Análisis asistencia'],
+	'seasons_personal'   => ['app/controllers/chapters/seasons_home.php', 'Historias personales'],
+	'seasons_specials'   => ['app/controllers/chapters/seasons_home.php', 'Especiales'],
+	'temp'               => ['app/controllers/chapters/season_archive.php', 'Temporadas'],
+	'chapters_table'     => ['app/controllers/chapters/chapter_table.php', 'Capítulos'],
+	'seechapter'         => ['app/controllers/chapters/chapter_page.php', 'Capítulos'],
+	'temp_analisis'      => ['app/controllers/chapters/season_attendance_analysis.php', 'Análisis asistencia'],
 
 	// Plots
 	'party'		   => ['app/controllers/main/main_parties.php', 'Equipos activos'],
@@ -529,6 +529,7 @@ $routes = [
 
 	// 🔮 Poderes
 	'powers'       => ['app/controllers/pwrs/powers_home.php', null],
+
 	// Dones
 	'dones'        => ['app/controllers/pwrs/don_category_list.php', null],
 	'tipodon'      => ['app/controllers/pwrs/don_group_list.php', null],
@@ -536,6 +537,7 @@ $routes = [
 	'listadones'   => ['app/controllers/pwrs/don_table.php', null],
 	'fulldon'      => ['app/controllers/pwrs/don_full_list.php', null],
 	'customdon'    => ['app/controllers/pwrs/don_custom_list.php', null],
+
 	// Rituales
 	'rites'        => ['app/controllers/pwrs/rite_category_list.php', null],
 	'tiporite'     => ['app/controllers/pwrs/rite_group_list.php', null],
@@ -543,6 +545,7 @@ $routes = [
 	'ritelist'	   => ['app/controllers/pwrs/rite_table.php', null],
 	'fullrite'     => ['app/controllers/pwrs/rite_full_list.php', null],
 	'customrite'   => ['app/controllers/pwrs/rite_custom_list.php', null],
+
 	// Totems
 	'totems'       => ['app/controllers/pwrs/totm_category_list.php', null],
 	'tipototm'     => ['app/controllers/pwrs/totm_group_list.php', null],
@@ -550,6 +553,7 @@ $routes = [
 	'fulltotem'    => ['app/controllers/pwrs/totm_full_list.php', null],
 	'muestratotem' => ['app/controllers/pwrs/totm_page.php', null],
 	'customtotem'  => ['app/controllers/pwrs/totm_custom_list.php', null],
+
 	// Disciplinas
 	'disciplinas'  => ['app/controllers/pwrs/disc_table.php', null],
 	'tipodisc'     => ['app/controllers/pwrs/disc_group_list.php', null],
@@ -608,7 +612,7 @@ $routes = [
 	'players' 	=> ['app/controllers/playr/playr_list.php', 'Jugadores'],
 	'seeplayer' => ['app/controllers/playr/playr_page.php', 'Jugador'],
 
-	// Test
+	// Snippets del foro
 	'forum_message'   => ['app/partials/forum_message_snippet.php', null],
 	'forum_diceroll'  => ['app/partials/forum_diceroll_snippet.php', null],
 	'forum_item'      => ['app/partials/forum_item_snippet.php', null],

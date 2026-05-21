@@ -17,6 +17,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <button type="button" class="is-active" data-mobile-panel-tab="packs">Sobres</button>
         <button type="button" data-mobile-panel-tab="shop">Tienda</button>
         <button type="button" data-mobile-panel-tab="collection">Colección</button>
+        <button type="button" data-mobile-panel-tab="memory">Recordar</button>
         <button type="button" data-mobile-panel-tab="combat">Combate</button>
         <button type="button" data-mobile-panel-tab="info">Información</button>
     </nav>
@@ -25,8 +26,8 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <section class="hg-mobile-panel is-active" data-mobile-panel="packs" aria-label="Sobres disponibles">
             <div class="hg-cards__controls hg-mobile-stats" aria-label="Estado de sobres">
                 <div class="hg-counter" aria-live="polite">
-                    <span>Sobres gratis</span>
-                    <strong id="hgDailyPacksCounter"><?php echo $isAdmin ? 'Admin' : '0 / 10'; ?></strong>
+                    <span>Gratis hoy</span>
+                    <strong id="hgDailyPacksCounter"><?php echo $isAdmin ? 'Admin' : '0 / 3'; ?></strong>
                 </div>
                 <div class="hg-counter" aria-live="polite">
                     <span>Colección</span>
@@ -40,12 +41,12 @@ $isAdmin = !empty($hgCardsIsAdmin);
 
             <p id="hgStatusText" class="hg-cards__status">Cargando catálogo...</p>
 
-            <div class="hg-pack-grid hg-pack-grid--mobile">
+            <div class="hg-pack-grid hg-pack-grid--mobile" data-pack-grid>
                 <button type="button" class="hg-pack hg-pack--standard" data-pack-kind="standard">
                     <span class="hg-pack__seal">HG</span>
                     <span class="hg-pack__title">Sobre mnemónico</span>
                     <span class="hg-pack__count">5 cartas</span>
-                    <span class="hg-pack__stock" data-pack-stock="standard">0 hoy</span>
+                    <span class="hg-pack__stock" data-pack-stock="standard">x0</span>
                 </button>
                 <button type="button" class="hg-pack hg-pack--echoes" data-pack-kind="echoes">
                     <span class="hg-pack__seal">EC</span>
@@ -101,6 +102,13 @@ $isAdmin = !empty($hgCardsIsAdmin);
                     <span class="hg-pack__count">Raro o superior</span>
                     <span class="hg-pack__stock" data-pack-stock="omens">x0</span>
                 </button>
+                <button type="button" class="hg-pack hg-pack--gaian" data-pack-kind="gaian">
+                    <span class="hg-pack__seal">GA</span>
+                    <span class="hg-pack__title">Sobre gaiano</span>
+                    <span class="hg-pack__count">Epico o superior</span>
+                    <span class="hg-pack__stock" data-pack-stock="gaian">x0</span>
+                </button>
+                <button type="button" class="hg-pack-open-all" data-pack-open-all>Abrir todos</button>
             </div>
 
             <section class="hg-pack-results" aria-live="polite" aria-label="Resultado del sobre">
@@ -118,16 +126,21 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <p>Usa Mnemones para reclamar sobres adicionales.</p>
             </div>
             <div class="hg-shop-grid hg-shop-grid--mobile">
-                <button type="button" class="hg-shop-item" data-buy-pack="standard"><span>Sobre mnemónico</span><strong>50 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="echoes"><span>Sobre de ecos</span><strong>90 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="magic"><span>Sobre mágico</span><strong>220 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="characters"><span>Sobre de personajes</span><strong>240 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="lineage"><span>Sobre de linaje</span><strong>420 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="essence"><span>Sobre de esencia</span><strong>300 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="powers"><span>Sobre arcano</span><strong>240 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="chronicles"><span>Sobre de crónica</span><strong>140 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="relics"><span>Sobre de reliquias</span><strong>160 Mnemones</strong></button>
-                <button type="button" class="hg-shop-item" data-buy-pack="omens"><span>Sobre de presagios</span><strong>650 Mnemones</strong></button>
+                <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1"><span>Mnemónico gratis</span><strong>Gratis - quedan 3</strong></article>
+                <article class="hg-shop-item" data-shop-pack="standard"><span>Sobre mnemónico</span><strong>50 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="echoes"><span>Sobre de ecos</span><strong>90 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="magic"><span>Sobre mágico</span><strong>220 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="characters"><span>Sobre de personajes</span><strong>240 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="lineage"><span>Sobre de linaje</span><strong>420 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="essence"><span>Sobre de esencia</span><strong>300 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="powers"><span>Sobre arcano</span><strong>240 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="chronicles"><span>Sobre de crónica</span><strong>140 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="relics"><span>Sobre de reliquias</span><strong>160 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="omens"><span>Sobre de presagios</span><strong>650 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-pack="gaian"><span>Sobre gaiano</span><strong>2000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="icarus_vial"><span>Vial de Ícaro</span><strong>10000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="stigma_orb"><span>Orbe de Estigma</span><strong>50000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="babylon_shred"><span>Retal de Babilonia</span><strong>125000 Mnemones</strong></article>
             </div>
         </section>
 
@@ -242,6 +255,20 @@ $isAdmin = !empty($hgCardsIsAdmin);
             </section>
         </section>
 
+        <section class="hg-mobile-panel" data-mobile-panel="memory" aria-label="Rememoración de cartas">
+            <section class="hg-workbench hg-workbench--mobile" aria-label="Recordar cartas">
+                <div class="hg-section-head hg-section-head--split">
+                    <div>
+                        <h3>Recordar</h3>
+                        <p>Las cartas que están rememorando generan Mnemones, fragmentos de Mnemógeno. Puedes tener hasta 5 y cada una debe permanecer 24 horas antes de volver.</p>
+                    </div>
+                    <button type="button" class="hg-primary-btn" data-work-claim>Reclamar</button>
+                </div>
+                <div class="hg-workbench__summary" data-work-summary aria-live="polite"></div>
+                <div class="hg-workbench__list" data-work-list aria-live="polite"></div>
+            </section>
+        </section>
+
         <section class="hg-mobile-panel" data-mobile-panel="combat" aria-label="Combate de entrenamiento">
             <div class="hg-combat-screen-tabs" role="tablist" aria-label="Pantallas de combate">
                 <button type="button" class="is-active" data-combat-screen-tab="battle">Combate</button>
@@ -273,6 +300,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 </section>
                 <div class="hg-combat-team__slots" data-combat-team-slots aria-live="polite"></div>
                 <div class="hg-combat-team__actions">
+                    <button type="button" data-combat-auto-team>Auto</button>
                     <button type="button" class="hg-primary-btn" data-combat-save-team>Guardar</button>
                     <button type="button" data-combat-clear-team>Vaciar</button>
                 </div>
@@ -378,20 +406,58 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <section class="hg-mobile-panel" data-mobile-panel="info" aria-label="Explicación del juego">
             <div class="hg-doc-section">
                 <h3>Cómo funciona</h3>
-                <p>Abre sobres, guarda cartas en este navegador y usa Mnemones para reclamar más sobres o vender cartas repetidas.</p>
+                <p>Abre sobres, consigue cartas del Archivo de Mnemógeno y conserva tu colección en este navegador. Usa Mnemones para reclamar más sobres, vender cartas repetidas, asignar copias a recordar o preparar combates de entrenamiento.</p>
             </div>
+
             <div class="hg-doc-grid">
                 <article>
                     <h4>Rarezas</h4>
-                    <p>Común, Inusual, Raro, Épico, Legendario y Mítico. La rareza fija el color de la carta y sus rangos base.</p>
+                    <p>Común, Inusual, Raro, Épico, Legendario y Mítico. La rareza fija el color de la carta, sus rangos base y el valor que obtienes al desintegrarla.</p>
                 </article>
+
                 <article>
                     <h4>Atributos</h4>
-                    <p>Cada copia obtiene PS, ATQ y DEF aleatorios dentro de los límites de su carta. Dos copias iguales pueden salir distintas.</p>
+                    <p>Cada copia obtiene PS, ATQ y DEF aleatorios dentro de los límites de su carta. Dos copias de la misma carta pueden despertar con valores distintos.</p>
                 </article>
+
                 <article>
-                    <h4>Economía</h4>
-                    <p>Se recarga 1 sobre gratis cada 10 minutos, hasta 10. También se añaden 100 Mnemones cada 60 minutos, hasta 1000 acumulados por recarga.</p>
+                    <h4>Sobres</h4>
+                    <p>Cada sobre contiene 5 cartas. Algunos aceptan cualquier carta activa y otros se centran en personajes, poderes, crónicas, reliquias, linajes o cartas raras.</p>
+                </article>
+
+                <article>
+                    <h4>Tienda</h4>
+                    <p>Compra sobres con Mnemones. El sobre mnemónico siempre está disponible; los demás sobres pueden comprarse o aparecer en tu inventario si ya tienes unidades.</p>
+                </article>
+
+                <article>
+                    <h4>Mnemones</h4>
+                    <p>Son la moneda local del minijuego. Se obtienen combatiendo, vendiendo cartas o asignando copias a recordar. También se gastan para reclamar sobres adicionales.</p>
+                </article>
+
+                <article>
+                    <h4>Recordar</h4>
+                    <p>Las cartas asignadas a recordar generan Mnemones de forma pasiva. Es una forma de convertir recuerdos del Archivo en recursos para seguir abriendo sobres.</p>
+                </article>
+
+                <article>
+                    <h4>Vender cartas</h4>
+                    <p>Puedes desintegrar copias concretas, duplicadas o cartas de una rareza determinada. El valor depende de la rareza: cuanto más excepcional sea la carta, más Mnemones devuelve.</p>
+                </article>
+
+                <article>
+                    <h4>Colección</h4>
+                    <p>El álbum muestra todas las cartas activas del catálogo, incluso las que aún no has obtenido. Las cartas conseguidas pueden abrirse, revisarse y compararse por sus mejores copias.</p>
+                </article>
+
+                <article>
+                    <h4>Combate</h4>
+                    <p>Prepara un equipo de 5 copias concretas y enfréntalo a rivales generados desde el catálogo. Ganar entrenamientos concede Mnemones; perder no destruye tus cartas.</p>
+                </article>
+
+                <article>
+                    <h4>Guardado local</h4>
+                    <p>Tu progreso se guarda en este navegador mediante almacenamiento local. No hay cuenta de usuario ni sincronización con servidor: si borras los datos del navegador, perderás la colección salvo que la hayas exportado.</p>
                 </article>
             </div>
         </section>

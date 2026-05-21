@@ -43,7 +43,7 @@
     --hg-line: rgba(255, 255, 255, 0.14);
     --hg-muted: #a8b3bd;
     --hg-text: #edf3f6;
-    max-width: 1180px;
+    max-width: 980px;
     margin: 0 auto;
     padding: 18px;
     background:
@@ -55,7 +55,7 @@
 .hg-game-tabs {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 10px;
     margin: -18px -18px 18px;
     padding: 14px 18px;
     background: #05070a;
@@ -63,21 +63,51 @@
 }
 
 .hg-game-tabs a {
-    color: #9ba6b7;
+    display: inline-grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    color: transparent;
     text-decoration: none;
-    font-size: 1.05rem;
+    font-size: 0;
     font-weight: 800;
     letter-spacing: 0;
+    border: 1px solid rgba(120, 156, 205, 0.22);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.035);
 }
 
 .hg-game-tabs a:hover,
 .hg-game-tabs a.is-active {
-    color: #ffc400;
+    background: #ffc400;
+    border-color: #ffe071;
 }
 
 .hg-game-tabs a.is-active {
-    border-bottom: 2px solid #ffc400;
+    box-shadow: 0 0 0 2px rgba(255,196,0,0.22);
 }
+
+.hg-game-tabs a::before,
+.hg-mobile-tabs button::before {
+    content: "";
+    display: block;
+    width: 34px;
+    height: 34px;
+    background: center / contain no-repeat;
+}
+
+.hg-game-tabs a[href="/games/card-game"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="packs"]::before { background-image: url("/img/ui/card_game_icons/card_game_booster_packs.png"); }
+.hg-game-tabs a[href="/games/card-game#shop"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="shop"]::before { background-image: url("/img/ui/card_game_icons/card_game_shop.png"); }
+.hg-game-tabs a[href="/games/card-game/collection"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="collection"]::before { background-image: url("/img/ui/card_game_icons/card_game_collection.png"); }
+.hg-game-tabs a[href="/games/card-game/collection#memory"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="memory"]::before { background-image: url("/img/ui/card_game_icons/card_game_remembrance.png"); }
+.hg-game-tabs a[href="/games/card-game/combat"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="combat"]::before { background-image: url("/img/ui/card_game_icons/card_game_combat.png"); }
+.hg-game-tabs a[href="/games/card-game/explanation"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="info"]::before { background-image: url("/img/ui/card_game_icons/card_game_info.png"); }
 
 .hg-cards button,
 .hg-cards select,
@@ -466,7 +496,7 @@
 
 .hg-shop-item {
     display: grid;
-    gap: 3px;
+    gap: 7px;
     min-height: 64px;
     padding: 12px 14px;
     color: #eaf5ff;
@@ -479,6 +509,18 @@
 
 .hg-shop-item strong {
     color: #ffc400;
+}
+
+.hg-shop-item > span:first-child {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.hg-shop-item > span:first-child img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
 }
 
 .hg-shop-item__contents {
@@ -495,9 +537,44 @@
 
 .hg-shop-item:disabled,
 .hg-shop-item.is-empty {
-    cursor: not-allowed;
     opacity: 0.58;
     filter: grayscale(0.35);
+}
+
+.hg-shop-item__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 3px;
+}
+
+.hg-shop-buy,
+.hg-pack-open-all {
+    min-height: 34px;
+    padding: 7px 10px;
+    color: #101010;
+    background: #ffc400;
+    border: 1px solid #ffe071;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+.hg-shop-buy:disabled,
+.hg-pack-open-all:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    filter: grayscale(0.4);
+}
+
+.hg-pack-open-all {
+    align-self: stretch;
+    min-height: 64px;
+}
+
+.hg-pack-empty-state {
+    grid-column: 1 / -1;
+    margin: 0;
 }
 
 .hg-pack-results,
@@ -870,7 +947,7 @@
 
 .hg-bulk-sell {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto minmax(150px, 220px) minmax(190px, 260px) auto minmax(150px, auto);
+    grid-template-columns: minmax(220px, 1.1fr) auto minmax(150px, 220px) minmax(190px, 260px) auto minmax(220px, 1fr);
     gap: 12px;
     align-items: center;
     margin-top: 20px;
@@ -878,6 +955,10 @@
     background: rgba(9, 18, 34, 0.9);
     border: 1px solid rgba(120, 156, 205, 0.28);
     border-radius: 8px;
+}
+
+.hg-bulk-sell > div {
+    min-width: 0;
 }
 
 .hg-bulk-sell h3 {
@@ -935,9 +1016,21 @@
 }
 
 .hg-bulk-sell__preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px 10px;
+    min-width: 0;
+    max-width: 100%;
     color: #ffd45b;
     font-size: 0.95rem;
-    white-space: nowrap;
+    line-height: 1.25;
+    white-space: normal;
+}
+
+.hg-bulk-sell__preview span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .hg-collection-table-wrap {
@@ -1040,6 +1133,28 @@
 .hg-type-icon--form { color: #99e8ca; }
 .hg-type-icon--system { color: #80e7f0; }
 
+.hg-type-icon--combat {
+    width: 1.2em;
+    height: 1.2em;
+    min-width: 1.2em;
+}
+
+.hg-combat-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    min-width: 0;
+    vertical-align: middle;
+}
+
+.hg-combat-card-title__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .hg-rarity-label {
     font-weight: 900;
 }
@@ -1056,10 +1171,181 @@
     margin-top: 22px;
 }
 
+.hg-workbench,
 .hg-collection-tools {
     margin-top: 26px;
     padding-top: 18px;
     border-top: 1px solid var(--hg-line);
+}
+
+.hg-workbench {
+    padding: 16px;
+    background: rgba(9, 18, 34, 0.54);
+    border: 1px solid rgba(120, 156, 205, 0.24);
+    border-radius: 8px;
+}
+
+.hg-workbench__summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+}
+
+.hg-workbench__summary span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px;
+    background: rgba(9, 18, 34, 0.82);
+    border: 1px solid rgba(120, 156, 205, 0.25);
+    border-radius: 8px;
+}
+
+.hg-workbench__summary strong {
+    color: #ffd45b;
+    font-size: 1.08rem;
+}
+
+.hg-workbench__summary small {
+    color: #9bb7da;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.hg-workbench__list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.hg-work-slot {
+    display: grid;
+    grid-template-rows: auto minmax(122px, auto);
+    gap: 9px;
+    align-items: start;
+    min-width: 0;
+    padding: 10px;
+    color: #dce8f8;
+    background: rgba(9, 18, 34, 0.82);
+    border: 1px solid rgba(120, 156, 205, 0.25);
+    border-radius: 8px;
+    box-shadow: inset 3px 0 0 var(--row-rarity, rgba(255,255,255,0.18));
+}
+
+.hg-work-slot.is-empty {
+    box-shadow: none;
+    border-style: dashed;
+}
+
+.hg-work-slot__card {
+    display: grid;
+    justify-items: center;
+    min-width: 0;
+}
+
+.hg-card--memory {
+    --hg-game-card-width: min(100%, 220px);
+    --hg-game-card-height: 255px;
+    grid-template-rows: 30px 86px 101px 38px;
+    font-size: 0.74rem;
+}
+
+.hg-card--memory .hg-card__head {
+    min-height: 30px;
+    padding: 5px 8px;
+}
+
+.hg-card--memory .hg-card__head h4 {
+    font-size: 0.7rem;
+}
+
+.hg-card--memory .hg-card__image {
+    height: 86px;
+}
+
+.hg-card--memory .hg-card__body {
+    min-height: 101px;
+    padding: 7px 8px;
+}
+
+.hg-card--memory .hg-card__meta {
+    font-size: 0.58rem;
+}
+
+.hg-card--memory .hg-card__text {
+    -webkit-line-clamp: 3;
+    font-size: 0.62rem;
+    line-height: 1.2;
+}
+
+.hg-card--memory .hg-card__stats {
+    min-height: 38px;
+}
+
+.hg-card--memory .hg-card__stats span {
+    font-size: 0.58rem;
+}
+
+.hg-card--memory .hg-card__stats b {
+    font-size: 1rem;
+}
+
+.hg-work-slot__effects,
+.hg-work-slot__empty {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.hg-work-slot__empty {
+    align-content: center;
+    min-height: 255px;
+    text-align: center;
+}
+
+.hg-work-slot__effects b,
+.hg-work-slot__effects span,
+.hg-work-slot__effects small,
+.hg-work-slot__empty strong,
+.hg-work-slot__empty span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hg-work-slot__effects span,
+.hg-work-slot__empty span {
+    color: #9fb1ca;
+    font-size: 0.8rem;
+}
+
+.hg-work-slot__effects b {
+    color: #ffd45b;
+    font-weight: 900;
+}
+
+.hg-work-slot__effects small {
+    color: #9fb1ca;
+    white-space: nowrap;
+}
+
+.hg-work-slot select {
+    width: 100%;
+    min-width: 0;
+}
+
+.hg-work-slot button {
+    min-height: 34px;
+    padding: 7px 10px;
+    color: #dce8f8;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(120,156,205,0.35);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 900;
 }
 
 .hg-collection-tools .hg-import-export {
@@ -1223,6 +1509,10 @@
     gap: 12px;
     justify-content: stretch;
     padding-bottom: 18px;
+}
+
+.hg-cards--collection:not(.hg-cards--mobile) .hg-album__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .hg-album-slot {
@@ -1477,6 +1767,101 @@
     font-size: 0.78rem;
 }
 
+.hg-combat-team-total {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 10px;
+    align-items: center;
+    min-height: 50px;
+    padding: 10px 12px;
+    color: #dce8f8;
+    background: rgba(149, 216, 209, 0.1);
+    border: 1px solid rgba(149, 216, 209, 0.34);
+    border-radius: 8px;
+}
+
+.hg-combat-team-total strong {
+    color: #ffffff;
+}
+
+.hg-combat-team-total b {
+    color: #ffc400;
+    font-size: 1.15rem;
+}
+
+.hg-combat-team-total span {
+    color: #9fb1ca;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.hg-combat-statline {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(54px, 1fr));
+    gap: 6px;
+    margin-top: 7px;
+}
+
+.hg-combat-team-slot .hg-combat-statline,
+.hg-combat-card-pick .hg-combat-statline,
+.hg-combat-bench .hg-combat-statline {
+    display: grid;
+    overflow: visible;
+    white-space: normal;
+}
+
+.hg-combat-statline span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 5px 6px;
+    background: rgba(255,255,255,0.065);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+}
+
+.hg-combat-statline em,
+.hg-combat-statline b {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-style: normal;
+    line-height: 1.05;
+}
+
+.hg-combat-statline em {
+    color: #9fb1ca;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+}
+
+.hg-combat-statline b {
+    color: #ffd45b;
+    font-size: 0.78rem;
+}
+
+.hg-combat-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    color: #9fb1ca;
+    font-size: 0.72rem;
+}
+
+.hg-combat-team-slot .hg-combat-card-meta,
+.hg-combat-card-pick .hg-combat-card-meta {
+    display: flex;
+    overflow: visible;
+    white-space: normal;
+}
+
+.hg-combat-card-meta span {
+    min-width: 0;
+}
+
 .hg-combat-card-pick:disabled {
     cursor: not-allowed;
     opacity: 0.45;
@@ -1550,14 +1935,16 @@
 
 .hg-combat-team-preview {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
     gap: 8px;
 }
 
 .hg-combat-team-preview__card,
-.hg-combat-team-preview__empty {
+.hg-combat-team-preview__empty,
+.hg-combat-team-preview__total {
     min-width: 0;
-    padding: 7px 8px;
+    min-height: 56px;
+    padding: 8px 10px;
     color: #dce8f8;
     background: rgba(5, 8, 14, 0.76);
     border: 1px solid rgba(120, 156, 205, 0.2);
@@ -1565,17 +1952,31 @@
 }
 
 .hg-combat-team-preview__card strong,
-.hg-combat-team-preview__card small {
+.hg-combat-team-preview__total strong {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.hg-combat-team-preview__card small {
+.hg-combat-team-preview__card small,
+.hg-combat-team-preview__total small {
+    display: block;
     color: #9fb1ca;
-    font-size: 0.68rem;
-    margin-top: 2px;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    margin-top: 4px;
+}
+
+.hg-combat-team-preview__total {
+    border-color: rgba(255, 196, 0, 0.46);
+    background: rgba(255, 196, 0, 0.1);
+}
+
+.hg-combat-team-preview__total small {
+    color: #ffc400;
+    font-size: 0.86rem;
+    font-weight: 1000;
 }
 
 .hg-combat-team-preview__empty {
@@ -1921,7 +2322,7 @@
     bottom: 12px;
     z-index: 8;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 8px;
     height: calc(50% - 18px);
     overflow: auto;
@@ -1937,7 +2338,7 @@
 }
 
 .hg-combat-bench button {
-    min-height: 48px;
+    min-height: 112px;
     text-align: left;
 }
 
@@ -1952,6 +2353,57 @@
 .hg-combat-bench span {
     color: #9fb1ca;
     font-size: 0.76rem;
+}
+
+.hg-combat-bench-card {
+    display: grid;
+    gap: 7px;
+}
+
+.hg-combat-bench-card .hg-combat-statline {
+    grid-template-columns: repeat(3, minmax(58px, 1fr));
+}
+
+.hg-combat-statline--switch {
+    grid-template-columns: repeat(3, minmax(58px, 1fr));
+}
+
+.hg-combat-bench .hg-combat-statline,
+.hg-combat-bench .hg-combat-statline span,
+.hg-combat-bench .hg-combat-card-meta,
+.hg-combat-bench .hg-combat-card-meta span {
+    display: grid;
+    overflow: visible;
+    white-space: normal;
+}
+
+.hg-combat-bench .hg-combat-card-meta {
+    display: flex;
+}
+
+.hg-combat-team-slot strong .hg-combat-card-title,
+.hg-combat-card-pick strong .hg-combat-card-title,
+.hg-combat-team-preview__card strong .hg-combat-card-title,
+.hg-combat-bench strong .hg-combat-card-title,
+.hg-combat-hud strong .hg-combat-card-title,
+.hg-card--combat-unit .hg-card__head h4 .hg-combat-card-title {
+    display: inline-flex;
+    width: 100%;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.hg-combat-team-slot strong .hg-combat-card-title__name,
+.hg-combat-card-pick strong .hg-combat-card-title__name,
+.hg-combat-team-preview__card strong .hg-combat-card-title__name,
+.hg-combat-bench strong .hg-combat-card-title__name,
+.hg-combat-hud strong .hg-combat-card-title__name,
+.hg-card--combat-unit .hg-card__head h4 .hg-combat-card-title__name {
+    display: block;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
 }
 
 .hg-combat-end {
@@ -2168,7 +2620,7 @@
     top: 77px;
     z-index: 19;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 6px;
     margin: 0 0 12px;
     padding: 6px;
@@ -2178,15 +2630,17 @@
 }
 
 .hg-mobile-tabs button {
+    display: grid;
+    place-items: center;
     min-width: 0;
     min-height: 44px;
     padding: 6px 4px;
     border: 0;
     border-radius: 9px;
     background: transparent;
-    color: #aebdd5;
+    color: transparent;
     font-weight: 900;
-    font-size: 0.78rem;
+    font-size: 0;
 }
 
 .hg-mobile-tabs button.is-active {
@@ -2267,6 +2721,83 @@
 .hg-cards--mobile .hg-bulk-sell {
     grid-template-columns: 1fr;
     align-items: stretch;
+}
+
+.hg-cards--mobile .hg-bulk-sell__preview {
+    align-self: stretch;
+    gap: 4px 8px;
+}
+
+.hg-cards--mobile .hg-workbench__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.hg-cards--mobile .hg-workbench__summary span {
+    padding: 8px 6px;
+}
+
+.hg-cards--mobile .hg-workbench__summary strong {
+    font-size: 0.92rem;
+}
+
+.hg-cards--mobile .hg-workbench__summary small {
+    font-size: 0.62rem;
+}
+
+.hg-cards--mobile .hg-workbench__list {
+    grid-template-columns: 1fr;
+}
+
+.hg-cards--mobile .hg-work-slot {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+}
+
+.hg-cards--mobile .hg-card--memory {
+    --hg-game-card-width: min(285px, calc(100vw - 60px));
+    --hg-game-card-height: 330px;
+    grid-template-rows: 38px 112px 130px 50px;
+    font-size: 1rem;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__head {
+    min-height: 38px;
+    padding: 7px 9px;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__head h4 {
+    font-size: 0.78rem;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__image {
+    height: 112px;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__body {
+    min-height: 130px;
+    padding: 8px;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__meta {
+    font-size: 0.66rem;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__text {
+    -webkit-line-clamp: 5;
+    font-size: 0.74rem;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__stats {
+    min-height: 50px;
+}
+
+.hg-cards--mobile .hg-card--memory .hg-card__stats b {
+    font-size: 1.35rem;
+}
+
+.hg-cards--mobile .hg-work-slot button {
+    width: 100%;
 }
 
 .hg-collection-table-wrap--mobile {
@@ -2499,38 +3030,39 @@
 }
 
 .hg-cards--mobile .hg-combat-hud {
-    width: 41%;
-    padding: 6px 7px;
+    width: min(48%, 230px);
+    padding: 8px 9px;
 }
 
 .hg-cards--mobile .hg-combat-hud strong {
-    font-size: 0.72rem;
+    font-size: 0.76rem;
+    line-height: 1.15;
 }
 
 .hg-cards--mobile .hg-combat-hud small {
-    margin-top: 2px;
+    margin-top: 4px;
     font-size: 0.64rem;
 }
 
 .hg-cards--mobile .hg-combat-shields {
-    gap: 2px;
-    min-height: 8px;
-    margin-top: 3px;
+    gap: 3px;
+    min-height: 10px;
+    margin-top: 6px;
 }
 
 .hg-cards--mobile .hg-combat-shields span {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
 }
 
 .hg-cards--mobile .hg-combat-hp {
-    height: 8px;
-    margin-top: 4px;
+    height: 9px;
+    margin-top: 5px;
 }
 
 .hg-cards--mobile .hg-combat-stats {
-    gap: 4px;
-    margin-top: 4px;
+    gap: 5px;
+    margin-top: 5px;
 }
 
 .hg-cards--mobile .hg-combat-stats span {
@@ -2949,12 +3481,9 @@
     box-shadow: 0 24px 70px rgba(0,0,0,0.72);
 }
 
-.hg-card-modal__panel--single {
-    grid-template-columns: var(--hg-game-card-width);
-}
-
 .hg-card-modal__panel--variants {
-    grid-template-columns: var(--hg-game-card-width) minmax(260px, 340px);
+    grid-template-columns: var(--hg-game-card-width) minmax(400px, 430px);
+    width: min(760px, calc(100vw - 48px));
 }
 
 .hg-card-modal__card {
@@ -3014,11 +3543,36 @@
 }
 
 .hg-card-modal--mobile .hg-card-variants__select em {
-    display: none;
+    display: block;
+    justify-self: end;
+}
+
+.hg-card-modal--mobile .hg-card-variants__item {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.hg-card-modal--mobile .hg-card-variants__select {
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 4px 2px;
+}
+
+.hg-card-modal--mobile .hg-card-variants__select strong {
+    white-space: normal;
+    line-height: 1.25;
+}
+
+.hg-card-modal--mobile .hg-card-variants__item .hg-upgrade-btn--small,
+.hg-card-modal--mobile .hg-card-variants__item .hg-improve-btn--small,
+.hg-card-modal--mobile .hg-card-variants__item .hg-recycle-btn--small {
+    width: 100%;
+    min-width: 0;
 }
 
 .hg-card-variants {
     width: 100%;
+    min-width: 0;
     color: #dce8f5;
 }
 
@@ -3026,15 +3580,18 @@
     cursor: pointer;
     color: #ffffff;
     font-weight: 900;
+    text-align: right;
 }
 
 .hg-card-variants__actions {
+    display: flex;
+    justify-content: flex-end;
     margin-top: 10px;
 }
 
 .hg-card-variants__list {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     margin-top: 10px;
     max-height: 360px;
     overflow: auto;
@@ -3043,11 +3600,11 @@
 
 .hg-card-variants__item {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: minmax(170px, 1fr) repeat(3, 42px);
+    gap: 10px;
     align-items: center;
     min-height: 38px;
-    padding: 6px;
+    padding: 10px;
     color: #dce8f5;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(120,156,205,0.26);
@@ -3061,13 +3618,18 @@
     background: rgba(255,196,0,0.12);
 }
 
+.hg-card-variants__item.is-working {
+    border-color: rgba(181, 240, 127, 0.55);
+    background: rgba(181, 240, 127, 0.08);
+}
+
 .hg-card-variants__select {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(72px, 1fr) auto;
     gap: 8px;
     align-items: center;
     min-width: 0;
-    padding: 3px;
+    padding: 5px;
     color: inherit;
     background: transparent;
     border: 0;
@@ -3096,6 +3658,7 @@
     color: #ffc400;
     font-style: normal;
     font-weight: 900;
+    white-space: nowrap;
 }
 
 .hg-recycle-btn {
@@ -3117,6 +3680,495 @@
 .hg-recycle-btn--small {
     min-width: 48px;
     padding: 6px 8px;
+}
+
+.hg-icon-action {
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 5px !important;
+    line-height: 1;
+}
+
+.hg-icon-action--wide {
+    width: 54px;
+    min-width: 54px;
+}
+
+.hg-icon-action img {
+    display: block;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.hg-icon-action--wide img {
+    width: 34px;
+    height: 34px;
+}
+
+@media (max-width: 780px) {
+    .hg-card-modal__panel--variants {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        width: min(430px, calc(100vw - 32px));
+    }
+
+    .hg-card-variants {
+        width: min(100%, 400px);
+    }
+
+    .hg-card-variants summary {
+        text-align: center;
+    }
+}
+
+.hg-upgrade-btn,
+.hg-improve-btn {
+    min-height: 34px;
+    padding: 7px 10px;
+    color: #081014;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+.hg-upgrade-btn {
+    background: #9ee3dc;
+    border: 1px solid #c7fff9;
+}
+
+.hg-improve-btn {
+    background: #b5f07f;
+    border: 1px solid #dafcb9;
+}
+
+.hg-upgrade-btn:hover,
+.hg-upgrade-btn:focus-visible,
+.hg-improve-btn:hover,
+.hg-improve-btn:focus-visible {
+    filter: brightness(1.08);
+}
+
+.hg-upgrade-btn:disabled,
+.hg-improve-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.hg-upgrade-btn--small,
+.hg-improve-btn--small {
+    min-width: 44px;
+    padding: 6px;
+}
+
+.hg-upgrade-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(0,0,0,0.76);
+}
+
+.hg-upgrade-modal__panel {
+    display: grid;
+    gap: 14px;
+    width: min(100%, 980px);
+    max-height: min(92vh, 860px);
+    overflow: auto;
+    padding: 18px;
+    color: #dce8f5;
+    background: #090f1d;
+    border: 1px solid rgba(120,156,205,0.42);
+    border-radius: 8px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.52);
+}
+
+.hg-upgrade-modal__head,
+.hg-upgrade-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.hg-upgrade-modal__head h3 {
+    margin: 0;
+    color: #ffffff;
+}
+
+.hg-upgrade-modal__head p {
+    margin: 4px 0 0;
+    color: #9fb1ca;
+    font-weight: 800;
+}
+
+.hg-upgrade-modal__head button,
+.hg-upgrade-actions button {
+    min-height: 38px;
+    padding: 8px 12px;
+    color: #dce8f5;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(120,156,205,0.35);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+.hg-upgrade-bars {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.hg-upgrade-cost {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.hg-upgrade-cost span {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 3px 8px;
+    align-items: center;
+    min-height: 54px;
+    padding: 10px 12px;
+    color: #eaf5ff;
+    background: rgba(8, 14, 28, 0.82);
+    border: 1px solid rgba(255, 196, 0, 0.28);
+    border-radius: 8px;
+}
+
+.hg-upgrade-cost img {
+    grid-row: 1 / span 2;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.hg-upgrade-cost b,
+.hg-upgrade-cost em {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hg-upgrade-cost b {
+    color: #ffc400;
+}
+
+.hg-upgrade-cost em {
+    color: #9fb1ca;
+    font-size: 0.74rem;
+    font-style: normal;
+}
+
+.hg-upgrade-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+    padding: 10px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(120,156,205,0.26);
+    border-radius: 8px;
+    font-weight: 900;
+}
+
+.hg-upgrade-bar strong {
+    color: #ffc400;
+}
+
+.hg-upgrade-bar i {
+    grid-column: 1 / -1;
+    display: block;
+    height: 10px;
+    overflow: hidden;
+    background: #1c2430;
+    border-radius: 999px;
+}
+
+.hg-upgrade-bar b {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #42d67b, #ffc400);
+}
+
+.hg-upgrade-bar--rarity b {
+    background: linear-gradient(90deg, #9ee3dc, #ffc400);
+}
+
+.hg-upgrade-bar--quality b {
+    background: linear-gradient(90deg, #42d67b, #b5f07f);
+}
+
+.hg-upgrade-slots {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.hg-upgrade-slot {
+    min-width: 0;
+    min-height: 58px;
+    padding: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(120,156,205,0.32);
+    border-radius: 8px;
+}
+
+.hg-upgrade-slot.is-filled {
+    border-style: solid;
+    border-color: rgba(158,227,220,0.6);
+    background: rgba(158,227,220,0.1);
+}
+
+.hg-upgrade-slot strong,
+.hg-upgrade-slot small {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hg-upgrade-slot small {
+    margin-top: 4px;
+    color: #9fb1ca;
+    font-size: 0.76rem;
+}
+
+.hg-upgrade-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.hg-upgrade-filters select {
+    width: 100%;
+    min-height: 38px;
+    color: #dce8f5;
+    background: #050608;
+    border: 1px solid rgba(120,156,205,0.35);
+    border-radius: 8px;
+    padding: 7px 9px;
+}
+
+.hg-upgrade-list {
+    display: grid;
+    gap: 8px;
+    max-height: 360px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.hg-upgrade-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, auto) auto;
+    gap: 10px;
+    align-items: center;
+    min-height: 48px;
+    padding: 8px 10px;
+    color: #dce8f5;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(120,156,205,0.25);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.hg-upgrade-row.is-selected {
+    border-color: #ffc400;
+    background: rgba(255,196,0,0.12);
+}
+
+.hg-upgrade-row:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.hg-upgrade-row strong,
+.hg-upgrade-row span,
+.hg-upgrade-row__meta em {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hg-upgrade-row strong .hg-combat-card-title,
+.hg-upgrade-slot strong .hg-combat-card-title {
+    width: 100%;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.hg-upgrade-row strong .hg-combat-card-title__name,
+.hg-upgrade-slot strong .hg-combat-card-title__name {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.hg-upgrade-row span,
+.hg-upgrade-row__meta {
+    color: #9fb1ca;
+    font-size: 0.82rem;
+}
+
+.hg-upgrade-row__meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, auto));
+    justify-content: end;
+    gap: 8px;
+}
+
+.hg-upgrade-row__meta em {
+    font-style: normal;
+}
+
+.hg-upgrade-row b {
+    color: #ffc400;
+}
+
+.hg-upgrade-confirm {
+    color: #081014 !important;
+    background: #ffc400 !important;
+    border-color: #ffe071 !important;
+}
+
+.hg-upgrade-confirm:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.hg-upgrade-modal--mobile {
+    align-items: stretch;
+    padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-modal__panel {
+    gap: 10px;
+    max-height: 100svh;
+    padding: 12px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-modal__head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: -12px -12px 0;
+    padding: 12px;
+    background: #090f1d;
+    border-bottom: 1px solid rgba(120,156,205,0.24);
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-modal__head h3 {
+    font-size: 1rem;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-modal__head p {
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-modal__head button,
+.hg-upgrade-modal--mobile .hg-upgrade-actions button {
+    min-height: 36px;
+    padding: 7px 10px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-bars,
+.hg-upgrade-modal--mobile .hg-upgrade-cost,
+.hg-upgrade-modal--mobile .hg-upgrade-filters {
+    grid-template-columns: 1fr;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-bar {
+    padding: 8px 10px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-bar i {
+    height: 8px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-slot {
+    min-height: 54px;
+    padding: 7px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-slot strong,
+.hg-upgrade-modal--mobile .hg-upgrade-slot small {
+    font-size: 0.74rem;
+    line-height: 1.2;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 10px;
+    min-height: 68px;
+    padding: 10px 11px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-row__meta {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
+    gap: 7px;
+    width: 100%;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-row__meta em {
+    padding: 4px 6px;
+    background: rgba(255,255,255,0.055);
+    border-radius: 5px;
+    font-size: 0.72rem;
+    line-height: 1.1;
+    text-align: center;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-row strong {
+    grid-column: 1;
+    grid-row: 1;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-row b {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    justify-self: end;
+    min-width: 34px;
+    padding: 1px 0 0 8px;
+    text-align: right;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-list {
+    max-height: 260px;
+}
+
+.hg-upgrade-modal--mobile .hg-upgrade-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -12px -12px;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+    background: #090f1d;
+    border-top: 1px solid rgba(120,156,205,0.24);
 }
 
 .hg-pack-reveal {
@@ -3331,7 +4383,7 @@
     .hg-mobile-tabs button {
         min-height: 40px;
         padding: 5px 3px;
-        font-size: 0.68rem;
+        font-size: 0;
         line-height: 1.05;
         white-space: normal;
     }

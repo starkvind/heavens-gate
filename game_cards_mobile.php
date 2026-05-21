@@ -26,7 +26,7 @@ $bodyThemeClass = 'theme-' . $activeTheme;
     <meta name="theme-color" content="#030713">
     <meta name="robots" content="noindex,follow">
     <title>Archivo de mnemógeno | Heaven's Gate</title>
-    <meta name="description" content="Modo movil del minijuego coleccionable de cartas de Heaven's Gate.">
+    <meta name="description" content="Modo móvil del minijuego coleccionable de cartas de Heaven's Gate.">
     <link rel="stylesheet" href="/assets/css/hg-core.css">
     <link rel="stylesheet" href="/assets/css/game-cards.css">
 </head>

@@ -7,7 +7,9 @@ $isAdmin = !empty($hgCardsIsAdmin);
 <div class="hg-cards hg-cards--collection" data-view="collection" data-catalog-url="/api/game_cards.php" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
         <a href="/games/card-game">Sobres</a>
+        <a href="/games/card-game#shop">Tienda</a>
         <a class="is-active" href="/games/card-game/collection">Colección</a>
+        <a href="/games/card-game/collection#memory">Recuerdos</a>
         <a href="/games/card-game/combat">Combate</a>
         <a href="/games/card-game/explanation">Información</a>
     </nav>
@@ -112,6 +114,18 @@ $isAdmin = !empty($hgCardsIsAdmin);
         </div>
 
         <div class="hg-pagination" data-collection-pager aria-live="polite"></div>
+    </section>
+
+    <section id="memory" class="hg-workbench" aria-label="Recordar cartas">
+        <div class="hg-section-head hg-section-head--split">
+            <div>
+                <h3>Recordar</h3>
+                <p>Las cartas que están rememorando generan Mnemones, fragmentos de Mnemógeno. Puedes tener hasta 5 y cada una debe permanecer 24 horas antes de volver.</p>
+            </div>
+            <button type="button" class="hg-primary-btn" data-work-claim>Reclamar</button>
+        </div>
+        <div class="hg-workbench__summary" data-work-summary aria-live="polite"></div>
+        <div class="hg-workbench__list" data-work-list aria-live="polite"></div>
     </section>
 
     <section class="hg-collection-tools" aria-label="Gestión de colección">

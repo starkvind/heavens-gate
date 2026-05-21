@@ -7,7 +7,9 @@ $isAdmin = !empty($hgCardsIsAdmin);
 <div class="hg-cards hg-cards--combat" data-view="combat" data-catalog-url="/api/game_cards.php" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
         <a href="/games/card-game">Sobres</a>
+        <a href="/games/card-game#shop">Tienda</a>
         <a href="/games/card-game/collection">Colección</a>
+        <a href="/games/card-game/collection#memory">Recuerdos</a>
         <a class="is-active" href="/games/card-game/combat">Combate</a>
         <a href="/games/card-game/explanation">Información</a>
     </nav>
@@ -126,6 +128,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <div class="hg-combat-team">
                 <div class="hg-combat-team__slots" data-combat-team-slots aria-live="polite"></div>
                 <div class="hg-combat-team__actions">
+                    <button type="button" data-combat-auto-team>Autoequipo</button>
                     <button type="button" class="hg-primary-btn" data-combat-save-team>Guardar equipo</button>
                     <button type="button" data-combat-clear-team>Vaciar equipo</button>
                 </div>

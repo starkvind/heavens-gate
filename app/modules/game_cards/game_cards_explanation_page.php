@@ -5,7 +5,9 @@ include("app/partials/main_nav_bar.php");
 <div class="hg-cards hg-cards--explanation" data-view="explanation">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
         <a href="/games/card-game">Sobres</a>
+        <a href="/games/card-game#shop">Tienda</a>
         <a href="/games/card-game/collection">Colección</a>
+        <a href="/games/card-game/collection#memory">Recuerdos</a>
         <a href="/games/card-game/combat">Combate</a>
         <a class="is-active" href="/games/card-game/explanation">Información</a>
     </nav>
@@ -79,6 +81,7 @@ include("app/partials/main_nav_bar.php");
                     </tr>
                 </thead>
                 <tbody>
+                    <tr><td>Mnemónico gratis</td><td>0</td><td>Cualquier carta activa. Se reclama en tienda hasta 3 al dia.</td><td>64 / 22 / 9 / 3.5 / 1.2 / 0.3</td></tr>
                     <tr><td>Mnemónico</td><td>50</td><td>Cualquier carta activa.</td><td>64 / 22 / 9 / 3.5 / 1.2 / 0.3</td></tr>
                     <tr><td>Ecos</td><td>90</td><td>Sólo comunes e inusuales.</td><td>82 común, 18 inusual.</td></tr>
                     <tr><td>Mágico</td><td>220</td><td>Cualquier carta, con mejores probabilidades.</td><td>20 / 38 / 24 / 11 / 5 / 2</td></tr>
@@ -88,6 +91,7 @@ include("app/partials/main_nav_bar.php");
                     <tr><td>Crónica</td><td>140</td><td>Crónicas, temporadas y episodios.</td><td>58 / 26 / 11 / 3.8 / 1 / 0.2</td></tr>
                     <tr><td>Reliquias</td><td>160</td><td>Objetos, documentos y tótems.</td><td>55 / 28 / 12 / 3.8 / 1 / 0.2</td></tr>
                     <tr><td>Presagios</td><td>650</td><td>Sólo raro o superior.</td><td>70 raro, 21 épico, 7 legendario, 2 mítico.</td></tr>
+                    <tr><td>Gaiano</td><td>2000</td><td>Sólo épico, legendario o mítico.</td><td>55 épico, 30 legendario, 15 mítico.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -97,7 +101,7 @@ include("app/partials/main_nav_bar.php");
     <section class="hg-doc-section">
         <h3>Mnemones</h3>
         <p>Los Mnemones son la moneda local del minijuego. Una colección nueva empieza con <strong>500 Mnemones</strong>. Se gastan para reclamar sobres adicionales y se obtienen desintegrando cartas.</p>
-        <p>El sobre mnemónico gratuito se recarga a razón de <strong>1 sobre cada 10 minutos</strong>, con un máximo de <strong>10 sobres gratis</strong>. La moneda gratuita se añade a razón de <strong>100 Mnemones cada 60 minutos</strong>, con un máximo de <strong>1000 Mnemones acumulados</strong> por recarga.</p>
+        <p>El sobre mnemónico gratis se reclama desde la tienda con un cupo diario de <strong>3 unidades</strong>. Los Mnemones se obtienen combatiendo, vendiendo cartas o asignando copias a recordar.</p>
         <p>Se puede desintegrar una copia concreta o todas las copias de una carta. El valor depende de la rareza: común 5, inusual 20, raro 50, épico 250, legendario 500 y mítico 1000.</p>
     </section>
 

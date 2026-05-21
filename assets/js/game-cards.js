@@ -10,25 +10,24 @@
     var STARTING_MNEMONES = 500;
     var MAX_MNEMONES = 9999999;
     var PACK_SIZE = 5;
+    var MAX_PACK_STOCK = 99;
     var COMBAT_SOUNDS = {
-        attack: '',
-        defend: '',
+        attack: ['/sounds/ui/attack1.ogg', '/sounds/ui/attack2.ogg'],
+        defend: '/sounds/ui/heal.ogg',
         switch: '',
-        damage: '',
+        damage: ['/sounds/ui/hit1.ogg', '/sounds/ui/hit2.ogg'],
         victory: '',
-        defeat: ''
+        defeat: '/sounds/ui/card_defeat.ogg'
     };
     var COMBAT_ATTACK_MS = 420;
     var COMBAT_DEFEND_MS = 560;
     var COMBAT_DEFEAT_MS = 760;
     var COMBAT_ENTRY_MS = 620;
     var COMBAT_TURN_GAP_MS = 80;
-    var FREE_PACK_INTERVAL_MS = 10 * 60 * 1000;
-    var FREE_PACK_CAP = 10;
-    var FREE_MNEMONES_INTERVAL_MS = 60 * 60 * 1000;
-    var FREE_MNEMONES_AMOUNT = 100;
-    var FREE_MNEMONES_CAP = 1000;
-    var PACK_KINDS = ['standard', 'echoes', 'magic', 'characters', 'lineage', 'essence', 'powers', 'chronicles', 'relics', 'omens'];
+    var COMBAT_HIT_SOUND_DELAY_MS = 150;
+    var DAILY_FREE_PACK_CAP = 3;
+    var SHOP_QUANTITIES = [1, 5, 20];
+    var PACK_KINDS = ['standard', 'echoes', 'magic', 'characters', 'lineage', 'essence', 'powers', 'chronicles', 'relics', 'omens', 'gaian'];
     var PACK_PRICES = {
         standard: 50,
         echoes: 90,
@@ -39,9 +38,32 @@
         powers: 240,
         essence: 300,
         lineage: 420,
-        omens: 650
+        omens: 650,
+        gaian: 2000
     };
     var RECYCLE_VALUES = { common: 5, unusual: 20, rare: 50, epic: 250, legendary: 500, mythic: 1000 };
+    var WORK_MAX_ASSIGNMENTS = 5;
+    var WORK_MIN_DURATION_MS = 24 * 60 * 60 * 1000;
+    var WORK_RARITY_BASE = { common: 1, unusual: 2, rare: 4, epic: 7, legendary: 11, mythic: 18 };
+    var RARITY_UPGRADE_REQUIRED = 5;
+    var RARITY_UPGRADE_MIN_QUALITY = 50;
+    var RARITY_UPGRADE_MULTIPLIERS = [1, 1.2, 1.5, 2];
+    var QUALITY_UPGRADE_MAX_SLOTS = 5;
+    var UPGRADE_COST_BY_RARITY = { common: 100, unusual: 300, rare: 900, epic: 2000, legendary: 8000, mythic: 24000 };
+    var RARITY_UPGRADE_MATERIALS = { epic: 'icarus_vial', legendary: 'stigma_orb', mythic: 'babylon_shred' };
+    var UPGRADE_MATERIALS = {
+        icarus_vial: { label: 'Vial de \u00cdcaro', price: 10000, rarity: 'epic', description: 'Necesario para evolucionar de Raro a \u00c9pico.' },
+        stigma_orb: { label: 'Orbe de Estigma', price: 50000, rarity: 'legendary', description: 'Necesario para evolucionar de \u00c9pico a Legendario.' },
+        babylon_shred: { label: 'Retal de Babilonia', price: 125000, rarity: 'mythic', description: 'Necesario para evolucionar de Legendario a M\u00edtico.' }
+    };
+    var RARITY_STAT_RANGES = {
+        common: [10, 40],
+        unusual: [30, 60],
+        rare: [50, 85],
+        epic: [70, 105],
+        legendary: [90, 125],
+        mythic: [115, 155]
+    };
     var RARITY_ORDER = ['common', 'unusual', 'rare', 'epic', 'legendary', 'mythic'];
     var RARITY_WEIGHTS = { common: 64, unusual: 22, rare: 9, epic: 3.5, legendary: 1.2, mythic: 0.3 };
     var PACK_RARITY_WEIGHTS = {
@@ -54,7 +76,8 @@
         powers: RARITY_WEIGHTS,
         chronicles: { common: 58, unusual: 26, rare: 11, epic: 3.8, legendary: 1, mythic: 0.2 },
         relics: { common: 55, unusual: 28, rare: 12, epic: 3.8, legendary: 1, mythic: 0.2 },
-        omens: { common: 0, unusual: 0, rare: 70, epic: 21, legendary: 7, mythic: 2 }
+        omens: { common: 0, unusual: 0, rare: 70, epic: 21, legendary: 7, mythic: 2 },
+        gaian: { common: 0, unusual: 0, rare: 0, epic: 55, legendary: 30, mythic: 15 }
     };
     var PACK_LABELS = {
         standard: 'Sobre mnemónico',
@@ -66,7 +89,8 @@
         powers: 'Sobre arcano',
         chronicles: 'Sobre de crónica',
         relics: 'Sobre de reliquias',
-        omens: 'Sobre de presagios'
+        omens: 'Sobre de presagios',
+        gaian: 'Sobre gaiano'
     };
     var PACK_CONTENTS = {
         standard: '5 cartas de cualquier coleccion.',
@@ -78,7 +102,15 @@
         powers: '5 cartas de dones, ritos, totems o disciplinas.',
         chronicles: '5 cartas de cronicas, temporadas o episodios.',
         relics: '5 cartas de objetos, documentos o totems.',
-        omens: '5 cartas raras o superiores.'
+        omens: '5 cartas raras o superiores.',
+        gaian: '5 cartas epicas, legendarias o miticas.'
+    };
+    var CARD_GAME_ICON_BASE = '/img/ui/card_game_icons/';
+    var CARD_GAME_ICONS = {
+        evolve: CARD_GAME_ICON_BASE + 'card_game_evolve_card.png',
+        upgrade: CARD_GAME_ICON_BASE + 'card_game_upgrade_card.png',
+        sell: CARD_GAME_ICON_BASE + 'card_game_sell_card.png',
+        remembrance: CARD_GAME_ICON_BASE + 'card_game_remembrance.png'
     };
     var POWER_TYPES = ['power', 'gift', 'rite', 'totem', 'discipline'];
     var CHRONICLE_TYPES = ['chronicle', 'season', 'episode'];
@@ -144,12 +176,12 @@
         chronicle: '🌌',
         object: '🗝️',
         document: '📜',
-        power: '✨',
+        power: '✦',
         totem: '🪶',
-        gift: '🎁',
+        gift: '✨',
         rite: '🕯️',
         discipline: '🩸',
-        creature: '◆'
+        creature: '♢'
     };
 
     var TYPE_ALIASES = {
@@ -164,6 +196,8 @@
         auspice: '<svg viewBox="0 0 24 24" focusable="false"><path d="M15.5 3.5a8.8 8.8 0 1 0 0 17 7 7 0 0 1 0-17z"></path><path d="M6.5 12h3"></path></svg>',
         form: '<svg viewBox="0 0 24 24" focusable="false"><path d="M4 7h10l-3-3"></path><path d="M14 4l3 3-3 3"></path><path d="M20 17H10l3 3"></path><path d="M10 20l-3-3 3-3"></path></svg>'
     };
+    var uiSoundCache = {};
+    var combatSoundsPreloaded = false;
 
     var root = document.querySelector('.hg-cards');
     if (!root) { return; }
@@ -191,14 +225,18 @@
         catalogById: {},
         freeRewards: null,
         rewardsTimer: null,
+        workTimer: null,
         collection: null,
         table: null
     };
 
     var els = {
         packButtons: Array.prototype.slice.call(document.querySelectorAll('[data-pack-kind]')),
-        shopButtons: Array.prototype.slice.call(document.querySelectorAll('[data-buy-pack]')),
+        shopItems: Array.prototype.slice.call(document.querySelectorAll('[data-shop-pack], [data-shop-material]')),
+        shopButtons: Array.prototype.slice.call(document.querySelectorAll('[data-shop-buy-pack]')),
         packStocks: Array.prototype.slice.call(document.querySelectorAll('[data-pack-stock]')),
+        packGrid: document.querySelector('[data-pack-grid]'),
+        packOpenAll: document.querySelector('[data-pack-open-all]'),
         mnemonesCounters: Array.prototype.slice.call(document.querySelectorAll('[data-mnemones-counter]')),
         packResults: document.getElementById('hgPackResults'),
         statusText: document.getElementById('hgStatusText'),
@@ -212,6 +250,14 @@
         bulkSellBtn: document.getElementById('hgBulkSellButton'),
         bulkSellPreview: document.getElementById('hgBulkSellPreview'),
         bulkSellKeepBest: document.getElementById('hgBulkSellKeepBest'),
+        workSummary: document.querySelector('[data-work-summary]'),
+        workList: document.querySelector('[data-work-list]'),
+        workClaimBtn: document.querySelector('[data-work-claim]'),
+        packSection: document.querySelector('.hg-pack-section'),
+        shopSection: document.querySelector('.hg-shop-section'),
+        collectionBrowser: document.querySelector('.hg-collection-browser'),
+        collectionTools: document.querySelector('.hg-collection-tools'),
+        workBench: document.querySelector('.hg-workbench'),
         collectionTable: document.getElementById('hgCollectionTable'),
         albumTabs: document.querySelector('[data-album-tabs]'),
         albumGrid: document.querySelector('[data-album-grid]'),
@@ -234,6 +280,7 @@
         combatTeamSlots: document.querySelector('[data-combat-team-slots]'),
         combatSaveTeam: document.querySelector('[data-combat-save-team]'),
         combatClearTeam: document.querySelector('[data-combat-clear-team]'),
+        combatAutoTeam: document.querySelector('[data-combat-auto-team]'),
         combatOnlyReady: document.querySelector('[data-combat-only-ready]'),
         combatRarityFilter: document.querySelector('[data-combat-rarity-filter]'),
         combatTypeFilter: document.querySelector('[data-combat-type-filter]'),
@@ -267,6 +314,71 @@
         }
     }
 
+    function decorateIconNavigation() {
+        var mobileLabels = {
+            packs: 'Sobres',
+            shop: 'Tienda',
+            collection: 'Colección',
+            memory: 'Recuerdos',
+            combat: 'Combate',
+            info: 'Información'
+        };
+        els.mobileTabs.forEach(function (button) {
+            var label = mobileLabels[button.getAttribute('data-mobile-panel-tab') || ''] || button.textContent.trim();
+            button.title = label;
+            button.setAttribute('aria-label', label);
+        });
+        Array.prototype.slice.call(document.querySelectorAll('.hg-game-tabs a')).forEach(function (link) {
+            var text = link.textContent.trim();
+            if (text) {
+                link.title = text;
+                link.setAttribute('aria-label', text);
+            }
+        });
+    }
+
+    function currentHashPanel() {
+        return String(window.location.hash || '').replace(/^#/, '').toLowerCase();
+    }
+
+    function setDesktopSection(section, visible) {
+        if (!section || state.mobile) { return; }
+        section.hidden = !visible;
+    }
+
+    function updateDesktopNavActive() {
+        var hash = currentHashPanel();
+        Array.prototype.slice.call(document.querySelectorAll('.hg-game-tabs a')).forEach(function (link) {
+            var href = link.getAttribute('href') || '';
+            var active = false;
+            if (state.view === 'gacha') {
+                active = hash === 'shop' ? href === '/games/card-game#shop' : href === '/games/card-game';
+            } else if (state.view === 'collection') {
+                active = hash === 'memory' ? href === '/games/card-game/collection#memory' : href === '/games/card-game/collection';
+            } else {
+                active = link.classList.contains('is-active');
+            }
+            link.classList.toggle('is-active', active);
+        });
+    }
+
+    function updateDesktopHashPanels() {
+        var hash = currentHashPanel();
+        if (state.view === 'gacha') {
+            var shopActive = hash === 'shop';
+            setDesktopSection(els.packSection, !shopActive);
+            setDesktopSection(els.packResults, !shopActive);
+            setDesktopSection(els.shopSection, shopActive);
+        }
+        if (state.view === 'collection') {
+            var memoryActive = hash === 'memory';
+            setDesktopSection(els.collectionBrowser, !memoryActive);
+            setDesktopSection(els.collectionTools, !memoryActive);
+            setDesktopSection(els.workBench, memoryActive);
+        }
+        updateDesktopNavActive();
+    }
+
     function packContents(packKind) {
         return PACK_CONTENTS[packKind] || PACK_CONTENTS.standard;
     }
@@ -294,7 +406,7 @@
         if (state.mobile) { overlay.className += ' hg-confirm-modal--mobile'; }
         overlay.setAttribute('role', 'dialog');
         overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-label', options.title || 'Confirmar accion');
+        overlay.setAttribute('aria-label', options.title || 'Confirmar acción');
 
         var panel = document.createElement('div');
         panel.className = 'hg-confirm-modal__panel';
@@ -303,7 +415,7 @@
         });
 
         var title = document.createElement('h3');
-        title.textContent = options.title || 'Confirmar accion';
+        title.textContent = options.title || 'Confirmar acción';
 
         var text = document.createElement('p');
         text.textContent = message;
@@ -351,6 +463,12 @@
         return Math.round(n);
     }
 
+    function clampQuality(value, fallback) {
+        var n = Number(value);
+        if (!Number.isFinite(n)) { return fallback; }
+        return Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+    }
+
     function createEmptyCollection() {
         var now = nowIso();
         return {
@@ -358,8 +476,11 @@
             createdAt: now,
             updatedAt: now,
             ownedCards: [],
+            workAssignments: {},
+            workPendingRewards: 0,
             currency: { mnemones: STARTING_MNEMONES },
-            packInventory: normalizePackInventory({})
+            packInventory: normalizePackInventory({}),
+            materialInventory: normalizeMaterialInventory({})
         };
     }
 
@@ -412,6 +533,11 @@
         return value === 'all' || RARITY_ORDER.indexOf(value) !== -1 ? value : 'all';
     }
 
+    function normalizeRarity(value, fallback) {
+        value = String(value || '');
+        return RARITY_ORDER.indexOf(value) !== -1 ? value : (fallback || 'common');
+    }
+
     function loadCollectionViewPrefs() {
         var mode = readText(COLLECTION_MODE_KEY, 'album');
         state.collectionMode = mode === 'table' ? 'table' : 'album';
@@ -429,13 +555,18 @@
     }
 
     function createFreeRewards() {
-        var now = Date.now();
         return {
-            version: 1,
-            standardPacks: 1,
-            lastPackAt: now,
-            lastMnemonesAt: now
+            version: 2,
+            freePackDate: dailyFreePackDate(),
+            freePacksClaimed: 0
         };
+    }
+
+    function dailyFreePackDate() {
+        var now = new Date();
+        return now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0');
     }
 
     function normalizeTimestamp(value, fallback) {
@@ -452,11 +583,14 @@
             writeJson(FREE_REWARDS_KEY, state.freeRewards);
             return state.freeRewards;
         }
+        var today = dailyFreePackDate();
+        var storedDate = typeof data.freePackDate === 'string' ? data.freePackDate : today;
         state.freeRewards = {
-            version: 1,
-            standardPacks: Math.max(0, Math.min(FREE_PACK_CAP, clampInt(data.standardPacks, 0))),
-            lastPackAt: normalizeTimestamp(data.lastPackAt, Date.now()),
-            lastMnemonesAt: normalizeTimestamp(data.lastMnemonesAt, Date.now())
+            version: 2,
+            freePackDate: today,
+            freePacksClaimed: storedDate === today
+                ? Math.max(0, Math.min(DAILY_FREE_PACK_CAP, clampInt(data.freePacksClaimed, 0)))
+                : 0
         };
         return state.freeRewards;
     }
@@ -469,60 +603,54 @@
     function syncFreeRewards() {
         if (state.isAdmin) { return { packs: 0, mnemones: 0 }; }
         var rewards = loadFreeRewards();
-        var now = Date.now();
-        var changed = false;
-        var gainedPacks = 0;
-        var gainedMnemones = 0;
-
-        if (rewards.standardPacks < FREE_PACK_CAP) {
-            var packTicks = Math.floor(Math.max(0, now - rewards.lastPackAt) / FREE_PACK_INTERVAL_MS);
-            if (packTicks > 0) {
-                gainedPacks = Math.min(packTicks, FREE_PACK_CAP - rewards.standardPacks);
-                rewards.standardPacks += gainedPacks;
-                rewards.lastPackAt = rewards.standardPacks >= FREE_PACK_CAP
-                    ? now
-                    : rewards.lastPackAt + (packTicks * FREE_PACK_INTERVAL_MS);
-                changed = true;
-            }
+        var today = dailyFreePackDate();
+        if (rewards.freePackDate !== today) {
+            rewards.freePackDate = today;
+            rewards.freePacksClaimed = 0;
+            saveFreeRewards();
         }
-
-        var mnemonesTicks = Math.floor(Math.max(0, now - rewards.lastMnemonesAt) / FREE_MNEMONES_INTERVAL_MS);
-        if (mnemonesTicks > 0) {
-            gainedMnemones = Math.min(mnemonesTicks * FREE_MNEMONES_AMOUNT, FREE_MNEMONES_CAP);
-            rewards.lastMnemonesAt = gainedMnemones >= FREE_MNEMONES_CAP
-                ? now
-                : rewards.lastMnemonesAt + (mnemonesTicks * FREE_MNEMONES_INTERVAL_MS);
-            changed = true;
-            if (gainedMnemones > 0) {
-                addMnemones(gainedMnemones);
-                saveCollection();
-            }
-        }
-
-        if (changed) { saveFreeRewards(); }
-        return { packs: gainedPacks, mnemones: gainedMnemones };
+        return { packs: 0, mnemones: 0 };
     }
 
-    function freeStandardPacks() {
+    function dailyFreePacksRemaining() {
         if (state.isAdmin) {
             return Infinity;
         }
         syncFreeRewards();
-        return Math.max(0, Math.min(FREE_PACK_CAP, clampInt((state.freeRewards || {}).standardPacks, 0)));
+        return Math.max(0, DAILY_FREE_PACK_CAP - Math.max(0, Math.min(DAILY_FREE_PACK_CAP, clampInt((state.freeRewards || {}).freePacksClaimed, 0))));
     }
 
-    function nextFreePackMs() {
-        if (state.isAdmin) { return 0; }
+    function claimDailyFreePacks(amount) {
+        amount = Math.max(1, clampInt(amount, 1));
+        if (state.isAdmin) { return true; }
         var rewards = loadFreeRewards();
-        if (rewards.standardPacks >= FREE_PACK_CAP) { return 0; }
-        return Math.max(0, FREE_PACK_INTERVAL_MS - (Date.now() - rewards.lastPackAt));
+        syncFreeRewards();
+        if (dailyFreePacksRemaining() < amount) { return false; }
+        rewards.freePacksClaimed = Math.min(DAILY_FREE_PACK_CAP, clampInt(rewards.freePacksClaimed, 0) + amount);
+        saveFreeRewards();
+        return true;
     }
 
-    function formatDuration(ms) {
-        var total = Math.max(0, Math.ceil(ms / 1000));
-        var minutes = Math.floor(total / 60);
-        var seconds = total % 60;
-        return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+    function normalizeWorkAssignments(assignments) {
+        var out = {};
+        if (!assignments || typeof assignments !== 'object') { return out; }
+        Object.keys(assignments).forEach(function (key) {
+            var item = assignments[key];
+            var id = String((item && item.instanceId) || key || '').slice(0, 80);
+            if (!id) { return; }
+            var startedAt = normalizeTimestamp(item && item.startedAt, Date.now());
+            var lastClaimAt = normalizeTimestamp(item && item.lastClaimAt, startedAt);
+            out[id] = {
+                instanceId: id,
+                startedAt: startedAt,
+                lastClaimAt: Math.max(startedAt, lastClaimAt)
+            };
+        });
+        return out;
+    }
+
+    function normalizeWorkPendingRewards(value) {
+        return Math.max(0, Math.min(MAX_MNEMONES, clampInt(value, 0)));
     }
 
     function renderDailyCounter() {
@@ -531,10 +659,11 @@
             els.dailyPacksCounter.textContent = 'Admin';
             return;
         }
-        var free = freeStandardPacks();
-        els.dailyPacksCounter.textContent = String(free) + ' / ' + FREE_PACK_CAP;
-        var next = nextFreePackMs();
-        els.dailyPacksCounter.title = free >= FREE_PACK_CAP ? 'Máximo de sobres gratis alcanzado' : 'Siguiente sobre gratis en ' + formatDuration(next);
+        var remaining = dailyFreePacksRemaining();
+        els.dailyPacksCounter.textContent = String(remaining) + ' / ' + DAILY_FREE_PACK_CAP;
+        els.dailyPacksCounter.title = remaining > 0
+            ? 'Sobres gratis pendientes de reclamar hoy en tienda.'
+            : 'Cupo diario de sobres gratis agotado.';
     }
 
     function normalizePackInventory(inventory) {
@@ -544,7 +673,19 @@
         });
         if (!inventory || typeof inventory !== 'object') { return out; }
         PACK_KINDS.forEach(function (kind) {
-            out[kind] = Math.max(0, Math.min(999, clampInt(inventory[kind], 0)));
+            out[kind] = Math.max(0, Math.min(MAX_PACK_STOCK, clampInt(inventory[kind], 0)));
+        });
+        return out;
+    }
+
+    function normalizeMaterialInventory(inventory) {
+        var out = {};
+        Object.keys(UPGRADE_MATERIALS).forEach(function (key) {
+            out[key] = 0;
+        });
+        if (!inventory || typeof inventory !== 'object') { return out; }
+        Object.keys(UPGRADE_MATERIALS).forEach(function (key) {
+            out[key] = Math.max(0, Math.min(999, clampInt(inventory[key], 0)));
         });
         return out;
     }
@@ -571,15 +712,354 @@
         return state.collection.currency.mnemones;
     }
 
-    function packStock(packKind) {
-        if (packKind === 'standard') {
-            if (state.isAdmin) { return Infinity; }
-            if (!state.collection) { loadCollection(); }
-            return freeStandardPacks() + Math.max(0, clampInt((state.collection.packInventory || {}).standard, 0));
+    function formatNumber(value) {
+        return clampInt(value, 0).toLocaleString('es-ES');
+    }
+
+    function materialStock(materialKey) {
+        if (state.isAdmin) { return Infinity; }
+        if (!state.collection) { loadCollection(); }
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        return Math.max(0, clampInt(state.collection.materialInventory[materialKey], 0));
+    }
+
+    function addMaterial(materialKey, amount) {
+        if (!UPGRADE_MATERIALS[materialKey]) { return false; }
+        if (!state.collection) { loadCollection(); }
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        var current = Math.max(0, clampInt(state.collection.materialInventory[materialKey], 0));
+        state.collection.materialInventory[materialKey] = Math.max(0, Math.min(999, current + Math.max(1, clampInt(amount, 1))));
+        return state.collection.materialInventory[materialKey];
+    }
+
+    function consumeMaterial(materialKey, amount) {
+        amount = Math.max(1, clampInt(amount, 1));
+        if (state.isAdmin || !materialKey) { return true; }
+        if (materialStock(materialKey) < amount) { return false; }
+        state.collection.materialInventory[materialKey] = Math.max(0, materialStock(materialKey) - amount);
+        return true;
+    }
+
+    function ensureWorkAssignments() {
+        if (!state.collection) { loadCollection(); }
+        state.collection.workAssignments = normalizeWorkAssignments(state.collection.workAssignments);
+        state.collection.workPendingRewards = normalizeWorkPendingRewards(state.collection.workPendingRewards);
+        limitWorkAssignments(false);
+        return state.collection.workAssignments;
+    }
+
+    function isCopyWorking(instanceId) {
+        var id = String(instanceId || '');
+        if (!id) { return false; }
+        return !!ensureWorkAssignments()[id];
+    }
+
+    function cleanWorkAssignments(persist) {
+        if (!state.collection || !Array.isArray(state.collection.ownedCards)) { return false; }
+        state.collection.workAssignments = normalizeWorkAssignments(state.collection.workAssignments);
+        var owned = {};
+        state.collection.ownedCards.forEach(function (copy) {
+            if (copy && copy.instanceId) { owned[String(copy.instanceId)] = true; }
+        });
+        var changed = false;
+        Object.keys(state.collection.workAssignments).forEach(function (id) {
+            if (!owned[id]) {
+                delete state.collection.workAssignments[id];
+                changed = true;
+            }
+        });
+        if (changed && persist) { saveCollection(); }
+        return changed;
+    }
+
+    function limitWorkAssignments(persist) {
+        if (!state.collection) { loadCollection(); }
+        var assignments = normalizeWorkAssignments(state.collection.workAssignments);
+        var ids = Object.keys(assignments).sort(function (a, b) {
+            return normalizeTimestamp(assignments[a].startedAt, 0) - normalizeTimestamp(assignments[b].startedAt, 0);
+        });
+        var changed = false;
+        ids.slice(WORK_MAX_ASSIGNMENTS).forEach(function (id) {
+            delete assignments[id];
+            changed = true;
+        });
+        state.collection.workAssignments = assignments;
+        if (changed && persist) { saveCollection(); }
+        return changed;
+    }
+
+    function workRatePerMinute(copy, card) {
+        if (!copy || !card) { return 0; }
+        var rarity = copyRarity(copy, card);
+        var base = WORK_RARITY_BASE[rarity] || WORK_RARITY_BASE.common;
+        var qualityFactor = 0.6 + (qualityScore(copy, card) / 100) * 0.8;
+        var statBonus = Math.min(4, totalStats(copy) / 150);
+        return Math.max(0.5, Math.round((base * qualityFactor + statBonus) * 10) / 10);
+    }
+
+    function workEntryFromAssignment(assignment) {
+        var copy = copyByInstanceId(assignment && assignment.instanceId);
+        var card = copy ? state.catalogById[String(copy.cardId || '')] : null;
+        if (!copy || !card) { return null; }
+        var rate = workRatePerMinute(copy, card);
+        var elapsed = Math.max(0, Date.now() - normalizeTimestamp(assignment.lastClaimAt, Date.now()));
+        var startedAt = normalizeTimestamp(assignment.startedAt, Date.now());
+        return {
+            assignment: assignment,
+            copy: copy,
+            baseCard: card,
+            card: cardForCopy(card, copy),
+            rarity: copyRarity(copy, card),
+            rate: rate,
+            claimable: Math.floor((elapsed / 60000) * rate),
+            startedAt: startedAt,
+            removableAt: startedAt + WORK_MIN_DURATION_MS
+        };
+    }
+
+    function activeWorkEntries() {
+        cleanWorkAssignments(false);
+        var assignments = ensureWorkAssignments();
+        return Object.keys(assignments).map(function (id) {
+            return workEntryFromAssignment(assignments[id]);
+        }).filter(Boolean).sort(function (a, b) {
+            return b.rate - a.rate || b.claimable - a.claimable || String(a.card.card_name).localeCompare(String(b.card.card_name));
+        });
+    }
+
+    function workCandidateEntries() {
+        if (!state.collection) { loadCollection(); }
+        return (state.collection.ownedCards || []).map(function (copy) {
+            var card = state.catalogById[String(copy.cardId || '')];
+            if (!card || isCopyWorking(copy.instanceId) || isCopyInCombatTeam(copy.instanceId)) { return null; }
+            return {
+                copy: copy,
+                baseCard: card,
+                card: cardForCopy(card, copy),
+                rarity: copyRarity(copy, card),
+                rate: workRatePerMinute(copy, card),
+                score: totalStats(copy)
+            };
+        }).filter(Boolean).sort(function (a, b) {
+            return b.rate - a.rate || b.score - a.score || String(a.card.card_name).localeCompare(String(b.card.card_name));
+        });
+    }
+
+    function totalWorkClaimable(entries) {
+        var pending = state.collection ? normalizeWorkPendingRewards(state.collection.workPendingRewards) : 0;
+        return pending + (entries || activeWorkEntries()).reduce(function (sum, entry) {
+            return sum + entry.claimable;
+        }, 0);
+    }
+
+    function workCanStop(entry) {
+        return !!entry && Date.now() >= entry.removableAt;
+    }
+
+    function workRemainingLabel(entry) {
+        var remaining = Math.max(0, (entry ? entry.removableAt : Date.now()) - Date.now());
+        if (remaining <= 0) { return 'Disponible'; }
+        var hours = Math.floor(remaining / 3600000);
+        var minutes = Math.ceil((remaining % 3600000) / 60000);
+        if (minutes >= 60) {
+            hours += 1;
+            minutes = 0;
         }
+        return hours + 'h' + (minutes ? ' ' + minutes + 'm' : '');
+    }
+
+    function renderWorkBench() {
+        if (!els.workSummary && !els.workList && !els.workClaimBtn) { return; }
+        if (state.mobile && !isMemoryContext()) { return; }
+        var entries = activeWorkEntries();
+        var candidates = workCandidateEntries();
+        var totalRate = entries.reduce(function (sum, entry) { return sum + entry.rate; }, 0);
+        var claimable = totalWorkClaimable(entries);
+        if (els.workSummary) {
+            els.workSummary.innerHTML = [
+                '<span><strong>' + entries.length + ' / ' + WORK_MAX_ASSIGNMENTS + '</strong><small>rememorando</small></span>',
+                '<span><strong>' + totalRate.toFixed(1) + '</strong><small>Mn/min</small></span>',
+                '<span><strong>' + claimable + '</strong><small>reclamables</small></span>'
+            ].join('');
+        }
+        if (els.workClaimBtn) {
+            els.workClaimBtn.disabled = claimable <= 0;
+            els.workClaimBtn.textContent = claimable > 0 ? 'Reclamar +' + claimable : 'Reclamar';
+        }
+        if (!els.workList) { return; }
+        els.workList.innerHTML = '';
+        for (var slotIndex = 0; slotIndex < WORK_MAX_ASSIGNMENTS; slotIndex++) {
+            var entry = entries[slotIndex] || null;
+            var slot = document.createElement('article');
+            slot.className = 'hg-work-slot' + (entry ? ' hg-collection-row--' + entry.rarity : ' is-empty');
+            if (!entry) {
+                slot.innerHTML =
+                    '<div class="hg-work-slot__empty">' +
+                        '<strong>Hueco ' + (slotIndex + 1) + '</strong>' +
+                        '<span>Elige una carta para recordar.</span>' +
+                    '</div>';
+                if (candidates.length) {
+                    var select = document.createElement('select');
+                    select.setAttribute('aria-label', 'Carta para recordar en hueco ' + (slotIndex + 1));
+                    candidates.forEach(function (candidate) {
+                        var option = document.createElement('option');
+                        option.value = String(candidate.copy.instanceId || '');
+                        option.textContent = candidate.card.card_name + ' · ' + candidate.rate.toFixed(1) + ' Mn/min';
+                        select.appendChild(option);
+                    });
+                    var add = document.createElement('button');
+                    add.type = 'button';
+                    add.className = 'hg-icon-action hg-icon-action--memory';
+                    add.title = 'Recordar';
+                    add.setAttribute('aria-label', 'Recordar carta seleccionada');
+                    add.innerHTML = cardGameIconHtml('remembrance', 'Recordar');
+                    (function (selectNode) {
+                        add.addEventListener('click', function () {
+                            assignCopyToWorkById(selectNode.value);
+                        });
+                    })(select);
+                    slot.appendChild(select);
+                    slot.appendChild(add);
+                } else {
+                    var none = document.createElement('p');
+                    none.className = 'hg-empty-state';
+                    none.textContent = 'No hay cartas disponibles.';
+                    slot.appendChild(none);
+                }
+                els.workList.appendChild(slot);
+                continue;
+            }
+            var canStop = workCanStop(entry);
+            var cardWrap = document.createElement('div');
+            cardWrap.className = 'hg-work-slot__card';
+            var memoryCard = renderCard(entry.baseCard, entry.copy, { noLink: true });
+            memoryCard.className += ' hg-card--memory';
+            cardWrap.appendChild(memoryCard);
+            var effects = document.createElement('div');
+            effects.className = 'hg-work-slot__effects';
+            effects.innerHTML =
+                '<b>' + entry.rate.toFixed(1) + ' Mnemones/min</b>' +
+                '<span>Ganancias: +' + entry.claimable + '</span>' +
+                '<small>' + escapeHtml(canStop ? 'Puede volver' : 'Vuelve en ' + workRemainingLabel(entry)) + '</small>';
+            var stop = document.createElement('button');
+            stop.type = 'button';
+            stop.textContent = 'Retirar';
+            stop.disabled = !canStop;
+            stop.title = canStop ? '' : 'Debe rememorar al menos 24 horas.';
+            (function (entryForStop) {
+                stop.addEventListener('click', function () {
+                    stopCopyWork(entryForStop.copy.instanceId);
+                });
+            })(entry);
+            effects.appendChild(stop);
+            slot.appendChild(cardWrap);
+            slot.appendChild(effects);
+            els.workList.appendChild(slot);
+        }
+    }
+
+    function claimWorkRewards(targetId) {
+        targetId = String(targetId || '');
+        var entries = activeWorkEntries().filter(function (entry) {
+            return !targetId || String(entry.copy.instanceId || '') === targetId;
+        });
+        var pending = targetId ? 0 : normalizeWorkPendingRewards(state.collection && state.collection.workPendingRewards);
+        var claimable = pending + entries.reduce(function (sum, entry) {
+            return sum + entry.claimable;
+        }, 0);
+        if (claimable <= 0) {
+            setStatus('Todavia no hay Mnemones de rememoración para reclamar.');
+            renderWorkBench();
+            return false;
+        }
+        var now = Date.now();
+        entries.forEach(function (entry) {
+            if (entry.claimable <= 0 || entry.rate <= 0) { return; }
+            var elapsedClaimedMs = Math.floor((entry.claimable / entry.rate) * 60000);
+            entry.assignment.lastClaimAt = Math.min(now, normalizeTimestamp(entry.assignment.lastClaimAt, now) + elapsedClaimedMs);
+        });
+        if (!targetId) { state.collection.workPendingRewards = 0; }
+        addMnemones(claimable);
+        saveCollection();
+        playMoneySound();
+        renderSummary();
+        renderPackInventory();
+        renderCollectionTable();
+        setStatus('Rememoración reclamada. +' + claimable + ' Mnemones.');
+        return true;
+    }
+
+    function assignCopyToWork(card, copy, options) {
+        options = options || {};
+        if (!copy || !copy.instanceId) { return false; }
+        if (isCopyWorking(copy.instanceId)) {
+            setStatus('Esta carta ya esta rememorando.');
+            return false;
+        }
+        if (activeWorkEntries().length >= WORK_MAX_ASSIGNMENTS) {
+            setStatus('Sólo puedes tener ' + WORK_MAX_ASSIGNMENTS + ' cartas rememorando a la vez.');
+            return false;
+        }
+        if (isCopyInCombatTeam(copy.instanceId)) {
+            setStatus('Quita la carta del equipo antes de ponerla a recordar.');
+            return false;
+        }
+        var assignments = ensureWorkAssignments();
+        var now = Date.now();
+        assignments[String(copy.instanceId)] = { instanceId: String(copy.instanceId), startedAt: now, lastClaimAt: now };
+        saveCollection();
+        renderSummary();
+        renderCollectionTable();
+        renderCombatSetup();
+        if (!options.noModal) {
+            showCardModal(card, ownedCopiesForCard(card.card_id));
+        }
+        setStatus('Carta puesta a recordar: +' + workRatePerMinute(copy, card).toFixed(1) + ' Mnemones/min.');
+        return true;
+    }
+
+    function assignCopyToWorkById(instanceId) {
+        var copy = copyByInstanceId(instanceId);
+        var card = copy ? state.catalogById[String(copy.cardId || '')] : null;
+        if (!copy || !card) {
+            setStatus('No se encontró esa carta para recordar.');
+            return false;
+        }
+        return assignCopyToWork(card, copy, { noModal: true });
+    }
+
+    function stopCopyWork(instanceId) {
+        var id = String(instanceId || '');
+        var assignments = ensureWorkAssignments();
+        if (!assignments[id]) { return false; }
+        var entry = workEntryFromAssignment(assignments[id]);
+        if (!workCanStop(entry)) {
+            setStatus('Esta carta debe rememorar al menos 24 horas. Quedan ' + workRemainingLabel(entry) + '.');
+            renderWorkBench();
+            return false;
+        }
+        state.collection.workPendingRewards = normalizeWorkPendingRewards(
+            normalizeWorkPendingRewards(state.collection.workPendingRewards) + Math.max(0, entry ? entry.claimable : 0)
+        );
+        delete assignments[id];
+        saveCollection();
+        renderSummary();
+        renderWorkBench();
+        renderCollectionTable();
+        renderCombatSetup();
+        setStatus('Carta retirada de la rememoración. Sus ganancias quedan pendientes en Reclamar.');
+        return true;
+    }
+
+    function packStock(packKind) {
         if (state.isAdmin) { return Infinity; }
         if (!state.collection) { loadCollection(); }
         return Math.max(0, clampInt((state.collection.packInventory || {})[packKind], 0));
+    }
+
+    function packSpace(packKind) {
+        if (state.isAdmin) { return Infinity; }
+        return Math.max(0, MAX_PACK_STOCK - packStock(packKind));
     }
 
     function canOpenPack(packKind) {
@@ -589,44 +1069,43 @@
     function consumePack(packKind) {
         if (state.isAdmin) { return; }
         if (!state.collection) { loadCollection(); }
-        if (packKind === 'standard') {
-            var rewards = loadFreeRewards();
-            if (rewards.standardPacks > 0) {
-                rewards.standardPacks = Math.max(0, rewards.standardPacks - 1);
-                if (rewards.standardPacks < FREE_PACK_CAP) {
-                    rewards.lastPackAt = Date.now();
-                }
-                saveFreeRewards();
-                return;
-            }
-        }
         state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
         state.collection.packInventory[packKind] = Math.max(0, clampInt(state.collection.packInventory[packKind], 0) - 1);
     }
 
-    function addPack(packKind, amount) {
+    function addPack(packKind, amount, options) {
+        options = options || {};
         if (PACK_KINDS.indexOf(packKind) === -1) { return false; }
         if (!state.collection) { loadCollection(); }
         state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
-        state.collection.packInventory[packKind] = Math.max(0, Math.min(999, state.collection.packInventory[packKind] + Math.max(1, clampInt(amount, 1))));
-        saveCollection();
-        renderSummary();
-        renderPackInventory();
+        state.collection.packInventory[packKind] = Math.max(0, Math.min(MAX_PACK_STOCK, state.collection.packInventory[packKind] + Math.max(1, clampInt(amount, 1))));
+        if (!options.deferSave) { saveCollection(); }
+        if (!options.silent) {
+            renderSummary({ light: true });
+            renderPackInventory();
+        }
         return true;
     }
 
+    function totalPackStock() {
+        if (state.isAdmin) { return Infinity; }
+        if (!state.collection) { loadCollection(); }
+        state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
+        return PACK_KINDS.reduce(function (sum, kind) {
+            return sum + Math.max(0, clampInt(state.collection.packInventory[kind], 0));
+        }, 0);
+    }
+
     function renderPackInventory() {
+        var totalStock = totalPackStock();
         els.packStocks.forEach(function (node) {
             var kind = node.getAttribute('data-pack-stock') || 'standard';
             var stock = packStock(kind);
             if (state.isAdmin) {
                 node.textContent = 'Admin';
             } else if (kind === 'standard') {
-                var bought = Math.max(0, clampInt((state.collection && state.collection.packInventory || {}).standard, 0));
-                var free = freeStandardPacks();
-                node.textContent = bought > 0 ? free + ' gratis + x' + bought : free + ' gratis';
-                var next = nextFreePackMs();
-                node.title = free >= FREE_PACK_CAP ? 'Máximo de sobres gratis alcanzado' : 'Siguiente sobre gratis en ' + formatDuration(next);
+                node.textContent = 'x' + stock;
+                node.title = 'Sobres mnemónicos disponibles.';
             } else {
                 node.textContent = 'x' + stock;
             }
@@ -634,7 +1113,7 @@
         els.packButtons.forEach(function (button) {
             var kind = button.getAttribute('data-pack-kind') || 'standard';
             var stock = packStock(kind);
-            var visible = kind === 'standard' || state.isAdmin || stock > 0;
+            var visible = state.isAdmin || stock > 0;
             var available = canOpenPack(kind);
             button.hidden = !visible;
             button.disabled = !available;
@@ -642,34 +1121,139 @@
             button.classList.toggle('is-hidden', !visible);
             button.setAttribute('aria-disabled', available ? 'false' : 'true');
         });
+        renderPackEmptyState(totalStock);
         renderShop();
     }
 
+    function renderPackEmptyState(totalStock) {
+        if (!els.packGrid) { return; }
+        var empty = els.packGrid.querySelector('[data-pack-empty-state]');
+        if (!empty) {
+            empty = document.createElement('p');
+            empty.className = 'hg-empty-state hg-pack-empty-state';
+            empty.setAttribute('data-pack-empty-state', '1');
+            empty.textContent = 'No te quedan sobres. Puedes comprar más en la tienda o probar suerte en las Mazmorras.';
+            els.packGrid.appendChild(empty);
+        }
+        empty.hidden = state.isAdmin || totalStock > 0;
+        if (els.packOpenAll) {
+            els.packOpenAll.hidden = state.isAdmin || totalStock <= 0;
+            els.packOpenAll.disabled = state.isAdmin || totalStock <= 0;
+        }
+    }
+
     function renderShop() {
+        els.shopItems = Array.prototype.slice.call(document.querySelectorAll('[data-shop-pack], [data-shop-material]'));
         var money = currentMnemones();
         els.mnemonesCounters.forEach(function (node) {
-            node.textContent = String(money);
+            node.textContent = formatNumber(money);
         });
-        els.shopButtons.forEach(function (button) {
-            var kind = button.getAttribute('data-buy-pack') || 'standard';
-            var price = packPrice(kind);
-            var canBuy = state.isAdmin || money >= price;
-            var description = button.querySelector('.hg-shop-item__contents');
+        els.shopItems.forEach(function (item) {
+            var materialKey = item.getAttribute('data-shop-material') || '';
+            if (materialKey) {
+                renderMaterialShopItem(item, materialKey, money);
+                return;
+            }
+            var kind = item.getAttribute('data-shop-pack') || 'standard';
+            var isFree = item.getAttribute('data-shop-free') === '1';
+            var price = isFree ? 0 : packPrice(kind);
+            var freeRemaining = isFree ? dailyFreePacksRemaining() : 0;
+            var priceNode = item.querySelector('strong');
+            if (priceNode) {
+                priceNode.textContent = isFree
+                    ? (state.isAdmin ? 'Admin' : (freeRemaining > 0 ? 'Gratis - quedan ' + freeRemaining : 'Agotado hoy'))
+                    : formatNumber(price) + ' Mnemones';
+            }
+            var description = item.querySelector('.hg-shop-item__contents');
             if (!description) {
                 description = document.createElement('span');
                 description.className = 'hg-shop-item__contents';
-                button.appendChild(description);
+                item.appendChild(description);
             }
-            description.textContent = packContents(kind);
-            button.title = packLabel(kind) + ': ' + packContents(kind) + ' Precio: ' + price + ' Mnemones.';
-            button.disabled = !canBuy;
-            button.classList.toggle('is-empty', !canBuy);
-            button.setAttribute('aria-disabled', canBuy ? 'false' : 'true');
+            description.textContent = isFree ? 'Reclama hasta ' + DAILY_FREE_PACK_CAP + ' sobres mnemónicos gratis al día.' : packContents(kind);
+            item.title = isFree
+                ? 'Sobres mnemónicos gratis. Quedan ' + (state.isAdmin ? 'Admin' : freeRemaining) + ' hoy.'
+                : packLabel(kind) + ': ' + packContents(kind) + ' Precio: ' + formatNumber(price) + ' Mnemones.';
+            var controls = item.querySelector('.hg-shop-item__actions');
+            if (!controls) {
+                controls = document.createElement('span');
+                controls.className = 'hg-shop-item__actions';
+                item.appendChild(controls);
+            }
+            controls.innerHTML = '';
+            SHOP_QUANTITIES.forEach(function (amount) {
+                var buy = document.createElement('button');
+                buy.type = 'button';
+                buy.className = 'hg-shop-buy';
+                buy.setAttribute('data-shop-buy-pack', kind);
+                buy.setAttribute('data-shop-buy-amount', String(amount));
+                if (isFree) { buy.setAttribute('data-shop-buy-free', '1'); }
+                buy.textContent = 'x' + amount;
+                buy.disabled = isFree
+                    ? (!state.isAdmin && (freeRemaining < amount || packSpace(kind) < amount))
+                    : (!state.isAdmin && (money < price * amount || packSpace(kind) < amount));
+                buy.title = isFree
+                    ? 'Reclamar ' + amount + ' sobre(s) mnemónicos gratis'
+                    : 'Comprar ' + amount + ' por ' + formatNumber(price * amount) + ' Mnemones';
+                controls.appendChild(buy);
+            });
+            item.classList.toggle('is-empty', isFree ? (!state.isAdmin && (freeRemaining <= 0 || packSpace(kind) <= 0)) : (!state.isAdmin && (money < price || packSpace(kind) <= 0)));
         });
+        els.shopButtons = Array.prototype.slice.call(document.querySelectorAll('[data-shop-buy-pack]'));
+    }
+
+    function materialIconHtml(materialKey) {
+        var material = UPGRADE_MATERIALS[materialKey];
+        var icon = material ? RARITY_ICONS[material.rarity] : '';
+        return icon ? '<img src="' + escapeHtml(icon) + '" alt="" width="24" height="24">' : '';
+    }
+
+    function renderMaterialShopItem(item, materialKey, money) {
+        var material = UPGRADE_MATERIALS[materialKey];
+        if (!material) {
+            item.hidden = true;
+            return;
+        }
+        item.hidden = false;
+        var nameNode = item.querySelector('span');
+        if (nameNode && !nameNode.classList.contains('hg-shop-item__contents')) {
+            nameNode.innerHTML = materialIconHtml(materialKey) + '<span>' + escapeHtml(material.label) + '</span>';
+        }
+        var priceNode = item.querySelector('strong');
+        if (priceNode) {
+            priceNode.textContent = formatNumber(material.price) + ' Mnemones';
+        }
+        var description = item.querySelector('.hg-shop-item__contents');
+        if (!description) {
+            description = document.createElement('span');
+            description.className = 'hg-shop-item__contents';
+            item.appendChild(description);
+        }
+        description.textContent = material.description + ' Tienes: ' + (state.isAdmin ? 'Admin' : materialStock(materialKey)) + '.';
+        item.title = material.label + ': ' + material.description + ' Precio: ' + formatNumber(material.price) + ' Mnemones.';
+        var controls = item.querySelector('.hg-shop-item__actions');
+        if (!controls) {
+            controls = document.createElement('span');
+            controls.className = 'hg-shop-item__actions';
+            item.appendChild(controls);
+        }
+        controls.innerHTML = '';
+        SHOP_QUANTITIES.forEach(function (amount) {
+            var buy = document.createElement('button');
+            buy.type = 'button';
+            buy.className = 'hg-shop-buy';
+            buy.setAttribute('data-shop-buy-material', materialKey);
+            buy.setAttribute('data-shop-buy-amount', String(amount));
+            buy.textContent = 'x' + amount;
+            buy.disabled = !state.isAdmin && money < material.price * amount;
+            buy.title = 'Comprar ' + amount + ' por ' + formatNumber(material.price * amount) + ' Mnemones';
+            controls.appendChild(buy);
+        });
+        item.classList.toggle('is-empty', !state.isAdmin && money < material.price);
     }
 
     function packPrice(packKind) {
-        return PACK_PRICES[packKind] || PACK_PRICES.standard;
+        return Object.prototype.hasOwnProperty.call(PACK_PRICES, packKind) ? PACK_PRICES[packKind] : PACK_PRICES.standard;
     }
 
     function normalizeSourceType(type) {
@@ -694,6 +1278,20 @@
     function typeChipHtml(type, labelClass) {
         var normalized = normalizeSourceType(type);
         return typeIconHtml(normalized) + '<span' + (labelClass ? ' class="' + labelClass + '"' : '') + '>' + escapeHtml(typeLabel(normalized)) + '</span>';
+    }
+
+    function cardGameIconHtml(icon, label) {
+        return '<img src="' + escapeHtml(CARD_GAME_ICONS[icon] || '') + '" alt="' + escapeHtml(label || '') + '" width="64" height="64">';
+    }
+
+    function combatCardNameHtml(card, extraClass) {
+        if (!card || typeof card !== 'object') { return '-'; }
+        var classes = 'hg-combat-card-title' + (extraClass ? ' ' + extraClass : '');
+        var label = typeLabel(card.source_type) + ' · ' + card.card_name;
+        return '<span class="' + classes + '" title="' + escapeHtml(label) + '">' +
+            typeIconHtml(card.source_type, 'hg-type-icon--combat') +
+            '<span class="hg-combat-card-title__name">' + escapeHtml(card.card_name) + '</span>' +
+            '</span>';
     }
 
     function validCard(card) {
@@ -747,6 +1345,7 @@
                 state.catalog.forEach(function (card) {
                     state.catalogById[String(card.card_id)] = card;
                 });
+                migrateCollectionQuality();
                 setStatus(state.catalog.length ? 'Listo.' : 'No hay cartas activas en el catálogo.');
                 renderSummary();
                 renderCollectionTable();
@@ -778,11 +1377,19 @@
         }
         state.collection.currency = normalizeCurrency(state.collection.currency);
         state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        state.collection.workAssignments = normalizeWorkAssignments(state.collection.workAssignments);
+        state.collection.workPendingRewards = normalizeWorkPendingRewards(state.collection.workPendingRewards);
+        cleanWorkAssignments(false);
+        limitWorkAssignments(false);
         return state.collection;
     }
 
     function saveCollection() {
         if (!state.collection) { state.collection = createEmptyCollection(); }
+        state.collection.currency = normalizeCurrency(state.collection.currency);
+        state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
         state.collection.updatedAt = nowIso();
         writeJson(STORAGE_KEY, state.collection);
     }
@@ -819,6 +1426,9 @@
         }
         if (packKind === 'omens') {
             return RARITY_ORDER.indexOf(card.card_rarity) >= RARITY_ORDER.indexOf('rare');
+        }
+        if (packKind === 'gaian') {
+            return RARITY_ORDER.indexOf(card.card_rarity) >= RARITY_ORDER.indexOf('epic');
         }
         return true;
     }
@@ -880,10 +1490,45 @@
         return low + Math.floor(Math.random() * (high - low + 1));
     }
 
-    function playUiSound(path, volume) {
+    function randomBetween(min, max) {
+        return min + (Math.random() * (max - min));
+    }
+
+    function soundPaths(value) {
+        if (!value) { return []; }
+        return Array.isArray(value) ? value.filter(Boolean) : [value];
+    }
+
+    function preloadUiSound(path) {
+        if (!path || uiSoundCache[path]) { return uiSoundCache[path] || null; }
         try {
             var audio = new Audio(path);
+            audio.preload = 'auto';
+            audio.load();
+            uiSoundCache[path] = audio;
+            return audio;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function preloadCombatSounds() {
+        if (combatSoundsPreloaded) { return; }
+        combatSoundsPreloaded = true;
+        Object.keys(COMBAT_SOUNDS).forEach(function (kind) {
+            soundPaths(COMBAT_SOUNDS[kind]).forEach(preloadUiSound);
+        });
+    }
+
+    function playUiSound(path, volume, options) {
+        options = options || {};
+        try {
+            var audio = preloadUiSound(path) || new Audio(path);
             audio.volume = typeof volume === 'number' ? volume : 0.8;
+            if (typeof options.playbackRate === 'number') {
+                audio.playbackRate = Math.max(0.5, Math.min(2, options.playbackRate));
+            }
+            try { audio.currentTime = 0; } catch (e2) {}
             var played = audio.play();
             if (played && typeof played.catch === 'function') {
                 played.catch(function () {});
@@ -896,18 +1541,25 @@
     function playMoneySound() { playUiSound('/sounds/ui/money.ogg', 0.78); }
     function playDustSound() { playUiSound('/sounds/ui/dust.ogg', 0.78); }
     function playCombatSound(kind) {
-        var path = COMBAT_SOUNDS[kind] || '';
-        if (path) { playUiSound(path, 0.74); }
+        preloadCombatSounds();
+        var sound = COMBAT_SOUNDS[kind] || '';
+        var path = Array.isArray(sound) ? sound[Math.floor(Math.random() * sound.length)] : sound;
+        var options = {};
+        if (kind === 'attack' || kind === 'damage') {
+            options.playbackRate = randomBetween(0.92, 1.1);
+        }
+        if (path) { playUiSound(path, 0.74, options); }
     }
 
-    function openPack(packKind) {
+    function openPack(packKind, options) {
+        options = options || {};
         packKind = packKind || 'standard';
         if (!state.catalog.length) {
             setStatus('No hay cartas disponibles para abrir sobres.');
             return [];
         }
         if (packKind === 'standard' && packStock('standard') <= 0) {
-            setStatus('No tienes sobres mnemónicos disponibles. Se recarga 1 gratis cada 10 minutos o puedes reclamar uno con Mnemones.');
+            setStatus('No tienes sobres mnemónicos disponibles. Compra unidades desde la tienda.');
             return [];
         }
         if (packKind !== 'standard' && packStock(packKind) <= 0) {
@@ -930,49 +1582,134 @@
             var copy = {
                 instanceId: instanceId(),
                 cardId: card.card_id,
+                rarity: card.card_rarity,
                 hp: rollStat(card.hp_min, card.hp_max),
                 atk: rollStat(card.atk_min, card.atk_max),
                 def: rollStat(card.def_min, card.def_max),
                 obtainedAt: nowIso()
             };
+            copy.quality = calculatedQualityScore(copy, card);
             state.collection.ownedCards.push(copy);
             obtained.push({ catalog: card, instance: copy });
         }
 
         consumePack(packKind);
 
-        saveCollection();
-        if (obtained.length) { playFlipSound(); }
-        renderPackResults(obtained);
-        renderSummary();
-        renderPackInventory();
-        showPackReveal(obtained, packKind);
-        setStatus(packLabel(packKind) + ': ' + obtained.length + ' cartas obtenidas.');
+        if (!options.deferSave) { saveCollection(); }
+        if (!options.silent) {
+            if (obtained.length) { playFlipSound(); }
+            renderPackResults(obtained);
+            renderSummary();
+            renderPackInventory();
+            showPackReveal(obtained, packKind);
+            setStatus(packLabel(packKind) + ': ' + obtained.length + ' cartas obtenidas.');
+        }
         return obtained;
     }
 
-    function buyPack(packKind) {
+    function buyPack(packKind, amount, options) {
+        options = options || {};
+        amount = Math.max(1, clampInt(amount, 1));
         packKind = packKind || 'standard';
+        var isFree = options.free === true;
         if (PACK_KINDS.indexOf(packKind) === -1) {
             setStatus('Ese sobre no existe.');
             return false;
         }
         if (!state.collection) { loadCollection(); }
         var price = packPrice(packKind);
-        if (!state.isAdmin && currentMnemones() < price) {
+        if (!state.isAdmin && packSpace(packKind) < amount) {
+            setStatus('No puedes acumular mas de ' + MAX_PACK_STOCK + ' sobres de cada tipo.');
+            renderPackInventory();
+            return false;
+        }
+        if (isFree) {
+            if (!claimDailyFreePacks(amount)) {
+                setStatus('No puedes reclamar ' + amount + ' sobres gratis. Quedan ' + dailyFreePacksRemaining() + ' hoy.');
+                renderDailyCounter();
+                renderPackInventory();
+                return false;
+            }
+            playMoneySound();
+            addPack('standard', amount, { silent: true, deferSave: true });
+            saveCollection();
+            renderDailyCounter();
+            renderPackInventory();
+            setStatus(amount + ' sobre(s) mnemónicos gratis añadidos. Quedan ' + dailyFreePacksRemaining() + ' gratis hoy.');
+            return true;
+        }
+        var totalPrice = price * amount;
+        if (!state.isAdmin && currentMnemones() < totalPrice) {
             setStatus('No tienes Mnemones suficientes para comprar ' + packLabel(packKind).toLowerCase() + '.');
             return false;
         }
         if (!state.isAdmin) {
-            addMnemones(-price);
+            addMnemones(-totalPrice);
         }
-        addPack(packKind, 1);
-        saveCollection();
         playMoneySound();
+        addPack(packKind, amount, { silent: true, deferSave: true });
+        saveCollection();
+        renderPackInventory();
+        setStatus(amount + ' x ' + packLabel(packKind).toLowerCase() + ' añadidos a tus sobres.');
+        return true;
+    }
+
+    function buyMaterial(materialKey, amount) {
+        amount = Math.max(1, clampInt(amount, 1));
+        var material = UPGRADE_MATERIALS[materialKey];
+        if (!material) {
+            setStatus('Ese objeto no existe.');
+            return false;
+        }
+        if (!state.collection) { loadCollection(); }
+        var totalPrice = material.price * amount;
+        if (!state.isAdmin && currentMnemones() < totalPrice) {
+            setStatus('No tienes Mnemones suficientes para comprar ' + material.label + '.');
+            return false;
+        }
+        if (!state.isAdmin) {
+            addMnemones(-totalPrice);
+        }
+        playMoneySound();
+        var newStock = addMaterial(materialKey, amount);
+        if (newStock === false) {
+            setStatus('No se ha podido anadir ese objeto al inventario.');
+            return false;
+        }
+        saveCollection();
+        renderSummary({ light: true });
+        setStatus(amount + ' x ' + material.label + ' anadido(s) al inventario. Tienes ' + (state.isAdmin ? 'Admin' : newStock) + '.');
+        return true;
+    }
+
+    function openAllPacks() {
+        if (!state.catalog.length) {
+            setStatus('No hay cartas disponibles para abrir sobres.');
+            return [];
+        }
+        if (!state.collection) { loadCollection(); }
+        var opened = 0;
+        var obtained = [];
+        PACK_KINDS.forEach(function (kind) {
+            if (!state.isAdmin) {
+                while (packStock(kind) > 0) {
+                    obtained = obtained.concat(openPack(kind, { silent: true, deferSave: true }));
+                    opened += 1;
+                }
+            }
+        });
+        if (!opened) {
+            setStatus('No te quedan sobres por abrir.');
+            renderPackInventory();
+            return [];
+        }
+        if (obtained.length) { playFlipSound(); }
+        saveCollection();
+        renderPackResults(obtained.slice(-5));
         renderSummary();
         renderPackInventory();
-        setStatus(packLabel(packKind) + ' añadido a tus sobres.');
-        return true;
+        setStatus('Sobres abiertos: ' + opened + '. Mostrando las últimas 5 cartas obtenidas.');
+        return obtained;
     }
 
     function renderPackResults(cards) {
@@ -1000,9 +1737,89 @@
         return groups;
     }
 
-    function bestCopy(copies) {
+    function copyRarity(copy, card) {
+        return normalizeRarity(copy && copy.rarity, normalizeRarity(card && card.card_rarity, 'common'));
+    }
+
+    function rarityStatRange(rarity) {
+        return RARITY_STAT_RANGES[normalizeRarity(rarity, 'common')] || RARITY_STAT_RANGES.common;
+    }
+
+    function statBoundsForRarity(card, rarity, stat) {
+        rarity = normalizeRarity(rarity, 'common');
+        if (card && rarity === normalizeRarity(card.card_rarity, 'common')) {
+            var min = clampInt(card[stat + '_min'], rarityStatRange(rarity)[0]);
+            var max = clampInt(card[stat + '_max'], rarityStatRange(rarity)[1]);
+            return max >= min ? [min, max] : [min, min];
+        }
+        return rarityStatRange(rarity);
+    }
+
+    function statPercentInBounds(value, bounds) {
+        var min = bounds[0];
+        var max = bounds[1];
+        if (max <= min) { return 1; }
+        return Math.max(0, Math.min(1, (Number(value || 0) - min) / (max - min)));
+    }
+
+    function scaledStatForRarity(copy, card, stat, fromRarity, toRarity) {
+        var from = statBoundsForRarity(card, fromRarity, stat);
+        var to = statBoundsForRarity(card, toRarity, stat);
+        var percent = statPercentInBounds(copy && copy[stat], from);
+        return Math.max(to[0], Math.min(to[1], clampInt(to[0] + ((to[1] - to[0]) * percent), to[0])));
+    }
+
+    function retuneCopyStatsForRarity(copy, card, fromRarity, toRarity) {
+        if (!copy || !card) { return; }
+        copy.hp = scaledStatForRarity(copy, card, 'hp', fromRarity, toRarity);
+        copy.atk = scaledStatForRarity(copy, card, 'atk', fromRarity, toRarity);
+        copy.def = scaledStatForRarity(copy, card, 'def', fromRarity, toRarity);
+        copy.rarity = normalizeRarity(toRarity, fromRarity);
+        copy.quality = calculatedQualityScore(copy, card);
+    }
+
+    function statForQuality(card, rarity, stat, quality) {
+        var bounds = statBoundsForRarity(card, rarity, stat);
+        var percent = Math.max(0, Math.min(1, Number(quality || 0) / 100));
+        return Math.max(bounds[0], Math.min(bounds[1], clampInt(bounds[0] + ((bounds[1] - bounds[0]) * percent), bounds[0])));
+    }
+
+    function applyQualityToCopyStats(copy, card, quality) {
+        if (!copy || !card) { return; }
+        var rarity = copyRarity(copy, card);
+        var targetQuality = clampQuality(quality, qualityScore(copy, card));
+        copy.hp = statForQuality(card, rarity, 'hp', targetQuality);
+        copy.atk = statForQuality(card, rarity, 'atk', targetQuality);
+        copy.def = statForQuality(card, rarity, 'def', targetQuality);
+        copy.quality = calculatedQualityScore(copy, card);
+    }
+
+    function statsBelowRarityFloor(copy, card, rarity) {
+        var hpBounds = statBoundsForRarity(card, rarity, 'hp');
+        var atkBounds = statBoundsForRarity(card, rarity, 'atk');
+        var defBounds = statBoundsForRarity(card, rarity, 'def');
+        return (copy.hp || 0) < hpBounds[0] || (copy.atk || 0) < atkBounds[0] || (copy.def || 0) < defBounds[0];
+    }
+
+    function cardForCopy(card, copy) {
+        if (!card) { return null; }
+        var rarity = copyRarity(copy, card);
+        if (rarity === card.card_rarity) { return card; }
+        var out = {};
+        Object.keys(card).forEach(function (key) {
+            out[key] = card[key];
+        });
+        out.card_rarity = rarity;
+        return out;
+    }
+
+    function copySortValue(copy, card) {
+        return (rarityRank(copyRarity(copy, card)) * 100000) + (qualityScore(copy, card) * 100) + totalStats(copy);
+    }
+
+    function bestCopy(copies, card) {
         return copies.slice().sort(function (a, b) {
-            return totalStats(b) - totalStats(a);
+            return copySortValue(b, card) - copySortValue(a, card);
         })[0] || null;
     }
 
@@ -1011,7 +1828,62 @@
         return (copy.hp || 0) + (copy.atk || 0) + (copy.def || 0);
     }
 
+    function calculatedQualityScore(copy, card) {
+        if (!copy || !card) { return 0; }
+        var rarity = copyRarity(copy, card);
+        var hpBounds = statBoundsForRarity(card, rarity, 'hp');
+        var atkBounds = statBoundsForRarity(card, rarity, 'atk');
+        var defBounds = statBoundsForRarity(card, rarity, 'def');
+        var min = hpBounds[0] + atkBounds[0] + defBounds[0];
+        var max = hpBounds[1] + atkBounds[1] + defBounds[1];
+        var value = totalStats(copy);
+        if (max <= min) { return 100; }
+        return clampQuality(((value - min) / (max - min)) * 100, 0);
+    }
+
+    function qualityScore(copy, card) {
+        if (!copy || !card) { return 0; }
+        return clampQuality(copy.quality, calculatedQualityScore(copy, card));
+    }
+
+    function migrateCollectionQuality() {
+        if (!state.collection || !Array.isArray(state.collection.ownedCards)) { return false; }
+        var changed = false;
+        state.collection.ownedCards.forEach(function (copy) {
+            if (!copy || typeof copy !== 'object') { return; }
+            var card = state.catalogById[String(copy.cardId || '')];
+            if (!card) { return; }
+            var rarity = copyRarity(copy, card);
+            if (copy.rarity !== rarity) {
+                copy.rarity = rarity;
+                changed = true;
+            }
+            if (rarity !== normalizeRarity(card.card_rarity, 'common') && statsBelowRarityFloor(copy, card, rarity)) {
+                retuneCopyStatsForRarity(copy, card, card.card_rarity, rarity);
+                changed = true;
+            }
+            var current = clampQuality(copy.quality, null);
+            if (current !== null) {
+                if (copy.quality !== current) {
+                    copy.quality = current;
+                    changed = true;
+                }
+                return;
+            }
+            copy.quality = calculatedQualityScore(copy, card);
+            changed = true;
+        });
+        if (changed) { saveCollection(); }
+        return changed;
+    }
+
     function renderSummary() {
+        var light = arguments[0] && arguments[0].light;
+        if (light) {
+            renderDailyCounter();
+            renderShop();
+            return;
+        }
         var groups = collectionGroups();
         var uniqueCount = Object.keys(groups).length;
         var totalCopies = state.collection && Array.isArray(state.collection.ownedCards) ? state.collection.ownedCards.length : 0;
@@ -1020,16 +1892,8 @@
         renderDailyCounter();
         renderShop();
         renderBulkSellPreview();
+        renderWorkBench();
         renderCombatSetup();
-    }
-
-    function qualityScore(copy, card) {
-        if (!copy || !card) { return 0; }
-        var min = (card.hp_min || 0) + (card.atk_min || 0) + (card.def_min || 0);
-        var max = (card.hp_max || 0) + (card.atk_max || 0) + (card.def_max || 0);
-        var value = totalStats(copy);
-        if (max <= min) { return 100; }
-        return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
     }
 
     function sortedCatalogCards(cards) {
@@ -1052,7 +1916,13 @@
 
     function cardPassesCollectionFilters(card, groups) {
         if (!card) { return false; }
-        if (state.collectionRarity !== 'all' && card.card_rarity !== state.collectionRarity) { return false; }
+        if (state.collectionRarity !== 'all') {
+            var group = groups[String(card.card_id)];
+            var hasRarity = group && group.copies && group.copies.some(function (copy) {
+                return copyRarity(copy, card) === state.collectionRarity;
+            });
+            if (!hasRarity && card.card_rarity !== state.collectionRarity) { return false; }
+        }
         if (state.collectionOwnedOnly && !groups[String(card.card_id)]) { return false; }
         return true;
     }
@@ -1141,7 +2011,7 @@
 
     function renderAlbumSlot(card, group) {
         var owned = !!(group && group.copies && group.copies.length);
-        var best = owned ? bestCopy(group.copies) : null;
+        var best = owned ? bestCopy(group.copies, card) : null;
         var button = document.createElement('button');
         button.type = 'button';
         button.className = 'hg-album-slot hg-album-slot--' + card.card_rarity + (owned ? ' is-owned' : ' is-empty');
@@ -1198,8 +2068,20 @@
         return button;
     }
 
+    function activeMobilePanel() {
+        if (!state.mobile) { return ''; }
+        var active = els.mobilePanels.filter(function (panel) {
+            return panel.classList.contains('is-active');
+        })[0] || null;
+        return active ? (active.getAttribute('data-mobile-panel') || '') : 'packs';
+    }
+
     function isCollectionContext() {
-        return state.view === 'collection' || state.mobile;
+        return state.view === 'collection' || (state.mobile && activeMobilePanel() === 'collection');
+    }
+
+    function isMemoryContext() {
+        return state.view === 'collection' || (state.mobile && activeMobilePanel() === 'memory');
     }
 
     function openCollectionCard(card, copies) {
@@ -1278,9 +2160,9 @@
         return bounds;
     }
 
-    function renderAlbum() {
+    function renderAlbum(groups) {
         if (!els.albumGrid || !isCollectionContext()) { return 0; }
-        var groups = collectionGroups();
+        groups = groups || collectionGroups();
         var cards = cardsForCurrentCategory(groups);
         var bounds = pageBounds(cards.length);
         var pageCards = cards.slice(bounds.start, bounds.end);
@@ -1298,30 +2180,31 @@
         return cards.length;
     }
 
-    function tableEntriesForCurrentCategory() {
-        var groups = collectionGroups();
+    function tableEntriesForCurrentCategory(groups) {
+        groups = groups || collectionGroups();
         return Object.keys(groups).map(function (id) {
             var group = groups[id];
             var card = group.catalog;
-            var best = bestCopy(group.copies);
+            var best = bestCopy(group.copies, card);
             var total = totalStats(best);
+            var rowRarity = copyRarity(best, card);
             var obtained = group.copies.slice().sort(function (a, b) {
                 return String(b.obtainedAt || '').localeCompare(String(a.obtainedAt || ''));
             })[0];
             return {
                 cardId: card.card_id,
-                rarity: card.card_rarity,
+                rarity: rowRarity,
                 sourceType: card.source_type,
                 score: total,
                 row: state.mobile ? [
                     qualityScore(best, card).toFixed(1),
-                    '<button type="button" class="hg-table-card-btn hg-table-card-btn--mobile hg-rarity-label--' + card.card_rarity + '" data-card-id="' + card.card_id + '"><strong>' + escapeHtml(card.card_name) + '</strong></button>',
+                    '<button type="button" class="hg-table-card-btn hg-table-card-btn--mobile hg-rarity-label--' + rowRarity + '" data-card-id="' + card.card_id + '"><strong>' + escapeHtml(card.card_name) + '</strong></button>',
                     '<span class="hg-type-cell hg-type-cell--mobile" title="' + escapeHtml(typeLabel(card.source_type)) + '">' + typeIconHtml(card.source_type, 'hg-type-icon--table') + '</span>',
                     '#' + String(cardDisplayId(card)),
                     total,
                     'x' + group.copies.length
                 ] : [
-                    '<span class="hg-rarity-label hg-rarity-label--' + card.card_rarity + '">' + escapeHtml(RARITY_LABELS[card.card_rarity] || card.card_rarity) + '</span>',
+                    '<span class="hg-rarity-label hg-rarity-label--' + rowRarity + '">' + escapeHtml(RARITY_LABELS[rowRarity] || rowRarity) + '</span>',
                     qualityScore(best, card).toFixed(1),
                     '<button type="button" class="hg-table-card-btn" data-card-id="' + card.card_id + '"><strong>' + escapeHtml(card.card_name) + '</strong></button>',
                     '<span class="hg-type-cell">' + escapeHtml(TYPE_EMOJI[card.source_type] || '◦') + ' ' + escapeHtml(TYPE_LABELS[card.source_type] || card.source_type) + '</span>',
@@ -1353,9 +2236,9 @@
 
         var totalItems = 0;
         if (state.collectionMode === 'album') {
-            totalItems = renderAlbum();
+            totalItems = renderAlbum(groups);
         } else {
-            var tableRows = tableEntriesForCurrentCategory();
+            var tableRows = tableEntriesForCurrentCategory(groups);
             totalItems = tableRows.length;
             var bounds = pageBounds(totalItems);
             var pageRows = tableRows.slice(bounds.start, bounds.end);
@@ -1389,7 +2272,11 @@
     }
 
     function isCombatContext() {
-        return state.view === 'combat' || state.mobile;
+        return state.view === 'combat' || (state.mobile && activeMobilePanel() === 'combat');
+    }
+
+    function isCombatLoadoutVisible() {
+        return isCombatContext() && state.activeCombatScreen === 'loadout';
     }
 
     function createEmptyCombatTeams() {
@@ -1434,6 +2321,75 @@
         writeJson(COMBAT_TEAMS_KEY, state.combatTeams);
     }
 
+    function ownedCopyIdMap(availableForCombat) {
+        if (!state.collection) { loadCollection(); }
+        var ids = {};
+        (state.collection.ownedCards || []).forEach(function (copy) {
+            if (copy && copy.instanceId && (!availableForCombat || !isCopyWorking(copy.instanceId))) {
+                ids[String(copy.instanceId)] = true;
+            }
+        });
+        return ids;
+    }
+
+    function pruneDraftCombatTeam(ownedMap, removeMap) {
+        var seen = {};
+        state.draftCombatTeam = (state.draftCombatTeam || []).filter(function (id) {
+            id = String(id || '');
+            if (!id || seen[id]) { return false; }
+            if (ownedMap && !ownedMap[id]) { return false; }
+            if (removeMap && removeMap[id]) { return false; }
+            seen[id] = true;
+            return true;
+        }).slice(0, 5);
+    }
+
+    function cleanCombatTeamsAgainstCollection(persist) {
+        loadCombatTeams();
+        var owned = ownedCopyIdMap(true);
+        var changed = false;
+        state.combatTeams.teams.forEach(function (team) {
+            var seen = {};
+            var clean = [];
+            (team.cards || []).forEach(function (id) {
+                id = String(id || '');
+                if (!id || !owned[id] || seen[id] || clean.length >= 5) {
+                    changed = true;
+                    return;
+                }
+                seen[id] = true;
+                clean.push(id);
+            });
+            if (clean.length !== (team.cards || []).length) {
+                changed = true;
+            }
+            team.cards = clean;
+        });
+        if (changed) {
+            pruneDraftCombatTeam(owned, null);
+            if (persist) { saveCombatTeams(); }
+        }
+        return changed;
+    }
+
+    function removeCopiesFromCombatTeams(removeMap) {
+        if (!removeMap) { return 0; }
+        loadCombatTeams();
+        var removed = 0;
+        state.combatTeams.teams.forEach(function (team) {
+            team.cards = (team.cards || []).filter(function (id) {
+                var remove = !!removeMap[String(id || '')];
+                if (remove) { removed += 1; }
+                return !remove;
+            }).slice(0, 5);
+        });
+        if (removed > 0) {
+            pruneDraftCombatTeam(null, removeMap);
+            saveCombatTeams();
+        }
+        return removed;
+    }
+
     function normalizeCombatProfile(data) {
         data = data && typeof data === 'object' ? data : {};
         return {
@@ -1471,12 +2427,42 @@
     function combatEntryFromCopy(copy) {
         var card = copy ? state.catalogById[String(copy.cardId || '')] : null;
         if (!card) { return null; }
-        return { card: card, copy: copy, score: totalStats(copy) };
+        return { card: cardForCopy(card, copy), baseCard: card, copy: copy, score: totalStats(copy) };
+    }
+
+    function combatStatPillHtml(label, value) {
+        return '<span><em>' + escapeHtml(label) + '</em><b>' + escapeHtml(value) + '</b></span>';
+    }
+
+    function combatEntryStatsHtml(entry, options) {
+        if (!entry) { return ''; }
+        options = options || {};
+        var copy = entry.copy;
+        var card = entry.card;
+        var hpText = options.currentHp !== undefined
+            ? String(options.currentHp) + ' / ' + String(options.maxHp || copy.hp || 0)
+            : String(copy.hp || 0);
+        var stats = [
+            combatStatPillHtml('Total', entry.score),
+            combatStatPillHtml('PS', hpText),
+            combatStatPillHtml('ATQ', copy.atk || 0),
+            combatStatPillHtml('DEF', options.effectiveDef !== undefined ? options.effectiveDef : (copy.def || 0))
+        ];
+        if (options.includeQuality) {
+            stats.push(combatStatPillHtml('CAL', qualityScore(copy, entry.baseCard).toFixed(1) + '%'));
+        }
+        return '<span class="hg-combat-statline">' + stats.join('') + '</span>' +
+            '<small class="hg-combat-card-meta">' +
+                '<span>' + escapeHtml(RARITY_LABELS[card.card_rarity] || card.card_rarity) + '</span>' +
+                '<span>' + escapeHtml(typeLabel(card.source_type)) + '</span>' +
+            '</small>';
     }
 
     function combatOwnedEntries() {
         if (!state.collection) { loadCollection(); }
-        return (state.collection.ownedCards || []).map(combatEntryFromCopy).filter(Boolean).sort(function (a, b) {
+        return (state.collection.ownedCards || []).filter(function (copy) {
+            return !isCopyWorking(copy.instanceId);
+        }).map(combatEntryFromCopy).filter(Boolean).sort(function (a, b) {
             var dateDiff = String(b.copy.obtainedAt || '').localeCompare(String(a.copy.obtainedAt || ''));
             if (dateDiff !== 0) { return dateDiff; }
             return String(b.copy.instanceId || '').localeCompare(String(a.copy.instanceId || ''));
@@ -1512,7 +2498,7 @@
     function validDraftTeam() {
         var seen = {};
         return state.draftCombatTeam.filter(function (id) {
-            if (seen[id] || !copyByInstanceId(id)) { return false; }
+            if (seen[id] || !copyByInstanceId(id) || isCopyWorking(id)) { return false; }
             seen[id] = true;
             return true;
         }).slice(0, 5);
@@ -1544,20 +2530,26 @@
                 preview.appendChild(empty);
                 return;
             }
+            var total = 0;
             for (var i = 0; i < 5; i++) {
                 var id = ids[i] || '';
                 var entry = combatEntryFromCopy(copyByInstanceId(id));
                 var item = document.createElement('span');
                 item.className = 'hg-combat-team-preview__card' + (entry ? ' hg-collection-row--' + entry.card.card_rarity : ' is-empty');
                 if (entry) {
+                    total += entry.score;
                     item.innerHTML =
-                        '<strong>' + escapeHtml(entry.card.card_name) + '</strong>' +
+                        '<strong>' + combatCardNameHtml(entry.card) + '</strong>' +
                         '<small>PS ' + escapeHtml(entry.copy.hp) + ' · ATQ ' + escapeHtml(entry.copy.atk) + ' · DEF ' + escapeHtml(entry.copy.def) + '</small>';
                 } else {
                     item.innerHTML = '<strong>Hueco ' + (i + 1) + '</strong><small>Sin carta</small>';
                 }
                 preview.appendChild(item);
             }
+            var totalItem = document.createElement('span');
+            totalItem.className = 'hg-combat-team-preview__total';
+            totalItem.innerHTML = '<strong>Total equipo</strong><small>' + total + '</small>';
+            preview.appendChild(totalItem);
         });
     }
 
@@ -1592,6 +2584,14 @@
         if (!els.combatTeamSlots) { return; }
         state.draftCombatTeam = validDraftTeam();
         els.combatTeamSlots.innerHTML = '';
+        var teamTotal = state.draftCombatTeam.reduce(function (sum, id) {
+            var entry = combatEntryFromCopy(copyByInstanceId(id));
+            return sum + (entry ? entry.score : 0);
+        }, 0);
+        var summary = document.createElement('div');
+        summary.className = 'hg-combat-team-total';
+        summary.innerHTML = '<strong>Total del equipo</strong><b>' + teamTotal + '</b><span>' + state.draftCombatTeam.length + ' / 5 cartas</span>';
+        els.combatTeamSlots.appendChild(summary);
         for (var i = 0; i < 5; i++) {
             var id = state.draftCombatTeam[i] || '';
             var entry = combatEntryFromCopy(copyByInstanceId(id));
@@ -1601,8 +2601,12 @@
             slot.setAttribute('data-combat-slot', String(i));
             if (entry) {
                 slot.innerHTML =
-                    '<strong>' + escapeHtml(entry.card.card_name) + '</strong>' +
+                    '<strong>' + combatCardNameHtml(entry.card) + '</strong>' +
                     '<span>' + escapeHtml(RARITY_LABELS[entry.card.card_rarity] || entry.card.card_rarity) + ' · Total ' + entry.score + '</span>' +
+                    '<small>Quitar</small>';
+                slot.innerHTML =
+                    '<strong>' + combatCardNameHtml(entry.card) + '</strong>' +
+                    combatEntryStatsHtml(entry) +
                     '<small>Quitar</small>';
                 slot.addEventListener('click', function () {
                     state.draftCombatTeam.splice(Number(this.getAttribute('data-combat-slot') || 0), 1);
@@ -1641,9 +2645,12 @@
             button.className = 'hg-combat-card-pick hg-collection-row--' + entry.card.card_rarity;
             button.disabled = state.draftCombatTeam.length >= 5 || !!selected[String(entry.copy.instanceId || '')];
             button.innerHTML =
-                '<strong>' + escapeHtml(entry.card.card_name) + '</strong>' +
+                '<strong>' + combatCardNameHtml(entry.card) + '</strong>' +
                 '<span>' + escapeHtml(typeLabel(entry.card.source_type)) + ' · ' + escapeHtml(RARITY_LABELS[entry.card.card_rarity] || entry.card.card_rarity) + '</span>' +
                 '<b>PS ' + escapeHtml(entry.copy.hp) + ' / ATQ ' + escapeHtml(entry.copy.atk) + ' / DEF ' + escapeHtml(entry.copy.def) + '</b>';
+            button.innerHTML =
+                '<strong>' + combatCardNameHtml(entry.card) + '</strong>' +
+                combatEntryStatsHtml(entry, { includeQuality: true });
             button.addEventListener('click', function () {
                 if (state.draftCombatTeam.length >= 5) {
                     setCombatMessage('El equipo ya tiene 5 cartas.');
@@ -1656,9 +2663,54 @@
         });
     }
 
-    function renderCombatSetup() {
-        if (!isCombatContext() || !els.combatTeamSlots) { return; }
+    function autoBuildCombatTeam(options) {
+        options = options || {};
+        if (!isCombatContext()) { return false; }
         loadCombatTeams();
+        var entries = combatOwnedEntries().filter(function (entry) {
+            if (options.ignoreFilters) { return true; }
+            return (state.combatRarityFilter === 'all' || entry.card.card_rarity === state.combatRarityFilter)
+                && (state.combatTypeFilter === 'all' || entry.card.source_type === state.combatTypeFilter);
+        }).sort(function (a, b) {
+            return b.score - a.score
+                || qualityScore(b.copy, b.baseCard) - qualityScore(a.copy, a.baseCard)
+                || rarityRank(b.card.card_rarity) - rarityRank(a.card.card_rarity)
+                || String(a.card.card_name).localeCompare(String(b.card.card_name));
+        });
+        var picked = entries.slice(0, 5).map(function (entry) {
+            return String(entry.copy.instanceId || '');
+        }).filter(Boolean);
+        if (!picked.length) {
+            setCombatMessage('No hay cartas disponibles para crear autoequipo con esos filtros.');
+            return false;
+        }
+        if (options.requireFullTeam && picked.length < 5) {
+            setCombatMessage('Necesitas al menos 5 cartas disponibles para crear un equipo rapido.');
+            return false;
+        }
+        state.draftCombatTeam = picked;
+        state.combatTeams.teams[state.activeCombatTeam].cards = picked.slice();
+        saveCombatTeams();
+        renderCombatSetup();
+        setCombatMessage('Autoequipo guardado: ' + picked.length + '/5 mejores cartas disponibles.');
+        return true;
+    }
+
+    function promptQuickCombatTeam() {
+        return confirmGameAction(
+            'Quieres crear un equipo de 5 cartas rapido?',
+            { title: 'Equipo rapido', confirmLabel: 'Si, crear equipo', cancelLabel: 'Ahora no' },
+            function () {
+                if (autoBuildCombatTeam({ ignoreFilters: true, requireFullTeam: true })) {
+                    startTrainingCombat();
+                }
+            }
+        );
+    }
+
+    function renderCombatSetup() {
+        if (!isCombatLoadoutVisible() || !els.combatTeamSlots) { return; }
+        cleanCombatTeamsAgainstCollection(true);
         renderCombatTeamSelect();
         renderCombatTeamPreview();
         renderCombatProfile();
@@ -1799,10 +2851,11 @@
 
     function startTrainingCombat() {
         if (!isCombatContext()) { return false; }
+        preloadCombatSounds();
+        cleanCombatTeamsAgainstCollection(true);
         var teamIds = validDraftTeam();
         if (teamIds.length !== 5) {
-            setCombatMessage('Necesitas 5 cartas guardadas o elegidas para entrenar.');
-            return false;
+            return promptQuickCombatTeam();
         }
         var playerUnits = teamIds.map(function (id, index) {
             var entry = combatEntryFromCopy(copyByInstanceId(id));
@@ -1942,7 +2995,7 @@
         player.defending = false;
         var damage = combatDamage(player, enemy);
         applyCombatDamage(enemy, damage);
-        pushCombatLog(player.card.card_name + ' ataca e inflige ' + damage + ' PS.');
+        pushCombatLog(player.card.card_name + ' ataca y causa ' + damage + ' puntos de daño.');
         var defeatedEnemy = enemy.defeated;
         if (defeatedEnemy) {
             pushCombatLog(enemy.card.card_name + ' cae.');
@@ -2028,7 +3081,7 @@
         if (!state.combat || state.combat.over || state.combatAnimating) { return; }
         state.combat.over = true;
         pushCombatLog('Huyes del entrenamiento. Sin coste y sin pérdida de cartas.');
-        setCombatMessage('Combate terminado por huida.');
+        setCombatMessage('Combate finalizado porque has huído.');
         renderCombatBattle();
     }
 
@@ -2114,21 +3167,25 @@
     }
 
     function animateCombatAttack(attackerSide, targetSide, damage) {
+        playCombatSound('attack');
         restartCombatAnimation(combatStand(attackerSide), attackerSide === 'enemy' ? 'is-attacking-enemy' : 'is-attacking-player');
         restartCombatAnimation(combatStand(targetSide), 'is-hit');
         showCombatDamage(targetSide, damage);
-        playCombatSound('attack');
-        if (damage > 0) { playCombatSound('damage'); }
+        if (damage > 0) {
+            window.setTimeout(function () {
+                playCombatSound('damage');
+            }, COMBAT_HIT_SOUND_DELAY_MS);
+        }
     }
 
     function animateCombatDefend(side) {
-        restartCombatAnimation(combatStand(side), 'is-defending', COMBAT_DEFEND_MS);
         playCombatSound('defend');
+        restartCombatAnimation(combatStand(side), 'is-defending', COMBAT_DEFEND_MS);
     }
 
     function animateCombatDefeat(side) {
-        restartCombatAnimation(combatStand(side), 'is-defeated', COMBAT_DEFEAT_MS);
         playCombatSound('defeat');
+        restartCombatAnimation(combatStand(side), 'is-defeated', COMBAT_DEFEAT_MS);
     }
 
     function animateCombatEntry(side) {
@@ -2195,18 +3252,30 @@
     }
 
     function renderCombatUnit(unit, cardWrap, nameNode, hpNode, hpBar, shieldNode, atkNode, defNode) {
-        if (nameNode) { nameNode.textContent = unit ? unit.card.card_name : '-'; }
+        if (nameNode) {
+            if (unit) {
+                nameNode.innerHTML = combatCardNameHtml(unit.card, 'hg-combat-card-title--hud');
+            } else {
+                nameNode.textContent = '-';
+            }
+        }
         if (hpNode) { hpNode.textContent = unit ? 'PS ' + unit.hp + ' / ' + unit.maxHp : 'PS 0 / 0'; }
         if (hpBar) { hpBar.style.width = unit ? Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100)) + '%' : '0%'; }
         renderCombatShields(unit, shieldNode);
         if (atkNode) { atkNode.textContent = unit ? String(unit.atk) : '0'; }
         if (defNode) { defNode.textContent = unit ? String(effectiveDef(unit)) : '0'; }
         if (cardWrap) {
-            cardWrap.innerHTML = '';
-            if (unit) {
-                var cardNode = renderCard(unit.card, unit.copy, { noLink: true });
+            var currentId = cardWrap.getAttribute('data-combat-instance') || '';
+            var nextId = unit ? String(unit.copy && unit.copy.instanceId || '') : '';
+            if (!unit) {
+                cardWrap.innerHTML = '';
+                cardWrap.removeAttribute('data-combat-instance');
+            } else if (currentId !== nextId || !cardWrap.firstElementChild) {
+                cardWrap.innerHTML = '';
+                var cardNode = renderCard(unit.card, unit.copy, { noLink: true, combatUnit: true });
                 cardNode.classList.add('hg-card--combat-unit');
                 cardWrap.appendChild(cardNode);
+                cardWrap.setAttribute('data-combat-instance', nextId);
             }
         }
     }
@@ -2230,7 +3299,14 @@
             if (index === state.combat.playerActive || unit.defeated || unit.hp <= 0) { return; }
             var button = document.createElement('button');
             button.type = 'button';
-            button.innerHTML = '<strong>' + escapeHtml(unit.card.card_name) + '</strong><span>PS ' + unit.hp + '/' + unit.maxHp + '</span>';
+            button.className = 'hg-combat-bench-card hg-collection-row--' + unit.card.card_rarity;
+            button.innerHTML =
+                '<strong>' + combatCardNameHtml(unit.card) + '</strong>' +
+                '<span class="hg-combat-statline hg-combat-statline--switch">' +
+                    combatStatPillHtml('PS', unit.hp + ' / ' + unit.maxHp) +
+                    combatStatPillHtml('ATQ', unit.atk) +
+                    combatStatPillHtml('DEF', effectiveDef(unit)) +
+                '</span>';
             button.addEventListener('click', function () {
                 els.combatBench.hidden = true;
                 switchPlayerCard(index, true);
@@ -2302,16 +3378,17 @@
 
     function renderCombat() {
         if (!isCombatContext()) { return; }
-        renderCombatSetup();
+        if (isCombatLoadoutVisible()) { renderCombatSetup(); }
         showCombatScreen(state.activeCombatScreen);
         renderCombatBattle();
     }
 
     function renderCard(card, copy, options) {
         options = options || {};
+        var rarityKey = copyRarity(copy, card);
         var article = document.createElement('article');
-        article.className = 'hg-card hg-card--' + card.card_rarity;
-        article.setAttribute('data-rarity', RARITY_LABELS[card.card_rarity] || card.card_rarity);
+        article.className = 'hg-card hg-card--' + rarityKey;
+        article.setAttribute('data-rarity', RARITY_LABELS[rarityKey] || rarityKey);
         article.setAttribute('data-type', card.source_type);
         if (card.card_url && !options.noLink) {
             article.className += ' hg-card--linked';
@@ -2341,22 +3418,26 @@
         head.className = 'hg-card__head';
         var rarity = document.createElement('span');
         rarity.className = 'hg-card__short';
-        rarity.setAttribute('aria-label', RARITY_LABELS[card.card_rarity] || card.card_rarity);
-        var iconUrl = RARITY_ICONS[card.card_rarity] || '';
+        rarity.setAttribute('aria-label', RARITY_LABELS[rarityKey] || rarityKey);
+        var iconUrl = RARITY_ICONS[rarityKey] || '';
         if (iconUrl) {
             var rarityIcon = document.createElement('img');
             rarityIcon.src = iconUrl;
-            rarityIcon.alt = RARITY_LABELS[card.card_rarity] || card.card_rarity;
+            rarityIcon.alt = RARITY_LABELS[rarityKey] || rarityKey;
             rarityIcon.loading = 'lazy';
             rarityIcon.addEventListener('error', function () {
-                rarity.textContent = RARITY_SHORT[card.card_rarity] || '?';
+                rarity.textContent = RARITY_SHORT[rarityKey] || '?';
             }, { once: true });
             rarity.appendChild(rarityIcon);
         } else {
-            rarity.textContent = RARITY_SHORT[card.card_rarity] || '?';
+            rarity.textContent = RARITY_SHORT[rarityKey] || '?';
         }
         var title = document.createElement('h4');
-        title.textContent = card.card_name;
+        if (options.combatUnit) {
+            title.innerHTML = combatCardNameHtml(card, 'hg-combat-card-title--card');
+        } else {
+            title.textContent = card.card_name;
+        }
         head.appendChild(rarity);
         head.appendChild(title);
 
@@ -2373,8 +3454,8 @@
         body.className = 'hg-card__body';
         var meta = document.createElement('div');
         meta.className = 'hg-card__meta';
-        meta.textContent = (TYPE_EMOJI[card.source_type] || '◦') + ' ' + (TYPE_LABELS[card.source_type] || card.source_type) + ' · ' + (RARITY_LABELS[card.card_rarity] || card.card_rarity);
-        meta.innerHTML = '<span class="hg-card__type">' + typeChipHtml(card.source_type, 'hg-card__type-label') + '</span><span class="hg-card__rarity-name">' + escapeHtml(RARITY_LABELS[card.card_rarity] || card.card_rarity) + '</span>';
+        meta.textContent = (TYPE_EMOJI[card.source_type] || '◦') + ' ' + (TYPE_LABELS[card.source_type] || card.source_type) + ' · ' + (RARITY_LABELS[rarityKey] || rarityKey);
+        meta.innerHTML = '<span class="hg-card__type">' + typeChipHtml(card.source_type, 'hg-card__type-label') + '</span><span class="hg-card__rarity-name">' + escapeHtml(RARITY_LABELS[rarityKey] || rarityKey) + '</span>';
         var text = document.createElement('p');
         text.className = 'hg-card__text';
         text.textContent = card.card_text || 'Sin texto de carta.';
@@ -2538,15 +3619,15 @@
         }
     }
 
-    function sortedCopies(copies) {
+    function sortedCopies(copies, card) {
         return (Array.isArray(copies) ? copies : []).slice().sort(function (a, b) {
-            return totalStats(b) - totalStats(a);
+            return copySortValue(b, card) - copySortValue(a, card);
         });
     }
 
     function showCardModal(card, copies) {
         closeCardModal();
-        var sorted = sortedCopies(copies);
+        var sorted = sortedCopies(copies, card);
         var selected = sorted[0] || null;
         var overlay = document.createElement('div');
         overlay.className = 'hg-card-modal';
@@ -2556,7 +3637,7 @@
         overlay.setAttribute('aria-label', card.card_name);
 
         var panel = document.createElement('div');
-        panel.className = 'hg-card-modal__panel ' + (sorted.length > 1 ? 'hg-card-modal__panel--variants' : 'hg-card-modal__panel--single');
+        panel.className = 'hg-card-modal__panel hg-card-modal__panel--variants';
         panel.addEventListener('click', function (event) {
             event.stopPropagation();
         });
@@ -2599,8 +3680,14 @@
         actions.className = 'hg-card-variants__actions';
         var recycleAll = document.createElement('button');
         recycleAll.type = 'button';
-        recycleAll.className = 'hg-recycle-btn';
-        recycleAll.textContent = 'Desintegrar todas +' + (recycleValue(card) * copies.length) + ' Mnemones';
+        recycleAll.className = 'hg-recycle-btn hg-icon-action hg-icon-action--wide';
+        recycleAll.title = 'Desintegrar todas: +' + copies.reduce(function (sum, copy) { return sum + recycleValue(card, copy); }, 0) + ' Mnemones';
+        recycleAll.setAttribute('aria-label', recycleAll.title);
+        recycleAll.innerHTML = cardGameIconHtml('sell', 'Desintegrar todas');
+        recycleAll.disabled = copies.some(function (copy) { return isCopyWorking(copy.instanceId); });
+        if (recycleAll.disabled) {
+            recycleAll.title = 'Retira primero las cartas que estan rememorando.';
+        }
         recycleAll.addEventListener('click', function () {
             recycleAllCopies(card);
         });
@@ -2610,8 +3697,9 @@
         var list = document.createElement('div');
         list.className = 'hg-card-variants__list';
         copies.forEach(function (copy, index) {
+            var working = isCopyWorking(copy.instanceId);
             var item = document.createElement('div');
-            item.className = 'hg-card-variants__item';
+            item.className = 'hg-card-variants__item' + (working ? ' is-working' : '');
             if (index === 0) { item.className += ' is-active'; }
 
             var select = document.createElement('button');
@@ -2619,8 +3707,8 @@
             select.className = 'hg-card-variants__select';
             select.innerHTML =
                 '<span>#' + (index + 1) + '</span>' +
-                '<strong>PS ' + escapeHtml(copy.hp) + ' / ATQ ' + escapeHtml(copy.atk) + ' / DEF ' + escapeHtml(copy.def) + '</strong>' +
-                '<em>' + escapeHtml(totalStats(copy)) + '</em>';
+                '<strong>CAL ' + qualityScore(copy, card).toFixed(1) + '%</strong>' +
+                '<em>Total ' + escapeHtml(totalStats(copy)) + '</em>';
             select.addEventListener('click', function () {
                 list.querySelectorAll('.is-active').forEach(function (active) {
                     active.classList.remove('is-active');
@@ -2632,14 +3720,40 @@
 
             var recycle = document.createElement('button');
             recycle.type = 'button';
-            recycle.className = 'hg-recycle-btn hg-recycle-btn--small';
-            recycle.textContent = '+' + recycleValue(card);
-            recycle.setAttribute('aria-label', 'Desintegrar esta copia por ' + recycleValue(card) + ' Mnemones');
+            recycle.className = 'hg-recycle-btn hg-recycle-btn--small hg-icon-action';
+            recycle.title = 'Desintegrar: +' + recycleValue(card, copy) + ' Mnemones';
+            recycle.innerHTML = cardGameIconHtml('sell', 'Desintegrar');
+            recycle.disabled = working;
+            recycle.setAttribute('aria-label', 'Desintegrar esta copia por ' + recycleValue(card, copy) + ' Mnemones');
             recycle.addEventListener('click', function () {
                 recycleCopy(card, copy);
             });
 
+            var upgrade = document.createElement('button');
+            upgrade.type = 'button';
+            upgrade.className = 'hg-upgrade-btn hg-upgrade-btn--small hg-icon-action';
+            upgrade.title = 'Evolucionar';
+            upgrade.innerHTML = cardGameIconHtml('evolve', 'Evolucionar');
+            upgrade.disabled = working || !nextRarity(copyRarity(copy, card));
+            upgrade.setAttribute('aria-label', 'Evolucionar rareza de esta copia');
+            upgrade.addEventListener('click', function () {
+                showRarityUpgradeModal(card, copy);
+            });
+
+            var improve = document.createElement('button');
+            improve.type = 'button';
+            improve.className = 'hg-improve-btn hg-improve-btn--small hg-icon-action';
+            improve.title = 'Mejorar';
+            improve.innerHTML = cardGameIconHtml('upgrade', 'Mejorar');
+            improve.disabled = working || qualityScore(copy, card) >= 100;
+            improve.setAttribute('aria-label', 'Mejorar atributos de esta copia');
+            improve.addEventListener('click', function () {
+                showQualityUpgradeModal(card, copy);
+            });
+
             item.appendChild(select);
+            item.appendChild(upgrade);
+            item.appendChild(improve);
             item.appendChild(recycle);
             list.appendChild(item);
         });
@@ -2647,8 +3761,672 @@
         return details;
     }
 
-    function recycleValue(card) {
-        return RECYCLE_VALUES[card && card.card_rarity] || RECYCLE_VALUES.common;
+    function nextRarity(rarity) {
+        var index = rarityRank(rarity);
+        return index >= 0 && index < RARITY_ORDER.length - 1 ? RARITY_ORDER[index + 1] : null;
+    }
+
+    function rarityUpgradeMultiplier(sourceRarity, targetRarity) {
+        var diff = Math.max(0, rarityRank(sourceRarity) - rarityRank(targetRarity));
+        return RARITY_UPGRADE_MULTIPLIERS[Math.min(diff, RARITY_UPGRADE_MULTIPLIERS.length - 1)] || 1;
+    }
+
+    function upgradeMnemoneCost(card, copy) {
+        var rarity = copyRarity(copy, card);
+        var base = UPGRADE_COST_BY_RARITY[rarity] || UPGRADE_COST_BY_RARITY.common;
+        var factor = Math.max(0.01, Math.min(1, qualityScore(copy, card) / 100));
+        return Math.max(1, Math.ceil(base * factor));
+    }
+
+    function rarityUpgradeMaterial(nextRarityValue) {
+        return RARITY_UPGRADE_MATERIALS[nextRarityValue] || '';
+    }
+
+    function upgradeCostHtml(cost, materialKey) {
+        var material = materialKey ? UPGRADE_MATERIALS[materialKey] : null;
+        var materialText = material
+            ? '<span>' + materialIconHtml(materialKey) + '<b>' + escapeHtml(material.label) + '</b><em>' + (state.isAdmin ? 'Admin' : materialStock(materialKey)) + ' / 1</em></span>'
+            : '<span><b>Sin objeto ritual</b><em>No requerido</em></span>';
+        return '<div class="hg-upgrade-cost">' +
+            '<span><b>' + formatNumber(cost) + ' Mnemones</b><em>Coste ritual</em></span>' +
+            materialText +
+        '</div>';
+    }
+
+    function canPayUpgradeCost(cost, materialKey) {
+        return state.isAdmin || (currentMnemones() >= cost && (!materialKey || materialStock(materialKey) >= 1));
+    }
+
+    function spendUpgradeCost(cost, materialKey) {
+        if (state.isAdmin) { return true; }
+        if (!canPayUpgradeCost(cost, materialKey)) { return false; }
+        addMnemones(-cost);
+        if (materialKey) { consumeMaterial(materialKey, 1); }
+        return true;
+    }
+
+    function isCopyInCombatTeam(instanceId) {
+        var id = String(instanceId || '');
+        if (!id) { return false; }
+        var teams = loadCombatTeams();
+        return teams.teams.some(function (team) {
+            return (team.cards || []).some(function (cardId) {
+                return String(cardId) === id;
+            });
+        });
+    }
+
+    function rarityUpgradeCandidates(targetCard, targetCopy) {
+        if (!state.collection) { loadCollection(); }
+        var targetId = String(targetCopy && targetCopy.instanceId || '');
+        var targetRarity = copyRarity(targetCopy, targetCard);
+        return (state.collection.ownedCards || []).map(function (copy) {
+            var card = state.catalogById[String(copy.cardId || '')];
+            if (!card || String(copy.instanceId || '') === targetId) { return null; }
+            if (isCopyWorking(copy.instanceId)) { return null; }
+            var rarity = copyRarity(copy, card);
+            if (rarityRank(rarity) < rarityRank(targetRarity)) { return null; }
+            if (qualityScore(copy, card) < RARITY_UPGRADE_MIN_QUALITY) { return null; }
+            if (isCopyInCombatTeam(copy.instanceId)) { return null; }
+            return {
+                card: cardForCopy(card, copy),
+                baseCard: card,
+                copy: copy,
+                rarity: rarity,
+                contribution: rarityUpgradeMultiplier(rarity, targetRarity),
+                score: totalStats(copy)
+            };
+        }).filter(Boolean).sort(function (a, b) {
+            var rarityDiff = rarityRank(a.rarity) - rarityRank(b.rarity);
+            if (rarityDiff !== 0) { return rarityDiff; }
+            return b.score - a.score;
+        });
+    }
+
+    function closeRarityUpgradeModal() {
+        var current = document.querySelector('.hg-upgrade-modal');
+        if (current) { current.remove(); }
+        document.removeEventListener('keydown', rarityUpgradeEscapeHandler);
+    }
+
+    function rarityUpgradeEscapeHandler(event) {
+        if (event.key === 'Escape') { closeRarityUpgradeModal(); }
+    }
+
+    function showRarityUpgradeModal(targetCard, targetCopy) {
+        closeRarityUpgradeModal();
+        if (!targetCopy || !targetCopy.instanceId) { return; }
+        var targetRarity = copyRarity(targetCopy, targetCard);
+        var next = nextRarity(targetRarity);
+        if (!next) {
+            setStatus('Esta copia ya esta en la rareza maxima.');
+            return;
+        }
+        var candidates = rarityUpgradeCandidates(targetCard, targetCopy);
+        var selected = [];
+        var filters = { rarity: 'all', type: 'all', minTotal: 0 };
+
+        var overlay = document.createElement('div');
+        overlay.className = 'hg-upgrade-modal' + (state.mobile ? ' hg-upgrade-modal--mobile' : '');
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Evolucionar rareza');
+
+        var panel = document.createElement('div');
+        panel.className = 'hg-upgrade-modal__panel';
+        panel.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+
+        var head = document.createElement('div');
+        head.className = 'hg-upgrade-modal__head';
+        head.innerHTML = '<div><h3>Evolucionar rareza</h3><p>' + escapeHtml(targetCard.card_name) + ' · ' + escapeHtml(RARITY_LABELS[targetRarity] || targetRarity) + ' a ' + escapeHtml(RARITY_LABELS[next] || next) + '</p></div>';
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = 'Cerrar';
+        close.addEventListener('click', closeRarityUpgradeModal);
+        head.appendChild(close);
+
+        var bars = document.createElement('div');
+        bars.className = 'hg-upgrade-bars';
+
+        var qualityBar = document.createElement('div');
+        qualityBar.className = 'hg-upgrade-bar';
+        var targetQuality = qualityScore(targetCopy, targetCard);
+        qualityBar.innerHTML =
+            '<span>Calidad objetivo</span><strong>' + targetQuality.toFixed(1) + '%</strong>' +
+            '<i><b style="width:' + Math.min(100, targetQuality) + '%"></b></i>';
+
+        var rarityBar = document.createElement('div');
+        rarityBar.className = 'hg-upgrade-bar hg-upgrade-bar--rarity';
+        bars.appendChild(qualityBar);
+        bars.appendChild(rarityBar);
+
+        var upgradeCost = upgradeMnemoneCost(targetCard, targetCopy);
+        var requiredMaterial = rarityUpgradeMaterial(next);
+        var costBox = document.createElement('div');
+        costBox.innerHTML = upgradeCostHtml(upgradeCost, requiredMaterial);
+
+        var slots = document.createElement('div');
+        slots.className = 'hg-upgrade-slots';
+
+        var filterWrap = document.createElement('div');
+        filterWrap.className = 'hg-upgrade-filters';
+        var raritySelect = document.createElement('select');
+        var typeSelect = document.createElement('select');
+        var totalSelect = document.createElement('select');
+        filterWrap.appendChild(raritySelect);
+        filterWrap.appendChild(typeSelect);
+        filterWrap.appendChild(totalSelect);
+
+        var list = document.createElement('div');
+        list.className = 'hg-upgrade-list';
+
+        var actions = document.createElement('div');
+        actions.className = 'hg-upgrade-actions';
+        var confirm = document.createElement('button');
+        confirm.type = 'button';
+        confirm.className = 'hg-upgrade-confirm';
+        confirm.textContent = 'Evolucionar';
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.textContent = 'Cancelar';
+        cancel.addEventListener('click', closeRarityUpgradeModal);
+        actions.appendChild(cancel);
+        actions.appendChild(confirm);
+
+        function selectedEntries() {
+            return selected.map(function (id) {
+                return candidates.filter(function (entry) {
+                    return String(entry.copy.instanceId || '') === String(id);
+                })[0] || null;
+            }).filter(Boolean);
+        }
+
+        function selectedProgress() {
+            return selectedEntries().reduce(function (sum, entry) {
+                return sum + entry.contribution;
+            }, 0);
+        }
+
+        function renderFilters() {
+            var rarityOptions = ['all'].concat(RARITY_ORDER.filter(function (rarity) {
+                return rarityRank(rarity) >= rarityRank(targetRarity);
+            }));
+            raritySelect.innerHTML = rarityOptions.map(function (rarity) {
+                var label = rarity === 'all' ? 'Rareza: validas' : (RARITY_LABELS[rarity] || rarity);
+                return '<option value="' + escapeHtml(rarity) + '">' + escapeHtml(label) + '</option>';
+            }).join('');
+            raritySelect.value = filters.rarity;
+
+            var types = { all: candidates.length };
+            candidates.forEach(function (entry) {
+                types[entry.baseCard.source_type] = (types[entry.baseCard.source_type] || 0) + 1;
+            });
+            var typeKeys = TYPE_ORDER.filter(function (type) {
+                return type === 'all' || types[type] > 0;
+            });
+            Object.keys(types).sort().forEach(function (type) {
+                if (typeKeys.indexOf(type) === -1) { typeKeys.push(type); }
+            });
+            typeSelect.innerHTML = typeKeys.map(function (type) {
+                var label = type === 'all' ? 'Tipo: todos' : typeLabel(type);
+                return '<option value="' + escapeHtml(type) + '">' + escapeHtml(label) + '</option>';
+            }).join('');
+            typeSelect.value = filters.type;
+
+            totalSelect.innerHTML = [
+                '<option value="0">Total: cualquiera</option>',
+                '<option value="200">Total >= 200</option>',
+                '<option value="300">Total >= 300</option>',
+                '<option value="400">Total >= 400</option>',
+                '<option value="500">Total >= 500</option>'
+            ].join('');
+            totalSelect.value = String(filters.minTotal);
+        }
+
+        function renderUpgradeState() {
+            var picked = selectedEntries();
+            var progress = selectedProgress();
+            rarityBar.innerHTML =
+                '<span>Progreso de rareza</span><strong>' + progress.toFixed(1) + ' / ' + RARITY_UPGRADE_REQUIRED + '</strong>' +
+                '<i><b style="width:' + Math.min(100, (progress / RARITY_UPGRADE_REQUIRED) * 100) + '%"></b></i>';
+
+            slots.innerHTML = '';
+            for (var i = 0; i < RARITY_UPGRADE_REQUIRED; i++) {
+                var slot = document.createElement('span');
+                var entry = picked[i] || null;
+                slot.className = 'hg-upgrade-slot' + (entry ? ' is-filled' : '');
+                slot.innerHTML = entry
+                    ? '<strong>' + combatCardNameHtml(entry.baseCard) + '</strong><small>x' + entry.contribution + ' · ' + escapeHtml(RARITY_LABELS[entry.rarity] || entry.rarity) + '</small>'
+                    : '<strong>Hueco ' + (i + 1) + '</strong><small>Sin sacrificio</small>';
+                slots.appendChild(slot);
+            }
+
+            var rows = candidates.filter(function (entry) {
+                return (filters.rarity === 'all' || entry.rarity === filters.rarity)
+                    && (filters.type === 'all' || entry.baseCard.source_type === filters.type)
+                    && entry.score >= filters.minTotal;
+            });
+            list.innerHTML = '';
+            if (!rows.length) {
+                var empty = document.createElement('p');
+                empty.className = 'hg-empty-state';
+                empty.textContent = 'No hay sacrificios disponibles con esos filtros.';
+                list.appendChild(empty);
+            }
+            rows.forEach(function (entry) {
+                var id = String(entry.copy.instanceId || '');
+                var isSelected = selected.indexOf(id) !== -1;
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'hg-upgrade-row hg-collection-row--' + entry.rarity + (isSelected ? ' is-selected' : '');
+                button.disabled = !isSelected && selected.length >= RARITY_UPGRADE_REQUIRED;
+                button.innerHTML =
+                    '<strong>' + combatCardNameHtml(entry.baseCard) + '</strong>' +
+                    '<span>' + escapeHtml(RARITY_LABELS[entry.rarity] || entry.rarity) + ' · CAL ' + qualityScore(entry.copy, entry.baseCard).toFixed(1) + '% · Total ' + entry.score + '</span>' +
+                    '<b>x' + entry.contribution + '</b>';
+                var meta = button.children[1];
+                if (meta) {
+                    meta.className = 'hg-upgrade-row__meta';
+                    meta.innerHTML =
+                        '<em>' + escapeHtml(RARITY_LABELS[entry.rarity] || entry.rarity) + '</em>' +
+                        '<em>CAL ' + qualityScore(entry.copy, entry.baseCard).toFixed(1) + '%</em>' +
+                        '<em>Total ' + entry.score + '</em>';
+                }
+                button.addEventListener('click', function () {
+                    var index = selected.indexOf(id);
+                    if (index !== -1) {
+                        selected.splice(index, 1);
+                    } else if (selected.length < RARITY_UPGRADE_REQUIRED) {
+                        selected.push(id);
+                    }
+                    renderUpgradeState();
+                });
+                list.appendChild(button);
+            });
+            costBox.innerHTML = upgradeCostHtml(upgradeCost, requiredMaterial);
+            confirm.disabled = progress < RARITY_UPGRADE_REQUIRED || !canPayUpgradeCost(upgradeCost, requiredMaterial);
+        }
+
+        raritySelect.addEventListener('change', function () {
+            filters.rarity = raritySelect.value || 'all';
+            renderUpgradeState();
+        });
+        typeSelect.addEventListener('change', function () {
+            filters.type = typeSelect.value || 'all';
+            renderUpgradeState();
+        });
+        totalSelect.addEventListener('change', function () {
+            filters.minTotal = Math.max(0, clampInt(totalSelect.value, 0));
+            renderUpgradeState();
+        });
+        confirm.addEventListener('click', function () {
+            applyRarityUpgrade(targetCard, targetCopy, selected);
+        });
+
+        panel.appendChild(head);
+        panel.appendChild(bars);
+        panel.appendChild(costBox);
+        panel.appendChild(slots);
+        panel.appendChild(filterWrap);
+        panel.appendChild(list);
+        panel.appendChild(actions);
+        overlay.appendChild(panel);
+        overlay.addEventListener('click', closeRarityUpgradeModal);
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', rarityUpgradeEscapeHandler);
+        renderFilters();
+        renderUpgradeState();
+        close.focus();
+    }
+
+    function applyRarityUpgrade(targetCard, targetCopy, selectedIds) {
+        if (isCopyWorking(targetCopy && targetCopy.instanceId)) {
+            setStatus('Retira la carta de la rememoracion antes de evolucionarla.');
+            return false;
+        }
+        var targetRarity = copyRarity(targetCopy, targetCard);
+        var next = nextRarity(targetRarity);
+        if (!next) { return false; }
+        var upgradeCost = upgradeMnemoneCost(targetCard, targetCopy);
+        var requiredMaterial = rarityUpgradeMaterial(next);
+        var selected = (selectedIds || []).slice(0, RARITY_UPGRADE_REQUIRED);
+        var candidates = rarityUpgradeCandidates(targetCard, targetCopy);
+        var byId = {};
+        candidates.forEach(function (entry) {
+            byId[String(entry.copy.instanceId || '')] = entry;
+        });
+        var progress = selected.reduce(function (sum, id) {
+            return sum + (byId[String(id)] ? byId[String(id)].contribution : 0);
+        }, 0);
+        if (progress < RARITY_UPGRADE_REQUIRED) {
+            setStatus('Elige sacrificios suficientes para completar la evolucion.');
+            return false;
+        }
+        if (!spendUpgradeCost(upgradeCost, requiredMaterial)) {
+            setStatus('Faltan Mnemones u objetos rituales para evolucionar.');
+            return false;
+        }
+        var remove = {};
+        selected.forEach(function (id) {
+            if (byId[String(id)]) { remove[String(id)] = true; }
+        });
+        retuneCopyStatsForRarity(targetCopy, targetCard, targetRarity, next);
+        state.collection.ownedCards = (state.collection.ownedCards || []).filter(function (copy) {
+            return !remove[String(copy.instanceId || '')];
+        });
+        removeCopiesFromCombatTeams(remove);
+        saveCollection();
+        playDustSound();
+        renderSummary();
+        renderPackInventory();
+        renderCollectionTable();
+        renderCombatSetup();
+        closeRarityUpgradeModal();
+        showCardModal(targetCard, ownedCopiesForCard(targetCard.card_id));
+        setStatus('Rareza evolucionada a ' + (RARITY_LABELS[next] || next) + '. Coste: ' + formatNumber(upgradeCost) + ' Mnemones.');
+        return true;
+    }
+
+    function qualityUpgradeContribution(entry, targetQuality) {
+        var sourceQuality = qualityScore(entry.copy, entry.baseCard);
+        var base = 8 + (sourceQuality * 0.12);
+        var resistance = 1 + (Math.max(0, targetQuality) / 45);
+        return Math.max(0.5, Math.round((base / resistance) * 10) / 10);
+    }
+
+    function projectedQualityAfterSacrifices(targetQuality, entries) {
+        var quality = clampQuality(targetQuality, 0);
+        entries.forEach(function (entry) {
+            quality = clampQuality(quality + qualityUpgradeContribution(entry, quality), quality);
+        });
+        return quality;
+    }
+
+    function qualityUpgradeCandidates(targetCard, targetCopy) {
+        if (!state.collection) { loadCollection(); }
+        var targetId = String(targetCopy && targetCopy.instanceId || '');
+        var targetRarity = copyRarity(targetCopy, targetCard);
+        return (state.collection.ownedCards || []).map(function (copy) {
+            var card = state.catalogById[String(copy.cardId || '')];
+            if (!card || String(copy.instanceId || '') === targetId) { return null; }
+            if (isCopyWorking(copy.instanceId)) { return null; }
+            var rarity = copyRarity(copy, card);
+            if (rarity !== targetRarity) { return null; }
+            if (isCopyInCombatTeam(copy.instanceId)) { return null; }
+            return {
+                card: cardForCopy(card, copy),
+                baseCard: card,
+                copy: copy,
+                rarity: rarity,
+                score: totalStats(copy)
+            };
+        }).filter(Boolean).sort(function (a, b) {
+            return qualityScore(b.copy, b.baseCard) - qualityScore(a.copy, a.baseCard) || b.score - a.score;
+        });
+    }
+
+    function closeQualityUpgradeModal() {
+        var current = document.querySelector('.hg-upgrade-modal');
+        if (current) { current.remove(); }
+        document.removeEventListener('keydown', qualityUpgradeEscapeHandler);
+    }
+
+    function qualityUpgradeEscapeHandler(event) {
+        if (event.key === 'Escape') { closeQualityUpgradeModal(); }
+    }
+
+    function showQualityUpgradeModal(targetCard, targetCopy) {
+        closeQualityUpgradeModal();
+        if (!targetCopy || !targetCopy.instanceId) { return; }
+        var targetQuality = qualityScore(targetCopy, targetCard);
+        if (targetQuality >= 100) {
+            setStatus('Esta copia ya tiene calidad 100%.');
+            return;
+        }
+        var targetRarity = copyRarity(targetCopy, targetCard);
+        var candidates = qualityUpgradeCandidates(targetCard, targetCopy);
+        var selected = [];
+        var filters = { type: 'all', minTotal: 0 };
+
+        var overlay = document.createElement('div');
+        overlay.className = 'hg-upgrade-modal' + (state.mobile ? ' hg-upgrade-modal--mobile' : '');
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Mejorar atributos');
+
+        var panel = document.createElement('div');
+        panel.className = 'hg-upgrade-modal__panel';
+        panel.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+
+        var head = document.createElement('div');
+        head.className = 'hg-upgrade-modal__head';
+        head.innerHTML = '<div><h3>Mejorar atributos</h3><p>' + escapeHtml(targetCard.card_name) + ' · ' + escapeHtml(RARITY_LABELS[targetRarity] || targetRarity) + ' · CAL ' + targetQuality.toFixed(1) + '%</p></div>';
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = 'Cerrar';
+        close.addEventListener('click', closeQualityUpgradeModal);
+        head.appendChild(close);
+
+        var bars = document.createElement('div');
+        bars.className = 'hg-upgrade-bars';
+        var currentBar = document.createElement('div');
+        currentBar.className = 'hg-upgrade-bar';
+        currentBar.innerHTML =
+            '<span>Calidad actual</span><strong>' + targetQuality.toFixed(1) + '%</strong>' +
+            '<i><b style="width:' + Math.min(100, targetQuality) + '%"></b></i>';
+        var projectedBar = document.createElement('div');
+        projectedBar.className = 'hg-upgrade-bar hg-upgrade-bar--quality';
+        bars.appendChild(currentBar);
+        bars.appendChild(projectedBar);
+
+        var improveCost = upgradeMnemoneCost(targetCard, targetCopy);
+        var costBox = document.createElement('div');
+        costBox.innerHTML = upgradeCostHtml(improveCost, '');
+
+        var slots = document.createElement('div');
+        slots.className = 'hg-upgrade-slots';
+
+        var filterWrap = document.createElement('div');
+        filterWrap.className = 'hg-upgrade-filters hg-upgrade-filters--quality';
+        var typeSelect = document.createElement('select');
+        var totalSelect = document.createElement('select');
+        filterWrap.appendChild(typeSelect);
+        filterWrap.appendChild(totalSelect);
+
+        var list = document.createElement('div');
+        list.className = 'hg-upgrade-list';
+
+        var actions = document.createElement('div');
+        actions.className = 'hg-upgrade-actions';
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.textContent = 'Cancelar';
+        cancel.addEventListener('click', closeQualityUpgradeModal);
+        var confirm = document.createElement('button');
+        confirm.type = 'button';
+        confirm.className = 'hg-upgrade-confirm';
+        confirm.textContent = 'Mejorar';
+        actions.appendChild(cancel);
+        actions.appendChild(confirm);
+
+        function selectedEntries() {
+            return selected.map(function (id) {
+                return candidates.filter(function (entry) {
+                    return String(entry.copy.instanceId || '') === String(id);
+                })[0] || null;
+            }).filter(Boolean);
+        }
+
+        function renderFilters() {
+            var types = { all: candidates.length };
+            candidates.forEach(function (entry) {
+                types[entry.baseCard.source_type] = (types[entry.baseCard.source_type] || 0) + 1;
+            });
+            var typeKeys = TYPE_ORDER.filter(function (type) {
+                return type === 'all' || types[type] > 0;
+            });
+            Object.keys(types).sort().forEach(function (type) {
+                if (typeKeys.indexOf(type) === -1) { typeKeys.push(type); }
+            });
+            typeSelect.innerHTML = typeKeys.map(function (type) {
+                var label = type === 'all' ? 'Tipo: todos' : typeLabel(type);
+                return '<option value="' + escapeHtml(type) + '">' + escapeHtml(label) + '</option>';
+            }).join('');
+            typeSelect.value = filters.type;
+
+            totalSelect.innerHTML = [
+                '<option value="0">Total: cualquiera</option>',
+                '<option value="200">Total >= 200</option>',
+                '<option value="300">Total >= 300</option>',
+                '<option value="400">Total >= 400</option>',
+                '<option value="500">Total >= 500</option>'
+            ].join('');
+            totalSelect.value = String(filters.minTotal);
+        }
+
+        function renderImproveState() {
+            var picked = selectedEntries();
+            var projected = projectedQualityAfterSacrifices(targetQuality, picked);
+            projectedBar.innerHTML =
+                '<span>Calidad tras mejora</span><strong>' + projected.toFixed(1) + '%</strong>' +
+                '<i><b style="width:' + Math.min(100, projected) + '%"></b></i>';
+
+            slots.innerHTML = '';
+            for (var i = 0; i < QUALITY_UPGRADE_MAX_SLOTS; i++) {
+                var slot = document.createElement('span');
+                var entry = picked[i] || null;
+                slot.className = 'hg-upgrade-slot' + (entry ? ' is-filled' : '');
+                slot.innerHTML = entry
+                    ? '<strong>' + combatCardNameHtml(entry.baseCard) + '</strong><small>+' + qualityUpgradeContribution(entry, targetQuality).toFixed(1) + '% · CAL ' + qualityScore(entry.copy, entry.baseCard).toFixed(1) + '%</small>'
+                    : '<strong>Hueco ' + (i + 1) + '</strong><small>Sin sacrificio</small>';
+                slots.appendChild(slot);
+            }
+
+            var rows = candidates.filter(function (entry) {
+                return (filters.type === 'all' || entry.baseCard.source_type === filters.type)
+                    && entry.score >= filters.minTotal;
+            });
+            list.innerHTML = '';
+            if (!rows.length) {
+                var empty = document.createElement('p');
+                empty.className = 'hg-empty-state';
+                empty.textContent = 'No hay sacrificios disponibles con esos filtros.';
+                list.appendChild(empty);
+            }
+            rows.forEach(function (entry) {
+                var id = String(entry.copy.instanceId || '');
+                var isSelected = selected.indexOf(id) !== -1;
+                var contribution = qualityUpgradeContribution(entry, targetQuality);
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'hg-upgrade-row hg-collection-row--' + entry.rarity + (isSelected ? ' is-selected' : '');
+                button.disabled = !isSelected && selected.length >= QUALITY_UPGRADE_MAX_SLOTS;
+                button.innerHTML =
+                    '<strong>' + combatCardNameHtml(entry.baseCard) + '</strong>' +
+                    '<span class="hg-upgrade-row__meta">' +
+                        '<em>' + escapeHtml(RARITY_LABELS[entry.rarity] || entry.rarity) + '</em>' +
+                        '<em>CAL ' + qualityScore(entry.copy, entry.baseCard).toFixed(1) + '%</em>' +
+                        '<em>Total ' + entry.score + '</em>' +
+                    '</span>' +
+                    '<b>+' + contribution.toFixed(1) + '%</b>';
+                button.addEventListener('click', function () {
+                    var index = selected.indexOf(id);
+                    if (index !== -1) {
+                        selected.splice(index, 1);
+                    } else if (selected.length < QUALITY_UPGRADE_MAX_SLOTS) {
+                        selected.push(id);
+                    }
+                    renderImproveState();
+                });
+                list.appendChild(button);
+            });
+            costBox.innerHTML = upgradeCostHtml(improveCost, '');
+            confirm.disabled = !picked.length || projected <= targetQuality || !canPayUpgradeCost(improveCost, '');
+        }
+
+        typeSelect.addEventListener('change', function () {
+            filters.type = typeSelect.value || 'all';
+            renderImproveState();
+        });
+        totalSelect.addEventListener('change', function () {
+            filters.minTotal = Math.max(0, clampInt(totalSelect.value, 0));
+            renderImproveState();
+        });
+        confirm.addEventListener('click', function () {
+            applyQualityUpgrade(targetCard, targetCopy, selected);
+        });
+
+        panel.appendChild(head);
+        panel.appendChild(bars);
+        panel.appendChild(costBox);
+        panel.appendChild(slots);
+        panel.appendChild(filterWrap);
+        panel.appendChild(list);
+        panel.appendChild(actions);
+        overlay.appendChild(panel);
+        overlay.addEventListener('click', closeQualityUpgradeModal);
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', qualityUpgradeEscapeHandler);
+        renderFilters();
+        renderImproveState();
+        close.focus();
+    }
+
+    function applyQualityUpgrade(targetCard, targetCopy, selectedIds) {
+        if (isCopyWorking(targetCopy && targetCopy.instanceId)) {
+            setStatus('Retira la carta de la rememoracion antes de mejorarla.');
+            return false;
+        }
+        var targetQuality = qualityScore(targetCopy, targetCard);
+        var candidates = qualityUpgradeCandidates(targetCard, targetCopy);
+        var byId = {};
+        candidates.forEach(function (entry) {
+            byId[String(entry.copy.instanceId || '')] = entry;
+        });
+        var selected = (selectedIds || []).slice(0, QUALITY_UPGRADE_MAX_SLOTS).map(function (id) {
+            return byId[String(id)] || null;
+        }).filter(Boolean);
+        if (!selected.length) {
+            setStatus('Elige al menos una carta para mejorar atributos.');
+            return false;
+        }
+        var projected = projectedQualityAfterSacrifices(targetQuality, selected);
+        if (projected <= targetQuality) {
+            setStatus('Esos sacrificios no mejoran la calidad.');
+            return false;
+        }
+        var improveCost = upgradeMnemoneCost(targetCard, targetCopy);
+        if (!spendUpgradeCost(improveCost, '')) {
+            setStatus('Faltan Mnemones para mejorar atributos.');
+            return false;
+        }
+        var remove = {};
+        selected.forEach(function (entry) {
+            remove[String(entry.copy.instanceId || '')] = true;
+        });
+        applyQualityToCopyStats(targetCopy, targetCard, projected);
+        state.collection.ownedCards = (state.collection.ownedCards || []).filter(function (copy) {
+            return !remove[String(copy.instanceId || '')];
+        });
+        removeCopiesFromCombatTeams(remove);
+        saveCollection();
+        playDustSound();
+        renderSummary();
+        renderPackInventory();
+        renderCollectionTable();
+        renderCombatSetup();
+        closeQualityUpgradeModal();
+        showCardModal(targetCard, ownedCopiesForCard(targetCard.card_id));
+        setStatus('Atributos mejorados a CAL ' + qualityScore(targetCopy, targetCard).toFixed(1) + '%. Coste: ' + formatNumber(improveCost) + ' Mnemones.');
+        return true;
+    }
+
+    function recycleValue(card, copy) {
+        return RECYCLE_VALUES[copyRarity(copy, card)] || RECYCLE_VALUES.common;
     }
 
     function ownedCopiesForCard(cardId) {
@@ -2660,43 +4438,56 @@
 
     function recycleCopy(card, copy, confirmed) {
         if (!copy || !copy.instanceId) { return false; }
+        if (isCopyWorking(copy.instanceId)) {
+            setStatus('Retira la carta de la rememoracion antes de venderla.');
+            return false;
+        }
         var copies = ownedCopiesForCard(card.card_id);
-        if ((card.card_rarity === 'legendary' || card.card_rarity === 'mythic') && !confirmed) {
+        var rarity = copyRarity(copy, card);
+        if ((rarity === 'legendary' || rarity === 'mythic') && !confirmed) {
             return confirmGameAction(
-                'Vas a desintegrar una copia ' + (RARITY_LABELS[card.card_rarity] || card.card_rarity).toLowerCase() + '.',
+                'Vas a desintegrar una copia ' + (RARITY_LABELS[rarity] || rarity).toLowerCase() + '.',
                 { title: 'Desintegrar carta', confirmLabel: 'Desintegrar' },
                 function () { recycleCopy(card, copy, true); }
             );
         }
+        var remove = {};
+        remove[String(copy.instanceId)] = true;
+        var removedFromTeams = removeCopiesFromCombatTeams(remove);
         state.collection.ownedCards = state.collection.ownedCards.filter(function (item) {
             return String(item.instanceId) !== String(copy.instanceId);
         });
-        var gained = recycleValue(card);
+        var gained = recycleValue(card, copy);
         addMnemones(gained);
         saveCollection();
         playDustSound();
         renderSummary();
         renderPackInventory();
         renderCollectionTable();
+        renderCombatSetup();
         var remaining = ownedCopiesForCard(card.card_id);
         if (remaining.length) {
             showCardModal(card, remaining);
         } else {
             closeCardModal();
         }
-        setStatus('Copia desintegrada. +' + gained + ' Mnemones.');
+        setStatus('Copia desintegrada. +' + gained + ' Mnemones.' + (removedFromTeams ? ' Retirada de ' + removedFromTeams + ' hueco(s) de equipo.' : ''));
         return true;
     }
 
     function recycleDuplicateCopies(card, confirmed) {
-        var copies = sortedCopies(ownedCopiesForCard(card.card_id));
+        var copies = sortedCopies(ownedCopiesForCard(card.card_id), card);
         if (copies.length <= 1) {
             setStatus('No hay duplicadas que desintegrar.');
             return false;
         }
         var keep = copies[0];
         var recycled = copies.slice(1);
-        var gained = recycleValue(card) * recycled.length;
+        if (recycled.some(function (copy) { return isCopyWorking(copy.instanceId); })) {
+            setStatus('Retira primero las duplicadas que estan rememorando.');
+            return false;
+        }
+        var gained = recycled.reduce(function (sum, copy) { return sum + recycleValue(card, copy); }, 0);
         if (!confirmed) {
             return confirmGameAction(
                 'Se conservara la mejor copia y se desintegraran ' + recycled.length + ' duplicadas por ' + gained + ' Mnemones.',
@@ -2708,6 +4499,7 @@
         recycled.forEach(function (copy) {
             remove[String(copy.instanceId)] = true;
         });
+        var removedFromTeams = removeCopiesFromCombatTeams(remove);
         state.collection.ownedCards = state.collection.ownedCards.filter(function (copy) {
             return !remove[String(copy.instanceId)];
         });
@@ -2717,18 +4509,23 @@
         renderSummary();
         renderPackInventory();
         renderCollectionTable();
+        renderCombatSetup();
         showCardModal(card, [keep]);
-        setStatus('Duplicadas desintegradas. +' + gained + ' Mnemones.');
+        setStatus('Duplicadas desintegradas. +' + gained + ' Mnemones.' + (removedFromTeams ? ' Retiradas de ' + removedFromTeams + ' hueco(s) de equipo.' : ''));
         return true;
     }
 
     function recycleAllCopies(card, confirmed) {
-        var copies = sortedCopies(ownedCopiesForCard(card.card_id));
+        var copies = sortedCopies(ownedCopiesForCard(card.card_id), card);
         if (!copies.length) {
             setStatus('No hay copias que desintegrar.');
             return false;
         }
-        var gained = recycleValue(card) * copies.length;
+        if (copies.some(function (copy) { return isCopyWorking(copy.instanceId); })) {
+            setStatus('Retira primero las cartas que estan rememorando.');
+            return false;
+        }
+        var gained = copies.reduce(function (sum, copy) { return sum + recycleValue(card, copy); }, 0);
         if (!confirmed) {
             return confirmGameAction(
                 'Se desintegraran todas las copias de esta carta (' + copies.length + ') por ' + gained + ' Mnemones.',
@@ -2740,6 +4537,7 @@
         copies.forEach(function (copy) {
             remove[String(copy.instanceId)] = true;
         });
+        var removedFromTeams = removeCopiesFromCombatTeams(remove);
         state.collection.ownedCards = state.collection.ownedCards.filter(function (copy) {
             return !remove[String(copy.instanceId)];
         });
@@ -2749,8 +4547,9 @@
         renderSummary();
         renderPackInventory();
         renderCollectionTable();
+        renderCombatSetup();
         closeCardModal();
-        setStatus('Carta desintegrada. +' + gained + ' Mnemones.');
+        setStatus('Carta desintegrada. +' + gained + ' Mnemones.' + (removedFromTeams ? ' Retirada de ' + removedFromTeams + ' hueco(s) de equipo.' : ''));
         return true;
     }
 
@@ -2765,7 +4564,8 @@
 
         (state.collection.ownedCards || []).forEach(function (copy) {
             var card = state.catalogById[String(copy.cardId || '')];
-            if (!card || card.card_rarity !== rarity) { return; }
+            if (!card || copyRarity(copy, card) !== rarity) { return; }
+            if (isCopyWorking(copy.instanceId)) { return; }
             var cardId = String(card.card_id);
             if (!byCard[cardId]) { byCard[cardId] = { card: card, copies: [] }; }
             byCard[cardId].copies.push(copy);
@@ -2773,13 +4573,13 @@
 
         Object.keys(byCard).forEach(function (cardId) {
             var entry = byCard[cardId];
-            var copies = sortedCopies(entry.copies);
+            var copies = sortedCopies(entry.copies, entry.card);
             var toSell = keepBest ? copies.slice(1) : copies;
             if (keepBest && copies.length) { kept += 1; }
             toSell.forEach(function (copy) {
                 remove[String(copy.instanceId)] = true;
                 count += 1;
-                gained += recycleValue(entry.card);
+                gained += recycleValue(entry.card, copy);
             });
         });
 
@@ -2792,8 +4592,14 @@
         var keepBest = !els.bulkSellKeepBest || els.bulkSellKeepBest.checked;
         var stats = bulkSellStats(rarity, keepBest);
         var label = RARITY_LABELS[rarity] || rarity;
-        els.bulkSellPreview.textContent = stats.count + ' cartas ' + label.toLowerCase() + ' - +' + stats.gained + ' Mnemones'
-            + (stats.keepBest && stats.kept ? ' · conserva ' + stats.kept + ' mejores' : '');
+        var previewParts = [
+            '<span>' + stats.count + ' cartas ' + escapeHtml(label.toLowerCase()) + '</span>',
+            '<span>+' + stats.gained + ' Mnemones</span>'
+        ];
+        if (stats.keepBest && stats.kept) {
+            previewParts.push('<span>conserva ' + stats.kept + ' mejores</span>');
+        }
+        els.bulkSellPreview.innerHTML = previewParts.join('');
         els.bulkSellBtn.disabled = stats.count <= 0;
     }
 
@@ -2827,6 +4633,7 @@
             );
         }
 
+        var removedFromTeams = removeCopiesFromCombatTeams(stats.remove);
         state.collection.ownedCards = state.collection.ownedCards.filter(function (copy) {
             return !stats.remove[String(copy.instanceId)];
         });
@@ -2837,15 +4644,15 @@
         renderSummary();
         renderPackInventory();
         renderCollectionTable();
-        setStatus('Venta completada. +' + stats.gained + ' Mnemones.');
+        renderCombatSetup();
+        setStatus('Venta completada. +' + stats.gained + ' Mnemones.' + (removedFromTeams ? ' Retiradas de ' + removedFromTeams + ' hueco(s) de equipo.' : ''));
         return true;
     }
 
     function closeCardModal() {
-        var current = document.querySelector('.hg-card-modal');
-        if (current) {
+        Array.prototype.slice.call(document.querySelectorAll('.hg-card-modal')).forEach(function (current) {
             current.remove();
-        }
+        });
         document.removeEventListener('keydown', modalEscapeHandler);
     }
 
@@ -2892,8 +4699,11 @@
             createdAt: typeof data.createdAt === 'string' && data.createdAt ? data.createdAt : nowIso(),
             updatedAt: nowIso(),
             ownedCards: [],
+            workAssignments: normalizeWorkAssignments(data.workAssignments),
+            workPendingRewards: normalizeWorkPendingRewards(data.workPendingRewards),
             currency: normalizeCurrency(data.currency),
-            packInventory: normalizePackInventory(data.packInventory)
+            packInventory: normalizePackInventory(data.packInventory),
+            materialInventory: normalizeMaterialInventory(data.materialInventory)
         };
         var seen = {};
         data.ownedCards.forEach(function (item) {
@@ -2906,14 +4716,29 @@
             seen[id] = true;
             var card = state.catalogById[String(cardId)] || null;
             var atkFallback = clampInt(item.atk, card ? card.atk_min : 10);
-            out.ownedCards.push({
+            var copy = {
                 instanceId: id,
                 cardId: cardId,
                 hp: clampInt(item.hp, card ? card.hp_min : atkFallback),
                 atk: atkFallback,
                 def: clampInt(item.def, card ? card.def_min : 10),
                 obtainedAt: typeof item.obtainedAt === 'string' && item.obtainedAt ? item.obtainedAt : nowIso()
-            });
+            };
+            if (RARITY_ORDER.indexOf(String(item.rarity || '')) !== -1) {
+                copy.rarity = String(item.rarity);
+            } else if (card) {
+                copy.rarity = card.card_rarity;
+            }
+            var importedQuality = clampQuality(item.quality, null);
+            if (importedQuality !== null) {
+                copy.quality = importedQuality;
+            } else if (card) {
+                copy.quality = calculatedQualityScore(copy, card);
+            }
+            out.ownedCards.push(copy);
+        });
+        Object.keys(out.workAssignments).forEach(function (id) {
+            if (!seen[id]) { delete out.workAssignments[id]; }
         });
         return out;
     }
@@ -2948,6 +4773,7 @@
         try { window.localStorage.removeItem(FREE_REWARDS_KEY); } catch (e2) { saveFreeRewards(); }
         renderPackResults([]);
         renderSummary();
+        renderDailyCounter();
         renderPackInventory();
         renderCollectionTable();
         setStatus('Colección local borrada.');
@@ -2960,7 +4786,7 @@
     }
 
     function escapeHtml(text) {
-        return String(text || '').replace(/[&<>"']/g, function (m) {
+        return String(text === null || text === undefined ? '' : text).replace(/[&<>"']/g, function (m) {
             return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
         });
     }
@@ -2990,7 +4816,9 @@
         if (!state.mobile || !els.mobileTabs.length) { return; }
         els.mobileTabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
+                if (tab.classList.contains('is-active')) { return; }
                 var target = tab.getAttribute('data-mobile-panel-tab') || 'packs';
+                unloadInactiveMobilePanels(target);
                 els.mobileTabs.forEach(function (item) {
                     item.classList.toggle('is-active', item === tab);
                 });
@@ -2999,11 +4827,33 @@
                 });
                 if (target === 'collection') {
                     renderCollectionTable();
+                } else if (target === 'memory') {
+                    renderWorkBench();
                 } else if (target === 'combat') {
                     renderCombat();
                 }
             });
         });
+    }
+
+    function unloadInactiveMobilePanels(target) {
+        if (!state.mobile) { return; }
+        if (target !== 'collection') {
+            if (els.albumGrid) { els.albumGrid.innerHTML = ''; }
+            if (els.collectionTable) {
+                var tbody = els.collectionTable.querySelector('tbody');
+                if (tbody) { tbody.innerHTML = ''; }
+            }
+            els.collectionPagers.forEach(function (pager) { pager.innerHTML = ''; });
+        }
+        if (target !== 'memory') {
+            if (els.workList) { els.workList.innerHTML = ''; }
+            if (els.workSummary) { els.workSummary.innerHTML = ''; }
+        }
+        if (target !== 'combat' || state.activeCombatScreen !== 'loadout') {
+            if (els.combatCardList) { els.combatCardList.innerHTML = ''; }
+            if (els.combatTeamSlots) { els.combatTeamSlots.innerHTML = ''; }
+        }
     }
 
     function bindCollectionControls() {
@@ -3079,6 +4929,7 @@
         });
         if (els.combatSaveTeam) { els.combatSaveTeam.addEventListener('click', saveDraftCombatTeam); }
         if (els.combatClearTeam) { els.combatClearTeam.addEventListener('click', clearDraftCombatTeam); }
+        if (els.combatAutoTeam) { els.combatAutoTeam.addEventListener('click', autoBuildCombatTeam); }
         if (els.combatOnlyReady) { els.combatOnlyReady.addEventListener('change', renderCombatCardList); }
         if (els.combatRarityFilter) {
             els.combatRarityFilter.addEventListener('change', function () {
@@ -3094,6 +4945,7 @@
             });
         }
         if (els.combatStart) { els.combatStart.addEventListener('click', startTrainingCombat); }
+        if (els.workClaimBtn) { els.workClaimBtn.addEventListener('click', function () { claimWorkRewards(); }); }
         els.combatActions.forEach(function (button) {
             button.addEventListener('click', function () {
                 var action = button.getAttribute('data-combat-action') || '';
@@ -3109,24 +4961,12 @@
     }
 
     function startFreeRewardTimer() {
-        if (state.isAdmin || state.rewardsTimer) { return; }
+        if (state.rewardsTimer) { return; }
         state.rewardsTimer = window.setInterval(function () {
-            var gained = syncFreeRewards();
-            if (gained.packs > 0 || gained.mnemones > 0) {
-                renderSummary();
-                renderPackInventory();
-                renderCollectionTable();
-                if (gained.packs > 0 && gained.mnemones > 0) {
-                    setStatus('Recarga gratuita: +' + gained.packs + ' sobre y +' + gained.mnemones + ' Mnemones.');
-                } else if (gained.packs > 0) {
-                    setStatus('Recarga gratuita: +' + gained.packs + ' sobre mnemónico.');
-                } else {
-                    setStatus('Recarga gratuita: +' + gained.mnemones + ' Mnemones.');
-                }
-            } else {
-                renderDailyCounter();
-                renderPackInventory();
-            }
+            syncFreeRewards();
+            renderDailyCounter();
+            renderPackInventory();
+            renderWorkBench();
         }, 30000);
     }
 
@@ -3138,10 +4978,20 @@
                 openPack(button.getAttribute('data-pack-kind') || 'standard');
             });
         });
-        els.shopButtons.forEach(function (button) {
-            button.addEventListener('click', function () {
-                buyPack(button.getAttribute('data-buy-pack') || 'standard');
+        if (els.packOpenAll) { els.packOpenAll.addEventListener('click', openAllPacks); }
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-shop-buy-pack]');
+            if (!button || !root.contains(button)) { return; }
+            event.preventDefault();
+            buyPack(button.getAttribute('data-shop-buy-pack') || 'standard', button.getAttribute('data-shop-buy-amount') || 1, {
+                free: button.getAttribute('data-shop-buy-free') === '1'
             });
+        });
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-shop-buy-material]');
+            if (!button || !root.contains(button)) { return; }
+            event.preventDefault();
+            buyMaterial(button.getAttribute('data-shop-buy-material') || '', button.getAttribute('data-shop-buy-amount') || 1);
         });
         if (els.exportBtn) { els.exportBtn.addEventListener('click', exportCollection); }
         if (els.importFile) {
@@ -3167,6 +5017,9 @@
     }
 
     loadCollectionViewPrefs();
+    decorateIconNavigation();
+    updateDesktopHashPanels();
+    window.addEventListener('hashchange', updateDesktopHashPanels);
     bindEvents();
     loadCollection();
     renderMobileSwitchPrompt();

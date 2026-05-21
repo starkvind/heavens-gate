@@ -14,7 +14,9 @@ $isAdmin = !empty($hgCardsIsAdmin);
 <div class="hg-cards" data-view="gacha" data-catalog-url="/api/game_cards.php" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
         <a class="is-active" href="/games/card-game">Sobres</a>
+        <a href="/games/card-game#shop">Tienda</a>
         <a href="/games/card-game/collection">Colección</a>
+        <a href="/games/card-game/collection#memory">Recuerdos</a>
         <a href="/games/card-game/combat">Combate</a>
         <a href="/games/card-game/explanation">Información</a>
     </nav>
@@ -29,12 +31,12 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <p>Todos los sobres contienen 5 cartas.</p>
         </div>
 
-        <div class="hg-pack-grid">
+        <div class="hg-pack-grid" data-pack-grid>
             <button type="button" class="hg-pack hg-pack--standard" data-pack-kind="standard">
                 <span class="hg-pack__seal">HG</span>
                 <span class="hg-pack__title">Sobre mnemónico</span>
                 <span class="hg-pack__count">5 cartas</span>
-                <span class="hg-pack__stock" data-pack-stock="standard">0 hoy</span>
+                <span class="hg-pack__stock" data-pack-stock="standard">x0</span>
             </button>
             <button type="button" class="hg-pack hg-pack--echoes" data-pack-kind="echoes">
                 <span class="hg-pack__seal">EC</span>
@@ -90,6 +92,13 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <span class="hg-pack__count">Raro o superior</span>
                 <span class="hg-pack__stock" data-pack-stock="omens">x0</span>
             </button>
+            <button type="button" class="hg-pack hg-pack--gaian" data-pack-kind="gaian">
+                <span class="hg-pack__seal">GA</span>
+                <span class="hg-pack__title">Sobre gaiano</span>
+                <span class="hg-pack__count">Epico o superior</span>
+                <span class="hg-pack__stock" data-pack-stock="gaian">x0</span>
+            </button>
+            <button type="button" class="hg-pack-open-all" data-pack-open-all>Abrir todos</button>
         </div>
     </section>
 
@@ -99,8 +108,8 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <strong data-mnemones-counter>0</strong>
         </div>
         <div class="hg-counter" aria-live="polite">
-            <span>Sobres gratis</span>
-            <strong id="hgDailyPacksCounter"><?php echo $isAdmin ? 'Admin' : '0 / 10'; ?></strong>
+            <span>Gratis hoy</span>
+            <strong id="hgDailyPacksCounter"><?php echo $isAdmin ? 'Admin' : '0 / 3'; ?></strong>
         </div>
         <div class="hg-counter" aria-live="polite">
             <span>Colección</span>
@@ -112,52 +121,72 @@ $isAdmin = !empty($hgCardsIsAdmin);
         </div>
     </section>
 
-    <section class="hg-shop-section" aria-label="Tienda de sobres">
+    <section id="shop" class="hg-shop-section" aria-label="Tienda de sobres">
         <div class="hg-section-head">
             <h3>Intercambio de mnemógeno</h3>
             <p>Usa Mnemones para reclamar sobres adicionales.</p>
         </div>
         <div class="hg-shop-grid">
-            <button type="button" class="hg-shop-item" data-buy-pack="standard">
+            <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1">
+                <span>Mnemónico gratis</span>
+                <strong>Gratis - quedan 3</strong>
+            </article>
+            <article class="hg-shop-item" data-shop-pack="standard">
                 <span>Sobre mnemónico</span>
                 <strong>50 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="echoes">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="echoes">
                 <span>Sobre de ecos</span>
                 <strong>90 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="magic">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="magic">
                 <span>Sobre mágico</span>
                 <strong>220 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="characters">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="characters">
                 <span>Sobre de personajes</span>
                 <strong>240 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="lineage">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="lineage">
                 <span>Sobre de linaje</span>
                 <strong>420 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="essence">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="essence">
                 <span>Sobre de esencia</span>
                 <strong>300 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="powers">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="powers">
                 <span>Sobre arcano</span>
                 <strong>240 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="chronicles">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="chronicles">
                 <span>Sobre de crónica</span>
                 <strong>140 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="relics">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="relics">
                 <span>Sobre de reliquias</span>
                 <strong>160 Mnemones</strong>
-            </button>
-            <button type="button" class="hg-shop-item" data-buy-pack="omens">
+            </article>
+            <article class="hg-shop-item" data-shop-pack="omens">
                 <span>Sobre de presagios</span>
                 <strong>650 Mnemones</strong>
-            </button>
+            </article>
+            <article class="hg-shop-item" data-shop-pack="gaian">
+                <span>Sobre gaiano</span>
+                <strong>2000 Mnemones</strong>
+            </article>
+            <article class="hg-shop-item" data-shop-material="icarus_vial">
+                <span>Vial de Ícaro</span>
+                <strong>10000 Mnemones</strong>
+            </article>
+            <article class="hg-shop-item" data-shop-material="stigma_orb">
+                <span>Orbe de Estigma</span>
+                <strong>50000 Mnemones</strong>
+            </article>
+            <article class="hg-shop-item" data-shop-material="babylon_shred">
+                <span>Retal de Babilonia</span>
+                <strong>125000 Mnemones</strong>
+            </article>
         </div>
     </section>
 

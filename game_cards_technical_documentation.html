@@ -134,7 +134,7 @@
 <header>
     <h1>Módulo de cartas: documentación técnica</h1>
     <p>Referencia de mantenimiento para el Archivo de Mnemógeno, el gacha, la tienda, la colección local y el catálogo de cartas.</p>
-    <p><strong>Última revisión:</strong> 2026-05-14.</p>
+    <p><strong>Última revisión:</strong> 2026-05-21.</p>
 </header>
 
 <main>
@@ -147,6 +147,8 @@
         <a href="#cliente">Estado local</a>
         <a href="#gacha">Gacha y tienda</a>
         <a href="#coleccion">Colección</a>
+        <a href="#progresion">Progresión</a>
+        <a href="#recuerdos">Recuerdos</a>
         <a href="#combate">Combate</a>
         <a href="#ui">UI y responsive</a>
         <a href="#admin">Administración</a>
@@ -157,12 +159,14 @@
     <article>
         <section id="resumen">
             <h2>1. Resumen funcional</h2>
-            <p>El módulo de cartas es un minijuego frontend con catálogo maestro en MySQL. El servidor expone cartas activas desde <code>fact_game_card_collection</code> mediante <code>/api/game_cards.php</code>. El navegador guarda el progreso del jugador en <code>localStorage</code>: cartas obtenidas, copias, Mnemones, sobres comprados y recompensas gratuitas.</p>
-            <p>La experiencia tiene cuatro superficies principales:</p>
+            <p>El módulo de cartas es un minijuego frontend con catálogo maestro en MySQL. El servidor expone cartas activas desde <code>fact_game_card_collection</code> mediante <code>/api/game_cards.php</code>. El navegador guarda el progreso del jugador en <code>localStorage</code>: cartas obtenidas, copias, Mnemones, sobres comprados, objetos rituales, cartas rememorando y recompensas gratuitas.</p>
+            <p>La experiencia tiene seis superficies principales:</p>
             <ul>
                 <li><strong>Sobres/gacha:</strong> abre sobres, genera copias con estadísticas aleatorias y reproduce animaciones/sonidos.</li>
-                <li><strong>Tienda:</strong> permite comprar sobres con Mnemones.</li>
-                <li><strong>Colección:</strong> muestra álbum con huecos de todas las cartas y tabla de cartas obtenidas, filtrable por tipo.</li>
+                <li><strong>Tienda:</strong> permite comprar sobres y objetos rituales con Mnemones.</li>
+                <li><strong>Colección:</strong> muestra álbum con huecos de todas las cartas y tabla de cartas obtenidas, filtrable por tipo, rareza y estado.</li>
+                <li><strong>Progresión:</strong> permite evolucionar rareza y mejorar calidad/atributos consumiendo cartas, Mnemones y, en rarezas altas, objetos rituales.</li>
+                <li><strong>Recuerdos:</strong> asigna hasta 5 cartas a rememorar para generar Mnemones pasivos.</li>
                 <li><strong>Combate:</strong> permite preparar equipos de 5 copias concretas y jugar entrenamientos contra rivales generados desde el catálogo.</li>
             </ul>
             <p class="note">El progreso del usuario no se sincroniza con la base de datos. Si se borra el navegador o se limpia <code>localStorage</code>, se pierde salvo que el usuario haya exportado el JSON.</p>
@@ -178,11 +182,11 @@
                 <tr><td>Vista de colección desktop</td><td><code>app/modules/game_cards/game_cards_collection_page.php</code></td><td>Resumen, export/import, venta, álbum, tabla y paginación.</td></tr>
                 <tr><td>Vista de combate desktop</td><td><code>app/modules/game_cards/game_cards_combat_page.php</code></td><td>Markup de preparación de equipo, arena, HUD, acciones, banquillo y registro de combate.</td></tr>
                 <tr><td>Parcial de combate</td><td><code>app/partials/tool/game_cards/game_cards_combat_page.php</code></td><td>Incluye la vista de combate desde el controlador público, siguiendo el patrón de parciales del módulo.</td></tr>
-                <tr><td>Vista móvil</td><td><code>app/modules/game_cards/game_cards_mobile_page.php</code></td><td>Paneles móviles: sobres, tienda, colección, combate e información.</td></tr>
+                <tr><td>Vista móvil</td><td><code>app/modules/game_cards/game_cards_mobile_page.php</code></td><td>Paneles móviles: sobres, tienda, colección, recuerdos, combate e información.</td></tr>
                 <tr><td>Explicación pública</td><td><code>app/modules/game_cards/game_cards_explanation_page.php</code></td><td>Texto explicativo para usuarios.</td></tr>
                 <tr><td>Catálogo y esquema</td><td><code>app/modules/game_cards/game_cards_catalog.php</code></td><td>Whitelist de tipos, URLs, imágenes fallback, rarezas y SQL de esquema.</td></tr>
                 <tr><td>API JSON</td><td><code>api/game_cards.php</code></td><td>Devuelve cartas activas normalizadas al cliente.</td></tr>
-                <tr><td>Lógica frontend</td><td><code>assets/js/game-cards.js</code></td><td>Gacha, tienda, colección, combate, localStorage, filtros, modales propios, sonidos y sincronización de animaciones.</td></tr>
+                <tr><td>Lógica frontend</td><td><code>assets/js/game-cards.js</code></td><td>Gacha, tienda, colección, evolución, mejora, recuerdos, combate, localStorage, filtros, modales propios, sonidos y optimizaciones de render.</td></tr>
                 <tr><td>Estilos</td><td><code>assets/css/game-cards.css</code></td><td>Layout, cartas, sobres, álbum, tabla, combate, modales, responsive y viewport móvil.</td></tr>
                 <tr><td>Seed</td><td><code>app/tools/seed_game_cards.php</code></td><td>Crea/actualiza esquema y genera cartas desde tablas existentes.</td></tr>
                 <tr><td>Admin</td><td><code>app/controllers/admin/admin_game_cards.php</code></td><td>Listado y edición manual de cartas del catálogo.</td></tr>
@@ -193,8 +197,8 @@
 
             <h3>Rutas públicas</h3>
             <ul>
-                <li><code>/games/card-game</code>: sobres y tienda.</li>
-                <li><code>/games/card-game/collection</code>: colección desktop.</li>
+                <li><code>/games/card-game</code>: sobres y tienda, separadas por pestañas/hash.</li>
+                <li><code>/games/card-game/collection</code>: colección desktop y recuerdos.</li>
                 <li><code>/games/card-game/combat</code>: combate de entrenamiento desktop.</li>
                 <li><code>/games/card-game/explanation</code>: explicación.</li>
                 <li><code>/games/card-game/mobile</code>: versión móvil standalone.</li>
@@ -305,8 +309,8 @@
             <table>
                 <thead><tr><th>Clave</th><th>Contenido</th></tr></thead>
                 <tbody>
-                <tr><td><code>hg_card_collection_v1</code></td><td>Colección, cartas obtenidas, moneda, inventario de sobres y fecha de actualización.</td></tr>
-                <tr><td><code>hg_card_free_rewards_v1</code></td><td>Sobres gratis acumulados, timestamps de recompensas.</td></tr>
+                <tr><td><code>hg_card_collection_v1</code></td><td>Colección, cartas obtenidas, asignaciones de rememoración, moneda, inventario de sobres, inventario de objetos rituales y fecha de actualización.</td></tr>
+                <tr><td><code>hg_card_free_rewards_v1</code></td><td>Cupo diario de sobres mnemónicos gratis reclamados desde tienda.</td></tr>
                 <tr><td><code>hg_card_collection_mode_v1</code></td><td>Modo de vista preferido: <code>album</code> o <code>table</code>.</td></tr>
                 <tr><td><code>hg_card_collection_page_size_v1</code></td><td>Tamaño de página: 10, 20 o 50.</td></tr>
                 <tr><td><code>hg_card_combat_teams_v1</code></td><td>Hasta 5 equipos de combate, equipo activo y lista de <code>instanceId</code> de las 5 copias elegidas.</td></tr>
@@ -319,13 +323,34 @@
   "instanceId": "uuid/local",
   "cardId": 123,
   "rarity": "rare",
+  "quality": 72.4,
   "hp": 72,
   "atk": 80,
   "def": 64,
   "obtainedAt": "2026-05-13T10:00:00.000Z",
   "packKind": "essence"
 }</code></pre>
-            <p>El cliente agrupa copias por <code>cardId</code> para renderizar álbum, tabla, contadores, venta y modal.</p>
+            <p><code>rarity</code> y <code>quality</code> son datos de la copia, no solo de la carta base. Esto permite tener una copia común y otra copia evolucionada de la misma carta. La calidad se recalcula o migra al cargar el catálogo si falta en una colección antigua.</p>
+
+            <h3>Campos económicos de la colección</h3>
+            <pre><code>{
+  "currency": { "mnemones": 1250457 },
+  "packInventory": { "standard": 3, "gaian": 1 },
+  "materialInventory": {
+    "icarus_vial": 1,
+    "stigma_orb": 0,
+    "babylon_shred": 0
+  },
+  "workAssignments": {
+    "instance-id": {
+      "instanceId": "instance-id",
+      "startedAt": 1716200000000,
+      "lastClaimAt": 1716200000000
+    }
+  },
+  "workPendingRewards": 0
+}</code></pre>
+            <p>El cliente agrupa copias por <code>cardId</code> para renderizar álbum, tabla, contadores, venta y modal. En móvil se evita mantener vivos renderizados pesados fuera del panel activo.</p>
         </section>
 
         <section id="gacha">
@@ -344,14 +369,28 @@
                 <tr><td><code>chronicles</code></td><td>140</td><td>5 cartas de crónicas, temporadas o episodios.</td></tr>
                 <tr><td><code>relics</code></td><td>160</td><td>5 cartas de objetos, documentos o tótems.</td></tr>
                 <tr><td><code>omens</code></td><td>650</td><td>5 cartas raras o superiores.</td></tr>
+                <tr><td><code>gaian</code></td><td>2000</td><td>5 cartas épicas, legendarias o míticas. Pesos: 55 / 30 / 15.</td></tr>
                 </tbody>
             </table>
-            <p>La tienda no duplica estos textos en PHP: <code>renderShop()</code> inyecta una línea <code>.hg-shop-item__contents</code> desde <code>PACK_CONTENTS</code> para que desktop y móvil compartan la misma descripción.</p>
+            <p>La tienda no duplica estos textos en PHP: <code>renderShop()</code> inyecta una línea <code>.hg-shop-item__contents</code> desde <code>PACK_CONTENTS</code> para que desktop y móvil compartan la misma descripción. Cada opción de compra genera botones <code>x1</code>, <code>x5</code> y <code>x20</code>.</p>
+
+            <h3>Objetos rituales de tienda</h3>
+            <table>
+                <thead><tr><th>Objeto</th><th>Clave</th><th>Precio</th><th>Uso</th></tr></thead>
+                <tbody>
+                <tr><td>Vial de Ícaro</td><td><code>icarus_vial</code></td><td>10.000 Mnemones</td><td>Requerido para evolucionar de raro a épico.</td></tr>
+                <tr><td>Orbe de Estigma</td><td><code>stigma_orb</code></td><td>50.000 Mnemones</td><td>Requerido para evolucionar de épico a legendario.</td></tr>
+                <tr><td>Retal de Babilonia</td><td><code>babylon_shred</code></td><td>125.000 Mnemones</td><td>Requerido para evolucionar de legendario a mítico.</td></tr>
+                </tbody>
+            </table>
+            <p>Los objetos se guardan en <code>collection.materialInventory</code>. Mientras no existan iconos dedicados, la tienda y los modales usan el icono de la rareza asociada.</p>
 
             <h3>Visibilidad de sobres</h3>
             <ul>
-                <li>El sobre <code>standard</code> o mnemónico siempre se muestra, incluso si el contador está a cero, porque puede recargarse gratis o comprarse.</li>
-                <li>El resto de sobres solo se muestran en la pantalla de apertura si el jugador tiene stock en <code>collection.packInventory</code>. Si no hay unidades, el botón se marca como <code>hidden</code> y <code>.is-hidden</code>.</li>
+                <li>Los sobres solo se muestran en la pantalla de apertura si el jugador tiene stock en <code>collection.packInventory</code>.</li>
+                <li>Si no hay unidades de ningún tipo, se muestra un mensaje indicando que se pueden comprar más en tienda o probar suerte en Mazmorras.</li>
+                <li>El inventario de sobres está limitado a <strong>99 unidades por tipo</strong>. La tienda bloquea compras o reclamaciones que superarían ese límite.</li>
+                <li><code>Abrir todos</code> consume todo el stock no admin y solo renderiza las últimas 5 cartas obtenidas para evitar bloquear el navegador.</li>
                 <li>En modo admin todos los sobres se consideran disponibles y se muestran con stock <code>Admin</code>.</li>
             </ul>
 
@@ -363,17 +402,24 @@
                 <li>Filtra cartas compatibles con <code>cardAllowedForPack()</code>.</li>
                 <li>Elige cartas aleatorias y genera estadísticas dentro de rangos.</li>
                 <li>Añade copias a <code>ownedCards</code> y guarda en localStorage.</li>
-                <li>Renderiza reveal, resultados, contadores y colección.</li>
+                <li>Renderiza reveal, resultados, contadores y, cuando corresponde, colección.</li>
             </ol>
 
             <h3>Recompensas gratuitas</h3>
             <ul>
-                <li>1 sobre mnemónico cada 10 minutos.</li>
-                <li>Máximo acumulable: 10 sobres gratis.</li>
-                <li>100 Mnemones cada 60 minutos.</li>
-                <li>Máximo de dinero gratuito acumulable por ticks pendientes: 1000 Mnemones.</li>
+                <li>Hasta 3 sobres mnemónicos gratis al día reclamados desde tienda.</li>
+                <li>El cupo diario se guarda en localStorage por fecha local.</li>
+                <li>Los Mnemones ya no se generan gratis por temporizador.</li>
+                <li>La generación pasiva de Mnemones depende de cartas asignadas a recordar.</li>
             </ul>
-            <p>La web no recibe eventos push del servidor. El cliente calcula ticks al cargar, al renderizar y mediante temporizador, comparando <code>Date.now()</code> con los timestamps guardados.</p>
+            <p>La web no recibe eventos push del servidor. El cliente resetea el cupo gratis al detectar un cambio de fecha local.</p>
+
+            <h3>Optimizaciones de tienda</h3>
+            <ul>
+                <li>Las compras usan render ligero: actualizan moneda, tienda y stock sin recalcular colección, recuerdos ni combate.</li>
+                <li><code>addPack()</code> acepta modo silencioso para evitar doble guardado/doble render cuando lo llama <code>buyPack()</code>.</li>
+                <li>Los contadores de Mnemones usan separador español mediante <code>toLocaleString('es-ES')</code>.</li>
+            </ul>
         </section>
 
         <section id="coleccion">
@@ -385,6 +431,7 @@
                 <li>Muestra todas las cartas activas del catálogo, obtenidas o no.</li>
                 <li>Se filtra por categoría: todos, personaje, sistema, tribu, auspicio, forma, etc.</li>
                 <li>Cada filtro muestra icono, etiqueta y contador <code>obtenidas / total</code>.</li>
+                <li>En desktop usa una grilla de 4 cartas de ancho y comparte ancho máximo con sobres, tienda y combate.</li>
                 <li>Al pulsar una carta obtenida abre modal y reproduce <code>/sounds/ui/card.ogg</code>.</li>
             </ul>
 
@@ -394,6 +441,14 @@
                 <li>Ordena por mejor puntuación total.</li>
                 <li>Incluye rareza, calidad, nombre, categoría, ID, PS, ATQ, DEF, total, copias y fecha.</li>
                 <li>En móvil se reduce a columnas compactas.</li>
+            </ul>
+
+            <h3>Modal de copias</h3>
+            <ul>
+                <li>La carta principal se muestra completa y las variantes obtenidas aparecen a la derecha también cuando solo existe una copia.</li>
+                <li>Cada variante muestra solo calidad y total de puntos; PS, ATQ y DEF se reservan para la carta completa y el contexto de combate.</li>
+                <li>Los comandos de copia usan iconos PNG de <code>/public/img/ui/card_game_icons</code>: vender, mejorar y evolucionar, con <code>title</code> para hover.</li>
+                <li>El comando Recuerdos no aparece en las cartas de colección; esa gestión se hace exclusivamente desde la pestaña Recuerdos.</li>
             </ul>
 
             <h3>Paginación y vista</h3>
@@ -411,28 +466,105 @@
             </ul>
         </section>
 
+        <section id="progresion">
+            <h2>9. Progresión de cartas</h2>
+            <p>La progresión opera sobre copias concretas, no sobre la carta base. Por eso una misma carta puede tener varias copias con rareza, calidad y atributos distintos. La nomenclatura visible queda separada así: <strong>Evolucionar</strong> sube rareza y <strong>Mejorar</strong> sube calidad/atributos.</p>
+
+            <h3>Evolucionar rareza</h3>
+            <ul>
+                <li>El flujo visible se llama <strong>Evolucionar</strong> y se abre desde el modal de variantes de una carta.</li>
+                <li>La copia objetivo sube a la siguiente rareza manteniendo su <code>instanceId</code>.</li>
+                <li>Se requieren 5 puntos de progreso de sacrificio. Las copias sacrificadas deben ser de rareza igual o superior a la copia objetivo, nunca inferior.</li>
+                <li>Las copias sacrificadas deben tener al menos 50% de calidad.</li>
+                <li>Las copias rememorando o usadas en equipos no aparecen como sacrificios.</li>
+                <li>Las rarezas superiores aportan multiplicadores: misma rareza x1, +1 x1.2, +2 x1.5, +3 o más x2.</li>
+                <li>Al evolucionar, <code>retuneCopyStatsForRarity()</code> reescala PS/ATQ/DEF al rango de la nueva rareza conservando la posición porcentual de la copia.</li>
+                <li>El modal muestra barras de calidad objetivo y progreso de rareza, filtros de sacrificios y una caja de costes antes de confirmar.</li>
+            </ul>
+
+            <h3>Mejorar calidad</h3>
+            <ul>
+                <li>El flujo visible se llama <strong>Mejorar</strong> y aumenta calidad/atributos hasta un máximo de 100%.</li>
+                <li>Solo acepta sacrificios de la misma rareza efectiva que la copia objetivo.</li>
+                <li>Se pueden usar hasta 5 sacrificios. La ganancia depende de la calidad del sacrificio y disminuye a medida que la copia objetivo se acerca al 100%.</li>
+                <li>Al confirmar, <code>applyQualityToCopyStats()</code> recalcula PS, ATQ y DEF según la rareza efectiva y la nueva calidad.</li>
+                <li>La selección de sacrificios comparte el patrón de Evolucionar, pero bloquea rarezas distintas para evitar convertir copias en progreso de rareza.</li>
+            </ul>
+
+            <h3>Coste en Mnemones</h3>
+            <p>Tanto Mejorar como Evolucionar cuestan Mnemones según rareza efectiva y calidad actual. La calidad entra como factor entre 0.01 y 1.</p>
+            <table>
+                <thead><tr><th>Rareza</th><th>Base</th><th>Fórmula</th></tr></thead>
+                <tbody>
+                <tr><td>Común</td><td>100</td><td><code>100 * calidad</code></td></tr>
+                <tr><td>Inusual</td><td>300</td><td><code>300 * calidad</code></td></tr>
+                <tr><td>Raro</td><td>900</td><td><code>900 * calidad</code></td></tr>
+                <tr><td>Épico</td><td>2000</td><td><code>2000 * calidad</code></td></tr>
+                <tr><td>Legendario</td><td>8000</td><td><code>8000 * calidad</code></td></tr>
+                <tr><td>Mítico</td><td>24000</td><td><code>24000 * calidad</code></td></tr>
+                </tbody>
+            </table>
+            <p>La función central es <code>upgradeMnemoneCost(card, copy)</code>. Los modales muestran el coste y deshabilitan el botón si faltan Mnemones u objetos rituales.</p>
+
+            <h3>Objetos rituales por evolución</h3>
+            <table>
+                <thead><tr><th>Evolución</th><th>Objeto requerido</th><th>Clave</th></tr></thead>
+                <tbody>
+                <tr><td>Raro a Épico</td><td>Vial de Ícaro</td><td><code>icarus_vial</code></td></tr>
+                <tr><td>Épico a Legendario</td><td>Orbe de Estigma</td><td><code>stigma_orb</code></td></tr>
+                <tr><td>Legendario a Mítico</td><td>Retal de Babilonia</td><td><code>babylon_shred</code></td></tr>
+                </tbody>
+            </table>
+            <p>Los objetos rituales se descuentan desde <code>collection.materialInventory</code>. Las evoluciones común a inusual e inusual a raro no requieren objeto adicional; desde raro a épico sí se exige el material correspondiente.</p>
+
+            <h3>Restricciones de seguridad</h3>
+            <ul>
+                <li>La copia objetivo nunca puede aparecer entre los sacrificios.</li>
+                <li>Las copias en equipos de combate se excluyen para no dejar equipos con referencias rotas.</li>
+                <li>Las copias rememorando se excluyen porque están bloqueadas por el sistema de Recuerdos.</li>
+                <li>Si una acción consume copias, los equipos se limpian después con las mismas rutinas de validación usadas por combate.</li>
+            </ul>
+        </section>
+
+        <section id="recuerdos">
+            <h2>10. Recuerdos</h2>
+            <p>Recuerdos sustituye el antiguo concepto de trabajar. Las cartas que están rememorando generan Mnemones, fragmentos de Mnemógeno, de forma pasiva.</p>
+            <ul>
+                <li>Máximo de 5 cartas rememorando a la vez.</li>
+                <li>Cada carta debe permanecer al menos 24 horas antes de poder retirarse.</li>
+                <li>Se puede reclamar lo acumulado sin retirar cartas.</li>
+                <li>Al retirar una carta, sus ganancias pendientes pasan a <code>workPendingRewards</code> y quedan para reclamar.</li>
+                <li>Las cartas rememorando no pueden venderse, sacrificarse, evolucionarse, mejorarse ni usarse en combate.</li>
+                <li>La producción usa rareza efectiva, calidad y total de PS + ATQ + DEF. La función principal es <code>workRatePerMinute(copy, card)</code>.</li>
+            </ul>
+            <p>La vista de Recuerdos muestra cartas completas en una parrilla de 3 arriba y 2 abajo en desktop, y una distribución adaptada en móvil. Bajo cada carta se muestra lo que genera por minuto y el botón <strong>Retirar</strong>; la reclamación de ganancias acumuladas queda en el botón superior de la sección.</p>
+            <p>La vista de Recuerdos se renderiza solo cuando está visible en móvil. Al salir del panel, las listas pesadas se vacían del DOM para liberar memoria.</p>
+        </section>
+
         <section id="combate">
-            <h2>9. Combate</h2>
+            <h2>11. Combate</h2>
             <p>El combate es una superficie frontend local, disponible en <code>/games/card-game/combat</code> y en el panel <code>combat</code> de la vista móvil. Usa el mismo catálogo y las copias guardadas en <code>hg_card_collection_v1</code>; no persiste resultados en servidor.</p>
 
             <h3>Rutas y navegación</h3>
             <ul>
                 <li><code>request_router.php</code> resuelve <code>/games/card-game/combat</code> como <code>p=game_cards_combat</code>.</li>
                 <li><code>body_work.php</code> registra título y metadatos para <code>game_cards_combat</code>.</li>
-                <li>Las pestañas de sobres, colección, combate e información comparten navegación en desktop. En móvil, combate es un panel adicional dentro de <code>game_cards_mobile_page.php</code>.</li>
+                <li>Las pestañas de sobres, tienda, colección, recuerdos, combate e información comparten navegación en desktop y móvil.</li>
             </ul>
 
             <h3>Preparación de equipo</h3>
             <ul>
                 <li>El jugador puede guardar hasta 5 equipos, cada uno con 5 copias concretas identificadas por <code>instanceId</code>.</li>
                 <li>El selector de cartas usa las copias obtenidas, no solo cartas únicas. Puede filtrar por rareza, tipo de carta y por copias todavía no elegidas.</li>
+                <li>El selector muestra valor total de equipo y, al cambiar cartas, solo enseña PS actual / total, ATQ y DEF para reducir ruido visual.</li>
+                <li><code>autoBuildCombatTeam()</code> crea un equipo rápido con las 5 mejores copias disponibles por PS + ATQ + DEF, excluyendo copias rememorando.</li>
                 <li>El perfil local guarda nombre del jugador y carta favorita en <code>hg_card_combat_profile_v1</code>.</li>
                 <li>Si una copia desaparece de la colección, <code>validDraftTeam()</code> limpia el equipo antes de guardarlo/renderizarlo.</li>
             </ul>
 
             <h3>Entrenamiento</h3>
             <ol>
-                <li><code>startTrainingCombat()</code> valida que el equipo activo tenga 5 copias válidas.</li>
+                <li><code>startTrainingCombat()</code> valida que el equipo activo tenga 5 copias válidas. Si no las tiene, abre una confirmación para crear un equipo rápido, seleccionarlo y empezar.</li>
                 <li>Genera 5 enemigos desde el catálogo, evitando repetir <code>card_id</code> cuando sea posible.</li>
                 <li>La dificultad seleccionada define pesos de rareza para elegir enemigos y multiplicador de recompensa.</li>
                 <li>Las acciones disponibles son atacar, defender, cambiar carta y huir. Huir finaliza el combate sin recompensa ni pérdida de cartas.</li>
@@ -468,14 +600,22 @@
                 <li>Los tiempos de animación están centralizados en constantes JS: <code>COMBAT_ATTACK_MS</code>, <code>COMBAT_DEFEND_MS</code>, <code>COMBAT_DEFEAT_MS</code>, <code>COMBAT_ENTRY_MS</code> y <code>COMBAT_TURN_GAP_MS</code>.</li>
                 <li>La cadena de derrota se mantiene sincronizada: ataque/defensa, derrota completa, render de nueva carta, entrada completa y desbloqueo de acciones.</li>
             </ul>
+
+            <h3>Audio y rendimiento</h3>
+            <ul>
+                <li>Los sonidos de combate usan <code>/public/sounds/ui/attack1.ogg</code>, <code>attack2.ogg</code>, <code>hit1.ogg</code>, <code>hit2.ogg</code>, <code>heal.ogg</code> y <code>card_defeat.ogg</code>.</li>
+                <li>El ataque y el daño varían ligeramente <code>playbackRate</code> para evitar repetición. El golpe se retrasa con <code>COMBAT_HIT_SOUND_DELAY_MS</code> para alinearlo con la animación.</li>
+                <li>Los sonidos se cachean y reutilizan desde <code>uiSoundCache</code>. No se clonan nodos de audio para evitar picos de memoria en Firefox y móvil.</li>
+                <li><code>renderCombatUnit()</code> no reconstruye la carta activa si el <code>instanceId</code> no cambia; así se evita el parpadeo de avatares durante animaciones.</li>
+            </ul>
         </section>
 
         <section id="ui">
-            <h2>10. UI, modales y responsive</h2>
+            <h2>12. UI, modales y responsive</h2>
             <h3>Confirmaciones propias</h3>
             <p>Las acciones destructivas ya no usan <code>window.confirm()</code>. <code>confirmGameAction()</code> crea un modal flotante <code>.hg-confirm-modal</code>, con cierre por fondo, botón cancelar y tecla Escape.</p>
             <ul>
-                <li>Se usa para desintegrar copias legendarias/míticas, desintegrar duplicadas, desintegrar todas, vender por rareza y borrar colección local.</li>
+                <li>Se usa para desintegrar copias legendarias/míticas, desintegrar duplicadas, desintegrar todas, vender por rareza, borrar colección local y crear equipo rápido al iniciar combate.</li>
                 <li>Las funciones afectadas aceptan un parámetro <code>confirmed</code> para reentrar tras aceptar sin volver a abrir el modal.</li>
                 <li>El modal tiene variante móvil <code>.hg-confirm-modal--mobile</code> y comparte estética con sobres, combate y cartas.</li>
             </ul>
@@ -484,19 +624,23 @@
             <ul>
                 <li><code>.hg-card-mobile-body</code>, <code>.hg-cards--mobile</code>, <code>.hg-mobile-panels</code> y paneles internos fijan ancho máximo al viewport y ocultan overflow horizontal.</li>
                 <li>La vista móvil standalone usa <code>viewport-fit=cover</code> en <code>game_cards_mobile.php</code> y CSS con <code>env(safe-area-inset-*)</code>.</li>
-                <li>Las pestañas móviles usan 5 columnas: sobres, tienda, colección, combate e información. En pantallas estrechas reducen padding y tamaño de texto para evitar scroll horizontal.</li>
+                <li>Las pestañas móviles usan las mismas secciones que desktop: sobres, tienda, colección, recuerdos, combate e información. En pantallas estrechas reducen padding y tamaño de iconos para evitar scroll horizontal.</li>
+                <li>La navegación principal y los comandos de carta usan iconos PNG de 64x64 en <code>/public/img/ui/card_game_icons</code>, manteniendo texto solo en <code>title</code> o contexto visible cuando aporta significado.</li>
                 <li>Los inputs dentro de <code>.hg-collection-select</code> comparten estilo con selects para soportar el perfil de combate.</li>
+                <li><code>activeMobilePanel()</code>, <code>isCollectionContext()</code>, <code>isMemoryContext()</code> y <code>isCombatContext()</code> evitan renderizar paneles pesados cuando no están visibles.</li>
+                <li><code>unloadInactiveMobilePanels()</code> vacía álbum, tabla, recuerdos y preparación de combate al cambiar de sección para liberar memoria del DOM.</li>
+                <li>El sonido de navegación entre pestañas se retiró para mejorar respuesta en móviles con colecciones grandes.</li>
             </ul>
         </section>
 
         <section id="admin">
-            <h2>11. Administración</h2>
+            <h2>13. Administración</h2>
             <p><code>admin_game_cards.php</code> permite revisar y editar cartas del catálogo en <code>fact_game_card_collection</code>. Sirve para correcciones manuales después del seed: nombre, texto, imagen, rareza, stats e <code>is_active</code>.</p>
             <p>Si una carta procede de una tabla fuente y se vuelve a ejecutar el seed, puede ser actualizada por <code>ON DUPLICATE KEY UPDATE</code>. Para cambios permanentes conviene modificar la lógica del seed o la tabla origen, no solo la carta generada.</p>
         </section>
 
         <section id="ampliar">
-            <h2>12. Cómo ampliar el módulo</h2>
+            <h2>14. Cómo ampliar el módulo</h2>
             <h3>Añadir un nuevo tipo de carta</h3>
             <ol>
                 <li>Elegir <code>source_type</code> estable en inglés, singular y corto.</li>
@@ -526,9 +670,19 @@
                 <li>Añadir nombre en <code>PACK_LABELS</code>.</li>
                 <li>Añadir descripción en <code>PACK_CONTENTS</code>, porque la tienda la inyecta desde JS.</li>
                 <li>Añadir filtro en <code>cardAllowedForPack()</code>.</li>
-                <li>Añadir botón de sobre y botón de tienda en <code>game_cards_page.php</code>.</li>
-                <li>Añadir lo mismo en <code>game_cards_mobile_page.php</code>.</li>
+                <li>Añadir artículo de tienda con <code>data-shop-pack</code> en desktop y móvil. Los botones x1/x5/x20 se generan desde JS.</li>
+                <li>Añadir botón de apertura en desktop y móvil. Solo se mostrará si el jugador tiene stock, salvo modo admin.</li>
+                <li>Verificar que respeta el límite de 99 unidades y que <code>Abrir todos</code> no intenta pintar más de 5 resultados finales.</li>
                 <li>Añadir clase visual <code>.hg-pack--nuevo</code> en CSS.</li>
+            </ol>
+
+            <h3>Añadir un nuevo objeto ritual</h3>
+            <ol>
+                <li>Añadir definición a <code>UPGRADE_MATERIALS</code>: clave, nombre, precio, rareza visual y descripción.</li>
+                <li>Si bloquea una evolución concreta, añadirlo a <code>RARITY_UPGRADE_MATERIALS</code>.</li>
+                <li>Añadir artículo de tienda con <code>data-shop-material</code> en desktop y móvil.</li>
+                <li>Confirmar que compra incrementa <code>collection.materialInventory</code>, descuenta Mnemones y se conserva en export/import.</li>
+                <li>Crear icono dedicado cuando exista asset; mientras tanto puede usar el icono de rareza asociada.</li>
             </ol>
 
             <h3>Añadir una nueva dificultad de combate</h3>
@@ -549,7 +703,7 @@
         </section>
 
         <section id="checklists">
-            <h2>13. Checklists para futuras iteraciones</h2>
+            <h2>15. Checklists para futuras iteraciones</h2>
             <h3>Después de tocar PHP</h3>
             <pre><code>php -l app/modules/game_cards/game_cards_catalog.php
 php -l app/tools/seed_game_cards.php
@@ -576,22 +730,48 @@ php -l app/partials/tool/game_cards/game_cards_combat_page.php</code></pre>
                 <li>Probar atacar, defender, cambiar carta, huir, victoria y derrota.</li>
                 <li>Verificar que la recompensa sigue <code>5 * random(1,5) * multiplicador</code> y que el contador de Mnemones se actualiza.</li>
                 <li>Confirmar que al caer una carta la secuencia visual no se solapa: derrota, entrada de la siguiente carta y desbloqueo de botones.</li>
+                <li>Probar el popup de equipo rápido desde iniciar combate con equipo incompleto.</li>
+                <li>Comprobar que el banquillo muestra solo PS actual / total, ATQ y DEF.</li>
+            </ol>
+
+            <h3>Después de tocar progresión</h3>
+            <ol>
+                <li>Evolucionar una carta común o inusual y confirmar que PS/ATQ/DEF se reescalan a la nueva rareza.</li>
+                <li>Intentar evolucionar sin Mnemones suficientes y comprobar que el botón queda bloqueado.</li>
+                <li>Intentar evolucionar raro a épico, épico a legendario y legendario a mítico sin objeto ritual, y luego con objeto comprado.</li>
+                <li>Confirmar que sacrificios con menos de 50% de calidad no aparecen para Evolucionar.</li>
+                <li>Confirmar que cartas en equipos o rememorando no pueden sacrificarse, venderse ni reutilizarse en combate.</li>
+                <li>Mejorar una copia cerca del 100% y comprobar que la ganancia disminuye y no supera 100%.</li>
+            </ol>
+
+            <h3>Después de tocar tienda o sobres</h3>
+            <ol>
+                <li>Comprar x1, x5 y x20 sobres con dinero suficiente e insuficiente.</li>
+                <li>Confirmar que ningún inventario de sobres supera 99 unidades.</li>
+                <li>Reclamar los 3 sobres gratis diarios desde tienda y verificar que no se duplican al cambiar de panel.</li>
+                <li>Abrir todos los sobres de un tipo y comprobar que solo se renderizan las últimas 5 cartas obtenidas.</li>
+                <li>Comprar objetos rituales y verificar que aparecen en <code>materialInventory</code>.</li>
             </ol>
 
             <h3>Después de tocar responsive o modales</h3>
             <ol>
                 <li>Revisar <code>/games/card-game/mobile</code> en un viewport estrecho y confirmar que no hay scroll horizontal.</li>
                 <li>Comprobar que los modales de confirmación cierran con cancelar, fondo y Escape.</li>
-                <li>Comprobar que los sobres premium sin stock no aparecen en apertura y que el sobre mnemónico siempre aparece.</li>
+                <li>Comprobar que sobres, tienda, colección, recuerdos, combate e información aparecen como pestañas en desktop y móvil.</li>
+                <li>Comprobar que los sobres sin stock no aparecen en apertura.</li>
                 <li>Comprobar que la tienda muestra contenido y precio de cada sobre.</li>
+                <li>En móvil, cambiar entre colección, recuerdos y combate y confirmar que no quedan listas pesadas de paneles ocultos en pantalla.</li>
             </ol>
 
             <h3>Riesgos conocidos</h3>
             <ul>
                 <li>El estado local depende de <code>card_id</code>. Si se usa <code>--reset</code> y cambian IDs, colecciones exportadas antiguas pueden quedar desalineadas.</li>
-                <li>El cliente usa reloj local para recompensas gratis. Cambios manuales en hora del dispositivo pueden alterar ticks.</li>
+                <li>El cliente usa fecha local para el cupo diario de sobres gratis. Cambios manuales en fecha del dispositivo pueden alterar el reinicio diario.</li>
                 <li>Los equipos de combate dependen de <code>instanceId</code>. Si una colección se importa, borra o desintegra copias usadas por un equipo, el cliente limpia esos huecos al renderizar/guardar.</li>
                 <li>Las animaciones de combate dependen de que las constantes JS sigan alineadas con las duraciones CSS de <code>@keyframes</code>. Si se cambia una duración visual, actualizar también la constante correspondiente.</li>
+                <li>Los sonidos dependen de permisos del navegador y pueden no reproducirse hasta que exista interacción del usuario. Mantener la caché de audio ligera.</li>
+                <li>Una colección grande sigue ocupando memoria en <code>localStorage</code>; la optimización actual reduce DOM/render, no el tamaño del JSON guardado.</li>
+                <li>Los objetos rituales forman parte de export/import. Si se cambia su clave, hay que migrar <code>materialInventory</code>.</li>
                 <li>La API no pagina; devuelve todo el catálogo activo. Si crece mucho, habrá que añadir paginación o caché.</li>
                 <li>Algunas etiquetas antiguas pueden estar mojibakeadas en archivos existentes; nuevas ediciones deberían guardarse en UTF-8.</li>
             </ul>
