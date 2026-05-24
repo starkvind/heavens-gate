@@ -34,6 +34,12 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_seasons':
 					include("admin_seasons.php");
 					break;
+				case 'admin_season_order':
+					include("admin_season_order.php");
+					break;
+				case 'admin_season_order_schema':
+					include("admin_season_order_schema.php");
+					break;
 				case 'admin_menu':
 					include("admin_menu.php");
 					break;
@@ -89,6 +95,9 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_powers':
 					include("admin_powers.php");
+					break;
+				case 'admin_gift_image_mass':
+					include("admin_gift_image_mass.php");
 					break;
 				case 'admin_game_cards':
 					include("admin_game_cards.php");
@@ -214,6 +223,12 @@ if (!hg_admin_require_db($link)) { return; }
 				case 'admin_seasons':
 					include("admin_seasons.php");
 					break;
+				case 'admin_season_order':
+					include("admin_season_order.php");
+					break;
+				case 'admin_season_order_schema':
+					include("admin_season_order_schema.php");
+					break;
 				case 'admin_epis': // legacy alias
 				case 'admin_chapters':
 					include("admin_chapters.php");
@@ -251,6 +266,9 @@ if (!hg_admin_require_db($link)) { return; }
 					break;
 				case 'admin_powers':
 					include("admin_powers.php");
+					break;
+				case 'admin_gift_image_mass':
+					include("admin_gift_image_mass.php");
 					break;
 				case 'admin_game_cards':
 					include("admin_game_cards.php");
@@ -474,6 +492,11 @@ if (!hg_admin_require_db($link)) { return; }
 							Gestionar Episodios
 						</div>
 					</a>
+					<a href='/talim?s=admin_season_order'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Orden de temporadas
+						</div>
+					</a>
 					<a href='/talim?s=admin_timelines'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Línea temporal
@@ -570,6 +593,11 @@ if (!hg_admin_require_db($link)) { return; }
 							Gestionar Poderes
 						</div>
 					</a>
+					<a href='/talim?s=admin_gift_image_mass'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Imagen dones masivos
+						</div>
+					</a>
 					<a href='/talim?s=admin_game_cards'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Gestionar Cartas del Gacha
@@ -659,6 +687,11 @@ if (!hg_admin_require_db($link)) { return; }
 					<a href='/talim?s=admin_mentions_help'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Ayuda Mentions
+						</div>
+					</a>
+					<a href='/talim?s=admin_season_order_schema'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Schema orden temporadas
 						</div>
 					</a>
 					<a href='/talim?s=logout'>

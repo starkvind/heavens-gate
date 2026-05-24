@@ -53,6 +53,24 @@
     white-space: nowrap;
 }
 
+.archive-main-image,
+.chapter-main-image {
+    overflow: hidden;
+    margin: 0 0 14px;
+    border: 1px solid var(--arc-line, var(--ch-line));
+    border-radius: 10px;
+    background: #02012a;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .2);
+}
+
+.archive-main-image img,
+.chapter-main-image img {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+}
+
 .archive-block {
     border: 1px solid var(--arc-line);
     background: var(--arc-bg);

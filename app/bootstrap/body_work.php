@@ -268,6 +268,11 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Listado de especiales de Heaven's Gate.";
             $image = $baseURL . "/img/og/og_image_power.jpg";
             break;
+        case 'season_order':
+            $title = "Orden de temporadas | Heaven's Gate";
+            $description = "Consulta Heaven's Gate por orden jugado, cronologico u otros recorridos narrativos.";
+            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            break;
         case 'chapters_table':
             $title = "Tabla de episodios | Heaven's Gate";
             $description = "Listado completo de episodios y capitulos de Heaven's Gate.";
@@ -469,6 +474,7 @@ $routes = [
 	'seasons_interludes' => ['app/controllers/chapters/seasons_home.php', 'Temporadas'],
 	'seasons_personal'   => ['app/controllers/chapters/seasons_home.php', 'Historias personales'],
 	'seasons_specials'   => ['app/controllers/chapters/seasons_home.php', 'Especiales'],
+	'season_order'       => ['app/controllers/chapters/season_order.php', 'Orden de temporadas'],
 	'temp'               => ['app/controllers/chapters/season_archive.php', 'Temporadas'],
 	'chapters_table'     => ['app/controllers/chapters/chapter_table.php', 'Capítulos'],
 	'seechapter'         => ['app/controllers/chapters/chapter_page.php', 'Capítulos'],

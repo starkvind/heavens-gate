@@ -124,12 +124,21 @@ if (!function_exists('hg_admin_is_ajax_request')) {
         $xhr = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
         $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
         $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
+        $contains = static function (string $haystack, string $needle): bool {
+            if ($needle === '') {
+                return true;
+            }
+            if (function_exists('str_contains')) {
+                return str_contains($haystack, $needle);
+            }
+            return strpos($haystack, $needle) !== false;
+        };
 
         return $xhr
             || ((string)($_GET['ajax'] ?? '') === '1')
             || ((string)($_POST['ajax'] ?? '') === '1')
-            || str_contains($accept, 'application/json')
-            || str_contains($contentType, 'application/json');
+            || $contains($accept, 'application/json')
+            || $contains($contentType, 'application/json');
     }
 }
 

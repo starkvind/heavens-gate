@@ -692,6 +692,224 @@
     color: #e0f1ff;
 }
 
+.season-home-order-promo,
+.season-order-hero,
+.season-order-panel {
+    border: 1px solid #000088;
+    background: #05014e;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.season-home-order-promo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 18px;
+}
+
+.season-home-order-kicker,
+.season-order-kicker {
+    margin: 0 0 8px;
+    color: #8eb5ff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.season-home-order-promo h2,
+.season-order-hero h2,
+.season-order-panel-head h3 {
+    margin: 0 0 6px;
+}
+
+.season-home-order-promo p,
+.season-order-hero p,
+.season-order-panel-head p {
+    margin: 0;
+}
+
+.season-home-order-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 14px;
+    border: 1px solid #2d63c9;
+    background: rgba(0, 17, 80, 0.72);
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.season-home-order-link:hover,
+.season-home-order-link:focus {
+    background: rgba(8, 46, 140, 0.92);
+    border-color: #57a4ff;
+}
+
+.season-order-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+}
+
+.season-order-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+    gap: 18px;
+    padding: 18px;
+    background: linear-gradient(135deg, #02012a 0%, #05014e 55%, #0b2c75 100%);
+}
+
+.season-order-hero-copy,
+.season-order-hero-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.season-order-picker {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid #173b9a;
+    background: rgba(2, 12, 64, 0.68);
+}
+
+.season-order-picker label {
+    color: #dcecff;
+    font-weight: 700;
+}
+
+.season-order-picker select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #2d63c9;
+    background: #061751;
+    color: #eef6ff;
+}
+
+.season-order-picker-help {
+    color: #b7d0f5;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.season-order-panel {
+    padding: 16px 18px 18px;
+}
+
+.season-order-panel-head {
+    margin-bottom: 14px;
+}
+
+.season-order-track-wrap {
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+
+.season-order-track {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 14px;
+    min-width: 100%;
+}
+
+.season-order-step {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 240px;
+    max-width: 280px;
+}
+
+.season-order-node,
+.season-order-branch-node {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid #173b9a;
+    background: #061751;
+    color: #fff;
+    text-decoration: none;
+}
+
+.season-order-node {
+    min-height: 180px;
+    padding: 14px;
+}
+
+.season-order-node:hover,
+.season-order-node:focus,
+.season-order-branch-node:hover,
+.season-order-branch-node:focus {
+    border-color: #57a4ff;
+    background: #0a1f73;
+}
+
+.season-order-node-kind,
+.season-order-node-range {
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid #295ea8;
+    background: rgba(6, 31, 95, 0.92);
+    color: #d8ecff;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.season-order-node h4 {
+    margin: 0;
+    color: #f3f8ff;
+    font-size: 1.25em;
+    line-height: 1.15;
+}
+
+.season-order-node p {
+    margin: 0;
+    color: #d7e7ff;
+    line-height: 1.45;
+}
+
+.season-order-arrow {
+    align-self: center;
+    color: #89b5ff;
+    font-size: 28px;
+    line-height: 1;
+}
+
+.season-order-branch {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 18px;
+    border-left: 2px solid #2b66c9;
+}
+
+.season-order-branch-node {
+    padding: 10px 12px;
+    background: rgba(5, 22, 72, 0.88);
+}
+
+.season-order-branch-node strong {
+    color: #eef7ff;
+}
+
+.season-order-branch-node span {
+    color: #c3d7f7;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.season-order-empty {
+    padding: 16px;
+    border: 1px dashed #2852a7;
+    color: #dcecff;
+}
+
 @media (max-width: 1100px) {
     .home-hero {
         grid-template-columns: 1fr;
@@ -706,6 +924,11 @@
     }
 
     .season-home-hub-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .season-home-order-promo,
+    .season-order-hero {
         grid-template-columns: 1fr;
     }
 }
@@ -747,6 +970,14 @@
     .season-home-card-summary {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .season-order-track {
+        min-width: auto;
+    }
+
+    .season-order-step {
+        min-width: 220px;
     }
 }
 

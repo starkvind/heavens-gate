@@ -1,5 +1,6 @@
 <?php setMetaFromPage("Temporadas | Heaven's Gate", "Consulta temporadas y capitulos de la campana.", null, 'website'); ?>
 <?php include_once(__DIR__ . '/../../helpers/character_avatar.php'); ?>
+<?php include_once(__DIR__ . '/../../helpers/content_image.php'); ?>
 <?php include_once(__DIR__ . '/../../helpers/runtime_response.php'); ?>
 <link rel="stylesheet" href="/assets/css/hg-chapters.css">
 
@@ -53,6 +54,7 @@ if ($temporadaId > 0 && $stmt) {
         $nameTemp = (string)$ResultQuery['name'];
         $numberTemp = (int)$ResultQuery['season_number'];
         $sinopsis = (string)$ResultQuery['description'];
+        $seasonImage = hg_content_image_url($ResultQuery['image_url'] ?? '');
         $seasonFinished = (int)($ResultQuery['finished'] ?? 0);
         $seasonChronicleId = hg_sa_col_exists($link, 'dim_seasons', 'chronicle_id') ? (int)($ResultQuery['chronicle_id'] ?? 0) : 0;
         $seasonChronicleName = '';
@@ -84,7 +86,7 @@ if ($temporadaId > 0 && $stmt) {
         setMetaFromPage(
             $nameTemp . " | " . $titleSection . " | Heaven's Gate",
             meta_excerpt($sinopsis),
-            null,
+            $seasonImage !== '' ? $seasonImage : null,
             'article'
         );
 
@@ -108,6 +110,12 @@ if ($temporadaId > 0 && $stmt) {
         }
         echo "<span class='archive-chip'>" . htmlspecialchars($archiveChip) . "</span>";
         echo "</div>";
+
+        if ($seasonImage !== '') {
+            echo "<figure class='archive-main-image'>";
+            echo "<img src='" . htmlspecialchars($seasonImage, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($nameTemp, ENT_QUOTES, 'UTF-8') . "' loading='lazy'>";
+            echo "</figure>";
+        }
 
         echo "<div class='bioBody'>";
 

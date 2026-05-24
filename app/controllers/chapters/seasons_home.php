@@ -1,5 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/runtime_response.php');
+include_once(__DIR__ . '/../../helpers/content_image.php');
 
 if (!function_exists('hg_sh_h')) {
     function hg_sh_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -27,6 +28,27 @@ if (!function_exists('hg_sh_kind_badge')) {
             return 'Inciso ' . ($incisoNum > 0 ? $incisoNum : '?');
         }
         return 'Temporada ' . ($number > 0 ? $number : '?');
+    }
+}
+
+if (!function_exists('hg_sh_col_exists')) {
+    function hg_sh_col_exists(mysqli $link, string $table, string $column): bool {
+        static $cache = [];
+        $key = $table . ':' . $column;
+        if (isset($cache[$key])) return $cache[$key];
+
+        $ok = false;
+        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            $st->bind_param('ss', $table, $column);
+            $st->execute();
+            $st->bind_result($count);
+            $st->fetch();
+            $st->close();
+            $ok = ((int)$count > 0);
+        }
+
+        $cache[$key] = $ok;
+        return $ok;
     }
 }
 
@@ -118,12 +140,16 @@ if (!hg_runtime_require_db($link, 'seasons_home', 'public', [
 include("app/partials/main_nav_bar.php");
 
 $rows = [];
+$hasSeasonImageUrl = hg_sh_col_exists($link, 'dim_seasons', 'image_url');
+$seasonImageSelect = $hasSeasonImageUrl ? "s.image_url," : "'' AS image_url,";
+$seasonImageGroup = $hasSeasonImageUrl ? "s.image_url," : "";
 $sql = "
     SELECT
         s.id,
         s.name,
         s.pretty_id,
         s.description,
+        {$seasonImageSelect}
         s.season_number,
         COALESCE(s.season_kind, 'temporada') AS season_kind,
         COALESCE(s.finished, 0) AS finished,
@@ -133,6 +159,7 @@ $sql = "
     LEFT JOIN dim_chapters c ON c.season_id = s.id
     GROUP BY
         s.id, s.name, s.pretty_id, s.description, s.season_number,
+        {$seasonImageGroup}
         s.season_kind, s.finished, s.sort_order
     ORDER BY
         CASE
@@ -226,6 +253,13 @@ foreach ($seasonSectionDefs as $kind => $sectionDef) {
                 <?php endforeach; ?>
             </div>
         </section>
+        <section class="season-home-order-promo">
+            <div>
+                <h2>Orden de temporadas</h2>
+                <p>Consulta la cronología o el orden jugado desde una linea visual de temporadas y arcos de personaje.</p>
+            </div>
+            <a class="season-home-order-link" href="/seasons/order">Abrir orden narrativo</a>
+        </section>
     <?php else: ?>
     <?php foreach ($routeConfig['sections'] as $sectionKind): ?>
         <?php $section = $seasonSectionDefs[$sectionKind]; ?>
@@ -249,12 +283,13 @@ foreach ($seasonSectionDefs as $kind => $sectionDef) {
                             $href = pretty_url($link, 'dim_seasons', '/seasons', $sid);
                             $badge = hg_sh_kind_badge($kind, $number);
                             $chapterCount = (int)($row['chapter_count'] ?? 0);
+                            $cardImage = hg_content_image_url($row['image_url'] ?? '', (string)$section['img']);
                             $statusText = ((int)($row['finished'] ?? 0) === 1) ? 'Finalizada' : ((((int)($row['finished'] ?? 0) === 2) ? 'Cancelada' : 'En curso'));
                             $statusClass = ((int)($row['finished'] ?? 0) === 1) ? 'season-home-status--done' : ((((int)($row['finished'] ?? 0) === 2) ? 'season-home-status--cancelled' : 'season-home-status--active'));
                         ?>
                         <a class="season-home-card" href="<?= hg_sh_h($href) ?>" title="<?= hg_sh_h($name) ?>">
                             <div class="season-home-card-media">
-                                <img src="<?= hg_sh_h($section['img']) ?>" alt="<?= hg_sh_h($name) ?>">
+                                <img src="<?= hg_sh_h($cardImage) ?>" alt="<?= hg_sh_h($name) ?>">
                                 <div class="season-home-card-overlay">
                                     <span class="season-home-card-kicker"><?= hg_sh_h($badge) ?></span>
                                     <h3><?= hg_sh_h($name) ?></h3>

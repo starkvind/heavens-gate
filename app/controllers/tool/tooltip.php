@@ -90,7 +90,7 @@ $outPreDesc = '';
 if ($type === 'don') {
     $giftSystemCol = tt_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
     $giftRulesCol = tt_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
-    $sqlDon = "SELECT name, rank, `{$giftSystemCol}` AS gift_system_name, `{$giftRulesCol}` AS gift_rules, description FROM fact_gifts WHERE id=? LIMIT 1";
+    $sqlDon = "SELECT name, rank, `{$giftSystemCol}` AS gift_system_name, `{$giftRulesCol}` AS gift_rules, description, image_url FROM fact_gifts WHERE id=? LIMIT 1";
     if ($st = $link->prepare($sqlDon)) {
         $st->bind_param('i', $id);
         $st->execute();
@@ -103,6 +103,8 @@ if ($type === 'don') {
             if ($fera !== '') $outMeta .= " - " . h($fera);
             $outSystem = short_text($r['gift_rules'] ?? '');
             $outDesc = short_text($r['description'] ?? '', 360);
+            $outImg = trim((string)($r['image_url'] ?? ''));
+            $outImgAlt = $outTitle;
         }
         $st->close();
     }

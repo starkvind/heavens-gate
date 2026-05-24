@@ -9,7 +9,12 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+include_once(__DIR__ . '/../../helpers/admin_uploads.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+
+$CHAPTER_UPLOADDIR = hg_admin_project_root() . '/public/img/chapters';
+$CHAPTER_URLBASE = '/img/chapters';
+if (!is_dir($CHAPTER_UPLOADDIR)) { @mkdir($CHAPTER_UPLOADDIR, 0775, true); }
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function norm_date($v){ $v = trim((string)$v); return $v === '' ? null : $v; }
@@ -122,6 +127,7 @@ function attach_chapter_characters(mysqli $link, int $chapterId, array $relation
     return $added;
 }
 $hasChapterSeasonId = true;
+$hasChapterImageUrl = ac_col_exists($link, 'dim_chapters', 'image_url');
 $hasChapterParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
 $hasChapterBridgeId = ac_col_exists($link, 'bridge_chapters_characters', 'id');
 
@@ -270,11 +276,24 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             echo json_encode(['ok' => false, 'error' => 'ID de capítulo inválido']);
             exit;
         }
+        $currentImage = '';
+        if ($hasChapterImageUrl && ($stImg = $link->prepare('SELECT image_url FROM dim_chapters WHERE id = ? LIMIT 1'))) {
+            $stImg->bind_param('i', $chapterId);
+            $stImg->execute();
+            $rsImg = $stImg->get_result();
+            if ($rowImg = $rsImg->fetch_assoc()) {
+                $currentImage = (string)($rowImg['image_url'] ?? '');
+            }
+            $stImg->close();
+        }
         $ok = false;
         if ($st = $link->prepare('DELETE FROM dim_chapters WHERE id = ?')) {
             $st->bind_param('i', $chapterId);
             $ok = $st->execute();
             $st->close();
+        }
+        if ($ok && $currentImage !== '') {
+            hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
         }
         echo json_encode(['ok' => (bool)$ok, 'message' => $ok ? 'Capítulo eliminado.' : 'No se pudo eliminar.']);
         exit;
@@ -287,6 +306,22 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $seasonId = (int)($_POST['season_id'] ?? 0);
         $playedDate = norm_date($_POST['played_date'] ?? '');
         $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
+        $imageUrl = $hasChapterImageUrl ? trim((string)($_POST['image_url'] ?? '')) : '';
+        $removeImage = $hasChapterImageUrl && ((int)($_POST['image_remove'] ?? 0) === 1);
+        $hasImageUpload = $hasChapterImageUrl && !empty($_FILES['image_upload']) && ((int)($_FILES['image_upload']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE);
+        if ($removeImage) {
+            $imageUrl = '';
+        }
+        $currentImage = '';
+        if ($hasChapterImageUrl && $id > 0 && ($stImg = $link->prepare('SELECT image_url FROM dim_chapters WHERE id = ? LIMIT 1'))) {
+            $stImg->bind_param('i', $id);
+            $stImg->execute();
+            $rsImg = $stImg->get_result();
+            if ($rowImg = $rsImg->fetch_assoc()) {
+                $currentImage = (string)($rowImg['image_url'] ?? '');
+            }
+            $stImg->close();
+        }
         $pendingRelations = parse_pending_relations($_POST['pending_relations_json'] ?? '');
         if (empty($pendingRelations)) {
             $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
@@ -307,16 +342,28 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $savedId = 0;
         $ok = false;
         if ($id > 0) {
-            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
-            $st = $link->prepare($sql);
-            $st->bind_param('siissi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $id);
+            if ($hasChapterImageUrl) {
+                $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, image_url=?, updated_at=NOW() WHERE id=?';
+                $st = $link->prepare($sql);
+                $st->bind_param('siisssi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $imageUrl, $id);
+            } else {
+                $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
+                $st = $link->prepare($sql);
+                $st->bind_param('siissi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $id);
+            }
             $ok = $st->execute();
             $savedId = $id;
             $st->close();
         } else {
-            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
-            $st = $link->prepare($sql);
-            $st->bind_param('siiss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis);
+            if ($hasChapterImageUrl) {
+                $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, image_url, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
+                $st = $link->prepare($sql);
+                $st->bind_param('siisss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $imageUrl);
+            } else {
+                $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
+                $st = $link->prepare($sql);
+                $st->bind_param('siiss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis);
+            }
             $ok = $st->execute();
             $savedId = (int)$link->insert_id;
             $st->close();
@@ -329,9 +376,29 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         hg_update_pretty_id_if_exists($link, 'dim_chapters', $savedId, $name);
         attach_chapter_characters($link, $savedId, $pendingRelations);
+        if ($hasImageUpload) {
+            $res = hg_admin_save_image_upload($_FILES['image_upload'], 'chapter', $savedId, $name, $CHAPTER_UPLOADDIR, $CHAPTER_URLBASE);
+            if (!empty($res['ok'])) {
+                if ($currentImage !== '') {
+                    hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
+                }
+                if ($stImg = $link->prepare('UPDATE dim_chapters SET image_url = ? WHERE id = ?')) {
+                    $stImg->bind_param('si', $res['url'], $savedId);
+                    $stImg->execute();
+                    $stImg->close();
+                }
+                $imageUrl = (string)$res['url'];
+            } elseif (($res['msg'] ?? '') !== 'no_file') {
+                echo json_encode(['ok' => false, 'error' => 'Imagen no guardada: ' . (string)$res['msg']]);
+                exit;
+            }
+        } elseif ($hasChapterImageUrl && $currentImage !== '' && $currentImage !== $imageUrl) {
+            hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
+        }
 
         $chapterRow = null;
-        if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1")) {
+        $imageSelect = $hasChapterImageUrl ? 'c.image_url,' : "'' AS image_url,";
+        if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, {$imageSelect} s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1")) {
             $st->bind_param('i', $savedId);
             $st->execute();
             $rs = $st->get_result();
@@ -423,7 +490,8 @@ if ($rs = $link->query('SELECT id, season_number, name, sort_order FROM dim_seas
 }
 
 $chapters = [];
-if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id ORDER BY COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC, c.id ASC")) {
+$chapterImageSelect = $hasChapterImageUrl ? 'c.image_url,' : "'' AS image_url,";
+if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, {$chapterImageSelect} s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id ORDER BY COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC, c.id ASC")) {
     while ($r = $rs->fetch_assoc()) { $chapters[] = $r; }
     $rs->close();
 }
@@ -450,6 +518,8 @@ admin_panel_open('Capítulos', $actions);
 </div>
 <?php endif; ?>
 
+<style>.adm-thumb-hint{font-size:10px;color:#9db5d3}</style>
+
 <table class="table" id="chaptersTable">
     <thead>
         <tr>
@@ -457,6 +527,7 @@ admin_panel_open('Capítulos', $actions);
             <th>#</th>
             <th>Nombre</th>
             <th>Fecha</th>
+            <?php if ($hasChapterImageUrl): ?><th>Imagen</th><?php endif; ?>
             <th>Acciones</th>
         </tr>
     </thead>
@@ -467,7 +538,7 @@ admin_panel_open('Capítulos', $actions);
 <div class="chap-modal-back" id="chapterModalBack" aria-hidden="true">
     <div class="chap-modal adm-modal-980">
         <h3 id="chapterModalTitle">Capítulo</h3>
-        <form method="post" action="/talim?s=admin_chapters" id="chapterForm">
+        <form method="post" action="/talim?s=admin_chapters" id="chapterForm" enctype="multipart/form-data">
             <input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
             <input type="hidden" name="save_chapter" value="1">
             <input type="hidden" name="id" id="f_id" value="0">
@@ -490,6 +561,16 @@ admin_panel_open('Capítulos', $actions);
                 <label>Fecha jugada
                     <input class="inp" type="date" name="played_date" id="f_played">
                 </label>
+                <?php if ($hasChapterImageUrl): ?>
+                <label>Imagen
+                    <input class="inp" type="text" name="image_url" id="f_image_url" maxlength="600" placeholder="/img/chapters/... o URL completa">
+                    <span class="adm-thumb-hint">Puedes escribir una ruta manual o subir un fichero.</span>
+                </label>
+                <label>Subir imagen
+                    <input class="inp" type="file" name="image_upload" id="f_image_upload" accept="image/*">
+                    <span class="adm-thumb-hint"><input type="checkbox" name="image_remove" id="f_image_remove" value="1"> Quitar imagen actual</span>
+                </label>
+                <?php endif; ?>
                 <label class="adm-grid-full">Sinopsis
                     <div>
                         <div id="chapter_synopsis_toolbar" class="ql-toolbar ql-snow">
@@ -541,6 +622,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 const chapters = <?= json_encode($chapters, JSON_UNESCAPED_UNICODE); ?>;
 const charactersCatalog = <?= json_encode($personajes, JSON_UNESCAPED_UNICODE); ?>;
+const hasChapterImageUrl = <?= $hasChapterImageUrl ? 'true' : 'false' ?>;
 const hasChapterParticipationRole = <?= $hasChapterParticipationRole ? 'true' : 'false' ?>;
 const CHAPTER_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
 let page = 1;
@@ -553,6 +635,11 @@ let chapterSynopsisEditor = null;
 function esc(s){
     if (!s) return '';
     return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function shortText(s, max){
+    const clean = String(s || '').replace(/\s+/g, ' ').trim();
+    return clean.length > max ? (clean.slice(0, max) + '...') : clean;
 }
 
 function filteredChapters(){
@@ -583,6 +670,7 @@ function renderTable(){
             <td>${esc(c.chapter_number)}</td>
             <td>${esc(c.name)}</td>
             <td>${esc(c.played_date || '')}</td>
+            ${hasChapterImageUrl ? `<td>${esc(shortText(c.image_url || '', 70))}</td>` : ''}
             <td>
                 <button class="btn" type="button" onclick="openChapterModal(${Number(c.id)})">Editar</button>
                 <button class="btn btn-red" type="button" onclick="deleteChapter(${Number(c.id)})">Borrar</button>
@@ -695,6 +783,12 @@ function openChapterModal(id){
     document.getElementById('f_chapter').value = c ? (c.chapter_number || '') : '';
     document.getElementById('f_season').value = c ? String(c.season_id || '') : (document.getElementById('seasonFilter').value || '');
     document.getElementById('f_played').value = c ? (c.played_date || '') : '';
+    const imageUrl = document.getElementById('f_image_url');
+    if (imageUrl) imageUrl.value = c ? (c.image_url || '') : '';
+    const imageUpload = document.getElementById('f_image_upload');
+    if (imageUpload) imageUpload.value = '';
+    const imageRemove = document.getElementById('f_image_remove');
+    if (imageRemove) imageRemove.checked = false;
     document.getElementById('relationRoleSelect').value = 'npc';
     const synopsisHtml = c ? (c.synopsis || '') : '';
     document.getElementById('f_synopsis').value = synopsisHtml;
@@ -710,7 +804,8 @@ function closeChapterModal(){
 }
 
 async function postAjax(data){
-    const body = new URLSearchParams(data);
+    const isFormData = data instanceof FormData;
+    const body = isFormData ? data : new URLSearchParams(data);
     if (!body.has('csrf') && window.ADMIN_CSRF_TOKEN) body.set('csrf', String(window.ADMIN_CSRF_TOKEN));
     const endpoint = '/talim?s=admin_chapters&ajax=1';
     if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
@@ -722,10 +817,7 @@ async function postAjax(data){
     const res = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
+        headers: isFormData ? {'X-Requested-With': 'XMLHttpRequest'} : {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest'},
         body
     });
     const txt = await res.text();
@@ -853,10 +945,8 @@ document.getElementById('chapterForm').addEventListener('submit', async (ev) => 
     try {
         const form = document.getElementById('chapterForm');
         const fd = new FormData(form);
-        const payload = {};
-        fd.forEach((v, k) => { payload[k] = v; });
-        payload.action = 'save_chapter';
-        const data = await postAjax(payload);
+        fd.set('action', 'save_chapter');
+        const data = await postAjax(fd);
         if (!data || !data.ok) throw new Error((data && (data.message || data.error || data.msg)) || 'No se pudo guardar.');
         if (data.data) upsertChapter(data.data);
         renderTable();

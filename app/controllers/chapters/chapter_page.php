@@ -9,6 +9,7 @@ if (!hg_runtime_require_db($link, 'chapter_page', 'public', [
     return;
 }
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../helpers/content_image.php');
 
 if (!function_exists('hg_ch_table_exists')) {
     function hg_ch_table_exists(mysqli $link, string $table): bool
@@ -59,6 +60,7 @@ if ($chapter_numberId > 0 && $stmt) {
 
         $nameCapi = (string)$ResultQuery['name'];
         $sinoCapi = (string)$ResultQuery['synopsis'];
+        $chapterImage = hg_content_image_url($ResultQuery['image_url'] ?? '');
         $noSinoCapi = "Este capitulo no dispone de informacion, disculpa las molestias.";
         $tempSeasonId = (int)($ResultQuery['season_id'] ?? 0);
         $numeCapi = (int)$ResultQuery['chapter_number'];
@@ -99,7 +101,7 @@ if ($chapter_numberId > 0 && $stmt) {
         setMetaFromPage(
             $nameCapi . " | " . $nameTemporada . " | Heaven's Gate",
             meta_excerpt(!empty($sinoCapi) ? $sinoCapi : $noSinoCapi),
-            null,
+            $chapterImage !== '' ? $chapterImage : null,
             'article'
         );
 
@@ -113,6 +115,12 @@ if ($chapter_numberId > 0 && $stmt) {
         echo "<h2>" . htmlspecialchars($nameCapi) . "</h2>";
         echo "<span class='chapter-code'>Capítulo " . htmlspecialchars($numeracionOK) . "</span>";
         echo "</div>";
+
+        if ($chapterImage !== '') {
+            echo "<figure class='chapter-main-image'>";
+            echo "<img src='" . htmlspecialchars($chapterImage, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($nameCapi, ENT_QUOTES, 'UTF-8') . "' loading='lazy'>";
+            echo "</figure>";
+        }
 
         echo "<div class='chapter-grid'>";
 

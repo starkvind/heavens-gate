@@ -224,6 +224,9 @@
 						case 'admin_powers':
 							echo " $pillSeparator Poderes";
 							break;
+						case 'admin_gift_image_mass':
+							echo " $pillSeparator Imagen dones masivos";
+							break;
 						case 'admin_items':
 							echo " $pillSeparator Objetos";
 							break;
@@ -406,6 +409,9 @@
 				break;
 			case "seasons_specials":
 				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Especiales";
+				break;
+			case "season_order":
+				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Orden de temporadas y arcos";
 				break;
 			case "chapters_table":
 				echo "<a href='/seasons' title='Temporadas'>Temporadas</a> $pillSeparator Capítulos";

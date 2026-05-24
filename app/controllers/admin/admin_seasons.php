@@ -8,6 +8,11 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/admin_uploads.php');
+
+$SEASON_UPLOADDIR = hg_admin_project_root() . '/public/img/seasons';
+$SEASON_URLBASE = '/img/seasons';
+if (!is_dir($SEASON_UPLOADDIR)) { @mkdir($SEASON_UPLOADDIR, 0775, true); }
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function slugify_season_pretty(string $text): string {
@@ -56,6 +61,7 @@ $hasChronicleId  = hg_table_has_column($link, 'dim_seasons', 'chronicle_id');
 $hasCreatedAt    = hg_table_has_column($link, 'dim_seasons', 'created_at');
 $hasUpdatedAt    = hg_table_has_column($link, 'dim_seasons', 'updated_at');
 $hasPrettyId     = true; // existe en dim_seasons
+$hasImageUrl     = hg_table_has_column($link, 'dim_seasons', 'image_url');
 
 $chronicleOptions = [];
 if ($hasChronicleId) {
@@ -79,11 +85,26 @@ $flash = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $action = (string)($_POST['crud_action'] ?? '');
     $id = (int)($_POST['id'] ?? 0);
+    $currentImage = '';
+    if ($hasImageUrl && $id > 0 && ($stImg = $link->prepare('SELECT image_url FROM dim_seasons WHERE id = ? LIMIT 1'))) {
+        $stImg->bind_param('i', $id);
+        $stImg->execute();
+        $rsImg = $stImg->get_result();
+        if ($rowImg = $rsImg->fetch_assoc()) {
+            $currentImage = (string)($rowImg['image_url'] ?? '');
+        }
+        $stImg->close();
+    }
 
     if ($action === 'delete') {
         if ($id > 0 && ($st = $link->prepare("DELETE FROM dim_seasons WHERE id=?"))) {
             $st->bind_param("i", $id);
-            if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Temporada eliminada.'];
+            if ($st->execute()) {
+                if ($currentImage !== '') {
+                    hg_admin_safe_unlink_upload($currentImage, $SEASON_UPLOADDIR);
+                }
+                $flash[] = ['type'=>'ok','msg'=>'Temporada eliminada.'];
+            }
             else $flash[] = ['type'=>'error','msg'=>'Error al eliminar: '.$st->error];
             $st->close();
         } else {
@@ -107,6 +128,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $mainCast = (string)($_POST['main_cast'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $finished = isset($_POST['finished']) ? 1 : 0;
+        $imageUrl = $hasImageUrl ? trim((string)($_POST['image_url'] ?? '')) : '';
+        $removeImage = $hasImageUrl && ((int)($_POST['image_remove'] ?? 0) === 1);
+        $hasImageUpload = $hasImageUrl && !empty($_FILES['image_upload']) && ((int)($_FILES['image_upload']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE);
+        if ($removeImage) {
+            $imageUrl = '';
+        }
         $chronicleId = $hasChronicleId ? (int)($_POST['chronicle_id'] ?? 0) : 0;
         if ($hasChronicleId && $chronicleId > 0 && !isset($chronicleOptions[$chronicleId])) {
             $chronicleId = 0;
@@ -142,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 if ($hasMainCast)    { $cols[] = 'main_cast';   $vals[] = $mainCast; $types .= 's'; }
                 if ($hasSortOrder)   { $cols[] = 'sort_order';  $vals[] = $sortOrder; $types .= 'i'; }
                 if ($hasFinished)    { $cols[] = 'finished';    $vals[] = $finished; $types .= 'i'; }
+                if ($hasImageUrl)     { $cols[] = 'image_url';   $vals[] = $imageUrl; $types .= 's'; }
 
                 if ($hasCreatedAt) $cols[] = 'created_at';
                 if ($hasUpdatedAt) $cols[] = 'updated_at';
@@ -162,6 +190,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if ($st->execute()) {
                         $newId = (int)$link->insert_id;
                         $prettyOk = persist_season_pretty_id($link, $newId, $name);
+                        if ($hasImageUpload) {
+                            $res = hg_admin_save_image_upload($_FILES['image_upload'], 'season', $newId, $name, $SEASON_UPLOADDIR, $SEASON_URLBASE);
+                            if (!empty($res['ok'])) {
+                                if ($stImg = $link->prepare('UPDATE dim_seasons SET image_url = ? WHERE id = ?')) {
+                                    $stImg->bind_param('si', $res['url'], $newId);
+                                    $stImg->execute();
+                                    $stImg->close();
+                                }
+                                $flash[] = ['type'=>'ok','msg'=>'Imagen de la temporada subida.'];
+                            } elseif (($res['msg'] ?? '') !== 'no_file') {
+                                $flash[] = ['type'=>'error','msg'=>'Imagen no guardada: ' . (string)$res['msg']];
+                            }
+                        }
                         $flash[] = ['type'=>$prettyOk ? 'ok' : 'error','msg'=>$prettyOk ? 'Temporada creada.' : 'Temporada creada, pero no se pudo guardar pretty_id.'];
                     } else {
                         $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
@@ -191,6 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if ($hasMainCast)    { $sets[] = '`main_cast`=?';   $vals[] = $mainCast; $types .= 's'; }
                     if ($hasSortOrder)   { $sets[] = '`sort_order`=?';  $vals[] = $sortOrder; $types .= 'i'; }
                     if ($hasFinished)    { $sets[] = '`finished`=?';    $vals[] = $finished; $types .= 'i'; }
+                    if ($hasImageUrl)     { $sets[] = '`image_url`=?';   $vals[] = $imageUrl; $types .= 's'; }
                     if ($hasUpdatedAt)   { $sets[] = '`updated_at`=NOW()'; }
 
                     $sql = "UPDATE dim_seasons SET ".implode(', ', $sets)." WHERE id=?";
@@ -204,6 +246,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                         $st->bind_param($types, ...$vals);
                         if ($st->execute()) {
                             $prettyOk = persist_season_pretty_id($link, $id, $name);
+                            if ($hasImageUpload) {
+                                $res = hg_admin_save_image_upload($_FILES['image_upload'], 'season', $id, $name, $SEASON_UPLOADDIR, $SEASON_URLBASE);
+                                if (!empty($res['ok'])) {
+                                    if ($currentImage !== '') {
+                                        hg_admin_safe_unlink_upload($currentImage, $SEASON_UPLOADDIR);
+                                    }
+                                    if ($stImg = $link->prepare('UPDATE dim_seasons SET image_url = ? WHERE id = ?')) {
+                                        $stImg->bind_param('si', $res['url'], $id);
+                                        $stImg->execute();
+                                        $stImg->close();
+                                    }
+                                    $flash[] = ['type'=>'ok','msg'=>'Imagen de la temporada actualizada.'];
+                                } elseif (($res['msg'] ?? '') !== 'no_file') {
+                                    $flash[] = ['type'=>'error','msg'=>'Imagen no guardada: ' . (string)$res['msg']];
+                                }
+                            } elseif ($hasImageUrl && $currentImage !== '' && $currentImage !== $imageUrl) {
+                                hg_admin_safe_unlink_upload($currentImage, $SEASON_UPLOADDIR);
+                            }
                             $flash[] = ['type'=>$prettyOk ? 'ok' : 'error','msg'=>$prettyOk ? 'Temporada actualizada.' : 'Temporada actualizada, pero no se pudo guardar pretty_id.'];
                         } else {
                             $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
@@ -229,6 +289,7 @@ if ($hasMainCast)    $selectCols[] = 's.main_cast';
 if ($hasSortOrder)   $selectCols[] = 's.sort_order';
 if ($hasFinished)    $selectCols[] = 's.finished';
 if ($hasPrettyId)    $selectCols[] = 's.pretty_id';
+if ($hasImageUrl)    $selectCols[] = 's.image_url';
 
 $rows = [];
 $rowsFull = [];
@@ -271,12 +332,13 @@ if ($rs) {
 .season-kind--inciso { border-color: #3f86d4; background: #1d4878; color: #d9f1ff; }
 .season-kind--historia_personal { border-color: #0aa88f; background: #0b5a4e; color: #d8fff8; }
 .season-kind--especial { border-color: #8b7cff; background: #3e2d8a; color: #ece8ff; }
+.adm-thumb-hint { font-size: 10px; color: #9db5d3; }
 </style>
 
 <div class="modal-back" id="seasonModal">
     <div class="modal">
         <h3 id="seasonModalTitle">Nueva temporada</h3>
-        <form method="post" id="seasonForm">
+        <form method="post" id="seasonForm" enctype="multipart/form-data">
             <input type="hidden" name="crud_action" id="season_action" value="create">
             <input type="hidden" name="id" id="season_id" value="0">
             <div class="modal-body">
@@ -308,6 +370,20 @@ if ($rs) {
                             <option value="<?= (int)$cid ?>"><?= h($cname) ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <?php endif; ?>
+
+                    <?php if ($hasImageUrl): ?>
+                    <label>Imagen</label>
+                    <div>
+                        <input class="inp" type="text" name="image_url" id="season_image_url" maxlength="600" placeholder="/img/seasons/... o URL completa">
+                        <div class="adm-thumb-hint">Puedes escribir una ruta manual o subir un fichero.</div>
+                    </div>
+
+                    <label>Subir imagen</label>
+                    <div>
+                        <input class="inp" type="file" name="image_upload" id="season_image_upload" accept="image/*">
+                        <label class="adm-thumb-hint"><input type="checkbox" name="image_remove" id="season_image_remove" value="1"> Quitar imagen actual</label>
+                    </div>
                     <?php endif; ?>
 
                     <?php if ($hasFinished): ?>
@@ -386,6 +462,7 @@ if ($rs) {
             <?php if ($hasChronicleId): ?><th class="adm-w-180">Cr&oacute;nica</th><?php endif; ?>
             <?php if ($hasFinished): ?><th class="adm-w-90">Finalizada</th><?php endif; ?>
             <?php if ($hasPrettyId): ?><th class="adm-w-220">Pretty ID</th><?php endif; ?>
+            <?php if ($hasImageUrl): ?><th class="adm-w-220">Imagen</th><?php endif; ?>
             <?php if ($hasDescription): ?><th>Descripción</th><?php endif; ?>
             <th class="adm-w-160">Acciones</th>
         </tr>
@@ -406,6 +483,7 @@ if ($rs) {
             <?php if ($hasChronicleId): ?><td><?= h((string)($r['chronicle_name'] ?? '')) ?: '-' ?></td><?php endif; ?>
             <?php if ($hasFinished): ?><td><?= !empty($r['finished']) ? 'Si' : 'No' ?></td><?php endif; ?>
             <?php if ($hasPrettyId): ?><td><?= h((string)($r['pretty_id'] ?? '')) ?></td><?php endif; ?>
+            <?php if ($hasImageUrl): ?><td><?= h(short_text((string)($r['image_url'] ?? ''), 70)) ?></td><?php endif; ?>
             <td><?= h(short_text(strip_tags((string)($r['description'] ?? '')), 20)) ?></td>
             <td>
                 <button class="btn" type="button" onclick="openSeasonModal(<?= (int)$r['id'] ?>)">Editar</button>
@@ -414,7 +492,7 @@ if ($rs) {
         </tr>
     <?php endforeach; ?>
     <?php if (empty($rows)): ?>
-        <tr><td colspan="<?= 4 + ($hasSortOrder?1:0) + ($hasSeasonCol?1:0) + ($hasChronicleId?1:0) + ($hasFinished?1:0) + ($hasPrettyId?1:0) + ($hasDescription?1:0) ?>" class="adm-color-muted">(Sin temporadas)</td></tr>
+        <tr><td colspan="<?= 4 + ($hasSortOrder?1:0) + ($hasSeasonCol?1:0) + ($hasChronicleId?1:0) + ($hasFinished?1:0) + ($hasPrettyId?1:0) + ($hasImageUrl?1:0) + ($hasDescription?1:0) ?>" class="adm-color-muted">(Sin temporadas)</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
@@ -474,6 +552,9 @@ function openSeasonModal(id = null){
     const eKind = document.getElementById('season_kind'); if (eKind) eKind.value = 'temporada';
     const eChron = document.getElementById('season_chronicle_id'); if (eChron) eChron.value = '0';
     const eFin = document.getElementById('season_finished'); if (eFin) eFin.checked = false;
+    const eImage = document.getElementById('season_image_url'); if (eImage) eImage.value = '';
+    const eImageUpload = document.getElementById('season_image_upload'); if (eImageUpload) eImageUpload.value = '';
+    const eImageRemove = document.getElementById('season_image_remove'); if (eImageRemove) eImageRemove.checked = false;
     setSeasonEditorHtml('description', '');
     setSeasonEditorHtml('opening', '');
     setSeasonEditorHtml('main_cast', '');
@@ -490,6 +571,7 @@ function openSeasonModal(id = null){
             if (eKind) eKind.value = (row.season_kind || 'temporada');
             if (eChron) eChron.value = String(parseInt(row.chronicle_id || 0, 10) || 0);
             if (eFin) eFin.checked = parseInt(row.finished || 0, 10) === 1;
+            if (eImage) eImage.value = row.image_url || '';
             setSeasonEditorHtml('description', row.description || '');
             setSeasonEditorHtml('opening', row.opening || '');
             setSeasonEditorHtml('main_cast', row.main_cast || '');

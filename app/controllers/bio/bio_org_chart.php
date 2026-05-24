@@ -907,18 +907,43 @@ include("app/partials/main_nav_bar.php");
         return normalChartHeight();
     }
 
-    function syncChartSize(fitAfter) {
+    function syncChartSize(fitAfter, preservedTransform) {
         const height = chartHeight();
         chartContainer.classList.toggle('is-org-fullscreen', isChartFullscreen());
+        chartContainer.style.width = '100%';
+        chartContainer.style.maxWidth = '100%';
+        chartContainer.style.minWidth = '0';
         chartContainer.style.height = height + 'px';
         chartContainer.style.minHeight = height + 'px';
         if (!chart) return;
         chart.svgHeight(height).render();
+        if (preservedTransform) {
+            requestAnimationFrame(function () {
+                const state = chart.getChartState();
+                if (!state || !state.svg || !state.zoomBehavior) return;
+                state.svg.call(
+                    state.zoomBehavior.transform,
+                    d3.zoomIdentity.translate(preservedTransform.x, preservedTransform.y).scale(preservedTransform.k)
+                );
+            });
+            return;
+        }
         if (fitAfter) {
             requestAnimationFrame(function () {
                 chart.fit({ animate: false });
             });
         }
+    }
+
+    function currentTransformSnapshot() {
+        if (!chart) return null;
+        const state = chart.getChartState();
+        if (!state || !state.lastTransform) return null;
+        return {
+            x: state.lastTransform.x,
+            y: state.lastTransform.y,
+            k: state.lastTransform.k
+        };
     }
 
     function cardHtml(d) {
@@ -1102,18 +1127,19 @@ include("app/partials/main_nav_bar.php");
 
     function handleFullscreenChange() {
         const fullscreenActive = isChartFullscreen();
+        const preservedTransform = currentTransformSnapshot();
         setTimeout(function () {
-            syncChartSize(true);
+            syncChartSize(false, preservedTransform);
         }, fullscreenActive ? 120 : 220);
 
         if (!fullscreenActive) {
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () {
-                    syncChartSize(true);
+                    syncChartSize(false, preservedTransform);
                 });
             });
             setTimeout(function () {
-                syncChartSize(true);
+                syncChartSize(false, preservedTransform);
             }, 520);
         }
     }
@@ -1124,7 +1150,7 @@ include("app/partials/main_nav_bar.php");
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () {
-            syncChartSize(false);
+            syncChartSize(false, currentTransformSnapshot());
         }, 160);
     });
 
