@@ -87,19 +87,64 @@ function ac_fetch_season(mysqli $link, int $seasonId): ?array {
     }
     return null;
 }
+
 function attach_chapter_characters(mysqli $link, int $chapterId, array $relations): int {
-    if ($chapterId <= 0 || empty($relations)) return 0;
-    $added = 0;
-    $hasParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
-    $chk = $link->prepare('SELECT id FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ? LIMIT 1');
-    $ins = $hasParticipationRole
-        ? $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id, participation_role) VALUES (?, ?, ?)')
-        : $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)');
-    if (!$chk || !$ins) {
-        if ($chk) $chk->close();
-        if ($ins) $ins->close();
+    if ($chapterId <= 0 || empty($relations)) {
         return 0;
     }
+
+    $added = 0;
+
+    $hasParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
+    $hasUpdatedAt = ac_col_exists($link, 'bridge_chapters_characters', 'updated_at');
+
+    if ($hasParticipationRole) {
+        if ($hasUpdatedAt) {
+            $st = $link->prepare('
+                INSERT INTO bridge_chapters_characters
+                    (chapter_id, character_id, participation_role)
+                VALUES
+                    (?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    participation_role = VALUES(participation_role),
+                    updated_at = CURRENT_TIMESTAMP
+            ');
+        } else {
+            $st = $link->prepare('
+                INSERT INTO bridge_chapters_characters
+                    (chapter_id, character_id, participation_role)
+                VALUES
+                    (?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    participation_role = VALUES(participation_role)
+            ');
+        }
+    } else {
+        if ($hasUpdatedAt) {
+            $st = $link->prepare('
+                INSERT INTO bridge_chapters_characters
+                    (chapter_id, character_id)
+                VALUES
+                    (?, ?)
+                ON DUPLICATE KEY UPDATE
+                    updated_at = CURRENT_TIMESTAMP
+            ');
+        } else {
+            $st = $link->prepare('
+                INSERT INTO bridge_chapters_characters
+                    (chapter_id, character_id)
+                VALUES
+                    (?, ?)
+                ON DUPLICATE KEY UPDATE
+                    chapter_id = VALUES(chapter_id)
+            ');
+        }
+    }
+
+    if (!$st) {
+        return 0;
+    }
+
     foreach ($relations as $relation) {
         if (is_array($relation)) {
             $characterId = (int)($relation['character_id'] ?? 0);
@@ -108,24 +153,35 @@ function attach_chapter_characters(mysqli $link, int $chapterId, array $relation
             $characterId = (int)$relation;
             $participationRole = 'npc';
         }
-        if ($characterId <= 0) continue;
-        $chk->bind_param('ii', $chapterId, $characterId);
-        $chk->execute();
-        $rs = $chk->get_result();
-        $exists = $rs && $rs->fetch_assoc() ? true : false;
-        if (!$exists) {
-            if ($hasParticipationRole) {
-                $ins->bind_param('iis', $chapterId, $characterId, $participationRole);
-            } else {
-                $ins->bind_param('ii', $chapterId, $characterId);
-            }
-            if ($ins->execute()) $added++;
+
+        if ($characterId <= 0) {
+            continue;
+        }
+
+        if ($hasParticipationRole) {
+            $st->bind_param('iis', $chapterId, $characterId, $participationRole);
+        } else {
+            $st->bind_param('ii', $chapterId, $characterId);
+        }
+
+        $st->execute();
+
+        /*
+         * affected_rows:
+         * 1 = fila insertada
+         * 2 = fila existente actualizada
+         * 0 = fila existente sin cambios reales
+         */
+        if ($st->affected_rows === 1) {
+            $added++;
         }
     }
-    $chk->close();
-    $ins->close();
+
+    $st->close();
+
     return $added;
 }
+
 $hasChapterSeasonId = true;
 $hasChapterImageUrl = ac_col_exists($link, 'dim_chapters', 'image_url');
 $hasChapterParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');

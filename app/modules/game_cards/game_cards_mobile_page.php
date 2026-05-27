@@ -11,6 +11,10 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <span>Mnemones</span>
             <strong data-mnemones-counter>0</strong>
         </div>
+        <div class="hg-counter hg-counter--currency" aria-live="polite">
+            <span>Remorias</span>
+            <strong data-remorias-counter>0</strong>
+        </div>
     </header>
 
     <nav class="hg-mobile-tabs" aria-label="Secciones móviles del juego">
@@ -25,10 +29,6 @@ $isAdmin = !empty($hgCardsIsAdmin);
     <main class="hg-mobile-panels">
         <section class="hg-mobile-panel is-active" data-mobile-panel="packs" aria-label="Sobres disponibles">
             <div class="hg-cards__controls hg-mobile-stats" aria-label="Estado de sobres">
-                <div class="hg-counter" aria-live="polite">
-                    <span>Gratis hoy</span>
-                    <strong id="hgDailyPacksCounter"><?php echo $isAdmin ? 'Admin' : '0 / 3'; ?></strong>
-                </div>
                 <div class="hg-counter" aria-live="polite">
                     <span>Colección</span>
                     <strong id="hgUniqueCounter">0 / 0</strong>
@@ -123,24 +123,24 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <section class="hg-mobile-panel" data-mobile-panel="shop" aria-label="Tienda de sobres">
             <div class="hg-section-head">
                 <h3>Intercambio de mnemógeno</h3>
-                <p>Usa Mnemones para reclamar sobres adicionales.</p>
+                <p>Usa Mnemones para reclamar sobres y Remorias para objetos rituales.</p>
             </div>
             <div class="hg-shop-grid hg-shop-grid--mobile">
                 <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1"><span>Mnemónico gratis</span><strong>Gratis - quedan 3</strong></article>
                 <article class="hg-shop-item" data-shop-pack="standard"><span>Sobre mnemónico</span><strong>50 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="echoes"><span>Sobre de ecos</span><strong>90 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-pack="magic"><span>Sobre mágico</span><strong>220 Mnemones</strong></article>
+                <article hidden class="hg-shop-item" data-shop-pack="magic"><span>Sobre mágico</span><strong>220 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="characters"><span>Sobre de personajes</span><strong>240 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="lineage"><span>Sobre de linaje</span><strong>420 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="essence"><span>Sobre de esencia</span><strong>300 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="powers"><span>Sobre arcano</span><strong>240 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="chronicles"><span>Sobre de crónica</span><strong>140 Mnemones</strong></article>
                 <article class="hg-shop-item" data-shop-pack="relics"><span>Sobre de reliquias</span><strong>160 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-pack="omens"><span>Sobre de presagios</span><strong>650 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-pack="gaian"><span>Sobre gaiano</span><strong>2000 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-material="icarus_vial"><span>Vial de Ícaro</span><strong>10000 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-material="stigma_orb"><span>Orbe de Estigma</span><strong>50000 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-material="babylon_shred"><span>Retal de Babilonia</span><strong>125000 Mnemones</strong></article>
+                <article hidden class="hg-shop-item" data-shop-pack="omens"><span>Sobre de presagios</span><strong>650 Mnemones</strong></article>
+                <article hidden class="hg-shop-item" data-shop-pack="gaian"><span>Sobre gaiano</span><strong>2000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="icarus_vial"><span>Vial de Ícaro</span><strong>10000 Remorias</strong></article>
+                <article class="hg-shop-item" data-shop-material="stigma_orb"><span>Orbe de Estigma</span><strong>50000 Remorias</strong></article>
+                <article class="hg-shop-item" data-shop-material="babylon_shred"><span>Retal de Babilonia</span><strong>125000 Remorias</strong></article>
             </div>
         </section>
 
@@ -169,7 +169,11 @@ $isAdmin = !empty($hgCardsIsAdmin);
                     <div class="hg-collection-filters" aria-label="Filtros de colección">
                         <label class="hg-filter-check">
                             <input type="checkbox" data-collection-owned-filter>
-                            <span>Sólo obtenidas</span>
+                            <span>S&oacute;lo obtenidas</span>
+                        </label>
+                        <label class="hg-collection-select hg-collection-search">
+                            <span>Nombre</span>
+                            <input type="search" data-collection-name-filter placeholder="Buscar carta...">
                         </label>
                         <label class="hg-collection-select">
                             <span>Rareza</span>
@@ -181,6 +185,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                                 <option value="epic">Épico</option>
                                 <option value="legendary">Legendario</option>
                                 <option value="mythic">Mítico</option>
+                                <option value="stigmatic">Estigm&aacute;tico</option>
                             </select>
                         </label>
                         <label class="hg-collection-select">
@@ -231,10 +236,21 @@ $isAdmin = !empty($hgCardsIsAdmin);
                     <button type="button" class="hg-danger-btn" id="hgResetCollection">Borrar colección</button>
                 </div>
 
+                <section class="hg-player-profile" aria-label="Perfil de combate">
+                    <div>
+                        <h3>Perfil de combate</h3>
+                        <p>Nombre visible en combates y registros.</p>
+                    </div>
+                    <label class="hg-collection-select">
+                        <span>Nombre del jugador</span>
+                        <input type="text" maxlength="32" placeholder="Jugador" data-combat-profile-name>
+                    </label>
+                </section>
+
                 <section class="hg-bulk-sell" aria-label="Venta de cartas por rareza">
                     <div>
                         <h3>Vender cartas</h3>
-                        <p>Convierte una rareza en Mnemones.</p>
+                        <p>Convierte una rareza en Remorias.</p>
                     </div>
                     <label for="hgBulkSellRarity">Rareza</label>
                     <select id="hgBulkSellRarity">
@@ -244,6 +260,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                         <option value="epic">Épico</option>
                         <option value="legendary">Legendario</option>
                         <option value="mythic">Mítico</option>
+                        <option value="stigmatic">Estigm&aacute;tico</option>
                     </select>
                     <label class="hg-bulk-sell__keep">
                         <input type="checkbox" id="hgBulkSellKeepBest" checked>
@@ -284,20 +301,10 @@ $isAdmin = !empty($hgCardsIsAdmin);
                     <span>Equipo activo</span>
                     <select data-combat-team-select-mirror></select>
                 </label>
-                <section class="hg-combat-profile" aria-label="Perfil de combate">
-                    <div>
-                        <h3>Perfil</h3>
-                        <p>Nombre y carta favorita para futuros combates.</p>
-                    </div>
-                    <label class="hg-collection-select">
-                        <span>Nombre</span>
-                        <input type="text" maxlength="32" placeholder="Jugador" data-combat-profile-name>
-                    </label>
-                    <label class="hg-collection-select">
-                        <span>Carta favorita</span>
-                        <select data-combat-profile-favorite></select>
-                    </label>
-                </section>
+                <label class="hg-collection-select">
+                    <span>Nombre del equipo</span>
+                    <input type="text" maxlength="40" placeholder="Equipo 1" data-combat-team-name>
+                </label>
                 <div class="hg-combat-team__slots" data-combat-team-slots aria-live="polite"></div>
                 <div class="hg-combat-team__actions">
                     <button type="button" data-combat-auto-team>Auto</button>
@@ -311,6 +318,16 @@ $isAdmin = !empty($hgCardsIsAdmin);
                             <input type="checkbox" data-combat-only-ready checked>
                             <span>Sólo no elegidas</span>
                         </label>
+                        <label class="hg-collection-select hg-combat-sort">
+                            <span>Orden</span>
+                            <select data-combat-sort>
+                                <option value="quality">Calidad %</option>
+                                <option value="total">Total</option>
+                                <option value="rarity">Rareza</option>
+                                <option value="recent">Recientes</option>
+                                <option value="name">Nombre</option>
+                            </select>
+                        </label>
                     </div>
                     <div class="hg-combat-picker__filters" aria-label="Filtros de cartas para equipo">
                         <label class="hg-collection-select">
@@ -323,6 +340,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                                 <option value="epic">Épico</option>
                                 <option value="legendary">Legendario</option>
                                 <option value="mythic">Mítico</option>
+                                <option value="stigmatic">Estigm&aacute;tico</option>
                             </select>
                         </label>
                         <label class="hg-collection-select">
@@ -338,10 +356,11 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <div class="hg-combat-setup">
                     <div class="hg-combat-mode-tabs" aria-label="Tipo de combate">
                         <button type="button" class="is-active" data-combat-mode="training">Entrenamiento</button>
-                        <button type="button" data-combat-mode="daily-boss" disabled>Jefe diario</button>
+                        <button type="button" data-combat-mode="daily-boss">Jefe diario</button>
                         <button type="button" data-combat-mode="dungeon" disabled>Mazmorra</button>
                     </div>
-                    <label class="hg-collection-select">
+                    <div class="hg-daily-boss-summary" data-daily-boss-summary hidden></div>
+                    <label class="hg-collection-select" data-combat-difficulty-wrap>
                         <span>Rival</span>
                         <select data-combat-difficulty>
                             <option value="apprentice">Aprendiz</option>
@@ -390,10 +409,28 @@ $isAdmin = !empty($hgCardsIsAdmin);
                         <div class="hg-combat-command-panel">
                             <div class="hg-combat-message" data-combat-message>Elige 5 cartas y empieza un entrenamiento.</div>
                             <div class="hg-combat-actions" data-combat-actions>
-                                <button type="button" data-combat-action="attack" disabled>Atacar</button>
-                                <button type="button" data-combat-action="defend" disabled>Defender</button>
-                                <button type="button" data-combat-action="switch" disabled>Cambiar</button>
-                                <button type="button" data-combat-action="flee" disabled>Huir</button>
+                                <div class="hg-combat-command-view" data-combat-command-view="root">
+                                    <button type="button" data-combat-command="actions" disabled>Acciones</button>
+                                    <button type="button" data-combat-command="inventory" disabled>Inventario</button>
+                                    <button type="button" data-combat-action="switch" disabled>Cambiar</button>
+                                    <button type="button" data-combat-action="flee" disabled>Huir</button>
+                                </div>
+                                <div class="hg-combat-command-view hg-combat-command-view--submenu" data-combat-command-view="actions" hidden>
+                                    <button type="button" disabled data-combat-extra-action-slot="1">Acción 1</button>
+                                    <button type="button" data-combat-action="attack" disabled><span aria-hidden="true">✊</span> Atacar</button>
+                                    <button type="button" data-combat-action="defend" disabled><span aria-hidden="true">🛡</span> Defender</button>
+                                    <button type="button" disabled data-combat-extra-action-slot="2">Acción 2</button>
+                                    <button type="button" disabled data-combat-extra-action-slot="3">Acción 3</button>
+                                    <button type="button" data-combat-command-back>&lt; Volver</button>
+                                </div>
+                                <div class="hg-combat-command-view hg-combat-command-view--submenu" data-combat-command-view="inventory" hidden>
+                                    <button type="button" disabled data-combat-inventory-slot="1">Item 1</button>
+                                    <button type="button" disabled data-combat-inventory-slot="2">Item 2</button>
+                                    <button type="button" disabled data-combat-inventory-slot="3">Item 3</button>
+                                    <button type="button" disabled data-combat-inventory-slot="4">Item 4</button>
+                                    <button type="button" disabled data-combat-inventory-slot="5">Item 5</button>
+                                    <button type="button" data-combat-command-back>&lt; Volver</button>
+                                </div>
                             </div>
                             <div class="hg-combat-bench" data-combat-bench hidden></div>
                         </div>
@@ -406,13 +443,13 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <section class="hg-mobile-panel" data-mobile-panel="info" aria-label="Explicación del juego">
             <div class="hg-doc-section">
                 <h3>Cómo funciona</h3>
-                <p>Abre sobres, consigue cartas del Archivo de Mnemógeno y conserva tu colección en este navegador. Usa Mnemones para reclamar más sobres, vender cartas repetidas, asignar copias a recordar o preparar combates de entrenamiento.</p>
+                <p>Abre sobres, consigue cartas del Archivo de Mnemógeno y conserva tu colección en este navegador. Usa Mnemones para reclamar sobres y Remorias para mejorar cartas.</p>
             </div>
 
             <div class="hg-doc-grid">
                 <article>
                     <h4>Rarezas</h4>
-                    <p>Común, Inusual, Raro, Épico, Legendario y Mítico. La rareza fija el color de la carta, sus rangos base y el valor que obtienes al desintegrarla.</p>
+                    <p>Común, Inusual, Raro, Épico, Legendario, Mítico y Estigm&aacute;tico. Estigm&aacute;tico queda reservado para fuentes especiales como el Jefe diario; no sale en sobres ni por evolución normal.</p>
                 </article>
 
                 <article>
@@ -427,7 +464,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
 
                 <article>
                     <h4>Tienda</h4>
-                    <p>Compra sobres con Mnemones. El sobre mnemónico siempre está disponible; los demás sobres pueden comprarse o aparecer en tu inventario si ya tienes unidades.</p>
+                    <p>Compra sobres con Mnemones. El sobre mnemónico no tiene límite; los demás sobres comprables tienen cupo diario y algunos sólo aparecen como recompensa.</p>
                 </article>
 
                 <article>
@@ -442,7 +479,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
 
                 <article>
                     <h4>Vender cartas</h4>
-                    <p>Puedes desintegrar copias concretas, duplicadas o cartas de una rareza determinada. El valor depende de la rareza: cuanto más excepcional sea la carta, más Mnemones devuelve.</p>
+                    <p>Puedes desintegrar copias concretas, duplicadas o cartas de una rareza determinada. El valor depende de la rareza y se recibe en Remorias.</p>
                 </article>
 
                 <article>

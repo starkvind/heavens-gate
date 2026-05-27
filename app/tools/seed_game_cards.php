@@ -1,23 +1,6 @@
 <?php
 
-if (PHP_SAPI !== 'cli') {
-    http_response_code(403);
-    echo "This tool is CLI-only.\n";
-    exit;
-}
-
-try {
-    require_once __DIR__ . '/../helpers/db_connection.php';
-} catch (Throwable $e) {
-    fwrite(STDERR, "Database connection unavailable: " . $e->getMessage() . "\n");
-    exit(1);
-}
 require_once __DIR__ . '/../modules/game_cards/game_cards_catalog.php';
-
-if (!isset($link) || !($link instanceof mysqli)) {
-    fwrite(STDERR, "Database connection unavailable.\n");
-    exit(1);
-}
 
 function hg_gc_seed_exec_schema(mysqli $link): void
 {
@@ -558,25 +541,39 @@ function hg_gc_seed_rows(mysqli $link): array
     }
 
     if (hg_gc_table_exists($link, 'dim_chapters')) {
-        $chronicleJoin = '';
         $chronicleWhere = '';
+        $hasChapterSeasonJoin = hg_gc_column_exists($link, 'dim_chapters', 'season_id')
+            && hg_gc_table_exists($link, 'dim_seasons');
+        $chapterSeasonJoin = $hasChapterSeasonJoin
+            ? "LEFT JOIN dim_seasons gc_seed_s ON gc_seed_s.id = dc.season_id"
+            : '';
+        $hasChapterSeasonSort = $hasChapterSeasonJoin
+            && hg_gc_column_exists($link, 'dim_seasons', 'sort_order');
+        $hasChapterSeasonNumber = $hasChapterSeasonJoin
+            && hg_gc_column_exists($link, 'dim_seasons', 'season_number');
+        $chapterOrderBy = $hasChapterSeasonSort
+            ? 'COALESCE(gc_seed_s.sort_order, 9999) ASC, dc.chapter_number ASC, dc.id ASC'
+            : ($hasChapterSeasonNumber
+                ? 'COALESCE(gc_seed_s.season_number, 9999) ASC, dc.chapter_number ASC, dc.id ASC'
+                : 'dc.chapter_number ASC, dc.id ASC');
+        $chapterImageSelect = hg_gc_column_exists($link, 'dim_chapters', 'image_url')
+            ? 'dc.image_url'
+            : "'' AS image_url";
         if (
             $excludedChroniclesSql !== ''
-            && hg_gc_column_exists($link, 'dim_chapters', 'season_id')
-            && hg_gc_table_exists($link, 'dim_seasons')
+            && $hasChapterSeasonJoin
             && hg_gc_column_exists($link, 'dim_seasons', 'chronicle_id')
         ) {
-            $chronicleJoin = "LEFT JOIN dim_seasons gc_seed_s ON gc_seed_s.id = dc.season_id";
             $chronicleWhere = " AND (gc_seed_s.chronicle_id IS NULL OR gc_seed_s.chronicle_id NOT IN ({$excludedChroniclesSql}))";
         }
 
         foreach (hg_gc_fetch_rows($link, "
-            SELECT dc.id, dc.name, dc.pretty_id, dc.synopsis, dc.chapter_number
+            SELECT dc.id, dc.name, dc.pretty_id, dc.synopsis, dc.chapter_number, {$chapterImageSelect}
             FROM dim_chapters dc
-            {$chronicleJoin}
+            {$chapterSeasonJoin}
             WHERE TRIM(COALESCE(dc.name, '')) <> ''
             {$chronicleWhere}
-            ORDER BY dc.id ASC
+            ORDER BY {$chapterOrderBy}
         ") as $row) {
             $chapterNumber = (int)($row['chapter_number'] ?? 0);
             $cards[] = [
@@ -586,7 +583,7 @@ function hg_gc_seed_rows(mysqli $link): array
                 'card_name' => (string)$row['name'],
                 'card_slug' => (string)($row['pretty_id'] ?? ''),
                 'card_text' => (string)($row['synopsis'] ?? ''),
-                'card_image_url' => hg_gc_fallback_image_url('episode'),
+                'card_image_url' => (string)($row['image_url'] ?? ''),
                 'card_rarity' => ($chapterNumber > 0 && $chapterNumber % 10 === 0) ? 'unusual' : 'common',
             ];
         }
@@ -594,6 +591,18 @@ function hg_gc_seed_rows(mysqli $link): array
 
     if (hg_gc_table_exists($link, 'dim_seasons')) {
         $chronicleWhere = '';
+        $seasonImageSelect = hg_gc_column_exists($link, 'dim_seasons', 'image_url')
+            ? 'image_url'
+            : "'' AS image_url";
+        $seasonOrderParts = [];
+        if (hg_gc_column_exists($link, 'dim_seasons', 'sort_order')) {
+            $seasonOrderParts[] = 'COALESCE(sort_order, 999999) ASC';
+        }
+        if (hg_gc_column_exists($link, 'dim_seasons', 'season_number')) {
+            $seasonOrderParts[] = 'season_number ASC';
+        }
+        $seasonOrderParts[] = 'id ASC';
+        $seasonOrderBy = implode(', ', $seasonOrderParts);
         if (
             $excludedChroniclesSql !== ''
             && hg_gc_column_exists($link, 'dim_seasons', 'chronicle_id')
@@ -602,11 +611,11 @@ function hg_gc_seed_rows(mysqli $link): array
         }
 
         foreach (hg_gc_fetch_rows($link, "
-            SELECT id, name, pretty_id, description, season_kind, finished
+            SELECT id, name, pretty_id, description, season_kind, finished, {$seasonImageSelect}
             FROM dim_seasons
             WHERE TRIM(COALESCE(name, '')) <> ''
             {$chronicleWhere}
-            ORDER BY id ASC
+            ORDER BY {$seasonOrderBy}
         ") as $row) {
             $kind = (string)($row['season_kind'] ?? '');
             $cards[] = [
@@ -616,7 +625,7 @@ function hg_gc_seed_rows(mysqli $link): array
                 'card_name' => (string)$row['name'],
                 'card_slug' => (string)($row['pretty_id'] ?? ''),
                 'card_text' => (string)($row['description'] ?? ''),
-                'card_image_url' => hg_gc_fallback_image_url('season'),
+                'card_image_url' => (string)($row['image_url'] ?? ''),
                 'card_rarity' => ($kind === 'temporada') ? 'rare' : 'unusual',
             ];
         }
@@ -873,8 +882,8 @@ function hg_gc_generic_seed_cards(): array
     ];
 }
 
-try {
-    $resetCatalog = in_array('--reset', $argv ?? [], true);
+function hg_gc_seed_run(mysqli $link, bool $resetCatalog = false): array
+{
     hg_gc_seed_exec_schema($link);
     $deleted = $resetCatalog ? hg_gc_seed_reset_catalog($link) : 0;
     $deactivatedExcluded = hg_gc_seed_deactivate_excluded_chronicles($link, hg_gc_seed_excluded_chronicle_ids($link));
@@ -897,14 +906,53 @@ try {
         $rs->free();
     }
 
-    echo "Schema ready.\n";
-    if ($resetCatalog) {
-        echo "Catalog reset: {$deleted} cards deleted.\n";
+    return [
+        'schema_ready' => true,
+        'reset' => $resetCatalog,
+        'deleted' => $deleted,
+        'excluded_deactivated' => $deactivatedExcluded,
+        'inserted' => $inserted,
+        'total' => $total,
+    ];
+}
+
+function hg_gc_seed_cli_main(array $argv): int
+{
+    try {
+        require __DIR__ . '/../helpers/db_connection.php';
+    } catch (Throwable $e) {
+        fwrite(STDERR, "Database connection unavailable: " . $e->getMessage() . "\n");
+        return 1;
     }
-    echo "Excluded chronicle cards deactivated: {$deactivatedExcluded}\n";
-    echo "New cards inserted: {$inserted}\n";
-    echo "Catalog total: {$total}\n";
-} catch (Throwable $e) {
-    fwrite(STDERR, "Seed failed: " . $e->getMessage() . "\n");
-    exit(1);
+
+    if (!isset($link) || !($link instanceof mysqli)) {
+        fwrite(STDERR, "Database connection unavailable.\n");
+        return 1;
+    }
+
+    try {
+        $stats = hg_gc_seed_run($link, in_array('--reset', $argv, true));
+    } catch (Throwable $e) {
+        fwrite(STDERR, "Seed failed: " . $e->getMessage() . "\n");
+        return 1;
+    }
+
+    echo "Schema ready.\n";
+    if (!empty($stats['reset'])) {
+        echo "Catalog reset: " . (int)$stats['deleted'] . " cards deleted.\n";
+    }
+    echo "Excluded chronicle cards deactivated: " . (int)$stats['excluded_deactivated'] . "\n";
+    echo "New cards inserted: " . (int)$stats['inserted'] . "\n";
+    echo "Catalog total: " . (int)$stats['total'] . "\n";
+    return 0;
+}
+
+if (PHP_SAPI === 'cli' && realpath((string)($_SERVER['SCRIPT_FILENAME'] ?? '')) === realpath(__FILE__)) {
+    exit(hg_gc_seed_cli_main($argv ?? []));
+}
+
+if (PHP_SAPI !== 'cli' && realpath((string)($_SERVER['SCRIPT_FILENAME'] ?? '')) === realpath(__FILE__)) {
+    http_response_code(403);
+    echo "This tool is not directly accessible.\n";
+    exit;
 }

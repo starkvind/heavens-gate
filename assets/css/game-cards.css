@@ -32,6 +32,7 @@
     --rarity-epic: #b56cff;
     --rarity-legendary: #f39a32;
     --rarity-mythic: #ff4f8f;
+    --rarity-stigmatic: #8a0303;
 }
 
 .hg-cards {
@@ -377,6 +378,8 @@
 }
 
 .hg-cards__controls {
+    flex-wrap: nowrap;
+    gap: 8px;
     padding: 18px 0;
     border-bottom: 1px solid var(--hg-line);
 }
@@ -455,8 +458,9 @@
 }
 
 .hg-counter {
-    min-width: 120px;
-    padding: 8px 12px;
+    box-sizing: border-box;
+    min-width: 104px;
+    padding: 7px 10px;
     background: rgba(255,255,255,0.055);
     border: 1px solid var(--hg-line);
     border-radius: 6px;
@@ -465,13 +469,15 @@
 .hg-counter span {
     display: block;
     color: var(--hg-muted);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
+    line-height: 1.05;
 }
 
 .hg-counter strong {
     display: block;
     color: #ffffff;
-    font-size: 1.15rem;
+    font-size: 1.08rem;
+    line-height: 1.15;
 }
 
 .hg-counter--currency {
@@ -529,10 +535,41 @@
     line-height: 1.35;
 }
 
+.hg-shop-free-reset {
+    display: grid;
+    gap: 5px;
+    color: #cfe1f6;
+    font-size: 0.74rem;
+}
+
+.hg-shop-free-reset__bar {
+    display: block;
+    height: 7px;
+    overflow: hidden;
+    background: rgba(4, 9, 22, 0.78);
+    border: 1px solid rgba(120,156,205,0.28);
+    border-radius: 999px;
+}
+
+.hg-shop-free-reset__bar span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #46d4ff, #ffc400);
+    border-radius: inherit;
+    transition: width 220ms ease;
+}
+
 .hg-shop-item:hover,
 .hg-shop-item:focus-visible {
     filter: brightness(1.08);
     border-color: #ffc400;
+}
+
+.hg-shop-item[data-shop-pack="magic"],
+.hg-shop-item[data-shop-pack="omens"],
+.hg-shop-item[data-shop-pack="gaian"] {
+    display: none;
 }
 
 .hg-shop-item:disabled,
@@ -721,6 +758,13 @@
     --rarity-body: rgba(55, 27, 82, 0.92);
 }
 
+.hg-card--stigmatic {
+    --rarity: var(--rarity-stigmatic);
+    --rarity-bg: linear-gradient(180deg, #4b0509, #150203);
+    --rarity-head: rgba(102, 6, 12, 0.96);
+    --rarity-body: rgba(54, 3, 7, 0.94);
+}
+
 .hg-card--common .hg-card__head h4 {
     color: #11151c;
 }
@@ -742,7 +786,7 @@
 
 .hg-card__head {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
     padding: 0 10px;
@@ -780,6 +824,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     text-transform: uppercase;
+}
+
+.hg-card__favorite {
+    color: #ffc400;
+    font-size: 0.9rem;
+    line-height: 1;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
 }
 
 .hg-card__image {
@@ -1072,6 +1123,7 @@
 .hg-collection-row--epic { --row-rarity: var(--rarity-epic); }
 .hg-collection-row--legendary { --row-rarity: var(--rarity-legendary); }
 .hg-collection-row--mythic { --row-rarity: var(--rarity-mythic); }
+.hg-collection-row--stigmatic { --row-rarity: var(--rarity-stigmatic); }
 
 .hg-collection-row--common td { background: linear-gradient(90deg, rgba(244,244,244,0.08), #151515 18%) !important; }
 .hg-collection-row--unusual td { background: linear-gradient(90deg, rgba(66,214,123,0.12), #151515 18%) !important; }
@@ -1079,6 +1131,7 @@
 .hg-collection-row--epic td { background: linear-gradient(90deg, rgba(255,79,143,0.15), #151515 18%) !important; }
 .hg-collection-row--legendary td { background: linear-gradient(90deg, rgba(243,154,50,0.15), #151515 18%) !important; }
 .hg-collection-row--mythic td { background: linear-gradient(90deg, rgba(181,108,255,0.16), #151515 18%) !important; }
+.hg-collection-row--stigmatic td { background: linear-gradient(90deg, rgba(138,3,3,0.22), #151515 18%) !important; }
 
 .hg-table-card-btn {
     display: inline-flex;
@@ -1165,6 +1218,7 @@
 .hg-rarity-label--epic { color: var(--rarity-epic); }
 .hg-rarity-label--legendary { color: var(--rarity-legendary); }
 .hg-rarity-label--mythic { color: var(--rarity-mythic); }
+.hg-rarity-label--stigmatic { color: var(--rarity-stigmatic); }
 
 .hg-collection-browser,
 .hg-album {
@@ -1352,6 +1406,34 @@
     margin-bottom: 12px;
 }
 
+.hg-player-profile {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 0.72fr);
+    gap: 12px;
+    align-items: end;
+    margin: 12px 0;
+    padding: 12px;
+    background: rgba(8, 14, 28, 0.74);
+    border: 1px solid rgba(120, 156, 205, 0.26);
+    border-radius: 8px;
+}
+
+.hg-player-profile h3,
+.hg-player-profile p {
+    margin: 0;
+}
+
+.hg-player-profile h3 {
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.hg-player-profile p {
+    margin-top: 4px;
+    color: #9fb1ca;
+    font-size: 0.78rem;
+}
+
 .hg-collection-toolbar {
     display: flex;
     flex-direction: column;
@@ -1428,6 +1510,10 @@
     color: #a8b3bd;
     font-size: 0.78rem;
     font-weight: 900;
+}
+
+.hg-collection-search {
+    min-width: min(280px, 100%);
 }
 
 .hg-page-size select,
@@ -1539,6 +1625,7 @@
 .hg-album-slot--epic { --slot-rarity: var(--rarity-epic); }
 .hg-album-slot--legendary { --slot-rarity: var(--rarity-legendary); }
 .hg-album-slot--mythic { --slot-rarity: var(--rarity-mythic); }
+.hg-album-slot--stigmatic { --slot-rarity: var(--rarity-stigmatic); }
 
 .hg-album-slot:hover,
 .hg-album-slot:focus-visible {
@@ -1708,13 +1795,15 @@
 
 .hg-combat-loadout__grid {
     display: grid;
-    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
     gap: 14px;
     align-items: start;
+    min-width: 0;
 }
 
 .hg-combat-team,
 .hg-combat-picker {
+    min-width: 0;
     padding: 12px;
     background: rgba(8, 14, 28, 0.74);
     border: 1px solid rgba(120, 156, 205, 0.26);
@@ -1909,10 +1998,128 @@
     display: none;
 }
 
+.hg-cards.is-daily-boss-mode [data-combat-difficulty-wrap] {
+    display: none;
+}
+
+.hg-cards.is-daily-boss-completed .hg-combat-team-picker,
+.hg-cards.is-daily-boss-completed .hg-combat-setup > [data-combat-start],
+.hg-cards.is-daily-boss-completed .hg-combat-stage,
+.hg-cards.is-daily-boss-completed .hg-combat-log {
+    display: none;
+}
+
 .hg-combat-setup > [data-combat-start] {
     grid-column: 2;
     justify-self: center;
     min-width: 180px;
+}
+
+.hg-combat-setup .hg-daily-boss-summary[hidden] {
+    display: none;
+}
+
+.hg-cards.is-combat-active .hg-daily-boss-summary {
+    display: none;
+}
+
+.hg-daily-boss-summary {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 14px;
+    color: #dce8f8;
+    background: rgba(74, 10, 18, 0.62);
+    border: 1px solid rgba(255, 99, 99, 0.38);
+    border-radius: 8px;
+}
+
+.hg-daily-boss-summary.is-completed,
+.hg-daily-boss-summary.is-unavailable {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 16px 18px;
+}
+
+.hg-daily-boss-summary.is-completed > strong,
+.hg-daily-boss-summary.is-unavailable > strong {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+}
+
+.hg-daily-boss-summary.is-completed > span,
+.hg-daily-boss-summary.is-unavailable > span {
+    justify-self: start;
+}
+
+.hg-daily-boss-summary__media img {
+    display: block;
+    width: 86px;
+    height: 86px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.16);
+}
+
+.hg-daily-boss-summary__body {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.hg-daily-boss-summary__body strong,
+.hg-daily-boss-summary > strong {
+    color: #ffffff;
+    font-size: 1.05rem;
+    line-height: 1.2;
+}
+
+.hg-daily-boss-summary__body span,
+.hg-daily-boss-summary__body small,
+.hg-daily-boss-summary > span {
+    color: #f0b9b9;
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.hg-daily-boss-summary__hp {
+    display: grid;
+    gap: 4px;
+}
+
+.hg-daily-boss-summary__hp i {
+    display: block;
+    height: 8px;
+    overflow: hidden;
+    background: rgba(5, 8, 14, 0.86);
+    border-radius: 999px;
+}
+
+.hg-daily-boss-summary__hp b {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #ff4d4d, #ffc400);
+}
+
+.hg-daily-boss-summary__hp em {
+    color: #ffffff;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 0.78rem;
+}
+
+.hg-daily-boss-summary__reset {
+    min-height: 36px;
+    padding: 8px 12px;
+    color: #111111;
+    background: #ffc400;
+    border: 1px solid #ffe071;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 900;
 }
 
 .hg-combat-mode-tabs {
@@ -1922,14 +2129,32 @@
     gap: 8px;
 }
 
+.hg-combat-loadout-controls {
+    margin-bottom: 14px;
+    padding: 12px;
+    background: rgba(8, 14, 28, 0.74);
+    border: 1px solid rgba(120, 156, 205, 0.26);
+    border-radius: 8px;
+}
+
 .hg-combat-team-picker {
     display: grid;
     gap: 8px;
     min-width: 0;
 }
 
+.hg-combat-team-settings {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    gap: 10px;
+    min-width: 0;
+}
+
 .hg-combat-team-picker .hg-collection-select,
-.hg-combat-team-picker select {
+.hg-combat-team-picker select,
+.hg-combat-team-settings .hg-collection-select,
+.hg-combat-team-settings select,
+.hg-combat-team-settings input {
     width: 100%;
 }
 
@@ -1987,7 +2212,7 @@
 
 .hg-combat-profile {
     display: grid;
-    grid-template-columns: minmax(220px, 0.7fr) minmax(180px, 0.65fr) minmax(260px, 1fr);
+    grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.7fr);
     gap: 12px;
     align-items: end;
     margin-bottom: 14px;
@@ -2053,6 +2278,15 @@
 
 .hg-combat-picker__head strong {
     color: #ffffff;
+}
+
+.hg-combat-picker__head .hg-filter-check,
+.hg-combat-picker__head .hg-combat-sort {
+    flex: 0 1 auto;
+}
+
+.hg-combat-sort {
+    min-width: 150px;
 }
 
 .hg-combat-picker__filters {
@@ -2286,6 +2520,14 @@
     border-top: 1px solid rgba(255,255,255,0.18);
 }
 
+.hg-cards.is-combat-subcommand-open .hg-combat-command-panel {
+    grid-template-columns: 1fr;
+}
+
+.hg-cards.is-combat-subcommand-open .hg-combat-message {
+    display: none;
+}
+
 .hg-combat-message {
     display: grid;
     align-items: center;
@@ -2299,13 +2541,32 @@
 }
 
 .hg-combat-actions {
+    min-width: 0;
+}
+
+.hg-combat-command-view {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: 10px;
+    min-width: 0;
+}
+
+.hg-combat-command-view[hidden] {
+    display: none;
+}
+
+.hg-combat-command-view--submenu {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .hg-combat-actions button {
-    min-height: 0;
+    min-height: 40px;
+    padding: 8px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    line-height: 1.15;
 }
 
 .hg-combat-actions button:disabled {
@@ -2598,7 +2859,7 @@
     top: 0;
     z-index: 20;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     gap: 10px;
     align-items: center;
     margin: -12px -12px 12px;
@@ -2888,7 +3149,8 @@
 .hg-cards--mobile .hg-view-toggle button,
 .hg-cards--mobile .hg-pagination__button,
 .hg-cards--mobile .hg-page-size select,
-.hg-cards--mobile .hg-collection-select select {
+.hg-cards--mobile .hg-collection-select select,
+.hg-cards--mobile .hg-collection-select input {
     min-height: 44px;
 }
 
@@ -2902,6 +3164,14 @@
 
 .hg-cards--mobile .hg-collection-select {
     min-width: 0;
+}
+
+.hg-cards--mobile .hg-collection-search {
+    grid-column: 1 / -1;
+}
+
+.hg-cards--mobile .hg-player-profile {
+    grid-template-columns: 1fr;
 }
 
 .hg-cards--mobile .hg-combat-loadout,
@@ -2922,6 +3192,10 @@
     grid-template-columns: 1fr;
 }
 
+.hg-cards--mobile .hg-combat-loadout-controls {
+    padding: 10px;
+}
+
 .hg-cards--mobile .hg-combat-setup > [data-combat-start] {
     grid-column: 1;
     width: min(100%, 220px);
@@ -2938,8 +3212,32 @@
     font-size: 0.68rem;
 }
 
+.hg-cards--mobile .hg-daily-boss-summary {
+    grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.hg-cards--mobile .hg-daily-boss-summary.is-completed,
+.hg-cards--mobile .hg-daily-boss-summary.is-unavailable {
+    grid-template-columns: 1fr;
+    padding: 14px;
+}
+
+.hg-cards--mobile .hg-daily-boss-summary__media img {
+    width: 64px;
+    height: 64px;
+}
+
+.hg-cards--mobile .hg-daily-boss-summary__reset {
+    grid-column: 1 / -1;
+}
+
 .hg-cards--mobile .hg-combat-team-preview {
     grid-template-columns: 1fr;
+}
+
+.hg-cards--mobile .hg-combat-team-settings {
+    grid-template-columns: 1fr;
+    min-width: 0;
 }
 
 .hg-cards--mobile .hg-combat-profile {
@@ -2964,6 +3262,11 @@
 
 .hg-cards--mobile .hg-combat-picker__filters {
     grid-template-columns: 1fr;
+}
+
+.hg-cards--mobile .hg-combat-sort {
+    flex: 1 1 100%;
+    min-width: 0;
 }
 
 .hg-cards--mobile .hg-combat-screen {
@@ -3078,6 +3381,10 @@
     min-height: max-content;
 }
 
+.hg-cards--mobile.is-combat-subcommand-open .hg-combat-command-panel {
+    grid-template-columns: 1fr;
+}
+
 .hg-cards--mobile .hg-combat-message {
     padding: 8px;
     font-size: 0.76rem;
@@ -3088,9 +3395,13 @@
     align-content: stretch;
 }
 
+.hg-cards--mobile .hg-combat-command-view {
+    gap: 7px;
+}
+
 .hg-cards--mobile .hg-combat-actions button {
     min-height: 38px;
-    padding: 6px 8px;
+    padding: 7px 8px;
     font-size: 0.76rem;
 }
 
@@ -3586,6 +3897,7 @@
 .hg-card-variants__actions {
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
     margin-top: 10px;
 }
 
@@ -3600,7 +3912,7 @@
 
 .hg-card-variants__item {
     display: grid;
-    grid-template-columns: minmax(170px, 1fr) repeat(3, 42px);
+    grid-template-columns: minmax(170px, 1fr) repeat(4, 42px);
     gap: 10px;
     align-items: center;
     min-height: 38px;
@@ -3621,6 +3933,10 @@
 .hg-card-variants__item.is-working {
     border-color: rgba(181, 240, 127, 0.55);
     background: rgba(181, 240, 127, 0.08);
+}
+
+.hg-card-variants__item.is-favorite {
+    border-color: rgba(255, 196, 0, 0.6);
 }
 
 .hg-card-variants__select {
@@ -3677,9 +3993,37 @@
     filter: brightness(1.08);
 }
 
+.hg-recycle-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    filter: grayscale(0.5);
+}
+
 .hg-recycle-btn--small {
     min-width: 48px;
     padding: 6px 8px;
+}
+
+.hg-favorite-btn {
+    min-height: 34px;
+    color: #ffc400;
+    background: rgba(255, 196, 0, 0.1);
+    border: 1px solid rgba(255, 196, 0, 0.38);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 1000;
+}
+
+.hg-favorite-btn.is-active {
+    color: #081014;
+    background: #ffc400;
+    border-color: #ffe071;
+}
+
+.hg-favorite-btn:hover,
+.hg-favorite-btn:focus-visible {
+    filter: brightness(1.08);
 }
 
 .hg-icon-action {
@@ -3947,8 +4291,12 @@
 
 .hg-upgrade-filters {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
+}
+
+.hg-upgrade-filters--quality {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .hg-upgrade-filters select {
@@ -3959,6 +4307,33 @@
     border: 1px solid rgba(120,156,205,0.35);
     border-radius: 8px;
     padding: 7px 9px;
+}
+
+.hg-upgrade-filter-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 7px 9px;
+    color: #dce8f5;
+    background: #050608;
+    border: 1px solid rgba(120,156,205,0.35);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.hg-upgrade-filter-check input {
+    width: 16px;
+    height: 16px;
+    accent-color: #ffc400;
+}
+
+.hg-upgrade-filter-check span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .hg-upgrade-list {

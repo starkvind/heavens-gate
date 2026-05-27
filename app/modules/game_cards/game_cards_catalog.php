@@ -36,6 +36,7 @@ function hg_gc_rarity_ranges(): array
         'epic' => [70, 105],
         'legendary' => [90, 125],
         'mythic' => [115, 155],
+        'stigmatic' => [180, 260],
     ];
 }
 
@@ -265,7 +266,8 @@ function hg_gc_schema_sql(): array
                 'rare',
                 'epic',
                 'legendary',
-                'mythic'
+                'mythic',
+                'stigmatic'
             ) NOT NULL DEFAULT 'common',
             hp_min SMALLINT UNSIGNED NOT NULL DEFAULT 10,
             hp_max SMALLINT UNSIGNED NOT NULL DEFAULT 40,
@@ -307,7 +309,8 @@ function hg_gc_schema_sql(): array
                 'rare',
                 'epic',
                 'legendary',
-                'mythic'
+                'mythic',
+                'stigmatic'
             ) NOT NULL DEFAULT 'common'",
         "ALTER TABLE fact_game_card_collection
             ADD COLUMN IF NOT EXISTS hp_min SMALLINT UNSIGNED NOT NULL DEFAULT 10 AFTER card_rarity",

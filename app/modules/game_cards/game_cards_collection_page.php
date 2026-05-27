@@ -25,6 +25,10 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <span>Mnemones</span>
             <strong data-mnemones-counter>0</strong>
         </div>
+        <div class="hg-counter hg-counter--currency" aria-live="polite">
+            <span>Remorias</span>
+            <strong data-remorias-counter>0</strong>
+        </div>
         <div class="hg-counter" aria-live="polite">
             <span>Colección</span>
             <strong id="hgUniqueCounter">0 / 0</strong>
@@ -53,16 +57,21 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <label class="hg-page-size">
                     <span>Por página</span>
                     <select data-collection-page-size>
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
+                        <option value="12">12</option>
+                        <option value="24" selected>24</option>
+                        <option value="48">48</option>
+                        <option value="96">96</option>
                     </select>
                 </label>
             </div>
             <div class="hg-collection-filters" aria-label="Filtros de colección">
                 <label class="hg-filter-check">
                     <input type="checkbox" data-collection-owned-filter>
-                    <span>Sólo obtenidas</span>
+                    <span>S&oacute;lo obtenidas</span>
+                </label>
+                <label class="hg-collection-select hg-collection-search">
+                    <span>Nombre</span>
+                    <input type="search" data-collection-name-filter placeholder="Buscar carta...">
                 </label>
                 <label class="hg-collection-select">
                     <span>Rareza</span>
@@ -74,6 +83,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                         <option value="epic">&Eacute;pico</option>
                         <option value="legendary">Legendario</option>
                         <option value="mythic">M&iacute;tico</option>
+                        <option value="stigmatic">Estigm&aacute;tico</option>
                     </select>
                 </label>
                 <label class="hg-collection-select">
@@ -141,10 +151,21 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <button type="button" class="hg-danger-btn" id="hgResetCollection">Borrar colección local</button>
         </div>
 
+        <section class="hg-player-profile" aria-label="Perfil de combate">
+            <div>
+                <h3>Perfil de combate</h3>
+                <p>Guarda el nombre que aparece en los combates y en los registros.</p>
+            </div>
+            <label class="hg-collection-select">
+                <span>Nombre del jugador</span>
+                <input type="text" maxlength="32" placeholder="Jugador" data-combat-profile-name>
+            </label>
+        </section>
+
         <section class="hg-bulk-sell" aria-label="Venta de cartas por rareza">
             <div>
                 <h3>Vender cartas en lote</h3>
-                <p>Elige una rareza y convierte sus copias en Mnemones.</p>
+                <p>Elige una rareza y convierte sus copias en Remorias.</p>
             </div>
             <label for="hgBulkSellRarity">Rareza</label>
             <select id="hgBulkSellRarity">
@@ -154,6 +175,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <option value="epic">&Eacute;pico</option>
                 <option value="legendary">Legendario</option>
                 <option value="mythic">M&iacute;tico</option>
+                <option value="stigmatic">Estigm&aacute;tico</option>
             </select>
             <label class="hg-bulk-sell__keep">
                 <input type="checkbox" id="hgBulkSellKeepBest" checked>

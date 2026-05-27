@@ -107,9 +107,9 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <span>Mnemones</span>
             <strong data-mnemones-counter>0</strong>
         </div>
-        <div class="hg-counter" aria-live="polite">
-            <span>Gratis hoy</span>
-            <strong id="hgDailyPacksCounter"><?php echo $isAdmin ? 'Admin' : '0 / 3'; ?></strong>
+        <div class="hg-counter hg-counter--currency" aria-live="polite">
+            <span>Remorias</span>
+            <strong data-remorias-counter>0</strong>
         </div>
         <div class="hg-counter" aria-live="polite">
             <span>Colección</span>
@@ -124,7 +124,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
     <section id="shop" class="hg-shop-section" aria-label="Tienda de sobres">
         <div class="hg-section-head">
             <h3>Intercambio de mnemógeno</h3>
-            <p>Usa Mnemones para reclamar sobres adicionales.</p>
+            <p>Usa Mnemones para reclamar sobres y Remorias para objetos rituales.</p>
         </div>
         <div class="hg-shop-grid">
             <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1">
@@ -139,7 +139,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <span>Sobre de ecos</span>
                 <strong>90 Mnemones</strong>
             </article>
-            <article class="hg-shop-item" data-shop-pack="magic">
+            <article hidden class="hg-shop-item" data-shop-pack="magic">
                 <span>Sobre mágico</span>
                 <strong>220 Mnemones</strong>
             </article>
@@ -167,25 +167,25 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <span>Sobre de reliquias</span>
                 <strong>160 Mnemones</strong>
             </article>
-            <article class="hg-shop-item" data-shop-pack="omens">
+            <article hidden class="hg-shop-item" data-shop-pack="omens">
                 <span>Sobre de presagios</span>
                 <strong>650 Mnemones</strong>
             </article>
-            <article class="hg-shop-item" data-shop-pack="gaian">
+            <article hidden class="hg-shop-item" data-shop-pack="gaian">
                 <span>Sobre gaiano</span>
                 <strong>2000 Mnemones</strong>
             </article>
             <article class="hg-shop-item" data-shop-material="icarus_vial">
                 <span>Vial de Ícaro</span>
-                <strong>10000 Mnemones</strong>
+                <strong>10000 Remorias</strong>
             </article>
             <article class="hg-shop-item" data-shop-material="stigma_orb">
                 <span>Orbe de Estigma</span>
-                <strong>50000 Mnemones</strong>
+                <strong>50000 Remorias</strong>
             </article>
             <article class="hg-shop-item" data-shop-material="babylon_shred">
                 <span>Retal de Babilonia</span>
-                <strong>125000 Mnemones</strong>
+                <strong>125000 Remorias</strong>
             </article>
         </div>
     </section>

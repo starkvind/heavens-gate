@@ -28,10 +28,11 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <div class="hg-combat-setup">
                 <div class="hg-combat-mode-tabs" aria-label="Tipo de combate">
                     <button type="button" class="is-active" data-combat-mode="training">Entrenamiento</button>
-                    <button type="button" data-combat-mode="daily-boss" disabled>Jefe diario</button>
+                    <button type="button" data-combat-mode="daily-boss">Jefe diario</button>
                     <button type="button" data-combat-mode="dungeon" disabled>Mazmorra</button>
                 </div>
-                <label class="hg-collection-select">
+                <div class="hg-daily-boss-summary" data-daily-boss-summary hidden></div>
+                <label class="hg-collection-select" data-combat-difficulty-wrap>
                     <span>Rival</span>
                     <select data-combat-difficulty>
                         <option value="apprentice">Aprendiz</option>
@@ -84,10 +85,28 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <div class="hg-combat-command-panel">
                     <div class="hg-combat-message" data-combat-message>Elige 5 cartas y empieza un entrenamiento.</div>
                     <div class="hg-combat-actions" data-combat-actions>
-                        <button type="button" data-combat-action="attack" disabled>Atacar</button>
-                        <button type="button" data-combat-action="defend" disabled>Defender</button>
-                        <button type="button" data-combat-action="switch" disabled>Cambiar</button>
-                        <button type="button" data-combat-action="flee" disabled>Huir</button>
+                        <div class="hg-combat-command-view" data-combat-command-view="root">
+                            <button type="button" data-combat-command="actions" disabled>Acciones</button>
+                            <button type="button" data-combat-command="inventory" disabled>Inventario</button>
+                            <button type="button" data-combat-action="switch" disabled>Cambiar</button>
+                            <button type="button" data-combat-action="flee" disabled>Huir</button>
+                        </div>
+                        <div class="hg-combat-command-view hg-combat-command-view--submenu" data-combat-command-view="actions" hidden>
+                            <button type="button" disabled data-combat-extra-action-slot="1">Acción 1</button>
+                            <button type="button" data-combat-action="attack" disabled><span aria-hidden="true">✊</span> Atacar</button>
+                            <button type="button" data-combat-action="defend" disabled><span aria-hidden="true">🛡</span> Defender</button>
+                            <button type="button" disabled data-combat-extra-action-slot="2">Acción 2</button>
+                            <button type="button" disabled data-combat-extra-action-slot="3">Acción 3</button>
+                            <button type="button" data-combat-command-back>&lt; Volver</button>
+                        </div>
+                        <div class="hg-combat-command-view hg-combat-command-view--submenu" data-combat-command-view="inventory" hidden>
+                            <button type="button" disabled data-combat-inventory-slot="1">Item 1</button>
+                            <button type="button" disabled data-combat-inventory-slot="2">Item 2</button>
+                            <button type="button" disabled data-combat-inventory-slot="3">Item 3</button>
+                            <button type="button" disabled data-combat-inventory-slot="4">Item 4</button>
+                            <button type="button" disabled data-combat-inventory-slot="5">Item 5</button>
+                            <button type="button" data-combat-command-back>&lt; Volver</button>
+                        </div>
                     </div>
                     <div class="hg-combat-bench" data-combat-bench hidden></div>
                 </div>
@@ -98,31 +117,25 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 
     <section class="hg-combat-loadout hg-combat-screen-panel" data-combat-screen="loadout" hidden aria-label="Equipos de combate">
-        <div class="hg-section-head hg-section-head--split">
+        <div class="hg-section-head">
             <div>
                 <h3>Preparar equipo</h3>
                 <p>Guarda hasta 5 equipos. Cada equipo usa 5 copias concretas de tu colección.</p>
             </div>
-            <label class="hg-collection-select">
-                <span>Equipo activo</span>
-                <select data-combat-team-select-mirror></select>
-            </label>
         </div>
 
-        <section class="hg-combat-profile" aria-label="Perfil de combate">
-            <div>
-                <h3>Perfil de combate</h3>
-                <p>Guarda tu nombre y una carta favorita para futuros registros de combate.</p>
+        <div class="hg-combat-loadout-controls">
+            <div class="hg-combat-team-settings">
+                <label class="hg-collection-select">
+                    <span>Equipo activo</span>
+                    <select data-combat-team-select-mirror></select>
+                </label>
+                <label class="hg-collection-select">
+                    <span>Nombre del equipo</span>
+                    <input type="text" maxlength="40" placeholder="Equipo 1" data-combat-team-name>
+                </label>
             </div>
-            <label class="hg-collection-select">
-                <span>Nombre</span>
-                <input type="text" maxlength="32" placeholder="Jugador" data-combat-profile-name>
-            </label>
-            <label class="hg-collection-select">
-                <span>Carta favorita</span>
-                <select data-combat-profile-favorite></select>
-            </label>
-        </section>
+        </div>
 
         <div class="hg-combat-loadout__grid">
             <div class="hg-combat-team">
@@ -141,6 +154,16 @@ $isAdmin = !empty($hgCardsIsAdmin);
                         <input type="checkbox" data-combat-only-ready checked>
                         <span>Sólo no elegidas</span>
                     </label>
+                    <label class="hg-collection-select">
+                        <span>Orden</span>
+                        <select data-combat-sort>
+                            <option value="quality">Calidad %</option>
+                            <option value="total">Total</option>
+                            <option value="rarity">Rareza</option>
+                            <option value="recent">Recientes</option>
+                            <option value="name">Nombre</option>
+                        </select>
+                    </label>
                 </div>
                 <div class="hg-combat-picker__filters" aria-label="Filtros de cartas para equipo">
                     <label class="hg-collection-select">
@@ -153,6 +176,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
                             <option value="epic">Épico</option>
                             <option value="legendary">Legendario</option>
                             <option value="mythic">Mítico</option>
+                            <option value="stigmatic">Estigm&aacute;tico</option>
                         </select>
                     </label>
                     <label class="hg-collection-select">

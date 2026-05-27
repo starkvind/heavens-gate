@@ -6,4 +6,6 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-require __DIR__ . '/../app/tools/seed_game_cards.php';
+require_once __DIR__ . '/../app/tools/seed_game_cards.php';
+
+exit(hg_gc_seed_cli_main($argv ?? []));

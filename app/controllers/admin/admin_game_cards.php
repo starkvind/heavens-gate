@@ -25,6 +25,7 @@ if (!function_exists('hg_agc_rarity_labels')) {
             'epic' => 'Epico',
             'legendary' => 'Legendario',
             'mythic' => 'Mitico',
+            'stigmatic' => 'Estigmatico',
         ];
     }
 }
@@ -308,7 +309,7 @@ $rows = hg_agc_fetch_all(
             is_active, updated_at
      FROM fact_game_card_collection
      WHERE {$whereSql}
-     ORDER BY FIELD(card_rarity, 'mythic', 'legendary', 'epic', 'rare', 'unusual', 'common'),
+     ORDER BY FIELD(card_rarity, 'stigmatic', 'mythic', 'legendary', 'epic', 'rare', 'unusual', 'common'),
               card_name ASC,
               card_id ASC
      LIMIT ? OFFSET ?",
@@ -339,7 +340,10 @@ unset($queryBase['page']);
 $baseUrl = '/talim?' . http_build_query(array_merge($queryBase, ['s' => 'admin_game_cards']));
 $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
 
-admin_panel_open('Cartas del gacha', "<a class='btn' href='/games/card-game' target='_blank' rel='noopener'>Ver gacha</a>");
+admin_panel_open(
+    'Cartas del gacha',
+    "<span class='adm-flex-right-8'><a class='btn' href='/admin/game-cards/seed'>Ejecutar seed</a><a class='btn' href='/games/card-game' target='_blank' rel='noopener'>Ver gacha</a></span>"
+);
 ?>
 <style>
 .agc-wrap { color: #e8eefc; }
@@ -364,6 +368,7 @@ admin_panel_open('Cartas del gacha', "<a class='btn' href='/games/card-game' tar
 .agc-pill.epic { color: #f5e7ff; background: #6e3fb1; }
 .agc-pill.legendary { color: #fff0d8; background: #9d5a20; }
 .agc-pill.mythic { color: #ffe6ff; background: #8236b4; }
+.agc-pill.stigmatic { color: #ffe8e8; background: #8a0303; }
 .agc-status-on { color: #88f0a4; font-weight: 800; }
 .agc-status-off { color: #ff8a8a; font-weight: 800; }
 .agc-pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin: 14px 0 0; }
