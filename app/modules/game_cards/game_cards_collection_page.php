@@ -54,6 +54,48 @@ $isAdmin = !empty($hgCardsIsAdmin);
                     <button type="button" class="is-active" data-collection-mode="album">Álbum</button>
                     <button type="button" data-collection-mode="table">Tabla</button>
                 </div>
+                <details class="hg-collection-advanced">
+                    <summary>Filtros avanzados</summary>
+                    <div class="hg-collection-filters" aria-label="Filtros de colección">
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-owned-filter>
+                            <span>Sólo obtenidas</span>
+                        </label>
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-has-moves-filter>
+                            <span>Con habilidades</span>
+                        </label>
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-in-team-filter>
+                            <span>En equipo</span>
+                        </label>
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-working-filter>
+                            <span>Rememorando</span>
+                        </label>
+                        <label class="hg-collection-select hg-collection-search">
+                            <span>Nombre</span>
+                            <input type="search" data-collection-name-filter placeholder="Buscar carta...">
+                        </label>
+                        <label class="hg-collection-select">
+                            <span>Rareza</span>
+                            <select data-collection-rarity-filter>
+                                <option value="all">Todas</option>
+                                <option value="common">Común</option>
+                                <option value="unusual">Inusual</option>
+                                <option value="rare">Raro</option>
+                                <option value="epic">Épico</option>
+                                <option value="legendary">Legendario</option>
+                                <option value="mythic">Mítico</option>
+                                <option value="stigmatic">Estigmático</option>
+                            </select>
+                        </label>
+                        <label class="hg-collection-select">
+                            <span>Colección</span>
+                            <select data-collection-type-filter></select>
+                        </label>
+                    </div>
+                </details>
                 <label class="hg-page-size">
                     <span>Por página</span>
                     <select data-collection-page-size>
@@ -62,33 +104,6 @@ $isAdmin = !empty($hgCardsIsAdmin);
                         <option value="48">48</option>
                         <option value="96">96</option>
                     </select>
-                </label>
-            </div>
-            <div class="hg-collection-filters" aria-label="Filtros de colección">
-                <label class="hg-filter-check">
-                    <input type="checkbox" data-collection-owned-filter>
-                    <span>S&oacute;lo obtenidas</span>
-                </label>
-                <label class="hg-collection-select hg-collection-search">
-                    <span>Nombre</span>
-                    <input type="search" data-collection-name-filter placeholder="Buscar carta...">
-                </label>
-                <label class="hg-collection-select">
-                    <span>Rareza</span>
-                    <select data-collection-rarity-filter>
-                        <option value="all">Todas</option>
-                        <option value="common">Com&uacute;n</option>
-                        <option value="unusual">Inusual</option>
-                        <option value="rare">Raro</option>
-                        <option value="epic">&Eacute;pico</option>
-                        <option value="legendary">Legendario</option>
-                        <option value="mythic">M&iacute;tico</option>
-                        <option value="stigmatic">Estigm&aacute;tico</option>
-                    </select>
-                </label>
-                <label class="hg-collection-select">
-                    <span>Colección</span>
-                    <select data-collection-type-filter></select>
                 </label>
             </div>
         </div>
@@ -169,13 +184,13 @@ $isAdmin = !empty($hgCardsIsAdmin);
             </div>
             <label for="hgBulkSellRarity">Rareza</label>
             <select id="hgBulkSellRarity">
-                <option value="common">Com&uacute;n</option>
+                <option value="common">Común</option>
                 <option value="unusual">Inusual</option>
                 <option value="rare">Raro</option>
-                <option value="epic">&Eacute;pico</option>
+                <option value="epic">Épico</option>
                 <option value="legendary">Legendario</option>
-                <option value="mythic">M&iacute;tico</option>
-                <option value="stigmatic">Estigm&aacute;tico</option>
+                <option value="mythic">Mítico</option>
+                <option value="stigmatic">Estigmático</option>
             </select>
             <label class="hg-bulk-sell__keep">
                 <input type="checkbox" id="hgBulkSellKeepBest" checked>
@@ -187,4 +202,4 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 </div>
 
-<script src="/assets/js/game-cards.js" defer></script>
+<script src="/assets/js/game-cards.js?v=20260529-evo-fix-1" defer></script>

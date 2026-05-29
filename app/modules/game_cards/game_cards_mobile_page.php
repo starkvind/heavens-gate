@@ -1,5 +1,6 @@
 <?php
 $isAdmin = !empty($hgCardsIsAdmin);
+require_once __DIR__ . '/game_cards_info_content.php';
 ?>
 
 <div class="hg-cards hg-cards--mobile" data-view="gacha" data-mobile="1" data-catalog-url="/api/game_cards.php" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>">
@@ -123,7 +124,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <section class="hg-mobile-panel" data-mobile-panel="shop" aria-label="Tienda de sobres">
             <div class="hg-section-head">
                 <h3>Intercambio de mnemógeno</h3>
-                <p>Usa Mnemones para reclamar sobres y Remorias para objetos rituales.</p>
+                <p>Usa Mnemones para reclamar sobres, comprar objetos rituales y cambiar por Remorias.</p>
             </div>
             <div class="hg-shop-grid hg-shop-grid--mobile">
                 <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1"><span>Mnemónico gratis</span><strong>Gratis - quedan 3</strong></article>
@@ -138,9 +139,13 @@ $isAdmin = !empty($hgCardsIsAdmin);
                 <article class="hg-shop-item" data-shop-pack="relics"><span>Sobre de reliquias</span><strong>160 Mnemones</strong></article>
                 <article hidden class="hg-shop-item" data-shop-pack="omens"><span>Sobre de presagios</span><strong>650 Mnemones</strong></article>
                 <article hidden class="hg-shop-item" data-shop-pack="gaian"><span>Sobre gaiano</span><strong>2000 Mnemones</strong></article>
-                <article class="hg-shop-item" data-shop-material="icarus_vial"><span>Vial de Ícaro</span><strong>10000 Remorias</strong></article>
-                <article class="hg-shop-item" data-shop-material="stigma_orb"><span>Orbe de Estigma</span><strong>50000 Remorias</strong></article>
-                <article class="hg-shop-item" data-shop-material="babylon_shred"><span>Retal de Babilonia</span><strong>125000 Remorias</strong></article>
+                <article class="hg-shop-item" data-shop-material="icarus_vial"><span>Vial de Ícaro</span><strong>10000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="stigma_orb"><span>Orbe de Estigma</span><strong>50000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="babylon_shred"><span>Retal de Babilonia</span><strong>125000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-material="mnemo_glyph"><span>Glifo nemonico</span><strong>500 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-exchange-remorias="10"><span>Cambio por 10 Remorias</span><strong>1000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-exchange-remorias="100"><span>Cambio por 100 Remorias</span><strong>10000 Mnemones</strong></article>
+                <article class="hg-shop-item" data-shop-exchange-remorias="1000"><span>Cambio por 1000 Remorias</span><strong>100000 Mnemones</strong></article>
             </div>
         </section>
 
@@ -170,6 +175,18 @@ $isAdmin = !empty($hgCardsIsAdmin);
                         <label class="hg-filter-check">
                             <input type="checkbox" data-collection-owned-filter>
                             <span>S&oacute;lo obtenidas</span>
+                        </label>
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-has-moves-filter>
+                            <span>Con habilidades</span>
+                        </label>
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-in-team-filter>
+                            <span>En equipo</span>
+                        </label>
+                        <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-working-filter>
+                            <span>Rememorando</span>
                         </label>
                         <label class="hg-collection-select hg-collection-search">
                             <span>Nombre</span>
@@ -441,64 +458,9 @@ $isAdmin = !empty($hgCardsIsAdmin);
         </section>
 
         <section class="hg-mobile-panel" data-mobile-panel="info" aria-label="Explicación del juego">
-            <div class="hg-doc-section">
-                <h3>Cómo funciona</h3>
-                <p>Abre sobres, consigue cartas del Archivo de Mnemógeno y conserva tu colección en este navegador. Usa Mnemones para reclamar sobres y Remorias para mejorar cartas.</p>
-            </div>
-
-            <div class="hg-doc-grid">
-                <article>
-                    <h4>Rarezas</h4>
-                    <p>Común, Inusual, Raro, Épico, Legendario, Mítico y Estigm&aacute;tico. Estigm&aacute;tico queda reservado para fuentes especiales como el Jefe diario; no sale en sobres ni por evolución normal.</p>
-                </article>
-
-                <article>
-                    <h4>Atributos</h4>
-                    <p>Cada copia obtiene PS, ATQ y DEF aleatorios dentro de los límites de su carta. Dos copias de la misma carta pueden despertar con valores distintos.</p>
-                </article>
-
-                <article>
-                    <h4>Sobres</h4>
-                    <p>Cada sobre contiene 5 cartas. Algunos aceptan cualquier carta activa y otros se centran en personajes, poderes, crónicas, reliquias, linajes o cartas raras.</p>
-                </article>
-
-                <article>
-                    <h4>Tienda</h4>
-                    <p>Compra sobres con Mnemones. El sobre mnemónico no tiene límite; los demás sobres comprables tienen cupo diario y algunos sólo aparecen como recompensa.</p>
-                </article>
-
-                <article>
-                    <h4>Mnemones</h4>
-                    <p>Son la moneda local del minijuego. Se obtienen combatiendo, vendiendo cartas o asignando copias a recordar. También se gastan para reclamar sobres adicionales.</p>
-                </article>
-
-                <article>
-                    <h4>Recordar</h4>
-                    <p>Las cartas asignadas a recordar generan Mnemones de forma pasiva. Es una forma de convertir recuerdos del Archivo en recursos para seguir abriendo sobres.</p>
-                </article>
-
-                <article>
-                    <h4>Vender cartas</h4>
-                    <p>Puedes desintegrar copias concretas, duplicadas o cartas de una rareza determinada. El valor depende de la rareza y se recibe en Remorias.</p>
-                </article>
-
-                <article>
-                    <h4>Colección</h4>
-                    <p>El álbum muestra todas las cartas activas del catálogo, incluso las que aún no has obtenido. Las cartas conseguidas pueden abrirse, revisarse y compararse por sus mejores copias.</p>
-                </article>
-
-                <article>
-                    <h4>Combate</h4>
-                    <p>Prepara un equipo de 5 copias concretas y enfréntalo a rivales generados desde el catálogo. Ganar entrenamientos concede Mnemones; perder no destruye tus cartas.</p>
-                </article>
-
-                <article>
-                    <h4>Guardado local</h4>
-                    <p>Tu progreso se guarda en este navegador mediante almacenamiento local. No hay cuenta de usuario ni sincronización con servidor: si borras los datos del navegador, perderás la colección salvo que la hayas exportado.</p>
-                </article>
-            </div>
+            <?php hg_gc_render_info_content('mobile'); ?>
         </section>
     </main>
 </div>
 
-<script src="/assets/js/game-cards.js" defer></script>
+<script src="/assets/js/game-cards.js?v=20260529-evo-fix-1" defer></script>

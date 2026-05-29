@@ -124,69 +124,58 @@ $isAdmin = !empty($hgCardsIsAdmin);
     <section id="shop" class="hg-shop-section" aria-label="Tienda de sobres">
         <div class="hg-section-head">
             <h3>Intercambio de mnemógeno</h3>
-            <p>Usa Mnemones para reclamar sobres y Remorias para objetos rituales.</p>
+            <p>Usa Mnemones para reclamar sobres, comprar objetos rituales y cambiar por Remorias.</p>
         </div>
-        <div class="hg-shop-grid">
-            <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1">
-                <span>Mnemónico gratis</span>
-                <strong>Gratis - quedan 3</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="standard">
-                <span>Sobre mnemónico</span>
-                <strong>50 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="echoes">
-                <span>Sobre de ecos</span>
-                <strong>90 Mnemones</strong>
-            </article>
-            <article hidden class="hg-shop-item" data-shop-pack="magic">
-                <span>Sobre mágico</span>
-                <strong>220 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="characters">
-                <span>Sobre de personajes</span>
-                <strong>240 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="lineage">
-                <span>Sobre de linaje</span>
-                <strong>420 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="essence">
-                <span>Sobre de esencia</span>
-                <strong>300 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="powers">
-                <span>Sobre arcano</span>
-                <strong>240 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="chronicles">
-                <span>Sobre de crónica</span>
-                <strong>140 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-pack="relics">
-                <span>Sobre de reliquias</span>
-                <strong>160 Mnemones</strong>
-            </article>
-            <article hidden class="hg-shop-item" data-shop-pack="omens">
-                <span>Sobre de presagios</span>
-                <strong>650 Mnemones</strong>
-            </article>
-            <article hidden class="hg-shop-item" data-shop-pack="gaian">
-                <span>Sobre gaiano</span>
-                <strong>2000 Mnemones</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-material="icarus_vial">
-                <span>Vial de Ícaro</span>
-                <strong>10000 Remorias</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-material="stigma_orb">
-                <span>Orbe de Estigma</span>
-                <strong>50000 Remorias</strong>
-            </article>
-            <article class="hg-shop-item" data-shop-material="babylon_shred">
-                <span>Retal de Babilonia</span>
-                <strong>125000 Remorias</strong>
-            </article>
+        <div class="hg-shop-groups">
+            <section class="hg-shop-group">
+                <h4>Gratis hoy</h4>
+                <div class="hg-shop-group__grid">
+                    <article class="hg-shop-item" data-shop-pack="standard" data-shop-free="1">
+                        <span>Mnemónico gratis</span>
+                        <strong>Gratis - quedan 3</strong>
+                    </article>
+                    <article class="hg-shop-item" data-shop-daily-gift="1">
+                        <span>Regalo diario</span>
+                        <strong>Gratis - 1 al día</strong>
+                    </article>
+                </div>
+            </section>
+
+            <section class="hg-shop-group">
+                <h4>Sobres</h4>
+                <div class="hg-shop-group__grid">
+                    <article class="hg-shop-item" data-shop-pack="standard"><span>Sobre mnemónico</span><strong>50 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="echoes"><span>Sobre de ecos</span><strong>90 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="magic"><span>Sobre mágico</span><strong>220 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="characters"><span>Sobre de personajes</span><strong>240 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="lineage"><span>Sobre de linaje</span><strong>420 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="essence"><span>Sobre de esencia</span><strong>300 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="powers"><span>Sobre arcano</span><strong>240 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="chronicles"><span>Sobre de crónica</span><strong>140 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-pack="relics"><span>Sobre de reliquias</span><strong>160 Mnemones</strong></article>
+                    <article hidden class="hg-shop-item" data-shop-pack="omens"><span>Sobre de presagios</span><strong>650 Mnemones</strong></article>
+                    <article hidden class="hg-shop-item" data-shop-pack="gaian"><span>Sobre gaiano</span><strong>2000 Mnemones</strong></article>
+                </div>
+            </section>
+
+            <section class="hg-shop-group">
+                <h4>Objetos rituales</h4>
+                <div class="hg-shop-group__grid">
+                    <article class="hg-shop-item" data-shop-material="icarus_vial"><span>Vial de Ícaro</span><strong>10000 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-material="stigma_orb"><span>Orbe de Estigma</span><strong>50000 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-material="babylon_shred"><span>Retal de Babilonia</span><strong>125000 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-material="mnemo_glyph"><span>Glifo mnemon</span><strong>500 Mnemones</strong></article>
+                </div>
+            </section>
+
+            <section class="hg-shop-group">
+                <h4>Servicio de canje</h4>
+                <div class="hg-shop-group__grid hg-shop-group__grid--exchange">
+                    <article class="hg-shop-item" data-shop-exchange-remorias="10"><span>Cambio por 10 Remorias</span><strong>100 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-exchange-remorias="100"><span>Cambio por 100 Remorias</span><strong>1000 Mnemones</strong></article>
+                    <article class="hg-shop-item" data-shop-exchange-remorias="1000"><span>Cambio por 1000 Remorias</span><strong>10000 Mnemones</strong></article>
+                </div>
+            </section>
         </div>
     </section>
 
@@ -199,4 +188,4 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 </div>
 
-<script src="/assets/js/game-cards.js" defer></script>
+<script src="/assets/js/game-cards.js?v=20260529-evo-fix-1" defer></script>

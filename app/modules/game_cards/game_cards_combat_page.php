@@ -190,4 +190,4 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 </div>
 
-<script src="/assets/js/game-cards.js" defer></script>
+<script src="/assets/js/game-cards.js?v=20260529-evo-fix-1" defer></script>

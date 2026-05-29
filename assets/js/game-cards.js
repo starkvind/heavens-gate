@@ -41,12 +41,33 @@
     var DAILY_BOSS_HP_MULTIPLIER_MAX = 50;
     var DAILY_BOSS_STIGMATIC_DAMAGE_MULTIPLIER = 4;
     var DAILY_BOSS_SHIELD_BREAK_CHANCE = 0.01;
+    var MOVE_DEBUFF_MIN_RATIO = 0.33;
+    var MOVE_BUFF_MAX_RATIO = 1.5;
+    var MOVE_LEARN_RULES = {
+        common: { chance: 0, count: 0 },
+        unusual: { chance: 0, count: 0 },
+        rare: { chance: 0.1, count: 1 },
+        epic: { chance: 0.3, count: 1 },
+        legendary: { chance: 0.6, count: 1 },
+        mythic: { chance: 1, count: 1 },
+        stigmatic: { chance: 1, count: 2 }
+    };
+    var MOVE_LIBRARY = {
+        weakening_blow: { id: 'weakening_blow', label: 'Golpe debilitador', icon: '\uD83D\uDD35', type: 'damage', power: 0.8, accuracy: 1, cooldown: 2, target: 'enemy', effect: { kind: 'debuff_atk', amount: 0.1, minRatio: MOVE_DEBUFF_MIN_RATIO }, description: 'Inflige 80% del ATQ y reduce el ATQ enemigo hasta un minimo del 33%.' },
+        armor_breaker: { id: 'armor_breaker', label: 'Rompecorazas', icon: '\uD83D\uDFE2', type: 'damage', power: 0.8, accuracy: 1, cooldown: 2, target: 'enemy', effect: { kind: 'debuff_def', amount: 0.1, minRatio: MOVE_DEBUFF_MIN_RATIO }, description: 'Inflige 80% del ATQ y reduce la DEF enemiga hasta un minimo del 33%.' },
+        discouraging_impact: { id: 'discouraging_impact', label: 'Impacto descorazonador', icon: '\uD83E\uDDE1', type: 'damage', power: 1.2, accuracy: 1, cooldown: 4, target: 'enemy', effect: { kind: 'shield_break', chance: 0.2, amount: 1 }, description: 'Inflige 120% del ATQ y tiene un 20% de romper 1 escudo enemigo.' },
+        brutal_strike: { id: 'brutal_strike', label: 'Golpe brutal', icon: '\uD83D\uDCA5', type: 'damage', power: 2, accuracy: 1, cooldown: 4, target: 'enemy', effect: { kind: 'recoil', ratio: 1 / 3 }, description: 'Inflige 200% del ATQ y devuelve un tercio del dano causado.' },
+        phantom_leda: { id: 'phantom_leda', label: 'Leda fantasma', icon: '\uD83D\uDD2E', type: 'damage', formula: 'average_atk_def', accuracy: 1, cooldown: 3, target: 'enemy', effect: { kind: 'lifesteal', ratio: 0.5 }, description: 'Inflige (ATQ + DEF) / 2 y recupera la mitad del dano causado.' },
+        hero_stance: { id: 'hero_stance', label: 'Postura de heroe', icon: '\u2728', type: 'buff', accuracy: 1, cooldown: 6, target: 'self', effect: { kind: 'buff_atk_def', amount: 0.1, maxRatio: MOVE_BUFF_MAX_RATIO }, description: 'Aumenta ATQ y DEF un 10% por uso, hasta un maximo de +50%.' }
+    };
     var DAILY_FREE_PACK_CAP = 3;
     var DAILY_SHOP_PACK_CAP = 10;
+    var DAILY_MAGIC_PACK_CAP = 3;
     var SHOP_QUANTITIES = [1, 5, 20];
     var FREE_SHOP_QUANTITIES = [1, DAILY_FREE_PACK_CAP];
+    var DAILY_GIFT_MATERIAL_KEYS = ['icarus_vial', 'mnemo_glyph'];
     var PACK_KINDS = ['standard', 'echoes', 'magic', 'characters', 'lineage', 'essence', 'powers', 'chronicles', 'relics', 'omens', 'gaian'];
-    var SHOP_PACK_KINDS = ['standard', 'echoes', 'characters', 'lineage', 'essence', 'powers', 'chronicles', 'relics'];
+    var SHOP_PACK_KINDS = ['standard', 'echoes', 'magic', 'characters', 'lineage', 'essence', 'powers', 'chronicles', 'relics'];
     var PACK_PRICES = {
         standard: 50,
         echoes: 90,
@@ -60,7 +81,7 @@
         omens: 650,
         gaian: 2000
     };
-    var RECYCLE_VALUES = { common: 1, unusual: 3, rare: 8, epic: 25, legendary: 75, mythic: 200, stigmatic: 0 };
+    var RECYCLE_VALUES = { common: 10, unusual: 30, rare: 80, epic: 250, legendary: 750, mythic: 2000, stigmatic: 0 };
     var WORK_MAX_ASSIGNMENTS = 5;
     var WORK_MIN_DURATION_MS = 24 * 60 * 60 * 1000;
     var WORK_RARITY_BASE = { common: 1, unusual: 2, rare: 4, epic: 7, legendary: 11, mythic: 18, stigmatic: 32 };
@@ -73,8 +94,13 @@
     var UPGRADE_MATERIALS = {
         icarus_vial: { label: 'Vial de \u00cdcaro', price: 10000, rarity: 'epic', description: 'Necesario para evolucionar de Raro a \u00c9pico.' },
         stigma_orb: { label: 'Orbe de Estigma', price: 50000, rarity: 'legendary', description: 'Necesario para evolucionar de \u00c9pico a Legendario.' },
-        babylon_shred: { label: 'Retal de Babilonia', price: 125000, rarity: 'mythic', description: 'Necesario para evolucionar de Legendario a M\u00edtico.' }
+        babylon_shred: { label: 'Retal de Babilonia', price: 125000, rarity: 'mythic', description: 'Necesario para evolucionar de Legendario a M\u00edtico.' },
+        mnemo_glyph: { label: 'Glifo mnemon', price: 500, rarity: 'common', description: 'Catalizador para aprender o cambiar habilidades en cartas.' }
     };
+    var SKILL_SLOT_COUNT = 3;
+    var SKILL_COST_MULTIPLIER_BY_RARITY = { common: 1, unusual: 2, rare: 3, epic: 4, legendary: 5, mythic: 6, stigmatic: 7 };
+    var SKILL_BASE_MNEMONES = 100;
+    var SKILL_MATERIAL_KEY = 'mnemo_glyph';
     var RARITY_STAT_RANGES = {
         common: [10, 40],
         unusual: [30, 60],
@@ -233,6 +259,9 @@
         isAdmin: root.getAttribute('data-is-admin') === '1',
         albumCategory: 'all',
         collectionOwnedOnly: false,
+        collectionHasMovesOnly: false,
+        collectionInTeamOnly: false,
+        collectionWorkingOnly: false,
         collectionSearch: '',
         collectionRarity: 'all',
         collectionMode: 'album',
@@ -262,7 +291,7 @@
 
     var els = {
         packButtons: Array.prototype.slice.call(document.querySelectorAll('[data-pack-kind]')),
-        shopItems: Array.prototype.slice.call(document.querySelectorAll('[data-shop-pack], [data-shop-material]')),
+        shopItems: Array.prototype.slice.call(document.querySelectorAll('[data-shop-pack], [data-shop-material], [data-shop-exchange-remorias], [data-shop-daily-gift]')),
         shopButtons: Array.prototype.slice.call(document.querySelectorAll('[data-shop-buy-pack]')),
         packStocks: Array.prototype.slice.call(document.querySelectorAll('[data-pack-stock]')),
         packGrid: document.querySelector('[data-pack-grid]'),
@@ -295,6 +324,9 @@
         collectionModeButtons: Array.prototype.slice.call(document.querySelectorAll('[data-collection-mode]')),
         collectionPageSize: document.querySelector('[data-collection-page-size]'),
         collectionOwnedFilter: document.querySelector('[data-collection-owned-filter]'),
+        collectionHasMovesFilter: document.querySelector('[data-collection-has-moves-filter]'),
+        collectionInTeamFilter: document.querySelector('[data-collection-in-team-filter]'),
+        collectionWorkingFilter: document.querySelector('[data-collection-working-filter]'),
         collectionNameFilter: document.querySelector('[data-collection-name-filter]'),
         collectionRarityFilter: document.querySelector('[data-collection-rarity-filter]'),
         collectionTypeFilter: document.querySelector('[data-collection-type-filter]'),
@@ -325,6 +357,7 @@
         combatSetups: Array.prototype.slice.call(document.querySelectorAll('.hg-combat-setup')),
         combatStart: document.querySelector('[data-combat-start]'),
         combatActions: Array.prototype.slice.call(document.querySelectorAll('[data-combat-action]')),
+        combatExtraActionSlots: Array.prototype.slice.call(document.querySelectorAll('[data-combat-extra-action-slot]')),
         combatCommandViews: Array.prototype.slice.call(document.querySelectorAll('[data-combat-command-view]')),
         combatCommandButtons: Array.prototype.slice.call(document.querySelectorAll('[data-combat-command]')),
         combatCommandBackButtons: Array.prototype.slice.call(document.querySelectorAll('[data-combat-command-back]')),
@@ -457,7 +490,11 @@
         title.textContent = options.title || 'Confirmar acción';
 
         var text = document.createElement('p');
-        text.textContent = message;
+        if (options.messageHtml) {
+            text.innerHTML = options.messageHtml;
+        } else {
+            text.textContent = message;
+        }
 
         var actions = document.createElement('div');
         actions.className = 'hg-confirm-modal__actions';
@@ -628,6 +665,15 @@
         if (els.collectionOwnedFilter) {
             state.collectionOwnedOnly = !!els.collectionOwnedFilter.checked;
         }
+        if (els.collectionHasMovesFilter) {
+            state.collectionHasMovesOnly = !!els.collectionHasMovesFilter.checked;
+        }
+        if (els.collectionInTeamFilter) {
+            state.collectionInTeamOnly = !!els.collectionInTeamFilter.checked;
+        }
+        if (els.collectionWorkingFilter) {
+            state.collectionWorkingOnly = !!els.collectionWorkingFilter.checked;
+        }
         if (els.collectionNameFilter) {
             state.collectionSearch = normalizeSearchText(els.collectionNameFilter.value);
         }
@@ -639,12 +685,19 @@
 
     function createShopState() {
         return {
-            version: 2,
+            version: 3,
             freePackDate: dailyFreePackDate(),
             freePacksClaimed: 0,
+            dailyGiftDate: dailyFreePackDate(),
+            dailyGiftClaimed: 0,
+            dailyGiftKey: DAILY_GIFT_MATERIAL_KEYS[0],
             shopPackDate: dailyFreePackDate(),
             shopPackPurchases: normalizeShopPackPurchases({})
         };
+    }
+
+    function rollDailyGiftMaterialKey() {
+        return DAILY_GIFT_MATERIAL_KEYS[Math.floor(Math.random() * DAILY_GIFT_MATERIAL_KEYS.length)] || 'mnemo_glyph';
     }
 
     function dailyFreePackDate() {
@@ -946,16 +999,28 @@
         var storedDate = typeof data.freePackDate === 'string' ? data.freePackDate : today;
         var storedShopDate = typeof data.shopPackDate === 'string' ? data.shopPackDate : today;
         state.shopState = {
-            version: 2,
+            version: 3,
             freePackDate: today,
             freePacksClaimed: storedDate === today
                 ? Math.max(0, Math.min(DAILY_FREE_PACK_CAP, clampInt(data.freePacksClaimed, 0)))
                 : 0,
+            dailyGiftDate: typeof data.dailyGiftDate === 'string' ? data.dailyGiftDate : today,
+            dailyGiftClaimed: (typeof data.dailyGiftDate === 'string' ? data.dailyGiftDate : today) === today
+                ? Math.max(0, Math.min(1, clampInt(data.dailyGiftClaimed, 0)))
+                : 0,
+            dailyGiftKey: DAILY_GIFT_MATERIAL_KEYS.indexOf(String(data.dailyGiftKey || '')) !== -1
+                ? String(data.dailyGiftKey)
+                : rollDailyGiftMaterialKey(),
             shopPackDate: today,
             shopPackPurchases: storedShopDate === today
                 ? normalizeShopPackPurchases(data.shopPackPurchases)
                 : normalizeShopPackPurchases({})
         };
+        if (state.shopState.dailyGiftDate !== today) {
+            state.shopState.dailyGiftDate = today;
+            state.shopState.dailyGiftClaimed = 0;
+            state.shopState.dailyGiftKey = rollDailyGiftMaterialKey();
+        }
         writeJson(CARD_SHOP_STATE_KEY, state.shopState);
         return state.shopState;
     }
@@ -972,6 +1037,15 @@
         if (rewards.freePackDate !== today) {
             rewards.freePackDate = today;
             rewards.freePacksClaimed = 0;
+            rewards.dailyGiftDate = today;
+            rewards.dailyGiftClaimed = 0;
+            rewards.dailyGiftKey = rollDailyGiftMaterialKey();
+            saveShopState();
+        }
+        if (rewards.dailyGiftDate !== today) {
+            rewards.dailyGiftDate = today;
+            rewards.dailyGiftClaimed = 0;
+            rewards.dailyGiftKey = rollDailyGiftMaterialKey();
             saveShopState();
         }
         if (rewards.shopPackDate !== today) {
@@ -1001,6 +1075,31 @@
         return true;
     }
 
+    function dailyGiftState() {
+        if (state.isAdmin) {
+            return { key: rollDailyGiftMaterialKey(), claimed: 0 };
+        }
+        syncShopState();
+        return {
+            key: String((state.shopState || {}).dailyGiftKey || rollDailyGiftMaterialKey()),
+            claimed: Math.max(0, Math.min(1, clampInt((state.shopState || {}).dailyGiftClaimed, 0)))
+        };
+    }
+
+    function dailyGiftRemaining() {
+        return state.isAdmin ? Infinity : Math.max(0, 1 - dailyGiftState().claimed);
+    }
+
+    function claimDailyGift() {
+        if (state.isAdmin) { return true; }
+        var rewards = loadShopState();
+        syncShopState();
+        if (dailyGiftRemaining() <= 0) { return false; }
+        rewards.dailyGiftClaimed = 1;
+        saveShopState();
+        return true;
+    }
+
     function normalizeWorkAssignments(assignments) {
         var out = {};
         if (!assignments || typeof assignments !== 'object') { return out; }
@@ -1026,7 +1125,7 @@
     function normalizeShopPackPurchases(purchases) {
         var out = {};
         PACK_KINDS.forEach(function (kind) {
-            out[kind] = Math.max(0, Math.min(DAILY_SHOP_PACK_CAP, clampInt(purchases && purchases[kind], 0)));
+            out[kind] = Math.max(0, Math.min(dailyShopPackCap(kind), clampInt(purchases && purchases[kind], 0)));
         });
         return out;
     }
@@ -1041,7 +1140,7 @@
             return out;
         }
         PACK_KINDS.forEach(function (kind) {
-            out.packs[kind] = Math.max(0, Math.min(DAILY_SHOP_PACK_CAP, clampInt(value.packs[kind], 0)));
+            out.packs[kind] = Math.max(0, Math.min(dailyShopPackCap(kind), clampInt(value.packs[kind], 0)));
         });
         return out;
     }
@@ -1067,7 +1166,11 @@
     function dailyShopPackRemaining(packKind) {
         if (packKind === 'standard') { return Infinity; }
         var purchases = syncDailyShopPackPurchases();
-        return Math.max(0, DAILY_SHOP_PACK_CAP - Math.max(0, clampInt(purchases[packKind], 0)));
+        return Math.max(0, dailyShopPackCap(packKind) - Math.max(0, clampInt(purchases[packKind], 0)));
+    }
+
+    function dailyShopPackCap(packKind) {
+        return packKind === 'magic' ? DAILY_MAGIC_PACK_CAP : DAILY_SHOP_PACK_CAP;
     }
 
     function claimDailyShopPacks(packKind, amount) {
@@ -1075,7 +1178,7 @@
         if (packKind === 'standard') { return true; }
         var purchases = syncDailyShopPackPurchases();
         if (dailyShopPackRemaining(packKind) < amount) { return false; }
-        purchases[packKind] = Math.min(DAILY_SHOP_PACK_CAP, clampInt(purchases[packKind], 0) + amount);
+        purchases[packKind] = Math.min(dailyShopPackCap(packKind), clampInt(purchases[packKind], 0) + amount);
         state.shopState.shopPackPurchases = purchases;
         saveShopState();
         return true;
@@ -1092,6 +1195,64 @@
         els.dailyPacksCounter.title = remaining > 0
             ? 'Sobres gratis pendientes de reclamar hoy en tienda.'
             : 'Cupo diario de sobres gratis agotado.';
+    }
+
+    function buildShopGroup(title, extraClass) {
+        var section = document.createElement('section');
+        section.className = 'hg-shop-group';
+        var heading = document.createElement('h4');
+        heading.textContent = title;
+        var grid = document.createElement('div');
+        grid.className = 'hg-shop-group__grid' + (extraClass ? ' ' + extraClass : '');
+        section.appendChild(heading);
+        section.appendChild(grid);
+        return { section: section, grid: grid };
+    }
+
+    function ensureShopLayout() {
+        Array.prototype.slice.call(document.querySelectorAll('.hg-shop-section, .hg-mobile-panel[data-mobile-panel="shop"]')).forEach(function (container) {
+            var groups = container.querySelector('.hg-shop-groups');
+            if (groups) { return; }
+            var flatGrid = container.querySelector('.hg-shop-grid');
+            if (!flatGrid) { return; }
+            var items = Array.prototype.slice.call(flatGrid.querySelectorAll('.hg-shop-item'));
+            var groupsWrap = document.createElement('div');
+            groupsWrap.className = 'hg-shop-groups';
+            var freeGroup = buildShopGroup('Gratis hoy', flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile' : '');
+            var packsGroup = buildShopGroup('Sobres', flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile' : '');
+            var materialsGroup = buildShopGroup('Objetos rituales', flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile' : '');
+            var exchangeGroup = buildShopGroup('Servicio de canje', (flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile ' : '') + 'hg-shop-group__grid--exchange');
+
+            if (!items.some(function (item) { return item.hasAttribute('data-shop-daily-gift'); })) {
+                var dailyGift = document.createElement('article');
+                dailyGift.className = 'hg-shop-item';
+                dailyGift.setAttribute('data-shop-daily-gift', '1');
+                dailyGift.innerHTML = '<span>Regalo diario</span><strong>Gratis - 1 al día</strong>';
+                items.unshift(dailyGift);
+            }
+
+            items.forEach(function (item) {
+                if (item.hasAttribute('data-shop-daily-gift') || item.getAttribute('data-shop-free') === '1') {
+                    freeGroup.grid.appendChild(item);
+                    return;
+                }
+                if (item.hasAttribute('data-shop-material')) {
+                    materialsGroup.grid.appendChild(item);
+                    return;
+                }
+                if (item.hasAttribute('data-shop-exchange-remorias')) {
+                    exchangeGroup.grid.appendChild(item);
+                    return;
+                }
+                packsGroup.grid.appendChild(item);
+            });
+
+            groupsWrap.appendChild(freeGroup.section);
+            groupsWrap.appendChild(packsGroup.section);
+            groupsWrap.appendChild(materialsGroup.section);
+            groupsWrap.appendChild(exchangeGroup.section);
+            flatGrid.replaceWith(groupsWrap);
+        });
     }
 
     function normalizePackInventory(inventory) {
@@ -1376,7 +1537,7 @@
             var canStop = workCanStop(entry);
             var cardWrap = document.createElement('div');
             cardWrap.className = 'hg-work-slot__card';
-            var memoryCard = renderCard(entry.baseCard, entry.copy, { noLink: true });
+            var memoryCard = renderCard(entry.baseCard, entry.copy, { noLink: true, memoryCompact: true });
             memoryCard.className += ' hg-card--memory';
             cardWrap.appendChild(memoryCard);
             var effects = document.createElement('div');
@@ -1622,11 +1783,12 @@
     function shopQuantitiesForPack(packKind, isFree) {
         if (isFree) { return FREE_SHOP_QUANTITIES; }
         if (packKind === 'standard') { return SHOP_QUANTITIES; }
-        return SHOP_QUANTITIES.filter(function (amount) { return amount <= DAILY_SHOP_PACK_CAP; });
+        return SHOP_QUANTITIES.filter(function (amount) { return amount <= dailyShopPackCap(packKind); });
     }
 
     function renderShop() {
-        els.shopItems = Array.prototype.slice.call(document.querySelectorAll('[data-shop-pack], [data-shop-material]'));
+        ensureShopLayout();
+        els.shopItems = Array.prototype.slice.call(document.querySelectorAll('[data-shop-pack], [data-shop-material], [data-shop-exchange-remorias], [data-shop-daily-gift]'));
         var money = currentMnemones();
         var remorias = currentRemorias();
         els.mnemonesCounters.forEach(function (node) {
@@ -1636,9 +1798,18 @@
             node.textContent = formatNumber(remorias);
         });
         els.shopItems.forEach(function (item) {
+            if (item.hasAttribute('data-shop-daily-gift')) {
+                renderDailyGiftShopItem(item);
+                return;
+            }
             var materialKey = item.getAttribute('data-shop-material') || '';
             if (materialKey) {
-                renderMaterialShopItem(item, materialKey, remorias);
+                renderMaterialShopItem(item, materialKey, money);
+                return;
+            }
+            var exchangeRemorias = clampInt(item.getAttribute('data-shop-exchange-remorias'), 0);
+            if (exchangeRemorias > 0) {
+                renderExchangeShopItem(item, exchangeRemorias, money);
                 return;
             }
             var kind = item.getAttribute('data-shop-pack') || 'standard';
@@ -1651,7 +1822,7 @@
             var price = isFree ? 0 : packPrice(kind);
             var freeRemaining = isFree ? dailyFreePacksRemaining() : 0;
             var dailyRemaining = !isFree ? dailyShopPackRemaining(kind) : Infinity;
-            item.setAttribute('data-shop-daily-limit', kind === 'standard' || isFree ? '0' : String(DAILY_SHOP_PACK_CAP));
+            item.setAttribute('data-shop-daily-limit', kind === 'standard' || isFree ? '0' : String(dailyShopPackCap(kind)));
             item.setAttribute('data-shop-daily-remaining', kind === 'standard' || isFree ? '' : String(dailyRemaining));
             var priceNode = item.querySelector('strong');
             if (priceNode) {
@@ -1685,7 +1856,7 @@
                 buy.className = 'hg-shop-buy';
                 buy.setAttribute('data-shop-buy-pack', kind);
                 buy.setAttribute('data-shop-buy-amount', String(amount));
-                buy.setAttribute('data-shop-daily-limit', kind === 'standard' || isFree ? '0' : String(DAILY_SHOP_PACK_CAP));
+                buy.setAttribute('data-shop-daily-limit', kind === 'standard' || isFree ? '0' : String(dailyShopPackCap(kind)));
                 buy.setAttribute('data-shop-daily-remaining', kind === 'standard' || isFree ? '' : String(dailyRemaining));
                 if (isFree) { buy.setAttribute('data-shop-buy-free', '1'); }
                 buy.textContent = 'x' + amount;
@@ -1702,13 +1873,57 @@
         els.shopButtons = Array.prototype.slice.call(document.querySelectorAll('[data-shop-buy-pack]'));
     }
 
+    function renderDailyGiftShopItem(item) {
+        var giftState = dailyGiftState();
+        var materialKey = giftState.key;
+        var material = UPGRADE_MATERIALS[materialKey];
+        if (!material) {
+            item.hidden = true;
+            return;
+        }
+        item.hidden = false;
+        item.classList.add('hg-shop-item--gift');
+        var remaining = dailyGiftRemaining();
+        var nameNode = item.querySelector('span');
+        if (nameNode && !nameNode.classList.contains('hg-shop-item__contents')) {
+            nameNode.innerHTML = materialIconHtml(materialKey) + '<span>Regalo diario: ' + escapeHtml(material.label) + '</span>';
+        }
+        var priceNode = item.querySelector('strong');
+        if (priceNode) {
+            priceNode.textContent = remaining > 0 ? 'Gratis - 1 al día' : 'Reclamado hoy';
+        }
+        var description = item.querySelector('.hg-shop-item__contents');
+        if (!description) {
+            description = document.createElement('span');
+            description.className = 'hg-shop-item__contents';
+            item.appendChild(description);
+        }
+        description.textContent = 'Cada día sale al azar un Vial de Ícaro o un Glifo mnemon.';
+        var controls = item.querySelector('.hg-shop-item__actions');
+        if (!controls) {
+            controls = document.createElement('span');
+            controls.className = 'hg-shop-item__actions';
+            item.appendChild(controls);
+        }
+        controls.innerHTML = '';
+        var claim = document.createElement('button');
+        claim.type = 'button';
+        claim.className = 'hg-shop-buy';
+        claim.setAttribute('data-shop-claim-daily-gift', materialKey);
+        claim.textContent = 'Reclamar';
+        claim.disabled = !state.isAdmin && remaining <= 0;
+        claim.title = remaining > 0 ? 'Reclamar regalo diario' : 'Ya reclamado hoy';
+        controls.appendChild(claim);
+        item.classList.toggle('is-empty', !state.isAdmin && remaining <= 0);
+    }
+
     function materialIconHtml(materialKey) {
         var material = UPGRADE_MATERIALS[materialKey];
         var icon = material ? RARITY_ICONS[material.rarity] : '';
         return icon ? '<img src="' + escapeHtml(icon) + '" alt="" width="24" height="24">' : '';
     }
 
-    function renderMaterialShopItem(item, materialKey, remorias) {
+    function renderMaterialShopItem(item, materialKey, mnemones) {
         var material = UPGRADE_MATERIALS[materialKey];
         if (!material) {
             item.hidden = true;
@@ -1721,7 +1936,7 @@
         }
         var priceNode = item.querySelector('strong');
         if (priceNode) {
-            priceNode.textContent = formatNumber(material.price) + ' Remorias';
+            priceNode.textContent = formatNumber(material.price) + ' Mnemones';
         }
         var description = item.querySelector('.hg-shop-item__contents');
         if (!description) {
@@ -1730,7 +1945,7 @@
             item.appendChild(description);
         }
         description.textContent = material.description + ' Tienes: ' + (state.isAdmin ? 'Admin' : materialStock(materialKey)) + '.';
-        item.title = material.label + ': ' + material.description + ' Precio: ' + formatNumber(material.price) + ' Remorias.';
+        item.title = material.label + ': ' + material.description + ' Precio: ' + formatNumber(material.price) + ' Mnemones.';
         var controls = item.querySelector('.hg-shop-item__actions');
         if (!controls) {
             controls = document.createElement('span');
@@ -1745,11 +1960,49 @@
             buy.setAttribute('data-shop-buy-material', materialKey);
             buy.setAttribute('data-shop-buy-amount', String(amount));
             buy.textContent = 'x' + amount;
-            buy.disabled = !state.isAdmin && remorias < material.price * amount;
-            buy.title = 'Comprar ' + amount + ' por ' + formatNumber(material.price * amount) + ' Remorias';
+            buy.disabled = !state.isAdmin && mnemones < material.price * amount;
+            buy.title = 'Comprar ' + amount + ' por ' + formatNumber(material.price * amount) + ' Mnemones';
             controls.appendChild(buy);
         });
-        item.classList.toggle('is-empty', !state.isAdmin && remorias < material.price);
+        item.classList.toggle('is-empty', !state.isAdmin && mnemones < material.price);
+    }
+
+    function renderExchangeShopItem(item, remoriasAmount, mnemones) {
+        var totalPrice = remoriasAmount * 10;
+        item.hidden = false;
+        item.classList.add('hg-shop-item--exchange');
+        var nameNode = item.querySelector('span');
+        if (nameNode && !nameNode.classList.contains('hg-shop-item__contents')) {
+            nameNode.textContent = 'Cambio por ' + formatNumber(remoriasAmount) + ' Remorias';
+        }
+        var priceNode = item.querySelector('strong');
+        if (priceNode) {
+            priceNode.textContent = formatNumber(totalPrice) + ' Mnemones';
+        }
+        var description = item.querySelector('.hg-shop-item__contents');
+        if (!description) {
+            description = document.createElement('span');
+            description.className = 'hg-shop-item__contents';
+            item.appendChild(description);
+        }
+        description.textContent = 'Tasa fija: 10 Mnemones = 1 Remoria.';
+        item.title = 'Cambiar ' + formatNumber(totalPrice) + ' Mnemones por ' + formatNumber(remoriasAmount) + ' Remorias.';
+        var controls = item.querySelector('.hg-shop-item__actions');
+        if (!controls) {
+            controls = document.createElement('span');
+            controls.className = 'hg-shop-item__actions';
+            item.appendChild(controls);
+        }
+        controls.innerHTML = '';
+        var buy = document.createElement('button');
+        buy.type = 'button';
+        buy.className = 'hg-shop-buy';
+        buy.setAttribute('data-shop-buy-exchange-remorias', String(remoriasAmount));
+        buy.textContent = 'Cambiar';
+        buy.disabled = !state.isAdmin && mnemones < totalPrice;
+        buy.title = 'Cambiar ' + formatNumber(totalPrice) + ' Mnemones por ' + formatNumber(remoriasAmount) + ' Remorias';
+        controls.appendChild(buy);
+        item.classList.toggle('is-empty', !state.isAdmin && mnemones < totalPrice);
     }
 
     function packPrice(packKind) {
@@ -1800,6 +2053,133 @@
         return RARITY_ORDER.indexOf(String(card.card_rarity || '')) !== -1;
     }
 
+    function normalizeMoveId(value, fallback) {
+        var id = String(value || '').trim();
+        return id || fallback;
+    }
+
+    function cloneMoveDefinition(move) {
+        if (!move || typeof move !== 'object') { return null; }
+        var accuracy = Number(move.accuracy);
+        if (!Number.isFinite(accuracy)) { accuracy = 1; }
+        return {
+            id: String(move.id || ''),
+            label: String(move.label || ''),
+            icon: String(move.icon || ''),
+            type: String(move.type || 'damage'),
+            power: Number(move.power),
+            formula: String(move.formula || ''),
+            accuracy: Math.max(0, Math.min(1, accuracy)),
+            cooldown: Math.max(0, clampInt(move.cooldown, 0)),
+            target: String(move.target || 'enemy'),
+            effect: move.effect && typeof move.effect === 'object' ? {
+                kind: String(move.effect.kind || ''),
+                amount: Number(move.effect.amount),
+                chance: Number(move.effect.chance),
+                ratio: Number(move.effect.ratio),
+                minRatio: Number(move.effect.minRatio),
+                maxRatio: Number(move.effect.maxRatio)
+            } : null,
+            description: String(move.description || '')
+        };
+    }
+
+    function normalizeCardMoves(card) {
+        var source = Array.isArray(card && card.moves) ? card.moves : [];
+        var moves = [];
+        source.forEach(function (entry, index) {
+            var move = null;
+            if (typeof entry === 'string') {
+                move = cloneMoveDefinition(MOVE_LIBRARY[entry]);
+            } else if (entry && typeof entry === 'object') {
+                var moveId = normalizeMoveId(entry.id || entry.move_key, 'move_' + (index + 1));
+                if (MOVE_LIBRARY[moveId]) {
+                    move = cloneMoveDefinition(MOVE_LIBRARY[moveId]);
+                    Object.keys(entry).forEach(function (key) {
+                        if (key === 'effect' && entry.effect && typeof entry.effect === 'object') {
+                            move.effect = move.effect || {};
+                            Object.keys(entry.effect).forEach(function (effectKey) {
+                                move.effect[effectKey] = entry.effect[effectKey];
+                            });
+                        } else {
+                            move[key] = entry[key];
+                        }
+                    });
+                } else {
+                    move = cloneMoveDefinition(entry);
+                }
+                if (move) { move.id = moveId; }
+            }
+            if (!move || !move.id || !move.label) { return; }
+            if (moves.some(function (existing) { return existing.id === move.id; })) { return; }
+            moves.push(cloneMoveDefinition(move));
+        });
+        return moves.slice(0, 3);
+    }
+
+    function normalizeCopyMoveIds(value) {
+        if (!Array.isArray(value)) { return []; }
+        var seen = {};
+        return value.map(function (entry) {
+            return normalizeMoveId(entry, '');
+        }).filter(function (id) {
+            if (!id || !MOVE_LIBRARY[id] || seen[id]) { return false; }
+            seen[id] = true;
+            return true;
+        }).slice(0, 3);
+    }
+
+    function initialMoveIdsForCopy(card, rarity) {
+        var rules = MOVE_LEARN_RULES[String(rarity || '')] || MOVE_LEARN_RULES.common;
+        var libraryIds = Object.keys(MOVE_LIBRARY);
+        if (!libraryIds.length || !rules || rules.count <= 0 || Math.random() > Math.max(0, Math.min(1, Number(rules.chance) || 0))) {
+            return [];
+        }
+        var start = Math.abs(clampInt(card && card.card_id, 1) - 1) % libraryIds.length;
+        var pool = libraryIds.map(function (_, index) {
+            return libraryIds[(start + index) % libraryIds.length];
+        });
+        for (var i = pool.length - 1; i > 0; i--) {
+            var swapIndex = Math.floor(Math.random() * (i + 1));
+            var temp = pool[i];
+            pool[i] = pool[swapIndex];
+            pool[swapIndex] = temp;
+        }
+        return pool.slice(0, Math.max(0, clampInt(rules.count, 0)));
+    }
+
+    function highestMoveCheckpoint(value) {
+        var rarity = normalizeRarity(value, 'common');
+        return rarityRank(rarity) >= 0 ? rarity : 'common';
+    }
+
+    function addMoveIdsToCopy(copy, moveIds) {
+        if (!copy) { return 0; }
+        var current = normalizeCopyMoveIds(copy.moves);
+        var added = 0;
+        normalizeCopyMoveIds(moveIds).forEach(function (moveId) {
+            if (current.indexOf(moveId) !== -1 || current.length >= 3) { return; }
+            current.push(moveId);
+            added++;
+        });
+        copy.moves = current.slice(0, 3);
+        return added;
+    }
+
+    function ensureCopyMovesForRarity(copy, card, targetRarity, force) {
+        if (!copy || !card) { return 0; }
+        var rarity = normalizeRarity(targetRarity || copy.rarity, card.card_rarity);
+        var checkpoint = highestMoveCheckpoint(copy.moveRollRarity || copy.movesRarityCheckpoint || 'common');
+        if (!force && rarityRank(rarity) <= rarityRank(checkpoint)) {
+            copy.moves = normalizeCopyMoveIds(copy.moves);
+            copy.moveRollRarity = checkpoint;
+            return 0;
+        }
+        var added = addMoveIdsToCopy(copy, initialMoveIdsForCopy(card, rarity));
+        copy.moveRollRarity = rarity;
+        return added;
+    }
+
     function normalizeCard(card) {
         var hpMin = clampInt(card.hp_min, card.atk_min || 10);
         var hpMax = clampInt(card.hp_max, card.atk_max || 40);
@@ -1824,7 +2204,8 @@
             atk_min: atkMin,
             atk_max: atkMax,
             def_min: defMin,
-            def_max: defMax
+            def_max: defMax,
+            moves: normalizeCardMoves(card)
         };
     }
 
@@ -1845,6 +2226,16 @@
                 state.catalog.forEach(function (card) {
                     state.catalogById[String(card.card_id)] = card;
                 });
+                if (state.collection && Array.isArray(state.collection.ownedCards)) {
+                    state.collection = validateCollection(state.collection);
+                    state.collection.currency = normalizeCurrency(state.collection.currency);
+                    state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
+                    state.collection.dailyShopPackPurchases = normalizeDailyShopPackPurchases(state.collection.dailyShopPackPurchases);
+                    state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+                    state.collection.workAssignments = normalizeWorkAssignments(state.collection.workAssignments);
+                    state.collection.workPendingRewards = normalizeWorkPendingRewards(state.collection.workPendingRewards);
+                    saveCollection();
+                }
                 recoverAbandonedDailyBossAttempt();
                 migrateCollectionQuality();
                 setStatus(state.catalog.length ? 'Listo.' : 'No hay cartas activas en el catálogo.');
@@ -2003,8 +2394,11 @@
             hp: rollStat(hpBounds[0], hpBounds[1]),
             atk: rollStat(atkBounds[0], atkBounds[1]),
             def: rollStat(defBounds[0], defBounds[1]),
-            obtainedAt: options.obtainedAt || nowIso()
+            obtainedAt: options.obtainedAt || nowIso(),
+            moves: normalizeCopyMoveIds(Array.isArray(options.moves) ? options.moves : []),
+            moveRollRarity: normalizeRarity(options.moveRollRarity || rarity, rarity)
         };
+        ensureCopyMovesForRarity(copy, card, rarity, !Array.isArray(options.moves));
         copy.quality = calculatedQualityScore(copy, card);
         return copy;
     }
@@ -2062,7 +2456,8 @@
         } catch (e) {}
     }
 
-    function playFlipSound() { playUiSound('/sounds/ui/tear.ogg', 0.8); }
+    function playFlipSound() { playUiSound('/sounds/ui/flip.ogg', 0.8); }
+    function playSkillSound() { playUiSound('/sounds/ui/skill.ogg', 0.82); }
     function playCardSound() { playUiSound('/sounds/ui/card.ogg', 0.72); }
     function playMoneySound() { playUiSound('/sounds/ui/money.ogg', 0.78); }
     function playDustSound() { playUiSound('/sounds/ui/dust.ogg', 0.78); }
@@ -2189,12 +2584,12 @@
         }
         if (!state.collection) { loadCollection(); }
         var totalPrice = material.price * amount;
-        if (!state.isAdmin && currentRemorias() < totalPrice) {
-            setStatus('No tienes Remorias suficientes para comprar ' + material.label + '.');
+        if (!state.isAdmin && currentMnemones() < totalPrice) {
+            setStatus('No tienes Mnemones suficientes para comprar ' + material.label + '.');
             return false;
         }
         if (!state.isAdmin) {
-            addRemorias(-totalPrice);
+            addMnemones(-totalPrice);
         }
         playMoneySound();
         var newStock = addMaterial(materialKey, amount);
@@ -2205,7 +2600,49 @@
         saveCollection();
         renderSummary({ light: true });
         renderPackInventory();
-        setStatus(amount + ' x ' + material.label + ' anadido(s) al inventario por ' + formatNumber(totalPrice) + ' Remorias. Tienes ' + (state.isAdmin ? 'Admin' : newStock) + '.');
+        setStatus(amount + ' x ' + material.label + ' anadido(s) al inventario por ' + formatNumber(totalPrice) + ' Mnemones. Tienes ' + (state.isAdmin ? 'Admin' : newStock) + '.');
+        return true;
+    }
+
+    function claimShopDailyGift(materialKey) {
+        materialKey = String(materialKey || '');
+        var stateNow = dailyGiftState();
+        var rewardKey = materialKey || stateNow.key;
+        var material = UPGRADE_MATERIALS[rewardKey];
+        if (!material) {
+            setStatus('Ese regalo diario no existe.');
+            return false;
+        }
+        if (!claimDailyGift()) {
+            setStatus('Ya has reclamado el regalo diario de hoy.');
+            return false;
+        }
+        addMaterial(rewardKey, 1);
+        saveCollection();
+        playMoneySound();
+        renderSummary({ light: true });
+        renderPackInventory();
+        setStatus('Regalo diario reclamado: 1 x ' + material.label + '.');
+        return true;
+    }
+
+    function buyRemoriaExchange(remoriasAmount) {
+        remoriasAmount = Math.max(1, clampInt(remoriasAmount, 1));
+        var totalPrice = remoriasAmount * 10;
+        if (!state.collection) { loadCollection(); }
+        if (!state.isAdmin && currentMnemones() < totalPrice) {
+            setStatus('No tienes Mnemones suficientes para ese cambio.');
+            return false;
+        }
+        if (!state.isAdmin) {
+            addMnemones(-totalPrice);
+            addRemorias(remoriasAmount);
+        }
+        playMoneySound();
+        saveCollection();
+        renderSummary({ light: true });
+        renderPackInventory();
+        setStatus('Cambio realizado: -' + formatNumber(totalPrice) + ' Mnemones, +' + formatNumber(remoriasAmount) + ' Remorias.');
         return true;
     }
 
@@ -2443,9 +2880,27 @@
         return Number(card && card.card_id || 0);
     }
 
-    function cardPassesCollectionFilters(card, groups) {
+    function collectionFilterSets() {
+        var inTeam = {};
+        var working = {};
+        var teams = loadCombatTeams();
+        (teams.teams || []).forEach(function (team) {
+            (team.cards || []).forEach(function (id) {
+                id = String(id || '');
+                if (id) { inTeam[id] = true; }
+            });
+        });
+        Object.keys(ensureWorkAssignments()).forEach(function (id) {
+            id = String(id || '');
+            if (id) { working[id] = true; }
+        });
+        return { inTeam: inTeam, working: working };
+    }
+
+    function cardPassesCollectionFilters(card, groups, filterSets) {
         if (!card) { return false; }
         var group = groups[String(card.card_id)];
+        filterSets = filterSets || { inTeam: {}, working: {} };
         if (state.collectionSearch) {
             if (!group) { return false; }
             var searchText = normalizeSearchText([
@@ -2463,13 +2918,31 @@
             if (!hasRarity && card.card_rarity !== state.collectionRarity) { return false; }
         }
         if (state.collectionOwnedOnly && !groups[String(card.card_id)]) { return false; }
+        if (state.collectionHasMovesOnly) {
+            var hasMoves = group && group.copies && group.copies.some(function (copy) {
+                return copyHasLearnedMoves(copy);
+            });
+            if (!hasMoves) { return false; }
+        }
+        if (state.collectionInTeamOnly) {
+            var isInTeam = group && group.copies && group.copies.some(function (copy) {
+                return !!filterSets.inTeam[String(copy.instanceId || '')];
+            });
+            if (!isInTeam) { return false; }
+        }
+        if (state.collectionWorkingOnly) {
+            var isWorking = group && group.copies && group.copies.some(function (copy) {
+                return !!filterSets.working[String(copy.instanceId || '')];
+            });
+            if (!isWorking) { return false; }
+        }
         return true;
     }
 
-    function albumCategories(groups) {
+    function albumCategories(groups, filterSets) {
         var present = {};
         state.catalog.forEach(function (card) {
-            if (!cardPassesCollectionFilters(card, groups)) { return; }
+            if (!cardPassesCollectionFilters(card, groups, filterSets)) { return; }
             present[card.source_type] = true;
         });
         var ordered = TYPE_ORDER.filter(function (type) {
@@ -2482,7 +2955,7 @@
             var cards = (type === 'all'
                 ? state.catalog
                 : state.catalog.filter(function (card) { return card.source_type === type; }))
-                .filter(function (card) { return cardPassesCollectionFilters(card, groups); });
+                .filter(function (card) { return cardPassesCollectionFilters(card, groups, filterSets); });
             var owned = cards.filter(function (card) {
                 return !!groups[String(card.card_id)];
             }).length;
@@ -2642,12 +3115,12 @@
         });
     }
 
-    function cardsForCurrentCategory(groups) {
+    function cardsForCurrentCategory(groups, filterSets) {
         var cards = state.albumCategory === 'all'
             ? state.catalog
             : state.catalog.filter(function (card) { return card.source_type === state.albumCategory; });
         return sortedCatalogCards(cards.filter(function (card) {
-            return cardPassesCollectionFilters(card, groups || {});
+            return cardPassesCollectionFilters(card, groups || {}, filterSets || {});
         }));
     }
 
@@ -2699,10 +3172,10 @@
         return bounds;
     }
 
-    function renderAlbum(groups) {
+    function renderAlbum(groups, filterSets) {
         if (!els.albumGrid || !isCollectionContext()) { return 0; }
         groups = groups || collectionGroups();
-        var cards = cardsForCurrentCategory(groups);
+        var cards = cardsForCurrentCategory(groups, filterSets);
         var bounds = pageBounds(cards.length);
         var pageCards = cards.slice(bounds.start, bounds.end);
         els.albumGrid.innerHTML = '';
@@ -2719,7 +3192,7 @@
         return cards.length;
     }
 
-    function tableEntriesForCurrentCategory(groups) {
+    function tableEntriesForCurrentCategory(groups, filterSets) {
         groups = groups || collectionGroups();
         return Object.keys(groups).map(function (id) {
             var group = groups[id];
@@ -2758,7 +3231,7 @@
                 ]
             };
         }).filter(function (entry) {
-            return cardPassesCollectionFilters(entry.card, groups)
+            return cardPassesCollectionFilters(entry.card, groups, filterSets)
                 && (state.albumCategory === 'all' || entry.sourceType === state.albumCategory)
                 && (state.collectionRarity === 'all' || entry.rarity === state.collectionRarity);
         }).sort(function (a, b) {
@@ -2769,7 +3242,8 @@
     function renderCollectionTable() {
         if (!isCollectionContext()) { return; }
         var groups = collectionGroups();
-        var categories = albumCategories(groups);
+        var filterSets = collectionFilterSets();
+        var categories = albumCategories(groups, filterSets);
         ensureAlbumCategory(categories);
         renderAlbumTabs(categories);
         renderCollectionTypeFilter(categories);
@@ -2777,9 +3251,9 @@
 
         var totalItems = 0;
         if (state.collectionMode === 'album') {
-            totalItems = renderAlbum(groups);
+            totalItems = renderAlbum(groups, filterSets);
         } else {
-            var tableRows = tableEntriesForCurrentCategory(groups);
+            var tableRows = tableEntriesForCurrentCategory(groups, filterSets);
             totalItems = tableRows.length;
             var bounds = pageBounds(totalItems);
             var pageRows = tableRows.slice(bounds.start, bounds.end);
@@ -3435,6 +3909,9 @@
         var maxHp = Math.max(1, clampInt(options.maxHp || copy.hp, 1));
         var currentHp = Math.max(1, Math.min(maxHp, clampInt(options.currentHp || copy.hp, maxHp)));
         var shields = options.noShields ? 0 : rarityShieldCount(card && card.card_rarity);
+        var moves = normalizeCombatMoves(card, copy);
+        var baseAtk = Math.max(1, clampInt(copy.atk, 1));
+        var baseDef = Math.max(1, clampInt(copy.def, 1));
         return {
             side: side,
             index: index,
@@ -3442,13 +3919,39 @@
             copy: copy,
             hp: currentHp,
             maxHp: maxHp,
-            atk: Math.max(1, clampInt(copy.atk, 1)),
-            def: Math.max(1, clampInt(copy.def, 1)),
+            baseAtk: baseAtk,
+            baseDef: baseDef,
+            atk: baseAtk,
+            def: baseDef,
             shields: shields,
             maxShields: shields,
+            moves: moves,
+            moveState: createMoveState(moves),
+            combatBuffs: { atk: 0, def: 0 },
+            combatDebuffs: { atk: 0, def: 0 },
             defending: false,
             defeated: false
         };
+    }
+
+    function normalizeCombatMoves(card, copy) {
+        var copyMoveIds = normalizeCopyMoveIds(copy && copy.moves);
+        if (copyMoveIds.length) {
+            return copyMoveIds.map(function (moveId) {
+                return cloneMoveDefinition(MOVE_LIBRARY[moveId]);
+            }).filter(Boolean).slice(0, 3);
+        }
+        return (card && Array.isArray(card.moves) ? card.moves : []).map(function (move) {
+            return cloneMoveDefinition(move);
+        }).filter(Boolean).slice(0, 3);
+    }
+
+    function createMoveState(moves) {
+        var state = {};
+        (moves || []).forEach(function (move) {
+            state[move.id] = { cooldownRemaining: 0 };
+        });
+        return state;
     }
 
     function rarityRank(rarity) {
@@ -3591,12 +4094,86 @@
         }).filter(function (index) { return index >= 0; });
     }
 
+    function findUnitMove(unit, moveId) {
+        if (!unit || !Array.isArray(unit.moves)) { return null; }
+        moveId = String(moveId || '');
+        for (var i = 0; i < unit.moves.length; i++) {
+            if (String(unit.moves[i].id) === moveId) { return unit.moves[i]; }
+        }
+        return null;
+    }
+
+    function moveCooldownRemaining(unit, move) {
+        if (!unit || !move || !unit.moveState || !unit.moveState[move.id]) { return 0; }
+        return Math.max(0, clampInt(unit.moveState[move.id].cooldownRemaining, 0));
+    }
+
+    function setMoveCooldown(unit, move) {
+        if (!unit || !move || !unit.moveState || !unit.moveState[move.id]) { return; }
+        unit.moveState[move.id].cooldownRemaining = Math.max(0, clampInt(move.cooldown, 0));
+    }
+
+    function reduceMoveCooldowns(unit) {
+        if (!unit || !unit.moveState) { return; }
+        Object.keys(unit.moveState).forEach(function (id) {
+            unit.moveState[id].cooldownRemaining = Math.max(0, clampInt(unit.moveState[id].cooldownRemaining, 0) - 1);
+        });
+    }
+
+    function recalculateCombatStats(unit) {
+        if (!unit) { return; }
+        var atkBuff = unit.combatBuffs && Number(unit.combatBuffs.atk) || 0;
+        var atkDebuff = unit.combatDebuffs && Number(unit.combatDebuffs.atk) || 0;
+        var defBuff = unit.combatBuffs && Number(unit.combatBuffs.def) || 0;
+        var defDebuff = unit.combatDebuffs && Number(unit.combatDebuffs.def) || 0;
+        var atkRatio = Math.max(MOVE_DEBUFF_MIN_RATIO, Math.min(MOVE_BUFF_MAX_RATIO, 1 + atkBuff - atkDebuff));
+        var defRatio = Math.max(MOVE_DEBUFF_MIN_RATIO, Math.min(MOVE_BUFF_MAX_RATIO, 1 + defBuff - defDebuff));
+        unit.atk = Math.max(1, Math.round(unit.baseAtk * atkRatio));
+        unit.def = Math.max(1, Math.round(unit.baseDef * defRatio));
+    }
+
+    function applyCombatModifier(unit, statKey, amount, mode, limitRatio) {
+        if (!unit || (statKey !== 'atk' && statKey !== 'def')) { return 0; }
+        amount = Math.max(0, Number(amount) || 0);
+        if (!amount) { return 0; }
+        if (mode === 'buff') {
+            var currentBuff = unit.combatBuffs && Number(unit.combatBuffs[statKey]) || 0;
+            var maxBuffRatio = Math.max(1, Number(limitRatio) || MOVE_BUFF_MAX_RATIO);
+            var nextBuff = Math.min(maxBuffRatio - 1, currentBuff + amount);
+            unit.combatBuffs[statKey] = nextBuff;
+            recalculateCombatStats(unit);
+            return Math.max(0, nextBuff - currentBuff);
+        }
+        var currentDebuff = unit.combatDebuffs && Number(unit.combatDebuffs[statKey]) || 0;
+        var minDebuffRatio = Math.max(0, Math.min(1, Number(limitRatio) || MOVE_DEBUFF_MIN_RATIO));
+        var nextDebuff = Math.min(1 - minDebuffRatio, currentDebuff + amount);
+        unit.combatDebuffs[statKey] = nextDebuff;
+        recalculateCombatStats(unit);
+        return Math.max(0, nextDebuff - currentDebuff);
+    }
+
+    function healCombatUnit(unit, amount) {
+        if (!unit) { return 0; }
+        amount = Math.max(0, Math.round(Number(amount) || 0));
+        if (!amount) { return 0; }
+        var before = unit.hp;
+        unit.hp = Math.min(unit.maxHp, unit.hp + amount);
+        return unit.hp - before;
+    }
+
+    function breakCombatShields(unit, amount) {
+        if (!unit) { return 0; }
+        var before = Math.max(0, clampInt(unit.shields, 0));
+        unit.shields = Math.max(0, before - Math.max(0, clampInt(amount, 0)));
+        return before - unit.shields;
+    }
+
     function effectiveDef(unit) {
         return Math.round((unit.def || 0) * (unit.defending ? 1.5 : 1));
     }
 
-    function combatDamage(attacker, defender) {
-        var base = Math.max(1, Math.round((attacker.atk || 0) - effectiveDef(defender)));
+    function combatDamageForAttackValue(attacker, defender, attackValue) {
+        var base = Math.max(1, Math.round((attackValue || 0) - effectiveDef(defender)));
         var rarityDiff = rarityRank(attacker.card && attacker.card.card_rarity) - rarityRank(defender.card && defender.card.card_rarity);
         var multiplier = rarityDiff >= 0
             ? 1 + (rarityDiff * 0.2)
@@ -3607,6 +4184,211 @@
             damage = Math.max(1, damage * DAILY_BOSS_STIGMATIC_DAMAGE_MULTIPLIER);
         }
         return damage;
+    }
+
+    function combatDamage(attacker, defender) {
+        return combatDamageForAttackValue(attacker, defender, attacker && attacker.atk || 0);
+    }
+
+    function combatMoveDamage(attacker, defender, move) {
+        if (!attacker || !defender || !move) { return 0; }
+        var attackValue = attacker.atk || 0;
+        if (move.formula === 'average_atk_def') {
+            attackValue = Math.round(((attacker.atk || 0) + (attacker.def || 0)) / 2);
+        } else if (Number.isFinite(Number(move.power))) {
+            attackValue = Math.round((attacker.atk || 0) * Number(move.power));
+        }
+        return combatDamageForAttackValue(attacker, defender, attackValue);
+    }
+
+    function applyMoveEffect(move, attacker, defender, damage) {
+        var effect = move && move.effect;
+        var log = [];
+        if (!effect || !effect.kind) { return log; }
+        if (effect.kind === 'debuff_atk') {
+            if (applyCombatModifier(defender, 'atk', effect.amount, 'debuff', effect.minRatio) > 0) {
+                log.push(defender.card.card_name + ' pierde ATQ. Queda en ATQ ' + defender.atk + '.');
+            }
+        } else if (effect.kind === 'debuff_def') {
+            if (applyCombatModifier(defender, 'def', effect.amount, 'debuff', effect.minRatio) > 0) {
+                log.push(defender.card.card_name + ' pierde DEF. Queda en DEF ' + defender.def + '.');
+            }
+        } else if (effect.kind === 'shield_break') {
+            if (Math.random() < Math.max(0, Math.min(1, Number(effect.chance) || 0))) {
+                var broken = breakCombatShields(defender, effect.amount || 1);
+                if (broken > 0) {
+                    log.push('El golpe rompe ' + broken + ' escudo de ' + defender.card.card_name + '.');
+                }
+            }
+        } else if (effect.kind === 'recoil') {
+            var recoil = Math.max(1, Math.round(Math.max(0, damage) * Math.max(0, Number(effect.ratio) || 0)));
+            applyCombatDamage(attacker, recoil);
+            log.push(attacker.card.card_name + ' recibe ' + recoil + ' PS de recoil.');
+        } else if (effect.kind === 'lifesteal') {
+            var healed = healCombatUnit(attacker, Math.round(Math.max(0, damage) * Math.max(0, Number(effect.ratio) || 0)));
+            if (healed > 0) {
+                log.push(attacker.card.card_name + ' recupera ' + healed + ' PS.');
+            }
+        } else if (effect.kind === 'buff_atk_def') {
+            var atkBuff = applyCombatModifier(attacker, 'atk', effect.amount, 'buff', effect.maxRatio);
+            var defBuff = applyCombatModifier(attacker, 'def', effect.amount, 'buff', effect.maxRatio);
+            if (atkBuff > 0 || defBuff > 0) {
+                log.push(attacker.card.card_name + ' refuerza su postura: ATQ ' + attacker.atk + ', DEF ' + attacker.def + '.');
+            } else {
+                log.push(attacker.card.card_name + ' ya esta en el maximo de Postura de heroe.');
+            }
+        }
+        return log;
+    }
+
+    function copyMoveDefinitions(copy) {
+        return normalizeCopyMoveIds(copy && copy.moves).map(function (moveId) {
+            return cloneMoveDefinition(MOVE_LIBRARY[moveId]);
+        }).filter(Boolean).slice(0, 3);
+    }
+
+    function copyHasLearnedMoves(copy) {
+        return normalizeCopyMoveIds(copy && copy.moves).length > 0;
+    }
+
+    function skillCostMultiplier(card, copy) {
+        var rarity = copyRarity(copy, card);
+        return SKILL_COST_MULTIPLIER_BY_RARITY[rarity] || 1;
+    }
+
+    function skillMnemoneCost(card, copy) {
+        return SKILL_BASE_MNEMONES * skillCostMultiplier(card, copy);
+    }
+
+    function skillMaterialCost(card, copy) {
+        return skillCostMultiplier(card, copy);
+    }
+
+    function skillMaterialLabel() {
+        return (UPGRADE_MATERIALS[SKILL_MATERIAL_KEY] && UPGRADE_MATERIALS[SKILL_MATERIAL_KEY].label) || 'Glifo mnemon';
+    }
+
+    function skillSlotState(copy, slotIndex) {
+        var moveIds = normalizeCopyMoveIds(copy && copy.moves);
+        var moveId = moveIds[slotIndex] || '';
+        return moveId ? cloneMoveDefinition(MOVE_LIBRARY[moveId]) : null;
+    }
+
+    function availableSkillMoveIds(copy, slotIndex) {
+        var current = normalizeCopyMoveIds(copy && copy.moves);
+        var used = {};
+        current.forEach(function (moveId, index) {
+            if (index !== slotIndex && moveId) {
+                used[moveId] = true;
+            }
+        });
+        return Object.keys(MOVE_LIBRARY).filter(function (moveId) {
+            return !used[moveId] && moveId !== (current[slotIndex] || '');
+        });
+    }
+
+    function canAffordSkillRoll(card, copy) {
+        if (state.isAdmin) { return true; }
+        return currentMnemones() >= skillMnemoneCost(card, copy) && materialStock(SKILL_MATERIAL_KEY) >= skillMaterialCost(card, copy);
+    }
+
+    function skillShortageMessage(card, copy) {
+        var missing = [];
+        var needMnemones = skillMnemoneCost(card, copy);
+        var needGlyphs = skillMaterialCost(card, copy);
+        var haveMnemones = currentMnemones();
+        var haveGlyphs = materialStock(SKILL_MATERIAL_KEY);
+        if (haveMnemones < needMnemones) {
+            missing.push('Mnemones: ' + formatNumber(needMnemones) + ' / ' + formatNumber(haveMnemones));
+        }
+        if (haveGlyphs < needGlyphs) {
+            missing.push(skillMaterialLabel() + ': ' + needGlyphs + ' / ' + haveGlyphs);
+        }
+        return missing.length ? ('Recursos insuficientes. Falta: ' + missing.join(' · ') + '.') : 'Recursos insuficientes.';
+    }
+
+    function spendSkillRollCost(card, copy) {
+        if (state.isAdmin) { return true; }
+        if (!canAffordSkillRoll(card, copy)) { return false; }
+        var mnemoneCost = skillMnemoneCost(card, copy);
+        var materialCost = skillMaterialCost(card, copy);
+        if (!state.collection) { loadCollection(); }
+        state.collection.currency = normalizeCurrency(state.collection.currency);
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        if (state.collection.currency.mnemones < mnemoneCost) { return false; }
+        if (clampInt(state.collection.materialInventory[SKILL_MATERIAL_KEY], 0) < materialCost) { return false; }
+        state.collection.currency.mnemones = Math.max(0, state.collection.currency.mnemones - mnemoneCost);
+        state.collection.materialInventory[SKILL_MATERIAL_KEY] = Math.max(0, clampInt(state.collection.materialInventory[SKILL_MATERIAL_KEY], 0) - materialCost);
+        return true;
+    }
+
+    function resetCopySkills(copy) {
+        if (!copy) { return; }
+        copy.moves = [];
+        copy.moveRollRarity = normalizeRarity(copy.rarity, 'common');
+    }
+
+    function refreshCollectionViews() {
+        renderSummary();
+        renderPackInventory();
+        renderCollectionTable();
+        renderCombatSetup();
+    }
+
+    function applySkillRoll(card, copy, slotIndex) {
+        if (!card || !copy) { return false; }
+        var selectedSlot = clampInt(slotIndex, 0);
+        if (selectedSlot < 0 || selectedSlot >= SKILL_SLOT_COUNT) { return false; }
+        var currentMove = skillSlotState(copy, selectedSlot);
+        var available = availableSkillMoveIds(copy, selectedSlot);
+        if (!available.length) {
+            setStatus('No quedan habilidades nuevas para este hueco.');
+            return false;
+        }
+        if (!spendSkillRollCost(card, copy)) {
+            setStatus(skillShortageMessage(card, copy));
+            return false;
+        }
+        var rolledId = available[Math.floor(Math.random() * available.length)];
+        var moveIds = normalizeCopyMoveIds(copy && copy.moves);
+        moveIds[selectedSlot] = rolledId;
+        copy.moves = moveIds.filter(Boolean).slice(0, SKILL_SLOT_COUNT);
+        copy.moveRollRarity = normalizeRarity(copy.rarity, 'common');
+        saveCollection();
+        playSkillSound();
+        refreshCollectionViews();
+        showCardModal(card, ownedCopiesForCard(card.card_id));
+        setStatus((currentMove ? 'Habilidad cambiada: ' : 'Habilidad aprendida: ') + (MOVE_LIBRARY[rolledId].label || rolledId) + '.');
+        return true;
+    }
+
+    function confirmSkillRoll(card, copy, slotIndex) {
+        if (!card || !copy) { return false; }
+        var currentMove = skillSlotState(copy, slotIndex);
+        var available = availableSkillMoveIds(copy, slotIndex);
+        if (!available.length) {
+            setStatus('No quedan habilidades nuevas para este hueco.');
+            return false;
+        }
+        var costMnemones = skillMnemoneCost(card, copy);
+        var costMaterial = skillMaterialCost(card, copy);
+        var actionLabel = currentMove ? 'Cambiar' : 'Aprender';
+        var currentLabel = currentMove ? ((currentMove.icon ? currentMove.icon + ' ' : '') + currentMove.label) : 'Hueco vacio';
+        var message = actionLabel + ' habilidad en Hueco ' + (slotIndex + 1) + '. Actual: ' + currentLabel + '. Coste: ' + formatNumber(costMnemones) + ' Mnemones y ' + costMaterial + ' ' + skillMaterialLabel() + '. Resultado aleatorio y sin duplicados. \u00bfSeguir?';
+        var messageHtml =
+            '<span>' + escapeHtml(actionLabel + ' habilidad en Hueco ' + (slotIndex + 1) + '. Actual: ' + currentLabel + '.') + '</span>' +
+            '<span class="hg-confirm-modal__costs">' +
+                '<span class="hg-confirm-modal__cost-row">' + materialIconHtml(SKILL_MATERIAL_KEY) + '<b>' + escapeHtml(skillMaterialLabel()) + ':</b> ' + costMaterial + ' <em>(tienes ' + escapeHtml(state.isAdmin ? 'Admin' : String(materialStock(SKILL_MATERIAL_KEY))) + ')</em></span>' +
+                '<span class="hg-confirm-modal__cost-row">' + cardGameIconHtml('remembrance', 'Remorias') + '<b>Mnemones:</b> ' + formatNumber(costMnemones) + ' <em>(tienes ' + escapeHtml(state.isAdmin ? 'Admin' : formatNumber(currentMnemones())) + ')</em></span>' +
+            '</span>' +
+            '<span>Resultado aleatorio y sin duplicados. \u00bfSeguir?</span>';
+        return confirmGameAction(
+            message,
+            { title: currentMove ? 'Cambiar habilidad' : 'Aprender habilidad', confirmLabel: actionLabel, cancelLabel: 'Cancelar', messageHtml: messageHtml },
+            function () {
+                applySkillRoll(card, copy, slotIndex);
+            }
+        );
     }
 
     function healDefendingUnit(unit) {
@@ -3838,6 +4620,120 @@
         }, COMBAT_DEFEND_MS);
     }
 
+    function playerUseMove(moveId) {
+        if (!state.combat || state.combat.over || state.combatAnimating) { return; }
+        var player = activeCombatUnit('player');
+        var enemy = activeCombatUnit('enemy');
+        if (!player || !enemy) { return; }
+        var move = findUnitMove(player, moveId);
+        if (!move) {
+            setCombatMessage('Movimiento no disponible.');
+            return;
+        }
+        if (moveCooldownRemaining(player, move) > 0) {
+            setCombatMessage('Movimiento en recarga.');
+            return;
+        }
+        if (move.type !== 'damage' && move.type !== 'buff') {
+            setCombatMessage('Movimiento aun no implementado.');
+            return;
+        }
+        if ((move.type === 'damage' && move.target !== 'enemy') || (move.type === 'buff' && move.target !== 'self')) {
+            setCombatMessage('Movimiento aun no implementado.');
+            return;
+        }
+
+        setCombatBusy(true);
+        player.defending = false;
+        setMoveCooldown(player, move);
+
+        if (Math.random() > move.accuracy) {
+            pushCombatLog(player.card.card_name + ' usa ' + move.label + ', pero falla.');
+            renderCombatBattle();
+            window.setTimeout(function () {
+                if (!state.combat || state.combat.over) {
+                    setCombatBusy(false);
+                    return;
+                }
+                var failedEnemyAction = enemyTurn();
+                renderCombatBattle();
+                animateEnemyAction(failedEnemyAction);
+                finishEnemyAction(failedEnemyAction);
+            }, COMBAT_TURN_GAP_MS);
+            return;
+        }
+
+        var defeatedEnemy = false;
+        var defeatedPlayer = false;
+        if (move.type === 'damage') {
+            var damage = combatMoveDamage(player, enemy, move);
+            applyCombatDamage(enemy, damage);
+            if (state.combat.mode === 'daily-boss') {
+                updateDailyBossHp(enemy.hp);
+            }
+            pushCombatLog(player.card.card_name + ' usa ' + move.label + ' y causa ' + damage + ' puntos de dano.');
+            applyMoveEffect(move, player, enemy, damage).forEach(pushCombatLog);
+            defeatedEnemy = enemy.defeated;
+            defeatedPlayer = player.defeated;
+            if (defeatedEnemy) {
+                pushCombatLog(enemy.card.card_name + ' cae.');
+            }
+            if (defeatedPlayer) {
+                if (state.combat.mode === 'daily-boss') {
+                    markDailyBossCopyDefeated(player.copy && player.copy.instanceId);
+                }
+                pushCombatLog(player.card.card_name + ' cae.');
+            }
+            renderCombatBattle();
+            animateCombatAttack('player', 'enemy', damage);
+            playMoveVfx(move, 'player', 'enemy');
+        } else {
+            pushCombatLog(player.card.card_name + ' adopta ' + move.label + '.');
+            applyMoveEffect(move, player, enemy, 0).forEach(pushCombatLog);
+            renderCombatBattle();
+            animateCombatDefend('player');
+            playMoveVfx(move, 'player', 'enemy');
+        }
+
+        window.setTimeout(function () {
+            if (defeatedEnemy && defeatedPlayer && state.combat && !state.combat.over) {
+                resolveDefeatedSide('enemy', function () {
+                    if (state.combat && !state.combat.over) {
+                        var currentPlayer = activeCombatUnit('player');
+                        if (currentPlayer && currentPlayer.defeated) {
+                            resolveDefeatedSide('player', function () {
+                                setCombatBusy(false);
+                            });
+                            return;
+                        }
+                    }
+                    setCombatBusy(false);
+                });
+                return;
+            }
+            if (defeatedEnemy && state.combat && !state.combat.over) {
+                resolveDefeatedSide('enemy', function () {
+                    setCombatBusy(false);
+                });
+                return;
+            }
+            if (defeatedPlayer && state.combat && !state.combat.over) {
+                resolveDefeatedSide('player', function () {
+                    setCombatBusy(false);
+                });
+                return;
+            }
+            if (!state.combat || state.combat.over) {
+                setCombatBusy(false);
+                return;
+            }
+            var enemyAction = enemyTurn();
+            renderCombatBattle();
+            animateEnemyAction(enemyAction);
+            finishEnemyAction(enemyAction);
+        }, move.type === 'buff' ? COMBAT_DEFEND_MS : (COMBAT_ATTACK_MS + COMBAT_TURN_GAP_MS));
+    }
+
     function switchPlayerCard(index, consumeTurn) {
         if (!state.combat || state.combat.over || state.combatAnimating) { return; }
         index = clampInt(index, state.combat.playerActive);
@@ -3921,9 +4817,17 @@
         window.setTimeout(function () {
             if (action && action.defeatedTarget && state.combat && !state.combat.over) {
                 resolveDefeatedSide('player', function () {
+                    if (state.combat && !state.combat.over) {
+                        reduceMoveCooldowns(activeCombatUnit('player'));
+                        renderCombatBattle();
+                    }
                     setCombatBusy(false);
                 });
                 return;
+            }
+            if (state.combat && !state.combat.over) {
+                reduceMoveCooldowns(activeCombatUnit('player'));
+                renderCombatBattle();
             }
             setCombatBusy(false);
         }, action && action.type === 'defend' ? COMBAT_DEFEND_MS : COMBAT_ATTACK_MS);
@@ -3965,6 +4869,104 @@
         window.setTimeout(function () {
             number.remove();
         }, 900);
+    }
+
+    function spawnStandEffect(side, className, count) {
+        var stand = combatStand(side);
+        if (!stand) { return; }
+        count = Math.max(1, clampInt(count, 1));
+        for (var i = 0; i < count; i++) {
+            var particle = document.createElement('span');
+            particle.className = 'hg-combat-particle ' + className;
+            particle.style.left = (18 + Math.random() * 64) + '%';
+            particle.style.top = (14 + Math.random() * 68) + '%';
+            particle.style.setProperty('--hg-particle-dx', ((Math.random() * 2) - 1).toFixed(2));
+            particle.style.setProperty('--hg-particle-dy', (-0.8 - Math.random()).toFixed(2));
+            particle.style.animationDelay = (Math.random() * 120) + 'ms';
+            stand.appendChild(particle);
+            window.setTimeout(function (node) {
+                return function () { node.remove(); };
+            }(particle), 900);
+        }
+    }
+
+    function spawnAuraEffect(side, className, duration) {
+        var stand = combatStand(side);
+        if (!stand) { return; }
+        var aura = document.createElement('span');
+        aura.className = 'hg-combat-aura ' + className;
+        stand.appendChild(aura);
+        window.setTimeout(function () {
+            aura.remove();
+        }, duration || 900);
+    }
+
+    function shakeCombatScreen(className, duration) {
+        var screen = combatScreenElement();
+        if (!screen) { return; }
+        screen.classList.remove(className);
+        void screen.offsetWidth;
+        screen.classList.add(className);
+        window.setTimeout(function () {
+            screen.classList.remove(className);
+        }, duration || 520);
+    }
+
+    function spawnCombatOrb(fromSide, toSide, className) {
+        var screen = combatScreenElement();
+        var fromStand = combatStand(fromSide);
+        var toStand = combatStand(toSide);
+        if (!screen || !fromStand || !toStand) { return; }
+        var screenRect = screen.getBoundingClientRect();
+        var fromRect = fromStand.getBoundingClientRect();
+        var toRect = toStand.getBoundingClientRect();
+        var orb = document.createElement('span');
+        orb.className = 'hg-combat-orb ' + className;
+        var startX = (fromRect.left + (fromRect.width / 2)) - screenRect.left;
+        var startY = (fromRect.top + (fromRect.height / 2)) - screenRect.top;
+        var endX = (toRect.left + (toRect.width / 2)) - screenRect.left;
+        var endY = (toRect.top + (toRect.height / 2)) - screenRect.top;
+        orb.style.left = startX + 'px';
+        orb.style.top = startY + 'px';
+        orb.style.setProperty('--hg-orb-x', (endX - startX).toFixed(1) + 'px');
+        orb.style.setProperty('--hg-orb-y', (endY - startY).toFixed(1) + 'px');
+        screen.appendChild(orb);
+        window.setTimeout(function () {
+            orb.remove();
+        }, 820);
+    }
+
+    function playMoveVfx(move, attackerSide, targetSide) {
+        if (!move) { return; }
+        if (move.id === 'hero_stance') {
+            spawnAuraEffect(attackerSide, 'hg-combat-aura--hero', 980);
+            spawnStandEffect(attackerSide, 'hg-combat-particle--hero', 10);
+            return;
+        }
+        if (move.id === 'weakening_blow') {
+            spawnStandEffect(targetSide, 'hg-combat-particle--blue', 10);
+            return;
+        }
+        if (move.id === 'armor_breaker') {
+            spawnStandEffect(targetSide, 'hg-combat-particle--green', 10);
+            return;
+        }
+        if (move.id === 'discouraging_impact') {
+            spawnStandEffect(targetSide, 'hg-combat-particle--gold', 10);
+            return;
+        }
+        if (move.id === 'brutal_strike') {
+            shakeCombatScreen('is-combat-shaking', 540);
+            spawnStandEffect(targetSide, 'hg-combat-particle--red', 14);
+            spawnStandEffect(attackerSide, 'hg-combat-particle--red', 8);
+            return;
+        }
+        if (move.id === 'phantom_leda') {
+            spawnStandEffect(targetSide, 'hg-combat-particle--blood', 12);
+            window.setTimeout(function () {
+                spawnCombatOrb(targetSide, attackerSide, 'hg-combat-orb--blood');
+            }, 120);
+        }
     }
 
     function animateCombatAttack(attackerSide, targetSide, damage) {
@@ -4050,6 +5052,25 @@
                 || (action === 'switch' && livingCombatIndexes('player').length <= 1)
                 || (action === 'defend' && (!player || player.shields <= 0))
                 || (action === 'flee' && state.combatMode === 'daily-boss');
+        });
+        renderCombatMoveSlots(player, active);
+    }
+
+    function renderCombatMoveSlots(player, active) {
+        els.combatExtraActionSlots.forEach(function (button, index) {
+            var move = player && Array.isArray(player.moves) ? player.moves[index] : null;
+            if (!move) {
+                button.textContent = 'Accion ' + (index + 1);
+                button.disabled = true;
+                button.removeAttribute('data-combat-move');
+                button.title = '';
+                return;
+            }
+            var cooldown = moveCooldownRemaining(player, move);
+            button.textContent = (move.icon ? move.icon + ' ' : '') + move.label + (cooldown > 0 ? ' (' + cooldown + ')' : '');
+            button.disabled = !active || cooldown > 0;
+            button.setAttribute('data-combat-move', move.id);
+            button.title = move.description || move.label;
         });
     }
 
@@ -4212,11 +5233,23 @@
         renderCombatBattle();
     }
 
+    function renderSelectedModalCard(cardWrap, card, copy) {
+        if (!cardWrap) { return; }
+        cardWrap.innerHTML = '';
+        cardWrap.appendChild(renderCard(card, copy, {
+            onSkillSlotClick: function (slotIndex) {
+                confirmSkillRoll(card, copy, slotIndex);
+            }
+        }));
+    }
+
     function renderCard(card, copy, options) {
         options = options || {};
         var rarityKey = copyRarity(copy, card);
+        var flippable = !!copy && !options.combatUnit && !options.memoryCompact;
         var article = document.createElement('article');
         article.className = 'hg-card hg-card--' + rarityKey;
+        if (flippable) { article.className += ' hg-card--flippable'; }
         if (isFavoriteCopy(copy)) { article.className += ' hg-card--favorite'; }
         article.setAttribute('data-rarity', RARITY_LABELS[rarityKey] || rarityKey);
         article.setAttribute('data-type', card.source_type);
@@ -4270,6 +5303,20 @@
         }
         head.appendChild(rarity);
         head.appendChild(title);
+        if (flippable) {
+            var flipButton = document.createElement('button');
+            flipButton.type = 'button';
+            flipButton.className = 'hg-card__flip-btn';
+            flipButton.textContent = '\u21BA';
+            flipButton.setAttribute('aria-label', 'Girar carta');
+            flipButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                playFlipSound();
+                article.classList.add('is-flipped');
+            });
+            head.appendChild(flipButton);
+        }
         if (isFavoriteCopy(copy)) {
             var favoriteMark = document.createElement('span');
             favoriteMark.className = 'hg-card__favorite';
@@ -4297,7 +5344,9 @@
         text.className = 'hg-card__text';
         text.textContent = card.card_text || 'Sin texto de carta.';
         body.appendChild(meta);
-        body.appendChild(text);
+        if (!options.memoryCompact) {
+            body.appendChild(text);
+        }
 
         var stats = document.createElement('div');
         stats.className = 'hg-card__stats';
@@ -4305,10 +5354,89 @@
         stats.appendChild(statNode('ATQ', copy ? copy.atk : card.atk_min + '-' + card.atk_max));
         stats.appendChild(statNode('DEF', copy ? copy.def : card.def_min + '-' + card.def_max));
 
-        article.appendChild(head);
-        article.appendChild(imageWrap);
-        article.appendChild(body);
-        article.appendChild(stats);
+        var frontFace = document.createElement('div');
+        frontFace.className = 'hg-card__face hg-card__face--front';
+        frontFace.appendChild(head);
+        frontFace.appendChild(imageWrap);
+        frontFace.appendChild(body);
+        if (!options.memoryCompact) {
+            frontFace.appendChild(stats);
+        }
+        article.appendChild(frontFace);
+
+        if (flippable) {
+            var backFace = document.createElement('div');
+            backFace.className = 'hg-card__face hg-card__face--back';
+
+            var backHead = document.createElement('div');
+            backHead.className = 'hg-card__head';
+            var backRarity = rarity.cloneNode(true);
+            backHead.appendChild(backRarity);
+            var backTitle = document.createElement('h4');
+            backTitle.textContent = card.card_name || 'Carta';
+            backHead.appendChild(backTitle);
+            var backButton = document.createElement('button');
+            backButton.type = 'button';
+            backButton.className = 'hg-card__flip-btn';
+            backButton.textContent = '\u21BA';
+            backButton.setAttribute('aria-label', 'Girar carta');
+            backButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                playFlipSound();
+                article.classList.remove('is-flipped');
+            });
+            backHead.appendChild(backButton);
+
+            var backBody = document.createElement('div');
+            backBody.className = 'hg-card__body hg-card__body--back';
+            backBody.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            var backMeta = document.createElement('div');
+            backMeta.className = 'hg-card__meta';
+            backMeta.innerHTML = '<span class="hg-card__type">' + typeChipHtml(card.source_type, 'hg-card__type-label') + '</span><span class="hg-card__rarity-name">3 huecos</span>';
+            backBody.appendChild(backMeta);
+
+            var movesBlock = document.createElement('div');
+            movesBlock.className = 'hg-card__moves';
+            movesBlock.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            movesBlock.innerHTML = '<strong>Habilidades aprendidas</strong>';
+            var moves = copyMoveDefinitions(copy);
+            for (var moveIndex = 0; moveIndex < SKILL_SLOT_COUNT; moveIndex++) {
+                var move = moves[moveIndex];
+                var moveLine = document.createElement(options.onSkillSlotClick ? 'button' : 'span');
+                var moveTooltip = move
+                    ? String(move.description || move.label || '')
+                    : 'Hueco vacio. Pulsa para aprender una Habilidad aleatoria.';
+                if (options.onSkillSlotClick) {
+                    moveLine.type = 'button';
+                    moveLine.className = 'hg-card__move-btn';
+                    moveLine.addEventListener('click', (function (index) {
+                        return function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            options.onSkillSlotClick(index);
+                        };
+                    }(moveIndex)));
+                }
+                moveLine.setAttribute('data-move-tooltip', moveTooltip);
+                moveLine.title = moveTooltip;
+                moveLine.textContent = move ? ((move.icon ? move.icon + ' ' : '') + move.label) : 'Hueco vacio';
+                movesBlock.appendChild(moveLine);
+            }
+            backBody.appendChild(movesBlock);
+
+            var backStats = stats.cloneNode(true);
+            backFace.appendChild(backHead);
+            backFace.appendChild(backBody);
+            backFace.appendChild(backStats);
+            article.appendChild(backFace);
+        }
         return article;
     }
 
@@ -4490,7 +5618,7 @@
 
         var cardWrap = document.createElement('div');
         cardWrap.className = 'hg-card-modal__card';
-        cardWrap.appendChild(renderCard(card, selected, {}));
+        renderSelectedModalCard(cardWrap, card, selected);
         panel.appendChild(cardWrap);
 
         if (sorted.length > 0) {
@@ -4561,8 +5689,7 @@
                     active.classList.remove('is-active');
                 });
                 item.classList.add('is-active');
-                cardWrap.innerHTML = '';
-                cardWrap.appendChild(renderCard(card, copy, {}));
+                renderSelectedModalCard(cardWrap, card, copy);
             });
 
             var favorite = document.createElement('button');
@@ -4648,11 +5775,12 @@
 
     function upgradeCostHtml(cost, materialKey) {
         var material = materialKey ? UPGRADE_MATERIALS[materialKey] : null;
+        var balanceText = state.isAdmin ? 'Admin' : formatNumber(currentRemorias());
         var materialText = material
             ? '<span>' + materialIconHtml(materialKey) + '<b>' + escapeHtml(material.label) + '</b><em>' + (state.isAdmin ? 'Admin' : materialStock(materialKey)) + ' / 1</em></span>'
             : '<span><b>Sin objeto ritual</b><em>No requerido</em></span>';
         return '<div class="hg-upgrade-cost">' +
-            '<span><b>' + formatNumber(cost) + ' Remorias</b><em>Coste ritual</em></span>' +
+            '<span><b>' + formatNumber(cost) + ' / ' + escapeHtml(balanceText) + ' Remorias</b><em>Coste / saldo</em></span>' +
             materialText +
         '</div>';
     }
@@ -4663,9 +5791,15 @@
 
     function spendUpgradeCost(cost, materialKey) {
         if (state.isAdmin) { return true; }
-        if (!canPayUpgradeCost(cost, materialKey)) { return false; }
-        addRemorias(-cost);
-        if (materialKey) { consumeMaterial(materialKey, 1); }
+        if (!state.collection) { loadCollection(); }
+        state.collection.currency = normalizeCurrency(state.collection.currency);
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        if (clampInt(state.collection.currency.remorias, 0) < cost) { return false; }
+        if (materialKey && clampInt(state.collection.materialInventory[materialKey], 0) < 1) { return false; }
+        state.collection.currency.remorias = Math.max(0, clampInt(state.collection.currency.remorias, 0) - cost);
+        if (materialKey) {
+            state.collection.materialInventory[materialKey] = Math.max(0, clampInt(state.collection.materialInventory[materialKey], 0) - 1);
+        }
         return true;
     }
 
@@ -5075,7 +6209,8 @@
         close.focus();
     }
 
-    function applyRarityUpgrade(targetCard, targetCopy, selectedIds) {
+    function applyRarityUpgrade(targetCard, targetCopy, selectedIds, options) {
+        options = options || {};
         if (isCopyWorking(targetCopy && targetCopy.instanceId)) {
             setStatus('Retira la carta de la rememoracion antes de evolucionarla.');
             return false;
@@ -5083,6 +6218,15 @@
         var targetRarity = copyRarity(targetCopy, targetCard);
         var next = nextRarity(targetRarity);
         if (!next) { return false; }
+        if (copyHasLearnedMoves(targetCopy) && !options.skillResetConfirmed) {
+            return confirmGameAction(
+                'Esta evolucion reinicia todas las habilidades aprendidas de la carta. Si ahora tiene habilidades, pasara a ' + (RARITY_LABELS[next] || next) + ' sin habilidades. \u00bfSeguir?',
+                { title: 'Perder habilidades', confirmLabel: 'Si, evolucionar', cancelLabel: 'Cancelar' },
+                function () {
+                    applyRarityUpgrade(targetCard, targetCopy, selectedIds, { skillResetConfirmed: true });
+                }
+            );
+        }
         var upgradeCost = upgradeMnemoneCost(targetCard, targetCopy);
         var requiredMaterial = rarityUpgradeMaterial(next);
         var selected = (selectedIds || []).slice(0, RARITY_UPGRADE_REQUIRED);
@@ -5098,15 +6242,42 @@
             setStatus('Elige sacrificios suficientes para completar la evolucion.');
             return false;
         }
-        if (!spendUpgradeCost(upgradeCost, requiredMaterial)) {
+        if (!state.collection) { loadCollection(); }
+        state.collection.currency = normalizeCurrency(state.collection.currency);
+        state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        var currentRemoriaStock = clampInt(state.collection.currency.remorias, 0);
+        var currentMaterialStock = requiredMaterial ? clampInt(state.collection.materialInventory[requiredMaterial], 0) : 0;
+        if (!state.isAdmin && (currentRemoriaStock < upgradeCost || (requiredMaterial && currentMaterialStock < 1))) {
             setStatus('Faltan Remorias u objetos rituales para evolucionar.');
             return false;
+        }
+        if (window.console && typeof window.console.info === 'function') {
+            window.console.info('[HG evolve]', {
+                from: targetRarity,
+                to: next,
+                requiredMaterial: requiredMaterial,
+                remoriasBefore: currentRemoriaStock,
+                materialBefore: currentMaterialStock
+            });
+        }
+        if (!state.isAdmin) {
+            state.collection.currency.remorias = Math.max(0, currentRemoriaStock - upgradeCost);
+            if (requiredMaterial) {
+                state.collection.materialInventory[requiredMaterial] = Math.max(0, currentMaterialStock - 1);
+            }
+        }
+        if (window.console && typeof window.console.info === 'function') {
+            window.console.info('[HG evolve:after-pay]', {
+                remoriasAfter: clampInt(state.collection.currency.remorias, 0),
+                materialAfter: requiredMaterial ? clampInt(state.collection.materialInventory[requiredMaterial], 0) : null
+            });
         }
         var remove = {};
         selected.forEach(function (id) {
             if (byId[String(id)]) { remove[String(id)] = true; }
         });
         retuneCopyStatsForRarity(targetCopy, targetCard, targetRarity, next);
+        resetCopySkills(targetCopy);
         state.collection.ownedCards = (state.collection.ownedCards || []).filter(function (copy) {
             return !remove[String(copy.instanceId || '')];
         });
@@ -5819,6 +6990,11 @@
             } else if (card) {
                 copy.rarity = card.card_rarity;
             }
+            copy.moves = normalizeCopyMoveIds(item.moves);
+            copy.moveRollRarity = highestMoveCheckpoint(item.moveRollRarity || item.movesRarityCheckpoint || 'common');
+            if (card) {
+                ensureCopyMovesForRarity(copy, card, copy.rarity, !item.moveRollRarity && !item.movesRarityCheckpoint);
+            }
             var importedQuality = clampQuality(item.quality, null);
             if (importedQuality !== null) {
                 copy.quality = importedQuality;
@@ -5831,11 +7007,24 @@
             if (!seen[id]) { delete out.workAssignments[id]; }
         });
         if (data.favoriteCardId) {
-            out.ownedCards.forEach(function (copy) {
-                if (String(copy.cardId || '') === String(data.favoriteCardId || '')) {
-                    out.favoriteCopyIds.push(String(copy.instanceId || ''));
-                }
+            var legacyCardId = String(data.favoriteCardId || '');
+            out.favoriteCopyIds = out.favoriteCopyIds.filter(function (id) {
+                var favoriteCopy = out.ownedCards.find(function (copy) {
+                    return String(copy.instanceId || '') === String(id || '');
+                });
+                return !favoriteCopy || String(favoriteCopy.cardId || '') !== legacyCardId;
             });
+            var legacyFavorites = out.ownedCards.filter(function (copy) {
+                return String(copy.cardId || '') === legacyCardId;
+            });
+            if (legacyFavorites.length) {
+                var legacyCard = state.catalogById[legacyCardId] || null;
+                legacyFavorites.sort(function (a, b) {
+                    return copySortValue(b, legacyCard) - copySortValue(a, legacyCard)
+                        || String(a.instanceId || '').localeCompare(String(b.instanceId || ''));
+                });
+                out.favoriteCopyIds.push(String(legacyFavorites[0].instanceId || ''));
+            }
         }
         var ownedIds = {};
         out.ownedCards.forEach(function (copy) { ownedIds[String(copy.instanceId || '')] = true; });
@@ -6006,6 +7195,27 @@
                 renderCollectionTable();
             });
         }
+        if (els.collectionHasMovesFilter) {
+            els.collectionHasMovesFilter.addEventListener('change', function () {
+                state.collectionHasMovesOnly = !!els.collectionHasMovesFilter.checked;
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
+        if (els.collectionInTeamFilter) {
+            els.collectionInTeamFilter.addEventListener('change', function () {
+                state.collectionInTeamOnly = !!els.collectionInTeamFilter.checked;
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
+        if (els.collectionWorkingFilter) {
+            els.collectionWorkingFilter.addEventListener('change', function () {
+                state.collectionWorkingOnly = !!els.collectionWorkingFilter.checked;
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
         if (els.collectionNameFilter) {
             els.collectionNameFilter.addEventListener('input', function () {
                 state.collectionSearch = normalizeSearchText(els.collectionNameFilter.value);
@@ -6136,6 +7346,15 @@
                 if (action === 'flee') { fleeCombat(); }
             });
         });
+        els.combatExtraActionSlots.forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (button.disabled) { return; }
+                var moveId = button.getAttribute('data-combat-move') || '';
+                if (!moveId) { return; }
+                showCombatCommandView('root');
+                playerUseMove(moveId);
+            });
+        });
     }
 
     function startShopStateTimer() {
@@ -6170,6 +7389,18 @@
             if (!button || !root.contains(button)) { return; }
             event.preventDefault();
             buyMaterial(button.getAttribute('data-shop-buy-material') || '', button.getAttribute('data-shop-buy-amount') || 1);
+        });
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-shop-buy-exchange-remorias]');
+            if (!button || !root.contains(button)) { return; }
+            event.preventDefault();
+            buyRemoriaExchange(button.getAttribute('data-shop-buy-exchange-remorias') || 0);
+        });
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-shop-claim-daily-gift]');
+            if (!button || !root.contains(button)) { return; }
+            event.preventDefault();
+            claimShopDailyGift(button.getAttribute('data-shop-claim-daily-gift') || '');
         });
         if (els.exportBtn) { els.exportBtn.addEventListener('click', exportCollection); }
         if (els.importFile) {
