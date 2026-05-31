@@ -29,7 +29,7 @@ setMetaFromPage(
 
 $hgCardsIsAdmin = hg_admin_is_authenticated();
 
-echo '<link rel="stylesheet" href="/assets/css/game-cards.css">';
+echo '<link rel="stylesheet" href="/assets/css/game-cards.css?v=20260530-ui-texts-final-db">';
 echo '<section class="hg-card-game-shell">';
 if ($gameCardsView === 'collection') {
     include dirname(__DIR__, 2) . '/partials/tool/game_cards/game_cards_collection_page.php';

@@ -23,6 +23,271 @@
 	function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 	$mensajeDeError = 'No se pudo cargar el personaje solicitado.';
 
+	function bio_plain_text($value): string {
+		$text = (string)$value;
+		$text = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $text);
+		$text = str_replace(['</p>', '</div>', '</li>', '</fieldset>', '</legend>', '</tr>'], "\n", $text);
+		$text = str_replace(['<li>'], ['- '], $text);
+		$text = strip_tags($text);
+		$text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
+		$text = preg_replace("/\r\n|\r/u", "\n", $text);
+		$text = preg_replace("/[ \t]+\n/u", "\n", $text);
+		$text = preg_replace("/\n{3,}/u", "\n\n", $text);
+		return trim((string)$text);
+	}
+
+	function bio_export_add_section(array &$sections, string $title, array $lines): void {
+		$clean = [];
+		foreach ($lines as $line) {
+			$text = bio_plain_text($line);
+			if ($text === '') continue;
+			$clean[] = $text;
+		}
+		if (empty($clean)) return;
+		$sections[] = implode("\n", [
+			str_repeat('=', 12),
+			$title,
+			str_repeat('=', 12),
+			implode("\n", $clean),
+		]);
+	}
+
+	function bio_export_fetch_resources(mysqli $link, int $characterId, int $systemId = 0): array {
+		$out = [];
+		$bridgeTable = null;
+		foreach (['bridge_characters_system_resources', 'bridge_characters_resources'] as $candidate) {
+			if (!table_exists($link, $candidate)) continue;
+			$bridgeTable = $candidate;
+			break;
+		}
+		if ($bridgeTable === null || $characterId <= 0 || !table_exists($link, 'dim_systems_resources')) return $out;
+
+		$hasBridgeSysRes = table_exists($link, 'bridge_systems_resources_to_system');
+		$hasBridgeSysResSort = $hasBridgeSysRes && column_exists($link, 'bridge_systems_resources_to_system', 'sort_order');
+
+		$sql = "
+			SELECT r.id, r.name, r.kind, b.value_permanent, b.value_temporary,
+		";
+		$sql .= ($hasBridgeSysRes && $hasBridgeSysResSort && $systemId > 0)
+			? " COALESCE(bs.sort_order, r.sort_order, 9999) AS sort_order_eff "
+			: " COALESCE(r.sort_order, 9999) AS sort_order_eff ";
+		$sql .= "
+			FROM `$bridgeTable` b
+			INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+		";
+		if ($hasBridgeSysRes && $hasBridgeSysResSort && $systemId > 0) {
+			$sql .= "
+			LEFT JOIN bridge_systems_resources_to_system bs
+			       ON bs.resource_id = r.id
+			      AND bs.system_id = ?
+			";
+		}
+		$sql .= "
+			WHERE b.character_id = ?
+			ORDER BY r.kind, sort_order_eff, r.name
+		";
+
+		if ($st = $link->prepare($sql)) {
+			if ($hasBridgeSysRes && $hasBridgeSysResSort && $systemId > 0) {
+				$st->bind_param('ii', $systemId, $characterId);
+			} else {
+				$st->bind_param('i', $characterId);
+			}
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$kind = strtolower(trim((string)($row['kind'] ?? '')));
+					if (!isset($out[$kind])) $out[$kind] = [];
+					$out[$kind][] = [
+						'id' => (int)($row['id'] ?? 0),
+						'name' => (string)($row['name'] ?? ''),
+						'perm' => (int)($row['value_permanent'] ?? 0),
+						'temp' => (int)($row['value_temporary'] ?? 0),
+					];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+
+		return $out;
+	}
+
+	function bio_export_fetch_merits(mysqli $link, int $characterId): array {
+		$out = [];
+		$sql = "
+			SELECT nmd.name, nmd.kind, nmd.cost, b.level
+			FROM bridge_characters_merits_flaws b
+			JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
+			WHERE b.character_id = ?
+			ORDER BY nmd.kind DESC, nmd.cost, nmd.name
+		";
+		if ($st = $link->prepare($sql)) {
+			$st->bind_param('i', $characterId);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$out[] = [
+						'name' => (string)($row['name'] ?? ''),
+						'kind' => (string)($row['kind'] ?? ''),
+						'level' => ($row['level'] !== null) ? (int)$row['level'] : null,
+						'cost' => ($row['cost'] !== null) ? (int)$row['cost'] : null,
+					];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+		return $out;
+	}
+
+	function bio_export_fetch_conditions(mysqli $link, int $characterId): array {
+		$out = [];
+		if (!table_exists($link, 'bridge_characters_conditions') || !table_exists($link, 'dim_character_conditions')) return $out;
+		$hasConditionInstanceNo = column_exists($link, 'bridge_characters_conditions', 'instance_no');
+		$hasConditionLocation = column_exists($link, 'bridge_characters_conditions', 'location');
+		$hasConditionActive = column_exists($link, 'bridge_characters_conditions', 'is_active');
+		$conditionInstanceSelect = $hasConditionInstanceNo ? 'bcc.instance_no' : '1';
+		$conditionLocationSelect = $hasConditionLocation ? 'bcc.location' : 'NULL';
+		$conditionActiveWhere = $hasConditionActive ? "AND (bcc.is_active = 1 OR bcc.is_active IS NULL)" : "";
+		$sql = "
+			SELECT c.name, c.category, {$conditionInstanceSelect} AS instance_no, {$conditionLocationSelect} AS condition_location
+			FROM bridge_characters_conditions bcc
+			JOIN dim_character_conditions c ON c.id = bcc.condition_id
+			WHERE bcc.character_id = ?
+			  {$conditionActiveWhere}
+			ORDER BY
+				CASE
+					WHEN c.category = 'Deformidad Metis' THEN 0
+					WHEN c.category = 'Herida de Guerra' THEN 1
+					WHEN c.category LIKE '%Cicatrices%' THEN 1
+					WHEN c.category = 'Trastorno Mental' THEN 2
+					ELSE 9999
+				END ASC,
+				c.name ASC,
+				instance_no ASC
+		";
+		if ($st = $link->prepare($sql)) {
+			$st->bind_param('i', $characterId);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$out[] = [
+						'name' => (string)($row['name'] ?? ''),
+						'category' => (string)($row['category'] ?? ''),
+						'instance_no' => (int)($row['instance_no'] ?? 1),
+						'location' => trim((string)($row['condition_location'] ?? '')),
+					];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+		return $out;
+	}
+
+	function bio_export_fetch_powers(mysqli $link, int $characterId): array {
+		$bridgeRows = [];
+		$out = ['dones' => [], 'disciplinas' => [], 'rituales' => []];
+		if ($st = $link->prepare("SELECT power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id = ? ORDER BY power_kind ASC")) {
+			$st->bind_param('i', $characterId);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$kind = (string)($row['power_kind'] ?? '');
+					if (!isset($out[$kind])) $out[$kind] = [];
+					$bridgeRows[$kind][] = [
+						'id' => (int)($row['power_id'] ?? 0),
+						'level' => ($row['power_level'] !== null) ? (int)$row['power_level'] : null,
+					];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+
+		foreach ($bridgeRows as $kind => $rows) {
+			$ids = [];
+			foreach ($rows as $row) {
+				if (($row['id'] ?? 0) > 0) $ids[(int)$row['id']] = true;
+			}
+			if (empty($ids)) continue;
+			$idList = implode(',', array_map('intval', array_keys($ids)));
+			$meta = [];
+			if ($kind === 'dones') {
+				$query = "SELECT id, name, rank AS sort_level, rank AS display_level FROM fact_gifts WHERE id IN ($idList)";
+			} elseif ($kind === 'disciplinas') {
+				$query = "SELECT id, name, NULL AS sort_level, NULL AS display_level FROM dim_discipline_types WHERE id IN ($idList)";
+			} elseif ($kind === 'rituales') {
+				$query = "SELECT id, name, level AS sort_level, level AS display_level FROM fact_rites WHERE id IN ($idList)";
+			} else {
+				continue;
+			}
+			if ($rs = $link->query($query)) {
+				while ($row = $rs->fetch_assoc()) {
+					$meta[(int)$row['id']] = $row;
+				}
+				$rs->close();
+			}
+			foreach ($rows as $row) {
+				$id = (int)($row['id'] ?? 0);
+				$data = $meta[$id] ?? null;
+				if (!$data) continue;
+				$level = null;
+				if ($kind === 'disciplinas') {
+					$level = $row['level'];
+				} else {
+					$level = isset($data['display_level']) ? (int)$data['display_level'] : null;
+				}
+				$out[$kind][] = [
+					'name' => (string)($data['name'] ?? ''),
+					'level' => $level,
+					'sort_level' => isset($data['sort_level']) && $data['sort_level'] !== null ? (int)$data['sort_level'] : 999,
+				];
+			}
+			usort($out[$kind], static function (array $a, array $b): int {
+				$cmp = ((int)($a['sort_level'] ?? 999)) <=> ((int)($b['sort_level'] ?? 999));
+				if ($cmp !== 0) return $cmp;
+				return strcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+			});
+		}
+
+		return $out;
+	}
+
+	function bio_export_fetch_items(mysqli $link, int $characterId): array {
+		$out = [];
+		$sql = "
+			SELECT o.name, o.item_type_id, COALESCE(t.name, '') AS item_type_name
+			FROM bridge_characters_items b
+			JOIN fact_items o ON o.id = b.item_id
+			LEFT JOIN dim_item_types t ON t.id = o.item_type_id
+			WHERE b.character_id = ?
+			ORDER BY o.item_type_id, o.name
+		";
+		if ($st = $link->prepare($sql)) {
+			$st->bind_param('i', $characterId);
+			$st->execute();
+			$res = $st->get_result();
+			if ($res) {
+				while ($row = $res->fetch_assoc()) {
+					$out[] = [
+						'name' => (string)($row['name'] ?? ''),
+						'type_name' => (string)($row['item_type_name'] ?? ''),
+						'type_id' => (int)($row['item_type_id'] ?? 0),
+					];
+				}
+				$res->free();
+			}
+			$st->close();
+		}
+		return $out;
+	}
+
 	function bio_page_is_admin_flag_enabled(): bool {
 		$sessionAdmin = (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
 		if ($sessionAdmin) return true;
@@ -817,10 +1082,222 @@
 		// ----------------------------------------- //
 		include ("app/partials/bio/bio_page_section_01_data.php"); // Utilizamos "include" para no sobrecargar la página con código
 		// ----------------------------------------- //
+		$bioExportSections = [];
+		$bioExportMeta = [];
+		$bioExportMeta[] = 'Nombre: ' . $bioName;
+		if (trim((string)$bioAlias) !== '') $bioExportMeta[] = 'Alias: ' . $bioAlias;
+		if (trim((string)$bioPackName) !== '') $bioExportMeta[] = $titlePkName . ': ' . $bioPackName;
+		$bioExportMeta[] = ($bioBirthLabel ?? 'Fecha de nacimiento') . ': ' . (($bioBday !== '') ? $bioBday : 'Desconocido');
+		if (trim((string)$bioStatus) !== '') $bioExportMeta[] = 'Estado: ' . $bioStatus;
+		if (trim((string)($bioDeathDisplay ?? '')) !== '') $bioExportMeta[] = 'Muerte: ' . $bioDeathDisplay;
+		if (trim((string)$bioConcept) !== '') $bioExportMeta[] = 'Concepto: ' . $bioConcept;
+		bio_export_add_section($bioExportSections, 'DATOS DEL PERSONAJE', $bioExportMeta);
+
+		$bioExportInfo = [];
+		if (trim((string)$bioText) !== '') $bioExportInfo[] = bio_plain_text($bioText);
+		if ($bioIsAdminFlag && trim((string)$bioNotes) !== '') $bioExportInfo[] = 'Notas internas (admin):' . "\n" . bio_plain_text($bioNotes);
+		bio_export_add_section($bioExportSections, 'INFORMACION', $bioExportInfo);
+
+		if ($bioHasSheet) {
+			$bioExportSheetTop = [];
+			if ($bioRace != 0) $bioExportSheetTop[] = $titleBreed . ': ' . bio_plain_text($raceLink ?? '');
+			if ($bioAuspice != 0) $bioExportSheetTop[] = $titleAuspice . ': ' . bio_plain_text($auspiceLink ?? '');
+			if ($bioTribe != 0) $bioExportSheetTop[] = $titleTribe . ': ' . bio_plain_text($tribeLink ?? '');
+			if (!empty($bioMiscLinksByKind) && is_array($bioMiscLinksByKind)) {
+				foreach ($bioMiscLinksByKind as $miscKind => $miscLinks) {
+					$txt = bio_plain_text(implode(', ', array_values((array)$miscLinks)));
+					if ($txt !== '') $bioExportSheetTop[] = bio_plain_text((string)$miscKind) . ': ' . $txt;
+				}
+			}
+			if (($bioTotemId ?? 0) > 0 || ($totemLink ?? '') !== '' || trim((string)$bioTotem) !== '') {
+				$bioExportSheetTop[] = 'Totem: ' . bio_plain_text(($totemLink ?? '') !== '' ? $totemLink : $bioTotem);
+			}
+			if ((int)($bioNature ?? 0) > 0) $bioExportSheetTop[] = 'Naturaleza: ' . bio_plain_text($natureLink ?? '');
+			if ((int)($bioBehavior ?? 0) > 0) $bioExportSheetTop[] = 'Conducta: ' . bio_plain_text($demeanorLink ?? '');
+			if ($bioPack != 0) $bioExportSheetTop[] = $titlePack . ': ' . bio_plain_text($packLink ?? '');
+			if ($bioClan != 0) $bioExportSheetTop[] = $titleClan . ': ' . bio_plain_text($clanLink ?? '');
+			if ($bioPlayer != 0) {
+				$playerDisplay = (isset($playerLinkOfChara) && $playerLinkOfChara !== '') ? $playerLinkOfChara : ($namePlayerOfChara ?? '');
+				$bioExportSheetTop[] = 'Jugador: ' . bio_plain_text($playerDisplay);
+			}
+			if ($bioChronic != 0) $bioExportSheetTop[] = 'Cronica: ' . bio_plain_text($nameCronicaFinal ?? '');
+			bio_export_add_section($bioExportSections, 'DETALLES DE HOJA', $bioExportSheetTop);
+
+			$bioExportAttrs = [];
+			foreach ($bioAttrList as $trait) {
+				$name = trim((string)($trait['name'] ?? ''));
+				if ($name === '') continue;
+				$bioExportAttrs[] = $name . ': ' . (int)($trait['value'] ?? 0);
+			}
+			bio_export_add_section($bioExportSections, 'ATRIBUTOS', $bioExportAttrs);
+
+			$bioExportSkills = [];
+			foreach ($bioSkillCols as $groupName => $traits) {
+				$bioExportSkills[] = '[' . bio_plain_text((string)$groupName) . ']';
+				foreach ($traits as $trait) {
+					$name = trim((string)($trait['name'] ?? ''));
+					if ($name === '') continue;
+					$bioExportSkills[] = $name . ': ' . (int)($trait['value'] ?? 0);
+				}
+				$bioExportSkills[] = '';
+			}
+			bio_export_add_section($bioExportSections, 'HABILIDADES', $bioExportSkills);
+
+			$bioExportBackgrounds = [];
+			foreach ($bioBackgrounds as $bg) {
+				$name = trim((string)($bg['name'] ?? ''));
+				$val = (int)($bg['value'] ?? 0);
+				if ($name === '' || $val <= 0) continue;
+				$bioExportBackgrounds[] = $name . ': ' . $val;
+			}
+			bio_export_add_section($bioExportSections, 'TRASFONDOS', $bioExportBackgrounds);
+
+			if (!$bioIsMonster) {
+				$bioExportMerits = [];
+				foreach (bio_export_fetch_merits($link, $characterId) as $row) {
+					$name = trim((string)($row['name'] ?? ''));
+					if ($name === '') continue;
+					$kind = trim((string)($row['kind'] ?? ''));
+					$level = $row['level'] ?? $row['cost'] ?? null;
+					$line = $name;
+					if ($kind !== '') $line .= ' [' . $kind . ']';
+					if ($level !== null) $line .= ': ' . (int)$level;
+					$bioExportMerits[] = $line;
+				}
+				bio_export_add_section($bioExportSections, 'MERITOS Y DEFECTOS', $bioExportMerits);
+			}
+
+			$bioExportResources = [];
+			$resourcesByKindExport = bio_export_fetch_resources($link, $characterId, (int)($bioSystemId ?? 0));
+			foreach (($resourcesByKindExport['renombre'] ?? []) as $res) {
+				$bioExportResources[] = '[Renombre] ' . (string)($res['name'] ?? '') . ': P ' . (int)($res['perm'] ?? 0) . ' / T ' . (int)($res['temp'] ?? 0);
+			}
+			if (!$bioIsMonster && trim((string)$bioRange) !== '') $bioExportResources[] = '[Renombre] Rango: ' . $bioRange;
+			foreach (($resourcesByKindExport['estado'] ?? []) as $res) {
+				$bioExportResources[] = '[Estado] ' . (string)($res['name'] ?? '') . ': ' . (int)($res['temp'] ?? 0) . '/' . (int)($res['perm'] ?? 0);
+			}
+			if (!$bioIsMonster) {
+				foreach (($resourcesByKindExport['exp'] ?? []) as $res) {
+					$bioExportResources[] = '[Experiencia] ' . (string)($res['name'] ?? '') . ': ' . (int)($res['temp'] ?? 0) . '/' . (int)($res['perm'] ?? 0) . ' PX';
+				}
+			}
+			bio_export_add_section($bioExportSections, 'RECURSOS', $bioExportResources);
+
+			$bioExportConditions = [];
+			foreach (bio_export_fetch_conditions($link, $characterId) as $row) {
+				$line = trim((string)($row['name'] ?? ''));
+				if ($line === '') continue;
+				$location = trim((string)($row['location'] ?? ''));
+				$instanceNo = (int)($row['instance_no'] ?? 1);
+				if ($location !== '') $line .= ' (' . $location . ')';
+				elseif ($instanceNo > 1) $line .= ' #' . $instanceNo;
+				$category = trim((string)($row['category'] ?? ''));
+				if ($category !== '') $line .= ' [' . $category . ']';
+				$bioExportConditions[] = $line;
+			}
+			bio_export_add_section($bioExportSections, 'CONDICIONES', $bioExportConditions);
+
+			$bioExportPowers = [];
+			$powersExport = bio_export_fetch_powers($link, $characterId);
+			foreach (['dones' => 'Dones', 'disciplinas' => 'Disciplinas', 'rituales' => 'Rituales'] as $kindKey => $kindLabel) {
+				$list = $powersExport[$kindKey] ?? [];
+				if (empty($list)) continue;
+				$bioExportPowers[] = '[' . $kindLabel . ']';
+				foreach ($list as $row) {
+					$line = trim((string)($row['name'] ?? ''));
+					if ($line === '') continue;
+					if (($row['level'] ?? null) !== null) $line .= ': ' . (int)$row['level'];
+					$bioExportPowers[] = $line;
+				}
+				$bioExportPowers[] = '';
+			}
+			bio_export_add_section($bioExportSections, 'PODERES', $bioExportPowers);
+
+			$bioExportItems = [];
+			foreach (bio_export_fetch_items($link, $characterId) as $row) {
+				$name = trim((string)($row['name'] ?? ''));
+				if ($name === '') continue;
+				$typeName = trim((string)($row['type_name'] ?? ''));
+				$bioExportItems[] = ($typeName !== '' ? '[' . $typeName . '] ' : '') . $name;
+			}
+			bio_export_add_section($bioExportSections, 'INVENTARIO', $bioExportItems);
+		}
+
+		$bioExportRelations = [];
+		foreach ($relaciones as $rel) {
+			$name = trim((string)($rel['name'] ?? ''));
+			$type = trim((string)($rel['relation_type'] ?? ''));
+			if ($name === '' && $type === '') continue;
+			$dir = ((string)($rel['direction'] ?? '') === 'incoming') ? 'recibe de' : 'hacia';
+			$bioExportRelations[] = ($type !== '' ? $type : 'Relacion') . ' [' . $dir . ']: ' . $name;
+		}
+		foreach ($killsAsKiller as $kill) {
+			$victim = trim((string)($kill['victim_name'] ?? ''));
+			if ($victim === '') continue;
+			$extra = trim((string)($kill['death_date'] ?? ''));
+			if ($extra === '' && trim((string)($kill['event_date'] ?? '')) !== '') $extra = trim((string)$kill['event_date']);
+			$line = 'Muerte causada: ' . $victim;
+			if ($extra !== '') $line .= ' (' . $extra . ')';
+			$bioExportRelations[] = $line;
+		}
+		bio_export_add_section($bioExportSections, 'RELACIONES', $bioExportRelations);
+
+		$bioExportParticipation = [];
+		foreach ($participacion as $part) {
+			$seasonName = trim((string)($part['temporada_name'] ?? ''));
+			$chapterName = trim((string)($part['name'] ?? ''));
+			$playedDate = trim((string)($part['played_date'] ?? ''));
+			$bits = [];
+			if ($seasonName !== '') $bits[] = $seasonName;
+			if ($chapterName !== '') $bits[] = $chapterName;
+			if ($playedDate !== '') $bits[] = $playedDate;
+			if (!empty($bits)) $bioExportParticipation[] = implode(' | ', $bits);
+		}
+		if ($numEventosParticipa > 0) $bioExportParticipation[] = 'Eventos de timeline vinculados: ' . $numEventosParticipa;
+		bio_export_add_section($bioExportSections, 'PARTICIPACION', $bioExportParticipation);
+
+		$bioExportDocs = [];
+		foreach ($characterDocs as $doc) {
+			$title = trim((string)($doc['title'] ?? ''));
+			if ($title === '') continue;
+			$prefix = trim((string)($doc['section_name'] ?? ''));
+			$relLabel = trim((string)($doc['relation_label'] ?? ''));
+			$line = $title;
+			if ($prefix !== '') $line = '[' . $prefix . '] ' . $line;
+			if ($relLabel !== '') $line .= ' - ' . $relLabel;
+			$bioExportDocs[] = $line;
+		}
+		foreach ($characterExternalLinks as $ext) {
+			$title = trim((string)($ext['title'] ?? ''));
+			$url = trim((string)($ext['url'] ?? ''));
+			if ($title === '' && $url === '') continue;
+			$line = $title !== '' ? $title : $url;
+			$kind = trim((string)($ext['kind'] ?? ''));
+			if ($kind !== '') $line = '[' . $kind . '] ' . $line;
+			if ($url !== '' && $url !== $title) $line .= ' - ' . $url;
+			$bioExportDocs[] = $line;
+		}
+		bio_export_add_section($bioExportSections, 'DOCUMENTACION Y ENLACES', $bioExportDocs);
+
+		$bioPlainExportText = trim(implode("\n\n", $bioExportSections));
 		/* MODERNO NUEVO */
 		include("app/partials/main_nav_bar.php");	// Barra Navegación
 		// ================================================================== //
 		echo "<link rel='stylesheet' href='/assets/css/hg-bio.css'>";
+		echo "<style>
+			.bio-export-bar{display:flex;justify-content:flex-end;align-items:center;margin:12px 0 16px}
+			.bio-export-btn{border:1px solid rgba(255,255,255,.18);background:#1f2b2f;color:#f5efe2;padding:10px 14px;border-radius:10px;cursor:pointer;font:inherit}
+			.bio-export-btn:hover{background:#29383d}
+			.bio-export-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:1200}
+			.bio-export-modal.is-open{display:flex}
+			.bio-export-modal__panel{width:min(980px,100%);max-height:min(85vh,900px);background:#11181b;border:1px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.45);display:flex;flex-direction:column}
+			.bio-export-modal__head,.bio-export-modal__foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
+			.bio-export-modal__title{font-weight:700;color:#f5efe2}
+			.bio-export-modal__body{padding:0 16px 16px}
+			.bio-export-modal__ta{width:100%;min-height:56vh;resize:vertical;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#0a1012;color:#f3f0e7;padding:14px;font:13px/1.45 Consolas, Monaco, monospace}
+			.bio-export-modal__actions{display:flex;gap:10px;flex-wrap:wrap}
+			.bio-export-copy-state{color:#cfd8d3;font-size:12px;min-height:18px}
+		</style>";
 
 		echo "<div class='bioLayout'>";
 		echo "<section class='bioContextHeader'>";
@@ -852,6 +1329,7 @@
 			'docs'     => '/img/ui/icons/icon_document.png',
 			'bso'      => '/img/ui/icons/icon_character_music.png',
 			'comments' => '/img/ui/icons/icon_character_comments.png',
+			'export'   => '',
 		];
 
 		// Fallback por si alguna ruta llega vacia.
@@ -862,10 +1340,14 @@
 		}
 
 		$renderBioTab = function (string $tabKey, string $labelHtml) use ($bioTabIcons) {
-			$icon = trim((string)($bioTabIcons[$tabKey] ?? $bioTabIcons['default'] ?? ''));
 			$iconHtml = '';
-			if ($icon !== '') {
+			if ($tabKey === 'export') {
+				$iconHtml = "&#128203;";
+			} else {
+				$icon = trim((string)($bioTabIcons[$tabKey] ?? $bioTabIcons['default'] ?? ''));
+				if ($icon !== '') {
 				$iconHtml = "<img class='hgTabIcon' src='" . h($icon) . "' alt='' width='16' height='16' loading='lazy' decoding='async'>";
+				}
 			}
 			echo "<button class='hgTabBtn' data-tab='" . h($tabKey) . "'><span class='hgTabEmoji' aria-hidden='true'>" . $iconHtml . "</span><span class='hgTabLabel'>" . $labelHtml . "</span></button>";
 		};
@@ -878,6 +1360,7 @@
 		if ($hasDocsLinks) $renderBioTab('docs', 'Documentaci&oacute;n');
 		if ($hasBso) $renderBioTab('bso', 'Banda sonora');
 		if ($hasComments) $renderBioTab('comments', 'Comentarios');
+		$renderBioTab('export', 'Exportar');
 		echo "</div>";
 
 	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
@@ -1020,6 +1503,13 @@
 		<?php endif; ?>
 		<?php
 	echo "</div>"; // FIN DE CUERPO PRINCIPAL DE LA FICHA DE INFORMACION
+		echo "<div class='bio-export-modal' id='bioExportModal' aria-hidden='true'>";
+		echo "  <div class='bio-export-modal__panel' role='dialog' aria-modal='true' aria-labelledby='bioExportTitle'>";
+		echo "    <div class='bio-export-modal__head'><div class='bio-export-modal__title' id='bioExportTitle'>Exportación en texto plano</div><button type='button' class='bio-export-btn' id='bioExportCloseTop'>Cerrar</button></div>";
+		echo "    <div class='bio-export-modal__body'><textarea readonly class='bio-export-modal__ta' id='bioExportTextarea'>" . h($bioPlainExportText) . "</textarea></div>";
+		echo "    <div class='bio-export-modal__foot'><div class='bio-export-copy-state' id='bioExportCopyState'></div><div class='bio-export-modal__actions'><button type='button' class='bio-export-btn' id='bioExportCopy'>Copiar todo</button><button type='button' class='bio-export-btn' id='bioExportCloseBottom'>Cerrar</button></div></div>";
+		echo "  </div>";
+		echo "</div>";
 		echo "</div>"; // bioLayout
 	} else {
 		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
@@ -1065,7 +1555,10 @@
 		if (tabs.length) activate(tabs[0].dataset.tab);
 
 		tabs.forEach(b => {
-			b.addEventListener('click', () => activate(b.dataset.tab));
+			b.addEventListener('click', () => {
+				if (b.dataset.tab === 'export') return;
+				activate(b.dataset.tab);
+			});
 		});
 
 		document.querySelectorAll('.bioSideNav a[data-tab]').forEach(a => {
@@ -1104,6 +1597,64 @@
 				}
 			} catch (e) {}
 		});
+	});
+
+	document.addEventListener('DOMContentLoaded', () => {
+		const modal = document.getElementById('bioExportModal');
+		const openBtn = document.querySelector('.hgTabBtn[data-tab="export"], .bioTabBtn[data-tab="export"]');
+		const closeTop = document.getElementById('bioExportCloseTop');
+		const closeBottom = document.getElementById('bioExportCloseBottom');
+		const copyBtn = document.getElementById('bioExportCopy');
+		const textarea = document.getElementById('bioExportTextarea');
+		const state = document.getElementById('bioExportCopyState');
+		if (!modal || !openBtn || !textarea) return;
+
+		const setState = (text) => {
+			if (state) state.textContent = text || '';
+		};
+		const openModal = () => {
+			modal.classList.add('is-open');
+			modal.setAttribute('aria-hidden', 'false');
+			setTimeout(() => {
+				textarea.focus();
+				textarea.select();
+			}, 30);
+		};
+		const closeModal = () => {
+			modal.classList.remove('is-open');
+			modal.setAttribute('aria-hidden', 'true');
+			setState('');
+		};
+
+		openBtn.addEventListener('click', openModal);
+		if (closeTop) closeTop.addEventListener('click', closeModal);
+		if (closeBottom) closeBottom.addEventListener('click', closeModal);
+		modal.addEventListener('click', (e) => {
+			if (e.target === modal) closeModal();
+		});
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+		});
+		if (copyBtn) {
+			copyBtn.addEventListener('click', async () => {
+				const text = String(textarea.value || '');
+				if (!text) return;
+				try {
+					if (navigator.clipboard && navigator.clipboard.writeText) {
+						await navigator.clipboard.writeText(text);
+					} else {
+						textarea.focus();
+						textarea.select();
+						document.execCommand('copy');
+					}
+					setState('Texto copiado.');
+				} catch (err) {
+					textarea.focus();
+					textarea.select();
+					setState('No se pudo copiar. Usa Ctrl+C.');
+				}
+			});
+		}
 	});
 </script>
 	<script>

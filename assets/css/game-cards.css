@@ -33,6 +33,34 @@
     --rarity-legendary: #f39a32;
     --rarity-mythic: #ff4f8f;
     --rarity-stigmatic: #8a0303;
+    --rarity-bg-common: linear-gradient(180deg, #eeeeea, #424242 42%, #151515);
+    --rarity-bg-unusual: linear-gradient(180deg, #173825, #0b1510);
+    --rarity-bg-rare: linear-gradient(180deg, #172c4c, #0b1019);
+    --rarity-bg-epic: linear-gradient(180deg, #4c1530, #190912);
+    --rarity-bg-legendary: linear-gradient(180deg, #4b2b12, #16100a);
+    --rarity-bg-mythic: linear-gradient(180deg, #37204e, #120b19);
+    --rarity-bg-stigmatic: linear-gradient(180deg, #4b0509, #150203);
+    --rarity-head-common: rgba(232, 232, 224, 0.96);
+    --rarity-head-unusual: rgba(25, 75, 45, 0.96);
+    --rarity-head-rare: rgba(24, 55, 98, 0.96);
+    --rarity-head-epic: rgba(116, 31, 70, 0.96);
+    --rarity-head-legendary: rgba(102, 57, 20, 0.96);
+    --rarity-head-mythic: rgba(79, 39, 116, 0.96);
+    --rarity-head-stigmatic: rgba(102, 6, 12, 0.96);
+    --rarity-body-common: rgba(58, 58, 58, 0.92);
+    --rarity-body-unusual: rgba(13, 48, 29, 0.92);
+    --rarity-body-rare: rgba(15, 38, 70, 0.92);
+    --rarity-body-epic: rgba(74, 18, 45, 0.92);
+    --rarity-body-legendary: rgba(72, 38, 15, 0.92);
+    --rarity-body-mythic: rgba(55, 27, 82, 0.92);
+    --rarity-body-stigmatic: rgba(54, 3, 7, 0.94);
+    --rarity-row-common: linear-gradient(90deg, rgba(244,244,244,0.08), #151515 18%);
+    --rarity-row-unusual: linear-gradient(90deg, rgba(66,214,123,0.12), #151515 18%);
+    --rarity-row-rare: linear-gradient(90deg, rgba(78,156,255,0.13), #151515 18%);
+    --rarity-row-epic: linear-gradient(90deg, rgba(255,79,143,0.15), #151515 18%);
+    --rarity-row-legendary: linear-gradient(90deg, rgba(243,154,50,0.15), #151515 18%);
+    --rarity-row-mythic: linear-gradient(90deg, rgba(181,108,255,0.16), #151515 18%);
+    --rarity-row-stigmatic: linear-gradient(90deg, rgba(138,3,3,0.22), #151515 18%);
 }
 
 .hg-cards {
@@ -51,6 +79,10 @@
         linear-gradient(135deg, rgba(0, 0, 102, 0.82), rgba(0, 0, 51, 0.94) 42%, rgba(3, 5, 10, 0.98)),
         repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 16px);
     border: 1px solid rgba(68, 131, 219, 0.3);
+}
+
+.hg-cards [hidden] {
+    display: none !important;
 }
 
 .hg-game-tabs {
@@ -188,6 +220,10 @@
 }
 
 .hg-pack {
+    --pack-primary: rgba(237, 204, 129, 0.92);
+    --pack-secondary: rgba(88, 59, 48, 0.98);
+    --pack-dark: rgba(19, 25, 33, 1);
+    --pack-accent: rgba(255, 226, 150, 0.48);
     position: relative;
     width: min(100%, 250px);
     aspect-ratio: 2 / 2.75;
@@ -197,9 +233,9 @@
     color: #f8f1df;
     cursor: pointer;
     background:
-        linear-gradient(145deg, rgba(237, 204, 129, 0.92), rgba(88, 59, 48, 0.98) 46%, rgba(19, 25, 33, 1) 47%),
+        linear-gradient(145deg, var(--pack-primary), var(--pack-secondary) 46%, var(--pack-dark) 47%),
         linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
-    border: 1px solid rgba(255, 226, 150, 0.48);
+    border: 1px solid var(--pack-accent);
     border-radius: 8px;
     box-shadow: 0 22px 54px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.12);
     overflow: hidden;
@@ -210,75 +246,6 @@
     width: 100%;
     aspect-ratio: auto;
     min-height: 178px;
-}
-
-.hg-pack--standard {
-    background:
-        linear-gradient(145deg, rgba(237, 204, 129, 0.92), rgba(88, 59, 48, 0.98) 46%, rgba(19, 25, 33, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
-}
-
-.hg-pack--magic {
-    background:
-        linear-gradient(145deg, rgba(181, 108, 255, 0.92), rgba(52, 19, 89, 0.98) 46%, rgba(7, 13, 35, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
-    border-color: rgba(213, 166, 255, 0.58);
-}
-
-.hg-pack--echoes {
-    background:
-        linear-gradient(145deg, rgba(226, 232, 225, 0.88), rgba(63, 83, 75, 0.98) 46%, rgba(8, 12, 13, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(214, 236, 219, 0.5);
-}
-
-.hg-pack--characters {
-    background:
-        linear-gradient(145deg, rgba(78, 156, 255, 0.9), rgba(17, 52, 102, 0.98) 46%, rgba(5, 10, 26, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(124, 182, 255, 0.58);
-}
-
-.hg-pack--lineage {
-    background:
-        linear-gradient(145deg, rgba(245, 88, 120, 0.9), rgba(91, 19, 42, 0.98) 46%, rgba(10, 9, 24, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(255, 142, 166, 0.58);
-}
-
-.hg-pack--essence {
-    background:
-        linear-gradient(145deg, rgba(120, 218, 175, 0.9), rgba(41, 85, 89, 0.98) 46%, rgba(8, 13, 23, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(153, 232, 202, 0.58);
-}
-
-.hg-pack--powers {
-    background:
-        linear-gradient(145deg, rgba(66, 214, 123, 0.86), rgba(20, 86, 54, 0.98) 46%, rgba(5, 16, 22, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(112, 235, 161, 0.58);
-}
-
-.hg-pack--chronicles {
-    background:
-        linear-gradient(145deg, rgba(94, 208, 221, 0.86), rgba(18, 63, 96, 0.98) 46%, rgba(6, 11, 27, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(128, 231, 240, 0.58);
-}
-
-.hg-pack--relics {
-    background:
-        linear-gradient(145deg, rgba(226, 185, 88, 0.9), rgba(82, 62, 34, 0.98) 46%, rgba(17, 17, 19, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(241, 207, 124, 0.58);
-}
-
-.hg-pack--omens {
-    background:
-        linear-gradient(145deg, rgba(255, 79, 143, 0.9), rgba(73, 24, 89, 0.98) 46%, rgba(13, 7, 24, 1) 47%),
-        linear-gradient(45deg, rgba(255,255,255,0.18), transparent);
-    border-color: rgba(255, 139, 181, 0.62);
 }
 
 .hg-pack:hover,
@@ -533,7 +500,20 @@
 }
 
 .hg-shop-item strong {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    align-items: baseline;
     color: #ffc400;
+}
+
+.hg-shop-item__price,
+.hg-shop-item__stock {
+    display: inline-block;
+}
+
+.hg-shop-item__stock {
+    color: #ffe071;
 }
 
 .hg-shop-item > span:first-child {
@@ -585,11 +565,6 @@
     border-color: #ffc400;
 }
 
-.hg-shop-item[data-shop-pack="omens"],
-.hg-shop-item[data-shop-pack="gaian"] {
-    display: none;
-}
-
 .hg-shop-item--exchange .hg-shop-item__actions,
 .hg-shop-item--gift .hg-shop-item__actions,
 .hg-shop-group__grid--exchange .hg-shop-item__actions {
@@ -608,10 +583,6 @@
 
 .hg-cards--mobile .hg-shop-group__grid--exchange {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.hg-shop-item[data-shop-pack="magic"] {
-    display: block;
 }
 
 .hg-shop-item:disabled,
@@ -818,46 +789,46 @@
 
 .hg-card--common {
     --rarity: var(--rarity-common);
-    --rarity-bg: linear-gradient(180deg, #eeeeea, #424242 42%, #151515);
-    --rarity-head: rgba(232, 232, 224, 0.96);
-    --rarity-body: rgba(58, 58, 58, 0.92);
+    --rarity-bg: var(--rarity-bg-common);
+    --rarity-head: var(--rarity-head-common);
+    --rarity-body: var(--rarity-body-common);
 }
 .hg-card--unusual {
     --rarity: var(--rarity-unusual);
-    --rarity-bg: linear-gradient(180deg, #173825, #0b1510);
-    --rarity-head: rgba(25, 75, 45, 0.96);
-    --rarity-body: rgba(13, 48, 29, 0.92);
+    --rarity-bg: var(--rarity-bg-unusual);
+    --rarity-head: var(--rarity-head-unusual);
+    --rarity-body: var(--rarity-body-unusual);
 }
 .hg-card--rare {
     --rarity: var(--rarity-rare);
-    --rarity-bg: linear-gradient(180deg, #172c4c, #0b1019);
-    --rarity-head: rgba(24, 55, 98, 0.96);
-    --rarity-body: rgba(15, 38, 70, 0.92);
+    --rarity-bg: var(--rarity-bg-rare);
+    --rarity-head: var(--rarity-head-rare);
+    --rarity-body: var(--rarity-body-rare);
 }
 .hg-card--epic {
     --rarity: var(--rarity-epic);
-    --rarity-bg: linear-gradient(180deg, #4c1530, #190912);
-    --rarity-head: rgba(116, 31, 70, 0.96);
-    --rarity-body: rgba(74, 18, 45, 0.92);
+    --rarity-bg: var(--rarity-bg-epic);
+    --rarity-head: var(--rarity-head-epic);
+    --rarity-body: var(--rarity-body-epic);
 }
 .hg-card--legendary {
     --rarity: var(--rarity-legendary);
-    --rarity-bg: linear-gradient(180deg, #4b2b12, #16100a);
-    --rarity-head: rgba(102, 57, 20, 0.96);
-    --rarity-body: rgba(72, 38, 15, 0.92);
+    --rarity-bg: var(--rarity-bg-legendary);
+    --rarity-head: var(--rarity-head-legendary);
+    --rarity-body: var(--rarity-body-legendary);
 }
 .hg-card--mythic {
     --rarity: var(--rarity-mythic);
-    --rarity-bg: linear-gradient(180deg, #37204e, #120b19);
-    --rarity-head: rgba(79, 39, 116, 0.96);
-    --rarity-body: rgba(55, 27, 82, 0.92);
+    --rarity-bg: var(--rarity-bg-mythic);
+    --rarity-head: var(--rarity-head-mythic);
+    --rarity-body: var(--rarity-body-mythic);
 }
 
 .hg-card--stigmatic {
     --rarity: var(--rarity-stigmatic);
-    --rarity-bg: linear-gradient(180deg, #4b0509, #150203);
-    --rarity-head: rgba(102, 6, 12, 0.96);
-    --rarity-body: rgba(54, 3, 7, 0.94);
+    --rarity-bg: var(--rarity-bg-stigmatic);
+    --rarity-head: var(--rarity-head-stigmatic);
+    --rarity-body: var(--rarity-body-stigmatic);
 }
 
 .hg-card--common .hg-card__head h4 {
@@ -1334,21 +1305,23 @@
     border-left: 1px solid var(--row-rarity, rgba(255,255,255,0.18));
 }
 
-.hg-collection-row--common { --row-rarity: var(--rarity-common); }
-.hg-collection-row--unusual { --row-rarity: var(--rarity-unusual); }
-.hg-collection-row--rare { --row-rarity: var(--rarity-rare); }
-.hg-collection-row--epic { --row-rarity: var(--rarity-epic); }
-.hg-collection-row--legendary { --row-rarity: var(--rarity-legendary); }
-.hg-collection-row--mythic { --row-rarity: var(--rarity-mythic); }
-.hg-collection-row--stigmatic { --row-rarity: var(--rarity-stigmatic); }
+.hg-collection-row--common { --row-rarity: var(--rarity-common); --row-rarity-bg: var(--rarity-row-common); }
+.hg-collection-row--unusual { --row-rarity: var(--rarity-unusual); --row-rarity-bg: var(--rarity-row-unusual); }
+.hg-collection-row--rare { --row-rarity: var(--rarity-rare); --row-rarity-bg: var(--rarity-row-rare); }
+.hg-collection-row--epic { --row-rarity: var(--rarity-epic); --row-rarity-bg: var(--rarity-row-epic); }
+.hg-collection-row--legendary { --row-rarity: var(--rarity-legendary); --row-rarity-bg: var(--rarity-row-legendary); }
+.hg-collection-row--mythic { --row-rarity: var(--rarity-mythic); --row-rarity-bg: var(--rarity-row-mythic); }
+.hg-collection-row--stigmatic { --row-rarity: var(--rarity-stigmatic); --row-rarity-bg: var(--rarity-row-stigmatic); }
 
-.hg-collection-row--common td { background: linear-gradient(90deg, rgba(244,244,244,0.08), #151515 18%) !important; }
-.hg-collection-row--unusual td { background: linear-gradient(90deg, rgba(66,214,123,0.12), #151515 18%) !important; }
-.hg-collection-row--rare td { background: linear-gradient(90deg, rgba(78,156,255,0.13), #151515 18%) !important; }
-.hg-collection-row--epic td { background: linear-gradient(90deg, rgba(255,79,143,0.15), #151515 18%) !important; }
-.hg-collection-row--legendary td { background: linear-gradient(90deg, rgba(243,154,50,0.15), #151515 18%) !important; }
-.hg-collection-row--mythic td { background: linear-gradient(90deg, rgba(181,108,255,0.16), #151515 18%) !important; }
-.hg-collection-row--stigmatic td { background: linear-gradient(90deg, rgba(138,3,3,0.22), #151515 18%) !important; }
+.hg-collection-row--common td,
+.hg-collection-row--unusual td,
+.hg-collection-row--rare td,
+.hg-collection-row--epic td,
+.hg-collection-row--legendary td,
+.hg-collection-row--mythic td,
+.hg-collection-row--stigmatic td {
+    background: var(--row-rarity-bg) !important;
+}
 
 .hg-table-card-btn {
     display: inline-flex;
@@ -3295,6 +3268,17 @@
 
 .hg-cards--mobile .hg-shop-item {
     padding: 14px;
+}
+
+.hg-cards--mobile .hg-shop-item strong {
+    display: grid;
+    gap: 2px;
+    line-height: 1.15;
+}
+
+.hg-cards--mobile .hg-shop-item__price,
+.hg-cards--mobile .hg-shop-item__stock {
+    display: block;
 }
 
 .hg-import-export--mobile {

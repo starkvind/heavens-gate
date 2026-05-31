@@ -28,7 +28,7 @@ $bodyThemeClass = 'theme-' . $activeTheme;
     <title>Archivo de mnemógeno | Heaven's Gate</title>
     <meta name="description" content="Modo móvil del minijuego coleccionable de cartas de Heaven's Gate.">
     <link rel="stylesheet" href="/assets/css/hg-core.css">
-    <link rel="stylesheet" href="/assets/css/game-cards.css">
+    <link rel="stylesheet" href="/assets/css/game-cards.css?v=20260530-ui-texts-final-db">
 </head>
 <body class="hg-card-mobile-body <?= htmlspecialchars($bodyThemeClass, ENT_QUOTES, 'UTF-8') ?>">
     <section class="hg-card-game-shell hg-card-game-shell--standalone">
@@ -37,7 +37,7 @@ $bodyThemeClass = 'theme-' . $activeTheme;
     <footer class="hg-mobile-footer">
         <strong>Heaven's Gate</strong>
         <span>Archivo de mnemógeno</span>
-        <a href="/games/card-game">Vista clasica</a>
+        <a href="/games/card-game">Vista clásica</a>
     </footer>
 </body>
 </html>
