@@ -228,11 +228,13 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
     return $text;
 }
 
-function get_character_embed_data($link, $charId)
+function get_character_embed_data($link, $charId, $avatarVariant = '')
 {
     static $cache = [];
-    if (isset($cache[$charId])) {
-        return $cache[$charId];
+    $avatarVariant = hg_character_avatar_variant_code($avatarVariant);
+    $cacheKey = (int)$charId . '|' . $avatarVariant;
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
     }
 
     $defaultAvatars = [
@@ -243,14 +245,14 @@ function get_character_embed_data($link, $charId)
     ];
 
     if (isset($defaultAvatars[$charId])) {
-        $cache[$charId] = [
+        $cache[$cacheKey] = [
             'name' => $defaultAvatars[$charId]['name'],
             'img' => $defaultAvatars[$charId]['img'],
             'pretty_id' => (string)$charId,
             'text_color' => '',
             'is_default' => true,
         ];
-        return $cache[$charId];
+        return $cache[$cacheKey];
     }
 
     $data = [
@@ -269,7 +271,13 @@ function get_character_embed_data($link, $charId)
             if (mysqli_stmt_execute($stmt)) {
                 $res = mysqli_stmt_get_result($stmt);
                 if ($row = mysqli_fetch_assoc($res)) {
-                    $avatar = hg_character_avatar_url((string)($row['image_url'] ?? ''), (string)($row['gender'] ?? ''));
+                    $avatar = hg_character_avatar_url_for_character(
+                        $link,
+                        (int)$charId,
+                        (string)($row['image_url'] ?? ''),
+                        (string)($row['gender'] ?? ''),
+                        $avatarVariant
+                    );
                     if (strpos($avatar, '/') !== 0) {
                         $avatar = '/' . ltrim((string)$avatar, '/');
                     }
@@ -297,13 +305,13 @@ function get_character_embed_data($link, $charId)
         }
     }
 
-    $cache[$charId] = $data;
+    $cache[$cacheKey] = $data;
     return $data;
 }
 
-function render_hg_avatar_inline($link, $charId, $paletteRaw, $msgRaw)
+function render_hg_avatar_inline($link, $charId, $paletteRaw, $msgRaw, $avatarVariant = '')
 {
-    $char = get_character_embed_data($link, (int)$charId);
+    $char = get_character_embed_data($link, (int)$charId, (string)$avatarVariant);
     $palette = hg_normalize_palette_value($paletteRaw, 'SkyBlue');
     if ($char['text_color'] !== '' && $palette === 'SkyBlue') {
         $palette = $char['text_color'];
@@ -436,12 +444,14 @@ function parse_forum_body($link, $body)
     );
 
     $text = preg_replace_callback(
-        '/\[hg_avatar\s*=\s*([0-9-]+)(?:\s*,\s*([^\]]+))?\s*\](.*?)\[\/hg_avatar\]/is',
+        '/\[hg_avatar\s*=\s*([0-9-]+(?:\:[a-z0-9_-]+)?)(?:\s*,\s*([^\]]+))?\s*\](.*?)\[\/hg_avatar\]/is',
         static function ($m) use ($stashEmbed, $link) {
-            $charId = (int)$m[1];
+            $charRef = hg_character_avatar_parse_ref((string)$m[1]);
+            $charId = (int)($charRef['character_id'] ?? 0);
+            $avatarVariant = (string)($charRef['variant_code'] ?? '');
             $palette = isset($m[2]) ? trim((string)$m[2]) : '';
             $msg = trim((string)$m[3]);
-            $html = render_hg_avatar_inline($link, $charId, $palette, $msg);
+            $html = render_hg_avatar_inline($link, $charId, $palette, $msg, $avatarVariant);
             return $stashEmbed($html);
         },
         $text

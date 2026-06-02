@@ -29,7 +29,10 @@
 		}
 	}
 	
-	$char_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+	$char_ref = isset($_GET['id']) ? (string)$_GET['id'] : '';
+	$char_ref_parts = hg_character_avatar_parse_ref($char_ref);
+	$char_id = (int)($char_ref_parts['character_id'] ?? 0);
+	$avatar_variant = hg_character_avatar_variant_code($_GET['avatar_variant'] ?? ($char_ref_parts['variant_code'] ?? ''));
 	$palette_raw = isset($_GET['palette']) ? (string)$_GET['palette'] : 'SkyBlue';
 	$palette = hg_normalize_palette_value($palette_raw, 'SkyBlue');
 
@@ -75,7 +78,7 @@
 			$displayName = (string)($row['name'] ?? '');
 		}
 		$nombre = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
-		$img = htmlspecialchars(ltrim(hg_character_avatar_url($row['image_url'] ?? '', $row['gender'] ?? ''), '/'));
+		$img = htmlspecialchars(ltrim(hg_character_avatar_url_for_character($link, $char_id, $row['image_url'] ?? '', $row['gender'] ?? '', $avatar_variant), '/'));
 		$colortexto = hg_normalize_palette_value((string)($row['text_color'] ?? ''), '');
 		$char_pretty = trim((string)($row['pretty_id'] ?? ''));
 		if ($char_pretty === '') {

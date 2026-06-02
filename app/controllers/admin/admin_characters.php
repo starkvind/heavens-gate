@@ -863,7 +863,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                             $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                         }
                     }
-
                     if ($isPlayableKind) {
                     // Poderes
                     $resultPow = save_character_powers($link, (int)$newId, $powers_type, $powers_id, $powers_lvl);
@@ -967,7 +966,6 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                       $flash[] = ['type'=>'ok','msg'=>'Avatar eliminado.'];
                       $current_img = '';
                   }
-
                   if (!empty($_FILES['avatar']) && ($_FILES['avatar']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                       $res = save_avatar_file($_FILES['avatar'], $id, $nombre, $AV_UPLOADDIR, $AV_URLBASE);
                       if ($res['ok']) {
@@ -982,7 +980,6 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                           $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                       }
                   }
-
                   // Bridges: aqui si guardas clan/manada (fuente de verdad)
                   sync_character_bridges($link, (int)$id, (int)$manada, (int)$clan);
 

@@ -1,6 +1,8 @@
 <?php
 // Shared service functions for admin_characters.php
 
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
+
 if (!function_exists('fetchPairs')) {
     function fetchPairs(mysqli $link, string $sql): array {
         $out = [];
@@ -36,6 +38,40 @@ if (!function_exists('pjs_table_has_column')) {
         if (!$rs) return false;
         $ok = ($rs->num_rows > 0);
         $rs->close();
+        return $ok;
+    }
+}
+if (!function_exists('pjs_upsert_character_avatar_variant')) {
+    function pjs_upsert_character_avatar_variant(mysqli $link, int $characterId, string $variantCode, string $imageUrl): bool {
+        $characterId = (int)$characterId;
+        $variantCode = hg_character_avatar_variant_code($variantCode);
+        $imageUrl = trim((string)$imageUrl);
+        if ($characterId <= 0 || $variantCode === '' || $imageUrl === '') return false;
+        if (!hg_character_avatar_variants_ensure_schema($link)) return false;
+
+        $sql = "INSERT INTO fact_character_avatar_variants (character_id, variant_code, image_url, is_active)
+                VALUES (?, ?, ?, 1)
+                ON DUPLICATE KEY UPDATE image_url = VALUES(image_url), is_active = 1";
+        if (!$st = $link->prepare($sql)) return false;
+        $st->bind_param('iss', $characterId, $variantCode, $imageUrl);
+        $ok = $st->execute();
+        $st->close();
+        return $ok;
+    }
+}
+if (!function_exists('pjs_delete_character_avatar_variant')) {
+    function pjs_delete_character_avatar_variant(mysqli $link, int $characterId, string $variantCode): bool {
+        $characterId = (int)$characterId;
+        $variantCode = hg_character_avatar_variant_code($variantCode);
+        if ($characterId <= 0 || $variantCode === '') return false;
+        if (!hg_character_avatar_variants_table_exists($link)) return false;
+
+        if (!$st = $link->prepare("DELETE FROM fact_character_avatar_variants WHERE character_id = ? AND variant_code = ?")) {
+            return false;
+        }
+        $st->bind_param('is', $characterId, $variantCode);
+        $ok = $st->execute();
+        $st->close();
         return $ok;
     }
 }

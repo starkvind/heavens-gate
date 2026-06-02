@@ -5,11 +5,13 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 $isAjaxRequest = (
     (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
     || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
     || ((string)($_POST['ajax'] ?? '') === 'upload_avatar')
+    || ((string)($_POST['ajax'] ?? '') === 'upload_avatar_variant')
 );
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_avatar_mass';
 $ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
@@ -22,6 +24,7 @@ $DOCROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
 $AV_UPLOADDIR = $DOCROOT . '/public/img/characters';
 $AV_URLBASE = '/img/characters';
 if (!is_dir($AV_UPLOADDIR)) { @mkdir($AV_UPLOADDIR, 0775, true); }
+hg_character_avatar_variants_ensure_schema($link);
 
 function slugify($text){
     $text = trim((string)$text);
@@ -31,6 +34,18 @@ function slugify($text){
     $text = strtolower((string)$text);
     $text = preg_replace('~[^-a-z0-9]+~', '', (string)$text);
     return $text ?: 'pj';
+}
+
+function normalize_avatar_variant_label($text){
+    $text = trim((string)$text);
+    if ($text === '') return '';
+    if (function_exists('iconv')) { $text = (string)@iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text); }
+    $text = strtolower($text);
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+    $text = trim((string)$text, '-');
+    $text = preg_replace('/-+/', '-', (string)$text);
+    if ($text === null) $text = '';
+    return substr($text, 0, 10);
 }
 
 function save_avatar_file(array $file, int $pjId, string $displayName, string $uploadDir, string $urlBase){
@@ -166,6 +181,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
     $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload_avatar_variant')) {
+    if (ob_get_level() === 0) { ob_start(); }
+    header('Content-Type: application/json; charset=UTF-8');
+    $jsonExit = function(array $payload){
+        $noise = '';
+        if (ob_get_level() > 0) {
+            $noise = (string)ob_get_clean();
+        }
+        if (trim($noise) !== '') {
+            $payload['_debug_noise'] = substr(trim($noise), 0, 1200);
+        }
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+        exit;
+    };
+
+    if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
+        hg_admin_require_session(true);
+    }
+    $csrfToken = function_exists('hg_admin_extract_csrf_token')
+        ? hg_admin_extract_csrf_token($_POST)
+        : (string)($_POST['csrf'] ?? '');
+    $csrfOk = function_exists('hg_admin_csrf_valid')
+        ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
+        : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals((string)$_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
+    if (!$csrfOk) {
+        $jsonExit(['ok' => false, 'msg' => 'CSRF inválido']);
+    }
+
+    $charId = isset($_POST['character_id']) ? (int)$_POST['character_id'] : 0;
+    $variantCode = normalize_avatar_variant_label($_POST['variant_code'] ?? '');
+    if ($charId <= 0) {
+        $jsonExit(['ok'=>false, 'msg'=>'Invalid character id']);
+    }
+    if ($variantCode === '') {
+        $jsonExit(['ok'=>false, 'msg'=>'La etiqueta es obligatoria']);
+    }
+
+    $charName = '';
+    $currentVariantImg = '';
+    if ($st = $link->prepare("SELECT name FROM fact_characters WHERE id=? LIMIT 1")) {
+        $st->bind_param('i', $charId);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($rs && ($row = $rs->fetch_assoc())) {
+            $charName = (string)($row['name'] ?? '');
+        } else {
+            $jsonExit(['ok'=>false, 'msg'=>'Character not found']);
+            $st->close();
+        }
+        $st->close();
+    } else {
+        $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
+    }
+
+    if (!hg_character_avatar_variants_table_exists($link, true)) {
+        $jsonExit(['ok'=>false, 'msg'=>'La tabla de variantes no está disponible']);
+    }
+
+    $currentVariantImg = hg_character_avatar_variant_image_url($link, $charId, $variantCode);
+    if (!isset($_FILES['avatar'])) {
+        $jsonExit(['ok'=>false, 'msg'=>'Missing file']);
+    }
+
+    $res = save_avatar_file($_FILES['avatar'], $charId, $charName . '-' . $variantCode, $AV_UPLOADDIR, $AV_URLBASE);
+    if (!$res['ok']) {
+        $jsonExit(['ok'=>false, 'msg'=>$res['msg']]);
+    }
+
+    $newUrl = (string)$res['url'];
+    if ($st = $link->prepare("
+        INSERT INTO fact_character_avatar_variants (character_id, variant_code, image_url, is_active)
+        VALUES (?, ?, ?, 1)
+        ON DUPLICATE KEY UPDATE image_url = VALUES(image_url), is_active = 1
+    ")) {
+        $st->bind_param('iss', $charId, $variantCode, $newUrl);
+        if (!$st->execute()) {
+            $st->close();
+            $jsonExit(['ok'=>false, 'msg'=>'Could not update DB: '.$link->error]);
+        }
+        $st->close();
+
+        if ($currentVariantImg !== '' && $currentVariantImg !== $newUrl) {
+            safe_unlink_avatar($currentVariantImg, $AV_UPLOADDIR);
+        }
+
+        $jsonExit([
+            'ok'=>true,
+            'msg'=>'Variante actualizada',
+            'url'=>$newUrl,
+            'variant_code'=>$variantCode
+        ]);
+    }
+
+    $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
+}
+
 $characters = [];
 $sql = "
 SELECT
@@ -203,6 +314,28 @@ if ($rs = $link->query($sql)) {
         $characters[] = $r;
     }
     $rs->close();
+}
+
+$characterVariants = [];
+if (hg_character_avatar_variants_table_exists($link, true)) {
+    $sqlVariants = "
+    SELECT character_id, variant_code, image_url
+    FROM fact_character_avatar_variants
+    WHERE is_active = 1
+    ORDER BY variant_code ASC, id ASC
+    ";
+    if ($rsv = $link->query($sqlVariants)) {
+        while ($rv = $rsv->fetch_assoc()) {
+            $cid = (int)($rv['character_id'] ?? 0);
+            if ($cid <= 0) continue;
+            if (!isset($characterVariants[$cid])) $characterVariants[$cid] = [];
+            $characterVariants[$cid][] = [
+                'variant_code' => (string)($rv['variant_code'] ?? ''),
+                'image_url' => (string)($rv['image_url'] ?? ''),
+            ];
+        }
+        $rsv->close();
+    }
 }
 
 $groupOpts = [];
@@ -257,7 +390,9 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
           <th class="adm-w-170">Pretty ID</th>
           <th>Personaje</th>
           <th class="adm-w-120">Avatar</th>
+          <th class="adm-w-220">Variantes</th>
           <th class="adm-w-360">Nuevo avatar</th>
+          <th class="adm-w-360">Nueva variante</th>
           <th class="adm-w-160">Estado</th>
         </tr>
       </thead>
@@ -267,6 +402,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
           $pretty = (string)($c['pretty_id'] ?? '');
           $name = (string)($c['name'] ?? '');
           $img = (string)($c['image_url'] ?? '');
+          $variants = $characterVariants[$id] ?? [];
           $gid = (int)($c['group_id'] ?? 0);
           $oid = (int)($c['org_id'] ?? 0);
           $cid = (int)($c['chronicle_id'] ?? 0);
@@ -281,10 +417,32 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
             </div>
           </td>
           <td>
+            <div class="avatar-variant-list" data-variant-list>
+              <?php if (!empty($variants)): ?>
+                <?php foreach ($variants as $variant): ?>
+                  <div class="avatar-variant-item" data-variant-item="<?= h((string)$variant['variant_code']) ?>">
+                    <img src="<?= h((string)$variant['image_url']) ?>" alt="<?= h((string)$variant['variant_code']) ?>" class="avatar-variant-thumb">
+                    <span class="avatar-variant-code"><?= h((string)$variant['variant_code']) ?></span>
+                  </div>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <span class="adm-text-9dd-11" data-variant-empty>Sin variantes</span>
+              <?php endif; ?>
+            </div>
+          </td>
+          <td>
             <div class="adm-flex-wrap-8">
               <input type="file" accept="image/*" data-avatar-file>
               <button class="btn-upload" data-upload-btn disabled>Subir</button>
             </div>
+          </td>
+          <td>
+            <div class="adm-flex-wrap-8">
+              <input type="text" maxlength="10" placeholder="parche" data-variant-code>
+              <input type="file" accept="image/*" data-avatar-variant-file>
+              <button class="btn-upload" data-upload-variant-btn disabled>Subir variante</button>
+            </div>
+            <!--<div class="adm-text-9dd-11"></div>-->
           </td>
           <td><span class="row-msg" data-row-msg>-</span></td>
         </tr>
@@ -330,9 +488,55 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
   [fGroup, fOrg, fChron].forEach(function(el){ el.addEventListener('change', applyFilters); });
   fSearch.addEventListener('input', applyFilters);
 
+  function normalizeVariantCode(raw){
+    var text = String(raw || '').trim().toLowerCase();
+    if (!text) return '';
+    if (text.normalize) {
+      text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    text = text.replace(/[^a-z0-9]+/g, '-');
+    text = text.replace(/^-+|-+$/g, '');
+    text = text.replace(/-+/g, '-');
+    return text.slice(0, 10);
+  }
+
+  function selectorEscape(text){
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+      return window.CSS.escape(text);
+    }
+    return String(text || '').replace(/["\\]/g, '\\$&');
+  }
+
+  function upsertVariantPreview(listEl, variantCode, imageUrl){
+    if (!listEl || !variantCode || !imageUrl) return;
+    var empty = listEl.querySelector('[data-variant-empty]');
+    if (empty) empty.remove();
+
+    var item = listEl.querySelector('[data-variant-item="' + selectorEscape(variantCode) + '"]');
+    if (!item) {
+      item = document.createElement('div');
+      item.className = 'avatar-variant-item';
+      item.setAttribute('data-variant-item', variantCode);
+      item.innerHTML = '<img class="avatar-variant-thumb" alt=""><span class="avatar-variant-code"></span>';
+      listEl.appendChild(item);
+    }
+
+    var img = item.querySelector('.avatar-variant-thumb');
+    var code = item.querySelector('.avatar-variant-code');
+    if (img) {
+      img.src = imageUrl + '?t=' + Date.now();
+      img.alt = variantCode;
+    }
+    if (code) code.textContent = variantCode;
+  }
+
   table.querySelectorAll('tbody tr').forEach(function(tr){
     var fileInput = tr.querySelector('[data-avatar-file]');
     var uploadBtn = tr.querySelector('[data-upload-btn]');
+    var variantInput = tr.querySelector('[data-variant-code]');
+    var variantFileInput = tr.querySelector('[data-avatar-variant-file]');
+    var uploadVariantBtn = tr.querySelector('[data-upload-variant-btn]');
+    var variantList = tr.querySelector('[data-variant-list]');
     var msg = tr.querySelector('[data-row-msg]');
     var img = tr.querySelector('[data-avatar-img]');
     var charId = parseInt(tr.getAttribute('data-character-id') || '0', 10) || 0;
@@ -430,6 +634,100 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
         uploadBtn.disabled = true;
       }
     });
+
+    function syncVariantControls(){
+      if (!variantInput || !variantFileInput || !uploadVariantBtn) return;
+      var normalized = normalizeVariantCode(variantInput.value);
+      if (variantInput.value !== normalized) variantInput.value = normalized;
+      uploadVariantBtn.disabled = !(normalized && variantFileInput.files && variantFileInput.files[0]);
+      if (!uploadVariantBtn.disabled) {
+        msg.textContent = 'Variante lista para subir';
+        msg.className = 'row-msg';
+      }
+    }
+
+    if (variantInput && variantFileInput && uploadVariantBtn) {
+      variantInput.addEventListener('input', syncVariantControls);
+      variantFileInput.addEventListener('change', syncVariantControls);
+
+      uploadVariantBtn.addEventListener('click', async function(){
+        var variantCode = normalizeVariantCode(variantInput.value);
+        if (!variantCode || !variantFileInput.files || !variantFileInput.files[0] || !charId) return;
+
+        uploadVariantBtn.disabled = true;
+        msg.textContent = 'Subiendo variante...';
+        msg.className = 'row-msg';
+
+        var fd = new FormData();
+        fd.append('ajax', 'upload_avatar_variant');
+        fd.append('character_id', String(charId));
+        fd.append('variant_code', variantCode);
+        fd.append('avatar', variantFileInput.files[0]);
+        if (ADMIN_CSRF_TOKEN) fd.append('csrf', ADMIN_CSRF_TOKEN);
+
+        try {
+          var endpoint = '/talim?s=admin_avatar_mass&ajax=1';
+          var res = await fetch(endpoint, {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          var raw = await res.text();
+          var json = null;
+          try {
+            json = raw ? JSON.parse(raw) : null;
+          } catch (parseErr) {
+            msg.textContent = 'Respuesta inválida (' + res.status + ')';
+            msg.className = 'row-msg err';
+            console.error('[admin_avatar_mass] Variant non-JSON response', {
+              endpoint: endpoint,
+              status: res.status,
+              statusText: res.statusText,
+              bodyPreview: String(raw || '').slice(0, 1200)
+            });
+            return;
+          }
+
+          if (!res.ok) {
+            msg.textContent = (json && json.msg) ? json.msg : ('HTTP ' + res.status + ' ' + res.statusText);
+            msg.className = 'row-msg err';
+            console.error('[admin_avatar_mass] Variant HTTP error', {
+              endpoint: endpoint,
+              status: res.status,
+              statusText: res.statusText,
+              response: json
+            });
+            return;
+          }
+
+          if (json && json.ok) {
+            upsertVariantPreview(variantList, json.variant_code || variantCode, json.url || '');
+            msg.textContent = 'Variante actualizada';
+            msg.className = 'row-msg ok';
+            variantInput.value = '';
+            variantFileInput.value = '';
+          } else {
+            msg.textContent = (json && json.msg) ? json.msg : 'Error';
+            msg.className = 'row-msg err';
+            console.error('[admin_avatar_mass] Variant upload failed', {
+              endpoint: endpoint,
+              characterId: charId,
+              response: json
+            });
+          }
+        } catch (e) {
+          msg.textContent = 'Error de red: ' + (e && e.message ? e.message : 'desconocido');
+          msg.className = 'row-msg err';
+          console.error('[admin_avatar_mass] Variant network/JS error', {
+            characterId: charId,
+            error: e
+          });
+        } finally {
+          uploadVariantBtn.disabled = true;
+        }
+      });
+    }
   });
 })();
 </script>

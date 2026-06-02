@@ -1268,6 +1268,23 @@ return array (
   CONSTRAINT `fk_fc_status` FOREIGN KEY (`status_id`) REFERENCES `dim_character_status` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=363 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT=\'Personajes jugadores\';',
     ),
+    1001 => 
+    array (
+      'name' => 'fact_character_avatar_variants',
+      'create_sql' => 'CREATE TABLE `fact_character_avatar_variants` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `character_id` int(10) unsigned NOT NULL,
+  `variant_code` varchar(50) NOT NULL,
+  `image_url` varchar(600) NOT NULL DEFAULT \'\',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_character_variant` (`character_id`,`variant_code`),
+  KEY `idx_fcav_variant_code` (`variant_code`),
+  CONSTRAINT `fk_fcav_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+    ),
     62 => 
     array (
       'name' => 'fact_characters_comments',

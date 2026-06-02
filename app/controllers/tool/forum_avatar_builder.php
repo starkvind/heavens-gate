@@ -2,6 +2,7 @@
 setMetaFromPage("Creador de mensajes de foro | Heaven's Gate", "Genera snippets hg_avatar con color y efectos de texto para el foro.", null, 'website');
 include("app/partials/main_nav_bar.php");
 include_once("app/helpers/runtime_response.php");
+include_once("app/helpers/character_avatar.php");
 ?>
 <link rel="stylesheet" href="/assets/css/hg-tools.css">
 
@@ -54,6 +55,32 @@ if ($rs = mysqli_query($link, $sql)) {
     mysqli_free_result($rs);
 }
 
+$avatarVariantsByCharacter = [];
+if (hg_character_avatar_variants_table_exists($link, true)) {
+    $sqlVariants = "
+        SELECT character_id, variant_code
+        FROM fact_character_avatar_variants
+        WHERE is_active = 1
+        ORDER BY character_id ASC, variant_code ASC
+    ";
+    if ($rsVariants = mysqli_query($link, $sqlVariants)) {
+        while ($rowVariant = mysqli_fetch_assoc($rsVariants)) {
+            $charId = (int)($rowVariant['character_id'] ?? 0);
+            $variantCode = hg_character_avatar_variant_code($rowVariant['variant_code'] ?? '');
+            if ($charId <= 0 || $variantCode === '') {
+                continue;
+            }
+            if (!isset($avatarVariantsByCharacter[$charId])) {
+                $avatarVariantsByCharacter[$charId] = [];
+            }
+            if (!in_array($variantCode, $avatarVariantsByCharacter[$charId], true)) {
+                $avatarVariantsByCharacter[$charId][] = $variantCode;
+            }
+        }
+        mysqli_free_result($rsVariants);
+    }
+}
+
 $dbColors = [];
 $sqlColors = "SELECT text_color FROM fact_characters WHERE text_color <> '' AND $whereChron GROUP BY 1 ORDER BY 1";
 if ($rsColors = mysqli_query($link, $sqlColors)) {
@@ -88,6 +115,13 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
                     <?php foreach ($characters as $character): ?>
                         <option value="<?= (int)$character['id'] ?>">#<?= (int)$character['id'] ?> - <?= htmlspecialchars($character['name'], ENT_QUOTES, 'UTF-8') ?></option>
                     <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="hg-avatar-tool-field">
+                <label class="hg-dice-label" for="avatarVariant">Avatar</label>
+                <select class="hg-dice-sel" id="avatarVariant">
+                    <option value="">Principal</option>
                 </select>
             </div>
 
@@ -139,7 +173,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
                 <button type="button" class="hg-roll-copy-emoji" id="copySnippetBtn" title="Copiar codigo">&#128203;</button>
             </div>
 
-            <p class="hg-dice-help" style="margin-top: 1em; margin-bottom: 1em;">Handler: <code>[hg_avatar={id},{color}]{mensaje}[/hg_avatar]</code></p>
+            <p class="hg-dice-help" style="margin-top: 1em; margin-bottom: 1em;">Handler: <code>[hg_avatar={id[:variante]},{color}]{mensaje}[/hg_avatar]</code></p>
             <!--
             <div class="hg-avatar-tool-preview-head">
                 <strong>Vista previa</strong>
@@ -157,6 +191,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
 
     const $search = document.getElementById("avatarSearch");
     const $avatar = document.getElementById("avatarId");
+    const $avatarVariant = document.getElementById("avatarVariant");
     const $colorPicker = document.getElementById("avatarColor");
     const $colorText = document.getElementById("avatarColorText");
     const $colorRow = document.getElementById("avatarColorRow");
@@ -167,7 +202,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
     const $copy = document.getElementById("copySnippetBtn");
     const $preview = document.getElementById("avatarPreviewFrame");
 
-    if (!$search || !$avatar || !$colorPicker || !$colorText || !$colorRow || !$colorPreset || !$colorDot || !$message || !$code || !$copy || !$preview) {
+    if (!$search || !$avatar || !$avatarVariant || !$colorPicker || !$colorText || !$colorRow || !$colorPreset || !$colorDot || !$message || !$code || !$copy || !$preview) {
         return;
     }
 
@@ -175,6 +210,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
         value: String(opt.value),
         label: String(opt.textContent || "")
     }));
+    const avatarVariantsByCharacter = <?= json_encode($avatarVariantsByCharacter, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
     function renderAvatarOptions(term) {
         const search = String(term || "").trim().toLowerCase();
@@ -200,6 +236,32 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
 
         const canRestore = Array.from($avatar.options).some(o => o.value === selected);
         $avatar.value = canRestore ? selected : $avatar.options[0].value;
+        syncAvatarVariantOptions();
+    }
+
+    function syncAvatarVariantOptions() {
+        const selectedCharacterId = String($avatar.value || "").trim();
+        const currentVariant = String($avatarVariant.value || "").trim();
+        const variants = Object.prototype.hasOwnProperty.call(avatarVariantsByCharacter, selectedCharacterId)
+            ? avatarVariantsByCharacter[selectedCharacterId]
+            : [];
+
+        $avatarVariant.innerHTML = "";
+
+        const principalOption = document.createElement("option");
+        principalOption.value = "";
+        principalOption.textContent = "Principal";
+        $avatarVariant.appendChild(principalOption);
+
+        for (const variantCode of variants) {
+            const option = document.createElement("option");
+            option.value = String(variantCode);
+            option.textContent = String(variantCode);
+            $avatarVariant.appendChild(option);
+        }
+
+        const canRestore = Array.from($avatarVariant.options).some(o => o.value === currentVariant);
+        $avatarVariant.value = canRestore ? currentVariant : "";
     }
 
     function normalizePaletteValue(raw, fallback = "SkyBlue") {
@@ -280,16 +342,20 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
 
     function buildSnippet() {
         const id = String($avatar.value || "-1").trim();
+        const variant = String($avatarVariant.value || "").trim();
+        const charRef = variant ? `${id}:${variant}` : id;
         const color = normalizePaletteValue($colorText.value, "SkyBlue");
         const msg = String($message.value || "").trim();
         if (isDefaultColorMode()) {
-            return `[hg_avatar=${id}]${msg}[/hg_avatar]`;
+            return `[hg_avatar=${charRef}]${msg}[/hg_avatar]`;
         }
-        return `[hg_avatar=${id},${color}]${msg}[/hg_avatar]`;
+        return `[hg_avatar=${charRef},${color}]${msg}[/hg_avatar]`;
     }
 
     function syncPreview() {
-        const id = encodeURIComponent(String($avatar.value || "-1").trim());
+        const idRaw = String($avatar.value || "-1").trim();
+        const variant = String($avatarVariant.value || "").trim();
+        const id = encodeURIComponent(variant ? `${idRaw}:${variant}` : idRaw);
         const paletteRaw = isDefaultColorMode()
             ? "SkyBlue"
             : normalizePaletteValue($colorText.value, "SkyBlue");
@@ -318,7 +384,11 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
         syncAll();
     });
 
-    $avatar.addEventListener("change", syncAll);
+    $avatar.addEventListener("change", () => {
+        syncAvatarVariantOptions();
+        syncAll();
+    });
+    $avatarVariant.addEventListener("change", syncAll);
 
     $colorPicker.addEventListener("input", () => {
         $colorText.value = $colorPicker.value;
@@ -380,6 +450,7 @@ if ($rsColors = mysqli_query($link, $sqlColors)) {
     });
 
     renderAvatarOptions("");
+    syncAvatarVariantOptions();
     syncAll();
 })();
 </script>
