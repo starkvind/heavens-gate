@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) {
@@ -43,14 +43,14 @@ function topic_viewer_column_exists(mysqli $link, string $table, string $column)
 }
 
 $actions = '<span class="adm-flex-right-8">'
-    . '<a class="btn" href="/app/tools/topic_viewer_setup_20260318.php" target="_blank">Ejecutar setup</a>'
-    . '<label class="adm-text-left">Filtro rápido '
+    
+    . '<label class="adm-text-left">Filtro rÃ¡pido '
     . '<input class="inp" type="text" id="quickFilterTopicViewer" placeholder="En esta pagina..."></label>'
     . '</span>';
 admin_panel_open('Temas de visor de foro', $actions);
 
 if (!topic_viewer_table_exists($link)) {
-    echo "<p class='adm-admin-error'>Falta la tabla <code>fact_tools_topic_viewer</code>. Ejecuta <code>app/tools/topic_viewer_setup_20260318.php</code>.</p>";
+    echo "<p class='adm-admin-error'>Falta la tabla <code>fact_tools_topic_viewer</code> en esta base de datos.</p>";
     admin_panel_close();
     return;
 }
@@ -78,14 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         : (is_string($token) && $token !== '' && isset($_SESSION[$csrfKey]) && hash_equals($_SESSION[$csrfKey], $token));
 
     if (!$validCsrf) {
-        $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
+        $flash[] = ['type' => 'error', 'msg' => 'CSRF invÃ¡lido. Recarga la pÃ¡gina.'];
     } else {
         $action = (string)$_POST['crud_action'];
 
         if ($action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID inválido para borrar.'];
+                $flash[] = ['type' => 'error', 'msg' => 'ID invÃ¡lido para borrar.'];
             } else {
                 $st = $link->prepare("DELETE FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
                 if (!$st) {
@@ -122,10 +122,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $flash[] = ['type' => 'error', 'msg' => 'chapter_id es obligatorio y debe ser > 0.'];
                 $editId = $id;
             } elseif ($hasScopeTypeCol && !in_array($scopeType, $allowedScopeTypes, true)) {
-                $flash[] = ['type' => 'error', 'msg' => 'Tipo de agrupación inválido.'];
+                $flash[] = ['type' => 'error', 'msg' => 'Tipo de agrupaciÃ³n invÃ¡lido.'];
                 $editId = $id;
             } elseif ($hasScopeTypeCol && $hasScopeIdCol && $scopeType !== '' && $scopeId <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'Si eliges tipo de agrupación, link_scope_id debe ser > 0.'];
+                $flash[] = ['type' => 'error', 'msg' => 'Si eliges tipo de agrupaciÃ³n, link_scope_id debe ser > 0.'];
                 $editId = $id;
             } else {
                 if ($id > 0) {
@@ -312,7 +312,7 @@ if ($rs) {
 
 <?php if (!$supportsEpisodeAndScope): ?>
 <div class="flash">
-    <div class="err">Faltan columnas nuevas (`chapter_id`, `link_scope_type`, `link_scope_id`) en `fact_tools_topic_viewer`. Ejecuta el setup para habilitar metadatos por episodio y agrupación.</div>
+    <div class="err">Faltan columnas (`chapter_id`, `link_scope_type`, `link_scope_id`) en `fact_tools_topic_viewer`. El panel funcionara en modo reducido.</div>
 </div>
 <?php endif; ?>
 
@@ -347,9 +347,9 @@ if ($rs) {
                             $label = $seasonName;
                             if ($seasonNum > 0) { $label .= ' (T' . $seasonNum . ')'; }
                         }
-                        if ($chapterNum > 0) { $label .= ($label !== '' ? ' · ' : '') . 'Ep. ' . $chapterNum; }
-                        if ($chapterName !== '') { $label .= ($label !== '' ? ' · ' : '') . $chapterName; }
-                        if ($label === '') { $label = 'Capítulo #' . $cid; }
+                        if ($chapterNum > 0) { $label .= ($label !== '' ? ' Â· ' : '') . 'Ep. ' . $chapterNum; }
+                        if ($chapterName !== '') { $label .= ($label !== '' ? ' Â· ' : '') . $chapterName; }
+                        if ($label === '') { $label = 'CapÃ­tulo #' . $cid; }
                     ?>
                     <option value="<?= $cid ?>" <?= $sel ?>><?= h($label) ?></option>
                 <?php endforeach; ?>
@@ -369,21 +369,21 @@ if ($rs) {
         <label>Agrupar por
             <select class="select" name="link_scope_type">
                 <?php $scopeTypeNow = trim((string)($editRow['link_scope_type'] ?? '')); ?>
-                <option value="" <?= ($scopeTypeNow === '') ? 'selected' : '' ?>>Sin agrupación</option>
+                <option value="" <?= ($scopeTypeNow === '') ? 'selected' : '' ?>>Sin agrupaciÃ³n</option>
                 <option value="character" <?= ($scopeTypeNow === 'character') ? 'selected' : '' ?>>Personaje</option>
                 <option value="group" <?= ($scopeTypeNow === 'group') ? 'selected' : '' ?>>Grupo</option>
-                <option value="organization" <?= ($scopeTypeNow === 'organization') ? 'selected' : '' ?>>Organización</option>
+                <option value="organization" <?= ($scopeTypeNow === 'organization') ? 'selected' : '' ?>>OrganizaciÃ³n</option>
             </select>
         </label>
         <?php endif; ?>
 
         <?php if ($hasScopeIdCol): ?>
-        <label>ID de agrupación
+        <label>ID de agrupaciÃ³n
             <input class="inp" type="number" min="0" name="link_scope_id" value="<?= h((string)($editRow['link_scope_id'] ?? 0)) ?>" placeholder="Ej: 110 (character), 60 (group), 20 (organization)">
         </label>
         <?php endif; ?>
 
-        <label class="field-full">Descripción (opcional)
+        <label class="field-full">DescripciÃ³n (opcional)
             <textarea class="ta" name="topic_description" rows="3"><?= h($editRow['topic_description'] ?? '') ?></textarea>
         </label>
 
@@ -397,7 +397,7 @@ if ($rs) {
 
         <div class="field-full adm-flex-right-8">
             <?php if ((int)($editRow['id'] ?? 0) > 0): ?>
-                <a class="btn" href="/talim?s=admin_topic_viewer">Cancelar edición</a>
+                <a class="btn" href="/talim?s=admin_topic_viewer">Cancelar ediciÃ³n</a>
             <?php endif; ?>
             <button class="btn btn-green" type="submit">Guardar</button>
         </div>
@@ -411,7 +411,7 @@ if ($rs) {
             <th class="adm-w-80">topic_id</th>
             <?php if ($supportsEpisodeAndScope): ?>
                 <th>Episodio</th>
-                <th>Agrupación</th>
+                <th>AgrupaciÃ³n</th>
             <?php endif; ?>
             <th>URL</th>
             <th class="adm-w-80">Orden</th>
@@ -456,9 +456,9 @@ if ($rs) {
                             $chapterTxt = $sName;
                             if ($sNum > 0) { $chapterTxt .= ' (T' . $sNum . ')'; }
                         }
-                        if ($cNum > 0) { $chapterTxt .= ($chapterTxt !== '' ? ' · ' : '') . 'Ep. ' . $cNum; }
-                        if ($cName !== '') { $chapterTxt .= ($chapterTxt !== '' ? ' · ' : '') . $cName; }
-                        if ($chapterTxt === '') { $chapterTxt = '(sin capítulo)'; }
+                        if ($cNum > 0) { $chapterTxt .= ($chapterTxt !== '' ? ' Â· ' : '') . 'Ep. ' . $cNum; }
+                        if ($cName !== '') { $chapterTxt .= ($chapterTxt !== '' ? ' Â· ' : '') . $cName; }
+                        if ($chapterTxt === '') { $chapterTxt = '(sin capÃ­tulo)'; }
                     ?>
                     <?= h($chapterTxt) ?>
                 </td>
@@ -467,9 +467,9 @@ if ($rs) {
                         $scopeType = trim((string)($r['link_scope_type'] ?? ''));
                         $scopeId = (int)($r['link_scope_id'] ?? 0);
                         if ($scopeType === '' || $scopeId <= 0) {
-                            echo '<span class="adm-color-muted">(sin agrupación)</span>';
+                            echo '<span class="adm-color-muted">(sin agrupaciÃ³n)</span>';
                         } else {
-                            $scopeLabel = ($scopeType === 'character') ? 'Personaje' : (($scopeType === 'group') ? 'Grupo' : (($scopeType === 'organization') ? 'Organización' : $scopeType));
+                            $scopeLabel = ($scopeType === 'character') ? 'Personaje' : (($scopeType === 'group') ? 'Grupo' : (($scopeType === 'organization') ? 'OrganizaciÃ³n' : $scopeType));
                             echo h($scopeLabel . ' #' . $scopeId);
                         }
                     ?>
@@ -479,7 +479,7 @@ if ($rs) {
                 <?php if (trim((string)$r['topic_url']) !== ''): ?>
                     <a href="<?= h($r['topic_url']) ?>" target="_blank" rel="noopener noreferrer">Abrir</a>
                 <?php else: ?>
-                    <span class="adm-color-muted">(vacío)</span>
+                    <span class="adm-color-muted">(vacÃ­o)</span>
                 <?php endif; ?>
             </td>
             <td><?= (int)$r['sort_order'] ?></td>
@@ -490,7 +490,7 @@ if ($rs) {
             </td>
             <td>
                 <a class="btn" href="/talim?s=admin_topic_viewer&edit=<?= (int)$r['id'] ?>">Editar</a>
-                <form method="post" class="adm-inline-form" onsubmit="return confirm('¿Borrar este tema?');">
+                <form method="post" class="adm-inline-form" onsubmit="return confirm('Â¿Borrar este tema?');">
                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                     <input type="hidden" name="crud_action" value="delete">
                     <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
@@ -522,4 +522,7 @@ if ($rs) {
 </script>
 
 <?php admin_panel_close(); ?>
+
+
+
 

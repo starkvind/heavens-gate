@@ -241,7 +241,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
     switch ($route) {
         case 'home':
             $title = "Heaven's Gate";
-            $description = "Archivo vivo de una cronica alternativa de Hombre Lobo: El Apocalipsis. Explora personajes, temporadas, eventos, mapas y material de juego.";
+            $description = "Archivo vivo de una crónica alternativa de Hombre Lobo: El Apocalipsis. Explora personajes, temporadas, eventos, mapas y material de juego.";
             break;
         case 'seasons_home':
             $title = "Temporadas | Heaven's Gate";

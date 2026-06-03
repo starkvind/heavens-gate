@@ -6,7 +6,6 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
-include_once(__DIR__ . '/../../tools/season_order_schema_20260522.php');
 
 $csrfKey = 'csrf_admin_season_order';
 $csrf = function_exists('hg_admin_ensure_csrf_token') ? hg_admin_ensure_csrf_token($csrfKey) : (string)($_SESSION[$csrfKey] ?? '');
@@ -43,9 +42,23 @@ function hg_aso_csrf_ok(string $csrfKey, array $payload): bool
         : ($token !== '' && isset($_SESSION[$csrfKey]) && hash_equals((string)$_SESSION[$csrfKey], $token));
 }
 
+function hg_aso_table_exists(mysqli $link, string $table): bool
+{
+    $stmt = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $table);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+    return (int)$count > 0;
+}
+
 function hg_aso_schema_ready(mysqli $link): bool
 {
-    return hg_so_schema_table_exists($link, 'bridge_season_order_nodes');
+    return hg_aso_table_exists($link, 'bridge_season_order_nodes');
 }
 
 function hg_aso_fetch_season_options(mysqli $link): array
@@ -484,7 +497,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 admin_panel_open(
     'Orden de temporadas',
     '<span class="adm-flex-right-8">'
-    . '<a class="btn" href="/talim?s=admin_season_order_schema">Preparar schema</a>'
+    . '<a class="btn" href="/talim?s=admin_season_order_schema">Estado bridge</a>'
     . '<a class="btn" href="/seasons/order" target="_blank">Ver pagina publica</a>'
     . '</span>'
 );
@@ -516,7 +529,7 @@ admin_panel_open(
 
 <?php if (!$schemaReady): ?>
     <div class="err">
-        Falta `bridge_season_order_nodes`. Ejecuta primero el schema desde <a href="/talim?s=admin_season_order_schema">Orden de temporadas: schema</a>.
+        Falta `bridge_season_order_nodes` en esta base de datos. El editor queda deshabilitado hasta que exista el bridge.
     </div>
 <?php else: ?>
     <div class="adm-season-order-grid">

@@ -124,7 +124,7 @@ if ($rs = $link->query("SELECT id, name, category, max_instances FROM dim_charac
 }
 
 if (!$bridgeReady) {
-    $flash[] = ['type' => 'error', 'msg' => 'La tabla de condiciones de personaje necesita completar su migracion. Ejecuta app/tools/setup_character_conditions_tables_20260409.php.'];
+    $flash[] = ['type' => 'error', 'msg' => 'La tabla de condiciones de personaje no esta disponible con la estructura esperada en esta base de datos.'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {

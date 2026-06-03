@@ -65,6 +65,7 @@ _old_things/
 _old_things/*
 __legacy_sim/
 __legacy_sim/*
+june_2026_cleanup/
 bdd_structure.txt
 app/tools/migrate_character_indexes_phase1.php
 app/tools/migrate_character_status_phase1.php
@@ -82,6 +83,7 @@ app/tools/migrate_timestamps_phase1.php
 app/tools/migrate_timestamps_phase2_excluding_logs.php
 upgrade_plan.txt
 admin_upgrade_notes/
+admin_docs/
 app/tools/migrate_timeline_birthdays_phase3.php
 app/tools/migrate_timeline_birthdays_text_phase4.php
 app/tools/migrate_timeline_events_bridges_phase2.php
@@ -97,30 +99,14 @@ app/tools/migrate_character_status_id_phase1.php
 check_encoding.ps1
 PHP_TESTS.txt
 
-app/tools/recover_zeroed_character_traits.php
-app/tools/simulator_battles_add_season_id_20260309.php
-app/tools/simulator_schema_upgrade_20260307.php
-app/tools/simulator_scores_add_season_id_20260310.php
-app/tools/simulator_seasons_setup_20260309.php
-app/tools/simulator_tournaments_setup_20260314.php
-app/tools/simulator_battles_add_tournament_flags_20260314.php
-app/tools/topic_viewer_setup_20260318.php
-app/tools/setup_external_links_20260322.php
-app/tools/setup_character_documentation_links_20260322.php
-app/tools/setup_character_docs_links_20260322.php
 app/helpers/admin_phase7_audit.php
-app/tools/phase7_integrity_audit.php
-app/tools/phase7_schema_hardening_20260403.php
 app/tools/phaseA_schema_prep_20260403.php
 app/tools/phaseB_schema_fk_20260403.php
 app/tools/phaseC_relations_arrows_20260403.php
-app/tools/generate_pretty_ids.php
 WEB_MEJORAS_IMPLEMENTADAS.txt
 TELEGRAM_BOT_BACKEND_GUIDE.md
-app/tools/setup_character_conditions_tables_20260409.php
 card_upgrade_plan.txt
 avatar.php
-app/tools/season_order_schema_20260522.php
 HOW_TO_CREATE_SKILLS_FOR_CARD_GAME.txt
 upgrade_card_game_v3.txt
 game-card-migration-next-steps.txt

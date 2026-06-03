@@ -697,6 +697,11 @@ if (!hg_admin_require_db($link)) { return; }
 							Ayuda Mentions
 						</div>
 					</a>
+					<a href='/app/tools/forum_resumee_builder.html' target='_blank' rel='noopener'>
+						<div class='bioSheetPower adm-admin-tile'>
+							Builder resumen foro
+						</div>
+					</a>
 					<a href='/talim?s=admin_season_order_schema'>
 						<div class='bioSheetPower adm-admin-tile'>
 							Schema orden temporadas

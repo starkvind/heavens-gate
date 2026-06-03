@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // admin_sim_browser.php - Gestion de browser del simulador por temporadas.
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -182,7 +182,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
             : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
         if (!$csrfOk) {
-            hg_admin_json_error('CSRF inválido. Recarga la página.', 403, array('csrf' => 'invalid'));
+            hg_admin_json_error('CSRF invÃ¡lido. Recarga la pÃ¡gina.', 403, array('csrf' => 'invalid'));
         }
     }
 
@@ -243,7 +243,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'delete_season') {
         $id = isset($payload['id']) ? (int)$payload['id'] : 0;
         if ($id <= 0) {
-            hg_admin_json_error('ID inválido.', 422, array('id' => 'invalid'));
+            hg_admin_json_error('ID invÃ¡lido.', 422, array('id' => 'invalid'));
         }
 
         $isActive = 0;
@@ -272,7 +272,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'set_active') {
         $id = isset($payload['id']) ? (int)$payload['id'] : 0;
         if ($id <= 0) {
-            hg_admin_json_error('ID inválido.', 422, array('id' => 'invalid'));
+            hg_admin_json_error('ID invÃ¡lido.', 422, array('id' => 'invalid'));
         }
         $exists = 0;
         if ($st = $link->prepare("SELECT COUNT(*) FROM fact_sim_seasons WHERE id=?")) {
@@ -337,7 +337,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             $validCount = ($rsValid) ? $rsValid->num_rows : 0;
             if ($rsValid) $rsValid->close();
             if ($validCount !== count($ids)) {
-                hg_admin_json_error('Hay personajes no válidos para el simulador.', 422, array('character_ids' => 'invalid_kind'));
+                hg_admin_json_error('Hay personajes no vÃ¡lidos para el simulador.', 422, array('character_ids' => 'invalid_kind'));
             }
         }
 
@@ -390,7 +390,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
         );
     }
 
-    hg_admin_json_error('Acción no soportada.', 400, array('action' => 'unsupported'));
+    hg_admin_json_error('AcciÃ³n no soportada.', 400, array('action' => 'unsupported'));
 }
 
 if (!$isAjaxRequest) {
@@ -402,7 +402,7 @@ if (!$isAjaxRequest) {
 ?>
 
 <?php if (!$hasTables): ?>
-  <p class="adm-admin-error">Faltan tablas de temporadas del simulador. Ejecuta <code>app/tools/simulator_seasons_setup_20260309.php</code> y recarga este panel.</p>
+  <p class="adm-admin-error">Faltan tablas de temporadas del simulador en esta base de datos.</p>
 <?php else: ?>
   <div class="adm-grid-1-2" style="margin-bottom:10px;">
     <fieldset class="bioSeccion">
@@ -414,12 +414,12 @@ if (!$isAjaxRequest) {
           <input class="inp" type="text" id="asbSeasonName" maxlength="120" placeholder="Ej: Temporada 1">
         </div>
         <div>
-          <label>Límite de personajes</label>
+          <label>LÃ­mite de personajes</label>
           <input class="inp" type="number" id="asbSeasonLimit" min="1" max="200" value="35">
         </div>
       </div>
-      <label>Descripción</label>
-      <textarea class="ta" id="asbSeasonDesc" rows="2" maxlength="500" placeholder="Descripción corta"></textarea>
+      <label>DescripciÃ³n</label>
+      <textarea class="ta" id="asbSeasonDesc" rows="2" maxlength="500" placeholder="DescripciÃ³n corta"></textarea>
       <div style="margin:8px 0;">
         <label><input type="checkbox" id="asbSeasonActive"> Temporada activa</label>
       </div>
@@ -870,4 +870,5 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
 </script>
 <?php endif; ?>
 <?php if (!$isAjaxRequest) { admin_panel_close(); } ?>
+
 

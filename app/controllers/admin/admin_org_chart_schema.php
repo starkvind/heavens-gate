@@ -5,7 +5,6 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
-include_once(__DIR__ . '/../../tools/org_chart_schema_20260427.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
 $csrfKey = 'csrf_admin_org_chart_schema';
@@ -52,6 +51,59 @@ function hg_aocs_count_rows(mysqli $link, string $table): int
     return (int)($row['c'] ?? 0);
 }
 
+function hg_aocs_fetch_id_prepared(mysqli $link, string $sql, string $types, array $params): int
+{
+    $stmt = $link->prepare($sql);
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $row = $rs ? $rs->fetch_assoc() : null;
+    $stmt->close();
+    return (int)($row['id'] ?? 0);
+}
+
+function hg_aocs_upsert_department(mysqli $link, int $orgId, ?int $parentId, string $pretty, string $name, string $type, int $level, string $color, string $description, int $sort): int
+{
+    $existing = hg_aocs_fetch_id_prepared(
+        $link,
+        'SELECT id FROM dim_organization_departments WHERE organization_id = ? AND pretty_id = ? LIMIT 1',
+        'is',
+        [$orgId, $pretty]
+    );
+
+    if ($existing > 0) {
+        $stmt = $link->prepare("
+            UPDATE dim_organization_departments
+            SET parent_department_id = ?, name = ?, department_type = ?, hierarchy_level = ?, color = ?, description = ?, sort_order = ?, is_active = 1
+            WHERE id = ?
+        ");
+        if (!$stmt) {
+            return 0;
+        }
+        $stmt->bind_param('ississii', $parentId, $name, $type, $level, $color, $description, $sort, $existing);
+        $stmt->execute();
+        $stmt->close();
+        return $existing;
+    }
+
+    $stmt = $link->prepare("
+        INSERT INTO dim_organization_departments
+            (organization_id, parent_department_id, pretty_id, name, department_type, hierarchy_level, color, description, sort_order, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    ");
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param('iisssissi', $orgId, $parentId, $pretty, $name, $type, $level, $color, $description, $sort);
+    $stmt->execute();
+    $id = (int)$stmt->insert_id;
+    $stmt->close();
+    return $id;
+}
+
 function hg_aocs_fetch_organizations(mysqli $link): array
 {
     $rows = [];
@@ -88,7 +140,7 @@ function hg_aocs_fetch_departments(mysqli $link, int $orgId): array
     $stmt->execute();
     $rs = $stmt->get_result();
     while ($row = $rs->fetch_assoc()) {
-        $row['id'] = (int)$row['id'];
+        $row['id'] = (int)($row['id'] ?? 0);
         $row['parent_department_id'] = (int)($row['parent_department_id'] ?? 0);
         $row['hierarchy_level'] = (int)($row['hierarchy_level'] ?? 0);
         $row['sort_order'] = (int)($row['sort_order'] ?? 0);
@@ -145,7 +197,7 @@ function hg_aocs_unique_department_pretty(mysqli $link, int $orgId, string $base
     }
     $pretty = $basePretty;
     $suffix = 2;
-    while (org_chart_schema_fetch_id_prepared(
+    while (hg_aocs_fetch_id_prepared(
         $link,
         'SELECT id FROM dim_organization_departments WHERE organization_id = ? AND pretty_id = ? LIMIT 1',
         'is',
@@ -158,7 +210,6 @@ function hg_aocs_unique_department_pretty(mysqli $link, int $orgId, string $base
 }
 
 $flash = [];
-$execution = ['messages' => [], 'errors' => []];
 $departmentTypes = [
     'board' => 'Bloque / Consejo',
     'department' => 'Departamento',
@@ -169,38 +220,17 @@ $departmentTypes = [
     'other' => 'Otra',
 ];
 
+$departmentsReady = hg_aocs_table_exists($link, 'dim_organization_departments');
+$bridgeReady = hg_aocs_table_exists($link, 'bridge_characters_org');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hg_aocs_csrf_ok($csrfKey)) {
         $flash[] = ['type' => 'error', 'msg' => 'CSRF invalido. Recarga la pagina antes de reintentar.'];
     } else {
         $action = (string)($_POST['schema_action'] ?? '');
-        if ($action === 'apply') {
-            $execution = org_chart_schema_apply($link, true);
-            $flash[] = empty($execution['errors'])
-                ? ['type' => 'ok', 'msg' => 'Tablas de organigrama creadas o verificadas.']
-                : ['type' => 'error', 'msg' => 'No se pudieron crear todas las tablas. Revisa el detalle.'];
-        } elseif ($action === 'seed_justicia') {
-            if (!hg_aocs_table_exists($link, 'dim_organization_departments') || !hg_aocs_table_exists($link, 'bridge_characters_org')) {
-                $flash[] = ['type' => 'error', 'msg' => 'Primero crea las tablas del organigrama.'];
-            } else {
-                $execution = org_chart_schema_seed_justicia_metalica($link);
-                $flash[] = empty($execution['errors'])
-                    ? ['type' => 'ok', 'msg' => 'Semilla de Justicia Metalica ejecutada.']
-                    : ['type' => 'error', 'msg' => 'La semilla no pudo completarse. Revisa el detalle.'];
-            }
-        } elseif ($action === 'apply_and_seed') {
-            $execution = org_chart_schema_apply($link, true);
-            if (empty($execution['errors'])) {
-                $seedExecution = org_chart_schema_seed_justicia_metalica($link);
-                $execution['messages'] = array_merge($execution['messages'], $seedExecution['messages']);
-                $execution['errors'] = array_merge($execution['errors'], $seedExecution['errors']);
-            }
-            $flash[] = empty($execution['errors'])
-                ? ['type' => 'ok', 'msg' => 'Tablas y semilla aplicadas.']
-                : ['type' => 'error', 'msg' => 'La ejecucion no pudo completarse. Revisa el detalle.'];
-        } elseif ($action === 'create_department') {
-            if (!hg_aocs_table_exists($link, 'dim_organization_departments')) {
-                $flash[] = ['type' => 'error', 'msg' => 'Primero crea las tablas del organigrama.'];
+        if ($action === 'create_department') {
+            if (!$departmentsReady) {
+                $flash[] = ['type' => 'error', 'msg' => 'La tabla de categorias no esta disponible en esta base de datos.'];
             } else {
                 $categoryOrgId = max(0, (int)($_POST['category_org_id'] ?? 0));
                 $parentId = max(0, (int)($_POST['parent_department_id'] ?? 0));
@@ -228,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($sort <= 0) {
                         $sort = hg_aocs_next_department_sort($link, $categoryOrgId, $parentIdOrNull);
                     }
-                    $newId = org_chart_schema_upsert_department(
+                    $newId = hg_aocs_upsert_department(
                         $link,
                         $categoryOrgId,
                         $parentIdOrNull,
@@ -249,9 +279,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$dryRun = org_chart_schema_apply($link, false);
-$departmentsReady = hg_aocs_table_exists($link, 'dim_organization_departments');
-$bridgeReady = hg_aocs_table_exists($link, 'bridge_characters_org');
 $departmentsCount = hg_aocs_count_rows($link, 'dim_organization_departments');
 $bridgeCount = hg_aocs_count_rows($link, 'bridge_characters_org');
 $organizations = hg_aocs_fetch_organizations($link);
@@ -259,9 +286,9 @@ $selectedCategoryOrgId = max(0, (int)($_POST['category_org_id'] ?? $_GET['catego
 $selectedOrgDepartments = $departmentsReady ? hg_aocs_fetch_departments($link, $selectedCategoryOrgId) : [];
 
 admin_panel_open(
-    'Organigramas: esquema y semilla',
+    'Organigramas: categorias',
     '<span class="adm-flex-right-8">'
-    . '<form method="post" class="adm-inline-form"><input type="hidden" name="csrf" value="' . hg_aocs_h($csrf) . '"><input type="hidden" name="schema_action" value="apply_and_seed"><button class="btn btn-green" type="submit" onclick="return confirm(\'Crear tablas y sembrar Justicia Metalica?\')">Aplicar todo</button></form>'
+    . '<a class="btn" href="/organizations/justicia-metalica/org-chart" target="_blank">Ver organigrama</a>'
     . '</span>'
 );
 ?>
@@ -270,9 +297,6 @@ admin_panel_open(
 <style>
 .adm-org-schema-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}
 .adm-org-schema-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-.adm-org-schema-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-.adm-org-schema-log{white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;line-height:1.45;color:#d7e7ff;background:#06153a;border:1px solid #17366e;border-radius:8px;padding:10px;max-height:360px;overflow:auto}
-.adm-org-schema-sql{white-space:pre-wrap;word-break:break-word;font-family:Consolas,monospace;font-size:11px;line-height:1.45;color:#d7e7ff}
 .adm-org-category-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:10px 12px;align-items:end}
 .adm-org-category-grid label{display:grid;gap:5px;color:#dfefff}
 .adm-org-category-grid input,.adm-org-category-grid select,.adm-org-category-grid textarea{width:100%;box-sizing:border-box}
@@ -285,30 +309,16 @@ admin_panel_open(
 </style>
 
 <div class="adm-org-schema-summary">
-  <span class="adm-org-schema-pill">Departamentos: <?= $departmentsReady ? 'OK' : 'Pendiente' ?><?= $departmentsReady ? ' (' . (int)$departmentsCount . ')' : '' ?></span>
-  <span class="adm-org-schema-pill">Bridge cargos: <?= $bridgeReady ? 'OK' : 'Pendiente' ?><?= $bridgeReady ? ' (' . (int)$bridgeCount . ')' : '' ?></span>
+  <span class="adm-org-schema-pill">Departamentos: <?= $departmentsReady ? 'OK' : 'Ausente' ?><?= $departmentsReady ? ' (' . (int)$departmentsCount . ')' : '' ?></span>
+  <span class="adm-org-schema-pill">Bridge cargos: <?= $bridgeReady ? 'OK' : 'Ausente' ?><?= $bridgeReady ? ' (' . (int)$bridgeCount . ')' : '' ?></span>
 </div>
 
-<p>Esta pantalla ejecuta desde el servidor web la misma preparacion que antes estaba pensada para CLI, usando la conexion real de la aplicacion.</p>
-
-<div class="adm-org-schema-actions">
-  <form method="post" class="adm-inline-form">
-    <input type="hidden" name="csrf" value="<?= hg_aocs_h($csrf) ?>">
-    <input type="hidden" name="schema_action" value="apply">
-    <button class="btn btn-green" type="submit">Crear/reparar tablas</button>
-  </form>
-  <form method="post" class="adm-inline-form">
-    <input type="hidden" name="csrf" value="<?= hg_aocs_h($csrf) ?>">
-    <input type="hidden" name="schema_action" value="seed_justicia">
-    <button class="btn" type="submit">Sembrar Justicia Metalica</button>
-  </form>
-  <a class="btn" href="/organizations/justicia-metalica/org-chart" target="_blank">Ver organigrama</a>
-</div>
+<p>Este panel ya no ejecuta setups ni semillas historicas. Solo muestra el estado actual y permite crear categorias si las tablas existen.</p>
 
 <fieldset class="bioSeccion">
   <legend>&nbsp;Categorias para organigramas&nbsp;</legend>
   <?php if (!$departmentsReady): ?>
-    <div class="err">Primero crea las tablas del organigrama.</div>
+    <div class="err">No existe `dim_organization_departments` en esta base de datos. El panel queda en modo consulta.</div>
   <?php else: ?>
     <form method="get" class="adm-org-category-grid" style="margin-bottom:12px">
       <input type="hidden" name="s" value="admin_org_chart_schema">
@@ -439,28 +449,5 @@ admin_panel_open(
   <?php endif; ?>
 </fieldset>
 
-<?php if (!empty($execution['messages'])): ?>
-<fieldset class="bioSeccion">
-  <legend>&nbsp;Ultima ejecucion&nbsp;</legend>
-  <div class="adm-org-schema-log"><?= hg_aocs_h(implode("\n", (array)$execution['messages'])) ?></div>
-</fieldset>
-<?php endif; ?>
-
-<?php if (!empty($execution['errors'])): ?>
-<fieldset class="bioSeccion">
-  <legend>&nbsp;Errores&nbsp;</legend>
-  <?php foreach ((array)$execution['errors'] as $error): ?>
-    <div class="err">
-      <strong><?= hg_aocs_h((string)($error['label'] ?? 'error')) ?></strong><br>
-      <?= hg_aocs_h((string)($error['error'] ?? 'Error SQL')) ?>
-    </div>
-  <?php endforeach; ?>
-</fieldset>
-<?php endif; ?>
-
-<fieldset class="bioSeccion">
-  <legend>&nbsp;Plan SQL&nbsp;</legend>
-  <div class="adm-org-schema-log"><?= hg_aocs_h(implode("\n", (array)$dryRun['messages'])) ?></div>
-</fieldset>
 <?php
 admin_panel_close();

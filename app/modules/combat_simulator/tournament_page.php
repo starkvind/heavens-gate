@@ -1042,7 +1042,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$isAdmin) {
         $flash = 'Acceso restringido: esta funcionalidad es exclusiva de administracion.';
     } elseif (!$tableReady) {
-        $flash = "Falta la tabla de torneos. Ejecuta app/tools/simulator_tournaments_setup_20260314.php";
+        $flash = "Falta la tabla de torneos en esta base de datos.";
     } elseif ($action === 'create_tournament') {
         $name = trim((string)($_POST['tournament_name'] ?? ''));
         $size = (int)($_POST['bracket_size'] ?? 8);
@@ -1130,7 +1130,7 @@ include('app/partials/main_nav_bar.php');
     <?php if (!$tableReady): ?>
         <fieldset class="sim-fieldset-inline">
             <legend>Configuracion pendiente</legend>
-            <p class="sim-tournament-note">Falta la tabla de torneos. Ejecuta: <code>app/tools/simulator_tournaments_setup_20260314.php</code></p>
+            <p class="sim-tournament-note">Falta la tabla de torneos en esta base de datos.</p>
         </fieldset>
     <?php else: ?>
         <?php if ($activeSeasonId > 0): ?>
@@ -1411,3 +1411,5 @@ include('app/partials/main_nav_bar.php');
         <?php endif; ?>
     <?php endif; ?>
 </div>
+
+

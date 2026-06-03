@@ -204,7 +204,7 @@ echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>
 ?>
 
 <?php if (!$hasTable): ?>
-    <div class="flash"><div class="err">No existe <code>fact_external_links</code>. Ejecuta primero: <code>app/tools/setup_external_links_20260322.php</code></div></div>
+    <div class="flash"><div class="err">No existe <code>fact_external_links</code> en esta base de datos.</div></div>
     <?php admin_panel_close(); return; ?>
 <?php endif; ?>
 

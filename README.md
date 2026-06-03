@@ -2,7 +2,7 @@
 
 Heaven's Gate is a live PHP web platform for publishing and maintaining a narrative RPG universe. The site brings together character sheets, chronicles, chapters, rules, systems, maps, soundtrack, gallery content, and a private admin area used to keep the world up to date.
 
-This `README` is intentionally user-facing. Backend architecture, schema details, routing, provisioning, and maintenance notes now live in [`TECHNICAL_DOCUMENTATION.md`](./TECHNICAL_DOCUMENTATION.md).
+This `README` is intentionally user-facing. Backend architecture, schema details, routing, provisioning, and maintenance notes now live in [`TECHNICAL_DOCUMENTATION.md`](./admin_docs/TECHNICAL_DOCUMENTATION.md).
 
 ## What You Can Do On The Site
 
@@ -47,14 +47,14 @@ To run the site you need:
 
 If you only need the technical setup, provisioning flow, schema notes, or backend map, go straight to:
 
-- [`TECHNICAL_DOCUMENTATION.md`](./TECHNICAL_DOCUMENTATION.md)
-- `TELEGRAM_BOT_BACKEND_GUIDE.md`
+- [`TECHNICAL_DOCUMENTATION.md`](./admin_docs/TECHNICAL_DOCUMENTATION.md)
+- [`TELEGRAM_BOT_BACKEND_GUIDE.md`](./admin_docs/TELEGRAM_BOT_BACKEND_GUIDE.md)
 
 ## Documentation
 
 - User/project overview: [`README.md`](./README.md)
-- Technical architecture and maintenance: [`TECHNICAL_DOCUMENTATION.md`](./TECHNICAL_DOCUMENTATION.md)
-- Backend/controller/schema map for bot or integration work: `TELEGRAM_BOT_BACKEND_GUIDE.md`
+- Technical architecture and maintenance: [`TECHNICAL_DOCUMENTATION.md`](./admin_docs/TECHNICAL_DOCUMENTATION.md)
+- Backend/controller/schema map for bot or integration work: [`TELEGRAM_BOT_BACKEND_GUIDE.md`](./admin_docs/TELEGRAM_BOT_BACKEND_GUIDE.md)
 
 ## License
 
