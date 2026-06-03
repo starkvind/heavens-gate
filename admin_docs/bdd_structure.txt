@@ -1,0 +1,4424 @@
+========================================
+ INSPECCIÓN DE BASE DE DATOS
+========================================
+
+Codificación conexión: utf8mb4 / utf8mb4_general_ci
+Codificación BDD: utf8mb4 / utf8mb4_general_ci
+
+Modo de inspección: BLACKLIST → excluyendo: dim_web_configuration
+
+----------------------------------------
+TABLA: bridge_chapters_characters
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - chapter_id (int(10) unsigned) [IDX] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    chapter_id: 1
+    character_id: 3
+    created_at: 2025-06-09 10:30:54
+  Fila 2:
+    id: 2
+    chapter_id: 2
+    character_id: 1
+    created_at: 2025-06-09 10:30:54
+  Fila 3:
+    id: 3
+    chapter_id: 3
+    character_id: 1
+    created_at: 2025-06-09 10:30:54
+  Fila 4:
+    id: 4
+    chapter_id: 3
+    character_id: 2
+    created_at: 2025-06-09 10:30:54
+  Fila 5:
+    id: 5
+    chapter_id: 3
+    character_id: 3
+    created_at: 2025-06-09 10:30:54
+
+
+----------------------------------------
+TABLA: bridge_characters_groups
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - group_id (int(10) unsigned) [IDX] [NOT NULL]
+  - position (varchar(100)) [NOT NULL]
+  - is_active (tinyint(1))
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 117
+    character_id: 145
+    group_id: 35
+    position: 
+    is_active: 1
+    created_at: 2026-01-07 16:49:10
+    updated_at: 2026-02-17 22:44:48
+  Fila 2:
+    id: 239
+    character_id: 1
+    group_id: 41
+    position: 
+    is_active: 1
+    created_at: 2026-01-16 22:32:13
+    updated_at: 2026-01-17 00:50:50
+  Fila 3:
+    id: 240
+    character_id: 2
+    group_id: 2
+    position: 
+    is_active: 1
+    created_at: 2026-01-16 22:32:13
+    updated_at: NULL
+  Fila 4:
+    id: 241
+    character_id: 3
+    group_id: 4
+    position: 
+    is_active: 1
+    created_at: 2026-01-16 22:32:13
+    updated_at: 2026-02-20 23:34:02
+  Fila 5:
+    id: 242
+    character_id: 4
+    group_id: 1
+    position: 
+    is_active: 1
+    created_at: 2026-01-16 22:32:13
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_items
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - item_id (int(10) unsigned) [IDX] [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    character_id: 3
+    item_id: 19
+    created_at: 2026-01-09 23:06:25
+    updated_at: NULL
+  Fila 2:
+    id: 2
+    character_id: 3
+    item_id: 28
+    created_at: 2026-01-09 23:06:25
+    updated_at: NULL
+  Fila 3:
+    id: 3
+    character_id: 3
+    item_id: 6
+    created_at: 2026-01-09 23:06:25
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    character_id: 4
+    item_id: 11
+    created_at: 2026-01-09 23:06:25
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    character_id: 4
+    item_id: 12
+    created_at: 2026-01-09 23:06:25
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_merits_flaws
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - merit_flaw_id (int(10) unsigned) [IDX] [NOT NULL]
+  - level (tinyint(2))
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 5
+    character_id: 2
+    merit_flaw_id: 90
+    level: NULL
+    created_at: 2026-01-09 22:53:19
+    updated_at: NULL
+  Fila 2:
+    id: 6
+    character_id: 3
+    merit_flaw_id: 203
+    level: NULL
+    created_at: 2026-01-09 22:53:19
+    updated_at: NULL
+  Fila 3:
+    id: 7
+    character_id: 4
+    merit_flaw_id: 82
+    level: NULL
+    created_at: 2026-01-09 22:53:19
+    updated_at: NULL
+  Fila 4:
+    id: 8
+    character_id: 4
+    merit_flaw_id: 107
+    level: NULL
+    created_at: 2026-01-09 22:53:19
+    updated_at: NULL
+  Fila 5:
+    id: 9
+    character_id: 4
+    merit_flaw_id: 75
+    level: NULL
+    created_at: 2026-01-09 22:53:19
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_organizations
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - organization_id (int(10) unsigned) [IDX] [NOT NULL]
+  - is_active (tinyint(1))
+  - role (varchar(100)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 93
+    character_id: 1
+    organization_id: 5
+    is_active: 1
+    role: Líder
+    created_at: 2026-01-16 22:58:24
+    updated_at: 2026-01-17 00:51:17
+  Fila 2:
+    id: 94
+    character_id: 2
+    organization_id: 2
+    is_active: 1
+    role: 
+    created_at: 2026-01-16 22:58:24
+    updated_at: NULL
+  Fila 3:
+    id: 95
+    character_id: 3
+    organization_id: 2
+    is_active: 1
+    role: 
+    created_at: 2026-01-16 22:58:24
+    updated_at: NULL
+  Fila 4:
+    id: 96
+    character_id: 4
+    organization_id: 1
+    is_active: 1
+    role: 
+    created_at: 2026-01-16 22:58:24
+    updated_at: NULL
+  Fila 5:
+    id: 97
+    character_id: 5
+    organization_id: 2
+    is_active: 1
+    role: 
+    created_at: 2026-01-16 22:58:24
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_powers
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - power_kind (enum('dones','disciplinas','rituales')) [NOT NULL]
+  - power_id (int(10) unsigned) [NOT NULL]
+  - power_level (int(1)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 368
+    character_id: 4
+    power_kind: dones
+    power_id: 1
+    power_level: 0
+    created_at: 2026-01-09 00:43:30
+    updated_at: NULL
+  Fila 2:
+    id: 369
+    character_id: 4
+    power_kind: dones
+    power_id: 2
+    power_level: 0
+    created_at: 2026-01-09 00:43:30
+    updated_at: NULL
+  Fila 3:
+    id: 370
+    character_id: 4
+    power_kind: dones
+    power_id: 241
+    power_level: 0
+    created_at: 2026-01-09 00:43:30
+    updated_at: NULL
+  Fila 4:
+    id: 371
+    character_id: 4
+    power_kind: dones
+    power_id: 80
+    power_level: 0
+    created_at: 2026-01-09 00:43:30
+    updated_at: NULL
+  Fila 5:
+    id: 372
+    character_id: 4
+    power_kind: dones
+    power_id: 17
+    power_level: 0
+    created_at: 2026-01-09 00:43:30
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_relations
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - source_id (int(10) unsigned) [IDX] [NOT NULL]
+  - target_id (int(10) unsigned) [IDX] [NOT NULL]
+  - relation_type (varchar(100)) [NOT NULL]
+  - tag (varchar(100))
+  - importance (int(11))
+  - description (text)
+  - arrows (varchar(10))
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 3
+    source_id: 2
+    target_id: 14
+    relation_type: Enemigo
+    tag: conflicto
+    importance: 1
+    description: 
+    arrows: to
+    created_at: 2026-01-09 00:50:18
+    updated_at: NULL
+  Fila 2:
+    id: 4
+    source_id: 3
+    target_id: 249
+    relation_type: Madre
+    tag: familia
+    importance: 1
+    description: 
+    arrows: to
+    created_at: 2026-01-09 00:50:18
+    updated_at: NULL
+  Fila 3:
+    id: 5
+    source_id: 3
+    target_id: 15
+    relation_type: Amigo
+    tag: amistad
+    importance: 1
+    description: 
+    arrows: to,from
+    created_at: 2026-01-09 00:50:18
+    updated_at: NULL
+  Fila 4:
+    id: 6
+    source_id: 3
+    target_id: 55
+    relation_type: Amante
+    tag: amistad
+    importance: 1
+    description: 
+    arrows: to,from
+    created_at: 2026-01-09 00:50:18
+    updated_at: NULL
+  Fila 5:
+    id: 8
+    source_id: 3
+    target_id: 68
+    relation_type: Enemigo
+    tag: conflicto
+    importance: 1
+    description: 
+    arrows: to
+    created_at: 2026-01-09 00:50:18
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_system_resources
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - resource_id (int(10) unsigned) [IDX] [NOT NULL]
+  - value_permanent (int(11)) [NOT NULL]
+  - value_temporary (int(11)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 8
+    character_id: 2
+    resource_id: 1
+    value_permanent: 1
+    value_temporary: 0
+    created_at: 2026-02-19 21:56:13
+    updated_at: 2026-02-19 22:01:42
+  Fila 2:
+    id: 9
+    character_id: 2
+    resource_id: 7
+    value_permanent: 3
+    value_temporary: 0
+    created_at: 2026-02-19 21:56:13
+    updated_at: 2026-02-19 22:01:42
+  Fila 3:
+    id: 10
+    character_id: 2
+    resource_id: 12
+    value_permanent: 1
+    value_temporary: 0
+    created_at: 2026-02-19 21:56:13
+    updated_at: 2026-02-19 22:01:42
+  Fila 4:
+    id: 11
+    character_id: 2
+    resource_id: 15
+    value_permanent: 3
+    value_temporary: 3
+    created_at: 2026-02-19 21:56:13
+    updated_at: NULL
+  Fila 5:
+    id: 12
+    character_id: 2
+    resource_id: 17
+    value_permanent: 5
+    value_temporary: 5
+    created_at: 2026-02-19 21:56:13
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_characters_system_resources_log
+----------------------------------------
+Columnas:
+  - id (bigint(20) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - resource_id (int(10) unsigned) [IDX] [NOT NULL]
+  - old_permanent (int(11))
+  - new_permanent (int(11))
+  - old_temporary (int(11))
+  - new_temporary (int(11))
+  - delta_permanent (int(11))
+  - delta_temporary (int(11))
+  - reason (varchar(255))
+  - source (varchar(50)) [IDX] [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - created_by (varchar(80))
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    character_id: 1
+    resource_id: 1
+    old_permanent: NULL
+    new_permanent: 1
+    old_temporary: NULL
+    new_temporary: 1
+    delta_permanent: NULL
+    delta_temporary: NULL
+    reason: Initial import from fact_characters legacy columns
+    source: migration_init
+    created_at: 2026-02-19 21:56:13
+    created_by: Starkvind
+  Fila 2:
+    id: 2
+    character_id: 1
+    resource_id: 7
+    old_permanent: NULL
+    new_permanent: 0
+    old_temporary: NULL
+    new_temporary: 0
+    delta_permanent: NULL
+    delta_temporary: NULL
+    reason: Initial import from fact_characters legacy columns
+    source: migration_init
+    created_at: 2026-02-19 21:56:13
+    created_by: Starkvind
+  Fila 3:
+    id: 3
+    character_id: 1
+    resource_id: 12
+    old_permanent: NULL
+    new_permanent: 5
+    old_temporary: NULL
+    new_temporary: 5
+    delta_permanent: NULL
+    delta_temporary: NULL
+    reason: Initial import from fact_characters legacy columns
+    source: migration_init
+    created_at: 2026-02-19 21:56:13
+    created_by: Starkvind
+  Fila 4:
+    id: 4
+    character_id: 1
+    resource_id: 15
+    old_permanent: NULL
+    new_permanent: 2
+    old_temporary: NULL
+    new_temporary: 2
+    delta_permanent: NULL
+    delta_temporary: NULL
+    reason: Initial import from fact_characters legacy columns
+    source: migration_init
+    created_at: 2026-02-19 21:56:13
+    created_by: Starkvind
+  Fila 5:
+    id: 5
+    character_id: 1
+    resource_id: 17
+    old_permanent: NULL
+    new_permanent: 6
+    old_temporary: NULL
+    new_temporary: 6
+    delta_permanent: NULL
+    delta_temporary: NULL
+    reason: Initial import from fact_characters legacy columns
+    source: migration_init
+    created_at: 2026-02-19 21:56:13
+    created_by: Starkvind
+
+
+----------------------------------------
+TABLA: bridge_characters_traits
+----------------------------------------
+Columnas:
+  - character_id (int(10) unsigned) [PK] [NOT NULL]
+  - trait_id (int(10) unsigned) [PK] [NOT NULL]
+  - value (tinyint(4)) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    character_id: 1
+    trait_id: 1
+    value: 2
+    updated_at: 2026-02-22 09:03:30
+  Fila 2:
+    character_id: 1
+    trait_id: 5
+    value: 1
+    updated_at: 2026-02-22 09:03:30
+  Fila 3:
+    character_id: 1
+    trait_id: 6
+    value: 1
+    updated_at: 2026-02-22 09:03:30
+  Fila 4:
+    character_id: 1
+    trait_id: 7
+    value: 0
+    updated_at: 2026-02-22 09:03:30
+  Fila 5:
+    character_id: 1
+    trait_id: 8
+    value: 2
+    updated_at: 2026-02-22 09:03:30
+
+
+----------------------------------------
+TABLA: bridge_characters_traits_log
+----------------------------------------
+Columnas:
+  - id (bigint(20) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [IDX] [NOT NULL]
+  - trait_id (int(10) unsigned) [IDX] [NOT NULL]
+  - old_value (tinyint(4))
+  - new_value (tinyint(4))
+  - delta (smallint(6))
+  - reason (varchar(255))
+  - source (varchar(50)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - created_by (varchar(80))
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    character_id: 1
+    trait_id: 1
+    old_value: NULL
+    new_value: 2
+    delta: 2
+    reason: initial backfill
+    source: backfill
+    created_at: 2026-02-15 19:48:29
+    created_by: NULL
+  Fila 2:
+    id: 2
+    character_id: 2
+    trait_id: 1
+    old_value: NULL
+    new_value: 2
+    delta: 2
+    reason: initial backfill
+    source: backfill
+    created_at: 2026-02-15 19:48:29
+    created_by: NULL
+  Fila 3:
+    id: 3
+    character_id: 3
+    trait_id: 1
+    old_value: NULL
+    new_value: 3
+    delta: 3
+    reason: initial backfill
+    source: backfill
+    created_at: 2026-02-15 19:48:29
+    created_by: NULL
+  Fila 4:
+    id: 4
+    character_id: 4
+    trait_id: 1
+    old_value: NULL
+    new_value: 3
+    delta: 3
+    reason: initial backfill
+    source: backfill
+    created_at: 2026-02-15 19:48:29
+    created_by: NULL
+  Fila 5:
+    id: 5
+    character_id: 5
+    trait_id: 1
+    old_value: NULL
+    new_value: 3
+    delta: 3
+    reason: initial backfill
+    source: backfill
+    created_at: 2026-02-15 19:48:29
+    created_by: NULL
+
+
+----------------------------------------
+TABLA: bridge_organizations_groups
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - organization_id (int(10) unsigned) [IDX] [NOT NULL]
+  - group_id (int(10) unsigned) [IDX] [NOT NULL]
+  - is_active (tinyint(1))
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    organization_id: 1
+    group_id: 1
+    is_active: 1
+    created_at: 2026-01-08 01:24:47
+    updated_at: NULL
+  Fila 2:
+    id: 2
+    organization_id: 2
+    group_id: 2
+    is_active: 1
+    created_at: 2026-01-08 01:24:47
+    updated_at: 2026-01-27 22:41:30
+  Fila 3:
+    id: 3
+    organization_id: 3
+    group_id: 3
+    is_active: 1
+    created_at: 2026-01-08 01:24:47
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    organization_id: 2
+    group_id: 4
+    is_active: 1
+    created_at: 2026-01-08 01:24:47
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    organization_id: 2
+    group_id: 5
+    is_active: 1
+    created_at: 2026-01-08 01:24:47
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_soundtrack_links
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - soundtrack_id (int(10) unsigned) [IDX] [NOT NULL]
+  - object_type (enum('personaje','temporada','episodio')) [NOT NULL]
+  - object_id (int(10) unsigned) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    soundtrack_id: 16
+    object_type: personaje
+    object_id: 120
+    created_at: 2026-01-22 00:59:53
+    updated_at: NULL
+  Fila 2:
+    id: 4
+    soundtrack_id: 1
+    object_type: personaje
+    object_id: 50
+    created_at: 2026-01-22 00:59:53
+    updated_at: NULL
+  Fila 3:
+    id: 5
+    soundtrack_id: 20
+    object_type: personaje
+    object_id: 80
+    created_at: 2026-01-22 00:59:53
+    updated_at: NULL
+  Fila 4:
+    id: 6
+    soundtrack_id: 1
+    object_type: personaje
+    object_id: 80
+    created_at: 2026-01-22 00:59:53
+    updated_at: NULL
+  Fila 5:
+    id: 7
+    soundtrack_id: 48
+    object_type: temporada
+    object_id: 2
+    created_at: 2026-01-22 00:59:53
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_systems_detail_labels
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - system_id (int(10) unsigned) [NOT NULL]
+  - label_auspice (varchar(120)) [NOT NULL]
+  - label_breed (varchar(120)) [NOT NULL]
+  - label_tribe (varchar(120)) [NOT NULL]
+  - label_misc (varchar(120)) [NOT NULL]
+  - label_pack (varchar(120)) [NOT NULL]
+  - label_clan (varchar(120)) [NOT NULL]
+  - label_pk_name (varchar(120)) [NOT NULL]
+  - label_social (varchar(120)) [NOT NULL]
+  - is_active (tinyint(1)) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    system_id: 1
+    label_auspice: Auspicio
+    label_breed: Raza
+    label_tribe: Tribu
+    label_misc: 
+    label_pack: Manada
+    label_clan: Clan
+    label_pk_name: Nombre Garou
+    label_social: Renombre
+    is_active: 1
+    created_at: 2026-02-21 01:11:55
+    updated_at: 2026-02-21 01:14:16
+  Fila 2:
+    id: 2
+    system_id: 2
+    label_auspice: Aspecto
+    label_breed: Raza
+    label_tribe: Facción
+    label_misc: 
+    label_pack: Manada
+    label_clan: Clan
+    label_pk_name: Nombre Bastet
+    label_social: Renombre
+    is_active: 1
+    created_at: 2026-02-21 01:11:55
+    updated_at: 2026-02-21 01:19:05
+  Fila 3:
+    id: 3
+    system_id: 3
+    label_auspice: Aspecto
+    label_breed: Raza
+    label_tribe: Facción
+    label_misc: 
+    label_pack: Manada
+    label_clan: Clan
+    label_pk_name: Nombre Ananasi
+    label_social: Renombre
+    is_active: 1
+    created_at: 2026-02-21 01:11:55
+    updated_at: 2026-02-21 01:26:22
+  Fila 4:
+    id: 4
+    system_id: 4
+    label_auspice: Auspicio
+    label_breed: Raza
+    label_tribe: Tribu
+    label_misc: 
+    label_pack: Manada
+    label_clan: Clan
+    label_pk_name: Nombre Córax
+    label_social: Renombre
+    is_active: 1
+    created_at: 2026-02-21 01:11:55
+    updated_at: 2026-02-21 01:19:05
+  Fila 5:
+    id: 5
+    system_id: 5
+    label_auspice: Auspicio
+    label_breed: Linaje
+    label_tribe: Clan
+    label_misc: 
+    label_pack: Cuadrilla
+    label_clan: Organización
+    label_pk_name: Otra identidad
+    label_social: Virtudes
+    is_active: 1
+    created_at: 2026-02-21 01:11:55
+    updated_at: 2026-02-21 01:19:05
+
+
+----------------------------------------
+TABLA: bridge_systems_resources_to_system
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - system_id (int(10) unsigned) [IDX] [NOT NULL]
+  - resource_id (int(10) unsigned) [IDX] [NOT NULL]
+  - sort_order (int(11)) [NOT NULL]
+  - is_active (tinyint(1)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    system_id: 1
+    resource_id: 15
+    sort_order: 1
+    is_active: 1
+    created_at: 2026-02-18 22:23:54
+    updated_at: NULL
+  Fila 2:
+    id: 2
+    system_id: 1
+    resource_id: 17
+    sort_order: 2
+    is_active: 1
+    created_at: 2026-02-18 22:23:54
+    updated_at: NULL
+  Fila 3:
+    id: 3
+    system_id: 1
+    resource_id: 22
+    sort_order: 3
+    is_active: 1
+    created_at: 2026-02-18 22:23:54
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    system_id: 1
+    resource_id: 23
+    sort_order: 4
+    is_active: 1
+    created_at: 2026-02-18 22:23:54
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    system_id: 1
+    resource_id: 1
+    sort_order: 1
+    is_active: 1
+    created_at: 2026-02-18 22:23:54
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: bridge_timeline_links
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - event_id (int(10) unsigned) [IDX] [NOT NULL]
+  - relation_type (enum('capitulo','personaje')) [NOT NULL]
+  - ref_id (int(10) unsigned) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  (tabla vacía)
+
+----------------------------------------
+TABLA: dim_archetypes
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - willpower_text (mediumtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: aficionado
+    name: Aficionado
+    description: El Aficionado está interesado en todo pero no se concentra en nada. Revolotea d…
+    willpower_text: Recuperas Fuerza de Voluntad cuando encuentres un nuevo entusiasmo y dejes comp…
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:48
+    updated_at: 2026-02-15 12:59:43
+  Fila 2:
+    id: 2
+    pretty_id: ansioso-de-elogios
+    name: Ansioso de elogios
+    description: Tu valía depende totalmente de la opinión de los demás. Ansías aprobación y ala…
+    willpower_text: Recuperas Fuerza de Voluntad siempre que otro personaje te ofrezca alabanzas, a…
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:48
+    updated_at: 2026-02-15 12:59:43
+  Fila 3:
+    id: 3
+    pretty_id: ansioso-de-emociones
+    name: Ansioso de emociones
+    description: Vives buscando ese momento de peligro, en el que te invade una descarga de adre…
+    willpower_text: Recuperas Fuerza de Voluntad siempre que tengas éxito en una hazaña particularm…
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:48
+    updated_at: 2026-02-15 12:59:43
+  Fila 4:
+    id: 4
+    pretty_id: arquitecto
+    name: Arquitecto
+    description: Tu sentido del deber va más allá de tus propias necesidades; tratas de crear al…
+    willpower_text: Recuperas Fuerza de Voluntad siempre que crees o establezacas algo de importanc…
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:48
+    updated_at: 2026-02-15 12:59:43
+  Fila 5:
+    id: 5
+    pretty_id: autista
+    name: Autista
+    description: Ocultas tus secretos a los demás. Nadie tiene tu entera confianza. Más importan…
+    willpower_text: Recuperas Fuerza de Voluntad siempre que otro personaje confiese que no puede c…
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:48
+    updated_at: 2026-02-15 12:59:43
+
+
+----------------------------------------
+TABLA: dim_auspices
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - energy (int(11)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: ragabash
+    name: Ragabash
+    system_name: Garou
+    system_id: 1
+    energy: 1
+    description: Las chanzas del embaucador.
+
+
+
+Nacido bajo la luna nueva, el Rag…
+    image_url: img/system/ragabash.jpg
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:40
+    updated_at: 2026-02-15 14:55:16
+  Fila 2:
+    id: 2
+    pretty_id: theurge
+    name: Theurge
+    system_name: Garou
+    system_id: 1
+    energy: 2
+    description: Los espíritus de Gaia les escuchan.
+
+
+
+Eres el nacido bajo la Lu…
+    image_url: img/system/theurge.jpg
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:40
+    updated_at: 2026-02-15 14:55:16
+  Fila 3:
+    id: 3
+    pretty_id: philodox
+    name: Philodox
+    system_name: Garou
+    system_id: 1
+    energy: 3
+    description: Los jueces de los Garou.
+
+
+
+Nacido bajo la Luna Media, eres el m…
+    image_url: img/system/philodox.jpg
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:40
+    updated_at: 2026-02-15 14:55:16
+  Fila 4:
+    id: 4
+    pretty_id: galliard
+    name: Galliard
+    system_name: Garou
+    system_id: 1
+    energy: 4
+    description: Los que danzan para Selene.
+
+
+
+Nacido bajo la Luna Gibosa, eres …
+    image_url: img/system/galliard.jpg
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:40
+    updated_at: 2026-02-15 14:55:16
+  Fila 5:
+    id: 5
+    pretty_id: ahroun
+    name: Ahroun
+    system_name: Garou
+    system_id: 1
+    energy: 5
+    description: Las Zarpas de Gaia, nacidos en la luna llena.
+
+
+
+Eres el hijo de…
+    image_url: img/system/ahroun.jpg
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:40
+    updated_at: 2026-02-15 14:55:16
+
+
+----------------------------------------
+TABLA: dim_bibliographies
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - sort_order (int(3)) [NOT NULL]
+  - name (varchar(100)) [NOT NULL]
+  - year (int(4)) [NOT NULL]
+  - publisher (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: hombre-lobo-el-apocalipsis
+    sort_order: 1
+    name: Hombre Lobo: El Apocalipsis
+    year: 1992
+    publisher: La Factoría de Ideas
+    description: Manual básico de los Garou.
+    created_at: 2026-01-09 00:48:28
+    updated_at: 2026-02-21 16:53:11
+  Fila 2:
+    id: 2
+    pretty_id: hombre-lobo-el-apocalipsis-gu-a-del-jugador
+    sort_order: 3
+    name: Hombre Lobo: El Apocalipsis - Guía del jugador
+    year: 1992
+    publisher: La Factoría de Ideas
+    description: Suplemento al manual básico de Hombre Lobo donde se nos detallan los arquetipos…
+    created_at: 2026-01-09 00:48:28
+    updated_at: 2026-02-21 16:53:11
+  Fila 3:
+    id: 4
+    pretty_id: libro-de-raza-cambiante-ananasi
+    sort_order: 207
+    name: Libro de Raza Cambiante: Ananasi
+    year: 2000
+    publisher: La Factoría de Ideas
+    description: Libro sobre los hombres araña.
+    created_at: 2026-01-09 00:48:28
+    updated_at: 2026-02-21 16:53:11
+  Fila 4:
+    id: 5
+    pretty_id: hengeyokai-cambiaformas-de-oriente
+    sort_order: 200
+    name: Hengeyokai: Cambiaformas de Oriente
+    year: 1999
+    publisher: La Factoría de Ideas
+    description: Libro dedicado a los cambiantes de Asia.
+    created_at: 2026-01-09 00:48:28
+    updated_at: 2026-02-21 16:53:11
+  Fila 5:
+    id: 6
+    pretty_id: gran-bilbao-oscuro
+    sort_order: 991
+    name: Gran Bilbao Oscuro
+    year: 2008
+    publisher: 
+    description: Página web dedicada a otra partida independiente de Heaven's Gate en la que div…
+    created_at: 2026-01-09 00:48:28
+    updated_at: 2026-02-21 16:53:11
+
+
+----------------------------------------
+TABLA: dim_breeds
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - forms (varchar(100)) [NOT NULL]
+  - energy (int(11)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 2
+    pretty_id: hom-nido
+    name: Homínido
+    system_name: Garou
+    system_id: 1
+    forms: Garou
+    energy: 1
+    description: 
+
+Tu madre fue humana, Parentela o no, o una Garou Homínida. Creciste entre hu…
+    image_url: img/system/hominido.jpg
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:49
+    updated_at: 2026-02-20 01:25:07
+  Fila 2:
+    id: 3
+    pretty_id: lupus
+    name: Lupus
+    system_name: Garou
+    system_id: 1
+    forms: Garou
+    energy: 5
+    description: Un Garou lupus es el hijo de un hombre lobo y un lobo (o con menos frecuencia, …
+    image_url: img/system/lupus.jpg
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:49
+    updated_at: 2026-02-15 14:58:07
+  Fila 3:
+    id: 4
+    pretty_id: metis-garou
+    name: Metis
+    system_name: Garou
+    system_id: 1
+    forms: Garou
+    energy: 3
+    description: Los hombres lobo metis no pertenecen ni a la sociedad humana ni a la lupina; su…
+    image_url: img/system/metis.jpg
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:49
+    updated_at: 2026-02-15 21:09:41
+  Fila 4:
+    id: 5
+    pretty_id: humano
+    name: Humano
+    system_name: Vampiro
+    system_id: 5
+    forms: 
+    energy: 0
+    description: Humanos normales que no son garous.
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:49
+    updated_at: 2026-02-15 14:58:07
+  Fila 5:
+    id: 6
+    pretty_id: vampiro
+    name: Vampiro
+    system_name: Vampiro
+    system_id: 5
+    forms: 
+    energy: 0
+    description: Soy un vampiro, mierda!
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:49
+    updated_at: 2026-02-15 14:58:07
+
+
+----------------------------------------
+TABLA: dim_chapters
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - chapter_number (int(10)) [NOT NULL]
+  - season_number (int(10)) [NOT NULL]
+  - synopsis (longtext) [NOT NULL]
+  - played_date (date)
+  - in_game_date (date)
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: distancia
+    name: Distancia
+    chapter_number: 1
+    season_number: 1
+    synopsis: Iris, una joven que trabaja en un videoclub de Oviedo, pasa su vida sin pena ni…
+    played_date: 2005-12-10
+    in_game_date: NULL
+    created_at: 2026-01-09 00:49:06
+    updated_at: 2026-02-04 22:41:33
+  Fila 2:
+    id: 2
+    pretty_id: bruma-nocturna
+    name: Bruma Nocturna
+    chapter_number: 2
+    season_number: 1
+    synopsis: Bruma Nocturna, un joven Cliath de los Uktena, recibe una importante misión por…
+    played_date: 2005-12-09
+    in_game_date: NULL
+    created_at: 2026-01-09 00:49:06
+    updated_at: 2026-02-04 22:41:33
+  Fila 3:
+    id: 3
+    pretty_id: convivencia
+    name: Convivencia
+    chapter_number: 3
+    season_number: 1
+    synopsis: Mientras está en sus oficinas de Bilbao, Zakk Wylde disfruta de su buena vida d…
+    played_date: 2006-08-12
+    in_game_date: NULL
+    created_at: 2026-01-09 00:49:06
+    updated_at: 2026-02-04 22:41:33
+  Fila 4:
+    id: 4
+    pretty_id: mundo-on-rico-i
+    name: Mundo Onírico I
+    chapter_number: 4
+    season_number: 1
+    synopsis: Los miembros de la Manada del Ensueño tienen extrañas pesadillas donde se ven e…
+    played_date: 2006-08-13
+    in_game_date: NULL
+    created_at: 2026-01-09 00:49:06
+    updated_at: 2026-02-04 22:41:33
+  Fila 5:
+    id: 5
+    pretty_id: viaje
+    name: Viaje
+    chapter_number: 5
+    season_number: 1
+    synopsis: Una pista guía a la Manada del Ensueño hasta el clan cercano del Peñasco Blanco…
+    played_date: 2006-08-16
+    in_game_date: NULL
+    created_at: 2026-01-09 00:49:06
+    updated_at: 2026-02-04 22:41:33
+
+
+----------------------------------------
+TABLA: dim_character_types
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - kind (varchar(100)) [NOT NULL]
+  - sort_order (int(2)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: protagonistas
+    kind: Protagonistas
+    sort_order: 1
+    created_at: 2026-01-09 00:48:21
+    updated_at: 2026-02-04 22:41:25
+  Fila 2:
+    id: 5
+    pretty_id: sociedad-vampirica
+    kind: Sociedad vampírica
+    sort_order: 4
+    created_at: 2026-01-09 00:48:21
+    updated_at: 2026-02-15 22:24:04
+  Fila 3:
+    id: 6
+    pretty_id: sociedad-humana
+    kind: Sociedad humana
+    sort_order: 6
+    created_at: 2026-01-09 00:48:21
+    updated_at: 2026-02-04 22:41:25
+  Fila 4:
+    id: 10
+    pretty_id: sociedad-garou
+    kind: Sociedad Garou
+    sort_order: 2
+    created_at: 2026-01-09 00:48:21
+    updated_at: 2026-02-04 22:41:25
+  Fila 5:
+    id: 11
+    pretty_id: otros-fera
+    kind: Otros Fêra
+    sort_order: 3
+    created_at: 2026-01-09 00:48:21
+    updated_at: 2026-02-15 22:24:11
+
+
+----------------------------------------
+TABLA: dim_chronicles
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - name (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    name: Heaven's Gate
+    description: La partida en curso, de Maverick.
+    created_at: 2026-01-09 00:48:31
+    updated_at: NULL
+  Fila 2:
+    id: 2
+    name: Javi
+    description: La partida de Javi, la original.
+    created_at: 2026-01-09 00:48:31
+    updated_at: NULL
+  Fila 3:
+    id: 3
+    name: Werewolf GT
+    description: Partida derivada de la de Javi ambientada en el Universo de Heaven's Gate e…
+    created_at: 2026-01-09 00:48:31
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    name: HG: Tercer Ojo
+    description: Pequeña partida que abarca la búsqueda de Mark Harley para localizar un método …
+    created_at: 2026-01-09 00:48:31
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    name: HG: Babylon
+    description: Historia de Heaven's Gate ambientada en la Antigua Sumeria. 
+    created_at: 2026-01-09 00:48:31
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: dim_discipline_types
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: animalismo
+    name: Animalismo
+    description: 
+
+La Bestia reside dentro de todas las criaturas, desde las ratas de las alcan…
+    created_at: 2026-01-09 00:48:34
+    updated_at: 2026-02-04 22:41:33
+  Fila 2:
+    id: 2
+    pretty_id: uspex
+    name: Áuspex
+    description: 
+
+Esta Disciplina concede al vampiro unas sorprendentes capacidades sensoriale…
+    created_at: 2026-01-09 00:48:34
+    updated_at: 2026-02-04 22:41:33
+  Fila 3:
+    id: 3
+    pretty_id: celeridad
+    name: Celeridad
+    description: 
+
+El Abrazo concede a algunos vampiros unos reflejos y una velocidad increíble…
+    created_at: 2026-01-09 00:48:34
+    updated_at: 2026-02-04 22:41:33
+  Fila 4:
+    id: 4
+    pretty_id: dementaci-n
+    name: Dementación
+    description: 
+
+Dementación, el legado especial del clan Malkavian, permite a un vampiro can…
+    created_at: 2026-01-09 00:48:34
+    updated_at: 2026-02-04 22:41:33
+  Fila 5:
+    id: 5
+    pretty_id: dominaci-n
+    name: Dominación
+    description: 
+
+Esta Disciplina sirve para influir en los pensamientos y acciones de los dem…
+    created_at: 2026-01-09 00:48:34
+    updated_at: 2026-02-04 22:41:33
+
+
+----------------------------------------
+TABLA: dim_doc_categories
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - kind (varchar(100)) [NOT NULL]
+  - sort_order (int(2)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 2
+    kind: Narraciones
+    sort_order: 202
+    created_at: 2026-01-09 00:48:24
+    updated_at: NULL
+  Fila 2:
+    id: 3
+    kind: Agrupaciones
+    sort_order: 202
+    created_at: 2026-01-09 00:48:24
+    updated_at: NULL
+  Fila 3:
+    id: 4
+    kind: Personajes
+    sort_order: 203
+    created_at: 2026-01-09 00:48:24
+    updated_at: NULL
+  Fila 4:
+    id: 5
+    kind: Mitología
+    sort_order: 204
+    created_at: 2026-01-09 00:48:24
+    updated_at: 2026-01-09 11:54:48
+  Fila 5:
+    id: 6
+    kind: Curiosidades
+    sort_order: 205
+    created_at: 2026-01-09 00:48:24
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: dim_forms
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - affiliation (varchar(100)) [NOT NULL]
+  - race (varchar(30)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - form (varchar(30)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - weapons (tinyint(1)) [NOT NULL]
+  - firearms (tinyint(1)) [NOT NULL]
+  - strength_bonus (varchar(10)) [NOT NULL]
+  - dexterity_bonus (varchar(10)) [NOT NULL]
+  - stamina_bonus (varchar(10)) [NOT NULL]
+  - regeneration (tinyint(1)) [NOT NULL]
+  - hpregen (int(10)) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: garou-garou-glabro
+    affiliation: Garou
+    race: Garou
+    system_id: 1
+    form: Glabro
+    description: El Glabro es una versión más grande, musculosa y peluda de la forma Homínido. E…
+    image_url: 
+    weapons: 1
+    firearms: 1
+    strength_bonus: 2
+    dexterity_bonus: 0
+    stamina_bonus: 2
+    regeneration: 1
+    hpregen: 1
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:41
+    updated_at: 2026-02-15 14:58:08
+  Fila 2:
+    id: 2
+    pretty_id: garou-garou-crinos
+    affiliation: Garou
+    race: Garou
+    system_id: 1
+    form: Crinos
+    description: El Crinos es un hombre lobo enorme, fuertemente musculado y peludo. Al adoptar …
+    image_url: img/system/were/garou-crinos.jpg
+    weapons: 1
+    firearms: 0
+    strength_bonus: 4
+    dexterity_bonus: 1
+    stamina_bonus: 3
+    regeneration: 1
+    hpregen: 3
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:41
+    updated_at: 2026-02-15 14:58:08
+  Fila 3:
+    id: 3
+    pretty_id: garou-garou-hispo
+    affiliation: Garou
+    race: Garou
+    system_id: 1
+    form: Hispo
+    description: El Hispo es un colosal y aterrador lobo del tamaño de un pony pequeño. Está con…
+    image_url: 
+    weapons: 0
+    firearms: 0
+    strength_bonus: 3
+    dexterity_bonus: 2
+    stamina_bonus: 3
+    regeneration: 1
+    hpregen: 1
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:41
+    updated_at: 2026-02-15 14:58:08
+  Fila 4:
+    id: 4
+    pretty_id: garou-garou-lupus
+    affiliation: Garou
+    race: Garou
+    system_id: 1
+    form: Lupus
+    description: El lupus tiene todo el aspecto de un lobo como cualquier otro, dependiendo de s…
+    image_url: 
+    weapons: 0
+    firearms: 0
+    strength_bonus: 1
+    dexterity_bonus: 3
+    stamina_bonus: 2
+    regeneration: 1
+    hpregen: 1
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:41
+    updated_at: 2026-02-15 14:58:08
+  Fila 5:
+    id: 5
+    pretty_id: corax-corax-rara-avis
+    affiliation: Córax
+    race: Córax
+    system_id: 4
+    form: Rara Avis
+    description: 
+
+Mientras están en forma Rara Avis hacen un daño agravado de Fuerza + 1. Insp…
+    image_url: 
+    weapons: 1
+    firearms: 1
+    strength_bonus: 1
+    dexterity_bonus: 1
+    stamina_bonus: 1
+    regeneration: 1
+    hpregen: 2
+    bibliography_id: 2
+    created_at: 2026-01-09 00:48:41
+    updated_at: 2026-02-15 14:58:08
+
+
+----------------------------------------
+TABLA: dim_gift_types
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - sort_order (int(2)) [NOT NULL]
+  - determinant (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: raza
+    name: Raza
+    sort_order: 1
+    determinant: por
+    description: Dones de raza Garou
+    created_at: 2026-01-09 00:48:35
+    updated_at: 2026-02-04 22:41:29
+  Fila 2:
+    id: 2
+    pretty_id: auspicio
+    name: Auspicio
+    sort_order: 2
+    determinant: por
+    description: Dones por Auspicio Garou
+    created_at: 2026-01-09 00:48:35
+    updated_at: 2026-02-04 22:41:29
+  Fila 3:
+    id: 3
+    pretty_id: tribu
+    name: Tribu
+    sort_order: 3
+    determinant: por
+    description: Dones por Tribu Garou
+    created_at: 2026-01-09 00:48:35
+    updated_at: 2026-02-04 22:41:29
+  Fila 4:
+    id: 4
+    pretty_id: clan
+    name: Clan
+    sort_order: 16
+    determinant: de
+    description: Dones personalizados por Clan
+    created_at: 2026-01-09 00:48:35
+    updated_at: 2026-02-04 22:41:29
+  Fila 5:
+    id: 5
+    pretty_id: bastet
+    name: Bastet
+    sort_order: 4
+    determinant: de los
+    description: Al revés que muchos otros cambiaformas, los Bastet suelen
+aprender sus Dones u…
+    created_at: 2026-01-09 00:48:35
+    updated_at: 2026-02-04 22:41:29
+
+
+----------------------------------------
+TABLA: dim_groups
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - chronicle_id (int(10) unsigned) [NOT NULL]
+  - totem_id (int(10) unsigned) [NOT NULL]
+  - is_active (tinyint(1)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: zarpas-de-teluria
+    name: Zarpas de Teluria
+    chronicle_id: 1
+    totem_id: 53
+    is_active: 1
+    description: Manada perteneciente al clan cántabro Peñasco Blanco. En ella empezó la primera…
+    created_at: 2026-01-09 00:48:32
+    updated_at: 2026-02-04 22:41:24
+  Fila 2:
+    id: 2
+    pretty_id: manada-del-ensueno
+    name: Manada del Ensueño
+    chronicle_id: 1
+    totem_id: 39
+    is_active: 0
+    description: Manada perteneciente al clan bilbaíno Viento de Acero. 
+    created_at: 2026-01-09 00:48:32
+    updated_at: 2026-02-17 22:51:58
+  Fila 3:
+    id: 3
+    pretty_id: los-angeles-de-gaia
+    name: Los Ángeles de Gaia
+    chronicle_id: 1
+    totem_id: 34
+    is_active: 0
+    description: Manada perteneciente al clan estadounidense Justicia Metálica.
+    created_at: 2026-01-09 00:48:32
+    updated_at: 2026-02-17 22:51:58
+  Fila 4:
+    id: 4
+    pretty_id: coraz-n-de-furia
+    name: Corazón de Furia
+    chronicle_id: 1
+    totem_id: 102
+    is_active: 1
+    description: Manada formada por Iris Martínez, Víctor Ortega y Joanna Meiers cuando se embar…
+    created_at: 2026-01-09 00:48:32
+    updated_at: 2026-02-23 00:36:55
+  Fila 5:
+    id: 5
+    pretty_id: hijas-de-la-pasion
+    name: Hijas de la Pasión
+    chronicle_id: 1
+    totem_id: 0
+    is_active: 1
+    description: Manada formada por las chicas Victoria Romanchenko, Verónica Rogers y Shinsetsu…
+    created_at: 2026-01-09 00:48:32
+    updated_at: 2026-02-17 22:51:58
+
+
+----------------------------------------
+TABLA: dim_item_types
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - sort_order (int(2)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: armas
+    name: Armas
+    sort_order: 1
+    created_at: 2026-01-09 00:48:39
+    updated_at: 2026-02-14 03:00:41
+  Fila 2:
+    id: 2
+    pretty_id: protectores
+    name: Protectores
+    sort_order: 2
+    created_at: 2026-01-09 00:48:39
+    updated_at: 2026-02-14 03:00:41
+  Fila 3:
+    id: 3
+    pretty_id: objetos-magicos
+    name: Objetos mágicos
+    sort_order: 4
+    created_at: 2026-01-09 00:48:39
+    updated_at: 2026-02-14 03:01:49
+  Fila 4:
+    id: 4
+    pretty_id: objetos
+    name: Objetos
+    sort_order: 3
+    created_at: 2026-01-09 00:48:39
+    updated_at: 2026-02-14 03:00:41
+  Fila 5:
+    id: 5
+    pretty_id: amuletos
+    name: Amuletos
+    sort_order: 5
+    created_at: 2026-01-09 00:48:39
+    updated_at: 2026-02-14 03:00:41
+
+
+----------------------------------------
+TABLA: dim_map_categories
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - name (varchar(80)) [NOT NULL]
+  - slug (varchar(80)) [NOT NULL]
+  - color_hex (char(7)) [NOT NULL]
+  - icon (varchar(255))
+  - sort_order (int(11)) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    name: Hogar
+    slug: casa
+    color_hex: #00d4ff
+    icon: NULL
+    sort_order: 10
+    created_at: 2025-09-17 22:02:09
+    updated_at: 2025-09-17 23:09:53
+  Fila 2:
+    id: 2
+    name: Guarida
+    slug: guarida
+    color_hex: #ff3b7f
+    icon: 
+    sort_order: 71
+    created_at: 2025-09-17 22:02:09
+    updated_at: 2025-09-23 01:13:25
+  Fila 3:
+    id: 3
+    name: Punto conflictivo
+    slug: conflicto
+    color_hex: #ff9f1a
+    icon: 
+    sort_order: 80
+    created_at: 2025-09-17 22:02:09
+    updated_at: 2025-09-23 01:13:31
+  Fila 4:
+    id: 4
+    name: Templo
+    slug: templo
+    color_hex: #8e44ad
+    icon: NULL
+    sort_order: 40
+    created_at: 2025-09-17 22:02:09
+    updated_at: 2025-09-17 23:09:53
+  Fila 5:
+    id: 5
+    name: Lugar sagrado
+    slug: lugar_sagrado
+    color_hex: #2ecc71
+    icon: NULL
+    sort_order: 50
+    created_at: 2025-09-17 22:02:09
+    updated_at: 2025-09-17 23:09:53
+
+
+----------------------------------------
+TABLA: dim_maps
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - name (varchar(120)) [NOT NULL]
+  - slug (varchar(120)) [NOT NULL]
+  - center_lat (decimal(9,6)) [NOT NULL]
+  - center_lng (decimal(9,6)) [NOT NULL]
+  - default_zoom (tinyint(3) unsigned) [NOT NULL]
+  - min_zoom (tinyint(3) unsigned)
+  - max_zoom (tinyint(3) unsigned)
+  - bounds_sw_lat (decimal(9,6))
+  - bounds_sw_lng (decimal(9,6))
+  - bounds_ne_lat (decimal(9,6))
+  - bounds_ne_lng (decimal(9,6))
+  - default_tile (varchar(120))
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    name: Creta
+    slug: creta
+    center_lat: 35.240100
+    center_lng: 24.809300
+    default_zoom: 8
+    min_zoom: 8
+    max_zoom: 17
+    bounds_sw_lat: 34.800000
+    bounds_sw_lng: 23.400000
+    bounds_ne_lat: 35.700000
+    bounds_ne_lng: 26.600000
+    default_tile: carto-dark
+    created_at: 2025-09-17 22:02:07
+    updated_at: 2025-09-23 02:09:41
+  Fila 2:
+    id: 2
+    name: Cantabria
+    slug: cantabria
+    center_lat: 43.200000
+    center_lng: -4.000000
+    default_zoom: 8
+    min_zoom: 8
+    max_zoom: 17
+    bounds_sw_lat: 42.900000
+    bounds_sw_lng: -4.900000
+    bounds_ne_lat: 43.600000
+    bounds_ne_lng: -2.700000
+    default_tile: carto-dark
+    created_at: 2025-09-17 22:02:07
+    updated_at: 2025-09-23 02:09:49
+  Fila 3:
+    id: 3
+    name: Reino Unido
+    slug: reino-unido
+    center_lat: 54.908199
+    center_lng: -1.549072
+    default_zoom: 8
+    min_zoom: 8
+    max_zoom: 17
+    bounds_sw_lat: 48.458352
+    bounds_sw_lng: -30.937500
+    bounds_ne_lat: 59.712097
+    bounds_ne_lng: 23.378906
+    default_tile: carto-dark
+    created_at: 2025-09-18 01:45:06
+    updated_at: 2025-09-23 02:10:00
+  Fila 4:
+    id: 4
+    name: Gaia2
+    slug: gaia2
+    center_lat: 39.504041
+    center_lng: 0.615234
+    default_zoom: 4
+    min_zoom: 3
+    max_zoom: 17
+    bounds_sw_lat: -74.402163
+    bounds_sw_lng: -542.812500
+    bounds_ne_lat: 86.221080
+    bounds_ne_lng: 466.875000
+    default_tile: carto-dark
+    created_at: 2025-09-23 00:36:39
+    updated_at: 2025-09-23 00:36:39
+
+
+----------------------------------------
+TABLA: dim_menu_items
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - parent_id (int(10) unsigned)
+  - menu_key (varchar(60))
+  - label (varchar(120)) [NOT NULL]
+  - href (varchar(255)) [NOT NULL]
+  - icon (varchar(255))
+  - icon_hover (varchar(255))
+  - item_type (enum('static','dynamic','separator')) [NOT NULL]
+  - dynamic_source (varchar(50))
+  - sort_order (int(11)) [NOT NULL]
+  - enabled (tinyint(1)) [NOT NULL]
+  - target (enum('_self','_blank')) [NOT NULL]
+  - css_class (varchar(120))
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    parent_id: NULL
+    menu_key: startMenu
+    label: Inicio
+    href: #
+    icon: img/menu/index_icon.png
+    icon_hover: img/menu/index_icon_hover.png
+    item_type: static
+    dynamic_source: NULL
+    sort_order: 1
+    enabled: 1
+    target: _self
+    css_class: NULL
+    created_at: 2026-02-07 03:37:32
+    updated_at: NULL
+  Fila 2:
+    id: 2
+    parent_id: NULL
+    menu_key: bioMenu
+    label: Biografías
+    href: #
+    icon: img/menu/bio_icon.png
+    icon_hover: img/menu/bio_icon_hover.png
+    item_type: static
+    dynamic_source: NULL
+    sort_order: 2
+    enabled: 1
+    target: _self
+    css_class: NULL
+    created_at: 2026-02-07 03:37:32
+    updated_at: NULL
+  Fila 3:
+    id: 3
+    parent_id: NULL
+    menu_key: archivoMenu
+    label: Temporadas
+    href: #
+    icon: img/menu/archive_icon.png
+    icon_hover: img/menu/archive_icon_hover.png
+    item_type: static
+    dynamic_source: NULL
+    sort_order: 3
+    enabled: 1
+    target: _self
+    css_class: NULL
+    created_at: 2026-02-07 03:37:32
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    parent_id: NULL
+    menu_key: personalesMenu
+    label: Historias personales
+    href: #
+    icon: img/menu/persona_icon.png
+    icon_hover: img/menu/persona_icon_hover.png
+    item_type: static
+    dynamic_source: NULL
+    sort_order: 4
+    enabled: 1
+    target: _self
+    css_class: NULL
+    created_at: 2026-02-07 03:37:32
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    parent_id: NULL
+    menu_key: loreMenu
+    label: Trasfondo
+    href: #
+    icon: img/menu/lore_icon.png
+    icon_hover: img/menu/lore_icon_hover.png
+    item_type: static
+    dynamic_source: NULL
+    sort_order: 5
+    enabled: 1
+    target: _self
+    css_class: NULL
+    created_at: 2026-02-07 03:37:32
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: dim_merits_flaws
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [IDX] [NOT NULL]
+  - kind (varchar(100)) [NOT NULL]
+  - affiliation (varchar(100)) [NOT NULL]
+  - cost (varchar(3)) [NOT NULL]
+  - description (longtext) [IDX] [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: organizado
+    name: Organizado
+    kind: Méritos
+    affiliation: Ananasi
+    cost: 1
+    description: Todos los Ananasi son ordenados y estructurados, pero tú llegas a un nivel supe…
+    system_name: Ananasi
+    system_id: 3
+    bibliography_id: 4
+    created_at: 2026-01-09 00:48:45
+    updated_at: 2026-02-15 14:58:09
+  Fila 2:
+    id: 2
+    pretty_id: desali-ado
+    name: Desaliñado
+    kind: Defectos
+    affiliation: Ananasi
+    cost: 1
+    description: Eres un guarro, tanto por tu aspecto físico como por como tienes tu residencia.…
+    system_name: Ananasi
+    system_id: 3
+    bibliography_id: 4
+    created_at: 2026-01-09 00:48:45
+    updated_at: 2026-02-15 14:58:09
+  Fila 3:
+    id: 3
+    pretty_id: estudiante-r-pido
+    name: Estudiante rápido
+    kind: Méritos
+    affiliation: Córax
+    cost: 2
+    description: Este mérito permite al Córax reducir a la mitad el tiempo necesaria para aprend…
+    system_name: Córax
+    system_id: 4
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:45
+    updated_at: 2026-02-15 14:58:09
+  Fila 4:
+    id: 4
+    pretty_id: custodia
+    name: Custodia
+    kind: Méritos
+    affiliation: Córax
+    cost: 2
+    description: Has sido honrado con la custodia de un Huevo Espiritual. Sólo tu conoces la loc…
+    system_name: Córax
+    system_id: 4
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:45
+    updated_at: 2026-02-15 14:58:09
+  Fila 5:
+    id: 5
+    pretty_id: doble-trago
+    name: Doble trago 
+    kind: Méritos
+    affiliation: Córax
+    cost: 2
+    description: La mayoría de los Córax sólo pueden beber de uno de los ojos de cualquier hombr…
+    system_name: Córax
+    system_id: 4
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:45
+    updated_at: 2026-02-15 14:58:09
+
+
+----------------------------------------
+TABLA: dim_organizations
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - sort_order (int(3)) [NOT NULL]
+  - name (varchar(100)) [NOT NULL]
+  - totem_id (int(10) unsigned) [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - color (varchar(7))
+  - is_npc (tinyint(1)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: penasco-blanco
+    sort_order: 1
+    name: Peñasco Blanco
+    totem_id: 0
+    system_name: Garou
+    color: #f2e6ff
+    is_npc: 0
+    description: Clan de Garous de Cantabria.
+    created_at: 2026-01-09 00:48:29
+    updated_at: 2026-02-20 23:38:04
+  Fila 2:
+    id: 2
+    pretty_id: viento-de-acero
+    sort_order: 2
+    name: Viento de Acero
+    totem_id: 61
+    system_name: Garou
+    color: #e6ffe6
+    is_npc: 0
+    description: Clan de Garous americanos situado en Bilbao.
+    created_at: 2026-01-09 00:48:29
+    updated_at: 2026-02-04 22:41:24
+  Fila 3:
+    id: 3
+    pretty_id: justicia-metalica
+    sort_order: 3
+    name: Justicia Metálica
+    totem_id: 50
+    system_name: Garou
+    color: #d0e6ff
+    is_npc: 0
+    description: Agrupación nacional de clanes Garou americanos. Se rige por un consejo que repr…
+    created_at: 2026-01-09 00:48:29
+    updated_at: 2026-02-20 23:38:04
+  Fila 4:
+    id: 4
+    pretty_id: fortaleza-crepuscular
+    sort_order: 12
+    name: Fortaleza Crepuscular
+    totem_id: 0
+    system_name: Hengeyokai
+    color: #fff0d9
+    is_npc: 1
+    description: Clan de Hengeyokai situado en las montañas de Tokio.
+    created_at: 2026-01-09 00:48:29
+    updated_at: 2026-02-04 22:41:24
+  Fila 5:
+    id: 5
+    pretty_id: noche-fria
+    sort_order: 4
+    name: Noche Fría
+    totem_id: 12
+    system_name: Garou
+    color: #cce3ff
+    is_npc: 1
+    description: Clan de Uktena situado en las Montañas Rocosas de EEUU.
+    created_at: 2026-01-09 00:48:29
+    updated_at: 2026-02-20 23:38:04
+
+
+----------------------------------------
+TABLA: dim_parties
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - name (varchar(255)) [NOT NULL]
+  - description (text)
+  - active (tinyint(1)) [NOT NULL]
+  - sort_order (int(11))
+  - created_at (datetime) [NOT NULL]
+  - updated_at (datetime) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    name: Manada de Mark (2005)
+    description: Equipo de Mark (Ráfaga de Plata) en Cantabria durante la Caída del Peñasco Blan…
+    active: 1
+    sort_order: 4
+    created_at: 2025-09-24 21:47:30
+    updated_at: 2025-09-24 21:47:30
+  Fila 2:
+    id: 2
+    name: Ícaros en Creta (2005)
+    description: Grupo formado por Iota, Ni y Tau en Creta, tras el ataque del misterioso tentác…
+    active: 1
+    sort_order: 3
+    created_at: 2025-09-24 22:25:14
+    updated_at: 2025-09-24 22:25:14
+  Fila 3:
+    id: 3
+    name: Misión de Brisa (2007)
+    description: Tras la separación de su manada, la Caída de Anthelios, Brisa del Sur decide re…
+    active: 1
+    sort_order: 2
+    created_at: 2025-09-24 22:41:53
+    updated_at: 2025-09-24 22:41:53
+  Fila 4:
+    id: 4
+    name: Grupo de Bruma (2005)
+    description: Tras ser rescatado de Blanchard, Bruma Nocturna se encuentra con una misteriosa…
+    active: 1
+    sort_order: 1
+    created_at: 2025-12-17 00:49:10
+    updated_at: 2025-12-17 00:49:10
+  Fila 5:
+    id: 5
+    name: Zona de pruebas
+    description: Esto es una trama de prueba para testear cosinas.
+    active: 0
+    sort_order: 9999
+    created_at: 2026-01-10 18:31:21
+    updated_at: 2026-01-10 19:52:54
+
+
+----------------------------------------
+TABLA: dim_players
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - surname (varchar(100)) [NOT NULL]
+  - show_in_catalog (tinyint(1)) [NOT NULL]
+  - picture (longtext) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: tsukiko-kazenotobu
+    name: Tsukiko
+    surname: Kazenotobu
+    show_in_catalog: 0
+    picture: 
+    description: 
+
+Guapísima e ingenosísima jugadora egipcia proveniente de las Altas Tierras d…
+    created_at: 2026-01-09 00:48:44
+    updated_at: 2026-02-22 23:17:29
+  Fila 2:
+    id: 2
+    pretty_id: maurick-starkvind
+    name: Maurick
+    surname: Starkvind
+    show_in_catalog: 1
+    picture: img/player/batman_vs_joker.jpg
+    description: 
+
+Maurick es el creador de la web y máster actual de Heaven's Gate.
+
+
+    created_at: 2026-01-09 00:48:44
+    updated_at: 2026-02-22 22:51:10
+  Fila 3:
+    id: 3
+    pretty_id: sofia
+    name: Sofía
+    surname: 
+    show_in_catalog: 0
+    picture: 
+    description: 
+
+¡Oh, jo jo! ¡Ay de mí!
+
+
+    created_at: 2026-01-09 00:48:44
+    updated_at: 2026-02-17 21:58:31
+  Fila 4:
+    id: 4
+    pretty_id: sara-carolina
+    name: Sara Carolina
+    surname: 
+    show_in_catalog: 0
+    picture: 
+    description: 
+    created_at: 2026-01-09 00:48:44
+    updated_at: 2026-02-04 22:41:24
+  Fila 5:
+    id: 5
+    pretty_id: igor
+    name: Igor
+    surname: 
+    show_in_catalog: 0
+    picture: 
+    description: 
+
+Ángela, pon la pizza a salvo junto Ulrich. Yo me subo a una lancha motora e …
+    created_at: 2026-01-09 00:48:44
+    updated_at: 2026-02-04 22:41:24
+
+
+----------------------------------------
+TABLA: dim_rite_types
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - sort_order (int(3)) [NOT NULL]
+  - name (varchar(100)) [NOT NULL]
+  - determinant (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: castigo
+    sort_order: 1
+    name: Castigo
+    determinant: de
+    description: 
+
+Los Ritos de Castigo imponen la sanción de la tribu o clan contra un hombre …
+    created_at: 2026-01-09 00:48:36
+    updated_at: 2026-02-04 22:41:32
+  Fila 2:
+    id: 2
+    pretty_id: estacional
+    sort_order: 1
+    name: Estacional
+    determinant: 
+    description: Los Ritos Estacionales varían de una tribu a otra y de un lugar a otro. Cada tr…
+    created_at: 2026-01-09 00:48:36
+    updated_at: 2026-02-04 22:41:32
+  Fila 3:
+    id: 3
+    pretty_id: m-stico
+    sort_order: 1
+    name: Místico
+    determinant: 
+    description: Los Ritos Místicos permiten que los Garou se pongan en contacto directo con la …
+    created_at: 2026-01-09 00:48:36
+    updated_at: 2026-02-04 22:41:32
+  Fila 4:
+    id: 4
+    pretty_id: muerte
+    sort_order: 1
+    name: Muerte
+    determinant: de
+    description: Los Garou celebran ritos de muerte tanto para honrar a sus difuntos como para r…
+    created_at: 2026-01-09 00:48:36
+    updated_at: 2026-02-04 22:41:32
+  Fila 5:
+    id: 5
+    pretty_id: reconciliaci-n
+    sort_order: 1
+    name: Reconciliación
+    determinant: de
+    description: Los Ritos de Reconciliación permiten que un lugar o un Garou concretos restaure…
+    created_at: 2026-01-09 00:48:36
+    updated_at: 2026-02-04 22:41:32
+
+
+----------------------------------------
+TABLA: dim_seasons
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - season_number (int(10)) [NOT NULL]
+  - sort_order (int(11))
+  - season (tinyint(1)) [NOT NULL]
+  - finished (tinyint(1))
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: lab-test
+    name: Lab Test
+    season_number: 1
+    sort_order: 1
+    season: 0
+    finished: 1
+    description: La historia de Heaven's Gate comienza con la presentación de la Manada del Ensu…
+    created_at: 2026-01-09 00:49:07
+    updated_at: 2026-02-04 22:41:34
+  Fila 2:
+    id: 2
+    pretty_id: fallen
+    name: Fallen
+    season_number: 2
+    sort_order: 6
+    season: 0
+    finished: 1
+    description: Tras liberarse del misterioso proyecto Mundo Onírico, los integrantes de la Man…
+    created_at: 2026-01-09 00:49:07
+    updated_at: 2026-02-04 22:41:34
+  Fila 3:
+    id: 3
+    pretty_id: them
+    name: Them
+    season_number: 3
+    sort_order: 9
+    season: 0
+    finished: 1
+    description: ¡Unión!
+
+
+Para reforzar los lazos del Viento de Acero, Iris y Aránzazu se…
+    created_at: 2026-01-09 00:49:07
+    updated_at: 2026-02-04 22:41:34
+  Fila 4:
+    id: 4
+    pretty_id: sword
+    name: Sword
+    season_number: 4
+    sort_order: 10
+    season: 0
+    finished: 1
+    description: Las misiones de diplomacia rozaron el fracaso: Copenhague ha sido destruida tra…
+    created_at: 2026-01-09 00:49:07
+    updated_at: 2026-02-04 22:41:34
+  Fila 5:
+    id: 5
+    pretty_id: sunset
+    name: Sunset
+    season_number: 5
+    sort_order: 13
+    season: 0
+    finished: 1
+    description: Los Zarpas de Teluria se sienten amenazados tras la reciente unión de su clan, …
+    created_at: 2026-01-09 00:49:07
+    updated_at: 2026-02-04 22:41:34
+
+
+----------------------------------------
+TABLA: dim_soundtracks
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - title (varchar(255)) [NOT NULL]
+  - artist (varchar(255))
+  - youtube_url (varchar(255))
+  - context_title (varchar(255))
+  - added_at (date)
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    title: Roter Sand (orchester version)
+    artist: Rammstein
+    youtube_url: https://www.youtube.com/watch?v=KQ_lxRUehP0
+    context_title: Muerte de Verónica & Sophie
+    added_at: 2025-06-16
+    created_at: 2026-01-09 00:49:08
+  Fila 2:
+    id: 2
+    title: First Sleep
+    artist: Cliff Martínez
+    youtube_url: https://www.youtube.com/watch?v=V5i53jKr2L8
+    context_title: Afrontando la Tragedia (Hildelgarde)
+    added_at: 2025-06-16
+    created_at: 2026-01-09 00:49:08
+  Fila 3:
+    id: 3
+    title: Until We Bleed (feat. Lykke Li)
+    artist: Kleerup
+    youtube_url: https://www.youtube.com/watch?v=7vDv20fxhck
+    context_title: Hermano Hawes
+    added_at: 2025-06-16
+    created_at: 2026-01-09 00:49:08
+  Fila 4:
+    id: 4
+    title: Umbrella (cover)
+    artist: First to Eleven
+    youtube_url: https://www.youtube.com/watch?v=S9IB8PG-m2Q
+    context_title: De vuelta (Julia y Pam)
+    added_at: 2025-06-16
+    created_at: 2026-01-09 00:49:08
+  Fila 5:
+    id: 5
+    title: Trainer Red Epic Remix
+    artist: DJTheFishhead
+    youtube_url: https://www.youtube.com/watch?v=buifCKc9RNU
+    context_title: El efecto Córax (viajes en el tiempo)
+    added_at: 2025-06-16
+    created_at: 2026-01-09 00:49:08
+
+
+----------------------------------------
+TABLA: dim_systems
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - sort_order (int(3)) [NOT NULL]
+  - forms (tinyint(1)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: garou
+    name: Garou
+    image_url: img/system/system-garou.jpg
+    sort_order: 1
+    forms: 1
+    description: 
+
+Un Garou es un hombre lobo con la tarea de proteger a Gaia. Son los cambiant…
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:51
+    updated_at: 2026-02-15 11:45:42
+  Fila 2:
+    id: 2
+    pretty_id: bastet
+    name: Bastet
+    image_url: img/system/system-bastet.jpg
+    sort_order: 7
+    forms: 1
+    description: 
+
+Hombres Felino, llamados Bastet por la diosa egipcia Bast.
+
+
+
+
+
+Servido…
+    bibliography_id: 18
+    created_at: 2026-01-09 00:48:51
+    updated_at: 2026-02-15 11:45:42
+  Fila 3:
+    id: 3
+    pretty_id: ananasi
+    name: Ananasi
+    image_url: img/system/system-ananasi.jpg
+    sort_order: 3
+    forms: 1
+    description: 
+
+Un Ananasi es un hombre araña. No, no se parecen a Spiderman, son cambiaform…
+    bibliography_id: 4
+    created_at: 2026-01-09 00:48:51
+    updated_at: 2026-02-15 11:45:42
+  Fila 4:
+    id: 4
+    pretty_id: corax
+    name: Córax
+    image_url: img/system/system-corax.jpg
+    sort_order: 2
+    forms: 1
+    description: 
+
+Insaciablemente curiosos y omnipresentes, los Córax son los hombres-cuervo, …
+    bibliography_id: 23
+    created_at: 2026-01-09 00:48:51
+    updated_at: 2026-02-15 11:45:42
+  Fila 5:
+    id: 5
+    pretty_id: vampiro
+    name: Vampiro
+    image_url: 
+    sort_order: 21
+    forms: 0
+    description: 
+
+No-muertos que se alimentan únicamente de sangre y que son intolerables a la…
+    bibliography_id: 35
+    created_at: 2026-01-09 00:48:51
+    updated_at: 2026-02-15 11:45:42
+
+
+----------------------------------------
+TABLA: dim_systems_resources
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190)) [IDX]
+  - name (varchar(100)) [IDX] [NOT NULL]
+  - kind (varchar(30)) [IDX] [NOT NULL]
+  - sort_order (int(11)) [NOT NULL]
+  - description (longtext)
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: gloria
+    name: Gloria
+    kind: renombre
+    sort_order: 1
+    description: 
+
+Muchos Garou ganan Gloria derrotando a poderosos enemigos y teniendo éxito e…
+    created_at: 2026-02-18 22:14:15
+    updated_at: 2026-02-20 00:18:41
+  Fila 2:
+    id: 2
+    pretty_id: conciencia
+    name: Conciencia
+    kind: renombre
+    sort_order: 1
+    description: NULL
+    created_at: 2026-02-18 22:14:15
+    updated_at: NULL
+  Fila 3:
+    id: 3
+    pretty_id: ferocidad
+    name: Ferocidad
+    kind: renombre
+    sort_order: 1
+    description: NULL
+    created_at: 2026-02-18 22:14:15
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    pretty_id: infamia
+    name: Infamia
+    kind: renombre
+    sort_order: 1
+    description: NULL
+    created_at: 2026-02-18 22:14:15
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    pretty_id: obediencia
+    name: Obediencia
+    kind: renombre
+    sort_order: 2
+    description: NULL
+    created_at: 2026-02-18 22:14:15
+    updated_at: 2026-02-18 23:41:32
+
+
+----------------------------------------
+TABLA: dim_totem_types
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - sort_order (int(3)) [NOT NULL]
+  - name (varchar(100)) [NOT NULL]
+  - determinant (varchar(10)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: guerra
+    sort_order: 1
+    name: Guerra
+    determinant: de
+    description: 
+    created_at: 2026-01-09 00:48:37
+    updated_at: 2026-02-04 22:41:33
+  Fila 2:
+    id: 2
+    pretty_id: respeto
+    sort_order: 2
+    name: Respeto
+    determinant: de
+    description: 
+    created_at: 2026-01-09 00:48:37
+    updated_at: 2026-02-04 22:41:33
+  Fila 3:
+    id: 3
+    pretty_id: sabidur-a
+    sort_order: 3
+    name: Sabiduría
+    determinant: de
+    description: 
+    created_at: 2026-01-09 00:48:37
+    updated_at: 2026-02-04 22:41:33
+  Fila 4:
+    id: 4
+    pretty_id: astucia
+    sort_order: 4
+    name: Astucia
+    determinant: de
+    description: 
+    created_at: 2026-01-09 00:48:37
+    updated_at: 2026-02-04 22:41:33
+  Fila 5:
+    id: 5
+    pretty_id: wyrm
+    sort_order: 998
+    name: Wyrm
+    determinant: del
+    description: 
+    created_at: 2026-01-09 00:48:37
+    updated_at: 2026-02-04 22:41:33
+
+
+----------------------------------------
+TABLA: dim_totems
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(255)) [NOT NULL]
+  - totem_type_id (int(3)) [NOT NULL]
+  - cost (int(2)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - traits (longtext) [NOT NULL]
+  - prohibited (longtext) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: cucaracha
+    name: Cucaracha
+    totem_type_id: 3
+    cost: 6
+    description: Cucaracha, según los arrogantes Moradores del Cristal, es el tótem de la edad m…
+    traits: Cada miembro de la manada sustrae dos puntos a las dificultades relacionadas co…
+    prohibited: Los miembros de la manada no pueden matar cucarachas.
+    image_url: 
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:53
+    updated_at: 2026-02-15 11:45:42
+  Fila 2:
+    id: 2
+    pretty_id: fenris
+    name: Fenris
+    totem_type_id: 1
+    cost: 5
+    description: Hace más de mil años, los escandinavos hablaban del feroz Lobo-Dios Fenris, una…
+    traits: Las manadas de Fenris reciben un punto adicional en un Atributo Físico (Destrez…
+    prohibited: Fenris exige que sus seguidores no renuncien jamás a una oportunidad de lucha r…
+    image_url: 
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:53
+    updated_at: 2026-02-15 11:45:42
+  Fila 3:
+    id: 3
+    pretty_id: abuelo-trueno
+    name: Abuelo Trueno
+    totem_type_id: 2
+    cost: 7
+    description: Como sus hijos los Señores de la Sombra, Abuelo Trueno es más temido que respet…
+    traits: Las manadas de Trueno reciben cinco puntos adicionales de Fuerza de Voluntad po…
+    prohibited: Abuelo Trueno exige que sus hijos concedan a sus semejantes y rivales el justo …
+    image_url: 
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:53
+    updated_at: 2026-02-15 11:45:42
+  Fila 4:
+    id: 4
+    pretty_id: coyote
+    name: Coyote
+    totem_type_id: 4
+    cost: 7
+    description: Coyote es un embaucador consumado. Es un forajido, más Ragabash que los Ragabas…
+    traits: Coyote concede a sus manadas tres dados adicionales de Sigilo, tres de Callejeo…
+    prohibited: A Coyote jamás se le ocurriría imponer límites a sus hijos.
+    image_url: 
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:53
+    updated_at: 2026-02-15 11:45:42
+  Fila 5:
+    id: 5
+    pretty_id: ciervo
+    name: Ciervo
+    totem_type_id: 2
+    cost: 6
+    description: Gran Ciervo es un antiguo espíritu, más anciano que los Fianna que le considera…
+    traits: Las manadas de Ciervo consiguen tres puntos adicionales de Fuerza de Voluntad p…
+    prohibited: Los Hijos de Ciervo deben mostrar respeto por su presa y hacer una Plegaria por…
+    image_url: 
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:53
+    updated_at: 2026-02-15 11:45:42
+
+
+----------------------------------------
+TABLA: dim_traits
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [IDX] [NOT NULL]
+  - kind (varchar(100)) [NOT NULL]
+  - classification (varchar(100)) [NOT NULL]
+  - description (longtext) [IDX] [NOT NULL]
+  - levels (longtext) [NOT NULL]
+  - posse (longtext) [NOT NULL]
+  - special (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: fuerza
+    name: Fuerza
+    kind: Atributos
+    classification: 001 Físicos
+    description: La Fuerza es la potencia física en bruto de un personaje.
+Determina el peso qu…
+    levels: 
+
+
+
+Malo: Puedes levantar 40 libras (unos 20 kg.)
+
+
+Normal: Puede…
+    posse: 
+    special: Agarre Fuerte, Brazos Poderosos, Reserva de Fuerza, Puños como Yunques
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:42
+    updated_at: 2026-02-15 12:59:45
+  Fila 2:
+    id: 2
+    pretty_id: flight
+    name: Flight
+    kind: Talentos
+    classification: 010 Córax
+    description: Alone among the Changing Breeds, Corax can fly.
+More than that, the wereravens…
+    levels: 
+
+
+Novice: You can take off and land without crashing too often.
+
+<…
+    posse: Corax, and no one else who really matters
+    special: Combat Maneuvers, Tailing, High-Altitude, Surveillance, Dive-bombing, Aerobatics
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:42
+    updated_at: 2026-02-15 12:59:45
+  Fila 3:
+    id: 3
+    pretty_id: gossip
+    name: Gossip
+    kind: Técnicas
+    classification: 010 Córax
+    description: There's tattling, there's gossip, and then there's what
+the Corax do. Handled …
+    levels: 
+
+
+Novice: Joseph told me that Chris liked Gretchen because she was cute…
+    posse: Gossip Columnists, Maiden Aunts, Net Bigshots
+    special: Rumormongering, Misinformation, Sifting for the Truth
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:42
+    updated_at: 2026-02-15 12:59:45
+  Fila 4:
+    id: 4
+    pretty_id: cultura-de-las-cloacas
+    name: Cultura de las Cloacas
+    kind: Conocimientos
+    classification: 002 Secundarias
+    description: Sabes bastante de las alcantarillas en general y mucho del sistema de alcantari…
+    levels: 
+
+
+Novato: Rata de túnel.
+
+
+Practicante: Lo que podría saber un …
+    posse: Nosferatu, Giovanni, algunos Malkavians, Poceros, Monstruos de las Cloacas, alg…
+    special: Refugios, Comida, Escondites, Atajos, Barrios Bajos
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:42
+    updated_at: 2026-02-15 12:59:45
+  Fila 5:
+    id: 5
+    pretty_id: alerta
+    name: Alerta
+    kind: Talentos
+    classification: 001 Generales
+    description: La Alerta describe la armonización de un personaje con las cosas que puede ver,…
+    levels: 
+
+
+Novato: Estás alerta a ciertas señales y sonidos que te rodean.
+
+…
+    posse: Guardaespaldas, Cazadores, Ladrones, Animales Salvajes, Guardias de Seguridad
+    special: Emboscadas, Paranoia, Trampas, Olores
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:42
+    updated_at: 2026-02-15 11:45:41
+
+
+----------------------------------------
+TABLA: dim_tribes
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - affiliation (varchar(100)) [NOT NULL]
+  - energy (int(11)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - powers (mediumtext) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: camada-de-fenris
+    name: Camada de Fenris
+    system_name: Garou
+    system_id: 1
+    affiliation: 
+    energy: 3
+    description: En la época actual, los Fenris son la tribu más brutal y despiada de la Nación …
+    powers: 
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:54
+    updated_at: 2026-02-15 14:58:08
+  Fila 2:
+    id: 2
+    pretty_id: caminantes-silenciosos
+    name: Caminantes Silenciosos
+    system_name: Garou
+    system_id: 1
+    affiliation: 
+    energy: 3
+    description: Los exploradores de vanguardia de su raza. Estos apátridas vagan por el mundo y…
+    powers: 
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:54
+    updated_at: 2026-02-15 14:58:08
+  Fila 3:
+    id: 3
+    pretty_id: contemplaestrellas
+    name: Contemplaestrellas
+    system_name: Garou
+    system_id: 1
+    affiliation: Cortes de la Bestia
+    energy: 5
+    description: Recientemente escindidos de la Nación Garou, los Contemplaestrellas se cuentan …
+    powers: 
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:54
+    updated_at: 2026-02-15 14:58:08
+  Fila 4:
+    id: 4
+    pretty_id: colmillos-plateados
+    name: Colmillos Plateados
+    system_name: Garou
+    system_id: 1
+    affiliation: 
+    energy: 3
+    description: La más noble de las tribus de los Garou es ahora una pálida sombra de lo que an…
+    powers: 
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:54
+    updated_at: 2026-02-15 14:58:08
+  Fila 5:
+    id: 5
+    pretty_id: fianna
+    name: Fianna
+    system_name: Garou
+    system_id: 1
+    affiliation: 
+    energy: 3
+    description: Los aullidos de alabanza a Gaia.
+
+
+
+Se dice que el primer Gallia…
+    powers: 
+    image_url: 
+    bibliography_id: NULL
+    created_at: 2026-01-09 00:48:54
+    updated_at: 2026-02-15 14:58:08
+
+
+----------------------------------------
+TABLA: fact_admin_posts
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - author (varchar(30)) [NOT NULL]
+  - title (varchar(50)) [NOT NULL]
+  - posted_at (date) [NOT NULL]
+  - message (longtext) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 3
+    author: Maverick
+    title: Versión 2.0 casi operativa
+    posted_at: 2007-11-22
+    message: Pues eso, he subido todo y he actualizado la base de datos. Como podreís compro…
+    created_at: 2026-01-09 00:49:11
+  Fila 2:
+    id: 4
+    author: Maverick
+    title: Solución a IE y Opera
+    posted_at: 2007-11-22
+    message: Al parecer, la web no se visualizaba correctamente en Internet Explorer y en Op…
+    created_at: 2026-01-09 00:49:11
+  Fila 3:
+    id: 6
+    author: Maverick
+    title: Actualización del Simulador
+    posted_at: 2007-11-29
+    message: A partir de ahora, en los chequeos de habilidad al usar armas, se tendrá en cue…
+    created_at: 2026-01-09 00:49:11
+  Fila 4:
+    id: 7
+    author: Maverick
+    title: Nueva actualización del simulador
+    posted_at: 2007-12-01
+    message: Se ha agregado lo siguiente:
+
+- Las heridas son equivalentes a las de la hoja…
+    created_at: 2026-01-09 00:49:11
+  Fila 5:
+    id: 8
+    author: Maverick
+    title: Reseteo del Simulador
+    posted_at: 2007-12-02
+    message: Todos los puntajes que había en el Simulador de Combate han sido puestos a 0, p…
+    created_at: 2026-01-09 00:49:11
+
+
+----------------------------------------
+TABLA: fact_characters
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(50)) [IDX] [NOT NULL]
+  - alias (varchar(20)) [NOT NULL]
+  - garou_name (varchar(100)) [NOT NULL]
+  - gender (varchar(1))
+  - concept (varchar(50)) [NOT NULL]
+  - chronicle_id (int(10) unsigned) [NOT NULL]
+  - player_id (int(10) unsigned) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - text_color (varchar(100)) [NOT NULL]
+  - character_kind (varchar(3)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - totem_id (int(10) unsigned) [IDX]
+  - status (varchar(30)) [NOT NULL]
+  - cause_of_death (tinytext) [IDX] [NOT NULL]
+  - character_type_id (int(10) unsigned) [NOT NULL]
+  - breed_id (int(10) unsigned) [NOT NULL]
+  - auspice_id (int(10) unsigned) [NOT NULL]
+  - tribe_id (int(10) unsigned) [NOT NULL]
+  - nature_id (int(10) unsigned) [NOT NULL]
+  - demeanor_id (int(10) unsigned) [NOT NULL]
+  - birthdate_text (varchar(50)) [NOT NULL]
+  - rank (varchar(30)) [NOT NULL]
+  - info_text (longtext) [NOT NULL]
+  - notes (longtext) [NOT NULL]
+  - is_abandoned (tinyint(1)) [NOT NULL]
+  - created_at (datetime) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: bruma-nocturna
+    name: Bruma Nocturna
+    alias: Bruma
+    garou_name: Churrasco
+    gender: m
+    concept: Místico solitario
+    chronicle_id: 1
+    player_id: 18
+    image_url: /img/characters/pj-1-bruma-nocturna-20251222185150.jpg
+    text_color: DimGray
+    character_kind: pj
+    system_id: 1
+    totem_id: 12
+    status: En activo
+    cause_of_death: 
+    character_type_id: 1
+    breed_id: 4
+    auspice_id: 2
+    tribe_id: 12
+    nature_id: 37
+    demeanor_id: 22
+    birthdate_text: 1994-01-30
+    rank: Fostern
+    info_text: 
+
+Descripción
+
+
+
+
+Un místico procedente del…
+    notes: 
+    is_abandoned: 0
+    created_at: 2011-03-27 12:00:00
+    updated_at: 2026-02-22 09:03:30
+  Fila 2:
+    id: 2
+    pretty_id: ar-nzazu-guevara
+    name: Aránzazu Guevara
+    alias: Aránzazu
+    garou_name: Grifo-Sangriento
+    gender: f
+    concept: Amnésica
+    chronicle_id: 1
+    player_id: 4
+    image_url: img/subidas/aranzazu_mugshot.jpg
+    text_color: PowderBlue
+    character_kind: pj
+    system_id: 1
+    totem_id: 39
+    status: Cadáver
+    cause_of_death: asesinada por Blanchard
+    character_type_id: 1
+    breed_id: 2
+    auspice_id: 3
+    tribe_id: 9
+    nature_id: 0
+    demeanor_id: 0
+    birthdate_text: 21/11/1981
+    rank: Cliath
+    info_text: 
+    notes: 
+    is_abandoned: 1
+    created_at: 2011-03-27 12:00:00
+    updated_at: 2026-02-15 17:10:48
+  Fila 3:
+    id: 3
+    pretty_id: iris-mart-nez
+    name: Iris Martínez
+    alias: Iris
+    garou_name: Noche-Húmeda
+    gender: f
+    concept: Líder incompetente
+    chronicle_id: 1
+    player_id: 3
+    image_url: /img/characters/pj-3-iris-mart-nez-20251218021234.png
+    text_color: Orchid
+    character_kind: pj
+    system_id: 1
+    totem_id: 102
+    status: Paradero desconocido
+    cause_of_death: 
+    character_type_id: 1
+    breed_id: 2
+    auspice_id: 4
+    tribe_id: 5
+    nature_id: 0
+    demeanor_id: 0
+    birthdate_text: 06/11/1982
+    rank: Adren
+    info_text: 
+
+Nacida en Oviedo, Iris tuvo una infancia tranquila y querida por sus padres.…
+    notes: 
+    is_abandoned: 0
+    created_at: 2007-11-22 00:00:00
+    updated_at: 2026-02-15 17:10:48
+  Fila 4:
+    id: 4
+    pretty_id: mauricio-belmonte
+    name: Mauricio Belmonte
+    alias: Mauri
+    garou_name: Hijo-del-Sacrificio
+    gender: m
+    concept: Solucionador de problemas
+    chronicle_id: 2
+    player_id: 2
+    image_url: img/subidas/mauriciobelmonte.jpg
+    text_color: 
+    character_kind: pj
+    system_id: 1
+    totem_id: 53
+    status: En activo
+    cause_of_death: 
+    character_type_id: 1
+    breed_id: 2
+    auspice_id: 3
+    tribe_id: 9
+    nature_id: 37
+    demeanor_id: 4
+    birthdate_text: 02/07/1981
+    rank: Fostern
+    info_text: 
+    notes: 
+    is_abandoned: 0
+    created_at: 2007-11-22 12:00:00
+    updated_at: 2026-02-15 17:10:48
+  Fila 5:
+    id: 5
+    pretty_id: oriol-vel-zquez
+    name: Oriol Velázquez
+    alias: Ori
+    garou_name: 
+    gender: m
+    concept: Gato callejero
+    chronicle_id: 1
+    player_id: 16
+    image_url: img/subidas/avatar-sinfoto.jpg
+    text_color: SkyBlue
+    character_kind: pj
+    system_id: 1
+    totem_id: 39
+    status: Cadáver
+    cause_of_death: asesinado por fomori durante la Catástrofe de Bilbao
+    character_type_id: 1
+    breed_id: 2
+    auspice_id: 1
+    tribe_id: 9
+    nature_id: 0
+    demeanor_id: 0
+    birthdate_text: Desconocido
+    rank: Cachorro
+    info_text: 
+    notes: 
+    is_abandoned: 0
+    created_at: 2011-03-27 12:00:00
+    updated_at: 2026-02-22 21:07:35
+
+
+----------------------------------------
+TABLA: fact_characters_comments
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - character_id (int(10) unsigned) [NOT NULL]
+  - nick (varchar(25)) [NOT NULL]
+  - comment_time (time) [NOT NULL]
+  - commented_at (date) [NOT NULL]
+  - message (mediumtext) [NOT NULL]
+  - ip (varchar(50)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    character_id: 4
+    nick: Dios
+    comment_time: 00:00:00
+    commented_at: 0000-00-00
+    message: Claramente, el mejor personaje que ha podido haber.
+
+¡Viva Mauricio! XD
+    ip: 
+    created_at: 2026-01-09 00:49:10
+  Fila 2:
+    id: 2
+    character_id: 13
+    nick: Que cojones es esto
+    comment_time: 00:00:00
+    commented_at: 0000-00-00
+    message: El puto amo
+    ip: 
+    created_at: 2026-01-09 00:49:10
+  Fila 3:
+    id: 3
+    character_id: 52
+    nick: Zarko
+    comment_time: 00:00:00
+    commented_at: 0000-00-00
+    message: ¡Si es que soy muy, grande! 
+
+¡¡GRANDE ZARKO!! :D
+    ip: 
+    created_at: 2026-01-09 00:49:10
+  Fila 4:
+    id: 4
+    character_id: 13
+    nick: Maverick
+    comment_time: 00:00:00
+    commented_at: 0000-00-00
+    message: Que va a ser ese el puto amo, si le matan hasta con un cepillo de dientes.
+    ip: 
+    created_at: 2026-01-09 00:49:10
+  Fila 5:
+    id: 5
+    character_id: 53
+    nick: Kaze
+    comment_time: 00:00:00
+    commented_at: 2007-12-13
+    message: Estefania fue una buena persona desde que nacio, incluso cuando dio aluz a much…
+    ip: 88.25.255.242
+    created_at: 2026-01-09 00:49:10
+
+
+----------------------------------------
+TABLA: fact_combat_maneuvers
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - image_url (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - text (longtext) [NOT NULL]
+  - user (varchar(100)) [NOT NULL]
+  - roll (varchar(100)) [NOT NULL]
+  - difficulty (varchar(100)) [NOT NULL]
+  - damage (varchar(100)) [NOT NULL]
+  - actions (varchar(100)) [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: asolar
+    image_url: maneuver_devastate.jpg
+    name: Asolar
+    text: El Ananasi arremete contra su enemigo mientras se disuelve en un millón de arañ…
+    user: Todas
+    roll: Destreza + Pelea
+    difficulty: 5 ó 6
+    damage: Fuerza, asfixia
+    actions: 1
+    system_name: Ananasi
+    system_id: 3
+    bibliography_id: 19
+    created_at: 2026-01-09 00:48:33
+    updated_at: 2026-02-15 14:58:12
+  Fila 2:
+    id: 2
+    pretty_id: latigazo-de-cola
+    image_url: maneuver_tail_smack.jpg
+    name: Latigazo de cola
+    text: El Mokolé arremete con su cola, golpeando a su oponente con ella. Los personaje…
+    user: Archid, Suchid
+    roll: Destreza + Pelea
+    difficulty: 7
+    damage: Fuerza + 1
+    actions: 1
+    system_name: Mokolé
+    system_id: 9
+    bibliography_id: 19
+    created_at: 2026-01-09 00:48:33
+    updated_at: 2026-02-15 14:58:12
+  Fila 3:
+    id: 3
+    pretty_id: mordisco
+    image_url: maneuver_bite.jpg
+    name: Mordisco
+    text: Probablemente es la forma de ataque más básica de todas. El Garou simplemente t…
+    user: Glabro, Crinos, Hispo, Lupus
+    roll: Destreza + Pelea
+    difficulty: 5 u 8
+    damage: Fuerza +1, Fuerza -1 (Glabro)
+    actions: 1
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:33
+    updated_at: 2026-02-15 14:58:12
+  Fila 4:
+    id: 4
+    pretty_id: patada
+    image_url: maneuver_kick.jpg
+    name: Patada
+    text: Los ataques de patadas varían en su estilo: desde los rápidos puntapiés en la i…
+    user: Homínido, Glabro, Crinos
+    roll: Destreza + Pelea
+    difficulty: 7
+    damage: Fuerza +1
+    actions: 1
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:33
+    updated_at: 2026-02-15 14:58:12
+  Fila 5:
+    id: 5
+    pretty_id: garrazo
+    image_url: maneuver_claw.jpg
+    name: Garrazo
+    text: Otro ataque sencillo que se utiliza con mucha frecuencia. Un golpe con las garr…
+    user: Crinos, Hispo
+    roll: Destreza + Pelea
+    difficulty: 6
+    damage: Fuerza +2
+    actions: 1
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-01-09 00:48:33
+    updated_at: 2026-02-15 14:58:12
+
+
+----------------------------------------
+TABLA: fact_csp_posts
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - author (varchar(30)) [NOT NULL]
+  - title (varchar(50)) [NOT NULL]
+  - message (longtext) [NOT NULL]
+  - posted_at (varchar(50))
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    author: Víctor
+    title: Mensaje de prueba
+    message: ¡Saludos, compañeros!
+
+Utilizaremos a partir de ahora éste sistema para comun…
+    posted_at: 22:05:40, 08-10-2007
+    created_at: 2026-01-09 00:49:09
+  Fila 2:
+    id: 2
+    author: ajax z.
+    title: 2
+    message: ola
+
+    posted_at: 11:37:11, 22-10-2007
+    created_at: 2026-01-09 00:49:09
+  Fila 3:
+    id: 3
+    author: ajax.z
+    title: 5
+    message: ooa ya hemos epezad la buskeda k osva¿
+hemeços tenido unapellea con final feli…
+    posted_at: 12:03:56, 22-10-2007
+    created_at: 2026-01-09 00:49:09
+  Fila 4:
+    id: 4
+    author: ajax z.
+    title: 4
+    message: ola jente del  muindo k tal? como os va
+  os kiero ya se andar bien encima de …
+    posted_at: 11:40:56, 22-10-2007
+    created_at: 2026-01-09 00:49:09
+  Fila 5:
+    id: 5
+    author: Iris
+    title: 
+    message: ¡Hola, compañeros!
+
+Nosotros vamos a empezar con nuestra búsqueda... así que …
+    posted_at: 14:51:52, 28-10-2007
+    created_at: 2026-01-09 00:49:09
+
+
+----------------------------------------
+TABLA: fact_dice_rolls
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - name (varchar(50)) [NOT NULL]
+  - roll_name (varchar(50)) [NOT NULL]
+  - dice_pool (int(11)) [NOT NULL]
+  - difficulty (int(11)) [NOT NULL]
+  - roll_results (text) [NOT NULL]
+  - successes (int(11)) [NOT NULL]
+  - botch (tinyint(1)) [NOT NULL]
+  - ip (varchar(45)) [NOT NULL]
+  - rolled_at (datetime)
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    name: Bruce Dickinson
+    roll_name: Tears of the Dragon
+    dice_pool: 8
+    difficulty: 8
+    roll_results: 6,5,5,10,6,9,7,1
+    successes: 1
+    botch: 0
+    ip: 188.78.92.155
+    rolled_at: 2025-07-09 21:57:54
+    updated_at: NULL
+  Fila 2:
+    id: 2
+    name: Mauricio Belmonte
+    roll_name: Disparo falso
+    dice_pool: 7
+    difficulty: 6
+    roll_results: 4,2,5,8,9,10,10
+    successes: 4
+    botch: 0
+    ip: 188.78.92.155
+    rolled_at: 2025-07-09 22:43:30
+    updated_at: NULL
+  Fila 3:
+    id: 3
+    name: Arda
+    roll_name: Tirada Ep 1 - Creta - Iota - Per+Alerta
+    dice_pool: 6
+    difficulty: 8
+    roll_results: 3,3,7,9,6,10
+    successes: 2
+    botch: 0
+    ip: 83.52.22.235
+    rolled_at: 2025-10-05 13:41:00
+    updated_at: NULL
+  Fila 4:
+    id: 4
+    name: Mark Rodríguez
+    roll_name: Persecución de Micky el Mocos (Des. + Atl. Lupus)
+    dice_pool: 5
+    difficulty: 7
+    roll_results: 1,8,3,10,3
+    successes: 1
+    botch: 0
+    ip: 77.209.13.48
+    rolled_at: 2025-12-28 15:00:18
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    name: Mark Rodríguez
+    roll_name: Persecución Micky el Mocos (Fuerza + Pelea Lupus)
+    dice_pool: 6
+    difficulty: 8
+    roll_results: 3,8,7,10,9,1
+    successes: 2
+    botch: 0
+    ip: 77.209.13.48
+    rolled_at: 2025-12-28 15:02:11
+    updated_at: NULL
+
+
+----------------------------------------
+TABLA: fact_discipline_powers
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - disc (varchar(100)) [NOT NULL]
+  - level (int(2)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - system_name (longtext) [NOT NULL]
+  - attribute (varchar(100)) [NOT NULL]
+  - skill (varchar(100)) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: susurros-salvajes
+    name: Susurros salvajes
+    image_url: 
+    disc: 1
+    level: 1
+    description: Este poder es la base de la que crecen todos los demás poderes de Animalismo. E…
+    system_name: Para hablar con un animal no es necesaria tirada alguna, pero antes hay que est…
+    attribute: Manipulación
+    skill: Trato con Animales
+    bibliography_id: 35
+    created_at: 2026-02-13 00:19:45
+    updated_at: 2026-02-15 11:45:44
+  Fila 2:
+    id: 2
+    pretty_id: la-llamada
+    name: La llamada
+    image_url: 
+    disc: 1
+    level: 2
+    description: La conexión del vampiro con la Bestia se hace lo suficientemente fuerte como pa…
+    system_name: El jugador tira Carisma + Supervivencia (dificultad 6) para determinar la respu…
+    attribute: Carisma
+    skill: Supervivencia
+    bibliography_id: 35
+    created_at: 2026-02-13 00:19:45
+    updated_at: 2026-02-15 11:45:44
+  Fila 3:
+    id: 3
+    pretty_id: sentidos-agudizados
+    name: Sentidos agudizados
+    image_url: 
+    disc: 2
+    level: 1
+    description: Este poder aumenta la percepción del vampiro, doblando el alcance y la nitidez …
+    system_name: Este poder no suele precisar del uso de dados, ya que normalmente se define med…
+    attribute: Percepción
+    skill: 
+    bibliography_id: 35
+    created_at: 2026-02-13 00:19:45
+    updated_at: 2026-02-15 11:45:44
+  Fila 4:
+    id: 4
+    pretty_id: reprimir-a-la-bestia
+    name: Reprimir a la Bestia
+    image_url: 
+    disc: 1
+    level: 3
+    description: 
+
+Como depredadores supremos del mundo material, los Vástagos están en sintoní…
+    system_name: 
+
+El jugador tira Manipulación + Intimidación si somete la Bestia mediante el …
+    attribute: Manipulación
+    skill: Intimidación ó Empatía
+    bibliography_id: 35
+    created_at: 2026-02-13 00:19:45
+    updated_at: 2026-02-15 11:45:44
+  Fila 5:
+    id: 5
+    pretty_id: comuni-n-de-esp-ritus
+    name: Comunión de Espíritus
+    image_url: 
+    disc: 1
+    level: 4
+    description: 
+
+Fijando su mirada en la de un animal el vampiro puede poseerlo psíquicamente…
+    system_name: 
+
+El jugador tira Manipulación + Trato con Animales (dificultad 8) mientras el…
+    attribute: Manipulación
+    skill: Trato con Animales
+    bibliography_id: 35
+    created_at: 2026-02-13 00:19:45
+    updated_at: 2026-02-15 11:45:44
+
+
+----------------------------------------
+TABLA: fact_docs
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - section_id (int(10) unsigned) [NOT NULL]
+  - title (varchar(150)) [NOT NULL]
+  - content (longtext) [NOT NULL]
+  - source (longtext) [NOT NULL]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 5
+    pretty_id: custod-aeson-mente-de-cuchilla
+    section_id: 4
+    title: Custod Aeson — Mente-de-Cuchilla
+    content:   Apariencia 
+
+  
+
+  Un hombre que aparenta unos t…
+    source: 
+    bibliography_id: 7
+    created_at: 2026-01-09 00:48:26
+    updated_at: 2026-02-15 11:45:45
+  Fila 2:
+    id: 6
+    pretty_id: kate-r-senberg-destino-incierto
+    section_id: 4
+    title: Kate Rösenberg — Destino-Incierto
+    content:   Apariencia 
+
+  
+
+  Parece una inocente joven de …
+    source: 
+    bibliography_id: 7
+    created_at: 2026-01-09 00:48:26
+    updated_at: 2026-02-15 11:45:45
+  Fila 3:
+    id: 7
+    pretty_id: valeria-parhon-sombra-escarlata
+    section_id: 4
+    title: Valeria Parhon — Sombra Escarlata
+    content:   Nació en un hospital de Bucarest, en el seno de una familia bastante  …
+    source: 
+    bibliography_id: 7
+    created_at: 2026-01-09 00:48:26
+    updated_at: 2026-02-15 11:45:45
+  Fila 4:
+    id: 8
+    pretty_id: estefan-a-merino-vega
+    section_id: 4
+    title: Estefanía Merino Vega
+    content: Nací en una familia “especial”, era ese tipo de familia en e…
+    source: 
+    bibliography_id: 8
+    created_at: 2026-01-09 00:48:26
+    updated_at: 2026-02-15 11:45:45
+  Fila 5:
+    id: 9
+    pretty_id: mauricio-belmonte-hijo-del-sacrificio
+    section_id: 4
+    title: Mauricio Belmonte — Hijo-del-Sacrificio
+    content: Nací en una familia acomodada el día catorce de julio de mil  nov…
+    source: 
+    bibliography_id: 8
+    created_at: 2026-01-09 00:48:26
+    updated_at: 2026-02-15 11:45:45
+
+
+----------------------------------------
+TABLA: fact_gifts
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [IDX] [NOT NULL]
+  - image_url (varchar(190))
+  - kind (varchar(50)) [NOT NULL]
+  - gift_group (varchar(55)) [NOT NULL]
+  - rank (varchar(25)) [NOT NULL]
+  - attribute_name (varchar(50)) [NOT NULL]
+  - ability_name (varchar(50)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - system_name (longtext) [NOT NULL]
+  - shifter_system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: persuasi-n
+    name: Persuasión
+    image_url: NULL
+    kind: 1
+    gift_group: Homínido
+    rank: 1
+    attribute_name: Carisma
+    ability_name: Subterfugio
+    description: Este Don permite que un homínido se vuelva más persuasivo al tratar con los dem…
+    system_name: El Garou tira Carisma + Subterfugio (dificultad 6). Si tiene éxito, la dificult…
+    shifter_system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:33:58
+    updated_at: 2026-02-15 14:58:11
+  Fila 2:
+    id: 2
+    pretty_id: ojo-nublado
+    name: Ojo Nublado
+    image_url: NULL
+    kind: 2
+    gift_group: Ragabash
+    rank: 1
+    attribute_name: Manipulación
+    ability_name: Sigilo
+    description: La forma del Garou se convierte en una mancha borrosa, que le permite pasar ent…
+    system_name: El Garou tira Manipulación + Sigilo (dificultad 8). Cada éxito aumenta en uno l…
+    shifter_system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:33:58
+    updated_at: 2026-02-15 14:58:11
+  Fila 3:
+    id: 3
+    pretty_id: crear-elemento
+    name: Crear Elemento
+    image_url: NULL
+    kind: 1
+    gift_group: Metis
+    rank: 1
+    attribute_name: Gnosis
+    ability_name: 
+    description: El Garou puede crear una pequeña cantidad de uno de los cuatro elementos básico…
+    system_name: El Garou gasta un punto de Gnosis y tira Gnosis (dificultad 6). Por cada éxito …
+    shifter_system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:33:58
+    updated_at: 2026-02-15 14:58:11
+  Fila 4:
+    id: 4
+    pretty_id: lanza-de-hielo
+    name: Lanza de Hielo
+    image_url: /img/gifts/gift-20260221210745-a129e5.jpg
+    kind: 4
+    gift_group: Noche Fría
+    rank: 2
+    attribute_name: Destreza
+    ability_name: Ocultismo
+    description: 
+
+El usuario invoca los poderes de un elemental de aire y otro de agua para cr…
+    system_name: 
+
+El Garou gasta un punto de Gnosis y tira Mientras que la jungla urbana ofrece muchas nuevas posibilidades para el caz…
+    system_name: 
+
+El jugador realiza una tirada de Gnosis (dificultad 6). Por cada éxito obten…
+    shifter_system_name: Garou
+    system_id: 1
+    bibliography_id: 32
+    created_at: 2026-02-12 22:33:58
+    updated_at: 2026-02-15 14:58:11
+
+
+----------------------------------------
+TABLA: fact_items
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [IDX] [NOT NULL]
+  - item_type_id (int(10) unsigned) [NOT NULL]
+  - level (int(2)) [NOT NULL]
+  - gnosis (int(2)) [NOT NULL]
+  - skill_name (varchar(50)) [NOT NULL]
+  - damage_type (varchar(12)) [NOT NULL]
+  - metal (tinyint(1)) [NOT NULL]
+  - rating (tinyint(1)) [NOT NULL]
+  - bonus (int(2)) [NOT NULL]
+  - strength_req (int(2)) [NOT NULL]
+  - dexterity_req (int(2)) [NOT NULL]
+  - image_url (longtext) [NOT NULL]
+  - description (longtext)
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: bate-de-aluminio
+    name: Bate de aluminio
+    item_type_id: 1
+    level: 0
+    gnosis: 0
+    skill_name: Cuerpo a Cuerpo
+    damage_type: Contundente
+    metal: 0
+    rating: 0
+    bonus: 2
+    strength_req: 0
+    dexterity_req: 0
+    image_url: /img/inv/uploads/item-20260208010816-edb0eb.png
+    description: 
+
+Fabricado en aluminio ligero y resistente, este bate está d…
+    bibliography_id: 7
+    created_at: 2026-02-07 03:36:59
+    updated_at: 2026-02-15 11:45:44
+  Fila 2:
+    id: 2
+    pretty_id: tuberia-de-acero
+    name: Tubería de acero
+    item_type_id: 1
+    level: 0
+    gnosis: 0
+    skill_name: Cuerpo a Cuerpo
+    damage_type: Contundente
+    metal: 0
+    rating: 1
+    bonus: 1
+    strength_req: 0
+    dexterity_req: 0
+    image_url: /img/inv/uploads/item-20260208012945-82f206.png
+    description: 
+
+Una tubería hueca de acero, pesada y mal equilibrada, con e…
+    bibliography_id: 8
+    created_at: 2026-02-07 03:36:59
+    updated_at: 2026-02-17 22:45:57
+  Fila 3:
+    id: 3
+    pretty_id: walther-ppk
+    name: Walther PPK
+    item_type_id: 1
+    level: 0
+    gnosis: 0
+    skill_name: Armas de Fuego
+    damage_type: Letal
+    metal: 0
+    rating: 1
+    bonus: 4
+    strength_req: 0
+    dexterity_req: 0
+    image_url: /img/inv/uploads/item-20260207192509-24aadd.png
+    description: 
+
+La pistola Walther PP fue introducida en 1929 en Alemania para la policía se…
+    bibliography_id: 7
+    created_at: 2026-02-07 03:36:59
+    updated_at: 2026-02-15 11:45:44
+  Fila 4:
+    id: 4
+    pretty_id: arco-corto
+    name: Arco corto
+    item_type_id: 1
+    level: 0
+    gnosis: 0
+    skill_name: Tiro con Arco
+    damage_type: Letal
+    metal: 0
+    rating: 0
+    bonus: 4
+    strength_req: 0
+    dexterity_req: 0
+    image_url: /img/inv/uploads/item-20260207212958-78b668.png
+    description: 
+
+Un arco pequeño, para los iniciados en el Tiro con Arco. La punta de las fle…
+    bibliography_id: 1
+    created_at: 2026-02-07 03:36:59
+    updated_at: 2026-02-15 11:45:44
+  Fila 5:
+    id: 5
+    pretty_id: pda
+    name: PDA
+    item_type_id: 4
+    level: 0
+    gnosis: 0
+    skill_name: 
+    damage_type: 
+    metal: 0
+    rating: 2
+    bonus: 0
+    strength_req: 0
+    dexterity_req: 0
+    image_url: /img/inv/uploads/item-20260208181252-f32668.png
+    description: 
+
+Aparato tecnológico conectado a la red de información del Viento de Acero.
+Destreza -1
+
+Resistencia +3
+
+Manipulación -2
+    created_at: 2026-02-15 01:37:31
+    updated_at: 2026-02-15 15:43:55
+  Fila 2:
+    id: 2
+    pretty_id: ora
+    name: Ora
+    kind: Varna
+    system_name: Mokolé
+    system_id: 9
+    energy_name: Rabia
+    energy_value: 5
+    description: Lagartos de 4 a 12 pies de largo (1,2 a 3,6 metros); su velocidad en tierra igu…
+    extra_info: Fuerza +0
+
+Destreza +0
+
+Resistencia +2
+
+Manipulación -4
+    created_at: 2026-02-15 01:37:31
+    updated_at: 2026-02-15 15:43:55
+  Fila 3:
+    id: 3
+    pretty_id: unkethi
+    name: Unkethi
+    kind: Varna
+    system_name: Mokolé
+    system_id: 9
+    energy_name: Rabia
+    energy_value: 5
+    description: Monstruos de Gila; su velocidad en tierra es la mitad de la humana y no pueden …
+    extra_info: Fuerza -1
+
+Destreza +0
+
+Resistencia +1
+
+Manipulación -3
+
+    created_at: 2026-02-15 01:37:31
+    updated_at: 2026-02-15 15:43:55
+  Fila 4:
+    id: 4
+    pretty_id: karna-champsa
+    name: Karna / Champsa
+    kind: Varna
+    system_name: Mokolé
+    system_id: 9
+    energy_name: Rabia
+    energy_value: 2
+    description: Cocodrilos de Agua Salada / Cocodrilos del Nilo; la velocidad en tierra se redu…
+    extra_info: Fuerza +3
+
+Destreza -2
+
+Resistencia +3
+
+Manipulación -4
+    created_at: 2026-02-15 01:37:31
+    updated_at: 2026-02-15 15:43:55
+  Fila 5:
+    id: 5
+    pretty_id: gharial-syrta
+    name: Gharial / Syrta
+    kind: Varna
+    system_name: Mokolé
+    system_id: 9
+    energy_name: Rabia
+    energy_value: 3
+    description: Gavial / Caimán; la velocidad en tierra se reduce a la mitad en esta forma, per…
+    extra_info: Fuerza +1
+
+Destreza +0
+
+Resistencia +2
+
+Manipulación -3
+    created_at: 2026-02-15 01:37:31
+    updated_at: 2026-02-15 15:43:55
+
+
+----------------------------------------
+TABLA: fact_party_members
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - party_id (int(10) unsigned) [IDX] [NOT NULL]
+  - base_char_id (int(10) unsigned) [IDX] [NOT NULL]
+  - alias (varchar(255))
+  - m_hp (int(11)) [NOT NULL]
+  - m_rage (int(11))
+  - m_gnosis (int(11))
+  - m_glamour (int(11))
+  - m_mana (int(11))
+  - m_blood (int(11))
+  - m_wp (int(11))
+  - notes (text)
+  - active (tinyint(1)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    party_id: 1
+    base_char_id: 326
+    alias: Mark
+    m_hp: 7
+    m_rage: 3
+    m_gnosis: 2
+    m_glamour: 0
+    m_mana: 0
+    m_blood: 0
+    m_wp: 6
+    notes: 
+    active: 1
+    created_at: 2026-01-10 18:44:21
+    updated_at: 2026-02-07 09:16:15
+  Fila 2:
+    id: 2
+    party_id: 1
+    base_char_id: 206
+    alias: Kara
+    m_hp: 7
+    m_rage: 2
+    m_gnosis: 4
+    m_glamour: 0
+    m_mana: 0
+    m_blood: 0
+    m_wp: 4
+    notes: 
+    active: 0
+    created_at: 2026-01-10 18:44:21
+    updated_at: 2026-01-11 21:08:40
+  Fila 3:
+    id: 3
+    party_id: 1
+    base_char_id: 138
+    alias: Vytalian
+    m_hp: 7
+    m_rage: 5
+    m_gnosis: 3
+    m_glamour: 0
+    m_mana: 0
+    m_blood: 0
+    m_wp: 4
+    notes: 
+    active: 0
+    created_at: 2026-01-10 18:44:21
+    updated_at: 2026-01-11 21:08:46
+  Fila 4:
+    id: 4
+    party_id: 2
+    base_char_id: 303
+    alias: Iota (Arda)
+    m_hp: 7
+    m_rage: 0
+    m_gnosis: 2
+    m_glamour: 0
+    m_mana: 0
+    m_blood: 10
+    m_wp: 4
+    notes: NULL
+    active: 1
+    created_at: 2026-01-10 18:44:21
+    updated_at: NULL
+  Fila 5:
+    id: 5
+    party_id: 2
+    base_char_id: 306
+    alias: Ni (Karma)
+    m_hp: 7
+    m_rage: 0
+    m_gnosis: 0
+    m_glamour: 0
+    m_mana: 0
+    m_blood: 10
+    m_wp: 2
+    notes: 
+    active: 0
+    created_at: 2026-01-10 18:44:21
+    updated_at: 2026-02-07 09:16:05
+
+
+----------------------------------------
+TABLA: fact_party_members_changes
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - party_member_id (int(10) unsigned) [IDX] [NOT NULL]
+  - resource (enum('hp','rage','gnosis','blood','glamour','mana','wp')) [NOT NULL]
+  - value (int(11)) [NOT NULL]
+  - notes (text)
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    party_member_id: 6
+    resource: hp
+    value: -5
+    notes: NULL
+    created_at: 2025-09-24 22:12:46
+  Fila 2:
+    id: 2
+    party_member_id: 6
+    resource: blood
+    value: -6
+    notes: NULL
+    created_at: 2025-09-24 22:28:12
+  Fila 3:
+    id: 3
+    party_member_id: 2
+    resource: wp
+    value: -2
+    notes: FV gastada en combate con Felipe.
+    created_at: 2025-09-26 11:17:28
+  Fila 4:
+    id: 4
+    party_member_id: 2
+    resource: hp
+    value: -2
+    notes: Heridas en combate con Felipe
+    created_at: 2025-09-26 11:19:00
+  Fila 5:
+    id: 5
+    party_member_id: 4
+    resource: gnosis
+    value: 0
+    notes: Usa Habla espiritual.
+    created_at: 2025-10-19 14:47:16
+
+
+----------------------------------------
+TABLA: fact_rites
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - pretty_id (varchar(190))
+  - name (varchar(100)) [NOT NULL]
+  - image_url (varchar(190))
+  - kind (varchar(100)) [NOT NULL]
+  - level (int(100)) [NOT NULL]
+  - race (varchar(100)) [NOT NULL]
+  - description (longtext) [NOT NULL]
+  - system_text (longtext) [NOT NULL]
+  - system_name (varchar(100)) [NOT NULL]
+  - system_id (int(10) unsigned) [IDX]
+  - bibliography_id (int(10) unsigned) [IDX]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    pretty_id: rito-de-ostracismo
+    name: Rito de Ostracismo
+    image_url: NULL
+    kind: 1
+    level: 2
+    race: 
+    description: Este rito se utiliza con frecuencia para castigar los crímenes menores, aunque …
+    system_text: Este castigo suele durar desde una fase lunar hasta la siguiente. Sin embargo, …
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:37:04
+    updated_at: 2026-02-15 15:43:55
+  Fila 2:
+    id: 2
+    pretty_id: piedra-del-desd-n
+    name: Piedra del Desdén
+    image_url: NULL
+    kind: 1
+    level: 2
+    race: 
+    description: La Piedra del Desdén es una roca imbuida con personificaciones espirituales mal…
+    system_text: Tirada estándar. El Garou castigado suele perder ocho puntos de Honor y dos de …
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:37:04
+    updated_at: 2026-02-15 15:43:55
+  Fila 3:
+    id: 3
+    pretty_id: voz-del-chacal
+    name: Voz del Chacal
+    image_url: NULL
+    kind: 1
+    level: 2
+    race: 
+    description: Cuando la conducta de un hombre lobo no sólo le deshonra a él, sino a todo su c…
+    system_text: Los perros chacales, tal y como se conoce a los Garou que reciben este castigo,…
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:37:04
+    updated_at: 2026-02-15 15:43:55
+  Fila 4:
+    id: 4
+    pretty_id: la-cacer-a
+    name: La Cacería
+    image_url: NULL
+    kind: 1
+    level: 3
+    race: 
+    description: La Cacería se invoca contra un hombre lobo que ha cometido un crimen capital in…
+    system_text: Este rito se puede interpretar usando las reglas de rastreo. De forma alternati…
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:37:04
+    updated_at: 2026-02-15 15:43:55
+  Fila 5:
+    id: 5
+    pretty_id: rito-sat-rico
+    name: Rito Satírico
+    image_url: NULL
+    kind: 1
+    level: 3
+    race: 
+    description: El Rito Satírico, una versión más grave de la Piedra del Desdén, consiste en un…
+    system_text: La dificultad de este rito es la del Rango del ofensor + 4. Si tiene éxito, el …
+    system_name: Garou
+    system_id: 1
+    bibliography_id: 1
+    created_at: 2026-02-12 22:37:04
+    updated_at: 2026-02-15 15:43:55
+
+
+----------------------------------------
+TABLA: fact_timeline_events
+----------------------------------------
+Columnas:
+  - id (int(10) unsigned) [PK] [NOT NULL]
+  - event_date (date) [NOT NULL]
+  - title (varchar(255)) [NOT NULL]
+  - description (text)
+  - kind (enum('evento','catastrofe','batalla','descubrimiento','muerte','nacimiento','traicion','romance','fundacion','alianza','enemistad','reclutamiento','otros'))
+  - location (varchar(255))
+  - source (varchar(255))
+  - timeline (varchar(100))
+  - created_at (timestamp) [NOT NULL]
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    id: 1
+    event_date: 1981-02-04
+    title: Reapertura del Peñasco Blanco
+    description: En 1981, un grupo de descendientes del antiguo clan del Peñasco se reunió, proc…
+    kind: fundacion
+    location: Los Corrales de Buelna
+    source: El clan del Peñasco Blanco
+    timeline: Partida Original
+    created_at: 2025-06-25 18:26:34
+  Fila 2:
+    id: 2
+    event_date: 2002-08-17
+    title: Fundación del Viento de Acero
+    description: Custod Aeson, Rufus Sentinel y Kate Rösenberg llegan a Bilbao tras desertar de …
+    kind: fundacion
+    location: Bilbao
+    source: Biografía de Custod Aeson
+    timeline: Heaven's Gate
+    created_at: 2025-06-25 18:33:05
+  Fila 3:
+    id: 3
+    event_date: 2002-03-15
+    title: Colaboración con el Peñasco Blanco
+    description: Hacen contacto con el Peñasco Blanco y, entre los dos clanes, logran repeler la…
+    kind: alianza
+    location: Bilbao
+    source: Biografía de Custod Aeson
+    timeline: Heaven's Gate
+    created_at: 2025-06-25 18:36:30
+  Fila 4:
+    id: 4
+    event_date: 2003-06-06
+    title: Reclutamiento de Mauricio
+    description: Mauricio Belmonte es reclutado por el Hijo Puta y llevado ante los Zarpas de Te…
+    kind: reclutamiento
+    location: Torrelavega » Corrales de Buelna
+    source: Historia de Mauricio
+    timeline: Partida Original
+    created_at: 2025-06-25 18:43:55
+  Fila 5:
+    id: 5
+    event_date: 2003-06-19
+    title: Reclutamiento de Estefanía
+    description: Estefanía Merino, arqueóloga e hija de una extraña pareja de brujos zamoranos, …
+    kind: reclutamiento
+    location: Los Corrales de Buelna
+    source: Historia de Mauricio
+    timeline: Heaven's Gate
+    created_at: 2025-06-25 18:48:11
+
+
+----------------------------------------
+TABLA: fact_trait_sets
+----------------------------------------
+Columnas:
+  - system_id (int(10) unsigned) [PK] [NOT NULL]
+  - trait_id (int(10) unsigned) [PK] [NOT NULL]
+  - sort_order (int(11)) [NOT NULL]
+  - is_active (tinyint(1)) [NOT NULL]
+  - created_at (timestamp) [NOT NULL]
+  - updated_at (timestamp)
+
+Muestra de datos (máx 5 filas):
+  Fila 1:
+    system_id: 1
+    trait_id: 1
+    sort_order: 1
+    is_active: 1
+    created_at: 2026-02-15 20:24:30
+    updated_at: 2026-02-15 21:43:38
+  Fila 2:
+    system_id: 1
+    trait_id: 5
+    sort_order: 1
+    is_active: 1
+    created_at: 2026-02-15 20:24:30
+    updated_at: 2026-02-15 21:43:38
+  Fila 3:
+    system_id: 1
+    trait_id: 6
+    sort_order: 2
+    is_active: 1
+    created_at: 2026-02-15 20:24:30
+    updated_at: 2026-02-15 21:43:38
+  Fila 4:
+    system_id: 1
+    trait_id: 7
+    sort_order: 3
+    is_active: 1
+    created_at: 2026-02-15 20:24:30
+    updated_at: 2026-02-15 21:43:38
+  Fila 5:
+    system_id: 1
+    trait_id: 8
+    sort_order: 4
+    is_active: 1
+    created_at: 2026-02-15 20:24:30
+    updated_at: 2026-02-15 21:43:38
+
+
+========================================
+ FIN DE INSPECCIÓN
+========================================

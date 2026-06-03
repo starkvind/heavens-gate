@@ -1,0 +1,68 @@
+GUIA DE MANTENIMIENTO - MODULOS ADMIN
+Fecha: 2026-03-01
+
+Objetivo
+- Estandarizar como crear o migrar un modulo admin para que sea consistente con el resto.
+
+Regla 1: Contrato AJAX unico
+- Toda mutacion debe responder JSON con:
+  - `ok` (bool)
+  - `message` / `msg` (string)
+  - `data` (objeto/array/null)
+  - `errors` (array)
+  - `meta` (objeto)
+- Evitar salida HTML en peticiones `ajax=1`.
+
+Regla 2: Seguridad obligatoria
+- Incluir `app/helpers/admin_ajax.php`.
+- Validar sesion admin en mutaciones:
+  - `hg_admin_require_session(true)`.
+- CSRF por modulo:
+  - Crear clave de sesion propia (`csrf_admin_<modulo>`).
+  - Generar token con `hg_admin_ensure_csrf_token`.
+  - Validar token en cada POST con `hg_admin_csrf_valid`.
+
+Regla 3: Frontend comun
+- Usar `assets/js/admin/admin-http.js` como wrapper de peticiones.
+- Enviar siempre:
+  - `X-Requested-With: XMLHttpRequest`
+  - `X-CSRF-Token` o `csrf` en payload/FormData.
+- Mostrar errores JSON de forma legible para el admin.
+
+Regla 4: UX sin recarga
+- Filtros y busqueda: en vivo (debounce cuando aplique).
+- CRUD: modal o formulario asincrono + refresco parcial de tabla/lista.
+- Mantener estado de vista (filtros/pagina) en querystring cuando sea posible.
+
+Regla 5: Integracion con dispatcher
+- Si el modulo usa peticiones AJAX via `/talim?s=<modulo>&ajax=1`, registrar seccion en:
+  - `app/controllers/admin/admin_main.php` (switch AJAX y switch normal/legacy).
+
+Plantilla minima para modulo nuevo
+1) Backend
+- Crear controlador `app/controllers/admin/admin_<modulo>.php`.
+- Detectar request AJAX.
+- Implementar rutas CRUD/list.
+- Responder con helpers `hg_admin_json_success/error`.
+
+2) Frontend
+- Definir endpoint base: `/talim?s=admin_<modulo>&ajax=1`.
+- Implementar:
+  - `refreshList()` (GET list/search)
+  - `save()` (POST create/update)
+  - `remove()` (POST delete/toggle)
+- Rebind de botones tras cada render incremental.
+
+3) QA minimo
+- Alta, edicion, borrado.
+- Filtro/busqueda sin reload.
+- Error CSRF controlado.
+- Error sesion controlado.
+- Sin errores JS en consola.
+
+Checklist de salida para PR/cambio
+- [ ] Sesion + CSRF aplicados en mutaciones.
+- [ ] JSON estandar en todas las respuestas AJAX.
+- [ ] Cero mezcla de layout HTML en `ajax=1`.
+- [ ] CRUD + filtros sin recarga.
+- [ ] Modulo registrado en `admin_main.php`.

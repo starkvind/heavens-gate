@@ -1,0 +1,92 @@
+HOW TO CREATE SKILLS FOR CARD GAME
+=================================
+
+Objetivo
+--------
+Permitir crear habilidades nuevas sin tocar LLM.
+
+Donde se definen
+----------------
+Fichero principal:
+
+- `assets/js/game-cards.js`
+
+Buscar:
+
+- `var MOVE_LIBRARY = { ... }`
+
+Cada entrada del objeto es una habilidad nueva.
+
+Campos minimos
+--------------
+Ejemplo:
+
+```js
+arcane_pulse: {
+  id: 'arcane_pulse',
+  label: 'Pulso arcano',
+  icon: '🟣',
+  cooldown: 3,
+  formula: function (attacker) {
+    return Math.round(attacker.atk * 1.1);
+  },
+  effect: {
+    kind: 'shield_break',
+    chance: 0.2,
+    amount: 1
+  },
+  description: 'Inflige 110% del ATQ y puede romper 1 escudo.'
+}
+```
+
+Campos recomendados:
+
+- `id`: unico. Nunca repetir.
+- `label`: nombre visible.
+- `icon`: emoji visible en carta y combate.
+- `cooldown`: turnos de espera.
+- `formula(attacker, defender)`: devuelve dano base.
+- `effect`: efecto secundario.
+- `description`: texto de apoyo.
+
+Tipos de efecto ya soportados
+-----------------------------
+Buscar en `applyMoveEffect(...)`.
+
+Soportados ahora:
+
+- `debuff_atk`
+- `debuff_def`
+- `shield_break`
+- `recoil`
+- `lifesteal`
+- `buff_atk_def`
+
+Si quieres uno nuevo
+--------------------
+1. Crea nueva entrada en `MOVE_LIBRARY`.
+2. Anade nuevo `effect.kind`.
+3. Implementa logica en `applyMoveEffect(...)`.
+4. Si quieres particulas, anade caso en `playMoveVfx(...)`.
+5. Prueba en combate.
+
+Reglas de aprendizaje
+---------------------
+- Las habilidades se guardan por copia en `copy.moves`.
+- Maximo: `3` huecos por copia.
+- No se permiten duplicados en misma copia.
+- Aprender/cambiar elige una habilidad aleatoria del pool disponible.
+
+Importante con evolucion
+------------------------
+- Al evolucionar, `copy.moves` se vacia.
+- Si anades habilidades nuevas al pool, entran automaticamente en futuras tiradas.
+
+Checklist rapido
+----------------
+1. Crear entrada en `MOVE_LIBRARY`.
+2. Verificar `id`, `label`, `icon`, `cooldown`.
+3. Implementar `formula`.
+4. Implementar `effect` si hace falta.
+5. Implementar VFX opcional.
+6. Abrir juego y probar aprender/cambiar habilidad.

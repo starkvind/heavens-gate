@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guia para anadir una seccion - Heaven's Gate</title>
+    <style>
+        :root {
+            --bg: #f3efe7;
+            --panel: #fffdf9;
+            --ink: #1e1a17;
+            --muted: #6a5f56;
+            --line: #d8cfc3;
+            --accent: #7b2d26;
+            --accent-soft: #efe1dc;
+            --code: #241f1c;
+            --code-bg: #f6f0ea;
+            --ok: #1f6b42;
+            --warn: #8a5a12;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            background: linear-gradient(180deg, #e7dfd2 0%, var(--bg) 22%, #f8f4ed 100%);
+            color: var(--ink);
+            line-height: 1.6;
+        }
+
+        .page {
+            width: min(1100px, calc(100% - 32px));
+            margin: 24px auto 48px;
+        }
+
+        .hero,
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(36, 31, 28, 0.08);
+        }
+
+        .hero {
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            margin: 0 0 12px;
+            font-size: clamp(2rem, 3.6vw, 3.4rem);
+            line-height: 1.05;
+        }
+
+        .hero p {
+            margin: 0 0 12px;
+            max-width: 80ch;
+        }
+
+        .hero .warning {
+            margin-top: 18px;
+            padding: 14px 16px;
+            background: var(--accent-soft);
+            border-left: 5px solid var(--accent);
+            border-radius: 12px;
+        }
+
+        .toc {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin: 0 0 24px;
+        }
+
+        .toc a {
+            display: block;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--ink);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .toc a:hover {
+            border-color: var(--accent);
+        }
+
+        .card {
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+
+        h3 {
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+        }
+
+        p,
+        li {
+            font-size: 1.02rem;
+        }
+
+        ul,
+        ol {
+            padding-left: 22px;
+        }
+
+        code {
+            padding: 0.12rem 0.35rem;
+            border-radius: 6px;
+            background: var(--code-bg);
+            color: var(--code);
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.94em;
+        }
+
+        pre {
+            margin: 14px 0;
+            padding: 16px;
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--code-bg);
+            color: var(--code);
+        }
+
+        pre code {
+            padding: 0;
+            background: transparent;
+        }
+
+        .checklist {
+            padding: 16px 18px;
+            border-radius: 14px;
+            background: #f9f7f2;
+            border: 1px dashed var(--line);
+        }
+
+        .ok {
+            color: var(--ok);
+            font-weight: 700;
+        }
+
+        .warn {
+            color: var(--warn);
+            font-weight: 700;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 8px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            vertical-align: top;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+        }
+
+        th {
+            background: #f1e8dc;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>Guia real para anadir una seccion nueva en Heaven's Gate</h1>
+            <p>Esta guia no esta escrita para "un PHP cualquiera", sino para <strong>esta web</strong> tal y como esta montada ahora mismo: un <em>front controller</em> en <code>index.php</code>, un router en <code>app/bootstrap/request_router.php</code>, un dispatcher en <code>app/bootstrap/body_work.php</code>, controladores en <code>app/controllers/...</code>, parciales en <code>app/partials/...</code> y assets en <code>assets/...</code>.</p>
+            <p>Si quieres anadir una seccion y no volver a depender de memoria o de intuicion, sigue este orden. El error mas comun en este proyecto es tocar solo un archivo y asumir que con eso basta. Aqui casi nunca basta.</p>
+            <div class="warning">
+                <strong>Advertencia clave:</strong> el menu puede renderizarse desde la tabla <code>dim_menu_items</code>. Eso significa que en muchos casos <code>app/partials/main_menu.php</code> no es la fuente real del menu visible. Si anades una seccion y no aparece en navegacion, probablemente te falta alta en base de datos, no en PHP.
+            </div>
+        </section>
+
+        <nav class="toc">
+            <a href="#mapa">1. Mapa mental</a>
+            <a href="#flujo">2. Flujo minimo</a>
+            <a href="#pasos">3. Pasos exactos</a>
+            <a href="#ejemplo">4. Ejemplo completo</a>
+            <a href="#detalle">5. Si hay slugs o detalle</a>
+            <a href="#menu">6. Como meterla en el menu</a>
+            <a href="#seo">7. SEO, CSS y JS</a>
+            <a href="#check">8. Checklist final</a>
+            <a href="#script">9. Script generador</a>
+            <a href="#casos">10. Casos practicos</a>
+            <a href="#template">11. Reusable Template</a>
+        </nav>
+
+        <section id="mapa" class="card">
+            <h2>1. Mapa mental del sitio</h2>
+            <p>Antes de tocar nada, esto es lo que pasa cuando alguien entra a una URL publica:</p>
+            <ol>
+                <li>La peticion llega a <code>index.php</code>.</li>
+                <li><code>app/bootstrap/request_router.php</code> convierte la URL amigable a parametros internos tipo <code>p=...</code>.</li>
+                <li><code>app/bootstrap/body_work.php</code> mira <code>$_GET['p']</code> y decide que archivo incluir.</li>
+                <li>Ese archivo controlador genera el HTML central de la pagina.</li>
+                <li><code>index.php</code> envuelve el resultado con cabecera, menu, footer y metadatos, salvo que sea una ruta bare.</li>
+            </ol>
+            <p>Traducido a algo practico: para una seccion normal casi siempre tendras que tocar como minimo <code>1 controlador</code>, <code>request_router.php</code> y <code>body_work.php</code>. Si quieres que la gente la encuentre, probablemente tambien el menu.</p>
+        </section>
+
+        <section id="flujo" class="card">
+            <h2>2. Flujo minimo de trabajo</h2>
+            <div class="grid">
+                <div class="checklist">
+                    <h3>Seccion simple</h3>
+                    <ol>
+                        <li>Crear controlador.</li>
+                        <li>Registrar URL amigable en <code>request_router.php</code>.</li>
+                        <li>Registrar ruta interna en <code>body_work.php</code>.</li>
+                        <li>Anadir metadatos y cargar CSS si hace falta.</li>
+                        <li>Meterla en el menu si debe ser navegable.</li>
+                    </ol>
+                </div>
+                <div class="checklist">
+                    <h3>Seccion con detalle por slug</h3>
+                    <ol>
+                        <li>Todo lo anterior.</li>
+                        <li>Anadir ruta regex para <code>/seccion/{slug}</code>.</li>
+                        <li>Si usa <code>pretty_id</code>, normalizar en <code>normalize_pretty_request()</code>.</li>
+                        <li>Redirigir a slug canonico si aplica.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <section id="pasos" class="card">
+            <h2>3. Pasos exactos para anadir una seccion nueva</h2>
+
+            <h3>Paso 1. Decide que tipo de seccion vas a crear</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Ejemplo</th>
+                        <th>Donde suele vivir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Pagina principal/listado</td>
+                        <td><code>/gallery</code>, <code>/maps</code>, <code>/players</code></td>
+                        <td><code>app/controllers/main/</code>, <code>docs/</code>, <code>systems/</code>, etc.</td>
+                    </tr>
+                    <tr>
+                        <td>Detalle de entidad</td>
+                        <td><code>/characters/{slug}</code></td>
+                        <td>Controlador propio + routing regex + normalizacion de slug</td>
+                    </tr>
+                    <tr>
+                        <td>Tool o pagina bare</td>
+                        <td><code>/ajax/mentions</code>, <code>/maps/api</code></td>
+                        <td><code>app/controllers/tool/</code> o <code>app/tools/</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Paso 2. Crea el controlador fisico</h3>
+            <p>Haz un archivo nuevo en la carpeta coherente con la familia de la seccion. Si es una pagina publica normal, lo mas normal es una ruta como:</p>
+            <pre><code>app/controllers/main/main_loquesea.php</code></pre>
+            <p>Ese archivo debe renderizar el contenido central de la pagina. No tiene que construir el HTML completo del documento; la plantilla base ya la pone <code>index.php</code>.</p>
+
+            <h3>Paso 3. Si la pagina necesita SEO propio, definelo dentro del controlador</h3>
+            <p>El patron existente es usar <code>setMetaFromPage(...)</code> al principio del controlador.</p>
+            <pre><code>&lt;?php setMetaFromPage(
+    "Mi seccion | Heaven's Gate",
+    "Descripcion breve de la nueva seccion.",
+    null,
+    "website"
+); ?&gt;</code></pre>
+
+            <h3>Paso 4. Si la pagina necesita CSS propio, cargalo dentro del controlador</h3>
+            <p>Patron actual real:</p>
+            <pre><code>&lt;link rel="stylesheet" href="/assets/css/hg-main.css"&gt;</code></pre>
+            <p>Si la seccion necesita estilos propios, crea algo como <code>assets/css/hg-mi-seccion.css</code> y enlazalo desde el controlador.</p>
+
+            <h3>Paso 5. Da de alta la URL amigable en <code>app/bootstrap/request_router.php</code></h3>
+            <p>Aqui hay dos piezas distintas:</p>
+            <ol>
+                <li>La conversion de legacy <code>?p=...</code> a URL amigable, en <code>hg_request_router_path_from_query()</code>.</li>
+                <li>La conversion de la URL amigable de vuelta a <code>p=...</code>, en <code>hg_request_router_match_path()</code>.</li>
+            </ol>
+            <p>Para una seccion simple nueva, normalmente tienes que anadir ambas entradas.</p>
+            <pre><code>// En hg_request_router_path_from_query()
+'mi_seccion' =&gt; '/mi-seccion',</code></pre>
+            <pre><code>// En hg_request_router_match_path(), dentro de $static
+'/mi-seccion' =&gt; ['p' =&gt; 'mi_seccion'],</code></pre>
+
+            <h3>Paso 6. Da de alta la seccion en <code>app/bootstrap/body_work.php</code></h3>
+            <p>Este paso es obligatorio. Si no esta aqui, aunque la URL resuelva, la pagina no sabra que archivo incluir.</p>
+            <pre><code>'mi_seccion' =&gt; ['app/controllers/main/main_mi_seccion.php', 'Mi seccion'],</code></pre>
+            <p>El segundo valor es el nombre de seccion que luego puede aparecer en titulos y metadatos si no los sobrescribes.</p>
+
+            <h3>Paso 7. Si es una pagina bare, marcalo</h3>
+            <p>Solo aplica a respuestas tipo JSON, snippets embebibles o HTML sin layout global. En ese caso, el route key debe entrar en este array de <code>body_work.php</code>:</p>
+            <pre><code>if (in_array($routeKey, [..., 'mi_seccion_bare'], true)) {
+    $isBarePage = true;
+}</code></pre>
+            <p>Si es una seccion normal visible dentro del sitio, <span class="ok">no la metas aqui</span>.</p>
+
+            <h3>Paso 8. Si tiene acceso desde el menu, anadelo donde toque</h3>
+            <p>Hay dos caminos posibles:</p>
+            <ol>
+                <li><strong>Menu desde base de datos:</strong> si existe la tabla <code>dim_menu_items</code>, el menu visible sale de ahi.</li>
+                <li><strong>Fallback estatico:</strong> si no existe esa tabla, se usa <code>app/partials/main_menu.php</code>.</li>
+            </ol>
+            <p>Esto implica una regla importante: editar solo <code>main_menu.php</code> puede no cambiar nada en produccion.</p>
+
+            <h3>Paso 9. Si quieres que se abra el bloque correcto del menu, revisa <code>hg_menu_open_id_static()</code></h3>
+            <p>Si la URL pertenece a una familia nueva, puede que necesites mapearla a un bloque como <code>loreMenu</code>, <code>toolsMenu</code>, etc. Si no lo haces, la seccion funcionara, pero el menu lateral no se abrira en el grupo esperado.</p>
+
+            <h3>Paso 10. Si la seccion usa slugs, pretty_id o detalle por entidad, hay mas trabajo</h3>
+            <p>Eso lo tienes explicado en la seccion 5 de esta guia. No copies el patron de una pagina simple para una pagina de detalle, porque te dejaras la canonicalizacion por slug.</p>
+        </section>
+
+        <section id="ejemplo" class="card">
+            <h2>4. Ejemplo completo: anadir <code>/codex-guide</code></h2>
+            <p>Supongamos que quieres una pagina publica nueva llamada "Codex Guide". El flujo minimo seria este.</p>
+
+            <h3>4.1 Crear el controlador</h3>
+            <pre><code>app/controllers/main/main_codex_guide.php</code></pre>
+            <pre><code>&lt;?php
+setMetaFromPage(
+    "Codex Guide | Heaven's Gate",
+    "Internal guide for working with the new site structure.",
+    null,
+    "website"
+);
+?&gt;
+&lt;link rel="stylesheet" href="/assets/css/hg-docs.css"&gt;
+
+&lt;h2&gt;Codex Guide&lt;/h2&gt;
+&lt;p&gt;Contenido de la nueva seccion.&lt;/p&gt;</code></pre>
+
+            <h3>4.2 Registrar la URL en <code>request_router.php</code></h3>
+            <pre><code>// hg_request_router_path_from_query()
+'codex_guide' =&gt; '/codex-guide',</code></pre>
+            <pre><code>// hg_request_router_match_path() - $static
+'/codex-guide' =&gt; ['p' =&gt; 'codex_guide'],</code></pre>
+
+            <h3>4.3 Registrar el controlador en <code>body_work.php</code></h3>
+            <pre><code>'codex_guide' =&gt; ['app/controllers/main/main_codex_guide.php', 'Codex Guide'],</code></pre>
+
+            <h3>4.4 Si quieres un titulo OG base por route key, ampliar <code>setMetaTags()</code></h3>
+            <pre><code>case 'codex_guide':
+    $title = "Codex Guide | Heaven's Gate";
+    $description = "Internal guide for working with the new site structure.";
+    break;</code></pre>
+            <p>Esto no siempre es imprescindible si el controlador ya llama a <code>setMetaFromPage()</code>, pero mantiene la logica centralizada y consistente.</p>
+
+            <h3>4.5 Anadir al menu</h3>
+            <p>Si el menu es de base de datos, mete un registro en <code>dim_menu_items</code> bajo el padre correcto. Si estas en fallback estatico, anade una linea en <code>app/partials/main_menu.php</code> como:</p>
+            <pre><code>&lt;a href="/codex-guide"&gt;&lt;div class="renglonMenu"&gt;Codex Guide&lt;/div&gt;&lt;/a&gt;</code></pre>
+        </section>
+
+        <section id="detalle" class="card">
+            <h2>5. Si la nueva seccion tiene detalle por slug o <code>pretty_id</code></h2>
+            <p>Aqui es donde suele romperse todo si se improvisa. Las paginas tipo <code>/characters/slug</code>, <code>/players/slug</code> o <code>/documents/slug</code> no usan solo una ruta estatica.</p>
+
+            <h3>Lo que debes tocar</h3>
+            <ol>
+                <li>Una ruta regex en <code>hg_request_router_match_path()</code>.</li>
+                <li>La traduccion inversa en <code>hg_request_router_path_from_query()</code> si hay version legacy.</li>
+                <li>La normalizacion en <code>normalize_pretty_request()</code> dentro de <code>body_work.php</code>.</li>
+                <li>El controlador que renderiza el detalle.</li>
+            </ol>
+
+            <h3>Patron conceptual</h3>
+            <pre><code>// request_router.php
+'ver_mi_entidad' =&gt; '/mi-seccion/' . rawurlencode(...)</code></pre>
+            <pre><code>// request_router.php - regex
+'#^/mi-seccion/([^/]+)$#' =&gt; static function (array $m): array {
+    return ['p' =&gt; 'ver_mi_entidad', 'b' =&gt; $m[1]];
+},</code></pre>
+            <pre><code>// body_work.php - normalize_pretty_request()
+'ver_mi_entidad' =&gt; ['b', 'mi_tabla', '/mi-seccion'],</code></pre>
+            <p>Ese bloque permite varias cosas:</p>
+            <ul>
+                <li>aceptar slug o id;</li>
+                <li>resolver el <code>pretty_id</code> a id interno;</li>
+                <li>redirigir al slug canonico si entra un id o un slug antiguo.</li>
+            </ul>
+            <p>Si tu nueva seccion va a representar entidades con slug, <span class="warn">no te saltes este paso</span>.</p>
+        </section>
+
+        <section id="menu" class="card">
+            <h2>6. Como meter la seccion en el menu sin volverte loco</h2>
+
+            <h3>Primero: averigua si el menu real sale de base de datos</h3>
+            <p><code>app/partials/main_menu.php</code> comprueba si existe la tabla <code>dim_menu_items</code>. Si existe, la navegacion sale de ahi. Si no existe, entra el HTML estatico del propio archivo.</p>
+
+            <h3>Escenario A. Menu en base de datos</h3>
+            <p>Tendras que dar de alta un item en <code>dim_menu_items</code>. Necesitaras al menos:</p>
+            <ul>
+                <li><code>label</code></li>
+                <li><code>href</code></li>
+                <li><code>parent_id</code></li>
+                <li><code>enabled</code></li>
+                <li><code>sort_order</code></li>
+                <li>si es padre: <code>menu_key</code>, iconos, etc.</li>
+            </ul>
+            <p>Si solo quieres anadir una entrada a un bloque ya existente, normalmente bastara con un hijo del padre correcto.</p>
+
+            <h3>Escenario B. Menu estatico</h3>
+            <p>Anade el enlace en el bloque adecuado de <code>app/partials/main_menu.php</code>.</p>
+
+            <h3>Escenario C. La seccion funciona pero el menu no se abre en el bloque correcto</h3>
+            <p>Revisa <code>hg_menu_open_id_static()</code> dentro de <code>main_menu.php</code>. Ahi se decide que desplegable debe abrirse segun el path actual.</p>
+            <pre><code>if (hg_starts_with($path, '/mi-seccion')) {
+    return 'loreMenu';
+}</code></pre>
+        </section>
+
+        <section id="seo" class="card">
+            <h2>7. SEO, CSS, JS y otras piezas que se olvidan siempre</h2>
+
+            <h3>SEO</h3>
+            <ul>
+                <li>Usa <code>setMetaFromPage()</code> dentro del controlador si la pagina tiene identidad propia.</li>
+                <li>Si quieres consistencia central, ampliala tambien en <code>setMetaTags()</code> de <code>body_work.php</code>.</li>
+                <li>Si la pagina genera un titulo interno importante, usa <code>$pageSect</code> o <code>$pageTitle2</code> con criterio.</li>
+            </ul>
+
+            <h3>CSS</h3>
+            <ul>
+                <li>Los estilos base ya vienen desde <code>app/bootstrap/head_work.php</code>: <code>hg-core.css</code> y <code>hg-layout.css</code>.</li>
+                <li>Los estilos especificos de la seccion suelen cargarse desde el propio controlador.</li>
+                <li>Si la nueva seccion es grande, crea su hoja dedicada en <code>assets/css/</code>.</li>
+            </ul>
+
+            <h3>JS</h3>
+            <ul>
+                <li>El sitio ya carga globalmente <code>permutloading.js</code>, <code>hg-tabs.js</code> y <code>hg-tooltip.js</code>.</li>
+                <li>Si tu seccion necesita JS propio, anadelo explicitamente desde el controlador o reutiliza un script de <code>assets/js/</code>.</li>
+                <li>Si ese JS depende de librerias, confirma si ya existen en <code>assets/vendor/</code> antes de meter otra copia.</li>
+            </ul>
+
+            <h3>Bare pages y tools</h3>
+            <ul>
+                <li>Si creas una herramienta tecnica bajo <code>app/tools/</code>, no asumas acceso directo por URL.</li>
+                <li>La carpeta <code>app/</code> esta bloqueada por reglas del proyecto.</li>
+                <li>Si esa herramienta debe abrirse en navegador, hay que exponerla por front controller y por routing.</li>
+            </ul>
+        </section>
+
+        <section id="check" class="card">
+            <h2>8. Checklist final antes de dar la seccion por terminada</h2>
+            <div class="checklist">
+                <ol>
+                    <li>Existe un archivo controlador real y carga sin errores.</li>
+                    <li>La URL amigable esta registrada en <code>request_router.php</code>.</li>
+                    <li>El route key esta dado de alta en <code>body_work.php</code>.</li>
+                    <li>La pagina no se ha marcado como bare salvo que de verdad lo sea.</li>
+                    <li>El titulo y la descripcion no son genericos por accidente.</li>
+                    <li>El CSS especifico de la seccion esta cargado.</li>
+                    <li>El menu esta resuelto en el origen correcto: BD o fallback estatico.</li>
+                    <li>El bloque del menu se abre donde toca al entrar en la URL.</li>
+                    <li>Si hay slug, se resuelve y redirige al canonico.</li>
+                    <li>Has probado la URL directa, la navegacion desde menu y un refresh completo del navegador.</li>
+                </ol>
+            </div>
+        </section>
+
+        <section id="script" class="card">
+            <h2>9. Script generador para futuras secciones</h2>
+            <p>He dejado un generador en <code>tools/scaffold_section.py</code>. Su objetivo es quitarte la parte mecanica: crear el controlador y dar de alta la seccion en el router y en el dispatcher sin tener que editar tres archivos a mano cada vez.</p>
+            <p><strong>Convencion importante:</strong> usa nombres tecnicos en ingles para mantener el naming del proyecto. Eso afecta a <code>route-key</code>, <code>slug</code>, nombre de archivo del controlador y nombre del CSS. El texto visible al usuario puede seguir en castellano si quieres.</p>
+
+            <h3>Que hace</h3>
+            <ul>
+                <li>crea un controlador nuevo en <code>app/controllers/&lt;grupo&gt;/</code>;</li>
+                <li>anade la URL amigable a <code>app/bootstrap/request_router.php</code>;</li>
+                <li>anade el route key a <code>app/bootstrap/body_work.php</code>;</li>
+                <li>puede crear un CSS base en <code>assets/css/</code>;</li>
+                <li>puede anadir un enlace al menu estatico fallback en <code>app/partials/main_menu.php</code>.</li>
+            </ul>
+
+            <h3>Que no hace</h3>
+            <ul>
+                <li>no resuelve secciones complejas con <code>pretty_id</code>;</li>
+                <li>no toca la tabla <code>dim_menu_items</code>;</li>
+                <li>no inventa consultas SQL ni logica de negocio;</li>
+                <li>no deberia usarse para rutas de detalle tipo <code>/personajes/{slug}</code>.</li>
+            </ul>
+
+            <h3>Ver ayuda</h3>
+            <pre><code>python tools/scaffold_section.py --help</code></pre>
+
+            <h3>Ejecutar primero en simulacion</h3>
+            <pre><code>python tools/scaffold_section.py ^
+  --route-key codex_guide ^
+  --slug codex-guide ^
+  --title "Codex Guide" ^
+  --controller-group main ^
+  --css-file hg-codex-guide.css ^
+  --create-css ^
+  --menu-label "Codex Guide" ^
+  --menu-block loreMenu ^
+  --dry-run</code></pre>
+
+            <h3>Ejecutar de verdad</h3>
+            <pre><code>python tools/scaffold_section.py ^
+  --route-key codex_guide ^
+  --slug codex-guide ^
+  --title "Codex Guide" ^
+  --controller-group main ^
+  --css-file hg-codex-guide.css ^
+  --create-css ^
+  --menu-label "Codex Guide" ^
+  --menu-block loreMenu</code></pre>
+
+            <p>Tras eso, el script te deja la base, pero sigues teniendo que entrar al controlador nuevo y sustituir el texto provisional por el contenido real de la seccion.</p>
+        </section>
+
+        <section id="casos" class="card">
+            <h2>10. Casos practicos ya pensados</h2>
+
+            <h3>Caso A. Pagina documental simple</h3>
+            <p>Quieres una pagina tipo <code>/admin-guide</code> o <code>/faq</code>. Aqui el script encaja perfecto.</p>
+            <pre><code>python tools/scaffold_section.py ^
+  --route-key faq ^
+  --slug faq ^
+  --title "FAQ" ^
+  --controller-group main ^
+  --css-file hg-docs.css ^
+  --menu-label "FAQ" ^
+  --menu-block startMenu</code></pre>
+
+            <h3>Caso B. Nueva seccion de trasfondo</h3>
+            <p>Quieres algo tipo <code>/factions</code> que cuelgue del bloque de trasfondo.</p>
+            <pre><code>python tools/scaffold_section.py ^
+  --route-key factions ^
+  --slug factions ^
+  --title "Factions" ^
+  --controller-group main ^
+  --css-file hg-factions.css ^
+  --create-css ^
+  --menu-label "Factions" ^
+  --menu-block loreMenu</code></pre>
+            <p>Luego abres <code>app/controllers/main/main_factions.php</code> y metes las consultas o parciales que necesites.</p>
+
+            <h3>Caso C. Nueva herramienta publica simple</h3>
+            <p>Si es una pagina normal con layout, todavia puedes usar el script, pero cambiando el grupo de controlador.</p>
+            <pre><code>python tools/scaffold_section.py ^
+  --route-key name_builder ^
+  --slug name-builder ^
+  --title "Name Builder" ^
+  --controller-group tool ^
+  --menu-label "Name Builder" ^
+  --menu-block toolsMenu</code></pre>
+            <p>Ojo: esto no la convierte en bare ni en API. Solo crea una pagina publica sencilla servida por el mismo layout general del sitio.</p>
+
+            <h3>Caso D. Pagina de detalle por slug</h3>
+            <p>Aqui <strong>no</strong> uses el script tal cual. Para rutas tipo <code>/factions/{slug}</code> tendras que hacer alta manual, porque necesitas regex route, normalizacion en <code>normalize_pretty_request()</code> y politica canonica de slug.</p>
+        </section>
+
+        <section id="template" class="card">
+            <h2>11. Reusable Template</h2>
+            <p>Esta es la plantilla base reutilizable prometida. La idea es que, para una seccion simple, solo tengas que decidir un nombre tecnico en ingles y ejecutar el scaffold. Despues rellenas contenido real.</p>
+
+            <h3>Regla de naming</h3>
+            <ul>
+                <li><code>route-key</code>: ingles, en <code>snake_case</code>. Ejemplo: <code>codex_guide</code>.</li>
+                <li><code>slug</code>: ingles, en <code>kebab-case</code>. Ejemplo: <code>codex-guide</code>.</li>
+                <li>controlador: ingles, alineado con el route key. Ejemplo: <code>main_codex_guide.php</code>.</li>
+                <li>CSS: ingles, alineado con el slug. Ejemplo: <code>hg-codex-guide.css</code>.</li>
+                <li>texto visible: puede estar en ingles o en castellano, segun lo que quieras mostrar al usuario.</li>
+            </ul>
+
+            <h3>Comando plantilla minimo</h3>
+            <pre><code>python tools/scaffold_section.py ^
+  --route-key my_new_section ^
+  --slug my-new-section ^
+  --title "My New Section" ^
+  --controller-group main ^
+  --css-file hg-my-new-section.css ^
+  --create-css ^
+  --menu-label "My New Section" ^
+  --menu-block loreMenu ^
+  --dry-run</code></pre>
+
+            <h3>Que te deja preparado</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pieza</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Controlador</td>
+                        <td><code>app/controllers/main/main_my_new_section.php</code></td>
+                    </tr>
+                    <tr>
+                        <td>URL publica</td>
+                        <td><code>/my-new-section</code></td>
+                    </tr>
+                    <tr>
+                        <td>Route key</td>
+                        <td><code>my_new_section</code></td>
+                    </tr>
+                    <tr>
+                        <td>CSS</td>
+                        <td><code>assets/css/hg-my-new-section.css</code></td>
+                    </tr>
+                    <tr>
+                        <td>Menu fallback</td>
+                        <td>enlace dentro del bloque que le indiques</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Contenido base del controlador generado</h3>
+            <pre><code>&lt;?php setMetaFromPage(
+    "My New Section | Heaven's Gate",
+    "Nueva seccion publica de Heaven's Gate.",
+    null,
+    "website"
+); ?&gt;
+&lt;link rel="stylesheet" href="/assets/css/hg-my-new-section.css"&gt;
+
+&lt;h2&gt;My New Section&lt;/h2&gt;
+&lt;p&gt;Nueva seccion publica de Heaven's Gate.&lt;/p&gt;</code></pre>
+
+            <h3>Flujo recomendado en 2 minutos</h3>
+            <ol>
+                <li>Ejecuta el comando con <code>--dry-run</code>.</li>
+                <li>Si el plan te convence, ejecutalo sin <code>--dry-run</code>.</li>
+                <li>Abre el controlador generado.</li>
+                <li>Sustituye el HTML provisional por tu contenido real.</li>
+                <li>Si el menu real sale de BD, replica la entrada en <code>dim_menu_items</code>.</li>
+                <li>Prueba la URL directa y la navegacion lateral.</li>
+            </ol>
+        </section>
+
+        <section class="card">
+            <h2>Resumen brutalmente honesto</h2>
+            <p>En esta web, anadir una seccion no consiste en "crear una pagina". Consiste en <strong>conectar una pagina al sistema de rutas, al dispatcher y a la navegacion real</strong>. Si un dia no recuerdas por donde empezar, piensa en esta secuencia y casi nunca fallaras:</p>
+            <pre><code>controlador -&gt; request_router.php -&gt; body_work.php -&gt; menu -&gt; SEO/CSS/JS -&gt; pruebas</code></pre>
+            <p>La version rapida ya la tienes en esta misma guia: plantilla reutilizable, scaffold y naming en ingles para no romper la coherencia del proyecto.</p>
+        </section>
+    </div>
+</body>
+</html>
