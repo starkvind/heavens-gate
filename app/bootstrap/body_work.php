@@ -570,7 +570,9 @@ $routes = [
 	// 🛠️ Herramientas
 	'csp'     		   => ['app/controllers/tool/csp_board.php', null],
 	'dados'   		   => ['app/controllers/tool/dice_roller.php', 'Tiradados'],
+	'dice_api'         => ['app/controllers/tool/dice_api.php', null],
 	'forum_avatar_tool' => ['app/controllers/tool/forum_avatar_builder.php', 'Creador de mensajes foro'],
+	'forum_avatar_api' => ['app/controllers/tool/forum_avatar_api.php', null],
 	'forum_topic_viewer' => ['app/controllers/tool/forum_topic_viewer.php', 'Visor de temas foro'],
 	'garou_name_gen'   => ['app/controllers/tool/garou_name_generator.php', 'Generador de nombres Garou'],
 	'combat_simulator' => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
@@ -632,7 +634,7 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api', 'chronicle_image', 'schema_sanitizer'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api', 'dice_api', 'forum_avatar_api', 'chronicle_image', 'schema_sanitizer'], true)) {
 		$isBarePage = true;
 	}
 	include($file);

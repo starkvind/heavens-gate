@@ -268,6 +268,7 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'csp' => '/tools/csp',
         'garou_name_gen' => '/tools/garou-name-generator',
         'forum_avatar_tool' => '/tools/forum-avatar',
+        'forum_avatar_api' => '/api/forum-avatar',
         'forum_topic_viewer' => '/tools/forum-topic-viewer',
         'schema_sanitizer' => '/tools/schema-sanitizer',
         'combat_simulator' => '/games/combat-simulator',
@@ -285,6 +286,7 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'sim_tournament' => '/games/combat-simulator/tournament',
         'tooltip' => '/ajax/tooltip',
         'maps_api' => '/maps/api',
+        'dice_api' => '/api/dice',
         'forum_message' => '/forum/message',
         'forum_diceroll' => '/forum/diceroll',
         'forum_item' => '/forum/item',
@@ -590,6 +592,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/tools/csp' => ['p' => 'csp'],
         '/tools/garou-name-generator' => ['p' => 'garou_name_gen'],
         '/tools/forum-avatar' => ['p' => 'forum_avatar_tool'],
+        '/api/forum-avatar' => ['p' => 'forum_avatar_api'],
         '/tools/forum-topic-viewer' => ['p' => 'forum_topic_viewer'],
         '/tools/schema-sanitizer' => ['p' => 'schema_sanitizer'],
         '/games/combat-simulator' => ['p' => 'combat_simulator'],
@@ -614,6 +617,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/ajax/mentions' => ['p' => 'mentions'],
         '/ajax/epis' => ['p' => 'mentions', 'type' => 'episode'],
         '/maps/api' => ['p' => 'maps_api'],
+        '/api/dice' => ['p' => 'dice_api'],
     ];
 
     if (isset($static[$path])) {

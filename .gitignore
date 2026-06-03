@@ -65,5 +65,7 @@ _old_things/*
 check_encoding.ps1
 
 avatar.php
+dones.php
 admin_docs/BOT_KNOWLEDGE_SCHEMA.md
 admin_docs/TELEGRAM_BOT_BACKEND_GUIDE.md
+dones.php
