@@ -7,8 +7,12 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_catalog_utils.php');
-include_once(__DIR__ . '/../../helpers/admin_phase7_audit.php');
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
+
+$phase7AuditHelper = __DIR__ . '/../../helpers/admin_phase7_audit.php';
+if (is_file($phase7AuditHelper)) {
+    include_once($phase7AuditHelper);
+}
 
 $isAjaxRequest = (((string)($_GET['ajax'] ?? '') === '1') || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest'));
 $csrfKey = 'csrf_admin_players';
@@ -286,8 +290,8 @@ if ($rs) {
     while ($row = $rs->fetch_assoc()) {
         $row['full_name'] = hg_apl_full_name($row);
         $row['dependency_summary'] = hg_apl_dep_summary($row);
-        $row['audit_flags'] = hg_phase7_player_flags($row);
-        $row['audit_summary'] = hg_phase7_build_flags_summary((array)$row['audit_flags']);
+        $row['audit_flags'] = function_exists('hg_phase7_player_flags') ? hg_phase7_player_flags($row) : [];
+        $row['audit_summary'] = function_exists('hg_phase7_build_flags_summary') ? hg_phase7_build_flags_summary((array)$row['audit_flags']) : (!empty($row['audit_flags']) ? implode(' | ', (array)$row['audit_flags']) : 'OK');
         $row['audit_class'] = hg_apl_audit_class((array)$row['audit_flags']);
         if (!empty($row['audit_flags'])) $auditPlayersCount++;
         if (in_array('Sin pretty_id', (array)$row['audit_flags'], true) || in_array('Pretty invalido', (array)$row['audit_flags'], true)) $auditPlayersPrettyCount++;

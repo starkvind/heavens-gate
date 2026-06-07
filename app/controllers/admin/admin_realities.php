@@ -7,7 +7,11 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_catalog_utils.php');
-include_once(__DIR__ . '/../../helpers/admin_phase7_audit.php');
+
+$phase7AuditHelper = __DIR__ . '/../../helpers/admin_phase7_audit.php';
+if (is_file($phase7AuditHelper)) {
+    include_once($phase7AuditHelper);
+}
 
 $isAjaxRequest = (((string)($_GET['ajax'] ?? '') === '1') || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest'));
 $csrfKey = 'csrf_admin_realities';
@@ -93,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $flash[] = ['type' => 'error', 'msg' => 'El nombre es obligatorio.'];
             } elseif ($hasPrettyId && $prettyId === '') {
                 $flash[] = ['type' => 'error', 'msg' => 'El pretty_id es obligatorio.'];
-            } elseif ($hasPrettyId && !hg_phase7_pretty_is_valid($prettyId)) {
+            } elseif ($hasPrettyId && function_exists('hg_phase7_pretty_is_valid') && !hg_phase7_pretty_is_valid($prettyId)) {
                 $flash[] = ['type' => 'error', 'msg' => 'El pretty_id solo puede contener minusculas, numeros y guiones.'];
             } elseif ($hasPrettyId && hg_admin_catalog_pretty_exists($link, 'dim_realities', $prettyId, $id)) {
                 $flash[] = ['type' => 'error', 'msg' => 'Ya existe otra realidad con ese pretty_id.'];
@@ -168,8 +172,8 @@ $rs = $link->query('SELECT ' . implode(', ', $select) . ' FROM dim_realities r O
 if ($rs) {
     while ($row = $rs->fetch_assoc()) {
         $row['dependency_summary'] = hg_are_dep_summary($row);
-        $row['audit_flags'] = hg_phase7_reality_flags($row);
-        $row['audit_summary'] = hg_phase7_build_flags_summary((array)$row['audit_flags']);
+        $row['audit_flags'] = function_exists('hg_phase7_reality_flags') ? hg_phase7_reality_flags($row) : [];
+        $row['audit_summary'] = function_exists('hg_phase7_build_flags_summary') ? hg_phase7_build_flags_summary((array)$row['audit_flags']) : (!empty($row['audit_flags']) ? implode(' | ', (array)$row['audit_flags']) : 'OK');
         $row['audit_class'] = hg_are_audit_class((array)$row['audit_flags']);
         if (!empty($row['audit_flags'])) $auditRealitiesCount++;
         if (in_array('Sin pretty_id', (array)$row['audit_flags'], true) || in_array('Pretty invalido', (array)$row['audit_flags'], true)) $auditRealitiesPrettyCount++;

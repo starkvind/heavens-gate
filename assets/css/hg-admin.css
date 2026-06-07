@@ -22,6 +22,123 @@
 .adm-admin-error { color:#ff6b6b; }
 .adm-admin-ok { color:#7CFC00; }
 .adm-admin-tile { width:47.5%; }
+.adm-admin-menu-toolbar {
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid #000088;
+  border-radius: 12px;
+  background: rgba(5, 11, 54, 0.92);
+}
+.adm-admin-menu-search-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #cfe;
+  font-size: 12px;
+  font-weight: 700;
+}
+.adm-admin-menu-search {
+  width: 100%;
+  max-width: 680px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.adm-admin-menu-search-help,
+.adm-admin-menu-empty-global,
+.adm-admin-menu-summary,
+.adm-admin-menu-empty,
+.adm-admin-menu-count {
+  margin: 0;
+  font-size: 11px;
+}
+.adm-admin-menu-search-help,
+.adm-admin-menu-summary,
+.adm-admin-menu-count {
+  color: #9dd;
+}
+.adm-admin-menu-search-help {
+  margin-top: 10px;
+}
+.adm-admin-menu-empty-global,
+.adm-admin-menu-empty {
+  color: #f8c471;
+}
+.adm-admin-menu-sections {
+  display: grid;
+  gap: 22px;
+}
+.adm-admin-menu-section {
+  margin: 0;
+  padding: 14px 16px 12px;
+}
+.adm-admin-menu-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  float: none !important;
+  width: auto !important;
+  padding: 0 !important;
+  margin: 14px 0 0 !important;
+}
+.adm-admin-menu-link {
+  display: block;
+  text-decoration: none;
+}
+.adm-admin-menu-link[hidden] {
+  display: none !important;
+}
+.adm-admin-menu-link .adm-admin-tile {
+  width: 100%;
+  min-height: 0;
+  height: auto !important;
+  box-sizing: border-box;
+  float: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  margin: 0 !important;
+}
+.adm-admin-tile-title {
+  display: block;
+  color: #fff;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.adm-admin-tile-hint {
+  display: block;
+  margin-top: 6px;
+  color: #9dd;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.adm-admin-menu-summary {
+  margin-top: 8px;
+  line-height: 1.55;
+}
+.adm-admin-menu-count,
+.adm-admin-menu-empty {
+  margin-top: 14px;
+}
+@media (max-width: 760px) {
+  .adm-admin-menu-toolbar {
+    padding: 10px;
+  }
+  .adm-admin-menu-section {
+    padding: 12px;
+  }
+  .adm-admin-menu-grid {
+    grid-template-columns: 1fr;
+  }
+  .adm-admin-menu-link .adm-admin-tile {
+    margin-bottom: 0;
+  }
+  .adm-admin-tile {
+    width: 100%;
+  }
+}
 .adm-border-none { border:0; }
 .adm-mb-30 { margin-bottom:30px; }
 .adm-bso-form-fieldset { max-width:600px; padding:1em; }

@@ -1000,6 +1000,46 @@ $hgfvAssets = <<<'HTML'
         font-weight: 700;
         cursor: pointer;
     }
+    .hgfv-copy-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 4px;
+    }
+    .hgfv-copy-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: 1px solid #c8d4ef;
+        border-radius: 999px;
+        background: #f7faff;
+        color: #3f5ea8;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .hgfv-copy-btn:hover {
+        background: #e8efff;
+        border-color: #9eb5ea;
+    }
+    .hgfv-copy-btn:focus-visible {
+        outline: 2px solid #8aa6ef;
+        outline-offset: 2px;
+    }
+    .hgfv-copy-status {
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+    .hgfv-copy-status.is-ok {
+        color: #1e6a37;
+    }
+    .hgfv-copy-status.is-error {
+        color: #9e1f1f;
+    }
     .hgfv-query-box {
         margin-top: 8px;
         background: #0f1724;
@@ -1031,6 +1071,16 @@ $hgfvAssets = <<<'HTML'
     .hgfv-message h2 {
         margin: 0 0 6px;
         font-size: 1.1rem;
+    }
+    .hgfv-message-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+    .hgfv-message-head h2 {
+        margin: 0;
     }
     .hgfv-meta {
         color: var(--muted);
@@ -1254,36 +1304,47 @@ if (!$hgfvEmbedded) {
                     <?php /* Resultado para `id_topic=<?= $topicId ?>`: <?= count($messages) ?> mensaje(s), orden cronológico ascendente. */ ?>
                     Resultado: <?= count($messages) ?> mensaje(s), orden cronológico ascendente.
                 </div>
+                <?php if (!empty($messages)): ?>
+                    <div class="hgfv-copy-row">
+                        <button type="button" class="hgfv-copy-btn" id="hgfv-copy-all-btn" title="Copiar todo el hilo" aria-label="Copiar todo el hilo">📑</button>
+                        <span class="hgfv-copy-status" id="hgfv-copy-status"></span>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </section>
 
-        <?php foreach ($messages as $msg): ?>
-            <?php
-                $subject = trim((string)($msg['subject'] ?? ''));
-                $poster = trim((string)($msg['poster_name'] ?? ''));
-                $posterAvatar = hgfv_normalize_author_avatar_url((string)($msg['poster_avatar'] ?? ''));
-                $posterInitial = hgfv_author_initial($poster);
-                $posterTime = (int)($msg['poster_time'] ?? 0);
-                $humanTime = $posterTime > 0 ? date('Y-m-d H:i:s', $posterTime) : 'Sin fecha';
-                $parsedBody = parse_forum_body($link, (string)($msg['body'] ?? ''));
-            ?>
-            <article class="hgfv-message">
-                <h2><?= h($subject !== '' ? $subject : '(Sin asunto)') ?></h2>
-                <div class="hgfv-meta hgfv-meta-row">
-                    <?php if ($posterAvatar !== ''): ?>
-                        <img class="hgfv-author-avatar" src="<?= h($posterAvatar) ?>" alt="avatar de <?= h($poster !== '' ? $poster : 'autor') ?>">
-                    <?php else: ?>
-                        <span class="hgfv-author-fallback"><?= h($posterInitial) ?></span>
-                    <?php endif; ?>
-                    <span class="hgfv-meta-text">
-                        <strong><?= h($poster !== '' ? $poster : 'Desconocido') ?></strong> |
-                        <?php //unix: <?= $posterTime > 0 ? $posterTime : 'n/d' | ?>
-                        <?= h($humanTime) ?>
-                    </span>
-                </div>
-                <div class="hgfv-body"><?= $parsedBody ?></div>
-            </article>
-        <?php endforeach; ?>
+        <div id="hgfv-messages-root">
+            <?php foreach ($messages as $msg): ?>
+                <?php
+                    $subject = trim((string)($msg['subject'] ?? ''));
+                    $poster = trim((string)($msg['poster_name'] ?? ''));
+                    $posterAvatar = hgfv_normalize_author_avatar_url((string)($msg['poster_avatar'] ?? ''));
+                    $posterInitial = hgfv_author_initial($poster);
+                    $posterTime = (int)($msg['poster_time'] ?? 0);
+                    $humanTime = $posterTime > 0 ? date('Y-m-d H:i:s', $posterTime) : 'Sin fecha';
+                    $parsedBody = parse_forum_body($link, (string)($msg['body'] ?? ''));
+                ?>
+                <article class="hgfv-message" data-copy-scope="message">
+                    <div class="hgfv-message-head">
+                        <h2><?= h($subject !== '' ? $subject : '(Sin asunto)') ?></h2>
+                        <button type="button" class="hgfv-copy-btn hgfv-copy-one-btn" title="Copiar este mensaje" aria-label="Copiar este mensaje">📑</button>
+                    </div>
+                    <div class="hgfv-meta hgfv-meta-row">
+                        <?php if ($posterAvatar !== ''): ?>
+                            <img class="hgfv-author-avatar" src="<?= h($posterAvatar) ?>" alt="avatar de <?= h($poster !== '' ? $poster : 'autor') ?>">
+                        <?php else: ?>
+                            <span class="hgfv-author-fallback"><?= h($posterInitial) ?></span>
+                        <?php endif; ?>
+                        <span class="hgfv-meta-text">
+                            <strong><?= h($poster !== '' ? $poster : 'Desconocido') ?></strong> |
+                            <?php //unix: <?= $posterTime > 0 ? $posterTime : 'n/d' | ?>
+                            <?= h($humanTime) ?>
+                        </span>
+                    </div>
+                    <div class="hgfv-body"><?= $parsedBody ?></div>
+                </article>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <script>
@@ -1342,6 +1403,108 @@ window.addEventListener('load', detectAndApplyTextColor);
         var url = new URL(window.location.href);
         url.searchParams.set('id_topic', val);
         window.location.href = url.pathname + '?' + url.searchParams.toString();
+    });
+})();
+
+(function(){
+    var button = document.getElementById('hgfv-copy-all-btn');
+    var status = document.getElementById('hgfv-copy-status');
+    var root = document.getElementById('hgfv-messages-root');
+    if (!root) return;
+
+    function setStatus(message, type) {
+        if (!status) return;
+        status.textContent = message || '';
+        status.classList.remove('is-ok', 'is-error');
+        if (type === 'ok') {
+            status.classList.add('is-ok');
+        } else if (type === 'error') {
+            status.classList.add('is-error');
+        }
+    }
+
+    function buildPlainTextFromArticles(articles) {
+        var chunks = [];
+
+        articles.forEach(function(article) {
+            var title = article.querySelector('h2');
+            var meta = article.querySelector('.hgfv-meta-text');
+            var body = article.querySelector('.hgfv-body');
+            var parts = [];
+
+            if (title) {
+                parts.push((title.innerText || title.textContent || '').trim());
+            }
+            if (meta) {
+                parts.push((meta.innerText || meta.textContent || '').replace(/\s+/g, ' ').trim());
+            }
+            if (body) {
+                parts.push((body.innerText || body.textContent || '').replace(/\n{3,}/g, '\n\n').trim());
+            }
+
+            var block = parts.filter(Boolean).join('\n');
+            if (block !== '') {
+                chunks.push(block);
+            }
+        });
+
+        return chunks.join('\n\n--------------------\n\n').trim();
+    }
+
+    async function copyText(text) {
+        if (!text) {
+            throw new Error('empty');
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            var temp = document.createElement('textarea');
+            temp.value = text;
+            temp.setAttribute('readonly', 'readonly');
+            temp.style.position = 'absolute';
+            temp.style.left = '-9999px';
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+        }
+    }
+
+    function pulseButton(buttonNode, ok) {
+        if (!buttonNode) return;
+        var old = buttonNode.textContent;
+        buttonNode.textContent = ok ? 'OK' : 'ERR';
+        window.setTimeout(function() {
+            buttonNode.textContent = old;
+        }, 1000);
+    }
+
+    async function copyAllText() {
+        try {
+            await copyText(buildPlainTextFromArticles(root.querySelectorAll('.hgfv-message')));
+            setStatus('Texto copiado al portapapeles.', 'ok');
+        } catch (err) {
+            setStatus(err && err.message === 'empty' ? 'No hay texto visible para copiar.' : 'No se pudo copiar automáticamente.', 'error');
+        }
+    }
+
+    if (button) {
+        button.addEventListener('click', copyAllText);
+    }
+
+    root.querySelectorAll('.hgfv-copy-one-btn').forEach(function(copyBtn) {
+        copyBtn.addEventListener('click', async function() {
+            var article = copyBtn.closest('.hgfv-message');
+            try {
+                await copyText(buildPlainTextFromArticles(article ? [article] : []));
+                pulseButton(copyBtn, true);
+                setStatus('Mensaje copiado al portapapeles.', 'ok');
+            } catch (err) {
+                pulseButton(copyBtn, false);
+                setStatus(err && err.message === 'empty' ? 'No hay texto visible para copiar.' : 'No se pudo copiar automáticamente.', 'error');
+            }
+        });
     });
 })();
 </script>

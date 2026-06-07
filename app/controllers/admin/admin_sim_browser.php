@@ -1,12 +1,12 @@
-﻿<?php
-// admin_sim_browser.php - Gestion de browser del simulador por temporadas.
+<?php
+// admin_sim_browser.php - Gestion del browser del simulador por temporadas.
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
-include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
@@ -88,6 +88,91 @@ if (!function_exists('hg_asb_parse_bool')) {
     }
 }
 
+if (!function_exists('hg_asb_character_query_meta')) {
+    function hg_asb_character_query_meta(mysqli $db): array
+    {
+        $meta = array(
+            'selects' => array(),
+            'joins' => array(),
+            'order_label' => "COALESCE(NULLIF(c.alias, ''), c.name)",
+        );
+
+        $meta['selects'][] = "COALESCE(c.alias, '') AS alias";
+        $meta['selects'][] = "COALESCE(c.image_url, '') AS image_url";
+        $meta['selects'][] = "COALESCE(c.gender, '') AS gender";
+
+        if (hg_asb_column_exists($db, 'fact_characters', 'status_id') && hg_asb_table_exists($db, 'dim_character_status')) {
+            $meta['joins'][] = "LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id";
+            $meta['selects'][] = "COALESCE(dcs.label, '') AS status_name";
+        } else {
+            $meta['selects'][] = "'' AS status_name";
+        }
+
+        if (hg_asb_column_exists($db, 'fact_characters', 'system_id') && hg_asb_table_exists($db, 'dim_systems')) {
+            $meta['joins'][] = "LEFT JOIN dim_systems ds ON ds.id = c.system_id";
+            $meta['selects'][] = "COALESCE(ds.name, '') AS system_name";
+        } else {
+            $meta['selects'][] = "'' AS system_name";
+        }
+
+        $hasCharOrgBridge = hg_asb_table_exists($db, 'bridge_characters_organizations');
+        $hasCharGroupBridge = hg_asb_table_exists($db, 'bridge_characters_groups');
+        $hasOrgGroupBridge = hg_asb_table_exists($db, 'bridge_organizations_groups');
+        $hasOrganizations = hg_asb_table_exists($db, 'dim_organizations');
+
+        $clanExpr = "''";
+        if ($hasCharOrgBridge && $hasOrganizations) {
+            $meta['joins'][] = "LEFT JOIN (
+                SELECT character_id, MIN(organization_id) AS organization_id
+                FROM bridge_characters_organizations
+                WHERE (is_active = 1 OR is_active IS NULL)
+                GROUP BY character_id
+            ) bco ON bco.character_id = c.id";
+            $meta['joins'][] = "LEFT JOIN dim_organizations dco ON dco.id = bco.organization_id";
+            $clanExpr = "COALESCE(dco.name, '')";
+        }
+
+        if ($hasCharGroupBridge && $hasOrgGroupBridge && $hasOrganizations) {
+            $meta['joins'][] = "LEFT JOIN (
+                SELECT cg.character_id, MIN(og.organization_id) AS organization_id
+                FROM bridge_characters_groups cg
+                INNER JOIN bridge_organizations_groups og
+                    ON og.group_id = cg.group_id
+                   AND (og.is_active = 1 OR og.is_active IS NULL)
+                WHERE (cg.is_active = 1 OR cg.is_active IS NULL)
+                GROUP BY cg.character_id
+            ) pco_bridge ON pco_bridge.character_id = c.id";
+            $meta['joins'][] = "LEFT JOIN dim_organizations pco ON pco.id = pco_bridge.organization_id";
+            $clanExpr = ($clanExpr === "''")
+                ? "COALESCE(pco.name, '')"
+                : "COALESCE(dco.name, pco.name, '')";
+        }
+
+        $meta['selects'][] = "{$clanExpr} AS clan_name";
+
+        $raceParts = array();
+        if (hg_asb_column_exists($db, 'fact_characters', 'breed_id') && hg_asb_table_exists($db, 'dim_breeds')) {
+            $meta['joins'][] = "LEFT JOIN dim_breeds nr ON nr.id = c.breed_id";
+            $raceParts[] = "NULLIF(COALESCE(nr.name, ''), '')";
+        }
+        if (hg_asb_column_exists($db, 'fact_characters', 'auspice_id') && hg_asb_table_exists($db, 'dim_auspices')) {
+            $meta['joins'][] = "LEFT JOIN dim_auspices na ON na.id = c.auspice_id";
+            $raceParts[] = "NULLIF(COALESCE(na.name, ''), '')";
+        }
+        if (hg_asb_column_exists($db, 'fact_characters', 'tribe_id') && hg_asb_table_exists($db, 'dim_tribes')) {
+            $meta['joins'][] = "LEFT JOIN dim_tribes nt ON nt.id = c.tribe_id";
+            $raceParts[] = "NULLIF(COALESCE(nt.name, ''), '')";
+        }
+        if (!empty($raceParts)) {
+            $meta['selects'][] = "TRIM(CONCAT_WS(' · ', " . implode(', ', $raceParts) . ")) AS race_label";
+        } else {
+            $meta['selects'][] = "'' AS race_label";
+        }
+
+        return $meta;
+    }
+}
+
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_sim_browser';
 $CSRF = function_exists('hg_admin_ensure_csrf_token')
     ? hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY)
@@ -96,7 +181,7 @@ $CSRF = function_exists('hg_admin_ensure_csrf_token')
 $meta = hg_asb_bootstrap_tables_meta($link);
 $hasTables = (!empty($meta['seasons_table']) && !empty($meta['bridge_table']));
 
-if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')) {
+if ($isAjaxRequest) {
     if (function_exists('hg_admin_require_session')) {
         hg_admin_require_session(true);
     }
@@ -135,9 +220,9 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'list_characters') {
         $seasonId = isset($payload['season_id']) ? (int)$payload['season_id'] : 0;
         $q = trim((string)($payload['q'] ?? ''));
-        $limit = isset($payload['limit']) ? (int)$payload['limit'] : 1200;
+        $limit = isset($payload['limit']) ? (int)$payload['limit'] : 1800;
         if ($limit < 1) $limit = 1;
-        if ($limit > 2000) $limit = 2000;
+        if ($limit > 2500) $limit = 2500;
 
         $kindClause = hg_asb_characters_kind_clause($link, 'c');
         $where = array("1=1{$kindClause}");
@@ -151,24 +236,44 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             : "0 AS is_assigned";
         $joinBridge = ($seasonId > 0)
             ? "LEFT JOIN bridge_battle_sim_characters_seasons b ON b.character_id = c.id AND b.season_id = {$seasonId}"
-            : "LEFT JOIN bridge_battle_sim_characters_seasons b ON 1=0";
+            : "LEFT JOIN bridge_battle_sim_characters_seasons b ON 1 = 0";
+
+        $qMeta = hg_asb_character_query_meta($link);
+        $selects = array_merge(
+            array(
+                'c.id',
+                'c.name',
+                $assignedExpr,
+            ),
+            $qMeta['selects']
+        );
+        $joins = array_merge(array($joinBridge), $qMeta['joins']);
 
         $sql = "
             SELECT
-                c.id,
-                c.name,
-                COALESCE(c.alias, '') AS alias,
-                {$assignedExpr}
+                " . implode(",\n                ", $selects) . "
             FROM fact_characters c
-            {$joinBridge}
-            WHERE ".implode(' AND ', $where)."
-            ORDER BY COALESCE(NULLIF(c.alias,''), c.name) ASC, c.id ASC
+            " . implode("\n            ", $joins) . "
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY {$qMeta['order_label']} ASC, c.id ASC
             LIMIT {$limit}
         ";
 
         $rows = array();
         if ($rs = $link->query($sql)) {
-            while ($r = $rs->fetch_assoc()) { $rows[] = $r; }
+            while ($r = $rs->fetch_assoc()) {
+                $rows[] = array(
+                    'id' => (int)($r['id'] ?? 0),
+                    'name' => (string)($r['name'] ?? ''),
+                    'alias' => (string)($r['alias'] ?? ''),
+                    'avatar_url' => (string)hg_character_avatar_url((string)($r['image_url'] ?? ''), (string)($r['gender'] ?? '')),
+                    'clan_name' => (string)($r['clan_name'] ?? ''),
+                    'race_label' => (string)($r['race_label'] ?? ''),
+                    'system_name' => (string)($r['system_name'] ?? ''),
+                    'status_name' => (string)($r['status_name'] ?? ''),
+                    'is_assigned' => (int)($r['is_assigned'] ?? 0),
+                );
+            }
             $rs->close();
         }
         hg_admin_json_success(array('rows' => $rows), 'Listado de personajes', array('count' => count($rows)));
@@ -182,7 +287,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
             : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
         if (!$csrfOk) {
-            hg_admin_json_error('CSRF invÃ¡lido. Recarga la pÃ¡gina.', 403, array('csrf' => 'invalid'));
+            hg_admin_json_error('CSRF invalido. Recarga la pagina.', 403, array('csrf' => 'invalid'));
         }
     }
 
@@ -243,7 +348,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'delete_season') {
         $id = isset($payload['id']) ? (int)$payload['id'] : 0;
         if ($id <= 0) {
-            hg_admin_json_error('ID invÃ¡lido.', 422, array('id' => 'invalid'));
+            hg_admin_json_error('ID invalido.', 422, array('id' => 'invalid'));
         }
 
         $isActive = 0;
@@ -272,7 +377,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
     if ($action === 'set_active') {
         $id = isset($payload['id']) ? (int)$payload['id'] : 0;
         if ($id <= 0) {
-            hg_admin_json_error('ID invÃ¡lido.', 422, array('id' => 'invalid'));
+            hg_admin_json_error('ID invalido.', 422, array('id' => 'invalid'));
         }
         $exists = 0;
         if ($st = $link->prepare("SELECT COUNT(*) FROM fact_sim_seasons WHERE id=?")) {
@@ -337,7 +442,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             $validCount = ($rsValid) ? $rsValid->num_rows : 0;
             if ($rsValid) $rsValid->close();
             if ($validCount !== count($ids)) {
-                hg_admin_json_error('Hay personajes no vÃ¡lidos para el simulador.', 422, array('character_ids' => 'invalid_kind'));
+                hg_admin_json_error('Hay personajes no validos para el simulador.', 422, array('character_ids' => 'invalid_kind'));
             }
         }
 
@@ -376,7 +481,6 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
             }
             $sql = "TRUNCATE TABLE `{$tbl}`";
             if (!$link->query($sql)) {
-                // Fallback if truncate fails due to FK constraints.
                 if (!$link->query("DELETE FROM `{$tbl}`")) {
                     hg_admin_json_error('No se pudo vaciar la tabla ' . $tbl . '.', 500, array('db' => 'flush_failed', 'table' => $tbl));
                 }
@@ -390,7 +494,7 @@ if ((isset($_GET['ajax']) && $_GET['ajax'] === '1') || (isset($_SERVER['HTTP_X_R
         );
     }
 
-    hg_admin_json_error('AcciÃ³n no soportada.', 400, array('action' => 'unsupported'));
+    hg_admin_json_error('Accion no soportada.', 400, array('action' => 'unsupported'));
 }
 
 if (!$isAjaxRequest) {
@@ -404,7 +508,131 @@ if (!$isAjaxRequest) {
 <?php if (!$hasTables): ?>
   <p class="adm-admin-error">Faltan tablas de temporadas del simulador en esta base de datos.</p>
 <?php else: ?>
-  <div class="adm-grid-1-2" style="margin-bottom:10px;">
+  <style>
+    .asb-shell { display:grid; gap:12px; }
+    .asb-season-table tr.is-selected { outline:2px solid #2f95ff; }
+    .asb-workspace {
+      display:grid;
+      grid-template-columns:minmax(320px, 1fr) minmax(320px, 1fr);
+      gap:12px;
+      align-items:start;
+    }
+    .asb-panel {
+      border:1px solid #2a3555;
+      border-radius:12px;
+      background:rgba(8, 14, 30, 0.45);
+      overflow:hidden;
+    }
+    .asb-panel-head {
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      padding:12px 14px;
+      border-bottom:1px solid #23304f;
+      background:rgba(21, 31, 57, 0.9);
+    }
+    .asb-panel-title { font-weight:700; color:#dbe7ff; }
+    .asb-panel-sub { font-size:12px; color:#9db0d7; }
+    .asb-panel-body { padding:12px; }
+    .asb-filter-grid {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .asb-dropzone {
+      min-height:420px;
+      max-height:620px;
+      overflow:auto;
+      border:1px dashed #3d4f7a;
+      border-radius:12px;
+      padding:10px;
+      background:rgba(4, 9, 20, 0.55);
+    }
+    .asb-dropzone.is-over {
+      border-color:#7cc5ff;
+      box-shadow:inset 0 0 0 1px rgba(124, 197, 255, 0.6);
+      background:rgba(15, 32, 58, 0.7);
+    }
+    .asb-card-list { display:grid; gap:8px; }
+    .asb-card {
+      display:grid;
+      grid-template-columns:56px minmax(0, 1fr) auto;
+      gap:10px;
+      align-items:center;
+      padding:10px;
+      border:1px solid #2c3d63;
+      border-radius:10px;
+      background:linear-gradient(180deg, rgba(13, 23, 43, 0.95), rgba(7, 13, 27, 0.95));
+      cursor:grab;
+    }
+    .asb-card:active { cursor:grabbing; }
+    .asb-card-avatar {
+      width:56px;
+      height:56px;
+      border-radius:10px;
+      object-fit:cover;
+      border:1px solid #31456f;
+      background:#0b1324;
+    }
+    .asb-card-name { font-weight:700; color:#f0f5ff; }
+    .asb-card-alias { color:#a6b6da; font-size:12px; margin-top:2px; }
+    .asb-card-meta {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:6px;
+    }
+    .asb-chip {
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      background:#182643;
+      border:1px solid #2b416f;
+      color:#cae0ff;
+      font-size:11px;
+      line-height:1.4;
+    }
+    .asb-card button { white-space:nowrap; }
+    .asb-empty {
+      padding:28px 14px;
+      text-align:center;
+      color:#8ea4cc;
+      border:1px dashed #31456f;
+      border-radius:10px;
+    }
+    .asb-toolbar {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .asb-toolbar-actions {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .asb-season-summary {
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+      color:#a8bbdf;
+      margin-bottom:10px;
+    }
+    .asb-season-summary strong { color:#fff; }
+    @media (max-width: 960px) {
+      .asb-workspace { grid-template-columns:1fr; }
+      .asb-filter-grid { grid-template-columns:1fr; }
+    }
+  </style>
+
+  <div class="asb-shell">
     <fieldset class="bioSeccion">
       <legend>&nbsp;Temporadas&nbsp;</legend>
       <input type="hidden" id="asbSeasonId" value="0">
@@ -414,12 +642,12 @@ if (!$isAjaxRequest) {
           <input class="inp" type="text" id="asbSeasonName" maxlength="120" placeholder="Ej: Temporada 1">
         </div>
         <div>
-          <label>LÃ­mite de personajes</label>
+          <label>Limite de personajes</label>
           <input class="inp" type="number" id="asbSeasonLimit" min="1" max="200" value="35">
         </div>
       </div>
-      <label>DescripciÃ³n</label>
-      <textarea class="ta" id="asbSeasonDesc" rows="2" maxlength="500" placeholder="DescripciÃ³n corta"></textarea>
+      <label>Descripcion</label>
+      <textarea class="ta" id="asbSeasonDesc" rows="2" maxlength="500" placeholder="Descripcion corta"></textarea>
       <div style="margin:8px 0;">
         <label><input type="checkbox" id="asbSeasonActive"> Temporada activa</label>
       </div>
@@ -427,10 +655,10 @@ if (!$isAjaxRequest) {
         <button type="button" class="btn btn-green" id="asbSaveSeasonBtn">Guardar temporada</button>
         <button type="button" class="btn" id="asbResetSeasonBtn">Nueva</button>
         <button type="button" class="btn btn-red" id="asbDeleteSeasonBtn">Borrar</button>
-        <button type="button" class="btn btn-red" id="asbFlushCombatBtn">Flush Combate</button>
+        <button type="button" class="btn btn-red" id="asbFlushCombatBtn">Flush combate</button>
         <span id="asbSeasonMsg" class="adm-color-muted" style="margin-left:8px;"></span>
       </div>
-      <table class="table" style="margin-top:10px;">
+      <table class="table asb-season-table" style="margin-top:10px;">
         <thead>
           <tr>
             <th class="adm-w-60">ID</th>
@@ -449,38 +677,92 @@ if (!$isAjaxRequest) {
 
     <fieldset class="bioSeccion">
       <legend>&nbsp;Personajes por temporada&nbsp;</legend>
-      <div style="margin-bottom:8px;">
-        <label>Temporada seleccionada: <strong id="asbCurrentSeasonLabel">-</strong></label>
+      <div class="asb-season-summary">
+        <span>Temporada seleccionada: <strong id="asbCurrentSeasonLabel">-</strong></span>
+        <span id="asbAssignCounter">0 / 0</span>
+        <span id="asbAssignMsg" class="adm-color-muted"></span>
       </div>
-      <div class="adm-grid-1-2" style="margin-bottom:8px;">
-        <div>
-          <label>Buscar personaje</label>
-          <input class="inp" type="text" id="asbCharSearch" placeholder="Nombre o alias...">
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <div id="asbAssignCounter" class="adm-color-muted">0 / 0</div>
-        </div>
-      </div>
-      <div style="max-height:420px; overflow:auto; border:1px solid #2a3555; border-radius:8px;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th class="adm-w-60">Sel</th>
-              <th class="adm-w-60">ID</th>
-              <th>Nombre</th>
-              <th>Alias</th>
-            </tr>
-          </thead>
-          <tbody id="asbCharacterRows">
-            <tr><td colspan="4" class="adm-color-muted">Selecciona una temporada.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div style="margin-top:8px;">
-        <button type="button" class="btn" id="asbToggleAllBtn">Seleccionar todos / Deseleccionar todos</button>
-        <button type="button" class="btn btn-green" id="asbSaveAssignBtn">Guardar asignaciones</button>
-        <span id="asbAssignMsg" class="adm-color-muted" style="margin-left:8px;"></span>
+
+      <div class="asb-workspace">
+        <section class="asb-panel">
+          <div class="asb-panel-head">
+            <div>
+              <div class="asb-panel-title">Bolsa de personajes</div>
+              <div class="asb-panel-sub">Filtra y arrastra a la temporada.</div>
+            </div>
+            <div class="asb-panel-sub" id="asbBagCounter">0 visibles</div>
+          </div>
+          <div class="asb-panel-body">
+            <div class="asb-filter-grid">
+              <div>
+                <label>Nombre o alias</label>
+                <input class="inp" type="text" id="asbCharSearch" placeholder="Buscar personaje...">
+              </div>
+              <div>
+                <label>Clan</label>
+                <select class="select" id="asbFilterClan">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div>
+                <label>Raza</label>
+                <select class="select" id="asbFilterRace">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div>
+                <label>Sistema</label>
+                <select class="select" id="asbFilterSystem">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div>
+                <label>Estado</label>
+                <select class="select" id="asbFilterStatus">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div>
+                <label>&nbsp;</label>
+                <button type="button" class="btn" id="asbClearFiltersBtn">Limpiar filtros</button>
+              </div>
+            </div>
+
+            <div class="asb-toolbar">
+              <div class="asb-toolbar-actions">
+                <button type="button" class="btn" id="asbAddVisibleBtn">Anadir visibles</button>
+              </div>
+              <div class="asb-panel-sub">Tambien puedes hacer clic sobre una tarjeta para anadirla.</div>
+            </div>
+
+            <div class="asb-dropzone" id="asbBagZone" data-zone="bag">
+              <div id="asbBagList" class="asb-card-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="asb-panel">
+          <div class="asb-panel-head">
+            <div>
+              <div class="asb-panel-title">Temporada actual</div>
+              <div class="asb-panel-sub">Suelta aqui para asignar. Arrastra fuera o pulsa quitar para sacar.</div>
+            </div>
+            <div class="asb-panel-sub" id="asbSelectedCounter">0 asignados</div>
+          </div>
+          <div class="asb-panel-body">
+            <div class="asb-toolbar">
+              <div class="asb-toolbar-actions">
+                <button type="button" class="btn" id="asbClearAssignedBtn">Vaciar temporada</button>
+                <button type="button" class="btn btn-green" id="asbSaveAssignBtn">Guardar asignaciones</button>
+              </div>
+              <div class="asb-panel-sub">Haz clic sobre una tarjeta para quitarla.</div>
+            </div>
+
+            <div class="asb-dropzone" id="asbSeasonZone" data-zone="season">
+              <div id="asbSelectedList" class="asb-card-list"></div>
+            </div>
+          </div>
+        </section>
       </div>
     </fieldset>
   </div>
@@ -501,7 +783,15 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     seasons: [],
     selectedSeasonId: 0,
     characters: [],
-    selectedCharacterIds: {}
+    selectedCharacterIds: {},
+    filters: {
+      q: '',
+      clan: '',
+      race: '',
+      system: '',
+      status: ''
+    },
+    dragCharacterId: 0
   };
 
   function esc(v){
@@ -529,9 +819,29 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     node.textContent = msg || '';
   }
 
+  function normalizeText(value) {
+    return String(value || '').toLocaleLowerCase('es');
+  }
+
   function getSelectedSeason() {
     var sid = Number(state.selectedSeasonId || 0);
     return state.seasons.find(function(s){ return Number(s.id || 0) === sid; }) || null;
+  }
+
+  function getCharacterLabel(c) {
+    var alias = String(c.alias || '').trim();
+    return alias !== '' ? alias : String(c.name || '');
+  }
+
+  function getCharacterSearchHaystack(c) {
+    return normalizeText([
+      c.name || '',
+      c.alias || '',
+      c.clan_name || '',
+      c.race_label || '',
+      c.system_name || '',
+      c.status_name || ''
+    ].join(' '));
   }
 
   function resetSeasonForm() {
@@ -563,8 +873,8 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     for (var i = 0; i < state.seasons.length; i++) {
       var s = state.seasons[i];
       var sid = Number(s.id || 0);
-      var sel = (sid === Number(state.selectedSeasonId || 0)) ? ' style="outline:2px solid #2f95ff;"' : '';
-      html += '<tr data-id="' + sid + '"' + sel + '>';
+      var cls = (sid === Number(state.selectedSeasonId || 0)) ? ' class="is-selected"' : '';
+      html += '<tr data-id="' + sid + '"' + cls + '>';
       html += '<td>' + sid + '</td>';
       html += '<td>' + esc(s.name || '') + '</td>';
       html += '<td>' + Number(s.assigned_count || 0) + '</td>';
@@ -579,40 +889,134 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     tbody.innerHTML = html;
   }
 
-  function renderCharacterRows() {
-    var tbody = $('asbCharacterRows');
-    if (!tbody) return;
+  function getAssignedCount() {
+    return Object.keys(state.selectedCharacterIds).length;
+  }
+
+  function getSortedCharacters(source) {
+    return source.slice().sort(function(a, b){
+      return getCharacterLabel(a).localeCompare(getCharacterLabel(b), 'es', { sensitivity: 'base' }) || (Number(a.id || 0) - Number(b.id || 0));
+    });
+  }
+
+  function getFilteredBagCharacters() {
+    var q = normalizeText(state.filters.q);
+    var clan = state.filters.clan;
+    var race = state.filters.race;
+    var system = state.filters.system;
+    var status = state.filters.status;
+
+    return getSortedCharacters(state.characters.filter(function(c){
+      var cid = Number(c.id || 0);
+      if (state.selectedCharacterIds[cid]) return false;
+      if (q && getCharacterSearchHaystack(c).indexOf(q) === -1) return false;
+      if (clan && String(c.clan_name || '') !== clan) return false;
+      if (race && String(c.race_label || '') !== race) return false;
+      if (system && String(c.system_name || '') !== system) return false;
+      if (status && String(c.status_name || '') !== status) return false;
+      return true;
+    }));
+  }
+
+  function getAssignedCharacters() {
+    return getSortedCharacters(state.characters.filter(function(c){
+      return !!state.selectedCharacterIds[Number(c.id || 0)];
+    }));
+  }
+
+  function cardMetaChip(value) {
+    var text = String(value || '').trim();
+    return text ? '<span class="asb-chip">' + esc(text) + '</span>' : '';
+  }
+
+  function renderCharacterCard(c, zone) {
+    var cid = Number(c.id || 0);
+    var alias = String(c.alias || '').trim();
+    var buttonLabel = zone === 'bag' ? 'Anadir' : 'Quitar';
+    var buttonClass = zone === 'bag' ? 'btn btn-green' : 'btn btn-red';
+    var chips = [
+      cardMetaChip(c.clan_name),
+      cardMetaChip(c.race_label),
+      cardMetaChip(c.system_name),
+      cardMetaChip(c.status_name)
+    ].join('');
+
+    return ''
+      + '<article class="asb-card" draggable="true" data-char-card="' + cid + '" data-zone="' + esc(zone) + '">'
+      + '  <img class="asb-card-avatar" src="' + esc(c.avatar_url || '') + '" alt="">'
+      + '  <div>'
+      + '    <div class="asb-card-name">' + esc(c.name || '') + '</div>'
+      + (alias ? '    <div class="asb-card-alias">' + esc(alias) + '</div>' : '')
+      + '    <div class="asb-card-meta">' + chips + '</div>'
+      + '  </div>'
+      + '  <button type="button" class="' + buttonClass + '" data-card-action="' + esc(zone) + '" data-id="' + cid + '">' + buttonLabel + '</button>'
+      + '</article>';
+  }
+
+  function fillSelectOptions(selectId, values, emptyLabel) {
+    var select = $(selectId);
+    if (!select) return;
+    var current = select.value || '';
+    var html = '<option value="">' + esc(emptyLabel) + '</option>';
+    values.forEach(function(value){
+      html += '<option value="' + esc(value) + '">' + esc(value) + '</option>';
+    });
+    select.innerHTML = html;
+    select.value = values.indexOf(current) !== -1 ? current : '';
+  }
+
+  function uniqueValues(key) {
+    var map = {};
+    state.characters.forEach(function(c){
+      var value = String(c[key] || '').trim();
+      if (value) map[value] = true;
+    });
+    return Object.keys(map).sort(function(a, b){
+      return a.localeCompare(b, 'es', { sensitivity: 'base' });
+    });
+  }
+
+  function renderFilters() {
+    fillSelectOptions('asbFilterClan', uniqueValues('clan_name'), 'Todos');
+    fillSelectOptions('asbFilterRace', uniqueValues('race_label'), 'Todas');
+    fillSelectOptions('asbFilterSystem', uniqueValues('system_name'), 'Todos');
+    fillSelectOptions('asbFilterStatus', uniqueValues('status_name'), 'Todos');
+    state.filters.clan = $('asbFilterClan').value || '';
+    state.filters.race = $('asbFilterRace').value || '';
+    state.filters.system = $('asbFilterSystem').value || '';
+    state.filters.status = $('asbFilterStatus').value || '';
+  }
+
+  function renderCharacterWorkspace() {
     var season = getSelectedSeason();
+    var bagList = $('asbBagList');
+    var selectedList = $('asbSelectedList');
+    var bagRows = getFilteredBagCharacters();
+    var assignedRows = getAssignedCharacters();
+    var limit = season ? Number(season.character_limit || 35) : 0;
+
     $('asbCurrentSeasonLabel').textContent = season ? String(season.name || '-') : '-';
+    $('asbAssignCounter').textContent = season ? (getAssignedCount() + ' / ' + limit) : '0 / 0';
+    $('asbBagCounter').textContent = bagRows.length + ' visibles';
+    $('asbSelectedCounter').textContent = assignedRows.length + ' asignados';
 
     if (!season) {
-      tbody.innerHTML = '<tr><td colspan="4" class="adm-color-muted">Selecciona una temporada.</td></tr>';
-      $('asbAssignCounter').textContent = '0 / 0';
-      return;
-    }
-    if (!state.characters.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="adm-color-muted">(Sin personajes para este filtro)</td></tr>';
-      var countEmpty = Object.keys(state.selectedCharacterIds).length;
-      $('asbAssignCounter').textContent = countEmpty + ' / ' + Number(season.character_limit || 35);
+      bagList.innerHTML = '<div class="asb-empty">Selecciona una temporada para cargar personajes.</div>';
+      selectedList.innerHTML = '<div class="asb-empty">No hay temporada seleccionada.</div>';
       return;
     }
 
-    var html = '';
-    for (var i = 0; i < state.characters.length; i++) {
-      var c = state.characters[i];
-      var cid = Number(c.id || 0);
-      var checked = !!state.selectedCharacterIds[cid] ? ' checked' : '';
-      html += '<tr>';
-      html += '<td><input type="checkbox" data-char="' + cid + '"' + checked + '></td>';
-      html += '<td>' + cid + '</td>';
-      html += '<td>' + esc(c.name || '') + '</td>';
-      html += '<td>' + esc(c.alias || '') + '</td>';
-      html += '</tr>';
+    if (!bagRows.length) {
+      bagList.innerHTML = '<div class="asb-empty">No quedan personajes en la bolsa con los filtros actuales.</div>';
+    } else {
+      bagList.innerHTML = bagRows.map(function(c){ return renderCharacterCard(c, 'bag'); }).join('');
     }
-    tbody.innerHTML = html;
 
-    var currentCount = Object.keys(state.selectedCharacterIds).length;
-    $('asbAssignCounter').textContent = currentCount + ' / ' + Number(season.character_limit || 35);
+    if (!assignedRows.length) {
+      selectedList.innerHTML = '<div class="asb-empty">Arrastra aqui los personajes de la temporada.</div>';
+    } else {
+      selectedList.innerHTML = assignedRows.map(function(c){ return renderCharacterCard(c, 'season'); }).join('');
+    }
   }
 
   async function refreshSeasons() {
@@ -622,8 +1026,12 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
       if (!state.selectedSeasonId && state.seasons.length) {
         state.selectedSeasonId = Number(state.seasons[0].id || 0);
       }
+      var currentSeason = getSelectedSeason();
+      if (currentSeason) {
+        fillSeasonForm(currentSeason);
+      }
       renderSeasons();
-      renderCharacterRows();
+      renderCharacterWorkspace();
     } catch (err) {
       seasonMsg(HGAdminHttp.errorMessage(err), false);
     }
@@ -634,16 +1042,17 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     if (!season) {
       state.characters = [];
       state.selectedCharacterIds = {};
-      renderCharacterRows();
+      renderFilters();
+      renderCharacterWorkspace();
       return;
     }
     try {
       var payload = {
         season_id: Number(season.id || 0),
-        q: $('asbCharSearch').value || '',
-        limit: 1500
+        q: '',
+        limit: 2000
       };
-      var res = await HGAdminHttp.postAction(endpoint, 'list_characters', payload, { loadingEl: $('asbCharacterRows') });
+      var res = await HGAdminHttp.postAction(endpoint, 'list_characters', payload, { loadingEl: $('asbBagList') });
       state.characters = (res && res.data && Array.isArray(res.data.rows)) ? res.data.rows : [];
       state.selectedCharacterIds = {};
       for (var i = 0; i < state.characters.length; i++) {
@@ -653,10 +1062,22 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
           state.selectedCharacterIds[cid] = true;
         }
       }
-      renderCharacterRows();
+      renderFilters();
+      renderCharacterWorkspace();
     } catch (err) {
       assignMsg(HGAdminHttp.errorMessage(err), false);
     }
+  }
+
+  function selectSeason(id) {
+    id = Number(id || 0);
+    if (!id) return;
+    var row = state.seasons.find(function(s){ return Number(s.id || 0) === id; });
+    if (!row) return;
+    state.selectedSeasonId = id;
+    fillSeasonForm(row);
+    renderSeasons();
+    refreshCharacters();
   }
 
   async function saveSeason() {
@@ -671,13 +1092,10 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
       var res = await HGAdminHttp.postAction(endpoint, 'save_season', payload, { loadingEl: $('asbSaveSeasonBtn') });
       seasonMsg((res && res.message) ? res.message : 'Temporada guardada.', true);
       await refreshSeasons();
-      if (!payload.id && res && res.data && res.data.id) {
+      if (res && res.data && res.data.id) {
         state.selectedSeasonId = Number(res.data.id || 0);
-      } else if (payload.id > 0) {
-        state.selectedSeasonId = payload.id;
+        selectSeason(state.selectedSeasonId);
       }
-      await refreshCharacters();
-      if (!payload.id) resetSeasonForm();
     } catch (err) {
       seasonMsg(HGAdminHttp.errorMessage(err), false);
     }
@@ -713,6 +1131,69 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     }
   }
 
+  function addCharacterToSeason(characterId) {
+    var season = getSelectedSeason();
+    if (!season) {
+      assignMsg('Selecciona una temporada.', false);
+      return false;
+    }
+    characterId = Number(characterId || 0);
+    if (!characterId || state.selectedCharacterIds[characterId]) return false;
+    var limit = Number(season.character_limit || 35);
+    var count = getAssignedCount();
+    if (count >= limit) {
+      assignMsg('Has alcanzado el limite de la temporada (' + limit + ').', false);
+      return false;
+    }
+    state.selectedCharacterIds[characterId] = true;
+    assignMsg('Personaje anadido a la temporada.', true);
+    renderCharacterWorkspace();
+    return true;
+  }
+
+  function removeCharacterFromSeason(characterId) {
+    characterId = Number(characterId || 0);
+    if (!characterId || !state.selectedCharacterIds[characterId]) return false;
+    delete state.selectedCharacterIds[characterId];
+    assignMsg('Personaje quitado de la temporada.', true);
+    renderCharacterWorkspace();
+    return true;
+  }
+
+  function addVisibleCharacters() {
+    var season = getSelectedSeason();
+    if (!season) {
+      assignMsg('Selecciona una temporada.', false);
+      return;
+    }
+    var limit = Number(season.character_limit || 35);
+    var count = getAssignedCount();
+    var added = 0;
+    var visible = getFilteredBagCharacters();
+    for (var i = 0; i < visible.length; i++) {
+      var cid = Number(visible[i].id || 0);
+      if (count >= limit) break;
+      if (!state.selectedCharacterIds[cid]) {
+        state.selectedCharacterIds[cid] = true;
+        count++;
+        added++;
+      }
+    }
+    if (!added) {
+      assignMsg('No se han anadido personajes nuevos.', false);
+      return;
+    }
+    assignMsg('Anadidos ' + added + ' personajes a la temporada.', true);
+    renderCharacterWorkspace();
+  }
+
+  function clearAssignedCharacters() {
+    if (!getAssignedCount()) return;
+    state.selectedCharacterIds = {};
+    assignMsg('Temporada vaciada en memoria. Guarda para persistir.', true);
+    renderCharacterWorkspace();
+  }
+
   async function saveAssignments() {
     var season = getSelectedSeason();
     if (!season) {
@@ -740,46 +1221,6 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     }
   }
 
-  function toggleAllAssignments() {
-    var season = getSelectedSeason();
-    if (!season) {
-      assignMsg('Selecciona una temporada.', false);
-      return;
-    }
-
-    var limit = Number(season.character_limit || 35);
-    var currentCount = Object.keys(state.selectedCharacterIds).length;
-    var visibleIds = [];
-    for (var i = 0; i < state.characters.length; i++) {
-      var cid = Number(state.characters[i].id || 0);
-      if (cid > 0) visibleIds.push(cid);
-    }
-    if (!visibleIds.length) return;
-
-    // If all visible are selected, deselect visible. Otherwise select as many as limit allows.
-    var allVisibleSelected = visibleIds.every(function(cid){ return !!state.selectedCharacterIds[cid]; });
-    if (allVisibleSelected) {
-      visibleIds.forEach(function(cid){ delete state.selectedCharacterIds[cid]; });
-      assignMsg('Personajes visibles deseleccionados.', true);
-      renderCharacterRows();
-      return;
-    }
-
-    for (var x = 0; x < visibleIds.length; x++) {
-      var id = visibleIds[x];
-      if (state.selectedCharacterIds[id]) continue;
-      if (currentCount >= limit) break;
-      state.selectedCharacterIds[id] = true;
-      currentCount++;
-    }
-    if (currentCount >= limit) {
-      assignMsg('Seleccionados hasta el limite de la temporada (' + limit + ').', true);
-    } else {
-      assignMsg('Personajes visibles seleccionados.', true);
-    }
-    renderCharacterRows();
-  }
-
   async function flushCombatTables() {
     if (!confirm('Se vaciaran fact_sim_battles, fact_sim_character_scores y fact_sim_item_usage. Continuar?')) return;
     try {
@@ -790,27 +1231,67 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
     }
   }
 
+  function handleDragStart(ev) {
+    var card = ev.target.closest('[data-char-card]');
+    if (!card) return;
+    state.dragCharacterId = Number(card.getAttribute('data-char-card') || 0);
+    if (ev.dataTransfer) {
+      ev.dataTransfer.setData('text/plain', String(state.dragCharacterId));
+      ev.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  function setupDropzone(node, zone) {
+    if (!node) return;
+    node.addEventListener('dragover', function(ev){
+      ev.preventDefault();
+      node.classList.add('is-over');
+    });
+    node.addEventListener('dragleave', function(){
+      node.classList.remove('is-over');
+    });
+    node.addEventListener('drop', function(ev){
+      ev.preventDefault();
+      node.classList.remove('is-over');
+      var id = Number((ev.dataTransfer && ev.dataTransfer.getData('text/plain')) || state.dragCharacterId || 0);
+      if (!id) return;
+      if (zone === 'season') addCharacterToSeason(id);
+      else removeCharacterFromSeason(id);
+    });
+  }
+
   function bindEvents() {
     $('asbSaveSeasonBtn').addEventListener('click', saveSeason);
     $('asbResetSeasonBtn').addEventListener('click', resetSeasonForm);
     $('asbDeleteSeasonBtn').addEventListener('click', deleteSeason);
     $('asbFlushCombatBtn').addEventListener('click', flushCombatTables);
-    $('asbToggleAllBtn').addEventListener('click', toggleAllAssignments);
     $('asbSaveAssignBtn').addEventListener('click', saveAssignments);
     $('asbQuickNewBtn').addEventListener('click', function(){ resetSeasonForm(); $('asbSeasonName').focus(); });
-    $('asbCharSearch').addEventListener('input', function(){ refreshCharacters(); });
+    $('asbAddVisibleBtn').addEventListener('click', addVisibleCharacters);
+    $('asbClearAssignedBtn').addEventListener('click', clearAssignedCharacters);
+    $('asbClearFiltersBtn').addEventListener('click', function(){
+      state.filters = { q: '', clan: '', race: '', system: '', status: '' };
+      $('asbCharSearch').value = '';
+      $('asbFilterClan').value = '';
+      $('asbFilterRace').value = '';
+      $('asbFilterSystem').value = '';
+      $('asbFilterStatus').value = '';
+      renderCharacterWorkspace();
+    });
+
+    $('asbCharSearch').addEventListener('input', function(){
+      state.filters.q = this.value || '';
+      renderCharacterWorkspace();
+    });
+    $('asbFilterClan').addEventListener('change', function(){ state.filters.clan = this.value || ''; renderCharacterWorkspace(); });
+    $('asbFilterRace').addEventListener('change', function(){ state.filters.race = this.value || ''; renderCharacterWorkspace(); });
+    $('asbFilterSystem').addEventListener('change', function(){ state.filters.system = this.value || ''; renderCharacterWorkspace(); });
+    $('asbFilterStatus').addEventListener('change', function(){ state.filters.status = this.value || ''; renderCharacterWorkspace(); });
 
     $('asbSeasonRows').addEventListener('click', function(ev){
       var editBtn = ev.target.closest('[data-edit]');
       if (editBtn) {
-        var id = Number(editBtn.getAttribute('data-edit') || 0);
-        var row = state.seasons.find(function(s){ return Number(s.id || 0) === id; });
-        if (row) {
-          state.selectedSeasonId = id;
-          fillSeasonForm(row);
-          renderSeasons();
-          refreshCharacters();
-        }
+        selectSeason(Number(editBtn.getAttribute('data-edit') || 0));
         return;
       }
 
@@ -822,45 +1303,32 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
 
       var tr = ev.target.closest('tr[data-id]');
       if (tr) {
-        var sid = Number(tr.getAttribute('data-id') || 0);
-        var srow = state.seasons.find(function(s){ return Number(s.id || 0) === sid; });
-        if (srow) {
-          state.selectedSeasonId = sid;
-          fillSeasonForm(srow);
-          renderSeasons();
-          refreshCharacters();
-        }
+        selectSeason(Number(tr.getAttribute('data-id') || 0));
       }
     });
 
-    $('asbCharacterRows').addEventListener('change', function(ev){
-      var cb = ev.target.closest('[data-char]');
-      if (!cb) return;
-      var cid = Number(cb.getAttribute('data-char') || 0);
-      if (!cid) return;
-      if (cb.checked) state.selectedCharacterIds[cid] = true;
-      else delete state.selectedCharacterIds[cid];
-      renderCharacterRows();
+    document.addEventListener('click', function(ev){
+      var actionBtn = ev.target.closest('[data-card-action]');
+      if (actionBtn) {
+        var id = Number(actionBtn.getAttribute('data-id') || 0);
+        var action = actionBtn.getAttribute('data-card-action') || '';
+        if (action === 'bag') addCharacterToSeason(id);
+        else removeCharacterFromSeason(id);
+        return;
+      }
+
+      var card = ev.target.closest('[data-char-card]');
+      if (card && !ev.target.closest('button')) {
+        var cid = Number(card.getAttribute('data-char-card') || 0);
+        var zone = card.getAttribute('data-zone') || '';
+        if (zone === 'bag') addCharacterToSeason(cid);
+        else removeCharacterFromSeason(cid);
+      }
     });
 
-    $('asbCharacterRows').addEventListener('click', function(ev){
-      var cbClick = ev.target.closest('[data-char]');
-      if (cbClick) return; // already handled by change
-
-      var tr = ev.target.closest('tr');
-      if (!tr) return;
-      var cb = tr.querySelector('[data-char]');
-      if (!cb) return;
-
-      var cid = Number(cb.getAttribute('data-char') || 0);
-      if (!cid) return;
-
-      var nextChecked = !cb.checked;
-      cb.checked = nextChecked;
-      if (nextChecked) state.selectedCharacterIds[cid] = true;
-      else delete state.selectedCharacterIds[cid];
-      renderCharacterRows();
-    });
+    document.addEventListener('dragstart', handleDragStart);
+    setupDropzone($('asbBagZone'), 'bag');
+    setupDropzone($('asbSeasonZone'), 'season');
   }
 
   bindEvents();
@@ -870,5 +1338,3 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_AP
 </script>
 <?php endif; ?>
 <?php if (!$isAjaxRequest) { admin_panel_close(); } ?>
-
-

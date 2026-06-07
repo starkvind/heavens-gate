@@ -32,8 +32,6 @@ RewriteRule ^ - [L]
 # ==============================
 RewriteRule ^img/(.*)$ public/img/$1 [L]
 RewriteRule ^sounds/(.*)$ public/sounds/$1 [L]
-RewriteRule ^games/card-game/mobile/?$ game_cards_mobile.php [L,QSA]
-
 # ==============================
 # Front controller
 # ==============================

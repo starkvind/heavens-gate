@@ -69,3 +69,5 @@ dones.php
 admin_docs/BOT_KNOWLEDGE_SCHEMA.md
 admin_docs/TELEGRAM_BOT_BACKEND_GUIDE.md
 dones.php
+app/controllers/admin/admin_groups.php.bak-20260607-1
+app/controllers/admin/admin_sim_browser.php.bak-20260605-1

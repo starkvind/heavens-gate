@@ -57,6 +57,11 @@ function get_totems($link): array {
   return $out;
 }
 
+function ag_status_badge(string $text, bool $isOn = true): string {
+  $cls = $isOn ? 'badge' : 'badge off';
+  return "<span class='{$cls}'>".e($text)."</span>";
+}
+
 /* ----------------------- Renders (HTML) ----------------------- */
 function render_clans_table($link){
   $sql = "SELECT c.id, c.name,
@@ -72,15 +77,15 @@ function render_clans_table($link){
   if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
 
   echo "<table class='table' id='clansTable'>
-          <thead><tr><th>ID</th><th>Nombre</th><th>Grupos activos</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Organización</th><th>Manadas activas</th><th></th></tr></thead>
           <tbody>";
   while($r = mysqli_fetch_assoc($rs)){
     echo "<tr class='row'>
             <td>".e($r['id'])."</td>
-            <td>".e($r['name'])."</td>
+            <td><strong>".e($r['name'])."</strong></td>
             <td>".e((int)$r['groups_active'])."</td>
             <td>
-              <button class='btn btn-edit-clan' data-id='".e($r['id'])."'>Editar</button>
+              <button class='btn btn-edit-clan' data-id='".e($r['id'])."'>Gestionar</button>
             </td>
           </tr>";
   }
@@ -88,20 +93,36 @@ function render_clans_table($link){
 }
 
 function render_groups_table($link){
-  $sql = "SELECT m.id, m.name, m.is_active AS activa FROM dim_groups m ORDER BY m.name ASC";
+  $sql = "SELECT
+            m.id,
+            m.name,
+            m.is_active AS activa,
+            (
+              SELECT o.name
+              FROM bridge_organizations_groups bog
+              INNER JOIN dim_organizations o ON o.id = bog.organization_id
+              WHERE bog.group_id = m.id AND bog.is_active = 1
+              ORDER BY o.name ASC
+              LIMIT 1
+            ) AS organization_name
+          FROM dim_groups m
+          ORDER BY m.name ASC";
   [$ok,$err,$rs] = q($link,$sql);
   if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
 
   echo "<table class='table' id='groupsTable'>
-          <thead><tr><th>ID</th><th>Nombre</th><th>Activa</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Manada</th><th>Estado</th><th>Organización activa</th><th></th></tr></thead>
           <tbody>";
   while($r = mysqli_fetch_assoc($rs)){
+    $isActive = (int)$r['activa']===1;
+    $organizationName = trim((string)($r['organization_name'] ?? ''));
     echo "<tr class='row'>
             <td>".e($r['id'])."</td>
-            <td>".e($r['name'])."</td>
-            <td>".( (int)$r['activa']===1 ? 'Sí' : 'No' )."</td>
+            <td><strong>".e($r['name'])."</strong></td>
+            <td>".ag_status_badge($isActive ? 'Activa' : 'Inactiva', $isActive)."</td>
+            <td>".($organizationName !== '' ? e($organizationName) : "<span class='small'>Sin organización activa</span>")."</td>
             <td>
-              <button class='btn btn-edit-group' data-id='".e($r['id'])."'>Editar</button>
+              <button class='btn btn-edit-group' data-id='".e($r['id'])."'>Gestionar</button>
             </td>
           </tr>";
   }
@@ -144,7 +165,10 @@ function render_clan_detail($link,$organization_id){
   $active = array_values(array_filter($linked, fn($x)=>(int)$x['is_active']===1 && (int)($x['group_is_active'] ?? 1)===1));
   $inactive = array_values(array_filter($linked, fn($x)=>!((int)$x['is_active']===1 && (int)($x['group_is_active'] ?? 1)===1)));
 
-  echo "<div class='split'>
+  echo "<div class='card adm-mb-10'>
+          <div class='small'>Aquí gestionas el vínculo entre organización y manada. Quitar o activar en esta pantalla afecta al vínculo. Si una manada está desactivada, primero debes activarla desde su propia ficha.</div>
+        </div>
+        <div class='split'>
           <div>
             <h4>Manadas activas <span class='count'>".count($active)."</span></h4>
             <div class='grid' id='packsActive'>";
@@ -152,24 +176,25 @@ function render_clan_detail($link,$organization_id){
     echo "<div class='card'>
             <h4><span>".e($p['name'])."</span>
                 <span>
-                  <button class='btn btn-pack-deactivate' data-gid='".e($p['id'])."' data-clan='$organization_id'>Quitar</button>
+                  <button class='btn btn-pack-deactivate' data-gid='".e($p['id'])."' data-clan='$organization_id'>Desvincular</button>
                   <a class='btn' href='/groups/".e($p['id'])."' target='_blank'>Ver</a>
                 </span>
             </h4>
+            <div class='small'>".ag_status_badge('Vinculada y activa', true)."</div>
           </div>";
   }
   echo   "</div>
         </div>
         <div>
-          <h4>Añadir manada</h4>
+          <h4>Vincular manada activa</h4>
           <div class='toolbar'>
             <select id='packsAvailable' class='adm-input-dark-flex'>";
   foreach($avail as $p){ echo "<option value='".e($p['id'])."'>".e($p['name'])."</option>"; }
   echo     "</select>
-            <button class='btn btn-ok' id='btnAddPack' data-clan='$organization_id' ".(empty($avail)?'disabled':'').">Añadir</button>
+            <button class='btn btn-ok' id='btnAddPack' data-clan='$organization_id' ".(empty($avail)?'disabled':'').">Vincular</button>
           </div>
           <div class='hr'></div>
-          <h4>Manadas inactivas</h4>
+          <h4>Manadas no activas en esta organización</h4>
           <div class='grid' id='packsInactive'>";
   foreach($inactive as $p){
     $bridgeActive = (int)($p['is_active'] ?? 0) === 1;
@@ -179,8 +204,8 @@ function render_clan_detail($link,$organization_id){
     if(!$bridgeActive){ $notes[] = 'vinculo inactivo'; }
     $statusHtml = empty($notes) ? '' : "<div class='small adm-mt-4'>".e(implode(' · ', $notes))."</div>";
     $actionHtml = $groupActive
-      ? "<button class='btn btn-pack-activate' data-gid='".e($p['id'])."' data-clan='$organization_id'>Activar</button>"
-      : "<span class='small'>Actívala desde la propia manada</span>";
+      ? "<button class='btn btn-pack-activate' data-gid='".e($p['id'])."' data-clan='$organization_id'>Reactivar vínculo</button>"
+      : "<span class='small'>Activa la manada desde su ficha</span>";
     echo "<div class='card'>
             <h4><span>".e($p['name'])."</span>
                 <span>
@@ -300,12 +325,36 @@ function render_group_modal($link,$group_id){
   $totems = get_totems($link);
   $groupDesc = (string)($g['description'] ?? '');
   $totemSel = (int)($g['totem'] ?? 0);
+  $orgNames = [];
+  [$okOrg,$errOrg,$rsOrg] = q($link, "SELECT o.name, bog.is_active
+    FROM bridge_organizations_groups bog
+    INNER JOIN dim_organizations o ON o.id = bog.organization_id
+    WHERE bog.group_id = ?
+    ORDER BY bog.is_active DESC, o.name ASC", 'i', [$group_id]);
+  if ($okOrg && $rsOrg) {
+    while($orgRow = mysqli_fetch_assoc($rsOrg)){
+      $orgNames[] = ((int)($orgRow['is_active'] ?? 0) === 1 ? '[Activa] ' : '[Inactiva] ') . (string)($orgRow['name'] ?? '');
+    }
+  }
+  $groupIsActive = ((int)$g['activa']===1);
   echo "<div class='modal-header'>
           <h3>Editar manada</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
         </div>
         <div class='modal-body'>
           <div class='card'>
+            <div class='toolbar'>
+              <div class='card adm-w-full'>
+                <div class='small'>Estado de la manada</div>
+                <div>".ag_status_badge($groupIsActive ? 'Activa' : 'Inactiva', $groupIsActive)."</div>
+              </div>
+              <div class='card adm-w-full'>
+                <div class='small'>Organización vinculada</div>
+                <div>".(!empty($orgNames) ? e($orgNames[0]) : "<span class='small'>Sin vínculo activo</span>")."</div>
+              </div>
+            </div>
+          </div>
+          <div class='card adm-mt-8'>
             <h4>Datos básicos</h4>
             <div class='toolbar'>
               <input id='groupName' type='text' value='".e($g['name'])."' placeholder='Nombre'>
@@ -316,11 +365,12 @@ function render_group_modal($link,$group_id){
   }
   echo      "</select>
               <label class='adm-flex-6-center'>
-                <input id='groupActiva' type='checkbox' ".((int)$g['activa']===1?'checked':'')."> Activa
+                <input id='groupActiva' type='checkbox' ".($groupIsActive?'checked':'')."> Manada activa
               </label>
               <button class='btn btn-ok' id='btnSaveGroupBasic' data-id='".e($g['id'])."'>Guardar</button>
               <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver p?gina</a>
             </div>
+            <div class='small adm-mt-4'>Este interruptor activa o desactiva la manada completa. El vínculo con una organización se gestiona desde la ficha de la organización.</div>
             <div class='toolbar adm-mt-8'>
               <textarea id='groupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripci?n'>".e($groupDesc)."</textarea>
             </div>
@@ -400,7 +450,7 @@ function render_group_create_form($link,$prefill_clan_id=0){
   echo        "</select>
                 <button class='btn btn-ok' id='btnCreateGroup'>Crear</button>
               </div>
-              <div class='small'>Si eliges un clan, se creará también el vínculo activo en el bridge.</div>
+              <div class='small'>Si eliges una organización, la manada quedará vinculada y activa dentro de ella desde el momento de crearla.</div>
             </div>
           </div>
         </div>";
@@ -631,6 +681,7 @@ admin_panel_open('Grupos (Manadas y Clanes)');
 
 <div id="tab-clans" class="box">
   <h3>Clanes</h3>
+  <div class="small adm-mb-10">Gestiona aquí las organizaciones y qué manadas están vinculadas a cada una.</div>
   <div class="toolbar">
     <input id="filterClans" type="text" placeholder="Filtrar clanes...">
     <button class="btn" id="btnNewClan">Nuevo clan</button>
@@ -641,6 +692,7 @@ admin_panel_open('Grupos (Manadas y Clanes)');
 
 <div id="tab-groups" class="box" style="display:none;">
   <h3>Manadas</h3>
+  <div class="small adm-mb-10">Gestiona aquí el estado propio de cada manada, sus datos básicos y sus miembros.</div>
   <div class="toolbar">
     <input id="filterGroups" type="text" placeholder="Filtrar manadas...">
     <button class="btn" id="btnNewGroup">Nueva manada</button>

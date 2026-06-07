@@ -403,6 +403,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'game_cards':
 		case 'game_cards_collection':
 		case 'game_cards_combat':
+		case 'game_cards_mobile':
 		case 'game_cards_explanation':
             $title = "Archivo de mnemógeno | Heaven's Gate";
             $description = "Minijuego coleccionable de cartas de Heaven's Gate con colección guardada en el navegador.";
@@ -585,6 +586,7 @@ $routes = [
 	'game_cards' => ['app/controllers/tool/game_cards.php', 'Archivo de mnemógeno'],
 	'game_cards_collection' => ['app/controllers/tool/game_cards.php', 'Colección de mnemógeno'],
 	'game_cards_combat' => ['app/controllers/tool/game_cards.php', 'Combate del Archivo de Mnemógeno'],
+	'game_cards_mobile' => ['app/controllers/tool/game_cards_mobile.php', 'Archivo móvil de mnemógeno'],
 	'game_cards_explanation' => ['app/controllers/tool/game_cards.php', 'Explicación del Archivo de Mnemógeno'],
 	'schema_sanitizer' => ['app/controllers/tool/schema_sanitizer.php', 'Saneador de esquema'],
 

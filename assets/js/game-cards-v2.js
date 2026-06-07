@@ -4143,7 +4143,7 @@
                 '</div>' +
                 '<div class="hg-daily-boss-summary__body">' +
                     '<strong>' + escapeHtml(card ? card.card_name : bossState.cardName) + '</strong>' +
-                    '<span>Jefe Estigmático persistente. No puede huir ni curarse.</span>' +
+                    '<span>Desafia a este rival mejorado con energias estigmaticas.</span>' +
                     '<div class="hg-daily-boss-summary__hp"><i><b style="width:' + hpPercent.toFixed(2) + '%"></b></i><em>PS ' + formatNumber(bossState.hp) + ' / ' + formatNumber(bossState.maxHp) + '</em></div>' +
                     '<small>Intentos: ' + formatNumber(bossState.attempts) + ' · ATQ ' + formatNumber(bossState.atk) + ' · DEF ' + formatNumber(bossState.def) + (defeated ? ' · Caídas pendientes: ' + defeated : '') + '</small>' +
                 '</div>';

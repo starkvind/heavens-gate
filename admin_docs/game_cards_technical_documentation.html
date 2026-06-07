@@ -190,7 +190,7 @@
                 <tr><td>Estilos</td><td><code>assets/css/game-cards.css</code></td><td>Layout, cartas, sobres, álbum, tabla, combate, modales, responsive y viewport móvil.</td></tr>
                 <tr><td>Seed</td><td><code>app/tools/seed_game_cards.php</code></td><td>Crea/actualiza esquema y genera cartas desde tablas existentes.</td></tr>
                 <tr><td>Admin</td><td><code>app/controllers/admin/admin_game_cards.php</code></td><td>Listado y edición manual de cartas del catálogo.</td></tr>
-                <tr><td>Entrada móvil standalone</td><td><code>game_cards_mobile.php</code></td><td>Página independiente para <code>/games/card-game/mobile</code>.</td></tr>
+                <tr><td>Entrada móvil standalone</td><td><code>app/controllers/tool/game_cards_mobile.php</code></td><td>Página independiente para <code>/games/card-game/mobile</code>.</td></tr>
                 <tr><td>Router y metadatos</td><td><code>app/bootstrap/request_router.php</code>, <code>app/bootstrap/body_work.php</code></td><td>Registran <code>game_cards_combat</code>, la ruta <code>/games/card-game/combat</code>, título y metatags.</td></tr>
                 </tbody>
             </table>
@@ -623,7 +623,7 @@
             <h3>Mobile y viewport</h3>
             <ul>
                 <li><code>.hg-card-mobile-body</code>, <code>.hg-cards--mobile</code>, <code>.hg-mobile-panels</code> y paneles internos fijan ancho máximo al viewport y ocultan overflow horizontal.</li>
-                <li>La vista móvil standalone usa <code>viewport-fit=cover</code> en <code>game_cards_mobile.php</code> y CSS con <code>env(safe-area-inset-*)</code>.</li>
+                <li>La vista móvil standalone usa <code>viewport-fit=cover</code> en <code>app/controllers/tool/game_cards_mobile.php</code> y CSS con <code>env(safe-area-inset-*)</code>.</li>
                 <li>Las pestañas móviles usan las mismas secciones que desktop: sobres, tienda, colección, recuerdos, combate e información. En pantallas estrechas reducen padding y tamaño de iconos para evitar scroll horizontal.</li>
                 <li>La navegación principal y los comandos de carta usan iconos PNG de 64x64 en <code>/public/img/ui/card_game_icons</code>, manteniendo texto solo en <code>title</code> o contexto visible cuando aporta significado.</li>
                 <li>Los inputs dentro de <code>.hg-collection-select</code> comparten estilo con selects para soportar el perfil de combate.</li>
