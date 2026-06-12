@@ -166,7 +166,7 @@ if (!function_exists('hg_gc_render_desktop_info_content')) {
 
         <section class="hg-doc-section">
             <h3>Recordar</h3>
-            <p>Puedes asignar hasta <strong>5 cartas</strong> a rememoración. Generan Mnemones de forma pasiva según su rareza y deben permanecer al menos <strong>24 horas</strong> antes de volver.</p>
+            <p>Puedes asignar hasta <strong>5 cartas</strong> a rememoración. Generan Mnemones de forma pasiva según su rareza y deben permanecer al menos <strong>24 horas</strong> antes de volver. La rememoración sólo puede acumular hasta <strong>10 Mnemones por cada carta única</strong> de tu colección.</p>
         </section>
 
         <section class="hg-doc-section">

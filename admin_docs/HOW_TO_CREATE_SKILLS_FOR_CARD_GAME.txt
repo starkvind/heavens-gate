@@ -9,7 +9,11 @@ Donde se definen
 ----------------
 Fichero principal:
 
-- `assets/js/game-cards.js`
+- `assets/js/game-cards-v2.js`
+
+Archivado:
+
+- `/_old_things/game-cards.js` (legado, no usado en runtime)
 
 Buscar:
 

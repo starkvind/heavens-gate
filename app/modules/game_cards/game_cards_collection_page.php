@@ -145,7 +145,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
         <div class="hg-section-head hg-section-head--split">
             <div>
                 <h3>Recordar</h3>
-                <p>Las cartas que están rememorando generan Mnemones, fragmentos de Mnemógeno. Puedes tener hasta 5 y cada una debe permanecer 24 horas antes de volver.</p>
+                <p>Las cartas que están rememorando generan Mnemones, fragmentos de Mnemógeno. Puedes tener hasta 5 y cada una debe permanecer 24 horas antes de volver. La rememoración sólo puede acumular hasta 10 Mnemones por cada carta única de tu colección.</p>
             </div>
             <button type="button" class="hg-primary-btn" data-work-claim>Reclamar</button>
         </div>
@@ -202,4 +202,4 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 </div>
 
-<script src="/assets/js/game-cards-v2.js?v=20260531-pack-shop-dynamic" defer></script>
+<script src="/assets/js/game-cards-v2.js?v=20260609-memory-cap" defer></script>

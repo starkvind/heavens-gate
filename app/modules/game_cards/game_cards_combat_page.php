@@ -190,4 +190,4 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 </div>
 
-<script src="/assets/js/game-cards-v2.js?v=20260531-pack-shop-dynamic" defer></script>
+<script src="/assets/js/game-cards-v2.js?v=20260609-memory-cap" defer></script>

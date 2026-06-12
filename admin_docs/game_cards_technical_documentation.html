@@ -186,7 +186,7 @@
                 <tr><td>Explicación pública</td><td><code>app/modules/game_cards/game_cards_explanation_page.php</code></td><td>Texto explicativo para usuarios.</td></tr>
                 <tr><td>Catálogo y esquema</td><td><code>app/modules/game_cards/game_cards_catalog.php</code></td><td>Whitelist de tipos, URLs, imágenes fallback, rarezas y SQL de esquema.</td></tr>
                 <tr><td>API JSON</td><td><code>api/game_cards.php</code></td><td>Devuelve cartas activas normalizadas al cliente.</td></tr>
-                <tr><td>Lógica frontend</td><td><code>assets/js/game-cards.js</code></td><td>Gacha, tienda, colección, evolución, mejora, recuerdos, combate, localStorage, filtros, modales propios, sonidos y optimizaciones de render.</td></tr>
+                <tr><td>Lógica frontend</td><td><code>assets/js/game-cards-v2.js</code></td><td>Gacha, tienda, colección, evolución, mejora, recuerdos, combate, localStorage, filtros, modales propios, sonidos y optimizaciones de render. El antiguo <code>assets/js/game-cards.js</code> quedó archivado en <code>_old_things/game-cards.js</code>.</td></tr>
                 <tr><td>Estilos</td><td><code>assets/css/game-cards.css</code></td><td>Layout, cartas, sobres, álbum, tabla, combate, modales, responsive y viewport móvil.</td></tr>
                 <tr><td>Seed</td><td><code>app/tools/seed_game_cards.php</code></td><td>Crea/actualiza esquema y genera cartas desde tablas existentes.</td></tr>
                 <tr><td>Admin</td><td><code>app/controllers/admin/admin_game_cards.php</code></td><td>Listado y edición manual de cartas del catálogo.</td></tr>
@@ -650,7 +650,7 @@
                 <li>Añadir fallback en <code>hg_gc_fallback_image_url()</code>.</li>
                 <li>Añadir el valor al ENUM <code>source_type</code> en <code>hg_gc_schema_sql()</code>, tanto en <code>CREATE TABLE</code> como en <code>ALTER TABLE ... MODIFY source_type</code>.</li>
                 <li>Añadir bloque de seed en <code>hg_gc_seed_rows()</code>.</li>
-                <li>Añadir etiqueta, orden, icono y alias si hace falta en <code>assets/js/game-cards.js</code>.</li>
+                <li>Añadir etiqueta, orden, icono y alias si hace falta en <code>assets/js/game-cards-v2.js</code>.</li>
                 <li>Si el tipo debe aparecer en un sobre específico, actualizar arrays de tipos y <code>cardAllowedForPack()</code>.</li>
                 <li>Ejecutar <code>php -l</code> y luego <code>php app/tools/seed_game_cards.php</code>.</li>
             </ol>

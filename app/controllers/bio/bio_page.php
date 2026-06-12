@@ -1360,7 +1360,7 @@
 		if ($hasDocsLinks) $renderBioTab('docs', 'Documentaci&oacute;n');
 		if ($hasBso) $renderBioTab('bso', 'Banda sonora');
 		if ($hasComments) $renderBioTab('comments', 'Comentarios');
-		$renderBioTab('export', 'Exportar');
+		if ($hasSheet) $renderBioTab('export', 'Exportar');
 		echo "</div>";
 
 	echo "<div class='bioBody'>"; // CUERPO PRINCIPAL DE LA FICHA DE INFORMACION

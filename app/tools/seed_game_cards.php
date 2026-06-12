@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../modules/game_cards/game_cards_catalog.php';
+require_once __DIR__ . '/../modules/game_cards/game_card_rules_catalog.php';
 
 function hg_gc_seed_exec_schema(mysqli $link): void
 {
@@ -9,6 +10,53 @@ function hg_gc_seed_exec_schema(mysqli $link): void
             throw new RuntimeException($link->error);
         }
     }
+}
+
+function hg_gc_seed_sync_settings(mysqli $link): int
+{
+    $catalog = hg_gcr_default_catalog();
+    $settings = isset($catalog['settings']) && is_array($catalog['settings']) ? $catalog['settings'] : [];
+    if (!$settings) {
+        return 0;
+    }
+
+    $sql = "
+        INSERT INTO dim_game_card_settings
+            (setting_key, setting_value, value_type, description)
+        VALUES
+            (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            setting_value = VALUES(setting_value),
+            value_type = VALUES(value_type),
+            description = VALUES(description),
+            updated_at = CURRENT_TIMESTAMP
+    ";
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) {
+        throw new RuntimeException($link->error);
+    }
+
+    $synced = 0;
+    foreach ($settings as $row) {
+        if (!is_array($row) || count($row) < 4) {
+            continue;
+        }
+        $key = (string)$row[0];
+        $value = (string)$row[1];
+        $type = (string)$row[2];
+        $description = (string)$row[3];
+        $stmt->bind_param('ssss', $key, $value, $type, $description);
+        if (!$stmt->execute()) {
+            $err = $stmt->error;
+            $stmt->close();
+            throw new RuntimeException($err);
+        }
+        $synced++;
+    }
+
+    $stmt->close();
+    return $synced;
 }
 
 function hg_gc_seed_reset_catalog(mysqli $link): int
@@ -885,6 +933,7 @@ function hg_gc_generic_seed_cards(): array
 function hg_gc_seed_run(mysqli $link, bool $resetCatalog = false): array
 {
     hg_gc_seed_exec_schema($link);
+    $settingsSynced = hg_gc_seed_sync_settings($link);
     $deleted = $resetCatalog ? hg_gc_seed_reset_catalog($link) : 0;
     $deactivatedExcluded = hg_gc_seed_deactivate_excluded_chronicles($link, hg_gc_seed_excluded_chronicle_ids($link));
     $cards = hg_gc_seed_rows($link);
@@ -908,6 +957,7 @@ function hg_gc_seed_run(mysqli $link, bool $resetCatalog = false): array
 
     return [
         'schema_ready' => true,
+        'settings_synced' => $settingsSynced,
         'reset' => $resetCatalog,
         'deleted' => $deleted,
         'excluded_deactivated' => $deactivatedExcluded,
@@ -938,6 +988,7 @@ function hg_gc_seed_cli_main(array $argv): int
     }
 
     echo "Schema ready.\n";
+    echo "Settings synced: " . (int)$stats['settings_synced'] . "\n";
     if (!empty($stats['reset'])) {
         echo "Catalog reset: " . (int)$stats['deleted'] . " cards deleted.\n";
     }

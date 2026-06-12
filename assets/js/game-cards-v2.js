@@ -106,6 +106,7 @@
     var RECYCLE_VALUES = {};
     var WORK_MAX_ASSIGNMENTS = 0;
     var WORK_MIN_DURATION_MS = 0;
+    var WORK_MNEMONES_PER_UNIQUE = 10;
     var WORK_RARITY_BASE = {};
     var RARITY_UPGRADE_REQUIRED = 0;
     var RARITY_UPGRADE_MIN_QUALITY = 0;
@@ -1318,7 +1319,7 @@
             var items = Array.prototype.slice.call(flatGrid.querySelectorAll('.hg-shop-item'));
             var groupsWrap = document.createElement('div');
             groupsWrap.className = 'hg-shop-groups';
-            var freeGroup = buildShopGroup(uiText('shop.free_group', 'Gratis hoy'), flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile' : '');
+            var freeGroup = buildShopGroup(uiText('shop.free_group', 'Protocolos de gratuidad'), flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile' : '');
             freeGroup.section.setAttribute('data-shop-group', 'free');
             var packsGroup = buildShopGroup('Sobres', flatGrid.classList.contains('hg-shop-grid--mobile') ? 'hg-shop-grid--mobile' : '');
             packsGroup.section.setAttribute('data-shop-group', 'packs');
@@ -1331,7 +1332,7 @@
                 var dailyGift = document.createElement('article');
                 dailyGift.className = 'hg-shop-item';
                 dailyGift.setAttribute('data-shop-daily-gift', '1');
-                dailyGift.innerHTML = '<span>' + escapeHtml(uiText('shop.daily_gift_name', 'Regalo diario')) + '</span><strong>' + escapeHtml(uiText('shop.daily_gift_price_available', 'Gratis - 1 al día')) + '</strong>';
+                dailyGift.innerHTML = '<span>' + escapeHtml(uiText('shop.daily_gift_name', 'Emisión ritual diaria')) + '</span><strong>' + escapeHtml(uiText('shop.daily_gift_price_available', 'Gratis - 1 al día')) + '</strong>';
                 items.unshift(dailyGift);
             }
 
@@ -1393,6 +1394,48 @@
                 : Math.max(0, Math.min(MAX_MNEMONES, clampInt(currency && currency.mnemones, 0))),
             remorias: Math.max(0, Math.min(MAX_REMORIAS, clampInt(currency && currency.remorias, STARTING_REMORIAS)))
         };
+    }
+
+    function uniqueCollectionCount() {
+        return Object.keys(collectionGroups()).length;
+    }
+
+    function currentWorkRewardCap() {
+        return Math.max(STARTING_MNEMONES, Math.min(MAX_MNEMONES, uniqueCollectionCount() * WORK_MNEMONES_PER_UNIQUE));
+    }
+
+    function enforceWorkRewardCap(persist) {
+        if (!state.collection) { loadCollection(); }
+        var changed = false;
+        var assignments = ensureWorkAssignments();
+        var pending = normalizeWorkPendingRewards(state.collection.workPendingRewards);
+        var capacity = currentWorkRewardCap();
+        if (pending > capacity) {
+            pending = capacity;
+            changed = true;
+        }
+        state.collection.workPendingRewards = pending;
+        capacity -= pending;
+        var now = Date.now();
+        Object.keys(assignments).sort(function (a, b) {
+            return normalizeTimestamp(assignments[a].lastClaimAt, 0) - normalizeTimestamp(assignments[b].lastClaimAt, 0);
+        }).forEach(function (id) {
+            var assignment = assignments[id];
+            var entry = workEntryFromAssignment(assignment);
+            if (!entry || entry.rate <= 0 || entry.claimable <= 0) { return; }
+            var allowed = Math.min(entry.claimable, capacity);
+            if (allowed >= entry.claimable) {
+                capacity -= allowed;
+                return;
+            }
+            assignment.lastClaimAt = allowed > 0
+                ? Math.max(0, now - Math.floor((allowed / entry.rate) * 60000))
+                : now;
+            capacity = Math.max(0, capacity - allowed);
+            changed = true;
+        });
+        if (changed && persist) { saveCollection(); }
+        return changed;
     }
 
     function currentMnemones() {
@@ -1528,6 +1571,7 @@
 
     function activeWorkEntries() {
         cleanWorkAssignments(false);
+        enforceWorkRewardCap(false);
         var assignments = ensureWorkAssignments();
         return Object.keys(assignments).map(function (id) {
             return workEntryFromAssignment(assignments[id]);
@@ -1671,6 +1715,7 @@
 
     function claimWorkRewards(targetId) {
         targetId = String(targetId || '');
+        enforceWorkRewardCap(false);
         var entries = activeWorkEntries().filter(function (entry) {
             return !targetId || String(entry.copy.instanceId || '') === targetId;
         });
@@ -1741,6 +1786,7 @@
 
     function stopCopyWork(instanceId) {
         var id = String(instanceId || '');
+        enforceWorkRewardCap(false);
         var assignments = ensureWorkAssignments();
         if (!assignments[id]) { return false; }
         var entry = workEntryFromAssignment(assignments[id]);
@@ -1927,6 +1973,10 @@
                 return;
             }
             item.hidden = false;
+            var nameNode = item.querySelector('span');
+            if (nameNode && !nameNode.classList.contains('hg-shop-item__contents') && !nameNode.classList.contains('hg-shop-item__actions')) {
+                nameNode.textContent = isFree ? uiText('shop.free_pack_name', 'Dispensador mnemónico') : packLabel(kind);
+            }
             var price = isFree ? 0 : packPrice(kind);
             var freeRemaining = isFree ? dailyFreePacksRemaining() : 0;
             var dailyRemaining = !isFree ? dailyShopPackRemaining(kind) : Infinity;
@@ -2003,7 +2053,7 @@
         var remaining = dailyGiftRemaining();
         var nameNode = item.querySelector('span');
         if (nameNode && !nameNode.classList.contains('hg-shop-item__contents')) {
-            nameNode.innerHTML = materialIconHtml(materialKey) + '<span>Regalo diario: ' + escapeHtml(material.label) + '</span>';
+            nameNode.innerHTML = materialIconHtml(materialKey) + '<span>' + escapeHtml(uiText('shop.daily_gift_name', 'Emisión ritual diaria')) + ': ' + escapeHtml(material.label) + '</span>';
         }
         var priceNode = item.querySelector('strong');
         if (priceNode) {
@@ -2465,6 +2515,7 @@
         if (hasOwn(settings, 'skill_material_key')) { SKILL_MATERIAL_KEY = String(settings.skill_material_key || SKILL_MATERIAL_KEY); }
         if (hasOwn(settings, 'work_max_assignments')) { WORK_MAX_ASSIGNMENTS = clampInt(settings.work_max_assignments, WORK_MAX_ASSIGNMENTS); }
         if (hasOwn(settings, 'work_min_duration_ms')) { WORK_MIN_DURATION_MS = clampInt(settings.work_min_duration_ms, WORK_MIN_DURATION_MS); }
+        if (hasOwn(settings, 'work_mnemones_per_unique')) { WORK_MNEMONES_PER_UNIQUE = Math.max(0, clampInt(settings.work_mnemones_per_unique, WORK_MNEMONES_PER_UNIQUE)); }
         if (hasOwn(settings, 'daily_boss_hp_multiplier_min')) { DAILY_BOSS_HP_MULTIPLIER_MIN = clampInt(settings.daily_boss_hp_multiplier_min, DAILY_BOSS_HP_MULTIPLIER_MIN); }
         if (hasOwn(settings, 'daily_boss_hp_multiplier_max')) { DAILY_BOSS_HP_MULTIPLIER_MAX = clampInt(settings.daily_boss_hp_multiplier_max, DAILY_BOSS_HP_MULTIPLIER_MAX); }
         if (hasOwn(settings, 'daily_boss_stigmatic_damage_multiplier')) { DAILY_BOSS_STIGMATIC_DAMAGE_MULTIPLIER = Number(settings.daily_boss_stigmatic_damage_multiplier) || DAILY_BOSS_STIGMATIC_DAMAGE_MULTIPLIER; }
@@ -2622,6 +2673,7 @@
         state.collection.workPendingRewards = normalizeWorkPendingRewards(state.collection.workPendingRewards);
         cleanWorkAssignments(false);
         limitWorkAssignments(false);
+        enforceWorkRewardCap(false);
         saveCollection();
         return state.collection;
     }
@@ -2632,6 +2684,7 @@
         state.collection.packInventory = normalizePackInventory(state.collection.packInventory);
         state.collection.dailyShopPackPurchases = normalizeDailyShopPackPurchases(state.collection.dailyShopPackPurchases);
         state.collection.materialInventory = normalizeMaterialInventory(state.collection.materialInventory);
+        enforceWorkRewardCap(false);
         state.collection.updatedAt = nowIso();
         writeJson(STORAGE_KEY, state.collection);
     }
@@ -3203,8 +3256,7 @@
             renderCombatProfile();
             return;
         }
-        var groups = collectionGroups();
-        var uniqueCount = Object.keys(groups).length;
+        var uniqueCount = uniqueCollectionCount();
         var totalCopies = state.collection && Array.isArray(state.collection.ownedCards) ? state.collection.ownedCards.length : 0;
         if (els.uniqueCounter) { els.uniqueCounter.textContent = uniqueCount + ' / ' + state.catalog.length; }
         if (els.totalCopiesCounter) { els.totalCopiesCounter.textContent = String(totalCopies); }
