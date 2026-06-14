@@ -2228,9 +2228,7 @@
 }
 
 .hg-cards.is-daily-boss-completed .hg-combat-team-picker,
-.hg-cards.is-daily-boss-completed .hg-combat-setup > [data-combat-start],
-.hg-cards.is-daily-boss-completed .hg-combat-stage,
-.hg-cards.is-daily-boss-completed .hg-combat-log {
+.hg-cards.is-daily-boss-completed .hg-combat-setup > [data-combat-start] {
     display: none;
 }
 
@@ -2541,12 +2539,56 @@
     aspect-ratio: 4 / 3;
     min-height: 520px;
     overflow: hidden;
-    background:
+    background: var(--hg-combat-background,
         linear-gradient(180deg, rgba(10, 35, 58, 0.84) 0 52%, rgba(21, 48, 34, 0.9) 52%),
-        repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 18px);
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 18px));
     border: 1px solid rgba(120, 156, 205, 0.36);
     border-radius: 8px;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 22px 52px rgba(0,0,0,0.36);
+}
+
+.hg-combat-rival-intro {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(180deg, rgba(5, 10, 22, 0.18), rgba(5, 10, 22, 0.55));
+    pointer-events: none;
+}
+
+.hg-combat-rival-intro__panel {
+    display: grid;
+    justify-items: center;
+    gap: 18px;
+    width: min(76%, 420px);
+    padding: 26px 22px;
+    background: rgba(6, 12, 26, 0.9);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 16px;
+    box-shadow: 0 26px 44px rgba(0,0,0,0.34);
+}
+
+.hg-combat-rival-intro__sprite {
+    width: 118px;
+    height: 118px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.04);
+    animation: hg-combat-rival-challenge 1050ms cubic-bezier(.18,.8,.24,1) both;
+}
+
+.hg-combat-rival-intro__panel p {
+    margin: 0;
+    color: #fff3c4;
+    font-size: 1.02rem;
+    font-weight: 800;
+    line-height: 1.35;
+    text-align: center;
+    text-wrap: balance;
+}
+
+.hg-combat-rival-intro.is-leaving {
+    animation: hg-combat-rival-fade 420ms ease forwards;
 }
 
 .hg-combat-field {
@@ -2676,6 +2718,46 @@
 .hg-combat-hud strong {
     color: #ffffff;
     font-size: 0.95rem;
+}
+
+.hg-combat-rival {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 7px 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 8px;
+}
+
+.hg-combat-rival img {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 10px;
+    background: rgba(7, 12, 23, 0.88);
+    object-fit: cover;
+}
+
+.hg-combat-rival span,
+.hg-combat-rival b,
+.hg-combat-rival small {
+    display: block;
+    min-width: 0;
+}
+
+.hg-combat-rival b {
+    color: #f6e6a7;
+    font-size: 0.82rem;
+    line-height: 1.2;
+}
+
+.hg-combat-rival small {
+    margin-top: 2px;
+    color: #a8b3bd;
+    font-size: 0.72rem;
+    line-height: 1.2;
 }
 
 .hg-combat-hud small {
@@ -2915,6 +2997,8 @@
 }
 
 .hg-combat-end__panel {
+    display: grid;
+    gap: 12px;
     width: min(420px, 100%);
     padding: 22px;
     text-align: center;
@@ -2942,16 +3026,24 @@
     font-weight: 800;
 }
 
+.hg-combat-end__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
 .hg-combat-end__restart {
-    min-height: 42px;
-    margin-top: 18px;
-    padding: 9px 16px;
+    min-height: 46px;
+    margin-top: 0;
+    padding: 11px 16px;
     color: #111111;
     background: #ffc400;
     border: 1px solid #ffe27a;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 900;
+    line-height: 1.2;
 }
 
 .hg-combat-end__restart:hover,
@@ -2959,6 +3051,12 @@
     filter: brightness(1.08);
     outline: 2px solid rgba(149, 216, 209, 0.86);
     outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+    .hg-combat-end__actions {
+        grid-template-columns: 1fr;
+    }
 }
 
 .hg-combat-damage {
@@ -5031,6 +5129,17 @@
     0% { opacity: 0; transform: translate(-170px, 156px) scale(0.12); filter: brightness(1.8) blur(2px); }
     68% { opacity: 1; transform: translate(4px, -4px) scale(1.04); filter: brightness(1.2) blur(0); }
     100% { opacity: 1; transform: translate(0, 0) scale(1); filter: brightness(1); }
+}
+
+@keyframes hg-combat-rival-challenge {
+    0% { opacity: 0; transform: translateX(-120px) scale(0.78) rotate(-8deg); filter: blur(2px) brightness(1.4); }
+    58% { opacity: 1; transform: translateX(14px) scale(1.06) rotate(2deg); filter: blur(0) brightness(1.08); }
+    100% { opacity: 1; transform: translateX(0) scale(1) rotate(0); filter: blur(0) brightness(1); }
+}
+
+@keyframes hg-combat-rival-fade {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 @keyframes hg-combat-damage-pop {

@@ -74,12 +74,26 @@
             nemesis: 3
         }
     };
+    var TRAINING_RIVAL_NAMES = {
+        apprentice: ['Aitor', 'Bruna', 'Ciro', 'Dalia', 'Enol'],
+        hobbyist: ['Nadia', 'Orson', 'Petra', 'Rufino', 'Silka'],
+        expert: ['Kael', 'Mireia', 'Nox', 'Selene', 'Tíber'],
+        master: ['Astra', 'Darian', 'Helia', 'Mordec', 'Vesper'],
+        nemesis: ['Abbadon', 'Caliope', 'Ishtar', 'Medea', 'Zarek']
+    };
+    var TRAINING_RIVAL_TITLES = {
+        apprentice: 'Novato del círculo',
+        hobbyist: 'Duelista amateur',
+        expert: 'Operativo veterano',
+        master: 'Instructor de combate',
+        nemesis: 'Nemesis ritual'
+    };
     var DAILY_BOSS_CARD_REWARD = {
         rarity: 'stigmatic'
     };
     var DAILY_BOSS_LOOT_TABLE = {
-        mnemones: { min: 500, max: 1200 },
-        remorias: { min: 120, max: 420 },
+        mnemones: { min: 1000, max: 4000 },
+        remorias: { min: 500, max: 1500 },
         guaranteedMaterialDrop: [
             { key: 'babylon_shred', chance: 0.12, amount: 1 },
             { key: 'stigma_orb', chance: 0.30, amount: 1 },
@@ -264,6 +278,10 @@
         combatMessage: document.querySelector('[data-combat-message]'),
         combatPlayerCard: document.querySelector('[data-combat-player-card]'),
         combatEnemyCard: document.querySelector('[data-combat-enemy-card]'),
+        combatEnemyRival: document.querySelector('[data-combat-enemy-rival]'),
+        combatEnemyRivalAvatar: document.querySelector('[data-combat-enemy-rival-avatar]'),
+        combatEnemyRivalName: document.querySelector('[data-combat-enemy-rival-name]'),
+        combatEnemyRivalTitle: document.querySelector('[data-combat-enemy-rival-title]'),
         combatPlayerName: document.querySelector('[data-combat-player-name]'),
         combatEnemyName: document.querySelector('[data-combat-enemy-name]'),
         combatPlayerHp: document.querySelector('[data-combat-player-hp]'),
@@ -856,7 +874,15 @@
     function destroyDailyBossDefeatedCards(clearAttempt) {
         var bossState = state.dailyBoss || loadDailyBossState();
         if (!bossState || !bossState.activeAttempt) { return 0; }
-        var defeated = bossState.activeAttempt.defeatedCopyIds || [];
+        var risked = {};
+        (bossState.activeAttempt.riskedCopyIds || []).forEach(function (id) {
+            id = String(id || '');
+            if (id) { risked[id] = true; }
+        });
+        var defeated = (bossState.activeAttempt.defeatedCopyIds || []).filter(function (id, index, list) {
+            id = String(id || '');
+            return !!id && !!risked[id] && list.indexOf(id) === index;
+        });
         var count = destroyDailyBossCopies(defeated);
         if (clearAttempt !== false) {
             bossState.activeAttempt = null;
@@ -1385,14 +1411,23 @@
     }
 
     function normalizeCurrency(currency) {
+        var limitsReady = MAX_MNEMONES > 0 && MAX_REMORIAS > 0;
         if (!currency || typeof currency !== 'object') {
             return { mnemones: STARTING_MNEMONES, remorias: STARTING_REMORIAS };
+        }
+        var mnemones = clampInt(currency && currency.mnemones, 0);
+        var remorias = clampInt(currency && currency.remorias, STARTING_REMORIAS);
+        if (!limitsReady) {
+            return {
+                mnemones: Math.max(0, mnemones),
+                remorias: Math.max(0, remorias)
+            };
         }
         return {
             mnemones: typeof currency.mnemones === 'undefined'
                 ? STARTING_MNEMONES
-                : Math.max(0, Math.min(MAX_MNEMONES, clampInt(currency && currency.mnemones, 0))),
-            remorias: Math.max(0, Math.min(MAX_REMORIAS, clampInt(currency && currency.remorias, STARTING_REMORIAS)))
+                : Math.max(0, Math.min(MAX_MNEMONES, mnemones)),
+            remorias: Math.max(0, Math.min(MAX_REMORIAS, remorias))
         };
     }
 
@@ -2656,12 +2691,14 @@
 
     function loadCollection() {
         var data = readMigratedJson(STORAGE_KEY, LEGACY_STORAGE_KEY, null);
+        var shouldPersist = false;
         if (!data) {
             state.collection = createEmptyCollection();
             return state.collection;
         }
         try {
             state.collection = validateCollection(data);
+            shouldPersist = true;
         } catch (e) {
             state.collection = createEmptyCollection();
         }
@@ -2674,7 +2711,7 @@
         cleanWorkAssignments(false);
         limitWorkAssignments(false);
         enforceWorkRewardCap(false);
-        saveCollection();
+        if (shouldPersist) { saveCollection(); }
         return state.collection;
     }
 
@@ -2788,6 +2825,7 @@
         var hpBounds = statBoundsForRarity(card, rarity, 'hp');
         var atkBounds = statBoundsForRarity(card, rarity, 'atk');
         var defBounds = statBoundsForRarity(card, rarity, 'def');
+        var baseRarity = normalizeRarity(card && card.card_rarity, 'common');
         var copy = {
             instanceId: options.instanceId || instanceId(),
             cardId: card.card_id,
@@ -2796,6 +2834,7 @@
             atk: rollStat(atkBounds[0], atkBounds[1]),
             def: rollStat(defBounds[0], defBounds[1]),
             obtainedAt: options.obtainedAt || nowIso(),
+            upgraded: !!options.upgraded || rarity !== baseRarity,
             moves: normalizeCopyMoveIds(Array.isArray(options.moves) ? options.moves : []),
             moveRollRarity: normalizeRarity(options.moveRollRarity || rarity, rarity)
         };
@@ -3212,6 +3251,13 @@
         return clampQuality(((value - min) / (max - min)) * 100, 0);
     }
 
+    function copyUpgradedFlag(copy, card) {
+        if (!copy) { return false; }
+        if (copy.upgraded === true || copy.upgraded === 1 || copy.upgraded === '1') { return true; }
+        if (!card) { return false; }
+        return copyRarity(copy, card) !== normalizeRarity(card.card_rarity, 'common');
+    }
+
     function qualityScore(copy, card) {
         if (!copy || !card) { return 0; }
         return clampQuality(copy.quality, calculatedQualityScore(copy, card));
@@ -3224,6 +3270,24 @@
             if (!copy || typeof copy !== 'object') { return; }
             var card = state.catalogById[String(copy.cardId || '')];
             if (!card) { return; }
+            var upgraded = copyUpgradedFlag(copy, card);
+            if (!!copy.upgraded !== upgraded) {
+                copy.upgraded = upgraded;
+                changed = true;
+            }
+            if (upgraded) {
+                var upgradedQuality = clampQuality(copy.quality, null);
+                if (upgradedQuality !== null) {
+                    if (copy.quality !== upgradedQuality) {
+                        copy.quality = upgradedQuality;
+                        changed = true;
+                    }
+                } else {
+                    copy.quality = calculatedQualityScore(copy, card);
+                    changed = true;
+                }
+                return;
+            }
             var rarity = copyRarity(copy, card);
             if (copy.rarity !== rarity) {
                 copy.rarity = rarity;
@@ -4292,7 +4356,12 @@
 
     function combatDifficultyConfig() {
         var value = els.combatDifficulty ? els.combatDifficulty.value : 'apprentice';
-        return COMBAT_DIFFICULTY_TABLE[value] || COMBAT_DIFFICULTY_TABLE.apprentice;
+        var config = COMBAT_DIFFICULTY_TABLE[value] || COMBAT_DIFFICULTY_TABLE.apprentice;
+        return {
+            key: String(value || 'apprentice'),
+            label: String(config.label || value || 'Aprendiz'),
+            weights: config.weights || {}
+        };
     }
 
     function combatRewardMultiplier() {
@@ -4326,6 +4395,10 @@
             moveState: createMoveState(moves),
             combatBuffs: { atk: 0, def: 0 },
             combatDebuffs: { atk: 0, def: 0 },
+            aiMemory: {
+                lastDebuffedTurn: -999,
+                switchLockUntilTurn: -1
+            },
             defending: false,
             defeated: false
         };
@@ -4361,6 +4434,37 @@
         return Math.max(0, clampInt(map[String(rarity || 'common')], rarityRank(rarity) + 1));
     }
 
+    function combatDifficultyRank(key) {
+        var order = ['apprentice', 'hobbyist', 'expert', 'master', 'nemesis'];
+        var index = order.indexOf(String(key || 'apprentice'));
+        return index === -1 ? 0 : index;
+    }
+
+    function enemyDifficultyUsesMoves(config) {
+        return combatDifficultyRank(config && config.key) >= combatDifficultyRank('expert');
+    }
+
+    function currentCombatDifficultyKey() {
+        return state.combat && state.combat.difficultyKey
+            ? String(state.combat.difficultyKey)
+            : String((combatDifficultyConfig() && combatDifficultyConfig().key) || 'apprentice');
+    }
+
+    function combatEnemyTrainerName() {
+        if (!state.combat) { return uiText('combat.enemy_name', 'El rival'); }
+        var rival = state.combat.rivalProfile || state.combat.enemyTrainer || null;
+        if (rival && rival.name) { return String(rival.name); }
+        return uiText('combat.enemy_name', 'El rival');
+    }
+
+    function currentCombatDifficultyRank() {
+        return combatDifficultyRank(currentCombatDifficultyKey());
+    }
+
+    function currentCombatTurnNumber() {
+        return state.combat && state.combat.ai ? clampInt(state.combat.ai.turnNumber, 0) : 0;
+    }
+
     function pickWeightedEnemyRarity(config) {
         var weights = config.weights || RARITY_WEIGHTS;
         var total = NATURAL_RARITY_ORDER.reduce(function (sum, rarity) {
@@ -4376,37 +4480,91 @@
         return 'common';
     }
 
-    function pickEnemyCatalogCard(config, excluded) {
-        for (var attempt = 0; attempt < COMBAT_ADVANCED_RULES.enemyPickAttempts; attempt++) {
-            var rarity = pickWeightedEnemyRarity(config);
-            var pool = state.catalog.filter(function (card) {
-                return card.card_rarity === rarity && card.card_rarity !== 'stigmatic' && !excluded[String(card.card_id)];
-            });
-            if (pool.length) { return pool[Math.floor(Math.random() * pool.length)]; }
-        }
+    function pickEnemyCatalogCard(excluded) {
+        var pool = state.catalog.filter(function (card) {
+            return card.card_rarity !== 'stigmatic' && !excluded[String(card.card_id)];
+        });
+        if (pool.length) { return pool[Math.floor(Math.random() * pool.length)]; }
         var fallback = state.catalog.filter(function (card) {
             return card.card_rarity !== 'stigmatic' && !excluded[String(card.card_id)];
         });
         return fallback.length ? fallback[Math.floor(Math.random() * fallback.length)] : null;
     }
 
+    function ensureEnemyCopyMoves(copy, card, rarity, config) {
+        if (!copy || !card || !enemyDifficultyUsesMoves(config)) { return; }
+        copy.moveRollRarity = normalizeRarity(rarity || copy.rarity, copy.rarity || 'common');
+        copy.moves = normalizeCopyMoveIds(copy.moves);
+        if (copy.moves.length) { return; }
+        var moveIds = initialMoveIdsForCopy(card, copy.moveRollRarity);
+        if (!moveIds.length) {
+            var libraryIds = Object.keys(MOVE_LIBRARY);
+            if (!libraryIds.length) { return; }
+            var start = Math.abs(clampInt(card && card.card_id, 1) - 1) % libraryIds.length;
+            moveIds = [libraryIds[start]];
+        }
+        copy.moves = normalizeCopyMoveIds(moveIds).slice(0, 3);
+    }
+
+    function rivalPalette(seed) {
+        var palettes = [
+            { skin: '#f2d2b6', hair: '#3b241a', cloth: '#305b8f', aura: '#9fd2ff' },
+            { skin: '#d7b08a', hair: '#101826', cloth: '#7c2f2f', aura: '#ffbf8a' },
+            { skin: '#f1c7d8', hair: '#5b2a68', cloth: '#264653', aura: '#d9b8ff' },
+            { skin: '#c48a67', hair: '#ddd7c5', cloth: '#4f772d', aura: '#c7f0a6' },
+            { skin: '#e8d8b0', hair: '#7b3f00', cloth: '#5a189a', aura: '#ffd166' }
+        ];
+        return palettes[Math.abs(clampInt(seed, 0)) % palettes.length];
+    }
+
+    function buildTrainingRivalSprite(seed) {
+        var palette = rivalPalette(seed);
+        var svg = '' +
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 84 84">' +
+                '<defs>' +
+                    '<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">' +
+                        '<stop offset="0%" stop-color="#08111f"/>' +
+                        '<stop offset="100%" stop-color="' + palette.cloth + '"/>' +
+                    '</linearGradient>' +
+                '</defs>' +
+                '<rect width="84" height="84" rx="16" fill="url(#bg)"/>' +
+                '<circle cx="42" cy="28" r="17" fill="' + palette.hair + '" opacity="0.28"/>' +
+                '<circle cx="42" cy="29" r="13" fill="' + palette.skin + '"/>' +
+                '<path d="M22 78c4-16 17-23 20-23s16 7 20 23" fill="' + palette.cloth + '"/>' +
+                '<path d="M28 23c3-10 11-14 14-14s11 4 14 14c-3-2-9-5-14-5s-11 3-14 5z" fill="' + palette.hair + '"/>' +
+                '<circle cx="37" cy="30" r="1.7" fill="#111"/>' +
+                '<circle cx="47" cy="30" r="1.7" fill="#111"/>' +
+                '<path d="M37 37c2 2 8 2 10 0" stroke="#7a3d3d" stroke-width="2" stroke-linecap="round" fill="none"/>' +
+                '<circle cx="66" cy="18" r="8" fill="' + palette.aura + '" opacity="0.35"/>' +
+            '</svg>';
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+
+    function createTrainingRivalProfile(config, enemyUnits) {
+        var key = String(config && config.key || 'apprentice');
+        var names = TRAINING_RIVAL_NAMES[key] || TRAINING_RIVAL_NAMES.apprentice;
+        var seed = Date.now() + (enemyUnits && enemyUnits[0] && enemyUnits[0].card ? enemyUnits[0].card.card_id : 0);
+        return {
+            name: names[Math.abs(clampInt(seed, 0)) % names.length] || 'Rival',
+            title: TRAINING_RIVAL_TITLES[key] || 'Rival de entrenamiento',
+            spriteUrl: buildTrainingRivalSprite(seed)
+        };
+    }
+
     function createEnemyCard(config, index, excluded) {
-        var card = pickEnemyCatalogCard(config, excluded || {});
+        var rarity = pickWeightedEnemyRarity(config);
+        var card = pickEnemyCatalogCard(excluded || {});
         if (!card) { return null; }
         excluded[String(card.card_id)] = true;
-        var hp = rollStat(card.hp_min, card.hp_max);
-        var atk = rollStat(card.atk_min, card.atk_max);
-        var def = rollStat(card.def_min, card.def_max);
+        var copy = createCardCopy(card, {
+            instanceId: 'enemy-' + Date.now() + '-' + index,
+            rarity: rarity,
+            obtainedAt: nowIso()
+        });
+        ensureEnemyCopyMoves(copy, card, rarity, config);
         return {
-            card: card,
-            copy: {
-                instanceId: 'enemy-' + Date.now() + '-' + index,
-                cardId: card.card_id,
-                hp: hp,
-                atk: atk,
-                def: def,
-                obtainedAt: nowIso()
-            }
+            card: cardForCopy(card, copy),
+            copy: copy
         };
     }
 
@@ -4453,27 +4611,44 @@
             setCombatMessage(uiText('combat.no_catalog_for_enemy', 'No hay suficientes cartas en el catálogo para generar rival.'));
             return false;
         }
+        var rivalProfile = createTrainingRivalProfile(config, enemyUnits);
         state.combat = {
             mode: 'training',
+            difficultyKey: config.key,
             difficultyLabel: config.label,
             rewardMultiplier: combatRewardMultiplier(),
+            rivalProfile: rivalProfile,
+            enemyTrainer: rivalProfile,
+            background: {
+                css: '',
+                theme: ''
+            },
+            ai: {
+                turnNumber: 0,
+                enemySwitchCooldownUntilTurn: -1
+            },
             player: playerUnits,
             enemy: enemyUnits,
             playerActive: 0,
             enemyActive: 0,
+            introActive: true,
             over: false,
             result: '',
             reward: 0,
             log: []
         };
         pushCombatLog(uiText('combat.training_log', 'Entrenamiento contra {label}.', { label: config.label }));
-        pushCombatLog(combatPlayerName() + ' saca una carta.');
-        pushCombatLog(uiText('combat.enemy_draw', 'El rival saca una carta.'));
-        setCombatMessage(uiText('combat.started', '¡Combate iniciado!'));
         showCombatScreen('battle');
         renderCombatBattle();
-        animateCombatEntry('player');
-        animateCombatEntry('enemy');
+        playCombatRivalIntro(function () {
+            if (!state.combat || state.combat.over) { return; }
+            pushCombatLog(combatPlayerName() + ' saca una carta.');
+            pushCombatLog(combatEnemyTrainerName() + ' saca una carta.');
+            setCombatMessage(uiText('combat.started', '¡Combate iniciado!'));
+            renderCombatBattle();
+            animateCombatEntry('player');
+            animateCombatEntry('enemy');
+        });
         return true;
     }
 
@@ -4546,8 +4721,17 @@
         var minDebuffRatio = Math.max(0, Math.min(1, Number(limitRatio) || MOVE_DEBUFF_MIN_RATIO));
         var nextDebuff = Math.min(1 - minDebuffRatio, currentDebuff + amount);
         unit.combatDebuffs[statKey] = nextDebuff;
+        if (unit.aiMemory && state.combat && state.combat.ai) {
+            unit.aiMemory.lastDebuffedTurn = currentCombatTurnNumber();
+        }
         recalculateCombatStats(unit);
         return Math.max(0, nextDebuff - currentDebuff);
+    }
+
+    function clearCombatDebuffs(unit) {
+        if (!unit) { return; }
+        unit.combatDebuffs = { atk: 0, def: 0 };
+        recalculateCombatStats(unit);
     }
 
     function healCombatUnit(unit, amount) {
@@ -4891,9 +5075,31 @@
         return parts.join(', ');
     }
 
+    function dailyBossRewardSummary(reward) {
+        if (!reward || reward.alreadyClaimed || !reward.card || !reward.loot) { return ''; }
+        var parts = [
+            'Carta: ' + reward.card.card_name
+        ];
+        if (reward.loot.mnemones) {
+            parts.push('Mnemones: +' + formatNumber(reward.loot.mnemones));
+        }
+        if (reward.loot.remorias) {
+            parts.push('Remorias: +' + formatNumber(reward.loot.remorias));
+        }
+        if (Array.isArray(reward.loot.materials) && reward.loot.materials.length) {
+            parts.push('Objetos: ' + reward.loot.materials.map(function (item) {
+                return '+' + item.amount + ' ' + item.label;
+            }).join(', '));
+        }
+        if (reward.casualties) {
+            parts.push('Cartas perdidas: ' + formatNumber(reward.casualties));
+        }
+        return parts.join(' · ');
+    }
+
     function destroyDailyBossTeam() {
         if (!state.combat || state.combat.mode !== 'daily-boss') { return 0; }
-        var count = destroyDailyBossCopies(state.combat.riskedCopyIds || []);
+        var count = destroyDailyBossDefeatedCards(false);
         finishDailyBossAttempt(false);
         return count;
     }
@@ -4943,6 +5149,7 @@
         if (!state.combat) { return false; }
         var living = livingCombatIndexes(side);
         if (!living.length) {
+            state.activeCombatScreen = 'battle';
             state.combat.over = true;
             if (side === 'enemy') {
                 state.combat.enemyActive = -1;
@@ -4954,6 +5161,8 @@
                 var reward = null;
                     if (state.combat.mode === 'daily-boss') {
                         reward = awardDailyBossVictory();
+                        state.combat.dailyBossRewardData = reward || null;
+                        state.combat.dailyBossCasualties = reward && reward.casualties ? clampInt(reward.casualties, 0) : 0;
 
                         state.combat.reward = reward && reward.copy ? reward.copy.instanceId : '';
                         state.combat.result = 'victory';
@@ -4978,15 +5187,18 @@
                         state.combat.result = 'victory';
 
                         setCombatMessage(uiText('combat.training_victory', 'Victoria de entrenamiento. +{reward} Mnemones.', { reward: reward }));
-                        pushCombatLog(uiText('combat.training_victory_log', 'Has vencido al equipo rival. Ganas {reward} Mnemones.', { reward: reward }));
+                        pushCombatLog('Has vencido a ' + combatEnemyTrainerName() + '. Ganas ' + reward + ' Mnemones.');
                     }
             } else {
                 state.combat.result = 'defeat';
                 state.combat.reward = 0;
                 var destroyed = state.combat.mode === 'daily-boss' ? destroyDailyBossTeam() : 0;
-                setCombatMessage(state.combat.mode === 'daily-boss' ? 'Derrota contra el Jefe diario. ' + destroyed + ' cartas perdidas.' : 'Derrota de entrenamiento.');
+                state.combat.dailyBossCasualties = state.combat.mode === 'daily-boss' ? clampInt(destroyed, 0) : 0;
+                setCombatMessage(state.combat.mode === 'daily-boss'
+                    ? uiText('combat.daily_defeat_casualties', 'Derrota contra el Jefe diario. Cartas derrotadas perdidas: {count}.', { count: destroyed })
+                    : 'Derrota de entrenamiento.');
                 if (state.combat.mode === 'daily-boss') {
-                    pushCombatLog(uiText('combat.daily_destroy_team_log', 'El Jefe diario consume tu equipo. Pierdes {count} cartas.', { count: destroyed }));
+                    pushCombatLog(uiText('combat.daily_destroy_team_log', 'Cartas derrotadas por el Jefe diario y perdidas: {count}.', { count: destroyed }));
                 }
                 pushCombatLog(uiText('combat.training_defeat_log', 'Tu equipo ha caído. No pierdes cartas en entrenamiento.'));
             }
@@ -4994,7 +5206,7 @@
         }
         if (side === 'enemy') {
             state.combat.enemyActive = living[0];
-            pushCombatLog(uiText('combat.enemy_draw', 'El rival saca una carta.'));
+            pushCombatLog(combatEnemyTrainerName() + ' saca una carta.');
         } else {
             state.combat.playerActive = living[0];
             pushCombatLog(combatPlayerName() + ' saca una carta.');
@@ -5093,6 +5305,7 @@
         setCombatBusy(true);
         player.defending = false;
         setMoveCooldown(player, move);
+        playSkillSound();
 
         if (Math.random() > move.accuracy) {
             pushCombatLog(player.card.card_name + ' usa ' + move.label + ', pero falla.');
@@ -5189,7 +5402,11 @@
         var unit = state.combat.player[index];
         if (!unit || unit.defeated || unit.hp <= 0 || index === state.combat.playerActive) { return; }
         setCombatBusy(true);
-        activeCombatUnit('player').defending = false;
+        var outgoing = activeCombatUnit('player');
+        if (outgoing) {
+            outgoing.defending = false;
+            clearCombatDebuffs(outgoing);
+        }
         state.combat.playerActive = index;
         pushCombatLog(uiText('combat.switch_log', 'Cambias a {card}.', { card: unit.card.card_name }));
         playCombatSound('switch');
@@ -5219,10 +5436,136 @@
             setCombatMessage(uiText('combat.no_daily_flee', 'No puedes huir del Jefe diario.'));
             return;
         }
+        state.activeCombatScreen = 'battle';
         state.combat.over = true;
         pushCombatLog(uiText('combat.flee_log', 'Huyes del entrenamiento. Sin coste y sin pérdida de cartas.'));
         setCombatMessage(uiText('combat.flee_done', 'Combate finalizado porque has huido.'));
         renderCombatBattle();
+    }
+
+    function enemyUsableMoves(enemy) {
+        if (!enemy || !Array.isArray(enemy.moves)) { return []; }
+        return enemy.moves.filter(function (move) {
+            if (!move || moveCooldownRemaining(enemy, move) > 0) { return false; }
+            if (move.type === 'damage') { return move.target === 'enemy'; }
+            if (move.type === 'buff') { return move.target === 'self'; }
+            return false;
+        });
+    }
+
+    function enemyMoveScore(move, enemy, player) {
+        if (!move || !enemy || !player) { return -1; }
+        var difficultyRank = currentCombatDifficultyRank();
+        if (move.type === 'buff') {
+            var maxRatio = Math.max(1, Number(move.effect && move.effect.maxRatio) || MOVE_BUFF_MAX_RATIO || 1);
+            var atkCap = Math.max(0, maxRatio - 1);
+            var currentAtkBuff = enemy.combatBuffs && Number(enemy.combatBuffs.atk) || 0;
+            if (currentAtkBuff >= atkCap) { return -1; }
+            return 8 + (difficultyRank * 3) + ((enemy.hp / Math.max(1, enemy.maxHp)) * (difficultyRank >= 3 ? 5 : 2));
+        }
+        var score = combatMoveDamage(enemy, player, move);
+        if (score >= player.hp) { score += 18 + (difficultyRank * 8); }
+        var effect = move.effect || {};
+        if (difficultyRank >= 2 && effect.kind === 'debuff_atk' && player.atk > Math.round(player.baseAtk * MOVE_DEBUFF_MIN_RATIO)) { score += 4 + difficultyRank; }
+        if (difficultyRank >= 2 && effect.kind === 'debuff_def' && player.def > Math.round(player.baseDef * MOVE_DEBUFF_MIN_RATIO)) { score += 4 + difficultyRank; }
+        if (difficultyRank >= 1 && effect.kind === 'shield_break' && player.shields > 0) { score += 3 + difficultyRank; }
+        if (difficultyRank >= 2 && effect.kind === 'lifesteal' && enemy.hp < enemy.maxHp) { score += 2 + difficultyRank; }
+        if (effect.kind === 'recoil') { score -= difficultyRank >= 4 ? 0 : 4; }
+        return score;
+    }
+
+    function pickEnemyMove(enemy, player) {
+        var available = enemyUsableMoves(enemy);
+        if (!available.length) { return null; }
+        var difficultyRank = currentCombatDifficultyRank();
+        if (difficultyRank <= 0) {
+            return Math.random() < 0.35 ? available[Math.floor(Math.random() * available.length)] : null;
+        }
+        if (difficultyRank === 1) {
+            if (Math.random() < 0.45) {
+                return available[Math.floor(Math.random() * available.length)];
+            }
+        }
+        var best = null;
+        var bestScore = combatDamage(enemy, player);
+        available.forEach(function (move) {
+            var score = enemyMoveScore(move, enemy, player);
+            if (score > bestScore) {
+                best = move;
+                bestScore = score;
+            }
+        });
+        return best;
+    }
+
+    function enemySwitchCandidates() {
+        if (!state.combat) { return []; }
+        var currentTurn = currentCombatTurnNumber();
+        return state.combat.enemy.map(function (unit, index) {
+            return { unit: unit, index: index };
+        }).filter(function (entry) {
+            return entry.unit
+                && entry.index !== state.combat.enemyActive
+                && !entry.unit.defeated
+                && entry.unit.hp > 0
+                && (!entry.unit.aiMemory || clampInt(entry.unit.aiMemory.switchLockUntilTurn, -1) < currentTurn);
+        });
+    }
+
+    function enemySwitchScore(candidate, player) {
+        if (!candidate || !player) { return -9999; }
+        var unit = candidate.unit;
+        var hpRatio = unit.hp / Math.max(1, unit.maxHp);
+        var defenseValue = effectiveDef(unit);
+        var attackValue = combatDamage(unit, player);
+        return (hpRatio * 18) + (defenseValue * 0.55) + (attackValue * 0.35) + (unit.shields * 5);
+    }
+
+    function pickEnemySwitch(enemy, player) {
+        var difficultyRank = currentCombatDifficultyRank();
+        if (difficultyRank <= 1) { return null; }
+        var currentTurn = currentCombatTurnNumber();
+        if (state.combat && state.combat.ai && clampInt(state.combat.ai.enemySwitchCooldownUntilTurn, -1) >= currentTurn) {
+            return null;
+        }
+        var candidates = enemySwitchCandidates();
+        if (!candidates.length) { return null; }
+        var currentHpRatio = enemy.hp / Math.max(1, enemy.maxHp);
+        var currentPressure = combatDamage(enemy, player);
+        var currentDefense = Math.max(effectiveDef(enemy), enemy.baseDef || 0);
+        var desperate = currentHpRatio <= (difficultyRank >= 4 ? 0.45 : (difficultyRank >= 3 ? 0.36 : 0.3))
+            || (enemy.shields === 0 && currentHpRatio <= (difficultyRank >= 4 ? 0.55 : 0.42));
+        var justDebuffed = enemy.aiMemory && (currentTurn - clampInt(enemy.aiMemory.lastDebuffedTurn, -999)) <= 0;
+        if (justDebuffed && !desperate) { return null; }
+        var best = null;
+        var bestScore = -9999;
+        candidates.forEach(function (candidate) {
+            var score = enemySwitchScore(candidate, player);
+            if (score > bestScore) {
+                best = candidate;
+                bestScore = score;
+            }
+        });
+        if (!best) { return null; }
+        var bestUnit = best.unit;
+        var betterDefense = effectiveDef(bestUnit) >= currentDefense + (difficultyRank >= 4 ? 6 : (difficultyRank >= 3 ? 9 : 12));
+        var saferHp = (bestUnit.hp / Math.max(1, bestUnit.maxHp)) >= currentHpRatio + (difficultyRank >= 4 ? 0.1 : (difficultyRank >= 3 ? 0.16 : 0.22));
+        var strongerPressure = combatDamage(bestUnit, player) >= currentPressure + (difficultyRank >= 4 ? 6 : (difficultyRank >= 3 ? 10 : 14));
+        if (!desperate && !betterDefense && !saferHp && !strongerPressure) { return null; }
+        if (!desperate && bestScore < ((currentHpRatio * 18) + (currentDefense * 0.55) + (currentPressure * 0.35) + (enemy.shields * 5) + (difficultyRank >= 4 ? 2 : (difficultyRank >= 3 ? 6 : 10)))) {
+            return null;
+        }
+        if (difficultyRank === 2 && Math.random() < 0.25) { return null; }
+        return best;
+    }
+
+    function lockEnemySwitchState(outgoingUnit) {
+        if (!state.combat || !state.combat.ai || !outgoingUnit) { return; }
+        var currentTurn = currentCombatTurnNumber();
+        var difficultyRank = currentCombatDifficultyRank();
+        state.combat.ai.enemySwitchCooldownUntilTurn = currentTurn + (difficultyRank >= 4 ? 1 : 2);
+        outgoingUnit.aiMemory = outgoingUnit.aiMemory || {};
+        outgoingUnit.aiMemory.switchLockUntilTurn = currentTurn + (difficultyRank >= 4 ? 2 : 3);
     }
 
     function enemyTurn() {
@@ -5231,15 +5574,50 @@
         var player = activeCombatUnit('player');
         if (!enemy || !player) { return null; }
         enemy.defending = false;
+        var difficultyRank = currentCombatDifficultyRank();
+        var switchPick = pickEnemySwitch(enemy, player);
+        if (switchPick) {
+            clearCombatDebuffs(enemy);
+            lockEnemySwitchState(enemy);
+            state.combat.enemyActive = switchPick.index;
+            pushCombatLog(combatEnemyTrainerName() + ' cambia a ' + switchPick.unit.card.card_name + '.');
+            return { type: 'switch', side: 'enemy', index: switchPick.index };
+        }
         var shouldDefend = enemy.shields > 0
-            && enemy.hp < enemy.maxHp * COMBAT_ADVANCED_RULES.enemyDefendHpRatio
-            && Math.random() < COMBAT_ADVANCED_RULES.enemyDefendChance;
+            && enemy.hp < enemy.maxHp * (difficultyRank >= 4 ? 0.52 : (difficultyRank >= 3 ? 0.44 : COMBAT_ADVANCED_RULES.enemyDefendHpRatio))
+            && Math.random() < (difficultyRank <= 0 ? 0.46 : (difficultyRank === 1 ? 0.4 : (difficultyRank === 2 ? 0.34 : (difficultyRank === 3 ? 0.28 : 0.22))));
         if (shouldDefend) {
             enemy.shields = Math.max(0, enemy.shields - 1);
             enemy.defending = true;
             var healed = healDefendingUnit(enemy);
             pushCombatLog(enemy.card.card_name + ' gasta 1 escudo, defiende y recupera ' + healed + ' PS.');
             return { type: 'defend', side: 'enemy' };
+        }
+        var move = pickEnemyMove(enemy, player);
+        if (move) {
+            setMoveCooldown(enemy, move);
+            playSkillSound();
+            var enemyAccuracyBonus = difficultyRank >= 4 ? 0.12 : (difficultyRank === 3 ? 0.07 : (difficultyRank === 2 ? 0.03 : 0));
+            if (Math.random() > Math.min(1, move.accuracy + enemyAccuracyBonus)) {
+                pushCombatLog(enemy.card.card_name + ' usa ' + move.label + ', pero falla.');
+                return { type: 'move_miss', side: 'enemy', move: move };
+            }
+            if (move.type === 'buff') {
+                pushCombatLog(enemy.card.card_name + ' adopta ' + move.label + '.');
+                applyMoveEffect(move, enemy, player, 0).forEach(pushCombatLog);
+                return { type: 'move_buff', side: 'enemy', move: move };
+            }
+            var moveDamage = combatMoveDamage(enemy, player, move);
+            applyCombatDamage(player, moveDamage);
+            pushCombatLog(enemy.card.card_name + ' usa ' + move.label + ' e inflige ' + moveDamage + ' PS.');
+            applyMoveEffect(move, enemy, player, moveDamage).forEach(pushCombatLog);
+            if (player.defeated) {
+                if (state.combat.mode === 'daily-boss') {
+                    markDailyBossCopyDefeated(player.copy && player.copy.instanceId);
+                }
+                pushCombatLog(player.card.card_name + ' cae.');
+            }
+            return { type: 'move_attack', side: 'enemy', target: 'player', move: move, damage: moveDamage, defeatedTarget: player.defeated };
         }
         var damage = combatDamage(enemy, player);
         applyCombatDamage(player, damage);
@@ -5257,10 +5635,17 @@
 
     function animateEnemyAction(action) {
         if (!action) { return; }
-        if (action.type === 'defend') {
+        if (action.type === 'switch') {
+            playCombatSound('switch');
+            animateCombatEntry('enemy');
+        } else if (action.type === 'defend') {
             animateCombatDefend('enemy');
-        } else if (action.type === 'attack') {
+        } else if (action.type === 'attack' || action.type === 'move_attack') {
             animateCombatAttack('enemy', 'player', action.damage);
+            if (action.move) { playMoveVfx(action.move, 'enemy', 'player'); }
+        } else if (action.type === 'move_buff') {
+            animateCombatDefend('enemy');
+            playMoveVfx(action.move, 'enemy', 'player');
         }
     }
 
@@ -5275,12 +5660,16 @@
             }
             completePlayerTurn();
             setCombatBusy(false);
-        }, action && action.type === 'defend' ? COMBAT_DEFEND_MS : COMBAT_ATTACK_MS);
+        }, action && action.type === 'switch' ? COMBAT_ENTRY_MS : (action && (action.type === 'defend' || action.type === 'move_buff') ? COMBAT_DEFEND_MS : COMBAT_ATTACK_MS));
     }
 
     function completePlayerTurn() {
         if (state.combat && !state.combat.over) {
+            if (state.combat.ai) {
+                state.combat.ai.turnNumber = clampInt(state.combat.ai.turnNumber, 0) + 1;
+            }
             reduceMoveCooldowns(activeCombatUnit('player'));
+            reduceMoveCooldowns(activeCombatUnit('enemy'));
             renderCombatBattle();
         }
     }
@@ -5447,6 +5836,47 @@
         restartCombatAnimation(combatStand(side), side === 'enemy' ? 'is-entering-enemy' : 'is-entering-player', COMBAT_ENTRY_MS);
     }
 
+    function removeCombatRivalIntro() {
+        var screen = combatScreenElement();
+        if (!screen) { return; }
+        var current = screen.querySelector('.hg-combat-rival-intro');
+        if (current) { current.remove(); }
+    }
+
+    function playCombatRivalIntro(done) {
+        if (!state.combat || state.combat.mode === 'daily-boss') {
+            if (state.combat) { state.combat.introActive = false; }
+            if (done) { done(); }
+            return;
+        }
+        var screen = combatScreenElement();
+        var rival = state.combat.rivalProfile || state.combat.enemyTrainer;
+        if (!screen || !rival) {
+            if (state.combat) { state.combat.introActive = false; }
+            if (done) { done(); }
+            return;
+        }
+        removeCombatRivalIntro();
+        setCombatBusy(true);
+        var intro = document.createElement('div');
+        intro.className = 'hg-combat-rival-intro';
+        intro.innerHTML =
+            '<div class="hg-combat-rival-intro__panel">' +
+                '<img src="' + escapeHtml(rival.spriteUrl || '') + '" alt="' + escapeHtml(rival.name || 'Rival') + '" class="hg-combat-rival-intro__sprite">' +
+                '<p>&iexcl;' + escapeHtml(rival.name || 'Rival') + ' te desafia a un duelo de cartas!</p>' +
+            '</div>';
+        screen.appendChild(intro);
+        window.setTimeout(function () {
+            intro.classList.add('is-leaving');
+        }, 1150);
+        window.setTimeout(function () {
+            removeCombatRivalIntro();
+            if (state.combat) { state.combat.introActive = false; }
+            setCombatBusy(false);
+            if (done) { done(); }
+        }, 1700);
+    }
+
     function resolveDefeatedSide(side, done) {
         window.setTimeout(function () {
             if (!state.combat) {
@@ -5485,7 +5915,7 @@
 
     function renderCombatActionState() {
         var combat = state.combat;
-        var combatInProgress = !!combat && !combat.over;
+        var combatInProgress = !!combat && state.activeCombatScreen === 'battle';
         var active = !!combat && !combat.over && !state.combatAnimating;
         var player = activeCombatUnit('player');
         root.classList.toggle('is-combat-active', combatInProgress);
@@ -5569,6 +5999,28 @@
         }
     }
 
+    function renderTrainingRivalProfile() {
+        if (!els.combatEnemyRival) { return; }
+        els.combatEnemyRival.hidden = true;
+    }
+
+    function applyCombatScreenBackground(screen) {
+        if (!screen) { return; }
+        var background = state.combat && state.combat.background && typeof state.combat.background === 'object'
+            ? state.combat.background
+            : null;
+        if (background && background.css) {
+            screen.style.setProperty('--hg-combat-background', String(background.css));
+        } else {
+            screen.style.removeProperty('--hg-combat-background');
+        }
+        if (background && background.theme) {
+            screen.setAttribute('data-combat-theme', String(background.theme));
+        } else {
+            screen.removeAttribute('data-combat-theme');
+        }
+    }
+
     function renderCombatBench() {
         if (!els.combatBench || !state.combat) { return; }
         els.combatBench.innerHTML = '';
@@ -5634,13 +6086,17 @@
 
         if (state.combat.mode === 'daily-boss') {
             title.textContent = victory ? uiText('combat.daily_victory_title', 'Jefe diario derrotado') : uiText('combat.daily_defeat_title', 'El Jefe diario vence');
+            var dailyReward = state.combat.dailyBossRewardData || null;
+            var dailyCasualties = clampInt(state.combat.dailyBossCasualties, 0);
 
             if (victory) {
                 text.textContent = state.combat.reward
-                    ? uiText('combat.daily_card_reward_text', 'Obtienes la carta Estigmática del Jefe diario.')
+                    ? dailyBossRewardSummary(dailyReward) || uiText('combat.daily_card_reward_text', 'Obtienes la carta Estigmática del Jefe diario.')
                     : uiText('combat.daily_card_already_text', 'Ya habías reclamado la carta Estigmática de hoy.');
             } else {
-                text.textContent = uiText('combat.daily_team_lost_text', 'Las 5 cartas usadas en el intento se han perdido.');
+                text.textContent = dailyCasualties > 0
+                    ? uiText('combat.daily_team_lost_text', 'Cartas derrotadas perdidas: {count}.', { count: dailyCasualties })
+                    : uiText('combat.daily_team_safe_text', 'No se perdió ninguna carta de tu colección en este intento.');
             }
         } else {
             text.textContent = victory
@@ -5654,9 +6110,33 @@
         restart.textContent = state.combat.mode === 'daily-boss' ? uiText('combat.retry_daily', 'Reintentar jefe diario') : uiText('combat.restart_training', 'Empezar otro combate');
         restart.addEventListener('click', startSelectedCombat);
 
+        var actions = document.createElement('div');
+        actions.className = 'hg-combat-end__actions';
         panel.appendChild(title);
         panel.appendChild(text);
-        panel.appendChild(restart);
+        actions.appendChild(restart);
+        if (state.combat.mode !== 'daily-boss') {
+            var chooseTeam = document.createElement('button');
+            chooseTeam.type = 'button';
+            chooseTeam.className = 'hg-combat-end__restart';
+            chooseTeam.textContent = uiText('combat.choose_team', 'Elegir equipo');
+            chooseTeam.addEventListener('click', function () {
+                state.combat = null;
+                showCombatScreen('battle');
+                setCombatMessage(uiText('combat.team_ready_prompt', 'Elige uno de tus 5 equipos y empieza un entrenamiento.'));
+            });
+            actions.appendChild(chooseTeam);
+
+            var manageTeam = document.createElement('button');
+            manageTeam.type = 'button';
+            manageTeam.className = 'hg-combat-end__restart';
+            manageTeam.textContent = uiText('combat.open_loadout', 'Preparar equipo');
+            manageTeam.addEventListener('click', function () {
+                showCombatScreen('loadout');
+            });
+            actions.appendChild(manageTeam);
+        }
+        panel.appendChild(actions);
         overlay.appendChild(panel);
         screen.appendChild(overlay);
     }
@@ -5664,10 +6144,14 @@
     function renderCombatBattle() {
         if (!isCombatContext() || !els.combatPlayerCard) { return; }
         var combat = state.combat;
-        var player = activeCombatUnit('player');
-        var enemy = activeCombatUnit('enemy');
+        var screen = combatScreenElement();
+        applyCombatScreenBackground(screen);
+        var introActive = !!(combat && combat.introActive);
+        var player = introActive ? null : activeCombatUnit('player');
+        var enemy = introActive ? null : activeCombatUnit('enemy');
         renderCombatUnit(player, els.combatPlayerCard, els.combatPlayerName, els.combatPlayerHp, els.combatPlayerHpBar, els.combatPlayerShields, els.combatPlayerAtk, els.combatPlayerDef);
         renderCombatUnit(enemy, els.combatEnemyCard, els.combatEnemyName, els.combatEnemyHp, els.combatEnemyHpBar, els.combatEnemyShields, els.combatEnemyAtk, els.combatEnemyDef);
+        renderTrainingRivalProfile();
         renderCombatActionState();
         if (els.combatLog) {
             els.combatLog.innerHTML = combat && combat.log.length
@@ -6316,7 +6800,7 @@
             log: []
         };
         pushCombatLog(uiText('combat.daily_boss_log', 'Jefe diario: {card} emerge como Estigmático.', { card: boss.card.card_name }));
-        pushCombatLog(uiText('combat.daily_risk_log', 'Si tu equipo cae, esas 5 cartas se pierden.'));
+        pushCombatLog(uiText('combat.daily_risk_log', 'Solo las cartas derrotadas durante este desafío se pierden.'));
         pushCombatLog(combatPlayerName() + ' saca una carta.');
         setCombatMessage(uiText('combat.daily_started', 'Jefe diario iniciado. Alto riesgo.'));
         showCombatScreen('battle');
@@ -6733,6 +7217,7 @@
             if (byId[String(id)]) { remove[String(id)] = true; }
         });
         retuneCopyStatsForRarity(targetCopy, targetCard, targetRarity, next);
+        targetCopy.upgraded = true;
         resetCopySkills(targetCopy);
         state.collection.ownedCards = (state.collection.ownedCards || []).filter(function (copy) {
             return !remove[String(copy.instanceId || '')];
@@ -7446,6 +7931,7 @@
             } else if (card) {
                 copy.rarity = card.card_rarity;
             }
+            copy.upgraded = !!item.upgraded || (card ? copy.rarity !== normalizeRarity(card.card_rarity, 'common') : false);
             copy.moves = normalizeCopyMoveIds(item.moves);
             copy.moveRollRarity = highestMoveCheckpoint(item.moveRollRarity || item.movesRarityCheckpoint || 'common');
             if (card) {
@@ -7891,9 +8377,6 @@
     decorateIconNavigation();
     updateDesktopHashPanels();
     window.addEventListener('hashchange', updateDesktopHashPanels);
-    window.addEventListener('beforeunload', function () {
-        interruptDailyBossCombat(false);
-    });
     bindEvents();
     loadGameRules().then(function (rulesPayload) {
         if (!rulesPayload) { return []; }

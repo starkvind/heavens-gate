@@ -314,6 +314,13 @@ require_once __DIR__ . '/game_cards_info_content.php';
                         <div class="hg-combat-field">
                             <div class="hg-combat-hud hg-combat-hud--enemy">
                                 <strong data-combat-enemy-name>Enemigo</strong>
+                                <div class="hg-combat-rival" data-combat-enemy-rival hidden>
+                                    <img src="" alt="" data-combat-enemy-rival-avatar>
+                                    <span>
+                                        <b data-combat-enemy-rival-name>Rival</b>
+                                        <small data-combat-enemy-rival-title>Rival de entrenamiento</small>
+                                    </span>
+                                </div>
                                 <div class="hg-combat-shields" data-combat-enemy-shields aria-label="Escudos"></div>
                                 <div class="hg-combat-hp"><span data-combat-enemy-hp-bar></span></div>
                                 <small data-combat-enemy-hp>PS 0 / 0</small>
@@ -375,4 +382,4 @@ require_once __DIR__ . '/game_cards_info_content.php';
     </main>
 </div>
 
-<script src="/assets/js/game-cards-v2.js?v=20260609-memory-cap" defer></script>
+<script src="/assets/js/game-cards-v2.js?v=20260614-upgraded-guard" defer></script>
