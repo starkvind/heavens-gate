@@ -89,6 +89,10 @@ require_once __DIR__ . '/game_cards_info_content.php';
                             <span>S&oacute;lo obtenidas</span>
                         </label>
                         <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-missing-filter>
+                            <span>Cartas que no tienes</span>
+                        </label>
+                        <label class="hg-filter-check">
                             <input type="checkbox" data-collection-has-moves-filter>
                             <span>Con habilidades</span>
                         </label>

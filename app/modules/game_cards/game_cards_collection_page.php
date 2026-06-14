@@ -62,6 +62,10 @@ $isAdmin = !empty($hgCardsIsAdmin);
                             <span>Sólo obtenidas</span>
                         </label>
                         <label class="hg-filter-check">
+                            <input type="checkbox" data-collection-missing-filter>
+                            <span>Cartas que no tienes</span>
+                        </label>
+                        <label class="hg-filter-check">
                             <input type="checkbox" data-collection-has-moves-filter>
                             <span>Con habilidades</span>
                         </label>
@@ -156,7 +160,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
     <section class="hg-collection-tools" aria-label="Gestión de colección">
         <div class="hg-section-head">
             <h3>Gestión</h3>
-            <p>Herramientas de respaldo, borrado local y venta de copias.</p>
+            <p>Herramientas de respaldo, borrado y venta de copias.</p>
         </div>
 
         <div class="hg-import-export">
@@ -166,10 +170,10 @@ $isAdmin = !empty($hgCardsIsAdmin);
             <button type="button" class="hg-danger-btn" id="hgResetCollection">Borrar colección local</button>
         </div>
 
-        <section class="hg-player-profile" aria-label="Perfil de combate">
+        <section class="hg-player-profile" aria-label="Perfil de combpersonajeate">
             <div>
-                <h3>Perfil de combate</h3>
-                <p>Guarda el nombre que aparece en los combates y en los registros.</p>
+                <h3>Perfil de personaje</h3>
+                <p>Indica aquí cómo el Archivo de Mnemógeno te conoce.</p>
             </div>
             <label class="hg-collection-select">
                 <span>Nombre del jugador</span>

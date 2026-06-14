@@ -170,6 +170,7 @@
         isAdmin: root.getAttribute('data-is-admin') === '1',
         albumCategory: 'all',
         collectionOwnedOnly: false,
+        collectionMissingOnly: false,
         collectionHasMovesOnly: false,
         collectionInTeamOnly: false,
         collectionWorkingOnly: false,
@@ -236,6 +237,7 @@
         collectionModeButtons: Array.prototype.slice.call(document.querySelectorAll('[data-collection-mode]')),
         collectionPageSize: document.querySelector('[data-collection-page-size]'),
         collectionOwnedFilter: document.querySelector('[data-collection-owned-filter]'),
+        collectionMissingFilter: document.querySelector('[data-collection-missing-filter]'),
         collectionHasMovesFilter: document.querySelector('[data-collection-has-moves-filter]'),
         collectionInTeamFilter: document.querySelector('[data-collection-in-team-filter]'),
         collectionWorkingFilter: document.querySelector('[data-collection-working-filter]'),
@@ -619,6 +621,9 @@
         }
         if (els.collectionOwnedFilter) {
             state.collectionOwnedOnly = !!els.collectionOwnedFilter.checked;
+        }
+        if (els.collectionMissingFilter) {
+            state.collectionMissingOnly = !!els.collectionMissingFilter.checked;
         }
         if (els.collectionHasMovesFilter) {
             state.collectionHasMovesOnly = !!els.collectionHasMovesFilter.checked;
@@ -3388,6 +3393,7 @@
             if (!hasRarity && card.card_rarity !== state.collectionRarity) { return false; }
         }
         if (state.collectionOwnedOnly && !groups[String(card.card_id)]) { return false; }
+        if (state.collectionMissingOnly && groups[String(card.card_id)]) { return false; }
         if (state.collectionHasMovesOnly) {
             var hasMoves = group && group.copies && group.copies.some(function (copy) {
                 return copyHasLearnedMoves(copy);
@@ -8133,6 +8139,13 @@
         if (els.collectionOwnedFilter) {
             els.collectionOwnedFilter.addEventListener('change', function () {
                 state.collectionOwnedOnly = !!els.collectionOwnedFilter.checked;
+                state.collectionPage = 1;
+                renderCollectionTable();
+            });
+        }
+        if (els.collectionMissingFilter) {
+            els.collectionMissingFilter.addEventListener('change', function () {
+                state.collectionMissingOnly = !!els.collectionMissingFilter.checked;
                 state.collectionPage = 1;
                 renderCollectionTable();
             });
