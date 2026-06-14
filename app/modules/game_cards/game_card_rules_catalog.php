@@ -673,6 +673,16 @@ function hg_gcr_decode_setting(string $value, string $type)
     return $value;
 }
 
+function hg_gcr_default_card_game_icons(): array
+{
+    return [
+        'evolve' => '/img/ui/card_game_icons/card_game_evolve_card.png',
+        'upgrade' => '/img/ui/card_game_icons/card_game_upgrade_card.png',
+        'sell' => '/img/ui/card_game_icons/card_game_sell_card.png',
+        'remembrance' => '/img/ui/card_game_icons/card_game_remembrance.png',
+    ];
+}
+
 function hg_gcr_build_payload(mysqli $link): array
 {
     $required = [
@@ -901,6 +911,11 @@ function hg_gcr_build_payload(mysqli $link): array
     $rs = $link->query("SELECT setting_key, setting_value, value_type FROM dim_game_card_settings ORDER BY setting_key");
     while ($rs && ($row = $rs->fetch_assoc())) {
         $settings[(string)$row['setting_key']] = hg_gcr_decode_setting((string)$row['setting_value'], (string)$row['value_type']);
+    }
+    if (!isset($settings['card_game_icons']) || !is_array($settings['card_game_icons'])) {
+        $settings['card_game_icons'] = hg_gcr_default_card_game_icons();
+    } else {
+        $settings['card_game_icons'] = array_merge(hg_gcr_default_card_game_icons(), $settings['card_game_icons']);
     }
 
     $rs = $link->query("SELECT text_key, text_value FROM dim_game_card_ui_texts WHERE is_active = 1 ORDER BY sort_order, text_key");

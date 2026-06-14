@@ -1,22 +1,34 @@
 ﻿(function () {
     'use strict';
 
-    var STORAGE_KEY = 'hg_card_collection_v2';
-    var LEGACY_STORAGE_KEY = 'hg_card_collection_v1';
-    var CARD_SHOP_STATE_KEY = 'hg_card_shop_state_v2';
-    var LEGACY_FREE_REWARDS_KEY = 'hg_card_free_rewards_v1';
-    var COLLECTION_MODE_KEY = 'hg_card_collection_mode_v2';
-    var LEGACY_COLLECTION_MODE_KEY = 'hg_card_collection_mode_v1';
-    var COLLECTION_PAGE_SIZE_KEY = 'hg_card_collection_page_size_v2';
-    var LEGACY_COLLECTION_PAGE_SIZE_KEY = 'hg_card_collection_page_size_v1';
+    var root = document.querySelector('.hg-cards');
+    if (!root) { return; }
+
+    function normalizeStorageScope(scope) {
+        return String(scope || 'prod').toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+    }
+
+    function scopedStorageKey(baseKey) {
+        var scope = normalizeStorageScope(root.getAttribute('data-storage-scope') || 'prod');
+        return scope === 'prod' ? baseKey : ('hg_' + scope + '__' + baseKey);
+    }
+
+    var STORAGE_KEY = scopedStorageKey('hg_card_collection_v2');
+    var LEGACY_STORAGE_KEY = scopedStorageKey('hg_card_collection_v1');
+    var CARD_SHOP_STATE_KEY = scopedStorageKey('hg_card_shop_state_v2');
+    var LEGACY_FREE_REWARDS_KEY = scopedStorageKey('hg_card_free_rewards_v1');
+    var COLLECTION_MODE_KEY = scopedStorageKey('hg_card_collection_mode_v2');
+    var LEGACY_COLLECTION_MODE_KEY = scopedStorageKey('hg_card_collection_mode_v1');
+    var COLLECTION_PAGE_SIZE_KEY = scopedStorageKey('hg_card_collection_page_size_v2');
+    var LEGACY_COLLECTION_PAGE_SIZE_KEY = scopedStorageKey('hg_card_collection_page_size_v1');
     var COLLECTION_PAGE_SIZES_DESKTOP = [12, 24, 48, 96];
     var COLLECTION_PAGE_SIZES_MOBILE = [10, 20, 50];
-    var COMBAT_TEAMS_KEY = 'hg_card_combat_teams_v2';
-    var LEGACY_COMBAT_TEAMS_KEY = 'hg_card_combat_teams_v1';
-    var COMBAT_PROFILE_KEY = 'hg_card_combat_profile_v2';
-    var LEGACY_COMBAT_PROFILE_KEY = 'hg_card_combat_profile_v1';
-    var DAILY_BOSS_REWARD_KEY = 'hg_card_daily_boss_reward_v1';
-    var DAILY_BOSS_STATE_KEY = 'hg_card_daily_boss_state_v1';
+    var COMBAT_TEAMS_KEY = scopedStorageKey('hg_card_combat_teams_v2');
+    var LEGACY_COMBAT_TEAMS_KEY = scopedStorageKey('hg_card_combat_teams_v1');
+    var COMBAT_PROFILE_KEY = scopedStorageKey('hg_card_combat_profile_v2');
+    var LEGACY_COMBAT_PROFILE_KEY = scopedStorageKey('hg_card_combat_profile_v1');
+    var DAILY_BOSS_REWARD_KEY = scopedStorageKey('hg_card_daily_boss_reward_v1');
+    var DAILY_BOSS_STATE_KEY = scopedStorageKey('hg_card_daily_boss_state_v1');
     var STARTING_MNEMONES = 0;
     var STARTING_REMORIAS = 0;
     var MAX_MNEMONES = 0;
@@ -142,7 +154,13 @@
     var PACK_LABELS = {};
     var PACK_CONTENTS = {};
     var PACK_SKINS = {};
-    var CARD_GAME_ICONS = {};
+    var DEFAULT_CARD_GAME_ICONS = {
+        evolve: '/img/ui/card_game_icons/card_game_evolve_card.png',
+        upgrade: '/img/ui/card_game_icons/card_game_upgrade_card.png',
+        sell: '/img/ui/card_game_icons/card_game_sell_card.png',
+        remembrance: '/img/ui/card_game_icons/card_game_remembrance.png'
+    };
+    var CARD_GAME_ICONS = Object.assign({}, DEFAULT_CARD_GAME_ICONS);
     var POWER_TYPES = [];
     var CHRONICLE_TYPES = [];
     var RELIC_TYPES = [];
@@ -160,9 +178,9 @@
     var UI_TEXTS = {};
     var uiSoundCache = {};
     var combatSoundsPreloaded = false;
-
-    var root = document.querySelector('.hg-cards');
-    if (!root) { return; }
+    var basePath = root.getAttribute('data-base-path') || '/games/card-game';
+    var mobileUrl = root.getAttribute('data-mobile-url') || (basePath + '/mobile');
+    var mobilePromptDismissKey = scopedStorageKey('hg_card_mobile_prompt_closed');
 
     var state = {
         view: root.getAttribute('data-view') || 'gacha',
@@ -351,9 +369,9 @@
             var href = link.getAttribute('href') || '';
             var active = false;
             if (state.view === 'gacha') {
-                active = hash === 'shop' ? href === '/games/card-game#shop' : href === '/games/card-game';
+                active = hash === 'shop' ? href === (basePath + '#shop') : href === basePath;
             } else if (state.view === 'collection') {
-                active = hash === 'memory' ? href === '/games/card-game/collection#memory' : href === '/games/card-game/collection';
+                active = hash === 'memory' ? href === (basePath + '/collection#memory') : href === (basePath + '/collection');
             } else {
                 active = link.classList.contains('is-active');
             }
@@ -2595,7 +2613,9 @@
         }
         if (hasOwn(settings, 'move_debuff_min_ratio')) { MOVE_DEBUFF_MIN_RATIO = Number(settings.move_debuff_min_ratio) || MOVE_DEBUFF_MIN_RATIO; }
         if (hasOwn(settings, 'move_buff_max_ratio')) { MOVE_BUFF_MAX_RATIO = Number(settings.move_buff_max_ratio) || MOVE_BUFF_MAX_RATIO; }
-        if (settings.card_game_icons && typeof settings.card_game_icons === 'object') { CARD_GAME_ICONS = settings.card_game_icons; }
+        if (settings.card_game_icons && typeof settings.card_game_icons === 'object') {
+            CARD_GAME_ICONS = Object.assign({}, DEFAULT_CARD_GAME_ICONS, settings.card_game_icons);
+        }
         if (settings.combat_sounds && typeof settings.combat_sounds === 'object') { COMBAT_SOUNDS = settings.combat_sounds; }
         if (Array.isArray(packs) && packs.length) {
             PACK_SIZE = clampInt(packs[0].pack_size, PACK_SIZE);
@@ -8056,15 +8076,15 @@
     }
 
     function renderMobileSwitchPrompt() {
-        if (state.mobile || !isTouchDevice() || window.sessionStorage.getItem('hg_card_mobile_prompt_closed') === '1') { return; }
+        if (state.mobile || !isTouchDevice() || window.sessionStorage.getItem(mobilePromptDismissKey) === '1') { return; }
         var prompt = document.createElement('div');
         prompt.className = 'hg-mobile-switch';
         prompt.innerHTML =
             '<div><strong>Modo movil disponible</strong><span>Una vista pensada para pantalla tactil.</span></div>' +
-            '<a href="/games/card-game/mobile">Abrir</a>' +
+            '<a href="' + escapeHtml(mobileUrl) + '">Abrir</a>' +
             '<button type="button" aria-label="Cerrar aviso">&times;</button>';
         prompt.querySelector('button').addEventListener('click', function () {
-            window.sessionStorage.setItem('hg_card_mobile_prompt_closed', '1');
+            window.sessionStorage.setItem(mobilePromptDismissKey, '1');
             prompt.remove();
         });
         root.insertBefore(prompt, root.firstChild);

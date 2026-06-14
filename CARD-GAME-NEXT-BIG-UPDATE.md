@@ -862,3 +862,36 @@ Orden recomendado para empezar:
 La migración no debe plantearse como “partir un fichero grande en varios ficheros”, sino como “redefinir contratos de datos y responsabilidades para que el juego soporte más modos, menos regresiones y módulos opcionales”.
 
 Si un cambio no mejora esa gobernanza, no forma parte de esta migración.
+
+---
+
+## Frontend de páginas y plantillas
+
+Además de fragmentar `assets/js/game-cards-v2.js`, esta migración debe incluir una revisión explícita de los ficheros frontend que renderizan el juego.
+
+### Ficheros a revisar
+
+- `app/modules/game_cards/game_cards_page.php`
+- `app/modules/game_cards/game_cards_collection_page.php`
+- `app/modules/game_cards/game_cards_combat_page.php`
+- `app/modules/game_cards/game_cards_mobile_page.php`
+- `app/modules/game_cards/game_cards_explanation_page.php`
+- parciales y controladores intermedios que hoy inyectan rutas, scripts y contexto
+
+### Objetivo
+
+- reducir hardcodes de rutas
+- reducir duplicación entre desktop, collection, combat y mobile
+- separar mejor estructura de vista, navegación, puntos de montaje y carga de scripts
+- permitir variantes `production`, `dev-lab` y futuras variantes de test sin clonar toda la UI
+- dejar preparado el frontend para que el loader modular pueda activar sólo los bloques necesarios por página
+
+### Regla
+
+La migración no termina en JS. También debe dejar el frontend PHP/HTML con contratos claros de:
+
+- `basePath`
+- `script stack`
+- `storage scope`
+- contexto de vista
+- puntos de montaje por dominio

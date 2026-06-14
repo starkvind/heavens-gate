@@ -9,16 +9,21 @@ if (!function_exists('hg_cards_h')) {
 }
 
 $isAdmin = !empty($hgCardsIsAdmin);
+$gameCardsBasePath = $gameCardsBasePath ?? '/games/card-game';
+$gameCardsCatalogUrl = $gameCardsCatalogUrl ?? '/api/game_cards.php';
+$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/game-cards-v2.js?v=20260614-upgraded-guard';
+$gameCardsStorageScope = $gameCardsStorageScope ?? 'prod';
+$gameCardsBootScripts = $gameCardsBootScripts ?? [];
 ?>
 
-<div class="hg-cards" data-view="gacha" data-catalog-url="/api/game_cards.php" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>">
+<div class="hg-cards" data-view="gacha" data-catalog-url="<?php echo hg_cards_h($gameCardsCatalogUrl); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo hg_cards_h($gameCardsBasePath); ?>" data-mobile-url="<?php echo hg_cards_h($gameCardsBasePath . '/mobile'); ?>" data-storage-scope="<?php echo hg_cards_h($gameCardsStorageScope); ?>">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
-        <a class="is-active" href="/games/card-game">Sobres</a>
-        <a href="/games/card-game#shop">Tienda</a>
-        <a href="/games/card-game/collection">Colección</a>
-        <a href="/games/card-game/collection#memory">Recuerdos</a>
-        <a href="/games/card-game/combat">Combate</a>
-        <a href="/games/card-game/explanation">Información</a>
+        <a class="is-active" href="<?php echo hg_cards_h($gameCardsBasePath); ?>">Sobres</a>
+        <a href="<?php echo hg_cards_h($gameCardsBasePath . '#shop'); ?>">Tienda</a>
+        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/collection'); ?>">Colección</a>
+        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/collection#memory'); ?>">Recuerdos</a>
+        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/combat'); ?>">Combate</a>
+        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/explanation'); ?>">Información</a>
     </nav>
 
     <header class="hg-cards__titlebar">
@@ -70,4 +75,7 @@ $isAdmin = !empty($hgCardsIsAdmin);
     </section>
 </div>
 
-<script src="/assets/js/game-cards-v2.js?v=20260614-upgraded-guard" defer></script>
+<?php foreach ($gameCardsBootScripts as $gameCardsBootScript): ?>
+<script src="<?php echo hg_cards_h($gameCardsBootScript); ?>" defer></script>
+<?php endforeach; ?>
+<script src="<?php echo hg_cards_h($gameCardsScriptSrc); ?>" defer></script>

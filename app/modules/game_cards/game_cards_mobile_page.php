@@ -1,9 +1,14 @@
 <?php
 $isAdmin = !empty($hgCardsIsAdmin);
+$gameCardsBasePath = $gameCardsBasePath ?? '/games/card-game';
+$gameCardsCatalogUrl = $gameCardsCatalogUrl ?? '/api/game_cards.php';
+$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/game-cards-v2.js?v=20260614-upgraded-guard';
+$gameCardsStorageScope = $gameCardsStorageScope ?? 'prod';
+$gameCardsBootScripts = $gameCardsBootScripts ?? [];
 require_once __DIR__ . '/game_cards_info_content.php';
 ?>
 
-<div class="hg-cards hg-cards--mobile" data-view="gacha" data-mobile="1" data-catalog-url="/api/game_cards.php" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>">
+<div class="hg-cards hg-cards--mobile" data-view="gacha" data-mobile="1" data-catalog-url="<?php echo htmlspecialchars((string)$gameCardsCatalogUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-mobile-url="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/mobile'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-storage-scope="<?php echo htmlspecialchars((string)$gameCardsStorageScope, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
     <header class="hg-mobile-topbar">
         <div>
             <h2>Archivo de Mnemógeno</h2>
@@ -386,4 +391,7 @@ require_once __DIR__ . '/game_cards_info_content.php';
     </main>
 </div>
 
-<script src="/assets/js/game-cards-v2.js?v=20260614-upgraded-guard" defer></script>
+<?php foreach ($gameCardsBootScripts as $gameCardsBootScript): ?>
+<script src="<?php echo htmlspecialchars((string)$gameCardsBootScript, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" defer></script>
+<?php endforeach; ?>
+<script src="<?php echo htmlspecialchars((string)$gameCardsScriptSrc, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" defer></script>

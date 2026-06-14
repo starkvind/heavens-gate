@@ -405,6 +405,11 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'game_cards_combat':
 		case 'game_cards_mobile':
 		case 'game_cards_explanation':
+		case 'game_cards_lab':
+		case 'game_cards_lab_collection':
+		case 'game_cards_lab_combat':
+		case 'game_cards_lab_mobile':
+		case 'game_cards_lab_explanation':
             $title = "Archivo de mnemógeno | Heaven's Gate";
             $description = "Minijuego coleccionable de cartas de Heaven's Gate con colección guardada en el navegador.";
 			$image = $baseURL . "/img/og/og_image_power.jpg";
@@ -588,6 +593,11 @@ $routes = [
 	'game_cards_combat' => ['app/controllers/tool/game_cards.php', 'Combate del Archivo de Mnemógeno'],
 	'game_cards_mobile' => ['app/controllers/tool/game_cards_mobile.php', 'Archivo móvil de mnemógeno'],
 	'game_cards_explanation' => ['app/controllers/tool/game_cards.php', 'Explicación del Archivo de Mnemógeno'],
+	'game_cards_lab' => ['app/controllers/tool/game_cards.php', 'Archivo de mnemÃ³geno Dev Lab'],
+	'game_cards_lab_collection' => ['app/controllers/tool/game_cards.php', 'ColecciÃ³n de mnemÃ³geno Dev Lab'],
+	'game_cards_lab_combat' => ['app/controllers/tool/game_cards.php', 'Combate del Archivo de MnemÃ³geno Dev Lab'],
+	'game_cards_lab_mobile' => ['app/controllers/tool/game_cards_mobile.php', 'Archivo mÃ³vil de mnemÃ³geno Dev Lab'],
+	'game_cards_lab_explanation' => ['app/controllers/tool/game_cards.php', 'ExplicaciÃ³n del Archivo de MnemÃ³geno Dev Lab'],
 	'schema_sanitizer' => ['app/controllers/tool/schema_sanitizer.php', 'Saneador de esquema'],
 
 	// Legacy aliases
