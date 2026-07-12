@@ -235,7 +235,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 	global $metaTitle, $metaDescription, $metaImage, $metaType;
     $title = "Heaven's Gate";
     $description = "Heaven's Gate es una campana de rol ambientada en el Mundo de Tinieblas. Explora biografias, poderes, clanes y mas.";
-	$image = $baseURL . "/img/og/og_image.jpg"; // ahora correcto
+	$image = $baseURL . "/img/og/og_image.webp"; // ahora correcto
 	$type = "website";
 
     switch ($route) {
@@ -246,37 +246,37 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
         case 'seasons_home':
             $title = "Temporadas | Heaven's Gate";
             $description = "Portada del archivo de temporadas e historias personales de Heaven's Gate.";
-            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            $image = $baseURL . "/img/og/og_image_temp.webp";
             break;
         case 'seasons_complete':
             $title = "Temporadas completas | Heaven's Gate";
             $description = "Listado de temporadas completas de Heaven's Gate.";
-            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            $image = $baseURL . "/img/og/og_image_temp.webp";
             break;
         case 'seasons_interludes':
             $title = "Interludes | Heaven's Gate";
             $description = "Listado de incisos e interludios narrativos de Heaven's Gate.";
-            $image = $baseURL . "/img/og/og_image.jpg";
+            $image = $baseURL . "/img/og/og_image.webp";
             break;
         case 'seasons_personal':
             $title = "Historias personales | Heaven's Gate";
             $description = "Listado de historias personales de Heaven's Gate.";
-            $image = $baseURL . "/img/og/og_image_bio.jpg";
+            $image = $baseURL . "/img/og/og_image_bio.webp";
             break;
         case 'seasons_specials':
             $title = "Especiales | Heaven's Gate";
             $description = "Listado de especiales de Heaven's Gate.";
-            $image = $baseURL . "/img/og/og_image_power.jpg";
+            $image = $baseURL . "/img/og/og_image_power.webp";
             break;
         case 'season_order':
             $title = "Orden de temporadas | Heaven's Gate";
             $description = "Consulta Heaven's Gate por orden jugado, cronologico u otros recorridos narrativos.";
-            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            $image = $baseURL . "/img/og/og_image_temp.webp";
             break;
         case 'chapters_table':
             $title = "Tabla de episodios | Heaven's Gate";
             $description = "Listado completo de episodios y capitulos de Heaven's Gate.";
-            $image = $baseURL . "/img/og/og_image_temp.jpg";
+            $image = $baseURL . "/img/og/og_image_temp.webp";
             break;
         case 'news':
             $title = "Noticias - Heaven's Gate";
@@ -291,7 +291,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'temp_analisis':
 			$title = "Temporadas - Heaven's Gate";
 			$description = "Consulta las temporadas y capítulos de Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_temp.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_temp.webp"; // ahora correcto
 			break;
         case 'bios':
 		case 'biogroup':
@@ -300,7 +300,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'muestrabio':
             $title = "Biografias - Heaven's Gate";
             $description = "Explora las biografias de los personajes clave de Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
         case 'nebula_clan':
         case 'nebula_character':
@@ -317,7 +317,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'listaobj':
             $title = "Inventario - Heaven's Gate";
             $description = "Consulta los objetos y artefactos disponibles en la campana.";
-			$image = $baseURL . "/img/og/og_image_monster.jpg";
+			$image = $baseURL . "/img/og/og_image_monster.webp";
             break;
         case 'sistemas':
             $title = "Sistemas de juego | Heaven's Gate";
@@ -326,7 +326,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
         case 'powers':
             $title = "Poderes | Heaven's Gate";
             $description = "Resumen y acceso a los poderes disponibles en Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_power.jpg";
+			$image = $baseURL . "/img/og/og_image_power.webp";
             break;
         case 'dones':
 		case 'tipodon':
@@ -337,7 +337,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		//, ritos, disciplinas y poderes
             $title = "Dones | Heaven's Gate";
             $description = "Listado de dones usados en Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_power.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
             break;
         case 'rites':
 		case 'tiporite':
@@ -348,7 +348,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		//, ritos, disciplinas y poderes
             $title = "Rituales | Heaven's Gate";
             $description = "Listado de ritos usados en Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_power.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
             break;
         case 'totems':
 		case 'tipototm':
@@ -359,7 +359,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		//, ritos, disciplinas y poderes
             $title = "Totems | Heaven's Gate";
             $description = "Listado de totems (espiritus guia) de Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_monster.jpg";
+			$image = $baseURL . "/img/og/og_image_monster.webp";
             break;
         case 'disciplinas':
 		case 'tipodisc':
@@ -369,18 +369,18 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		//, ritos,  y poderes
             $title = "Disciplinas | Heaven's Gate";
             $description = "Listado de Disciplinas vampíricas utilizadas en Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_power.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
             break;
 		case 'ost':
 		//, ritos, disciplinas y poderes
             $title = "Banda sonora | Heaven's Gate";
             $description = "Lista de temas musicales usados en Heaven's Gate.";
-			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
 		case 'dados':
             $title = "Tiradados | Heaven's Gate";
             $description = "Cómodo tirador de dados d10 para partidas de foro.";
-			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
 		case 'combat_simulator':
 		case 'combat_simulator_result':
@@ -398,7 +398,7 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'sim_tournament':
             $title = "Simulador de combate | Heaven's Gate";
             $description = "Simulador de combate de personajes usando datos reales de la web.";
-			$image = $baseURL . "/img/og/og_image_power.jpg";
+			$image = $baseURL . "/img/og/og_image_power.webp";
             break;
 		case 'game_cards':
 		case 'game_cards_collection':
@@ -412,24 +412,24 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
 		case 'game_cards_lab_explanation':
             $title = "Archivo de mnemógeno | Heaven's Gate";
             $description = "Minijuego coleccionable de cartas de Heaven's Gate con colección guardada en el navegador.";
-			$image = $baseURL . "/img/og/og_image_power.jpg";
+			$image = $baseURL . "/img/og/og_image_power.webp";
             break;
 		case 'gallery':
             $title = "Galeria de imagenes | Heaven's Gate";
             $description = "Lista de imagenes utilizadas en la campana.";
-			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
 		case 'maps':
 		case 'maps_detail':
 		case 'maps_api':
             $title = "Mapas | Heaven's Gate";
             $description = "Mapas interactivos sobre lugares de interes en la campana.";
-			$image = $baseURL . "/img/og/og_image_power.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
             break;
 		case 'plots':
             $title = "Equipos activos | Heaven's Gate";
             $description = "Lista de personajes en tramas abiertas y su estado, su salud y sus recursos.";
-			$image = $baseURL . "/img/og/og_image_bio.jpg"; // ahora correcto
+			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
         default:
             // Fallback genérico

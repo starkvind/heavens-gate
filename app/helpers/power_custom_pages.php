@@ -59,6 +59,88 @@ if (!function_exists('hg_power_custom_ensure_utf8')) {
     }
 }
 
+if (!function_exists('hg_power_custom_markdown_text')) {
+    function hg_power_custom_markdown_text($value): string
+    {
+        $text = html_entity_decode((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        $text = preg_replace('~<\s*br\s*/?\s*>~i', "\n", $text);
+        $text = preg_replace('~<\s*/p\s*>~i', "\n\n", $text);
+        $text = preg_replace('~<\s*p[^>]*>~i', '', $text);
+        $text = preg_replace('~<\s*li[^>]*>~i', '- ', $text);
+        $text = preg_replace('~<\s*/li\s*>~i', "\n", $text);
+        $text = preg_replace('~<\s*/?(ul|ol)[^>]*>~i', "\n", $text);
+        $text = preg_replace('~<\s*hr\s*/?\s*>~i', "\n\n---\n\n", $text);
+        $text = preg_replace('~<\s*(strong|b)[^>]*>(.*?)<\s*/\1\s*>~is', '**$2**', $text);
+        $text = preg_replace('~<\s*(em|i)[^>]*>(.*?)<\s*/\1\s*>~is', '*$2*', $text);
+        $text = preg_replace('~<\s*a[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)<\s*/a\s*>~is', '[$2]($1)', $text);
+        $text = strip_tags($text);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
+        return trim($text);
+    }
+}
+
+if (!function_exists('hg_power_custom_markdown_filename')) {
+    function hg_power_custom_markdown_filename(array $config): string
+    {
+        $kind = strtolower(trim((string)($config['kind'] ?? 'powers')));
+        $base = preg_replace('/[^a-z0-9_-]+/', '-', $kind);
+        $base = trim((string)$base, '-');
+        if ($base === '') {
+            $base = 'powers';
+        }
+        return $base . '.md';
+    }
+}
+
+if (!function_exists('hg_power_custom_markdown_download')) {
+    function hg_power_custom_markdown_download(array $config, array $items): void
+    {
+        $title = trim((string)($config['catalog_title'] ?? 'Poderes'));
+        $lines = [
+            '# ' . ($title !== '' ? $title : 'Poderes'),
+            '',
+            'Total: ' . count($items),
+            '',
+        ];
+
+        foreach ($items as $item) {
+            $name = trim((string)($item['name'] ?? 'Sin nombre'));
+            $lines[] = '## ' . ($name !== '' ? $name : 'Sin nombre');
+            $lines[] = '';
+
+            $chips = is_array($item['chips'] ?? null) ? $item['chips'] : [];
+            foreach ($chips as $chip) {
+                $chipText = trim((string)$chip);
+                if ($chipText !== '') {
+                    $lines[] = '- ' . $chipText;
+                }
+            }
+
+            $sections = is_array($item['sections'] ?? null) ? $item['sections'] : [];
+            foreach ($sections as $section) {
+                $sectionTitle = trim((string)($section['title'] ?? ''));
+                $sectionText = hg_power_custom_markdown_text($section['html'] ?? '');
+                if ($sectionTitle === '' || $sectionText === '') {
+                    continue;
+                }
+
+                $lines[] = '';
+                $lines[] = '### ' . $sectionTitle;
+                $lines[] = '';
+                $lines[] = $sectionText;
+            }
+
+            $lines[] = '';
+        }
+
+        header('Content-Type: text/markdown; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . hg_power_custom_markdown_filename($config) . '"');
+        echo implode("\n", $lines) . "\n";
+        exit;
+    }
+}
+
 if (!function_exists('hg_power_custom_fetch_rows')) {
     function hg_power_custom_fetch_rows(mysqli $link, string $query): array
     {
@@ -531,6 +613,7 @@ if (!function_exists('hg_power_custom_render')) {
 
         $pageHref = hg_power_custom_h(hg_power_custom_current_page_href());
         $printHref = hg_power_custom_h(hg_power_custom_current_page_href(['print' => '1']));
+        $markdownHref = hg_power_custom_h(hg_power_custom_current_page_href(['export' => 'md', 'print' => null]));
         $payload = [
             'kind' => (string)($config['kind'] ?? 'powers'),
             'storageKey' => (string)($config['storage_key'] ?? 'hg-custom-power-selection-v1'),
@@ -580,6 +663,7 @@ if (!function_exists('hg_power_custom_render')) {
                             <button type="button" class="hgpc-btn hgpc-btn--primary" id="hgpc-print-now">Imprimir</button>
                         <?php else: ?>
                             <a href="<?= $printHref; ?>" class="hgpc-btn hgpc-btn--primary">Versión imprimible</a>
+                            <a href="<?= $markdownHref; ?>" class="hgpc-btn">.md Exportar Markdown</a>
                         <?php endif; ?>
                         <a href="<?= $pageHref; ?>" class="hgpc-btn">Recargar catálogo</a>
                     </div>
@@ -669,7 +753,12 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
         }
 
         $items = hg_power_custom_build_items($link, $config);
+        $markdownMode = isset($_GET['export']) && $_GET['export'] === 'md';
+        if ($markdownMode) {
+            hg_power_custom_markdown_download($config, $items);
+        }
         $printHref = hg_power_custom_h(hg_power_custom_current_page_href(['print' => '1']));
+        $markdownHref = hg_power_custom_h(hg_power_custom_current_page_href(['export' => 'md', 'print' => null]));
         ?>
         <link rel="stylesheet" href="/assets/css/hg-power-custom.css">
         <div class="hg-power-custom<?= $printMode ? ' hg-power-custom--print' : ''; ?>" id="hgpc-root" data-print-mode="<?= $printMode ? '1' : '0'; ?>">
@@ -694,6 +783,7 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
                     <?php if (!$printMode): ?>
                         <div class="hgpc-hero__actions">
                             <a href="<?= $printHref; ?>" class="hgpc-btn hgpc-btn--primary">Versión imprimible</a>
+                            <a href="<?= $markdownHref; ?>" class="hgpc-btn">.md Exportar Markdown</a>
                         </div>
                     <?php endif; ?>
                 </section>

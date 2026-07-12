@@ -149,7 +149,7 @@
 .hg-die {
     width: 44px;
     height: 44px;
-    background: url('/img/ui/dice/dado_d10.png') center/contain no-repeat;
+    background: url('/img/ui/dice/dado_d10.webp') center/contain no-repeat;
     position: relative;
     filter: drop-shadow(0 0 3px #5ff);
 }
@@ -266,7 +266,7 @@
     --die-color: #5ff;
     width: 40px;
     height: 40px;
-    background: url('/img/ui/dice/dado_d10.png') center/contain no-repeat;
+    background: url('/img/ui/dice/dado_d10.webp') center/contain no-repeat;
     position: relative;
     display: flex;
     align-items: center;

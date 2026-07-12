@@ -42,11 +42,11 @@ if ($result->num_rows === 0) {
         $kindKey = preg_replace('/[^a-z]+/', '', $kindKey);
 
         if ($kindKey === 'mritos' || strpos($kindKey, 'merit') !== false) {
-            $meritIcon = "img/ui/icons/icon_merit.png";
+            $meritIcon = "img/ui/icons/icon_merit.webp";
         } elseif ($kindKey === 'defectos' || strpos($kindKey, 'defect') !== false || strpos($kindKey, 'flaw') !== false) {
-            $meritIcon = "img/ui/icons/icon_flaw.png";
+            $meritIcon = "img/ui/icons/icon_flaw.webp";
         } else {
-            $meritIcon = "img/ui/icons/default.jpg";
+            $meritIcon = "img/ui/icons/default.webp";
         }
 
         echo "

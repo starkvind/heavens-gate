@@ -4,19 +4,19 @@ include("app/partials/main_nav_bar.php");
 $isAdmin = !empty($hgCardsIsAdmin);
 $gameCardsBasePath = $gameCardsBasePath ?? '/games/card-game';
 $gameCardsCatalogUrl = $gameCardsCatalogUrl ?? '/api/game_cards.php';
-$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/game-cards-v2.js?v=20260614-upgraded-guard';
+$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/card-game/bootstrap/game-card-runtime.js?v=20260712-runtime-hotfix6';
 $gameCardsStorageScope = $gameCardsStorageScope ?? 'prod';
 $gameCardsBootScripts = $gameCardsBootScripts ?? [];
 ?>
 
-<div class="hg-cards hg-cards--combat" data-view="combat" data-catalog-url="<?php echo htmlspecialchars((string)$gameCardsCatalogUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-mobile-url="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/mobile'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-storage-scope="<?php echo htmlspecialchars((string)$gameCardsStorageScope, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+<div class="hg-cards hg-cards--combat" data-view="combat" data-runtime-mode="hybrid" data-catalog-url="<?php echo htmlspecialchars((string)$gameCardsCatalogUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-mobile-url="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/mobile'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-storage-scope="<?php echo htmlspecialchars((string)$gameCardsStorageScope, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
-        <a href="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Sobres</a>
-        <a href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '#shop'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Tienda</a>
-        <a href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/collection'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Colección</a>
-        <a href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/collection#memory'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Recuerdos</a>
-        <a class="is-active" href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/combat'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Combate</a>
-        <a href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/explanation'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Información</a>
+        <a data-game-tab="packs" href="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Sobres</a>
+        <a data-game-tab="shop" href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '#shop'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Tienda</a>
+        <a data-game-tab="collection" href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/collection'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Colección</a>
+        <a data-game-tab="memory" href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/collection#memory'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Recuerdos</a>
+        <a class="is-active" data-game-tab="combat" href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/combat'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Combate</a>
+        <a data-game-tab="info" href="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/explanation'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Información</a>
     </nav>
 
     <header class="hg-cards__titlebar">

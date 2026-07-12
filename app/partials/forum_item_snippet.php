@@ -30,7 +30,7 @@ if (!$item = mysqli_fetch_assoc($res)) {
 
 $name = htmlspecialchars((string)$item['name'], ENT_QUOTES, 'UTF-8');
 $img = trim((string)($item['image_url'] ?? ''));
-$img = ($img !== '') ? htmlspecialchars($img, ENT_QUOTES, 'UTF-8') : "img/inv/no-photo.gif";
+$img = ($img !== '') ? htmlspecialchars($img, ENT_QUOTES, 'UTF-8') : "img/inv/no-photo.webp";
 $description = (string)($item['description'] ?? '');
 $description = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $description);
 $rating = trim((string)($item['rating'] ?? ''));
@@ -116,7 +116,7 @@ $itemHref = "/inventory/" . rawurlencode($typePretty) . "/" . rawurlencode($item
                             <div class="embed-item-card__stat-label">Nivel</div>
                             <div class="embed-item-card__stat-value">
                                 <?php if ($ratingInt >= 1 && $ratingInt <= 9): ?>
-                                    <img class="embed-item-card__gem" src="../img/ui/gems/pwr/gem-pwr-0<?= $ratingInt ?>.png" alt="Nivel <?= $ratingInt ?>">
+                                    <img class="embed-item-card__gem" src="../img/ui/gems/pwr/gem-pwr-0<?= $ratingInt ?>.webp" alt="Nivel <?= $ratingInt ?>">
                                 <?php else: ?>
                                     <?= htmlspecialchars($rating, ENT_QUOTES, 'UTF-8') ?>
                                 <?php endif; ?>

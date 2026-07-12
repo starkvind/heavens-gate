@@ -340,10 +340,10 @@ function hg_gcr_default_catalog(): array
         ['move_debuff_min_ratio', '0.33', 'float', 'Limite inferior de debuffs de habilidad.'],
         ['move_buff_max_ratio', '1.5', 'float', 'Limite superior de buffs de habilidad.'],
         ['card_game_icons', json_encode([
-            'evolve' => '/img/ui/card_game_icons/card_game_evolve_card.png',
-            'upgrade' => '/img/ui/card_game_icons/card_game_upgrade_card.png',
-            'sell' => '/img/ui/card_game_icons/card_game_sell_card.png',
-            'remembrance' => '/img/ui/card_game_icons/card_game_remembrance.png',
+            'evolve' => '/img/ui/card_game_icons/card_game_evolve_card.webp',
+            'upgrade' => '/img/ui/card_game_icons/card_game_upgrade_card.webp',
+            'sell' => '/img/ui/card_game_icons/card_game_sell_card.webp',
+            'remembrance' => '/img/ui/card_game_icons/card_game_remembrance.webp',
         ], JSON_UNESCAPED_SLASHES), 'json', 'Iconos de acciones del juego de cartas.'],
         ['combat_sounds', json_encode([
             'attack' => ['/sounds/ui/attack1.ogg', '/sounds/ui/attack2.ogg'],
@@ -676,10 +676,10 @@ function hg_gcr_decode_setting(string $value, string $type)
 function hg_gcr_default_card_game_icons(): array
 {
     return [
-        'evolve' => '/img/ui/card_game_icons/card_game_evolve_card.png',
-        'upgrade' => '/img/ui/card_game_icons/card_game_upgrade_card.png',
-        'sell' => '/img/ui/card_game_icons/card_game_sell_card.png',
-        'remembrance' => '/img/ui/card_game_icons/card_game_remembrance.png',
+        'evolve' => '/img/ui/card_game_icons/card_game_evolve_card.webp',
+        'upgrade' => '/img/ui/card_game_icons/card_game_upgrade_card.webp',
+        'sell' => '/img/ui/card_game_icons/card_game_sell_card.webp',
+        'remembrance' => '/img/ui/card_game_icons/card_game_remembrance.webp',
     ];
 }
 

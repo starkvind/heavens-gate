@@ -390,7 +390,7 @@ if (!function_exists('createSkillCircle')) {
         $result = [];
         foreach ($array as $value) {
             $baseDir = ($prefix === 'gem-pwr') ? 'img/ui/gems/pwr' : 'img/ui/gems/attr';
-            $result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0$value.png'/>";
+            $result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0$value.webp'/>";
         }
         return $result;
     }

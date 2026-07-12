@@ -164,7 +164,7 @@ echo "  </div>";
 
 echo "  <div class='power-card__body'>";
 echo "    <div class='power-card__media'>";
-echo "      <img class='power-card__img power-card__img--framed' src='img/inv/no-photo.gif' alt='{$conditionName}'/>";
+echo "      <img class='power-card__img power-card__img--framed' src='img/inv/no-photo.webp' alt='{$conditionName}'/>";
 echo "    </div>";
 echo "    <div class='power-card__stats'>";
 if ($conditionCategory !== '') {

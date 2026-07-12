@@ -45,10 +45,10 @@
 	
 	$defaultImgPath = "public/img/ui/avatar/";
 	$defaultAvatars = [
-		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.png'],
-		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.png'],
-		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.png'],
-		-4 => ['name' => 'Espiritu', 'img' => 'avatar_nadie_4.png'],
+		-1 => ['name' => 'Hombre', 'img' => 'avatar_nadie_1.webp'],
+		-2 => ['name' => 'Mujer', 'img' => 'avatar_nadie_2.webp'],
+		-3 => ['name' => 'Silueta', 'img' => 'avatar_nadie_3.webp'],
+		-4 => ['name' => 'Espiritu', 'img' => 'avatar_nadie_4.webp'],
 	];
 
 	if (array_key_exists($char_id, $defaultAvatars)) {

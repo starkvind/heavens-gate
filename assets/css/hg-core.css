@@ -56,7 +56,7 @@ body {
 	color: var(--hg-text);
 	font: normal 11px var(--hg-font-body);
 	background: var(--hg-bg);
-	/*background: #05014E url("../../img/ui/backgrounds/hg_background.png");
+	/*background: #05014E url("../../img/ui/backgrounds/hg_background.webp");
 	background-attachment: fixed;
 	background-repeat: no-repeat;
 	background-position: bottom right;*/
@@ -212,7 +212,7 @@ table.tmenu {
 	width: 196px;
 	border: 1px solid #000088;
 	padding: 5px;
-	background: url("../../img/ui/backgrounds/menu.jpg");
+	background: url("../../img/ui/backgrounds/menu.webp");
 
 }
 
@@ -283,7 +283,7 @@ td.piepagina { /* Pie de la p?gina web */
 	text-align:center;
 	padding:5px;
 	font-size: 9px;
-	background: url("../../img/ui/backgrounds/pie.jpg");
+	background: url("../../img/ui/backgrounds/pie.webp");
 	border: 1px dotted #000088;
 }
 
@@ -789,7 +789,7 @@ div.renglon3col {
 div.renglon3col:hover {
 	border: 1px solid #000099;
 	background: #000066;
-	/*border: 1px solid #0000AA;background-image: url("img/bars/barra-sel2.png"); background-image: url("img/bars/barra-sk.png"); background-image: url("img/bars/barra-don.png"); background-image: url("img/bars/barra-sel.png");*/
+	/*border: 1px solid #0000AA;background-image: url("img/bars/barra-sel2.webp"); background-image: url("img/bars/barra-sk.webp"); background-image: url("img/bars/barra-don.webp"); background-image: url("img/bars/barra-sel.webp");*/
 }
 
 fieldset.descripcionGrupo {

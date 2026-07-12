@@ -30,7 +30,7 @@
 		<p>El contenido de esta web es meramente informativo y sin &aacute;nimo de lucro.</p>
 
 		<a href="http://creativecommons.org/licenses/by-nc-sa/2.5/es/">
-			<img alt="Creative Commons License" class="main-about-cc-img" src="img/ui/badges/cc-by-nc-sa-88x31.png" />
+			<img alt="Creative Commons License" class="main-about-cc-img" src="img/ui/badges/cc-by-nc-sa-88x31.webp" />
 		</a>
 
 		<p>Heaven's Gate by <a href="<?php echo $baseURL; ?>">Maurick Starkvind</a> se publica bajo una <a href="http://creativecommons.org/licenses/by-nc-sa/2.5/es/">Creative Commons Reconocimiento-No Comercial-Compartir Igual 2.5 Espa&ntilde;a</a>.</p>

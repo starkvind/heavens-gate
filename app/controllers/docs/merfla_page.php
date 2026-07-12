@@ -132,7 +132,7 @@ if ($rowsQueryMaf > 0) {
 
     ob_start();
 
-    $itemImg = "img/inv/no-photo.gif";
+    $itemImg = "img/inv/no-photo.webp";
     $costText = '';
     if (is_numeric((string)$costMeritFlaw)) {
         $n = (int)$costMeritFlaw;

@@ -371,7 +371,7 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
 
         <div class="power-card__body">
             <div class="power-card__media">
-                <img class="power-card__img event-power__img" src="/public/img/inv/no-photo.gif" alt="<?= hg_ev_h($title) ?>">
+                <img class="power-card__img event-power__img" src="/public/img/inv/no-photo.webp" alt="<?= hg_ev_h($title) ?>">
             </div>
             <div class="power-card__stats">
                 <?php if ($showTypeField): ?>
@@ -437,7 +437,7 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
                         $href = pretty_url($link, 'fact_characters', '/characters', (int)$row['id']);
                         $avatar = function_exists('hg_character_avatar_url')
                             ? hg_character_avatar_url((string)($row['image_url'] ?? ''), (string)($row['gender'] ?? ''))
-                            : '/img/ui/avatar/avatar_nadie_3.png';
+                            : '/img/ui/avatar/avatar_nadie_3.webp';
                         $role = trim((string)($row['role_label'] ?? ''));
                         $charName = trim((string)($row['name'] ?? ''));
                         $charTitle = $role !== '' ? ($charName . ' - ' . $role) : $charName;

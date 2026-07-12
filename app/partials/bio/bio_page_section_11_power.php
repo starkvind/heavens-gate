@@ -4,9 +4,9 @@
 // Requiere: $link = conexion mysqli y $idPersonaje definido
 
 $iconos = [
-    'dones' => 'img/ui/icons/icon_claws.png',
-    'disciplinas' => 'img/ui/icons/icon_fangs.png',
-    'rituales' => 'img/ui/icons/icon_book.png',
+    'dones' => 'img/ui/icons/icon_claws.webp',
+    'disciplinas' => 'img/ui/icons/icon_fangs.webp',
+    'rituales' => 'img/ui/icons/icon_book.webp',
     // Puedes anadir mas tipos aqui si aparecen (como taumaturgia, etc)
 ];
 
@@ -148,7 +148,7 @@ if (count($listaPoderes) > 0) {
 				continue 2;
 		}
 
-		$icono = isset($iconos[$tipo]) ? $iconos[$tipo] : 'img/ui/icons/default.jpg';
+		$icono = isset($iconos[$tipo]) ? $iconos[$tipo] : 'img/ui/icons/default.webp';
 
 		foreach ($poderes as $poderData) {
 			$idPoder = $poderData['id'];
@@ -197,7 +197,7 @@ if (count($listaPoderes) > 0) {
 					if ($tipo == "disciplinas" or $tipo == "rituales") {
 						if ($levelFinal !== null) {
 							echo "<div class='bio-gem-wrap'>
-									<img src='img/ui/gems/attr/gem-attr-0" . $levelFinal . ".png' class='bio-gem' />
+									<img src='img/ui/gems/attr/gem-attr-0" . $levelFinal . ".webp' class='bio-gem' />
 								  </div>";
 						}
 					} else {

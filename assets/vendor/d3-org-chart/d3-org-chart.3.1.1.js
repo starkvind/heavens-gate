@@ -1873,7 +1873,7 @@
                 }
                 if (save) {
                     // Invoke saving function
-                    saveAs(dt, imageName + '.png');
+                    saveAs(dt, imageName + '.webp');
                 }
 
             };

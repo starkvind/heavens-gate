@@ -346,14 +346,14 @@ function safeUrl(url) {
 	}
 	// Permite protocol-relative //cdn...
 	if (u.startsWith('//')) return 'https:' + u;
-	// Permite rutas relativas normales: img/foo.jpg, uploads/x.png, sep/img/a.webp, ./, ../, /
+	// Permite rutas relativas normales: img/foo.webp, uploads/x.webp, sep/img/a.webp, ./, ../, /
 	return u;
 }
 function fallbackAvatarByGender(gender) {
 	const g = String(gender || '').trim().toLowerCase();
-	if (['m', 'male', 'h', 'hombre', 'masculino', 'man', '1'].includes(g)) return '/img/ui/avatar/avatar_nadie_1.png';
-	if (['f', 'female', 'mujer', 'femenino', 'woman', '2'].includes(g)) return '/img/ui/avatar/avatar_nadie_2.png';
-	return '/img/ui/avatar/avatar_nadie_3.png';
+	if (['m', 'male', 'h', 'hombre', 'masculino', 'man', '1'].includes(g)) return '/img/ui/avatar/avatar_nadie_1.webp';
+	if (['f', 'female', 'mujer', 'femenino', 'woman', '2'].includes(g)) return '/img/ui/avatar/avatar_nadie_2.webp';
+	return '/img/ui/avatar/avatar_nadie_3.webp';
 }
 $(document).ready(function () {
 	const personajes = <?= json_encode(

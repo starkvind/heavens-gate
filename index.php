@@ -76,7 +76,7 @@
     <body id="mainBody" class="<?= htmlspecialchars($bodyThemeClass, ENT_QUOTES, 'UTF-8') ?>">
         <div class="main-wrapper">
             <!-- CABECERA -->
-            <header><img src="img/ui/branding/hg_header.png" alt="Heaven's Gate" /></header>
+            <header><img src="img/ui/branding/hg_header.webp" alt="Heaven's Gate" /></header>
             <!-- CONTENIDO -->
             <table class="todou">
                 <tr>

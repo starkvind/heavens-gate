@@ -1,4 +1,4 @@
-HOW TO CREATE SKILLS FOR CARD GAME
+﻿HOW TO CREATE SKILLS FOR CARD GAME
 =================================
 
 Objetivo
@@ -9,7 +9,7 @@ Donde se definen
 ----------------
 Fichero principal:
 
-- `assets/js/game-cards-v2.js`
+- `assets/js/card-game/bootstrap/game-card-runtime.js`
 
 Archivado:
 
@@ -29,7 +29,7 @@ Ejemplo:
 arcane_pulse: {
   id: 'arcane_pulse',
   label: 'Pulso arcano',
-  icon: '🟣',
+  icon: 'ðŸŸ£',
   cooldown: 3,
   formula: function (attacker) {
     return Math.round(attacker.atk * 1.1);

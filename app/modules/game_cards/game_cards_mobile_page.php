@@ -2,13 +2,13 @@
 $isAdmin = !empty($hgCardsIsAdmin);
 $gameCardsBasePath = $gameCardsBasePath ?? '/games/card-game';
 $gameCardsCatalogUrl = $gameCardsCatalogUrl ?? '/api/game_cards.php';
-$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/game-cards-v2.js?v=20260614-upgraded-guard';
+$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/card-game/bootstrap/game-card-runtime.js?v=20260712-runtime-hotfix6';
 $gameCardsStorageScope = $gameCardsStorageScope ?? 'prod';
 $gameCardsBootScripts = $gameCardsBootScripts ?? [];
 require_once __DIR__ . '/game_cards_info_content.php';
 ?>
 
-<div class="hg-cards hg-cards--mobile" data-view="gacha" data-mobile="1" data-catalog-url="<?php echo htmlspecialchars((string)$gameCardsCatalogUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-mobile-url="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/mobile'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-storage-scope="<?php echo htmlspecialchars((string)$gameCardsStorageScope, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+<div class="hg-cards hg-cards--mobile" data-view="gacha" data-runtime-mode="hybrid" data-mobile="1" data-catalog-url="<?php echo htmlspecialchars((string)$gameCardsCatalogUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo htmlspecialchars((string)$gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-mobile-url="<?php echo htmlspecialchars((string)($gameCardsBasePath . '/mobile'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" data-storage-scope="<?php echo htmlspecialchars((string)$gameCardsStorageScope, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
     <header class="hg-mobile-topbar">
         <div>
             <h2>Archivo de Mnemógeno</h2>
@@ -49,7 +49,7 @@ require_once __DIR__ . '/game_cards_info_content.php';
 
             <div class="hg-pack-grid hg-pack-grid--mobile" data-pack-grid></div>
 
-            <section class="hg-pack-results" aria-live="polite" aria-label="Resultado del sobre">
+            <section class="hg-pack-results" id="hgPackResultsSection" aria-live="polite" aria-label="Resultado del sobre" hidden>
                 <div class="hg-section-head">
                     <h3>Último sobre</h3>
                     <p>Desliza o usa las flechas para revisar las cartas obtenidas.</p>

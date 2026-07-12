@@ -69,16 +69,16 @@ if (!function_exists('hg_ch_normalize_public_path')) {
 if (!function_exists('hg_ch_default_image')) {
     function hg_ch_default_image(string $prettyId = ''): string {
         static $map = [
-            'heavens-gate' => '/img/og/og_image_bio.jpg',
-            'javi' => '/img/og/og_image.jpg',
-            'werewolf-gt' => '/img/og/og_image_temp.jpg',
-            'hg-tercer-ojo' => '/img/og/og_image_power.jpg',
-            'hg-babylon' => '/img/og/og_image_monster.jpg',
-            'hg-london' => '/img/og/og_image_temp.jpg',
-            'cenizas' => '/img/og/og_image_power.jpg',
+            'heavens-gate' => '/img/og/og_image_bio.webp',
+            'javi' => '/img/og/og_image.webp',
+            'werewolf-gt' => '/img/og/og_image_temp.webp',
+            'hg-tercer-ojo' => '/img/og/og_image_power.webp',
+            'hg-babylon' => '/img/og/og_image_monster.webp',
+            'hg-london' => '/img/og/og_image_temp.webp',
+            'cenizas' => '/img/og/og_image_power.webp',
         ];
         if ($prettyId !== '' && isset($map[$prettyId])) return $map[$prettyId];
-        return '/img/og/og_image_bio.jpg';
+        return '/img/og/og_image_bio.webp';
     }
 }
 if (!function_exists('hg_ch_image_route')) {
@@ -120,10 +120,10 @@ if (!function_exists('hg_ch_affiliation_label')) {
 }
 if (!function_exists('hg_ch_season_image')) {
     function hg_ch_season_image(string $kind): string {
-        if ($kind === 'inciso') return '/img/og/og_image.jpg';
-        if ($kind === 'historia_personal') return '/img/og/og_image_bio.jpg';
-        if ($kind === 'especial') return '/img/og/og_image_power.jpg';
-        return '/img/og/og_image_temp.jpg';
+        if ($kind === 'inciso') return '/img/og/og_image.webp';
+        if ($kind === 'historia_personal') return '/img/og/og_image_bio.webp';
+        if ($kind === 'especial') return '/img/og/og_image_power.webp';
+        return '/img/og/og_image_temp.webp';
     }
 }
 if (!function_exists('hg_ch_count_label')) {
@@ -140,7 +140,7 @@ $hasChronicleImage = hg_ch_has_column($link, 'dim_chronicles', 'image_url');
 $statusExpr = "COALESCE(dcs.label, '')";
 
 if ($chronicleFilterId <= 0) {
-    setMetaFromPage("Crónicas | Heaven's Gate", "Crónicas del universo Heaven's Gate.", '/img/og/og_image_bio.jpg', 'website');
+    setMetaFromPage("Crónicas | Heaven's Gate", "Crónicas del universo Heaven's Gate.", '/img/og/og_image_bio.webp', 'website');
     include("app/partials/main_nav_bar.php");
 
     $selectImage = $hasChronicleImage ? "COALESCE(ch.image_url, '') AS image_url," : "'' AS image_url,";
@@ -230,7 +230,7 @@ if ($stmtChron = $link->prepare("SELECT id, pretty_id, name, description $chroni
 }
 
 if (!$chronicle) {
-    setMetaFromPage("Crónica no encontrada | Heaven's Gate", "La crónica solicitada no existe.", '/img/og/og_image_bio.jpg', 'article');
+    setMetaFromPage("Crónica no encontrada | Heaven's Gate", "La crónica solicitada no existe.", '/img/og/og_image_bio.webp', 'article');
     include("app/partials/main_nav_bar.php");
     echo "<div class='chron-detail'><section class='chron-box'><h2>Crónica no encontrada</h2><p class='texti chron-empty'>La crónica solicitada no existe o no está disponible.</p></section></div>";
     return;

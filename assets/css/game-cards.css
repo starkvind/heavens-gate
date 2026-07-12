@@ -129,18 +129,18 @@
     background: center / contain no-repeat;
 }
 
-.hg-game-tabs a[href="/games/card-game"]::before,
-.hg-mobile-tabs button[data-mobile-panel-tab="packs"]::before { background-image: url("/img/ui/card_game_icons/card_game_booster_packs.png"); }
-.hg-game-tabs a[href="/games/card-game#shop"]::before,
-.hg-mobile-tabs button[data-mobile-panel-tab="shop"]::before { background-image: url("/img/ui/card_game_icons/card_game_shop.png"); }
-.hg-game-tabs a[href="/games/card-game/collection"]::before,
-.hg-mobile-tabs button[data-mobile-panel-tab="collection"]::before { background-image: url("/img/ui/card_game_icons/card_game_collection.png"); }
-.hg-game-tabs a[href="/games/card-game/collection#memory"]::before,
-.hg-mobile-tabs button[data-mobile-panel-tab="memory"]::before { background-image: url("/img/ui/card_game_icons/card_game_remembrance.png"); }
-.hg-game-tabs a[href="/games/card-game/combat"]::before,
-.hg-mobile-tabs button[data-mobile-panel-tab="combat"]::before { background-image: url("/img/ui/card_game_icons/card_game_combat.png"); }
-.hg-game-tabs a[href="/games/card-game/explanation"]::before,
-.hg-mobile-tabs button[data-mobile-panel-tab="info"]::before { background-image: url("/img/ui/card_game_icons/card_game_info.png"); }
+.hg-game-tabs a[data-game-tab="packs"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="packs"]::before { background-image: url("/img/ui/card_game_icons/card_game_booster_packs.webp"); }
+.hg-game-tabs a[data-game-tab="shop"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="shop"]::before { background-image: url("/img/ui/card_game_icons/card_game_shop.webp"); }
+.hg-game-tabs a[data-game-tab="collection"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="collection"]::before { background-image: url("/img/ui/card_game_icons/card_game_collection.webp"); }
+.hg-game-tabs a[data-game-tab="memory"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="memory"]::before { background-image: url("/img/ui/card_game_icons/card_game_remembrance.webp"); }
+.hg-game-tabs a[data-game-tab="combat"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="combat"]::before { background-image: url("/img/ui/card_game_icons/card_game_combat.webp"); }
+.hg-game-tabs a[data-game-tab="info"]::before,
+.hg-mobile-tabs button[data-mobile-panel-tab="info"]::before { background-image: url("/img/ui/card_game_icons/card_game_info.webp"); }
 
 .hg-cards button,
 .hg-cards select,
@@ -2605,7 +2605,6 @@
     height: 14%;
     border-radius: 50%;
     background: radial-gradient(ellipse at center, rgba(255,255,255,0.22), rgba(255,255,255,0.06) 54%, transparent 70%);
-    filter: blur(0.2px);
 }
 
 .hg-combat-field::before {
@@ -3085,7 +3084,6 @@
     margin-left: -9px;
     margin-top: -9px;
     border-radius: 999px;
-    filter: blur(0.3px);
     animation: hg-combat-particle-pop 820ms ease-out both;
 }
 
@@ -5047,7 +5045,7 @@
 
 .hg-card--reveal {
     transform-origin: center;
-    animation: hg-card-burst-in 680ms cubic-bezier(.2,.86,.23,1) both;
+    animation: hg-card-burst-in 360ms cubic-bezier(.2,.86,.23,1) both;
 }
 
 @keyframes hg-card-flip-in {
@@ -5073,17 +5071,15 @@
 @keyframes hg-card-burst-in {
     0% {
         opacity: 0;
-        transform: translate3d(0, 34px, 0) scale(0.22) rotateY(80deg);
-        filter: brightness(1.8);
+        transform: translate3d(0, 24px, 0) scale(0.86);
     }
     58% {
         opacity: 1;
-        transform: translate3d(0, -6px, 0) scale(1.04) rotateY(-8deg);
+        transform: translate3d(0, -4px, 0) scale(1.02);
     }
     100% {
         opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1) rotateY(0);
-        filter: brightness(1);
+        transform: translate3d(0, 0, 0) scale(1);
     }
 }
 
@@ -5098,43 +5094,43 @@
 }
 
 @keyframes hg-combat-hit {
-    0%, 100% { transform: translate(0, 0); filter: brightness(1); }
-    18% { transform: translate(-8px, 0); filter: brightness(1.8); }
+    0%, 100% { transform: translate(0, 0); }
+    18% { transform: translate(-8px, 0); }
     36% { transform: translate(8px, 0); }
     54% { transform: translate(-5px, 0); }
     72% { transform: translate(5px, 0); }
 }
 
 @keyframes hg-combat-defend {
-    0%, 100% { transform: translate(0, 0); filter: brightness(1); }
-    25% { transform: translate(4px, -3px); filter: brightness(1.25); }
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(4px, -3px); }
     50% { transform: translate(0, 4px); }
     75% { transform: translate(-4px, -3px); }
 }
 
 @keyframes hg-combat-defeat {
-    0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); filter: brightness(1); }
-    28% { opacity: 1; transform: translate(0, 10px) rotate(4deg) scale(0.98); filter: brightness(1.65); }
-    58% { opacity: 0.72; transform: translate(0, 46px) rotate(11deg) scale(0.72); filter: brightness(1.35) blur(0.4px); }
-    100% { opacity: 0; transform: translate(0, 92px) rotate(18deg) scale(0.16); filter: brightness(2) blur(3px); }
+    0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+    28% { opacity: 1; transform: translate(0, 10px) rotate(4deg) scale(0.98); }
+    58% { opacity: 0.72; transform: translate(0, 46px) rotate(11deg) scale(0.72); }
+    100% { opacity: 0; transform: translate(0, 92px) rotate(18deg) scale(0.16); }
 }
 
 @keyframes hg-combat-enter-player {
-    0% { opacity: 0; transform: translate(170px, 16px) scale(0.12); filter: brightness(1.8) blur(2px); }
-    68% { opacity: 1; transform: translate(-4px, -2px) scale(1.04); filter: brightness(1.2) blur(0); }
-    100% { opacity: 1; transform: translate(0, 0) scale(1); filter: brightness(1); }
+    0% { opacity: 0; transform: translate(170px, 16px) scale(0.12); }
+    68% { opacity: 1; transform: translate(-4px, -2px) scale(1.04); }
+    100% { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 
 @keyframes hg-combat-enter-enemy {
-    0% { opacity: 0; transform: translate(-170px, 156px) scale(0.12); filter: brightness(1.8) blur(2px); }
-    68% { opacity: 1; transform: translate(4px, -4px) scale(1.04); filter: brightness(1.2) blur(0); }
-    100% { opacity: 1; transform: translate(0, 0) scale(1); filter: brightness(1); }
+    0% { opacity: 0; transform: translate(-170px, 156px) scale(0.12); }
+    68% { opacity: 1; transform: translate(4px, -4px) scale(1.04); }
+    100% { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 
 @keyframes hg-combat-rival-challenge {
-    0% { opacity: 0; transform: translateX(-120px) scale(0.78) rotate(-8deg); filter: blur(2px) brightness(1.4); }
-    58% { opacity: 1; transform: translateX(14px) scale(1.06) rotate(2deg); filter: blur(0) brightness(1.08); }
-    100% { opacity: 1; transform: translateX(0) scale(1) rotate(0); filter: blur(0) brightness(1); }
+    0% { opacity: 0; transform: translateX(-120px) scale(0.78) rotate(-8deg); }
+    58% { opacity: 1; transform: translateX(14px) scale(1.06) rotate(2deg); }
+    100% { opacity: 1; transform: translateX(0) scale(1) rotate(0); }
 }
 
 @keyframes hg-combat-rival-fade {

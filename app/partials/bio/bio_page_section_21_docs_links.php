@@ -27,7 +27,7 @@ if (empty($docsRows) && empty($externalRows)) {
         ?>
         <a href="<?= h($docHref) ?>" target="_blank" rel="noopener noreferrer">
           <div class="bioSheetPower bio-doc-link-card" title="<?= h($meta) ?>">
-            <img class="valign bio-inline-icon" src="img/ui/icons/icon_document.png" alt="" />
+            <img class="valign bio-inline-icon" src="img/ui/icons/icon_document.webp" alt="" />
             <?= h($docTitle !== '' ? $docTitle : ('Documento #'.$docId)) ?>
             <div class="bio-inline-type"><?= h($docSection !== '' ? $docSection : 'doc') ?></div>
           </div>
@@ -66,7 +66,7 @@ if (empty($docsRows) && empty($externalRows)) {
         ?>
         <a href="<?= h($url !== '' ? $url : '#') ?>" target="_blank" rel="noopener noreferrer">
           <div class="bioSheetPower bio-doc-link-card" title="<?= h($meta) ?>">
-            <img class="valign bio-inline-icon" src="img/ui/icons/icon_document.png" alt="" />
+            <img class="valign bio-inline-icon" src="img/ui/icons/icon_document.webp" alt="" />
             <?= h($title !== '' ? $title : $url) ?>
             <div class="bio-inline-type"><?= h($kind !== '' ? $kind : 'ext') ?></div>
           </div>

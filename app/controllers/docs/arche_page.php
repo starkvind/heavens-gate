@@ -48,7 +48,7 @@ setMetaFromPage($archeName . " | Arquetipos | Heaven's Gate", meta_excerpt($arch
 include("app/partials/main_nav_bar.php");
 echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
-$itemImg = 'img/inv/no-photo.gif';
+$itemImg = 'img/inv/no-photo.webp';
 
 ob_start();
 

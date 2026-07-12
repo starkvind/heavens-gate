@@ -8,6 +8,7 @@ setMetaFromPage("Rituales | Heaven's Gate", "Listado completo de rituales en for
 $pageSect = "Rituales";
 $_SESSION['punk2'] = $pageSect;
 $printMode = isset($_GET['print']) && $_GET['print'] == '1';
+$markdownMode = isset($_GET['export']) && $_GET['export'] === 'md';
 
 if (!$printMode) {
     include("app/partials/main_nav_bar.php");
@@ -48,8 +49,78 @@ function current_page_href(array $replaceQuery = []) {
     return $path . ($queryString !== '' ? '?' . $queryString : '');
 }
 
+function hg_rites_markdown_text($value): string {
+    $text = html_entity_decode((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    $text = preg_replace('~<\s*br\s*/?\s*>~i', "\n", $text);
+    $text = preg_replace('~<\s*/p\s*>~i', "\n\n", $text);
+    $text = preg_replace('~<\s*p[^>]*>~i', '', $text);
+    $text = preg_replace('~<\s*/h[1-6]\s*>~i', "\n\n", $text);
+    $text = preg_replace('~<\s*h([1-6])[^>]*>(.*?)<\s*/h[1-6]\s*>~is', "\n\n## $2\n\n", $text);
+    $text = preg_replace('~<\s*li[^>]*>~i', "- ", $text);
+    $text = preg_replace('~<\s*/li\s*>~i', "\n", $text);
+    $text = preg_replace('~<\s*/?(ul|ol)[^>]*>~i', "\n", $text);
+    $text = preg_replace('~<\s*hr\s*/?\s*>~i', "\n\n---\n\n", $text);
+    $text = preg_replace('~<\s*(strong|b)[^>]*>(.*?)<\s*/\1\s*>~is', '**$2**', $text);
+    $text = preg_replace('~<\s*(em|i)[^>]*>(.*?)<\s*/\1\s*>~is', '*$2*', $text);
+    $text = preg_replace('~<\s*a[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)<\s*/a\s*>~is', '[$2]($1)', $text);
+    $text = strip_tags($text);
+    $text = preg_replace("/\n{3,}/", "\n\n", $text);
+    return trim($text);
+}
+
+function hg_rites_markdown_field($value, string $fallback): string {
+    $text = hg_rites_markdown_text((string)$value);
+    return $text !== '' ? $text : $fallback;
+}
+
+function hg_rites_markdown_download(array $rituales): void {
+    $lines = [
+        '# Rituales',
+        '',
+        'Total: ' . count($rituales),
+        '',
+    ];
+
+    foreach ($rituales as $r) {
+        $name = trim((string)($r['ritual_name'] ?? 'Sin nombre'));
+        $type = trim((string)($r['ritual_type'] ?? ''));
+        $level = trim((string)($r['ritual_level'] ?? ''));
+        $race = trim((string)($r['ritual_species'] ?? ''));
+        $system = trim((string)($r['ritual_fera_system'] ?? ''));
+        $origin = trim((string)($r['ritual_origin'] ?? ''));
+
+        $lines[] = '## ' . $name;
+        $lines[] = '';
+        if ($type !== '') { $lines[] = '- Tipo: ' . $type; }
+        if ($level !== '') { $lines[] = '- Nivel: ' . $level; }
+        if ($race !== '' && $race !== $system) { $lines[] = '- Raza: ' . $race; }
+        if ($system !== '') { $lines[] = '- Sistema: ' . $system; }
+        if ($origin !== '') { $lines[] = '- Origen: ' . $origin; }
+        $lines[] = '';
+        $lines[] = '### Descripcion';
+        $lines[] = '';
+        $lines[] = hg_rites_markdown_field($r['ritual_description'] ?? '', 'Descripcion no disponible.');
+        $rollText = hg_rites_markdown_text($r['ritual_roll_description'] ?? '');
+        if ($rollText !== '') {
+            $lines[] = '';
+            $lines[] = '### Sistema';
+            $lines[] = '';
+            $lines[] = $rollText;
+        }
+        $lines[] = '';
+    }
+
+    $body = implode("\n", $lines) . "\n";
+    header('Content-Type: text/markdown; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="rituales.md"');
+    echo $body;
+    exit;
+}
+
 $pageHref = h(current_page_href());
 $printHref = h(current_page_href(['print' => '1']));
+$markdownHref = h(current_page_href(['export' => 'md', 'print' => null]));
 
 // =======================
 // 1) Query principal (LA TUYA)
@@ -92,6 +163,10 @@ while ($row = $result->fetch_assoc()) {
     $rituales[] = $row;
 }
 $total = count($rituales);
+
+if ($markdownMode) {
+    hg_rites_markdown_download($rituales);
+}
 
 // =======================
 // Agrupar rituales por Origen (para el índice)
@@ -460,6 +535,7 @@ foreach ($rituales as $r) {
       <?php if (!$printMode): ?>
         <p style="margin-top:12px;">
           <a href="<?php echo $printHref; ?>" class="hg-print-btn">&#128424; Versi&oacute;n imprimible</a>
+          <a href="<?php echo $markdownHref; ?>" class="hg-print-btn">.md Exportar Markdown</a>
         </p>
       <?php endif; ?>
     </div>

@@ -149,7 +149,7 @@ mysqli_free_result($resChanges);
         <div class="char-left">
 		<?php $partyCharHref = pretty_url($link, 'fact_characters', '/characters', (int)$ch['base_char_id']); ?>
 		<a href="<?php echo htmlspecialchars($partyCharHref); ?>" target="_new">
-<img src="<?= htmlspecialchars($ch['avatar'] ?: '/img/player/sinfoto.jpg') ?>"
+<img src="<?= htmlspecialchars($ch['avatar'] ?: '/img/player/sinfoto.webp') ?>"
                alt="<?= htmlspecialchars($ch['nombre']) ?>" class="char-avatar">
 		</a>
         </div>

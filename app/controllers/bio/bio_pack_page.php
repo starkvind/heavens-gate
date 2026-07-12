@@ -407,6 +407,7 @@ if ($typePack === 1) {
         LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
         WHERE bg.group_id = ?
           AND (bg.is_active = 1 OR bg.is_active IS NULL)
+          AND LOWER(TRIM(COALESCE(dcs.label, ''))) COLLATE utf8mb4_unicode_ci <> 'cadaver'
           $cronicaNotInSQL
         ORDER BY
             CASE LOWER(TRIM(COALESCE(dcs.label, '')))
@@ -455,7 +456,10 @@ if ($typePack === 1) {
         INNER JOIN fact_characters p ON p.id = bg.character_id
         LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
         WHERE bg.group_id = ?
-          AND bg.is_active = 0
+          AND (
+              bg.is_active = 0
+              OR LOWER(TRIM(COALESCE(dcs.label, ''))) COLLATE utf8mb4_unicode_ci = 'cadaver'
+          )
           $cronicaNotInSQL
         ORDER BY
             CASE LOWER(TRIM(COALESCE(dcs.label, '')))

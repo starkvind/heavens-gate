@@ -1093,7 +1093,7 @@ function syncEditorsToTextarea(){
 
     } else if (ui === 'image_upload') {
       var box3 = el('div');
-      var txt3 = el('input', {type:'text', name:k, id:'f_'+k, class:'inp', placeholder:'img/gifts/archivo.jpg o URL'});
+      var txt3 = el('input', {type:'text', name:k, id:'f_'+k, class:'inp', placeholder:'img/gifts/archivo.webp o URL'});
       txt3.style.marginBottom = '6px';
       var file3 = el('input', {type:'file', name:'img_file', id:'f_'+k+'_file', class:'inp', accept:'image/*'});
       file3.style.marginBottom = '6px';

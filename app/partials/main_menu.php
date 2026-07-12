@@ -313,7 +313,7 @@
 		<td>
 		<br/>
 		<a onclick="MostrarOcultar('startMenu')" id="menu0" onMouseover="Permut(1,'IMG0');" onMouseout="Permut(0,'IMG0');">
-			<img src="img/menu/index_icon.png" class="menuIcon" align="left" NAME="IMG0" onLoad="preloadPermut(this,'img/menu/index_icon_hover.png');">
+			<img src="img/menu/index_icon.webp" class="menuIcon" align="left" NAME="IMG0" onLoad="preloadPermut(this,'img/menu/index_icon_hover.webp');">
 		</a>
 		</td>
 	</tr>
@@ -334,7 +334,7 @@
         <td>
         <br/>
         <a onclick="MostrarOcultar('bioMenu')" id="menu1" onMouseover="Permut(1,'IMG1');" onMouseout="Permut(0,'IMG1');">  
-            <img src="img/menu/bio_icon.png" class="menuIcon" align="left" name="IMG1" onload="preloadPermut(this,'img/menu/bio_icon_hover.png');">
+            <img src="img/menu/bio_icon.webp" class="menuIcon" align="left" name="IMG1" onload="preloadPermut(this,'img/menu/bio_icon_hover.webp');">
         </a>
         </td>
     </tr>
@@ -358,7 +358,7 @@
         <td>
         <br/>
         <a onclick="MostrarOcultar('archivoMenu')" id="menu2" onMouseover="Permut(1,'IMG2');" onMouseout="Permut(0,'IMG2');">
-            <img src="img/menu/archive_icon.png" class="menuIcon" align="left" name="IMG2" onload="preloadPermut(this,'img/menu/archive_icon_hover.png');">
+            <img src="img/menu/archive_icon.webp" class="menuIcon" align="left" name="IMG2" onload="preloadPermut(this,'img/menu/archive_icon_hover.webp');">
         </a>
         </td>
     </tr>
@@ -429,7 +429,7 @@
 		<td>
 		<br/>
 		<a onclick="MostrarOcultar('loreMenu')" id="menu4" onMouseover="Permut(1,'IMG4');" onMouseout="Permut(0,'IMG4');">
-			<img src="img/menu/lore_icon.png" class="menuIcon" align="left" NAME="IMG4" onLoad="preloadPermut(this,'img/menu/lore_icon_hover.png');">
+			<img src="img/menu/lore_icon.webp" class="menuIcon" align="left" NAME="IMG4" onLoad="preloadPermut(this,'img/menu/lore_icon_hover.webp');">
 		</a>
 		</td>
 	</tr>
@@ -450,7 +450,7 @@
 		<td>
 		<br/>
 		<a onclick="MostrarOcultar('systemMenu')" id="menu5" onMouseover="Permut(1,'IMG5');" onMouseout="Permut(0,'IMG5');">
-			<img src="img/menu/system_icon.png" class="menuIcon" align="left" NAME="IMG5" onLoad="preloadPermut(this,'img/menu/system_icon_hover.png');">
+			<img src="img/menu/system_icon.webp" class="menuIcon" align="left" NAME="IMG5" onLoad="preloadPermut(this,'img/menu/system_icon_hover.webp');">
 		</a>
 		</td>
 	</tr>
@@ -471,7 +471,7 @@
 		<td>
 		<br/>
 		<a onclick="MostrarOcultar('powersMenu')" id="menu6" onMouseover="Permut(1,'IMG6');" onMouseout="Permut(0,'IMG6');">
-			<img src="img/menu/powers_icon.png" class="menuIcon" align="left" NAME="IMG6" onLoad="preloadPermut(this,'img/menu/powers_icon_hover.png');">
+			<img src="img/menu/powers_icon.webp" class="menuIcon" align="left" NAME="IMG6" onLoad="preloadPermut(this,'img/menu/powers_icon_hover.webp');">
 		</a>
 		</td>
 	</tr>
@@ -489,7 +489,7 @@
 		<td>
 		<br/>
 		<a onclick="MostrarOcultar('toolsMenu')" id="menu7" onMouseover="Permut(1,'IMG7');" onMouseout="Permut(0,'IMG7');">
-			<img src="img/menu/tools_icon.png" class="menuIcon" align="left" NAME="IMG7" onLoad="preloadPermut(this,'img/menu/tools_icon_hover.png');">
+			<img src="img/menu/tools_icon.webp" class="menuIcon" align="left" NAME="IMG7" onLoad="preloadPermut(this,'img/menu/tools_icon_hover.webp');">
 		</a>
 		</td>
 	</tr>

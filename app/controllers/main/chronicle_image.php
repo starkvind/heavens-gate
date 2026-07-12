@@ -30,16 +30,16 @@ if (!function_exists('hg_ci_normalize_public_path')) {
 if (!function_exists('hg_ci_default_image')) {
     function hg_ci_default_image(string $prettyId = ''): string {
         static $map = [
-            'heavens-gate' => '/img/og/og_image_bio.jpg',
-            'javi' => '/img/og/og_image.jpg',
-            'werewolf-gt' => '/img/og/og_image_temp.jpg',
-            'hg-tercer-ojo' => '/img/og/og_image_power.jpg',
-            'hg-babylon' => '/img/og/og_image_monster.jpg',
-            'hg-london' => '/img/og/og_image_temp.jpg',
-            'cenizas' => '/img/og/og_image_power.jpg',
+            'heavens-gate' => '/img/og/og_image_bio.webp',
+            'javi' => '/img/og/og_image.webp',
+            'werewolf-gt' => '/img/og/og_image_temp.webp',
+            'hg-tercer-ojo' => '/img/og/og_image_power.webp',
+            'hg-babylon' => '/img/og/og_image_monster.webp',
+            'hg-london' => '/img/og/og_image_temp.webp',
+            'cenizas' => '/img/og/og_image_power.webp',
         ];
         if ($prettyId !== '' && isset($map[$prettyId])) return $map[$prettyId];
-        return '/img/og/og_image_bio.jpg';
+        return '/img/og/og_image_bio.webp';
     }
 }
 
@@ -53,7 +53,7 @@ if ($rawChronicle !== '') {
     }
 }
 
-$target = '/img/og/og_image_bio.jpg';
+$target = '/img/og/og_image_bio.webp';
 if ($chronicleId > 0) {
     $hasChronicleImage = hg_ci_has_column($link, 'dim_chronicles', 'image_url');
     $selectImage = $hasChronicleImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";

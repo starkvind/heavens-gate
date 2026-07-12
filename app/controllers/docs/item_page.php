@@ -124,7 +124,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $pageTitle2 = $itemName;
     setMetaFromPage($itemName . " | Objetos | Heaven's Gate", meta_excerpt($itemInfo), null, 'article');
     if (empty($itemImg)) {
-        $itemImg = "img/inv/no-photo.gif";
+        $itemImg = "img/inv/no-photo.webp";
     }
 
     // ================================================================== //
@@ -163,14 +163,14 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
     if ($itemLevel != 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemLevel.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemLevel.webp'/></div></div>";
         if ($itemGnosis != 0) {
-            echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.png'/></div></div>";
+            echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.webp'/></div></div>";
         }
     }
 
     if ($itemGnosis != 0 && $itemLevel == 0 && $itemType == 5) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.webp'/></div></div>";
     }
 
     if ($itemSTR != 0) {

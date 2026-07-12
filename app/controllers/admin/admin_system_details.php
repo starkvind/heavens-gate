@@ -1230,7 +1230,7 @@ function syncEditorsToTextarea(){
       prev.appendChild(ph);
 
       var controls = el('div', {class:'img-controls'});
-      input = el('input', {type:'text', name:k, id:'f_'+k, class:'inp', placeholder:'img/system/archivo.jpg'});
+      input = el('input', {type:'text', name:k, id:'f_'+k, class:'inp', placeholder:'img/system/archivo.webp'});
       var file = el('input', {type:'file', name:'file_'+k, id:'file_'+k, accept:'image/*'});
       var row2 = el('div', {class:'row'});
       var chk = el('input', {type:'checkbox', id:'remove_'+k, name:'remove_'+k, value:'1'});

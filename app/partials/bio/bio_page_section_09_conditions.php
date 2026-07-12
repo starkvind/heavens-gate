@@ -63,13 +63,13 @@ if ($result && $result->num_rows > 0) {
         }
 
         if (strpos($categoryKey, 'trastorno') !== false || strpos($categoryKey, 'mental') !== false) {
-            $conditionIcon = 'img/ui/icons/icon_magic_orb.png';
+            $conditionIcon = 'img/ui/icons/icon_magic_orb.webp';
         } elseif (strpos($categoryKey, 'herida') !== false || strpos($categoryKey, 'cicatriz') !== false || strpos($categoryKey, 'batalla') !== false) {
-            $conditionIcon = 'img/ui/icons/achievements_001_first_blood.jpg';
+            $conditionIcon = 'img/ui/icons/achievements_001_first_blood.webp';
         } elseif (strpos($categoryKey, 'deformidad') !== false || strpos($categoryKey, 'metis') !== false) {
-            $conditionIcon = 'img/ui/icons/icon_flaw.png';
+            $conditionIcon = 'img/ui/icons/icon_flaw.webp';
         } else {
-            $conditionIcon = 'img/ui/icons/default.jpg';
+            $conditionIcon = 'img/ui/icons/default.webp';
         }
 
         $label = $conditionName;

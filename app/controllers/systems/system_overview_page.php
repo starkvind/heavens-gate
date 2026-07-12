@@ -99,7 +99,7 @@ if (!$ordenQueryResult) {
 
     // PONER IMAGEN "NADA" SI NO TIENE IMAGEN ASIGNADA
     if (empty($systemImg)) {
-        $systemImg = "img/system/nada.jpg";
+        $systemImg = "img/system/nada.webp";
     }
 
     // =========================================================== >

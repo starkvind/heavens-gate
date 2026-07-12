@@ -48,7 +48,7 @@ $surnamePJ = htmlspecialchars((string)($player['surname'] ?? ''), ENT_QUOTES, 'U
 $descPJ = (string)($player['description'] ?? '');
 $picPJ = (string)($player['picture'] ?? '');
 if ($picPJ === '') {
-    $picPJ = 'img/player/sinfoto.jpg';
+    $picPJ = 'img/player/sinfoto.webp';
 }
 
 $pageSect = "Jugador";

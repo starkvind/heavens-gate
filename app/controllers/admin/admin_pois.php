@@ -933,7 +933,7 @@ let poiMap, poiMarker;
 function ensurePoiLeaflet(){
   if (poiMap) { poiMap.invalidateSize(); return; }
   poiMap = L.map('poiPickerMap', { zoomControl:true, attributionControl:true }).setView([0,0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.webp', {
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, subdomains:['a','b','c']
   }).addTo(poiMap);
   poiMap.on('click', e => {
@@ -1093,7 +1093,7 @@ let areaMap, areaPolygon, areaLatLngs = [], areaDrawing = false;
 function ensureAreaLeaflet(){
   if (areaMap) { areaMap.invalidateSize(); return; }
   areaMap = L.map('areaPickerMap', { zoomControl:true }).setView([0,0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.webp', {
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, subdomains:['a','b','c']
   }).addTo(areaMap);
 
@@ -1309,7 +1309,7 @@ let mapEdit, mapRect;
 function ensureMapLeaflet(){
   if (mapEdit) { mapEdit.invalidateSize(); return; }
   mapEdit = L.map('mapEditMap', { zoomControl:true }).setView([0,0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.webp', {
     attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, subdomains:['a','b','c']
   }).addTo(mapEdit);
 }

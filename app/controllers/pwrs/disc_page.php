@@ -29,7 +29,7 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     $donIcono = isset($resultQueryDon["icono"]) ? htmlspecialchars($resultQueryDon["icono"]) : "";
 
     // Ruta completa de la imagen de la Disciplina
-    $itemImg = "img/inv/no-photo.gif";
+    $itemImg = "img/inv/no-photo.webp";
     if ($donImgRaw !== "") {
         if (strpos($donImgRaw, "/") !== false) {
             $itemImg = $donImgRaw;
@@ -89,7 +89,7 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($donRank > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.webp'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Disciplina</div><div class='power-stat__value'>$nombreTipo</div></div>";

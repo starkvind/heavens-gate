@@ -115,7 +115,7 @@ $(document).ready(function () {
 		const itemSlug = i.item_pretty_id || i.item_id;
 		const typeSlug = i.item_type_pretty || i.item_type_id || 'tipo';
 		const nombre = `<a href="/inventory/${escapeHtml(typeSlug)}/${escapeHtml(itemSlug)}">${escapeHtml(i.item_name)}</a>`;
-		const imgSrc = i.item_img ? i.item_img : '/img/inv/no-photo.gif';
+		const imgSrc = i.item_img ? i.item_img : '/img/inv/no-photo.webp';
 		const img = `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(i.item_name)}" class="item-thumb">`;
 		const categoria = i.item_category ? escapeHtml(i.item_category) : '-';
 		const origen = i.item_origin ? escapeHtml(i.item_origin) : '-';

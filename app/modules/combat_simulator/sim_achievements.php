@@ -8,43 +8,43 @@ if (!function_exists('sim_achievements_catalog')) {
             'first_blood' => array(
                 'code' => 'first_blood',
                 'title' => 'Primera sangre',
-                'icon' => '/img/ui/icons/achievements_001_first_blood.jpg',
+                'icon' => '/img/ui/icons/achievements_001_first_blood.webp',
                 'description' => 'Consigue el primer impacto del combate.'
             ),
             'miss_streak' => array(
                 'code' => 'miss_streak',
                 'title' => 'Mala punteria',
-                'icon' => '/img/ui/icons/achievements_002_failure_master.jpg',
+                'icon' => '/img/ui/icons/achievements_002_failure_master.webp',
                 'description' => 'Acumula 5 ataques fallidos seguidos.'
             ),
             'perfect' => array(
                 'code' => 'perfect',
                 'title' => 'Perfecto',
-                'icon' => '/img/ui/icons/achievements_003_perfect.jpg',
+                'icon' => '/img/ui/icons/achievements_003_perfect.webp',
                 'description' => 'Gana sin recibir dano.'
             ),
             'bloodied_victory' => array(
                 'code' => 'bloodied_victory',
                 'title' => 'Victoria ensangrentada',
-                'icon' => '/img/ui/icons/achievements_001_first_blood.jpg',
+                'icon' => '/img/ui/icons/achievements_001_first_blood.webp',
                 'description' => 'Gana el combate con penalizador máximo de heridas (-5).'
             ),
             'comeback' => array(
                 'code' => 'comeback',
                 'title' => 'Remontada',
-                'icon' => '/img/ui/icons/achievements_004_comeback_kid.jpg',
+                'icon' => '/img/ui/icons/achievements_004_comeback_kid.webp',
                 'description' => 'Remonta desde desventaja y gana al limite.'
             ),
             'beat_the_master' => array(
                 'code' => 'beat_the_master',
                 'title' => 'Superar al maestro',
-                'icon' => '/img/ui/icons/achievements_005_beat_the_master.jpg',
+                'icon' => '/img/ui/icons/achievements_005_beat_the_master.webp',
                 'description' => 'Un personaje de menos estrellas vence a uno de mas estrellas.'
             ),
             'efficient' => array(
                 'code' => 'efficient',
                 'title' => 'Eficiente',
-                'icon' => '/img/ui/icons/achievements_006_efficiency.jpg',
+                'icon' => '/img/ui/icons/achievements_006_efficiency.webp',
                 'description' => 'Derroto a su rival en el turno 1.'
             ),
         );
@@ -98,7 +98,7 @@ if (!function_exists('sim_achievement_template')) {
         return array(
             'code' => (string)$code,
             'title' => (string)$code,
-            'icon' => '/img/ui/icons/achievements_001_first_blood.jpg',
+            'icon' => '/img/ui/icons/achievements_001_first_blood.webp',
             'description' => ''
         );
     }
@@ -341,7 +341,7 @@ if (!function_exists('sim_achievements_render_html')) {
 
             $icon = htmlspecialchars((string)($ach['icon'] ?? ''), ENT_QUOTES, 'UTF-8');
             if ($icon === '') {
-                $icon = '/img/ui/icons/achievements_001_first_blood.jpg';
+                $icon = '/img/ui/icons/achievements_001_first_blood.webp';
             }
 
             $html .= "<div class='sim-achievement-item'>"

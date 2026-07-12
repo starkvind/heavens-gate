@@ -136,17 +136,17 @@ echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
     </div>
     <div class="cap-grid">
       <div class="cap-item">
-        <img class="cap-icon" src="/img/ui/icons/use_cc_weapons.jpg" alt="Armas cuerpo a cuerpo">
+        <img class="cap-icon" src="/img/ui/icons/use_cc_weapons.webp" alt="Armas cuerpo a cuerpo">
         <div class="cap-label">Armas Cuerpo a Cuerpo</div>
         <div class="cap-value"><?= $useMelee === 1 ? 'Si' : 'No' ?></div>
       </div>
       <div class="cap-item">
-        <img class="cap-icon" src="/img/ui/icons/use_firearms.jpg" alt="Armas de fuego">
+        <img class="cap-icon" src="/img/ui/icons/use_firearms.webp" alt="Armas de fuego">
         <div class="cap-label">Armas de Fuego</div>
         <div class="cap-value"><?= $useGuns === 1 ? 'Si' : 'No' ?></div>
       </div>
       <div class="cap-item">
-        <img class="cap-icon" src="/img/ui/icons/use_regen.jpg" alt="Regeneracion">
+        <img class="cap-icon" src="/img/ui/icons/use_regen.webp" alt="Regeneracion">
         <div class="cap-label">Regeneracion</div>
         <div class="cap-value"><?= ((int)($row["hpregen"] ?? 0) > 0) ? ((int)$row["hpregen"]) . " / turno" : "No" ?></div>
       </div>
@@ -176,7 +176,7 @@ echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
           $maneId = (int)$m['id'];
           $maneName = sf_h((string)($m['name'] ?? ''));
           $maneImg = trim((string)($m['image_url'] ?? ''));
-          $thumb = "img/inv/no-photo.gif";
+          $thumb = "img/inv/no-photo.webp";
           if ($maneImg !== '') {
             $thumb = (strpos($maneImg, '/') !== false) ? $maneImg : "img/maneuvers/" . $maneImg;
           }

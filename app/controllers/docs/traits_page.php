@@ -66,7 +66,7 @@ if (!function_exists('hg_render_trait_levels_with_gems')) {
         $rendered = "<div class='trait-levels-gems'>";
         foreach ($items as $index => $item) {
             $level = $index + 1;
-            $gemFile = sprintf('img/ui/gems/attr/gem-attr-%02d.png', $level);
+            $gemFile = sprintf('img/ui/gems/attr/gem-attr-%02d.webp', $level);
 
             $itemHtml = '';
             foreach ($item->childNodes as $node) {
@@ -140,7 +140,7 @@ if ($result->num_rows > 0) {
 
     echo "  <div class='power-card__body'>";
     echo "    <div class='power-card__media'>";
-    echo "      <img class='power-card__img power-card__img--framed' src='img/inv/no-photo.gif' alt='{$traitName}'/>";
+    echo "      <img class='power-card__img power-card__img--framed' src='img/inv/no-photo.webp' alt='{$traitName}'/>";
     echo "    </div>";
     echo "    <div class='power-card__stats'>";
 
@@ -253,7 +253,7 @@ if ($result->num_rows > 0) {
         $totalOwners = 0;
         foreach ($traitOwners as $value => $owners) {
             $totalOwners += count($owners);
-            $gemSrc = "img/ui/gems/attr/gem-attr-0{$value}.png";
+            $gemSrc = "img/ui/gems/attr/gem-attr-0{$value}.webp";
             $puntos = ($value == 1) ? "1 punto" : "{$value} puntos";
 
             echo "<div class='power-card__desc'>";

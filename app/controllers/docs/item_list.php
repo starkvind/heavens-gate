@@ -98,7 +98,7 @@ usort($origins, function($a, $b){
             <?php foreach ($groups[$origin] as $i):
                 $itemSlug = $i['item_pretty_id'] ?: $i['item_id'];
                 $name = (string)$i['item_name'];
-                $img = $i['item_img'] ? $i['item_img'] : '/img/inv/no-photo.gif';
+                $img = $i['item_img'] ? $i['item_img'] : '/img/inv/no-photo.webp';
             ?>
                 <a href="/inventory/<?= h($typeSlug) ?>/<?= h($itemSlug) ?>">
                     <div class="renglon2col">

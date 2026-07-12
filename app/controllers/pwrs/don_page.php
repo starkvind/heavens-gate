@@ -122,7 +122,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     ob_start();
 
     // Imagen del Don
-    $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
     if ($donImgRaw !== "") {
         if (strpos($donImgRaw, "/") !== false) {
             $itemImg = $donImgRaw;
@@ -143,7 +143,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($donRank > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Rango</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Rango</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.webp'/></div></div>";
     }
     if (!empty($donAttr) || !empty($donSkill)) {
         $tiradaDon2 = !empty($donSkill) ? "$donAttr + $donSkill" : $donAttr;

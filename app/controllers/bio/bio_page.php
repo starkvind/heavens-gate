@@ -420,7 +420,7 @@
 			$result = [];
 			foreach ($array as $value) {
 				$baseDir = ($prefix === 'gem-pwr') ? 'img/ui/gems/pwr' : 'img/ui/gems/attr';
-				$result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0{$value}.png'/>";
+				$result[] = "<img class='bioAttCircle' src='{$baseDir}/{$prefix}-0{$value}.webp'/>";
 			}
 			return $result;
 		}
@@ -1318,17 +1318,17 @@
 
 		// Config de iconos de tabs BIO (16x16).
 		// Cambia solo las rutas de este bloque cuando tengas los iconos definitivos.
-		$bioTabIconDefault = '/img/ui/icons/icon_character_sheet.png';
+		$bioTabIconDefault = '/img/ui/icons/icon_character_sheet.webp';
 		$bioTabIcons = [
 			// Keys validas: info, sheet, rel, part, docs, bso, comments
 			'default'  => $bioTabIconDefault, // Fallback global
-			'info'     => '/img/ui/icons/icon_character_info.png',
-			'sheet'    => '/img/ui/icons/icon_character_sheet.png',
-			'rel'      => '/img/ui/icons/icon_character_relationships.png',
-			'part'     => '/img/ui/icons/icon_character_participation.png',
-			'docs'     => '/img/ui/icons/icon_document.png',
-			'bso'      => '/img/ui/icons/icon_character_music.png',
-			'comments' => '/img/ui/icons/icon_character_comments.png',
+			'info'     => '/img/ui/icons/icon_character_info.webp',
+			'sheet'    => '/img/ui/icons/icon_character_sheet.webp',
+			'rel'      => '/img/ui/icons/icon_character_relationships.webp',
+			'part'     => '/img/ui/icons/icon_character_participation.webp',
+			'docs'     => '/img/ui/icons/icon_document.webp',
+			'bso'      => '/img/ui/icons/icon_character_music.webp',
+			'comments' => '/img/ui/icons/icon_character_comments.webp',
 			'export'   => '',
 		];
 

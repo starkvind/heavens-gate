@@ -9,8 +9,8 @@ if (!$link) {
 }
 
 $nameTypePack = "Grupos y sociedades";
-$iconPack = "img/ui/icons/icon_person_active.png";
-$iconSept = "img/ui/icons/icon_person_dead.png";
+$iconPack = "img/ui/icons/icon_person_active.webp";
+$iconSept = "img/ui/icons/icon_person_dead.webp";
 $pageSect = "Biografías";
 $pageTitle2 = $nameTypePack;
 

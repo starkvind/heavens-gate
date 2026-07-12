@@ -103,7 +103,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     ob_start();
 
     // Imagen del Ritual
-    $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
     if ($riteImgRaw !== "") {
         if (strpos($riteImgRaw, "/") !== false) {
             $itemImg = $riteImgRaw;
@@ -124,7 +124,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($riteLevel > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/attr/gem-attr-0$riteLevel.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/attr/gem-attr-0$riteLevel.webp'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";

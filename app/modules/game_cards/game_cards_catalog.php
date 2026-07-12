@@ -129,24 +129,24 @@ function hg_gc_card_url(string $sourceType, string $sourceTable, int $sourceId, 
 function hg_gc_fallback_image_url(string $sourceType): string
 {
     $fallbacks = [
-        'character' => '/img/og/og_image_bio.jpg',
-        'episode' => '/img/og/og_image_temp.jpg',
-        'season' => '/img/og/og_image_temp.jpg',
-        'chronicle' => '/img/og/og_image_bio.jpg',
-        'system' => '/img/og/og_image_bio.jpg',
-        'tribe' => '/img/og/og_image_bio.jpg',
-        'auspice' => '/img/og/og_image_bio.jpg',
-        'form' => '/img/og/og_image_monster.jpg',
-        'object' => '/img/og/og_image_monster.jpg',
-        'document' => '/img/og/og_image.jpg',
-        'power' => '/img/og/og_image_power.jpg',
-        'totem' => '/img/og/og_image_monster.jpg',
-        'gift' => '/img/og/og_image_power.jpg',
-        'rite' => '/img/og/og_image_power.jpg',
-        'discipline' => '/img/og/og_image_power.jpg',
+        'character' => '/img/og/og_image_bio.webp',
+        'episode' => '/img/og/og_image_temp.webp',
+        'season' => '/img/og/og_image_temp.webp',
+        'chronicle' => '/img/og/og_image_bio.webp',
+        'system' => '/img/og/og_image_bio.webp',
+        'tribe' => '/img/og/og_image_bio.webp',
+        'auspice' => '/img/og/og_image_bio.webp',
+        'form' => '/img/og/og_image_monster.webp',
+        'object' => '/img/og/og_image_monster.webp',
+        'document' => '/img/og/og_image.webp',
+        'power' => '/img/og/og_image_power.webp',
+        'totem' => '/img/og/og_image_monster.webp',
+        'gift' => '/img/og/og_image_power.webp',
+        'rite' => '/img/og/og_image_power.webp',
+        'discipline' => '/img/og/og_image_power.webp',
     ];
 
-    return $fallbacks[$sourceType] ?? '/img/og/og_image.jpg';
+    return $fallbacks[$sourceType] ?? '/img/og/og_image.webp';
 }
 
 function hg_gc_normalize_image_url(string $imageUrl, string $sourceType = 'document'): string

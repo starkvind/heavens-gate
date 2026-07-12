@@ -45,7 +45,7 @@ if ($rowsQueryManeuver > 0) {
     include("app/partials/main_nav_bar.php");  // Barra de Navegación
     // Imagen de la Maniobra
     $maneImg = trim((string)($resultQueryManeuver["image_url"] ?? ""));
-    $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
     if ($maneImg !== "") {
         if (strpos($maneImg, "/") !== false) {
             $itemImg = $maneImg;

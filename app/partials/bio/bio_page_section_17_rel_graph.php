@@ -8,7 +8,7 @@ if (!isset($characterId) || !$characterId || !isset($relaciones) || !is_array($r
 }
 
 $mainName = isset($bioName) ? (string)$bioName : '';
-$mainPhoto = isset($bioPhoto) && $bioPhoto !== '' ? (string)$bioPhoto : '/img/ui/icons/default.jpg';
+$mainPhoto = isset($bioPhoto) && $bioPhoto !== '' ? (string)$bioPhoto : '/img/ui/icons/default.webp';
 
 // Normalizar relaciones
 $nodes = [];
@@ -29,7 +29,7 @@ foreach ($relaciones as $r) {
         $nodes[$relatedId] = [
             'id' => $relatedId,
             'label' => (string)($r['nombre'] ?? ''),
-            'image' => (string)($r['image_url'] ?? ($r['img'] ?? '/img/ui/icons/default.jpg')),
+            'image' => (string)($r['image_url'] ?? ($r['img'] ?? '/img/ui/icons/default.webp')),
             'size' => 20,
             'fontSize' => 12,
         ];

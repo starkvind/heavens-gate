@@ -163,7 +163,7 @@ body.hg-embed-roll {
     --die-color: #5ff;
     width: 40px;
     height: 40px;
-    background: url('../../img/ui/dice/dado_d10.png') center/contain no-repeat;
+    background: url('../../img/ui/dice/dado_d10.webp') center/contain no-repeat;
     position: relative;
     display: flex;
     align-items: center;

@@ -117,7 +117,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     ob_start();
 
     // Imagen del Totem
-    $itemImg = "img/inv/no-photo.gif"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
     if ($totemImgRaw !== "") {
         if (strpos($totemImgRaw, "/") !== false) {
             $itemImg = $totemImgRaw;
@@ -138,7 +138,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($totemCost > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$totemCost.png'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$totemCost.webp'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";

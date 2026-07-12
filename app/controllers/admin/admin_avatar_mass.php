@@ -413,7 +413,7 @@ asort($chronOpts, SORT_NATURAL | SORT_FLAG_CASE);
           <td><?= h($name) ?></td>
           <td>
             <div class="avatar-cell">
-              <img src="<?= h($img !== '' ? $img : '/img/characters/nada.png') ?>" alt="avatar" data-avatar-img>
+              <img src="<?= h($img !== '' ? $img : '/img/characters/nada.webp') ?>" alt="avatar" data-avatar-img>
             </div>
           </td>
           <td>

@@ -152,14 +152,14 @@ function hg_maps_tile_presets(): array
     $tiles = [
         'carto-dark' => [
             'name' => 'CARTO Dark',
-            'url' => 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            'url' => 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.webp',
             'attribution' => '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/basemaps" target="_blank" rel="noopener">CARTO</a>',
             'subdomains' => ['a', 'b', 'c', 'd'],
             'maxZoom' => 19,
         ],
         'osm-standard' => [
             'name' => 'OpenStreetMap',
-            'url' => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'url' => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.webp',
             'attribution' => '&copy; OpenStreetMap contributors',
             'subdomains' => ['a', 'b', 'c'],
             'maxZoom' => 19,

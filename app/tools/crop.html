@@ -324,7 +324,7 @@
     const q = (type==='image/jpeg') ? 0.92 : 1.0;
     canvas.toBlob(blob=>{
       const a = document.createElement('a');
-      const ext = (type==='image/jpeg')?'.jpg':'.png';
+      const ext = (type==='image/jpeg')?'.webp':'.webp';
       a.download = 'recorte_1x1' + ext;
       a.href = URL.createObjectURL(blob);
       a.click();

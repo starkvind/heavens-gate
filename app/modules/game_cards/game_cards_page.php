@@ -11,19 +11,19 @@ if (!function_exists('hg_cards_h')) {
 $isAdmin = !empty($hgCardsIsAdmin);
 $gameCardsBasePath = $gameCardsBasePath ?? '/games/card-game';
 $gameCardsCatalogUrl = $gameCardsCatalogUrl ?? '/api/game_cards.php';
-$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/game-cards-v2.js?v=20260614-upgraded-guard';
+$gameCardsScriptSrc = $gameCardsScriptSrc ?? '/assets/js/card-game/bootstrap/game-card-runtime.js?v=20260712-runtime-hotfix6';
 $gameCardsStorageScope = $gameCardsStorageScope ?? 'prod';
 $gameCardsBootScripts = $gameCardsBootScripts ?? [];
 ?>
 
-<div class="hg-cards" data-view="gacha" data-catalog-url="<?php echo hg_cards_h($gameCardsCatalogUrl); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo hg_cards_h($gameCardsBasePath); ?>" data-mobile-url="<?php echo hg_cards_h($gameCardsBasePath . '/mobile'); ?>" data-storage-scope="<?php echo hg_cards_h($gameCardsStorageScope); ?>">
+<div class="hg-cards" data-view="gacha" data-runtime-mode="hybrid" data-catalog-url="<?php echo hg_cards_h($gameCardsCatalogUrl); ?>" data-is-admin="<?php echo $isAdmin ? '1' : '0'; ?>" data-base-path="<?php echo hg_cards_h($gameCardsBasePath); ?>" data-mobile-url="<?php echo hg_cards_h($gameCardsBasePath . '/mobile'); ?>" data-storage-scope="<?php echo hg_cards_h($gameCardsStorageScope); ?>">
     <nav class="hg-game-tabs" aria-label="Secciones del juego de cartas">
-        <a class="is-active" href="<?php echo hg_cards_h($gameCardsBasePath); ?>">Sobres</a>
-        <a href="<?php echo hg_cards_h($gameCardsBasePath . '#shop'); ?>">Tienda</a>
-        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/collection'); ?>">Colección</a>
-        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/collection#memory'); ?>">Recuerdos</a>
-        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/combat'); ?>">Combate</a>
-        <a href="<?php echo hg_cards_h($gameCardsBasePath . '/explanation'); ?>">Información</a>
+        <a class="is-active" data-game-tab="packs" href="<?php echo hg_cards_h($gameCardsBasePath); ?>">Sobres</a>
+        <a data-game-tab="shop" href="<?php echo hg_cards_h($gameCardsBasePath . '#shop'); ?>">Tienda</a>
+        <a data-game-tab="collection" href="<?php echo hg_cards_h($gameCardsBasePath . '/collection'); ?>">Colección</a>
+        <a data-game-tab="memory" href="<?php echo hg_cards_h($gameCardsBasePath . '/collection#memory'); ?>">Recuerdos</a>
+        <a data-game-tab="combat" href="<?php echo hg_cards_h($gameCardsBasePath . '/combat'); ?>">Combate</a>
+        <a data-game-tab="info" href="<?php echo hg_cards_h($gameCardsBasePath . '/explanation'); ?>">Información</a>
     </nav>
 
     <header class="hg-cards__titlebar">
@@ -66,7 +66,7 @@ $gameCardsBootScripts = $gameCardsBootScripts ?? [];
         <div class="hg-shop-grid"></div>
     </section>
 
-    <section class="hg-pack-results" aria-live="polite" aria-label="Resultado del sobre">
+    <section class="hg-pack-results" id="hgPackResultsSection" aria-live="polite" aria-label="Resultado del sobre" hidden>
         <div class="hg-section-head">
             <h3>Sobre abierto</h3>
             <p id="hgStatusText">Cargando catálogo...</p>

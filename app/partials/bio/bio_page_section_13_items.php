@@ -32,22 +32,22 @@
             // Eleccion de icono
             switch ($tipoItemSelect) {
                 case 1:
-                    $iconoItemSelect = "img/ui/icons/icon_machete.png";
+                    $iconoItemSelect = "img/ui/icons/icon_machete.webp";
                     break;
                 case 2:
-                    $iconoItemSelect = "img/ui/icons/icon_kevlar.png";
+                    $iconoItemSelect = "img/ui/icons/icon_kevlar.webp";
                     break;
                 case 3:
-                    $iconoItemSelect = "img/ui/icons/icon_magic_orb.png";
+                    $iconoItemSelect = "img/ui/icons/icon_magic_orb.webp";
                     break;
                 case 4:
-                    $iconoItemSelect = "img/ui/icons/icon_crate.png";
+                    $iconoItemSelect = "img/ui/icons/icon_crate.webp";
                     break;
                 case 5:
-                    $iconoItemSelect = "img/ui/icons/icon_amulet.png";
+                    $iconoItemSelect = "img/ui/icons/icon_amulet.webp";
                     break;
                 default:
-                    $iconoItemSelect = "img/ui/icons/default.jpg";
+                    $iconoItemSelect = "img/ui/icons/default.webp";
                     break;
             }
             // ================================================= //

@@ -6,7 +6,7 @@
  *   /img/gallery/
  *       /CarpetaA/
  *           /thumbnails/
- *           imagen1.jpg
+ *           imagen1.webp
  *           ...
  ********************************************************/
 
@@ -568,7 +568,7 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen \"" + name
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($CSRF) ?>">
       <input type="hidden" name="action" value="upload_images">
       <input type="hidden" name="relDir" value="<?= htmlspecialchars($relDir) ?>">
-      <input class="input" type="file" id="imagesInput" name="images[]" accept=".jpg,.jpeg,.png,.gif,.webp" multiple required>
+      <input class="input" type="file" id="imagesInput" name="images[]" accept=".webp,.webp,.webp,.webp,.webp" multiple required>
       <button class="btn" type="submit">Subir</button>
       <div class="small adm-mt-6">Se comprimen automaticamente (JPG/WEBP ~80%, PNG compresion 8) y se crean thumbnails (200x200).</div>
       <div id="uploadProgress"></div>

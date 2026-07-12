@@ -21,6 +21,21 @@ function h($value)
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function hgfv_current_request_path_with_query()
+{
+    $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+    if ($requestUri === '') {
+        return '';
+    }
+
+    $hashPos = strpos($requestUri, '#');
+    if ($hashPos !== false) {
+        $requestUri = substr($requestUri, 0, $hashPos);
+    }
+
+    return $requestUri;
+}
+
 function hg_normalize_palette_value($raw, $fallback = 'SkyBlue')
 {
     $v = trim((string)$raw);
@@ -238,10 +253,10 @@ function get_character_embed_data($link, $charId, $avatarVariant = '')
     }
 
     $defaultAvatars = [
-        -1 => ['name' => 'Hombre', 'img' => '/public/img/ui/avatar/avatar_nadie_1.png'],
-        -2 => ['name' => 'Mujer', 'img' => '/public/img/ui/avatar/avatar_nadie_2.png'],
-        -3 => ['name' => 'Silueta', 'img' => '/public/img/ui/avatar/avatar_nadie_3.png'],
-        -4 => ['name' => 'Espiritu', 'img' => '/public/img/ui/avatar/avatar_nadie_4.png'],
+        -1 => ['name' => 'Hombre', 'img' => '/public/img/ui/avatar/avatar_nadie_1.webp'],
+        -2 => ['name' => 'Mujer', 'img' => '/public/img/ui/avatar/avatar_nadie_2.webp'],
+        -3 => ['name' => 'Silueta', 'img' => '/public/img/ui/avatar/avatar_nadie_3.webp'],
+        -4 => ['name' => 'Espiritu', 'img' => '/public/img/ui/avatar/avatar_nadie_4.webp'],
     ];
 
     if (isset($defaultAvatars[$charId])) {
@@ -257,7 +272,7 @@ function get_character_embed_data($link, $charId, $avatarVariant = '')
 
     $data = [
         'name' => 'Desconocido',
-        'img' => '/public/img/ui/avatar/avatar_nadie_3.png',
+        'img' => '/public/img/ui/avatar/avatar_nadie_3.webp',
         'pretty_id' => (string)$charId,
         'text_color' => '',
         'is_default' => true,
@@ -616,6 +631,7 @@ $savedTopicsGrouped = [];
 $savedTopicsByTopicId = [];
 $selectedSavedTopic = null;
 $hasSavedTopicsTable = false;
+$currentTopicUrl = hgfv_current_request_path_with_query();
 $query = '';
 $error = '';
 $smfMessagesTable = hgfv_pick_smf_table($link, 'smf_messages');
@@ -774,6 +790,7 @@ if ($topicId > 0) {
     } else {
         if ($smfMembersTable !== '' && $smfAttachmentsTable !== '') {
             $query = "SELECT
+                        sm.id_msg AS message_id,
                         sm.subject,
                         COALESCE(smm.real_name, sm.poster_name) AS poster_name,
                         sm.poster_time,
@@ -792,6 +809,7 @@ if ($topicId > 0) {
                       ORDER BY sm.poster_time ASC, sm.id_msg ASC";
         } elseif ($smfMembersTable !== '') {
             $query = "SELECT
+                        sm.id_msg AS message_id,
                         sm.subject,
                         COALESCE(smm.real_name, sm.poster_name) AS poster_name,
                         sm.poster_time,
@@ -804,6 +822,7 @@ if ($topicId > 0) {
                       ORDER BY sm.poster_time ASC, sm.id_msg ASC";
         } else {
             $query = "SELECT
+                        sm.id_msg AS message_id,
                         sm.subject,
                         sm.poster_name,
                         sm.poster_time,
@@ -834,7 +853,7 @@ if ($topicId > 0) {
 }
 
 $metaTitle = "Visor de temas de foro | Heaven's Gate";
-$metaDescription = "Visualiza temas del foro con render BBCode incluyendo hg_avatar y hg_tirada.";
+$metaDescription = "Visualiza temas del foro con render BBCode.";
 $panelTitle = 'Visualizador de mensajes SMF (BBCode + snippets)';
 
 if (is_array($selectedSavedTopic)) {
@@ -1060,6 +1079,49 @@ $hgfvAssets = <<<'HTML'
         color: var(--muted);
         font-weight: 600;
     }
+    .hgfv-toc {
+        margin: 0 0 14px;
+        padding: 12px 14px;
+        border: 1px solid #cfdaf6;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+    }
+    .hgfv-toc h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        color: #23345f;
+    }
+    .hgfv-toc-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+    }
+    .hgfv-toc-list a {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 9px;
+        text-decoration: none;
+        color: #18336f;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid #d9e4fb;
+    }
+    .hgfv-toc-list a:hover,
+    .hgfv-toc-list a:focus {
+        background: #fff;
+        border-color: #adc2f2;
+    }
+    .hgfv-toc-title {
+        display: block;
+        font-weight: 700;
+    }
+    .hgfv-toc-meta {
+        display: block;
+        margin-top: 2px;
+        font-size: 0.86rem;
+        color: #53678f;
+    }
     .hgfv-message {
         background: var(--card);
         border: 1px solid var(--line);
@@ -1122,6 +1184,12 @@ $hgfvAssets = <<<'HTML'
     .hgfv-body {
         line-height: 1.5;
         word-break: break-word;
+    }
+    .hgfv-message-anchor {
+        display: block;
+        position: relative;
+        top: -10px;
+        visibility: hidden;
     }
     .hgfv-body a { color: #1840a4; }
     .hgfv-body blockquote {
@@ -1305,6 +1373,27 @@ if (!$hgfvEmbedded) {
                     Resultado: <?= count($messages) ?> mensaje(s), orden cronológico ascendente.
                 </div>
                 <?php if (!empty($messages)): ?>
+                    <nav class="hgfv-toc" aria-label="Tabla de contenidos del hilo">
+                        <h2>Tabla de contenidos</h2>
+                        <ul class="hgfv-toc-list">
+                            <?php foreach ($messages as $tocMsg): ?>
+                                <?php
+                                    $tocMessageId = (int)($tocMsg['message_id'] ?? 0);
+                                    if ($tocMessageId <= 0) { continue; }
+                                    $tocSubject = trim((string)($tocMsg['subject'] ?? ''));
+                                    $tocPoster = trim((string)($tocMsg['poster_name'] ?? ''));
+                                    $tocPosterTime = (int)($tocMsg['poster_time'] ?? 0);
+                                    $tocHumanTime = $tocPosterTime > 0 ? date('Y-m-d H:i:s', $tocPosterTime) : 'Sin fecha';
+                                ?>
+                                <li>
+                                    <a href="<?= h($currentTopicUrl !== '' ? ($currentTopicUrl . '#msg-' . $tocMessageId) : ('#msg-' . $tocMessageId)) ?>">
+                                        <span class="hgfv-toc-title">#<?= $tocMessageId ?> | <?= h($tocSubject !== '' ? $tocSubject : '(Sin asunto)') ?></span>
+                                        <span class="hgfv-toc-meta"><?= h($tocPoster !== '' ? $tocPoster : 'Desconocido') ?> | <?= h($tocHumanTime) ?></span>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </nav>
                     <div class="hgfv-copy-row">
                         <button type="button" class="hgfv-copy-btn" id="hgfv-copy-all-btn" title="Copiar todo el hilo" aria-label="Copiar todo el hilo">📑</button>
                         <span class="hgfv-copy-status" id="hgfv-copy-status"></span>
@@ -1316,6 +1405,7 @@ if (!$hgfvEmbedded) {
         <div id="hgfv-messages-root">
             <?php foreach ($messages as $msg): ?>
                 <?php
+                    $messageId = (int)($msg['message_id'] ?? 0);
                     $subject = trim((string)($msg['subject'] ?? ''));
                     $poster = trim((string)($msg['poster_name'] ?? ''));
                     $posterAvatar = hgfv_normalize_author_avatar_url((string)($msg['poster_avatar'] ?? ''));
@@ -1323,8 +1413,12 @@ if (!$hgfvEmbedded) {
                     $posterTime = (int)($msg['poster_time'] ?? 0);
                     $humanTime = $posterTime > 0 ? date('Y-m-d H:i:s', $posterTime) : 'Sin fecha';
                     $parsedBody = parse_forum_body($link, (string)($msg['body'] ?? ''));
+                    $messageDomId = $messageId > 0 ? 'msg-' . $messageId : '';
                 ?>
-                <article class="hgfv-message" data-copy-scope="message">
+                <?php if ($messageId > 0): ?>
+                    <span class="hgfv-message-anchor" id="<?= $messageId ?>" aria-hidden="true"></span>
+                <?php endif; ?>
+                <article class="hgfv-message" data-copy-scope="message"<?= $messageDomId !== '' ? ' id="' . h($messageDomId) . '" data-message-id="' . $messageId . '"' : '' ?>>
                     <div class="hgfv-message-head">
                         <h2><?= h($subject !== '' ? $subject : '(Sin asunto)') ?></h2>
                         <button type="button" class="hgfv-copy-btn hgfv-copy-one-btn" title="Copiar este mensaje" aria-label="Copiar este mensaje">📑</button>

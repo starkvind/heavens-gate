@@ -286,7 +286,7 @@ $iconBase = '/img/menu/';
 $iconDir = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/') . '/public/img/menu';
 $iconFiles = [];
 if (is_dir($iconDir)) {
-    foreach (glob($iconDir . '/*.png') as $f) { $iconFiles[] = basename($f); }
+    foreach (glob($iconDir . '/*.webp') as $f) { $iconFiles[] = basename($f); }
     sort($iconFiles);
 }
 $rows = [];

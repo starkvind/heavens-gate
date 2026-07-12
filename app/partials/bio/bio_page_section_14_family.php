@@ -72,7 +72,7 @@ foreach ($relaciones as $rel) {
     }
 }
 
-$iconoRelacion = "img/ui/icons/icon_person_active.png"; // genérico, cámbialo si quieres por tipo
+$iconoRelacion = "img/ui/icons/icon_person_active.webp"; // genérico, cámbialo si quieres por tipo
 
 $etiquetas = [
     'amistad' => 'Amistades y vínculos afectivos',

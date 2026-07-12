@@ -581,7 +581,7 @@ admin_panel_open(
     };
 
     function fallbackFor(card) {
-        return fallbackImages[card.source_type] || '/img/og/og_image.jpg';
+        return fallbackImages[card.source_type] || '/img/og/og_image.webp';
     }
 
     function setOpen(open) {
