@@ -3,6 +3,7 @@
 
 include_once(__DIR__ . '/admin_auth.php');
 include_once(__DIR__ . '/runtime_response.php');
+include_once(__DIR__ . '/content_updates.php');
 
 if (!function_exists('hg_admin_read_json_payload')) {
     function hg_admin_read_json_payload(): array

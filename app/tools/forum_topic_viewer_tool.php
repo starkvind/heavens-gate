@@ -45,6 +45,14 @@ function hg_normalize_palette_value($raw, $fallback = 'SkyBlue')
     if ($v === '3') {
         return 'SkyBlue';
     }
+    // Paletas legacy del foro que no son nombres CSS estándar.
+    $legacyPaletteNames = [
+        'oceanblue' => '#006994',
+    ];
+    $legacyKey = strtolower((string)preg_replace('/[\s_-]+/', '', $v));
+    if (isset($legacyPaletteNames[$legacyKey])) {
+        return $legacyPaletteNames[$legacyKey];
+    }
 
     if (preg_match('/^\$([0-9a-f]{3}|[0-9a-f]{6})$/i', $v, $m)) {
         return '#' . strtolower($m[1]);
@@ -1086,21 +1094,41 @@ $hgfvAssets = <<<'HTML'
         border-radius: 12px;
         background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
     }
+    .hgfv-toc-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
     .hgfv-toc h2 {
-        margin: 0 0 10px;
+        margin: 0;
         font-size: 1rem;
         color: #23345f;
+    }
+    .hgfv-toc-toggle {
+        border: 1px solid #b9c9ef;
+        border-radius: 999px;
+        background: #fff;
+        color: #18336f;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 5px 10px;
+        white-space: nowrap;
     }
     .hgfv-toc-list {
         margin: 0;
         padding: 0;
         list-style: none;
         display: grid;
-        gap: 8px;
+        gap: 6px;
+    }
+    .hgfv-toc.is-collapsed .hgfv-toc-list li:nth-child(n+9) {
+        display: none;
     }
     .hgfv-toc-list a {
         display: block;
-        padding: 8px 10px;
+        padding: 7px 10px;
         border-radius: 9px;
         text-decoration: none;
         color: #18336f;
@@ -1115,6 +1143,9 @@ $hgfvAssets = <<<'HTML'
     .hgfv-toc-title {
         display: block;
         font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .hgfv-toc-meta {
         display: block;
@@ -1143,6 +1174,59 @@ $hgfvAssets = <<<'HTML'
     }
     .hgfv-message-head h2 {
         margin: 0;
+    }
+    .hgfv-message-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        flex: 0 0 auto;
+    }
+    .hgfv-forum-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 10px;
+        border: 1px solid #c8d4ef;
+        border-radius: 999px;
+        color: #3f5ea8;
+        background: #f7faff;
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .hgfv-forum-link:hover,
+    .hgfv-forum-link:focus {
+        background: #e8efff;
+        border-color: #9eb5ea;
+    }
+    .hgfv-jump-nav {
+        position: fixed;
+        right: 16px;
+        bottom: 18px;
+        z-index: 40;
+        display: grid;
+        gap: 7px;
+    }
+    .hgfv-jump-nav button {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 1px solid #9eb5ea;
+        border-radius: 999px;
+        color: #18336f;
+        background: #f7faff;
+        box-shadow: 0 3px 12px rgba(20, 40, 90, 0.2);
+        cursor: pointer;
+        font: 700 1.1rem/1 sans-serif;
+    }
+    .hgfv-jump-nav button:hover,
+    .hgfv-jump-nav button:focus {
+        background: #e8efff;
+        border-color: #6b8fe0;
+    }
+    .hgfv-jump-nav button:disabled {
+        opacity: 0.45;
+        cursor: default;
     }
     .hgfv-meta {
         color: var(--muted);
@@ -1373,8 +1457,20 @@ if (!$hgfvEmbedded) {
                     Resultado: <?= count($messages) ?> mensaje(s), orden cronológico ascendente.
                 </div>
                 <?php if (!empty($messages)): ?>
-                    <nav class="hgfv-toc" aria-label="Tabla de contenidos del hilo">
-                        <h2>Tabla de contenidos</h2>
+                    <?php
+                        $tocCount = count($messages);
+                        $tocCompact = $tocCount > 8;
+                        $tocHiddenCount = max(0, $tocCount - 8);
+                    ?>
+                    <nav class="hgfv-toc<?= $tocCompact ? ' is-collapsed' : '' ?>" aria-label="Tabla de contenidos del hilo">
+                        <div class="hgfv-toc-head">
+                            <h2>Tabla de contenidos</h2>
+                            <?php if ($tocCompact): ?>
+                                <button type="button" class="hgfv-toc-toggle" aria-expanded="false" data-hidden-count="<?= $tocHiddenCount ?>">
+                                    Mostrar <?= $tocHiddenCount ?> más
+                                </button>
+                            <?php endif; ?>
+                        </div>
                         <ul class="hgfv-toc-list">
                             <?php foreach ($messages as $tocMsg): ?>
                                 <?php
@@ -1414,6 +1510,9 @@ if (!$hgfvEmbedded) {
                     $humanTime = $posterTime > 0 ? date('Y-m-d H:i:s', $posterTime) : 'Sin fecha';
                     $parsedBody = parse_forum_body($link, (string)($msg['body'] ?? ''));
                     $messageDomId = $messageId > 0 ? 'msg-' . $messageId : '';
+                    $forumMessageHref = ($topicId > 0 && $messageId > 0)
+                        ? 'https://naufragio-foros.duckdns.org/index.php/topic,' . $topicId . '.msg' . $messageId . '.html#new'
+                        : '';
                 ?>
                 <?php if ($messageId > 0): ?>
                     <span class="hgfv-message-anchor" id="<?= $messageId ?>" aria-hidden="true"></span>
@@ -1421,7 +1520,12 @@ if (!$hgfvEmbedded) {
                 <article class="hgfv-message" data-copy-scope="message"<?= $messageDomId !== '' ? ' id="' . h($messageDomId) . '" data-message-id="' . $messageId . '"' : '' ?>>
                     <div class="hgfv-message-head">
                         <h2><?= h($subject !== '' ? $subject : '(Sin asunto)') ?></h2>
-                        <button type="button" class="hgfv-copy-btn hgfv-copy-one-btn" title="Copiar este mensaje" aria-label="Copiar este mensaje">📑</button>
+                        <div class="hgfv-message-actions">
+                            <?php if ($forumMessageHref !== ''): ?>
+                                <a class="hgfv-forum-link" href="<?= h($forumMessageHref) ?>" target="_blank" rel="noopener noreferrer" title="Abrir mensaje en el foro" aria-label="Abrir mensaje en el foro">&#8599;</a>
+                            <?php endif; ?>
+                            <button type="button" class="hgfv-copy-btn hgfv-copy-one-btn" title="Copiar este mensaje" aria-label="Copiar este mensaje">📑</button>
+                        </div>
                     </div>
                     <div class="hgfv-meta hgfv-meta-row">
                         <?php if ($posterAvatar !== ''): ?>
@@ -1441,7 +1545,11 @@ if (!$hgfvEmbedded) {
         </div>
     </div>
 </section>
-<script>
+        <nav class="hgfv-jump-nav" aria-label="Navegación entre mensajes">
+            <button type="button" id="hgfv-prev-message" title="Mensaje anterior" aria-label="Mensaje anterior">&#8593;</button>
+            <button type="button" id="hgfv-next-message" title="Mensaje siguiente" aria-label="Mensaje siguiente">&#8595;</button>
+            <button type="button" id="hgfv-page-top" title="Ir al inicio de la página" aria-label="Ir al inicio de la página">&#8679;</button>
+        </nav><script>
 var hgfvMetaTitle = <?= json_encode((string)$metaTitle, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var hgfvMetaDescription = <?= json_encode((string)$metaDescription, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 (function(){
@@ -1489,6 +1597,40 @@ function detectAndApplyTextColor() {
 window.addEventListener('load', detectAndApplyTextColor);
 
 (function(){
+    var previous = document.getElementById('hgfv-prev-message');
+    var next = document.getElementById('hgfv-next-message');
+    var top = document.getElementById('hgfv-page-top');
+    var messages = Array.prototype.slice.call(document.querySelectorAll('.hgfv-message'));
+    if (!previous || !next || !top) return;
+
+    function activeIndex() {
+        if (!messages.length) return -1;
+        var best = 0;
+        var bestDistance = Infinity;
+        for (var i = 0; i < messages.length; i++) {
+            var distance = Math.abs(messages[i].getBoundingClientRect().top - 90);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    function move(step) {
+        var index = activeIndex();
+        if (index < 0) return;
+        var target = Math.max(0, Math.min(messages.length - 1, index + step));
+        messages[target].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    previous.disabled = messages.length < 2;
+    next.disabled = messages.length < 2;
+    previous.addEventListener('click', function(){ move(-1); });
+    next.addEventListener('click', function(){ move(1); });
+    top.addEventListener('click', function(){ window.scrollTo({ top: 0, behavior: 'smooth' }); });
+})();
+(function(){
     var pick = document.getElementById('saved_topic_pick');
     if (!pick) return;
     pick.addEventListener('change', function(){
@@ -1497,6 +1639,19 @@ window.addEventListener('load', detectAndApplyTextColor);
         var url = new URL(window.location.href);
         url.searchParams.set('id_topic', val);
         window.location.href = url.pathname + '?' + url.searchParams.toString();
+    });
+})();
+
+(function(){
+    var toc = document.querySelector('.hgfv-toc');
+    var toggle = toc ? toc.querySelector('.hgfv-toc-toggle') : null;
+    if (!toc || !toggle) return;
+
+    toggle.addEventListener('click', function(){
+        var collapsed = toc.classList.toggle('is-collapsed');
+        var hiddenCount = parseInt(toggle.getAttribute('data-hidden-count') || '0', 10);
+        toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        toggle.textContent = collapsed ? ('Mostrar ' + hiddenCount + ' más') : 'Mostrar menos';
     });
 })();
 

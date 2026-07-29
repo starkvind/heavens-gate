@@ -1,4 +1,4 @@
-﻿<?php include("app/partials/main_nav_bar.php"); ?>
+﻿<?php if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include("app/partials/main_nav_bar.php"); ?>
 <?php include_once("sim_battles_table.php"); ?>
 
 <div class="sim-ui">

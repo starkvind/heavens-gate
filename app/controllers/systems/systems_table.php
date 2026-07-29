@@ -1,7 +1,7 @@
 <?php
-setMetaFromPage("Sistemas | Heaven's Gate", "Listado de sistemas y categorias disponibles.", null, 'website');
+if (function_exists("setMetaFromPage")) setMetaFromPage("Sistemas | Heaven's Gate", "Listado de sistemas y categorias disponibles.", null, 'website');
 include_once(__DIR__ . '/../../helpers/pretty.php');
-include("app/partials/main_nav_bar.php");
+if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 
 /*

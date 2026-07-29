@@ -234,7 +234,7 @@ function hg_meta_attr($value): string {
 function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heavensgate.duckdns.org') {
 	global $metaTitle, $metaDescription, $metaImage, $metaType;
     $title = "Heaven's Gate";
-    $description = "Heaven's Gate es una campana de rol ambientada en el Mundo de Tinieblas. Explora biografias, poderes, clanes y mas.";
+    $description = "Heaven's Gate es una campaña de rol ambientada en el Mundo de Tinieblas. Explora biografías, poderes, clanes y más.";
 	$image = $baseURL . "/img/og/og_image.webp"; // ahora correcto
 	$type = "website";
 

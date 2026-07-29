@@ -57,7 +57,9 @@ $metaDescription = $allowGlobalPoiScope
     ? "Mapa global de " . $selectedMap['name'] . " con lugares agregados de toda la campana."
         . ($excludedGlobalMapName !== '' ? " Se excluye " . $excludedGlobalMapName . " para evitar solapes." : '')
     : "Mapa interactivo de " . $selectedMap['name'] . " con lugares, categorias y busqueda.";
-setMetaFromPage($metaTitle, $metaDescription, null, 'website');
+if (function_exists('setMetaFromPage')) {
+    setMetaFromPage($metaTitle, $metaDescription, null, 'website');
+}
 
 $mainConfig = [
     'apiBase' => '/maps/api',

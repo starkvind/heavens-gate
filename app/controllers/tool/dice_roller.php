@@ -1,5 +1,5 @@
-<?php setMetaFromPage("Tiradados | Heaven's Gate", "Herramienta para tirar dados d10 y registrar tiradas.", null, 'website'); ?>
-<?php include("app/partials/main_nav_bar.php"); ?>
+<?php if (function_exists("setMetaFromPage")) setMetaFromPage("Tiradados | Heaven's Gate", "Herramienta para tirar dados d10 y registrar tiradas.", null, 'website'); ?>
+<?php if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <?php include_once("app/helpers/runtime_response.php"); ?>
 

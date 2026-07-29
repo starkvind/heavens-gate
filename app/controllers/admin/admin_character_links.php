@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
@@ -186,6 +186,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $selectedCharacterId > 0) {
+    $hasErrors = false;
+    foreach ($flash as $message) {
+        if (($message['type'] ?? '') === 'error') { $hasErrors = true; break; }
+    }
+    if (!$hasErrors) {
+        hg_content_touch_table($link, 'fact_characters', $selectedCharacterId);
     }
 }
 

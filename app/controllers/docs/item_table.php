@@ -1,6 +1,6 @@
 <?php
-setMetaFromPage("Inventario | Heaven's Gate", "Listado de objetos y artefactos.", null, 'website');
-include("app/partials/main_nav_bar.php");
+if (function_exists("setMetaFromPage")) setMetaFromPage("Inventario | Heaven's Gate", "Listado de objetos y artefactos.", null, 'website');
+if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 

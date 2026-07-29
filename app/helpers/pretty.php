@@ -1,4 +1,5 @@
 <?php
+include_once(__DIR__ . '/content_updates.php');
 // Pretty ID helpers
 
 function hg_pretty_normalize_source(string $text): string {
@@ -240,7 +241,9 @@ function hg_update_pretty_id_if_exists(mysqli $link, string $table, int $id, str
 
     if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
         $st->bind_param('si', $slug, $id);
-        $st->execute();
+        if ($st->execute()) {
+            hg_content_touch_table($link, $table, $id);
+        }
         $st->close();
     }
 }

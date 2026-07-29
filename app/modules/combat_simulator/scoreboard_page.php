@@ -27,7 +27,7 @@ $IdConsulta = mysql_query($consulta, $link);
 $ResultQuery = ($IdConsulta) ? mysql_fetch_array($IdConsulta) : array();
 $maxderrot = (int)($ResultQuery['max_losses'] ?? 0);
 
-include("app/partials/main_nav_bar.php");
+if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include("app/partials/main_nav_bar.php");
 ?>
 
 <div class="sim-ui">

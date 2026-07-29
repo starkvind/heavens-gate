@@ -101,7 +101,7 @@ if (!function_exists('hg_ev_table_exists')) {
 
 $hasTimelineTable = hg_ev_table_exists($link, 'fact_timeline_events');
 if (!$hasTimelineTable) {
-    include('app/partials/main_nav_bar.php');
+    if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
     echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
     echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
     echo "<div class='event-page'><div class='events-empty'>No existe la tabla fact_timeline_events en esta base de datos.</div></div>";
@@ -125,7 +125,7 @@ $hasSeasonsKind = true;
 $rawEvent = (string)($_GET['t'] ?? '');
 $eventId = resolve_pretty_id($link, 'fact_timeline_events', $rawEvent) ?? 0;
 if ($eventId <= 0) {
-    include('app/partials/main_nav_bar.php');
+    if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
     echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
     echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
     echo "<div class='event-page'><div class='events-empty'>Evento no encontrado.</div></div>";
@@ -183,7 +183,7 @@ if ($st) {
 }
 
 if (!$event) {
-    include('app/partials/main_nav_bar.php');
+    if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
     echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
     echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
     echo "<div class='event-page'><div class='events-empty'>Evento no encontrado.</div></div>";
@@ -197,7 +197,7 @@ if (function_exists('meta_excerpt')) {
     $metaDesc = meta_excerpt($metaDesc);
 }
 
-setMetaFromPage($title . " | Evento | Heaven's Gate", $metaDesc, null, 'article');
+if (function_exists('setMetaFromPage')) { setMetaFromPage($title . " | Evento | Heaven's Gate", $metaDesc, null, 'article'); }
 
 $participants = [];
 if (hg_ev_table_exists($link, 'bridge_timeline_events_characters') && hg_ev_table_exists($link, 'fact_characters')) {
@@ -354,10 +354,11 @@ foreach ($chapters as $chapterRow) {
 }
 ksort($chaptersBySeason, SORT_NUMERIC);
 
-include('app/partials/main_nav_bar.php');
+if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
 echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
 echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) { echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">'; }
 
 $prevHrefKey = $prevEvent ? hg_ev_event_url($prevEvent) : '';
 $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';

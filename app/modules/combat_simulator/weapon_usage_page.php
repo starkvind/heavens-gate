@@ -1,4 +1,4 @@
-﻿<?php include("app/partials/main_nav_bar.php"); ?>
+﻿<?php if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include("app/partials/main_nav_bar.php"); ?>
 
 <div class="sim-ui">
 <h2>Listado de Armas</h2>

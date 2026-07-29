@@ -35,6 +35,7 @@
     require_once(__DIR__ . "/app/helpers/db_connection.php");
     require_once(__DIR__ . "/app/bootstrap/error_reporting.php");
     require_once(__DIR__ . "/app/bootstrap/request_router.php");
+    require_once(__DIR__ . "/app/helpers/mobile_detection.php");
 
     $pageTitle = "Heaven's Gate";
     $unknownOrigin = "-";
@@ -47,6 +48,11 @@
     $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
     hg_request_router_bootstrap($link);
+
+    if (hg_should_render_mobile((string)($_GET['p'] ?? ''))) {
+        include(__DIR__ . "/app/mobile/mobile_index.php");
+        exit;
+    }
 
     ob_start();
     include("app/bootstrap/body_work.php");
@@ -69,6 +75,11 @@
         $activeTheme = 'classic';
     }
     $bodyThemeClass = 'theme-' . $activeTheme;
+    $desktopMobileViewUrl = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
+    $desktopMobileViewQuery = [];
+    parse_str((string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? ''), $desktopMobileViewQuery);
+    $desktopMobileViewQuery['view'] = 'mobile';
+    $desktopMobileViewUrl .= '?' . http_build_query($desktopMobileViewQuery);
 ?>
 <!DOCTYPE html>
 <html lang="es">

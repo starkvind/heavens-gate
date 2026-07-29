@@ -93,3 +93,6 @@
 .menu-season-row--nostatus .menu-season-status {
     display: none;
 }
+
+.main-footer-mobile-view { display: none; font-size: 11px; }
+@media (max-width: 900px) { .main-footer-mobile-view { display: block; } }

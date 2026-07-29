@@ -10,7 +10,7 @@ $pageSect = "Simulador de Combate";
 $defaultForm = "Humano";
 $isSimAdmin = (!empty($_SESSION['is_admin']) || (!empty($_COOKIE['is_admin']) && in_array(strtoupper(trim((string)$_COOKIE['is_admin'])), array('1', 'TRUE', 'YES', 'ON'), true)));
 
-include("app/partials/main_nav_bar.php");
+if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include("app/partials/main_nav_bar.php");
 
 if (!function_exists('sim_h')) {
     function sim_h($value)
@@ -232,7 +232,7 @@ if (!empty($characterIds) && sim_table_exists($link, 'bridge_characters_items'))
                     $skillShort = 'T';
                 } elseif ($habilidad === 'Armas de Fuego') {
                     $skillShort = 'F';
-                } elseif ($habilidad === 'Informatica' || $habilidad === 'InformÃ¡tica') {
+                } elseif ($habilidad === 'Informatica' || $habilidad === 'Informática') {
                     $skillShort = 'I';
                 }
 
@@ -437,9 +437,11 @@ if ($itemsJson === false) {
     var formsByCharacter = <?php echo $formsJson; ?>;
     var itemsByCharacter = <?php echo $itemsJson; ?>;
     var defaultForm = <?php echo json_encode($defaultForm, JSON_UNESCAPED_UNICODE); ?>;
+    var isMobileSimulator = <?php echo defined('HG_MOBILE_COMBAT_SIMULATOR') ? 'true' : 'false'; ?>;
 
     var selected = { p1: null, p2: null };
     var hoverPreview = { p1: null, p2: null };
+    var activeSlot = 'p1';
 
     var rosterMap = {};
     roster.forEach(function(ch) { rosterMap[String(ch.id)] = ch; });
@@ -601,6 +603,9 @@ if ($itemsJson === false) {
     }
 
     function previewSlotKey() {
+        if (isMobileSimulator) {
+            return activeSlot;
+        }
         var free = nextFreeSlot();
         if (free) {
             return free;
@@ -722,10 +727,10 @@ if ($itemsJson === false) {
 
     function updateConfigTitles() {
         if (configTitleP1) {
-            configTitleP1.textContent = 'ConfiguraciÃ³n ' + selectedAlias('p1');
+            configTitleP1.textContent = 'Configuración ' + selectedAlias('p1');
         }
         if (configTitleP2) {
-            configTitleP2.textContent = 'ConfiguraciÃ³n ' + selectedAlias('p2');
+            configTitleP2.textContent = 'Configuración ' + selectedAlias('p2');
         }
     }
 
@@ -736,6 +741,22 @@ if ($itemsJson === false) {
     }
 
     function selectCharacter(id) {
+        if (isMobileSimulator) {
+            // En pantalla táctil el destino de la selección debe ser explícito.
+            // El selector de escritorio alterna automáticamente los huecos, pero
+            // ese comportamiento hace que un toque pueda cambiar el luchador erróneo.
+            if (selected[activeSlot] === id) {
+                return;
+            }
+            if (selected[activeSlot === 'p1' ? 'p2' : 'p1'] === id) {
+                return;
+            }
+            selected[activeSlot] = id;
+            activeSlot = (activeSlot === 'p1') ? 'p2' : 'p1';
+            renderAll();
+            return;
+        }
+
         if (isRandomPick(id)) {
             var randomFree = nextFreeSlot();
             if (randomFree) {
@@ -769,6 +790,11 @@ if ($itemsJson === false) {
     function setupSlotClick(slotButton, slotKey) {
         slotButton.addEventListener('click', function() {
             clearHoverPreview();
+            if (isMobileSimulator) {
+                activeSlot = slotKey;
+                renderAll();
+                return;
+            }
             if (selected[slotKey]) {
                 selected[slotKey] = null;
                 replaceNextSlot = slotKey;

@@ -439,7 +439,7 @@ $loadoutP2 = "<div class='sim-loadout-summary'><span class='sim-loadout-pill'>&#
 $pageSect = "Combate #$kid";
 $pageTitle2 = "$aliasPj1 VS $aliasPj2";
 
-include('app/partials/main_nav_bar.php');
+if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include('app/partials/main_nav_bar.php');
 ?>
 <div class="sim-ui">
     <h2>Resultados del Combate</h2>

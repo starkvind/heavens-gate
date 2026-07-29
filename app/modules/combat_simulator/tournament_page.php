@@ -1118,7 +1118,7 @@ if (is_array($currentTournamentRow)) {
     }
 }
 
-include('app/partials/main_nav_bar.php');
+if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include('app/partials/main_nav_bar.php');
 ?>
 <div class="sim-ui">
     <h2>Torneo del Simulador</h2>

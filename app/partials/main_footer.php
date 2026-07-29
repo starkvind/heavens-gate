@@ -7,3 +7,6 @@ Todas las situaciones y personas que aparecen aquí descritas son ficticias y cu
     <a href="https://bsky.app/profile/starkvind.bsky.social" target="_blank">🦋 Maurick Starkvind</a> •
     <a href="https://naufragio.net/heavens-gate/" target="_blank">📗 Heaven's Gate</a>
 </p>
+<?php if (!empty($desktopMobileViewUrl)): ?>
+<p class="main-footer-mobile-view"><a href="<?= htmlspecialchars($desktopMobileViewUrl, ENT_QUOTES, 'UTF-8') ?>">Vista móvil</a></p>
+<?php endif; ?>

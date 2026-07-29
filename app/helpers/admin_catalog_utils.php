@@ -2,6 +2,7 @@
 // Shared helpers for narrative/admin catalog CRUD.
 
 include_once(__DIR__ . '/pretty.php');
+include_once(__DIR__ . '/content_updates.php');
 
 if (!function_exists('hg_admin_catalog_count_by_id')) {
     function hg_admin_catalog_count_by_id(mysqli $link, string $table, string $column, int $id): int
@@ -129,6 +130,10 @@ if (!function_exists('hg_admin_catalog_update_pretty_id')) {
         $ok = $st->execute();
         $st->close();
 
+        if ($ok) {
+            hg_content_touch_table($link, $table, $id);
+        }
+
         return (bool)$ok;
     }
 }
@@ -168,6 +173,10 @@ if (!function_exists('hg_admin_catalog_persist_pretty_id')) {
         $st->bind_param('si', $slug, $id);
         $ok = $st->execute();
         $st->close();
+
+        if ($ok) {
+            hg_content_touch_table($link, $table, $id);
+        }
 
         return (bool)$ok;
     }
@@ -216,6 +225,10 @@ if (!function_exists('hg_admin_catalog_assign_pretty_id')) {
         $st->bind_param('si', $slug, $id);
         $ok = $st->execute();
         $st->close();
+
+        if ($ok) {
+            hg_content_touch_table($link, $table, $id);
+        }
 
         return (bool)$ok;
     }

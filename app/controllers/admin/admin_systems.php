@@ -118,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                 $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $bibliographyId, $id);
                 if ($st->execute()) {
                     hg_update_pretty_id_if_exists($link, 'dim_systems', $id, $name);
+                    hg_content_touch_table($link, 'dim_systems', $id);
                     $flash[] = ['type'=>'ok','msg'=>'Sistema actualizado.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
@@ -133,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                 if ($st->execute()) {
                     $newId = (int)$st->insert_id;
                     hg_update_pretty_id_if_exists($link, 'dim_systems', $newId, $name);
+                    hg_content_touch_table($link, 'dim_systems', $newId);
                     $flash[] = ['type'=>'ok','msg'=>'Sistema creado.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];

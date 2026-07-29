@@ -101,7 +101,7 @@ switch ($simTarget) {
         break;
 }
 
-setMetaFromPage($metaTitle, $metaDesc, null, 'website');
+if (function_exists("setMetaFromPage")) setMetaFromPage($metaTitle, $metaDesc, null, 'website');
 
 $simFile = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'partials' . DIRECTORY_SEPARATOR . 'tool' . DIRECTORY_SEPARATOR . 'combat_simulator' . DIRECTORY_SEPARATOR . $simTarget;
 

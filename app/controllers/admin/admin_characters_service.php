@@ -2,6 +2,7 @@
 // Shared service functions for admin_characters.php
 
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../helpers/content_updates.php');
 
 if (!function_exists('fetchPairs')) {
     function fetchPairs(mysqli $link, string $sql): array {
@@ -243,6 +244,7 @@ if (!function_exists('sync_character_bridges')) {
                 }
             }
         }
+        hg_content_touch_table($link, 'fact_characters', $characterId);
     }
 }
 if (!function_exists('save_character_powers')) {

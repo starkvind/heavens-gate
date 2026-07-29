@@ -52,7 +52,12 @@ function isValidDirName(string $name): bool {
     return (bool)preg_match('#^[A-Za-z0-9 _\.\-]+$#', $name) && !in_array(strtolower($name), ['','thumbnails','.','..']);
 }
 function isValidFileName(string $file, array $allowed): bool {
-    if (!preg_match('#^[A-Za-z0-9 _\.\-]+\.[A-Za-z0-9]+$#', $file)) return false;
+    // El nombre procede de una subida: permitimos caracteres UTF-8 normales
+    // (acentos, parentesis, etc.), pero nunca segmentos de ruta ni controles.
+    // La version anterior rechazaba esos nombres y mostraba equivocadamente que
+    // la extension no era valida.
+    if ($file === '' || strlen($file) > 255 || preg_match('#[\\/\x00-\x1F\x7F]#', $file)) return false;
+    if (pathinfo($file, PATHINFO_FILENAME) === '') return false;
     $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
     return in_array($ext, $allowed, true);
 }
@@ -173,17 +178,25 @@ array_unshift($allDirs, ''); // raiz al principio
 // ==============================
 // Imagen: compresion + thumb
 // ==============================
+function galleryWebpFileName(string $file): string {
+    return pathinfo($file, PATHINFO_FILENAME) . '.webp';
+}
 function compressImage(string $srcTmp, string $dest, int $quality = 80): bool {
+    if (!function_exists('imagewebp')) return false;
     [$w, $h, $type] = @getimagesize($srcTmp);
     if (!$w || !$h) return false;
     switch ($type) {
-        case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($srcTmp); if(!$img) return false; $ok = imagejpeg($img, $dest, $quality); break;
-        case IMAGETYPE_PNG:  $img = @imagecreatefrompng($srcTmp);  if(!$img) return false; imagesavealpha($img, true); $ok = imagepng($img, $dest, 8); break; // 0-9
-        case IMAGETYPE_GIF:  $img = @imagecreatefromgif($srcTmp);  if(!$img) return false; $ok = imagegif($img, $dest); break;
-        case IMAGETYPE_WEBP: $img = @imagecreatefromwebp($srcTmp); if(!$img) return false; $ok = imagewebp($img, $dest, $quality); break;
+        case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($srcTmp); break;
+        case IMAGETYPE_PNG:  $img = @imagecreatefrompng($srcTmp); break;
+        case IMAGETYPE_GIF:  $img = @imagecreatefromgif($srcTmp); break;
+        case IMAGETYPE_WEBP: $img = @imagecreatefromwebp($srcTmp); break;
         default: return false;
     }
-    if (isset($img) && is_resource($img)) imagedestroy($img);
+    if (!$img) return false;
+    if (function_exists('imagepalettetotruecolor')) @imagepalettetotruecolor($img);
+    imagesavealpha($img, true);
+    $ok = imagewebp($img, $dest, $quality);
+    imagedestroy($img);
     return (bool)$ok;
 }
 function createThumbnail(string $src, string $dest, int $maxW = 200, int $maxH = 200): bool {
@@ -293,7 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $resp["msg"] = "Extension no permitida ($origName).";
                 } else {
                     $tmpName  = $file['tmp_name'];
-                    $safeName = uniqueFileName($postAbs, $origName);
+                    $safeName = uniqueFileName($postAbs, galleryWebpFileName($origName));
                     $destAbs  = fsPathJoin($postAbs, $safeName);
                     if (compressImage($tmpName, $destAbs, 80)) {
                         $thumbAbs = fsPathJoin($postAbs, "thumbnails/" . $safeName);
@@ -388,7 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $origName = basename($_FILES['images']['name'][$i]);
                 if (!isValidFileName($origName, $ALLOWED_EXT)) { continue; }
                 $tmpName  = $_FILES['images']['tmp_name'][$i];
-                $safeName = uniqueFileName($postAbs, $origName);
+                $safeName = uniqueFileName($postAbs, galleryWebpFileName($origName));
                 $destAbs  = fsPathJoin($postAbs, $safeName);
                 if (compressImage($tmpName, $destAbs, 80)) {
                     $thumbAbs = fsPathJoin($postAbs, "thumbnails/" . $safeName);
@@ -568,9 +581,9 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen \"" + name
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($CSRF) ?>">
       <input type="hidden" name="action" value="upload_images">
       <input type="hidden" name="relDir" value="<?= htmlspecialchars($relDir) ?>">
-      <input class="input" type="file" id="imagesInput" name="images[]" accept=".webp,.webp,.webp,.webp,.webp" multiple required>
+      <input class="input" type="file" id="imagesInput" name="images[]" accept=".jpg,.jpeg,.png,.gif,.webp" multiple required>
       <button class="btn" type="submit">Subir</button>
-      <div class="small adm-mt-6">Se comprimen automaticamente (JPG/WEBP ~80%, PNG compresion 8) y se crean thumbnails (200x200).</div>
+      <div class="small adm-mt-6">Las imagenes se convierten automaticamente a WebP (calidad 80) y se crean thumbnails (200x200).</div>
       <div id="uploadProgress"></div>
     </form>
   </div>

@@ -282,6 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                         $newId = (int)$link->insert_id;
                         $src = (string)($vals[$M['name_col']] ?? '');
                         hg_update_pretty_id_if_exists($link, $table, $newId, $src);
+                        hg_content_touch_table($link, $table, $newId);
                     } else {
                         $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
                     }
@@ -320,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                             $flash[] = ['type'=>'ok','msg'=>'OK '.$M['title'].' actualizado.'];
                             $src = (string)($vals[$M['name_col']] ?? '');
                             hg_update_pretty_id_if_exists($link, $table, $id, $src);
+                            hg_content_touch_table($link, $table, $id);
                         } else {
                             $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
                         }

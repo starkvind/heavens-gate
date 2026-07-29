@@ -93,7 +93,7 @@ if ($table !== "") {
     if ($resolvedId <= 0) {
         $pageSect = "Sistema";
         $pageTitle2 = "Elemento no encontrado";
-        include("app/partials/main_nav_bar.php");
+        if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
         echo "<h2>Elemento no encontrado</h2>";
         echo "<div class='renglonDatosSistema'>El contenido solicitado no existe.</div>";
         return;
@@ -120,10 +120,10 @@ if ($table !== "") {
 
         $pageSect = $returnType;
         $pageTitle2 = $nameSyst;
-        setMetaFromPage($nameSyst . " | Sistemas | Heaven's Gate", meta_excerpt($infoDesc), $imageSyst, 'article');
+        if (function_exists("setMetaFromPage")) setMetaFromPage($nameSyst . " | Sistemas | Heaven's Gate", meta_excerpt($infoDesc), $imageSyst, 'article');
 
         include("app/helpers/system_category_helper.php");
-        include("app/partials/main_nav_bar.php"); // Barra navegacion
+        if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); // Barra navegacion
         echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
 
         // Comprobar si los datos tienen energia para mostrarla

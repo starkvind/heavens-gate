@@ -122,14 +122,14 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     // Imágenes y título
     $pageSect = "Objeto"; // Título de la página ( #$itemID )
     $pageTitle2 = $itemName;
-    setMetaFromPage($itemName . " | Objetos | Heaven's Gate", meta_excerpt($itemInfo), null, 'article');
+    if (function_exists("setMetaFromPage")) setMetaFromPage($itemName . " | Objetos | Heaven's Gate", meta_excerpt($itemInfo), null, 'article');
     if (empty($itemImg)) {
         $itemImg = "img/inv/no-photo.webp";
     }
 
     // ================================================================== //
     /* MODERNO NUEVO */
-    include("app/partials/main_nav_bar.php"); // Barra de navegación
+    if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); // Barra de navegación
     //echo "<h2>$itemName</h2>"; // Encabezado de página
 
     ob_start();

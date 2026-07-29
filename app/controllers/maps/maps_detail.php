@@ -24,12 +24,17 @@ $fromMap = $fromMapParam !== '' ? hg_maps_find_map($maps, $fromMapParam) : null;
 $fromMapIsDifferent = $fromMap && (string)$fromMap['slug'] !== (string)$poi['map_slug'];
 $relatedPois = hg_maps_fetch_related_pois($link, $schema, $poi, 40);
 
-setMetaFromPage(
-    $poi['name'] . " | Mapas | Heaven's Gate",
-    meta_excerpt($poi['description'] ?? ''),
-    $poi['thumbnail'] ?? null,
-    'article'
-);
+if (function_exists('setMetaFromPage')) {
+    $poiMetaDescription = function_exists('meta_excerpt')
+        ? meta_excerpt($poi['description'] ?? '')
+        : trim(strip_tags((string)($poi['description'] ?? '')));
+    setMetaFromPage(
+        $poi['name'] . " | Mapas | Heaven's Gate",
+        $poiMetaDescription,
+        $poi['thumbnail'] ?? null,
+        'article'
+    );
+}
 
 ?>
 

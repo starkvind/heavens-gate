@@ -291,6 +291,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $ok = false;
             }
         }
+        if ($ok) {
+            hg_content_touch_table($link, 'dim_chapters', $chapterId);
+            hg_content_touch_table($link, 'fact_characters', $characterId);
+        }
         echo json_encode(['ok' => (bool)$ok]);
         exit;
     }
@@ -309,6 +313,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $ok = true;
             }
         }
+        if ($ok) {
+            hg_content_touch_table($link, 'dim_chapters', $chapterId);
+            hg_content_touch_table($link, 'fact_characters', $characterId);
+        }
         echo json_encode(['ok' => (bool)$ok]);
         exit;
     }
@@ -321,6 +329,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             $st->bind_param('ii', $chapterId, $characterId);
             $ok = $st->execute();
             $st->close();
+        }
+        if ($ok) {
+            hg_content_touch_table($link, 'dim_chapters', $chapterId);
+            hg_content_touch_table($link, 'fact_characters', $characterId);
         }
         echo json_encode(['ok' => (bool)$ok]);
         exit;
@@ -431,6 +443,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         }
 
         hg_update_pretty_id_if_exists($link, 'dim_chapters', $savedId, $name);
+        hg_content_touch_table($link, 'dim_chapters', $savedId);
         attach_chapter_characters($link, $savedId, $pendingRelations);
         if ($hasImageUpload) {
             $res = hg_admin_save_image_upload($_FILES['image_upload'], 'chapter', $savedId, $name, $CHAPTER_UPLOADDIR, $CHAPTER_URLBASE);
@@ -513,6 +526,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
             $st->close();
             if ($ok) {
                 hg_update_pretty_id_if_exists($link, 'dim_chapters', $id, $name);
+                hg_content_touch_table($link, 'dim_chapters', $id);
                 attach_chapter_characters($link, $id, $pendingRelations);
                 $flash[] = ['type' => 'ok', 'msg' => 'Capítulo actualizado.'];
             }
@@ -525,6 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
             $st->close();
             if ($ok) {
                 hg_update_pretty_id_if_exists($link, 'dim_chapters', $newId, $name);
+                hg_content_touch_table($link, 'dim_chapters', $newId);
                 attach_chapter_characters($link, $newId, $pendingRelations);
                 $flash[] = ['type' => 'ok', 'msg' => 'Capítulo creado.'];
             }

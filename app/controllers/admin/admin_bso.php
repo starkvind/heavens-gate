@@ -430,6 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     $st->bind_param($types, ...$vals);
                     if ($st->execute()) {
                         hg_update_pretty_id_if_exists($link, 'dim_soundtracks', (int)$link->insert_id, $title);
+                        hg_content_touch_table($link, 'dim_soundtracks', (int)$link->insert_id);
                         $flash[] = ['type' => 'ok', 'msg' => 'Tema creado.'];
                     } else {
                         hg_runtime_log_error('admin_bso.create', $st->error);
@@ -459,6 +460,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                         $st->bind_param($types, ...$vals);
                         if ($st->execute()) {
                             hg_update_pretty_id_if_exists($link, 'dim_soundtracks', $id, $title);
+                            hg_content_touch_table($link, 'dim_soundtracks', $id);
                             $flash[] = ['type' => 'ok', 'msg' => 'Tema actualizado.'];
                         } else {
                             hg_runtime_log_error('admin_bso.update', $st->error);

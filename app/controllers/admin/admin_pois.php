@@ -197,6 +197,7 @@ if (isset($_GET['ajax'])) {
       );
       $st->execute(); $st->close();
       hg_update_pretty_id_if_exists($link, 'dim_maps', $id, $name);
+      hg_content_touch_table($link, 'dim_maps', $id);
     } else {
       // INSERT
       $st = $link->prepare("INSERT INTO dim_maps
@@ -210,6 +211,7 @@ if (isset($_GET['ajax'])) {
       );
       $st->execute(); $id = $st->insert_id; $st->close();
       hg_update_pretty_id_if_exists($link, 'dim_maps', $id, $name);
+      hg_content_touch_table($link, 'dim_maps', $id);
     }
     ok(['id'=>$id]);
   }
@@ -304,6 +306,7 @@ if (isset($_GET['ajax'])) {
       $st->execute(); $id = $st->insert_id; $st->close();
       hg_update_pretty_id_if_exists($link, 'fact_map_pois', $id, $name);
     }
+    hg_content_touch_table($link, 'dim_maps', $map_id);
     ok(['id'=>$id]);
   }
 
@@ -379,6 +382,7 @@ if (isset($_GET['ajax'])) {
       $st->execute(); $id = $st->insert_id; $st->close();
       hg_update_pretty_id_if_exists($link, 'fact_map_areas', $id, $name);
     }
+    hg_content_touch_table($link, 'dim_maps', $map_id);
     ok(['id'=>$id]);
   }
 

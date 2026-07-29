@@ -1,4 +1,4 @@
-<?php setMetaFromPage("Linea temporal | Heaven's Gate", "Linea temporal de eventos y sucesos.", null, 'website'); ?>
+<?php if (function_exists('setMetaFromPage')) { setMetaFromPage("Linea temporal | Heaven's Gate", "Linea temporal de eventos y sucesos.", null, 'website'); } ?>
 <?php
 include_once(__DIR__ . '/../../helpers/public_response.php');
 if (!$link) {
@@ -116,9 +116,10 @@ if (!function_exists('hg_events_table_exists')) {
 
 $hasTimelineTable = hg_events_table_exists($link, 'fact_timeline_events');
 if (!$hasTimelineTable) {
-    include("app/partials/main_nav_bar.php");
+    if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include("app/partials/main_nav_bar.php"); }
     echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
     echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+    if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) { echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">'; }
     echo "<div class='events-wrap'><div class='events-empty'>No existe la tabla fact_timeline_events en esta base de datos.</div></div>";
     return;
 }
@@ -439,11 +440,14 @@ if ($rangeStart !== '' && $rangeEnd !== '') {
     $timelineEnd = (new DateTime($rangeEnd))->modify('+5 years')->format('Y-m-d');
 }
 
-include("app/partials/main_nav_bar.php");
+if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include("app/partials/main_nav_bar.php"); }
 ?>
 <script src="/assets/vendor/echarts/echarts.min.5.5.1.js"></script>
 <link rel="stylesheet" href="/assets/css/hg-main.css">
 <link rel="stylesheet" href="/assets/css/hg-events.css">
+<?php if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED): ?>
+<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">
+<?php endif; ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
 <div class="events-wrap events-wrap-compact">

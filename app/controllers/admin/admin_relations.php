@@ -119,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 					$st->execute();
 					$newId = (int)$st->insert_id;
 					$st->close();
+                    hg_content_touch_many($link, 'character', [$source, $target]);
 					if (relations_is_ajax()) { relations_success('Relacion creada.', ['id' => $newId]); }
 					$flash[] = ['type'=>'ok','msg'=>'Relacion creada.'];
 				} elseif (relations_is_ajax()) {
@@ -130,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 					$st->bind_param("iississi", $source, $target, $type, $tag, $importance, $description, $ar, $id);
 					$st->execute();
 					$st->close();
+                    hg_content_touch_many($link, 'character', [$source, $target]);
 					if (relations_is_ajax()) { relations_success('Relacion actualizada.', ['id' => $id]); }
 					$flash[] = ['type'=>'ok','msg'=>'Relacion actualizada.'];
 				} elseif (relations_is_ajax()) {

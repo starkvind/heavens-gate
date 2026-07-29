@@ -582,6 +582,7 @@ if ($isAjax) {
             exit;
         }
 
+        hg_content_touch_table($link, 'fact_timeline_events', $savedId);
         $saved = $getEventRow($savedId);
         if (!$saved) {
             if (function_exists('hg_admin_json_error')) hg_admin_json_error('Evento guardado pero no se pudo leer para refresco.', 500);

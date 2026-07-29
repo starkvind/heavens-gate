@@ -1,4 +1,4 @@
-<?php include("app/partials/main_nav_bar.php");	// Barra Navegación ?>
+<?php if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");	// Barra Navegación ?>
 <h2>Tablón de Mensajes</h2>
 
 <center>

@@ -93,6 +93,7 @@ function hg_acd_set_character_status_by_death(mysqli $db, int $characterId, bool
         $st->bind_param('ii', $statusId, $characterId);
         $st->execute();
         $st->close();
+        hg_content_touch_table($db, 'fact_characters', $characterId);
     }
 }
 

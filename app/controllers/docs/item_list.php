@@ -39,8 +39,8 @@ $nameTypeBack = $typeName;
 $itemType = $typeId;
 $typeSlug = $typePretty !== '' ? $typePretty : (string)$typeId;
 
-setMetaFromPage($typeName . " | Inventario | Heaven's Gate", "Listado de objetos por tipo.", null, 'website');
-include("app/partials/main_nav_bar.php");
+if (function_exists("setMetaFromPage")) setMetaFromPage($typeName . " | Inventario | Heaven's Gate", "Listado de objetos por tipo.", null, 'website');
+if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 
 $pageSect = "Inventario";
 

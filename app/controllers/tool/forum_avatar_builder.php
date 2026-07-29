@@ -1,6 +1,11 @@
 <?php
-setMetaFromPage("Creador de mensajes de foro | Heaven's Gate", "Genera snippets hg_avatar con color y efectos de texto para el foro.", null, 'website');
-include("app/partials/main_nav_bar.php");
+$hgForumAvatarMobileEmbed = defined('HG_MOBILE_TOOL_EMBED') && HG_MOBILE_TOOL_EMBED;
+if (function_exists('setMetaFromPage')) {
+    setMetaFromPage("Creador de mensajes de foro | Heaven's Gate", "Genera snippets hg_avatar con color y efectos de texto para el foro.", null, 'website');
+}
+if (!$hgForumAvatarMobileEmbed) {
+    include("app/partials/main_nav_bar.php");
+}
 include_once("app/helpers/runtime_response.php");
 include_once("app/helpers/character_avatar.php");
 ?>

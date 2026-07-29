@@ -620,3 +620,139 @@
   font-family: var(--mono);
   color: rgba(124,255,174,0.75);
 }
+
+/* Rules hub */
+.rules-home {
+    width: min(100%, 980px);
+    margin: 0 auto;
+    padding: 18px;
+    border: 1px solid var(--hg-field-border);
+    background: var(--hg-field-bg);
+    color: var(--hg-text);
+}
+
+.rules-home-header {
+    margin-bottom: 16px;
+}
+
+.rules-home-header h1 {
+    margin: 0 0 8px;
+    color: var(--hg-h2);
+    font-family: var(--hg-font-head);
+    font-size: 1.8rem;
+}
+
+.rules-home-header p {
+    max-width: 65ch;
+    margin: 0;
+    color: var(--hg-info-link);
+    line-height: 1.5;
+}
+
+.rules-home-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.rules-home-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 132px;
+    padding: 15px;
+    border: 1px solid var(--hg-field-border);
+    background: var(--hg-bg);
+    color: var(--hg-text);
+    text-decoration: none;
+    transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.rules-home-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--hg-h3);
+    font-family: var(--hg-font-head);
+}
+
+.rules-home-card-heading > span,
+.rules-home-card-count {
+    color: var(--hg-link);
+}
+
+.rules-home-card-description {
+    margin-top: 10px;
+    line-height: 1.45;
+}
+
+.rules-home-card-count {
+    margin-top: auto;
+    padding-top: 12px;
+    font-size: 0.9em;
+    font-weight: 700;
+}
+
+.rules-home-card:hover {
+    border-color: var(--hg-link-hover);
+    background: var(--hg-field-bg);
+    transform: translateY(-2px);
+}
+
+.rules-home-card:focus-visible {
+    outline: 3px solid var(--hg-btn-accent);
+    outline-offset: 3px;
+}
+
+@media (max-width: 620px) {
+    .rules-home {
+        padding: 14px;
+    }
+
+    .rules-home-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rules-home-card {
+        transition: none;
+    }
+
+    .rules-home-card:hover {
+        transform: none;
+    }
+}
+
+.rules-home-card {
+    background: color-mix(in srgb, var(--hg-bg) 78%, black);
+}
+
+.rules-home-card:hover {
+    background: color-mix(in srgb, var(--hg-field-bg) 78%, black);
+}
+
+/* Keep the rules hub prose readable rather than justified. */
+.rules-home,
+.rules-home-header,
+.rules-home-header p,
+.rules-home-grid,
+.rules-home-card,
+.rules-home-card-heading,
+.rules-home-card-description,
+.rules-home-card-count {
+    text-align: left;
+}
+
+.rules-home-header h1 {
+    text-align: center;
+}
+
+.rules-home-card {
+    background: var(--hg-bg);
+}
+
+.rules-home-card:hover {
+    background: var(--hg-field-bg);
+}

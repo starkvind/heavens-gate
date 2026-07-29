@@ -15,4 +15,5 @@
 	if ($bioConcept != "") {	// Concepto del Personaje
 		echo "<div class='power-stat'><div class='power-stat__label'>Concepto</div><div class='power-stat__value'>" . h($bioConcept) . "</div></div>";
 	}
+	echo "<div class='power-stat'><div class='power-stat__label'>ID</div><div class='power-stat__value'>" . (int)$bioId . "</div></div>";
 ?>

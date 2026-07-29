@@ -42,16 +42,9 @@ function topic_viewer_column_exists(mysqli $link, string $table, string $column)
     return $ok;
 }
 
-$actions = '<span class="adm-flex-right-8">'
-    
-    . '<label class="adm-text-left">Filtro rÃ¡pido '
-    . '<input class="inp" type="text" id="quickFilterTopicViewer" placeholder="En esta pagina..."></label>'
-    . '</span>';
-admin_panel_open('Temas de visor de foro', $actions);
-
 if (!topic_viewer_table_exists($link)) {
-    echo "<p class='adm-admin-error'>Falta la tabla <code>fact_tools_topic_viewer</code> en esta base de datos.</p>";
-    admin_panel_close();
+    echo "<div class='panel-wrap'><div class='hdr'><h2>Temas de visor de foro</h2><a class='btn' href='/talim'>&larr; Panel</a></div>";
+    echo "<p class='adm-admin-error'>Falta la tabla <code>fact_tools_topic_viewer</code> en esta base de datos.</p></div>";
     return;
 }
 
@@ -78,14 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         : (is_string($token) && $token !== '' && isset($_SESSION[$csrfKey]) && hash_equals($_SESSION[$csrfKey], $token));
 
     if (!$validCsrf) {
-        $flash[] = ['type' => 'error', 'msg' => 'CSRF invÃ¡lido. Recarga la pÃ¡gina.'];
+        $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
     } else {
         $action = (string)$_POST['crud_action'];
 
         if ($action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID invÃ¡lido para borrar.'];
+                $flash[] = ['type' => 'error', 'msg' => 'ID inválido para borrar.'];
             } else {
                 $st = $link->prepare("DELETE FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
                 if (!$st) {
@@ -118,16 +111,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             if ($topicName === '' || $topicId <= 0) {
                 $flash[] = ['type' => 'error', 'msg' => 'Nombre y topic_id son obligatorios.'];
                 $editId = $id;
-            } elseif ($hasChapterIdCol && $chapterId <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'chapter_id es obligatorio y debe ser > 0.'];
-                $editId = $id;
             } elseif ($hasScopeTypeCol && !in_array($scopeType, $allowedScopeTypes, true)) {
-                $flash[] = ['type' => 'error', 'msg' => 'Tipo de agrupaciÃ³n invÃ¡lido.'];
+                $flash[] = ['type' => 'error', 'msg' => 'Tipo de agrupación inválido.'];
                 $editId = $id;
             } elseif ($hasScopeTypeCol && $hasScopeIdCol && $scopeType !== '' && $scopeId <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'Si eliges tipo de agrupaciÃ³n, link_scope_id debe ser > 0.'];
+                $flash[] = ['type' => 'error', 'msg' => 'Si eliges tipo de agrupación, link_scope_id debe ser > 0.'];
                 $editId = $id;
             } else {
+                $chapterIdOrNull = ($hasChapterIdCol && $chapterId > 0) ? $chapterId : null;
+
                 if ($id > 0) {
                     if ($supportsEpisodeAndScope) {
                         $st = $link->prepare("UPDATE fact_tools_topic_viewer
@@ -153,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                                 $topicDescription,
                                 $sortOrder,
                                 $isActive,
-                                $chapterId,
+                                $chapterIdOrNull,
                                 $scopeTypeOrNull,
                                 $scopeIdOrNull,
                                 $id
@@ -196,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                                 $topicDescription,
                                 $sortOrder,
                                 $isActive,
-                                $chapterId,
+                                $chapterIdOrNull,
                                 $scopeTypeOrNull,
                                 $scopeIdOrNull
                             );
@@ -242,6 +234,32 @@ if ($editId > 0) {
         }
         $st->close();
     }
+}
+
+$hasFlashError = false;
+foreach ($flash as $flashItem) {
+    if (($flashItem['type'] ?? '') === 'error') {
+        $hasFlashError = true;
+        break;
+    }
+}
+if (
+    $hasFlashError
+    && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && (string)($_POST['crud_action'] ?? '') === 'save'
+) {
+    $editRow = array_merge($editRow, [
+        'id' => (int)($_POST['id'] ?? 0),
+        'topic_name' => (string)($_POST['topic_name'] ?? ''),
+        'topic_id' => (string)($_POST['topic_id'] ?? ''),
+        'topic_url' => (string)($_POST['topic_url'] ?? ''),
+        'topic_description' => (string)($_POST['topic_description'] ?? ''),
+        'sort_order' => (int)($_POST['sort_order'] ?? 0),
+        'is_active' => ((string)($_POST['is_active'] ?? '1') === '1') ? 1 : 0,
+        'chapter_id' => (int)($_POST['chapter_id'] ?? 0),
+        'link_scope_type' => (string)($_POST['link_scope_type'] ?? ''),
+        'link_scope_id' => (int)($_POST['link_scope_id'] ?? 0),
+    ]);
 }
 
 $chapterOptions = [];
@@ -299,7 +317,168 @@ if ($rs) {
     }
     $rs->close();
 }
+$totalTopics = count($rows);
+$activeTopics = 0;
+foreach ($rows as $rowCount) {
+    if ((int)($rowCount['is_active'] ?? 0) === 1) {
+        $activeTopics++;
+    }
+}
+$inactiveTopics = max(0, $totalTopics - $activeTopics);
+$openTopicModal = ($editId > 0) || (
+    $hasFlashError
+    && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && (string)($_POST['crud_action'] ?? '') === 'save'
+);
 ?>
+
+<style>
+.topic-viewer-admin .hdr {
+    gap: 10px;
+}
+.topic-viewer-admin .topic-toolbar {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+.topic-viewer-admin .topic-toolbar label,
+.topic-viewer-admin .topic-modal-form label {
+    color: #cfe;
+    font-size: 12px;
+    font-weight: 700;
+}
+.topic-viewer-admin .topic-toolbar .inp {
+    min-width: 260px;
+}
+.topic-viewer-admin .topic-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 10px;
+}
+.topic-viewer-admin .topic-stat {
+    border: 1px solid #1b4aa0;
+    border-radius: 999px;
+    background: #00135a;
+    color: #cfe;
+    font-size: 11px;
+    padding: 3px 8px;
+}
+.topic-viewer-admin .topic-table-wrap {
+    max-height: 72vh;
+    overflow: auto;
+    border: 1px solid #000088;
+    border-radius: 8px;
+}
+.topic-viewer-admin .topic-table-wrap .table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+.topic-viewer-admin .topic-name-cell {
+    min-width: 260px;
+    max-width: 520px;
+}
+.topic-viewer-admin .topic-desc {
+    margin-top: 3px;
+    max-width: 480px;
+    white-space: normal;
+}
+.topic-viewer-admin .topic-episode-cell {
+    min-width: 260px;
+    max-width: 360px;
+    white-space: normal !important;
+}
+.topic-viewer-admin .topic-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.topic-viewer-admin .topic-actions form {
+    margin: 0;
+}
+.topic-viewer-admin .topic-status {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #1b4aa0;
+    border-radius: 999px;
+    padding: 2px 7px;
+    background: #00205f;
+    color: #dff;
+    font-size: 10px;
+    font-weight: 700;
+}
+.topic-viewer-admin .topic-status.off {
+    border-color: #666;
+    background: #2b2b2b;
+    color: #ddd;
+}
+.topic-viewer-admin .modal {
+    width: min(920px, 96vw);
+}
+.topic-viewer-admin .topic-modal-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.topic-viewer-admin .topic-modal-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 10px 12px;
+    overflow: auto;
+    padding-right: 4px;
+}
+.topic-viewer-admin .topic-modal-body label {
+    display: block;
+}
+.topic-viewer-admin .topic-modal-body input,
+.topic-viewer-admin .topic-modal-body select,
+.topic-viewer-admin .topic-modal-body textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+.topic-viewer-admin .topic-modal-body .field-full {
+    grid-column: 1 / -1;
+}
+.topic-viewer-admin .topic-modal-body textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+@media (max-width: 760px) {
+    .topic-viewer-admin .topic-toolbar {
+        width: 100%;
+        margin-left: 0;
+    }
+    .topic-viewer-admin .topic-toolbar label,
+    .topic-viewer-admin .topic-toolbar .inp {
+        width: 100%;
+        min-width: 0;
+    }
+    .topic-viewer-admin .topic-modal-body {
+        grid-template-columns: 1fr;
+    }
+    .topic-viewer-admin .topic-table-wrap .table th,
+    .topic-viewer-admin .topic-table-wrap .table td {
+        white-space: normal;
+    }
+}
+</style>
+
+<div class="panel-wrap topic-viewer-admin">
+  <div class="hdr">
+    <h2>Temas de visor de foro</h2>
+    <button class="btn btn-green" type="button" id="topicNewBtn">+ Nuevo tema</button>
+    <a class="btn" href="/talim">&larr; Panel</a>
+    <div class="topic-toolbar">
+      <label>Filtro rápido
+        <input class="inp" type="text" id="quickFilterTopicViewer" placeholder="Nombre, topic_id, episodio...">
+      </label>
+    </div>
+  </div>
 
 <?php if (!empty($flash)): ?>
 <div class="flash">
@@ -312,97 +491,17 @@ if ($rs) {
 
 <?php if (!$supportsEpisodeAndScope): ?>
 <div class="flash">
-    <div class="err">Faltan columnas (`chapter_id`, `link_scope_type`, `link_scope_id`) en `fact_tools_topic_viewer`. El panel funcionara en modo reducido.</div>
+    <div class="err">Faltan columnas (`chapter_id`, `link_scope_type`, `link_scope_id`) en `fact_tools_topic_viewer`. El panel funcionará en modo reducido.</div>
 </div>
 <?php endif; ?>
 
-<h3><?= ((int)$editRow['id'] > 0) ? 'Editar tema' : 'Nuevo tema' ?></h3>
-<form method="post" class="adm-grid-1-2">
-        <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-        <input type="hidden" name="crud_action" value="save">
-        <input type="hidden" name="id" value="<?= (int)($editRow['id'] ?? 0) ?>">
+  <div class="topic-stats">
+    <span class="topic-stat">Total <?= (int)$totalTopics ?></span>
+    <span class="topic-stat">Activos <?= (int)$activeTopics ?></span>
+    <span class="topic-stat">Inactivos <?= (int)$inactiveTopics ?></span>
+  </div>
 
-        <label>Nombre del tema
-            <input class="inp" type="text" name="topic_name" maxlength="180" required value="<?= h($editRow['topic_name'] ?? '') ?>">
-        </label>
-
-        <label>topic_id
-            <input class="inp" type="number" min="1" name="topic_id" required value="<?= h((string)($editRow['topic_id'] ?? '')) ?>">
-        </label>
-
-        <?php if ($hasChapterIdCol): ?>
-        <label>Episodio (chapter_id)
-            <select class="select" name="chapter_id" required>
-                <option value="">Selecciona episodio...</option>
-                <?php foreach ($chapterOptions as $ch): ?>
-                    <?php
-                        $cid = (int)($ch['id'] ?? 0);
-                        $sel = ((int)($editRow['chapter_id'] ?? 0) === $cid) ? 'selected' : '';
-                        $seasonName = trim((string)($ch['season_name'] ?? ''));
-                        $seasonNum = (int)($ch['season_number'] ?? 0);
-                        $chapterNum = (int)($ch['chapter_number'] ?? 0);
-                        $chapterName = trim((string)($ch['name'] ?? ''));
-                        $label = '';
-                        if ($seasonName !== '') {
-                            $label = $seasonName;
-                            if ($seasonNum > 0) { $label .= ' (T' . $seasonNum . ')'; }
-                        }
-                        if ($chapterNum > 0) { $label .= ($label !== '' ? ' Â· ' : '') . 'Ep. ' . $chapterNum; }
-                        if ($chapterName !== '') { $label .= ($label !== '' ? ' Â· ' : '') . $chapterName; }
-                        if ($label === '') { $label = 'CapÃ­tulo #' . $cid; }
-                    ?>
-                    <option value="<?= $cid ?>" <?= $sel ?>><?= h($label) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <?php endif; ?>
-
-        <label>URL (opcional)
-            <input class="inp" type="text" name="topic_url" maxlength="255" value="<?= h($editRow['topic_url'] ?? '') ?>">
-        </label>
-
-        <label>Orden
-            <input class="inp" type="number" min="0" name="sort_order" value="<?= h((string)($editRow['sort_order'] ?? 0)) ?>">
-        </label>
-
-        <?php if ($hasScopeTypeCol): ?>
-        <label>Agrupar por
-            <select class="select" name="link_scope_type">
-                <?php $scopeTypeNow = trim((string)($editRow['link_scope_type'] ?? '')); ?>
-                <option value="" <?= ($scopeTypeNow === '') ? 'selected' : '' ?>>Sin agrupaciÃ³n</option>
-                <option value="character" <?= ($scopeTypeNow === 'character') ? 'selected' : '' ?>>Personaje</option>
-                <option value="group" <?= ($scopeTypeNow === 'group') ? 'selected' : '' ?>>Grupo</option>
-                <option value="organization" <?= ($scopeTypeNow === 'organization') ? 'selected' : '' ?>>OrganizaciÃ³n</option>
-            </select>
-        </label>
-        <?php endif; ?>
-
-        <?php if ($hasScopeIdCol): ?>
-        <label>ID de agrupaciÃ³n
-            <input class="inp" type="number" min="0" name="link_scope_id" value="<?= h((string)($editRow['link_scope_id'] ?? 0)) ?>" placeholder="Ej: 110 (character), 60 (group), 20 (organization)">
-        </label>
-        <?php endif; ?>
-
-        <label class="field-full">DescripciÃ³n (opcional)
-            <textarea class="ta" name="topic_description" rows="3"><?= h($editRow['topic_description'] ?? '') ?></textarea>
-        </label>
-
-        <label>
-            Estado
-            <select class="select" name="is_active">
-                <option value="1" <?= ((int)($editRow['is_active'] ?? 1) === 1) ? 'selected' : '' ?>>Activo</option>
-                <option value="0" <?= ((int)($editRow['is_active'] ?? 1) === 0) ? 'selected' : '' ?>>Inactivo</option>
-            </select>
-        </label>
-
-        <div class="field-full adm-flex-right-8">
-            <?php if ((int)($editRow['id'] ?? 0) > 0): ?>
-                <a class="btn" href="/talim?s=admin_topic_viewer">Cancelar ediciÃ³n</a>
-            <?php endif; ?>
-            <button class="btn btn-green" type="submit">Guardar</button>
-        </div>
-</form>
-
+<div class="topic-table-wrap">
 <table class="table" id="topicViewerTable">
     <thead>
         <tr>
@@ -411,7 +510,7 @@ if ($rs) {
             <th class="adm-w-80">topic_id</th>
             <?php if ($supportsEpisodeAndScope): ?>
                 <th>Episodio</th>
-                <th>AgrupaciÃ³n</th>
+                <th>Agrupación</th>
             <?php endif; ?>
             <th>URL</th>
             <th class="adm-w-80">Orden</th>
@@ -436,16 +535,16 @@ if ($rs) {
             else { $search = strtolower($search); }
         ?>
         <tr data-search="<?= h($search) ?>">
-            <td><?= (int)$r['id'] ?></td>
-            <td>
+            <td><strong class="adm-color-accent"><?= (int)$r['id'] ?></strong></td>
+            <td class="topic-name-cell">
                 <strong><?= h($r['topic_name']) ?></strong>
                 <?php if (trim((string)$r['topic_description']) !== ''): ?>
-                    <div class="adm-color-muted small"><?= h($r['topic_description']) ?></div>
+                    <div class="adm-color-muted small topic-desc"><?= h($r['topic_description']) ?></div>
                 <?php endif; ?>
             </td>
             <td><?= (int)$r['topic_id'] ?></td>
             <?php if ($supportsEpisodeAndScope): ?>
-                <td>
+                <td class="topic-episode-cell">
                     <?php
                         $chapterTxt = '';
                         $sName = trim((string)($r['season_name'] ?? ''));
@@ -456,9 +555,9 @@ if ($rs) {
                             $chapterTxt = $sName;
                             if ($sNum > 0) { $chapterTxt .= ' (T' . $sNum . ')'; }
                         }
-                        if ($cNum > 0) { $chapterTxt .= ($chapterTxt !== '' ? ' Â· ' : '') . 'Ep. ' . $cNum; }
-                        if ($cName !== '') { $chapterTxt .= ($chapterTxt !== '' ? ' Â· ' : '') . $cName; }
-                        if ($chapterTxt === '') { $chapterTxt = '(sin capÃ­tulo)'; }
+                        if ($cNum > 0) { $chapterTxt .= ($chapterTxt !== '' ? ' · ' : '') . 'Ep. ' . $cNum; }
+                        if ($cName !== '') { $chapterTxt .= ($chapterTxt !== '' ? ' · ' : '') . $cName; }
+                        if ($chapterTxt === '') { $chapterTxt = '(sin capítulo)'; }
                     ?>
                     <?= h($chapterTxt) ?>
                 </td>
@@ -467,9 +566,9 @@ if ($rs) {
                         $scopeType = trim((string)($r['link_scope_type'] ?? ''));
                         $scopeId = (int)($r['link_scope_id'] ?? 0);
                         if ($scopeType === '' || $scopeId <= 0) {
-                            echo '<span class="adm-color-muted">(sin agrupaciÃ³n)</span>';
+                            echo '<span class="adm-color-muted">(sin agrupación)</span>';
                         } else {
-                            $scopeLabel = ($scopeType === 'character') ? 'Personaje' : (($scopeType === 'group') ? 'Grupo' : (($scopeType === 'organization') ? 'OrganizaciÃ³n' : $scopeType));
+                            $scopeLabel = ($scopeType === 'character') ? 'Personaje' : (($scopeType === 'group') ? 'Grupo' : (($scopeType === 'organization') ? 'Organización' : $scopeType));
                             echo h($scopeLabel . ' #' . $scopeId);
                         }
                     ?>
@@ -479,23 +578,41 @@ if ($rs) {
                 <?php if (trim((string)$r['topic_url']) !== ''): ?>
                     <a href="<?= h($r['topic_url']) ?>" target="_blank" rel="noopener noreferrer">Abrir</a>
                 <?php else: ?>
-                    <span class="adm-color-muted">(vacÃ­o)</span>
+                    <span class="adm-color-muted">(vacío)</span>
                 <?php endif; ?>
             </td>
             <td><?= (int)$r['sort_order'] ?></td>
-            <td><?= ((int)$r['is_active'] === 1) ? 'Activo' : 'Inactivo' ?></td>
+            <td>
+                <span class="topic-status <?= ((int)$r['is_active'] === 1) ? '' : 'off' ?>">
+                    <?= ((int)$r['is_active'] === 1) ? 'Activo' : 'Inactivo' ?>
+                </span>
+            </td>
             <td>
                 <div>Alta: <?= h((string)($r['created_at'] ?? '')) ?></div>
                 <div>Mod: <?= h((string)($r['updated_at'] ?? '')) ?></div>
             </td>
             <td>
-                <a class="btn" href="/talim?s=admin_topic_viewer&edit=<?= (int)$r['id'] ?>">Editar</a>
-                <form method="post" class="adm-inline-form" onsubmit="return confirm('Â¿Borrar este tema?');">
+                <div class="topic-actions">
+                <button class="btn" type="button"
+                    data-topic-edit="1"
+                    data-id="<?= (int)$r['id'] ?>"
+                    data-topic-name="<?= h($r['topic_name']) ?>"
+                    data-topic-id="<?= (int)$r['topic_id'] ?>"
+                    data-topic-url="<?= h($r['topic_url']) ?>"
+                    data-topic-description="<?= h($r['topic_description']) ?>"
+                    data-sort-order="<?= (int)$r['sort_order'] ?>"
+                    data-is-active="<?= (int)$r['is_active'] ?>"
+                    data-chapter-id="<?= (int)($r['chapter_id'] ?? 0) ?>"
+                    data-link-scope-type="<?= h((string)($r['link_scope_type'] ?? '')) ?>"
+                    data-link-scope-id="<?= (int)($r['link_scope_id'] ?? 0) ?>"
+                >Editar</button>
+                <form method="post" onsubmit="return confirm('¿Borrar este tema?');">
                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                     <input type="hidden" name="crud_action" value="delete">
                     <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                     <button class="btn btn-red" type="submit">Borrar</button>
                 </form>
+                </div>
             </td>
         </tr>
     <?php endforeach; ?>
@@ -504,6 +621,98 @@ if ($rs) {
     <?php endif; ?>
     </tbody>
 </table>
+</div>
+</div>
+
+<div class="modal-back topic-viewer-admin" id="topicModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="topicModalTitle">
+    <h3 id="topicModalTitle"><?= ((int)$editRow['id'] > 0) ? 'Editar tema' : 'Nuevo tema' ?></h3>
+    <form method="post" id="topicForm" class="topic-modal-form adm-m-0">
+      <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+      <input type="hidden" name="crud_action" value="save">
+      <input type="hidden" name="id" id="f_topic_row_id" value="<?= (int)($editRow['id'] ?? 0) ?>">
+
+      <div class="topic-modal-body">
+        <label>Nombre del tema
+          <input class="inp" type="text" name="topic_name" id="f_topic_name" maxlength="180" required value="<?= h($editRow['topic_name'] ?? '') ?>">
+        </label>
+
+        <label>topic_id
+          <input class="inp" type="number" min="1" name="topic_id" id="f_topic_id" required value="<?= h((string)($editRow['topic_id'] ?? '')) ?>">
+        </label>
+
+        <?php if ($hasChapterIdCol): ?>
+        <label class="field-full">Episodio
+          <select class="select" name="chapter_id" id="f_chapter_id">
+            <option value="">Sin episodio</option>
+            <?php foreach ($chapterOptions as $ch): ?>
+              <?php
+                $cid = (int)($ch['id'] ?? 0);
+                $sel = ((int)($editRow['chapter_id'] ?? 0) === $cid) ? 'selected' : '';
+                $seasonName = trim((string)($ch['season_name'] ?? ''));
+                $seasonNum = (int)($ch['season_number'] ?? 0);
+                $chapterNum = (int)($ch['chapter_number'] ?? 0);
+                $chapterName = trim((string)($ch['name'] ?? ''));
+                $label = '';
+                if ($seasonName !== '') {
+                    $label = $seasonName;
+                    if ($seasonNum > 0) { $label .= ' (T' . $seasonNum . ')'; }
+                }
+                if ($chapterNum > 0) { $label .= ($label !== '' ? ' · ' : '') . 'Ep. ' . $chapterNum; }
+                if ($chapterName !== '') { $label .= ($label !== '' ? ' · ' : '') . $chapterName; }
+                if ($label === '') { $label = 'Capítulo #' . $cid; }
+              ?>
+              <option value="<?= $cid ?>" <?= $sel ?>><?= h($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <?php endif; ?>
+
+        <label class="field-full">URL
+          <input class="inp" type="text" name="topic_url" id="f_topic_url" maxlength="255" value="<?= h($editRow['topic_url'] ?? '') ?>" placeholder="https://naufragio-foros.duckdns.org/index.php/topic,00.0.html">
+        </label>
+
+        <label>Orden
+          <input class="inp" type="number" min="0" name="sort_order" id="f_sort_order" value="<?= h((string)($editRow['sort_order'] ?? 0)) ?>">
+        </label>
+
+        <label>Estado
+          <select class="select" name="is_active" id="f_is_active">
+            <option value="1" <?= ((int)($editRow['is_active'] ?? 1) === 1) ? 'selected' : '' ?>>Activo</option>
+            <option value="0" <?= ((int)($editRow['is_active'] ?? 1) === 0) ? 'selected' : '' ?>>Inactivo</option>
+          </select>
+        </label>
+
+        <?php if ($hasScopeTypeCol): ?>
+        <label>Agrupar por
+          <?php $scopeTypeNow = trim((string)($editRow['link_scope_type'] ?? '')); ?>
+          <select class="select" name="link_scope_type" id="f_link_scope_type">
+            <option value="" <?= ($scopeTypeNow === '') ? 'selected' : '' ?>>Sin agrupación</option>
+            <option value="character" <?= ($scopeTypeNow === 'character') ? 'selected' : '' ?>>Personaje</option>
+            <option value="group" <?= ($scopeTypeNow === 'group') ? 'selected' : '' ?>>Grupo</option>
+            <option value="organization" <?= ($scopeTypeNow === 'organization') ? 'selected' : '' ?>>Organización</option>
+          </select>
+        </label>
+        <?php endif; ?>
+
+        <?php if ($hasScopeIdCol): ?>
+        <label>ID de agrupación
+          <input class="inp" type="number" min="0" name="link_scope_id" id="f_link_scope_id" value="<?= h((string)($editRow['link_scope_id'] ?? 0)) ?>" placeholder="Ej: 110, 60, 20">
+        </label>
+        <?php endif; ?>
+
+        <label class="field-full">Descripción
+          <textarea class="ta" name="topic_description" id="f_topic_description" rows="4"><?= h($editRow['topic_description'] ?? '') ?></textarea>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-red" type="button" id="topicCancelBtn">Cancelar</button>
+        <button class="btn btn-green" type="submit">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -518,10 +727,82 @@ if ($rs) {
             rows[i].style.display = hay.indexOf(q) !== -1 ? '' : 'none';
         }
     });
+
+    var modal = document.getElementById('topicModal');
+    var title = document.getElementById('topicModalTitle');
+    var newBtn = document.getElementById('topicNewBtn');
+    var cancelBtn = document.getElementById('topicCancelBtn');
+    var form = document.getElementById('topicForm');
+    if (!modal || !form) return;
+
+    function setValue(id, value) {
+        var el = document.getElementById(id);
+        if (el) el.value = value == null ? '' : String(value);
+    }
+
+    function openModal() {
+        modal.style.display = 'flex';
+        var name = document.getElementById('f_topic_name');
+        if (name) window.setTimeout(function(){ name.focus(); }, 40);
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    function resetForm() {
+        form.reset();
+        setValue('f_topic_row_id', 0);
+        setValue('f_topic_name', '');
+        setValue('f_topic_id', '');
+        setValue('f_chapter_id', '');
+        setValue('f_topic_url', '');
+        setValue('f_sort_order', 0);
+        setValue('f_is_active', 1);
+        setValue('f_link_scope_type', '');
+        setValue('f_link_scope_id', 0);
+        setValue('f_topic_description', '');
+        if (title) title.textContent = 'Nuevo tema';
+    }
+
+    if (newBtn) {
+        newBtn.addEventListener('click', function(){
+            resetForm();
+            openModal();
+        });
+    }
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeModal);
+    }
+    modal.addEventListener('click', function(ev){
+        if (ev.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function(ev){
+        if (ev.key === 'Escape' && modal.style.display === 'flex') closeModal();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-topic-edit="1"]'), function(btn){
+        btn.addEventListener('click', function(){
+            setValue('f_topic_row_id', btn.getAttribute('data-id') || '0');
+            setValue('f_topic_name', btn.getAttribute('data-topic-name') || '');
+            setValue('f_topic_id', btn.getAttribute('data-topic-id') || '');
+            setValue('f_chapter_id', btn.getAttribute('data-chapter-id') || '');
+            setValue('f_topic_url', btn.getAttribute('data-topic-url') || '');
+            setValue('f_sort_order', btn.getAttribute('data-sort-order') || '0');
+            setValue('f_is_active', btn.getAttribute('data-is-active') || '1');
+            setValue('f_link_scope_type', btn.getAttribute('data-link-scope-type') || '');
+            setValue('f_link_scope_id', btn.getAttribute('data-link-scope-id') || '0');
+            setValue('f_topic_description', btn.getAttribute('data-topic-description') || '');
+            if (title) title.textContent = 'Editar tema';
+            openModal();
+        });
+    });
+
+    <?php if ($openTopicModal): ?>
+    openModal();
+    <?php endif; ?>
 })();
 </script>
-
-<?php admin_panel_close(); ?>
 
 
 

@@ -553,6 +553,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/characters' => ['p' => 'list_table'],
         '/chronicles' => ['p' => 'chronicles'],
         '/organizations' => ['p' => 'listgroups'],
+        '/groups' => ['p' => 'listgroups'],
         '/relationship-map/organizations' => ['p' => 'nebula_clan'],
         '/relationship-map/characters' => ['p' => 'nebula_character'],
         '/relationship-map/groups' => ['p' => 'nebula_groups'],
@@ -839,3 +840,4 @@ function hg_request_router_bootstrap(mysqli $link): void
         $_GET[$key] = (string)$value;
     }
 }
+

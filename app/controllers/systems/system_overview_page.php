@@ -78,7 +78,7 @@ $ordenQueryResult = $result->fetch_assoc();
 if (!$ordenQueryResult) {
     $pageSect = "Sistema";
     $pageTitle2 = "Sistema no encontrado";
-    include("app/partials/main_nav_bar.php");
+    if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
     echo "<h2>Sistema no encontrado</h2>";
     echo "<div class='renglonDatosSistema'>El sistema solicitado no existe.</div>";
 } else {
@@ -94,7 +94,7 @@ if (!$ordenQueryResult) {
     if (!empty($systemName)) { 
         $pageSect = "Sistema"; 
         $pageTitle2 = $systemName;
-		setMetaFromPage($systemName . " | Sistemas | Heaven's Gate", meta_excerpt($systemDesc), $systemImg, 'article'); 
+		if (function_exists("setMetaFromPage")) setMetaFromPage($systemName . " | Sistemas | Heaven's Gate", meta_excerpt($systemDesc), $systemImg, 'article'); 
     }
 
     // PONER IMAGEN "NADA" SI NO TIENE IMAGEN ASIGNADA
@@ -103,7 +103,7 @@ if (!$ordenQueryResult) {
     }
 
     // =========================================================== >
-    include("app/partials/main_nav_bar.php"); // Barra Navegacion
+    if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); // Barra Navegacion
     echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
 ?>
 <div class="syst-page">

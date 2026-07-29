@@ -217,6 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 					$st->close();
 					if ($ok) {
 						update_pretty_id($link, 'fact_items', $id, $name);
+						hg_content_touch_table($link, 'fact_items', $id);
 						$flash[] = ['type'=>'ok','msg'=>'Objeto actualizado.'];
 					} else {
 						$flash[] = ['type'=>'error','msg'=>'Error al actualizar (id '.$id.'): ' . ($stErr ?: $link->error) . ' ['.$stNo.']'];
@@ -245,6 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 					if ($ok) {
 						$newId = $link->insert_id;
 						update_pretty_id($link, 'fact_items', (int)$newId, $name);
+						hg_content_touch_table($link, 'fact_items', (int)$newId);
 						$flash[] = ['type'=>'ok','msg'=>'Objeto creado.'];
 					} else {
 						$flash[] = ['type'=>'error','msg'=>'Error al crear: ' . ($stErr ?: $link->error) . ' ['.$stNo.']'];

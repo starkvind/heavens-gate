@@ -28,7 +28,7 @@ if ($formKey !== '') {
 }
 
 if ($formId <= 0) {
-    include("app/partials/main_nav_bar.php");
+    if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
     echo "<h2>Forma no encontrada</h2>";
     echo "<div class='renglonDatosSistema'>La forma solicitada no existe.</div>";
     return;
@@ -57,7 +57,7 @@ if ($hasBreedId) {
 $sql = "SELECT {$select} FROM dim_forms f {$joins} WHERE f.id = ? LIMIT 1";
 $stmt = $link->prepare($sql);
 if (!$stmt) {
-    include("app/partials/main_nav_bar.php");
+    if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
     echo "<h2>Error cargando forma</h2>";
     echo "<div class='renglonDatosSistema'>No se pudo preparar la consulta.</div>";
     return;
@@ -70,7 +70,7 @@ $row = ($result && $result->num_rows > 0) ? $result->fetch_assoc() : null;
 $stmt->close();
 
 if (!$row) {
-    include("app/partials/main_nav_bar.php");
+    if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
     echo "<h2>Forma no encontrada</h2>";
     echo "<div class='renglonDatosSistema'>La forma solicitada no existe.</div>";
     return;
@@ -104,10 +104,10 @@ $canUseGuns = $useGuns === 1
 
 $pageSect = "Forma";
 $pageTitle2 = sf_h($formNameRaw);
-setMetaFromPage($formDisplayRaw . " | Formas | Heaven's Gate", meta_excerpt($infoDesc), $imageWereForm, 'article');
+if (function_exists("setMetaFromPage")) setMetaFromPage($formDisplayRaw . " | Formas | Heaven's Gate", meta_excerpt($infoDesc), $imageWereForm, 'article');
 
 include("app/helpers/system_category_helper.php");
-include("app/partials/main_nav_bar.php");
+if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
 ?>
 <div class="form-detail">

@@ -663,7 +663,7 @@ if ($fuerza2 <= 0) { $fuerza2 = 1; }
 if ($ventaja === 'pj1') { $hp1 += 10; }
 if ($ventaja === 'pj2') { $hp2 += 10; }
 
-include('app/partials/main_nav_bar.php');
+if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include('app/partials/main_nav_bar.php');
 include('battle_resolve_weapon_skills.php');
 
 $combateArray = array();
