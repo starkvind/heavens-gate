@@ -183,6 +183,30 @@ function fetch_pj_roll_profiles(mysqli $link, array $pjs): array {
     return $profiles;
 }
 
+function hg_dice_form_attribute_modifier(mysqli $db, int $characterId, int $formId, int $traitId): int {
+    if ($characterId <= 0 || $formId <= 0 || $traitId <= 0) return 0;
+    $sql = "SELECT b.modifier, t.name AS trait_name, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus
+            FROM dim_forms f
+            JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
+            JOIN dim_traits t ON t.id = ?
+            LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
+            WHERE f.id = ? LIMIT 1";
+    $stmt = $db->prepare($sql);
+    if (!$stmt) return 0;
+    $stmt->bind_param('iii', $characterId, $traitId, $formId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) return 0;
+    if ($row['modifier'] !== null) return (int)$row['modifier'];
+    // Compatibilidad con las formas antiguas, antes del bridge_forms_traits.
+    return match ((string)($row['trait_name'] ?? '')) {
+        'Fuerza' => (int)($row['strength_bonus'] ?? 0),
+        'Destreza' => (int)($row['dexterity_bonus'] ?? 0),
+        'Resistencia' => (int)($row['stamina_bonus'] ?? 0),
+        default => 0,
+    };
+}
 function render_roll_card(array $tirada, int $id): void {
     $resultados = explode(',', (string)$tirada['roll_results']);
     $dificultad = (int)$tirada['difficulty'];
@@ -226,6 +250,30 @@ $form_skill_trait_id = 0;
 $form_resource_id = 0;
 $form_extra_dice = 0;
 $form_willpower_spent = 0;
+$form_active_form_id = 0;
+$prefill_form_modifier = 0;
+$prefillName = '';
+$prefillRollName = '';
+$prefillDifficulty = 6;
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['character_id'], $_GET['attr_trait_id'], $_GET['skill_trait_id'])) {
+    $prefillCharacterId = (int)$_GET['character_id'];
+    $prefillAttributeId = (int)$_GET['attr_trait_id'];
+    $prefillSkillId = (int)$_GET['skill_trait_id'];
+    $form_active_form_id = (int)($_GET['form_id'] ?? 0);
+    $prefillDifficulty = (int)($_GET['dificultad'] ?? 6);
+    if ($prefillDifficulty < 2 || $prefillDifficulty > 10) $prefillDifficulty = 6;
+    if (isset($pjProfiles[$prefillCharacterId])) {
+        $roll_mode = 'pj';
+        $form_character_id = $prefillCharacterId;
+        $form_attr_trait_id = $prefillAttributeId;
+        $form_skill_trait_id = $prefillSkillId;
+        $prefill_form_modifier = hg_dice_form_attribute_modifier($link, $prefillCharacterId, $form_active_form_id, $prefillAttributeId);
+        $prefillName = (string)($pjProfiles[$prefillCharacterId]['name'] ?? '');
+        $actionName = trim((string)($_GET['action_name'] ?? 'Acción'));
+        $prefillRollName = trim($actionName . ' · ' . $prefillName . ' · ' . date('Ymd-His'));
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $roll_mode = ((string)($_POST['roll_mode'] ?? 'free') === 'pj') ? 'pj' : 'free';
@@ -244,6 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $form_skill_trait_id = (int)($_POST['skill_trait_id'] ?? 0);
         $form_resource_id = (int)($_POST['resource_id'] ?? 0);
         $form_extra_dice = (int)($_POST['extra_dice'] ?? 0);
+        $form_active_form_id = (int)($_POST['form_id'] ?? 0);
 
         if (!isset($pjProfiles[$form_character_id])) {
             $mensaje_error = 'Debes elegir un protagonista valido.';
@@ -253,6 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $skillVal = ($form_skill_trait_id > 0 && isset($profile['skill_map'][$form_skill_trait_id])) ? (int)$profile['skill_map'][$form_skill_trait_id] : 0;
             $skillKind = ($form_skill_trait_id > 0 && isset($profile['skill_kind_map'][$form_skill_trait_id])) ? (string)$profile['skill_kind_map'][$form_skill_trait_id] : '';
             $resourceVal = ($form_resource_id > 0 && isset($profile['resource_map'][$form_resource_id])) ? (int)$profile['resource_map'][$form_resource_id] : 0;
+            if ($attrVal > 0) $attrVal = max(1, $attrVal + hg_dice_form_attribute_modifier($link, $form_character_id, $form_active_form_id, $form_attr_trait_id));
             if ($form_extra_dice < 0 || $form_extra_dice > 20) {
                 $mensaje_error = 'Los dados extra deben estar entre 0 y 20.';
             } else {
@@ -367,14 +417,15 @@ if (!isset($_GET['see'])) {
 
     echo "<form method='post' class='hg-dice-form'>";
     $selectedMode = htmlspecialchars($roll_mode, ENT_QUOTES, 'UTF-8');
-    $selectedName = htmlspecialchars((string)($_POST['nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $selectedRollName = htmlspecialchars((string)($_POST['tirada_nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $selectedDiff = (int)($_POST['dificultad'] ?? 6);
+    $selectedName = htmlspecialchars((string)($_POST['nombre'] ?? $prefillName), ENT_QUOTES, 'UTF-8');
+    $selectedRollName = htmlspecialchars((string)($_POST['tirada_nombre'] ?? $prefillRollName), ENT_QUOTES, 'UTF-8');
+    $selectedDiff = (int)($_POST['dificultad'] ?? $prefillDifficulty);
     $selectedDados = (int)($_POST['dados'] ?? 6);
     if ($selectedDados < 1 || $selectedDados > 20) $selectedDados = 6;
     if ($selectedDiff < 2 || $selectedDiff > 10) $selectedDiff = 6;
 
     echo "<input type='hidden' name='roll_mode' id='roll_mode' value='{$selectedMode}'>";
+    echo "<input type='hidden' name='form_id' value='" . (int)$form_active_form_id . "'>";
     echo "<div class='hg-dice-tabs'>";
     echo "<button type='button' class='hg-dice-tab-btn js-roll-mode-btn' data-mode='free'>Tirada libre</button>";
     echo "<button type='button' class='hg-dice-tab-btn js-roll-mode-btn' data-mode='pj'>Usar protagonista</button>";
@@ -420,7 +471,7 @@ if (!isset($_GET['see'])) {
     echo "</div>";
 
     echo "<p class='hg-dice-total'>Dados totales calculados: <span id='pj_total_dice'>0</span></p>";
-    echo "<p class='hg-dice-help'>Formula: Atributo + Habilidad/Trasfondo + Estado + Dados extra.</p>";
+    echo "<p class='hg-dice-help'>Formula: Atributo (incluida la Forma activa) + Habilidad/Trasfondo + Estado + Dados extra.</p>";
     echo "</div>";
 
     echo "<div><label class='hg-dice-label' for='dificultad'>Dificultad (2-10)</label><select class='hg-dice-sel' name='dificultad' id='dificultad' required>";
@@ -437,7 +488,9 @@ if (!isset($_GET['see'])) {
     echo "<input type='hidden' id='pj_profiles_json' value='{$pjProfilesJson}'>";
     echo "<input type='hidden' id='form_attr_trait_id' value='" . (int)$form_attr_trait_id . "'>";
     echo "<input type='hidden' id='form_skill_trait_id' value='" . (int)$form_skill_trait_id . "'>";
+    echo "<input type='hidden' id='form_attr_modifier' value='" . (int)$prefill_form_modifier . "'>";
     echo "<input type='hidden' id='form_resource_id' value='" . (int)$form_resource_id . "'>";
+    echo "<input type='hidden' id='prefill_roll_name' value='" . htmlspecialchars($prefillRollName, ENT_QUOTES, 'UTF-8') . "'>";
     echo "</article>";
 }
 
@@ -523,6 +576,8 @@ $(function(){
     const selectedAttrId = parseInt($('#form_attr_trait_id').val() || '0', 10);
     const selectedSkillId = parseInt($('#form_skill_trait_id').val() || '0', 10);
     const selectedResourceId = parseInt($('#form_resource_id').val() || '0', 10);
+    const selectedFormAttrModifier = parseInt($('#form_attr_modifier').val() || '0', 10);
+    const prefillRollName = String($('#prefill_roll_name').val() || '');
 
     let profiles = {};
     try { profiles = JSON.parse($('#pj_profiles_json').val() || '{}'); } catch (e) { profiles = {}; }
@@ -554,7 +609,8 @@ $(function(){
         const attrMap = p.attribute_map || {};
         const skillMap = p.skill_map || {};
         const resMap = p.resource_map || {};
-        const av = parseInt(attrMap[parseInt($attr.val() || '0', 10)] || 0, 10);
+        const selectedAttr = parseInt($attr.val() || '0', 10);
+        const av = parseInt(attrMap[selectedAttr] || 0, 10) + (selectedAttr === selectedAttrId ? selectedFormAttrModifier : 0);
         const sv = parseInt(skillMap[parseInt($skill.val() || '0', 10)] || 0, 10);
         const rv = parseInt(resMap[parseInt($res.val() || '0', 10)] || 0, 10);
         const ev = parseInt($extra.val() || '0', 10);
@@ -669,6 +725,7 @@ $(function(){
         $extra.on('change', function(){ recalcPjDice(); syncAutoRollName(); syncPjSubmitState(); });
         $diff.on('change', function(){ syncAutoRollName(); syncPjSubmitState(); });
         syncAutoRollName();
+        if (prefillRollName) $rollNameInput.val(prefillRollName);
         syncPjSubmitState();
     }
 

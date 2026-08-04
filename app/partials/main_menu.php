@@ -459,6 +459,7 @@
 		<div class="ocultable<?= ($menuOpenId === 'systemMenu') ? ' open' : '' ?>" id="systemMenu">
 			<a href="/systems"><div class="renglonMenu">Seres sobrenaturales</div></a>
 			<a href="/rules/traits"><div class="renglonMenu">Lista de Rasgos</div></a>
+			<a href="/rules/actions"><div class="renglonMenu">Acciones</div></a>
 			<a href="/rules/merits-flaws"><div class="renglonMenu">MÃ©ritos y Defectos</div></a>
 			<a href="/inventory"><div class="renglonMenu">Inventario</div></a>
 			<a href="/rules/archetypes"><div class="renglonMenu">Personalidades</div></a>

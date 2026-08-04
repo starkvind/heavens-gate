@@ -246,6 +246,14 @@
     padding-top: 2px;
 }
 
+
+.bioFormsData { clear: both; }
+.bio-forms { padding: 4px 2px; }
+.bio-forms__control { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bio-forms__control label { color: cyan; font-size: 11px; }
+.bio-forms__select { background: #000055; border: 1px solid #009; color: #fff; padding: 4px 6px; }
+.bio-forms__summary { margin: 8px 0 0; color: #cfeaff; font-size: 11px; }
+.bio-form-attribute-value { color: #7fd4ff; font-weight: bold; margin-left: 3px; vertical-align: middle; }
 .bio-inline-type {
     float: right;
     font-size: 9px;
@@ -518,3 +526,154 @@
         min-width: 0;
     }
 }
+
+.bio-forms__maneuvers {
+    margin-top: 10px;
+    color: #9fd;
+}
+
+.bio-forms__maneuver-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.bio-forms__maneuver {
+    padding: 3px 7px;
+    border: 1px solid #356278;
+    border-radius: 4px;
+    color: #cfffff;
+    background: #071c27;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.bio-forms__maneuver {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bio-forms__maneuver img {
+    width: 20px;
+    height: 20px;
+    object-fit: cover;
+}
+
+.bio-forms__maneuver-empty {
+    color: #8ba4b0;
+    font-size: 12px;
+}
+
+.bio-maneuvers__list {
+    display: block;
+}
+
+.bio-maneuvers__link {
+    display: block;
+    text-decoration: none;
+}
+
+.bio-maneuvers .bioSheetPower {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.bio-maneuvers__empty {
+    color: #8ba4b0;
+    font-size: 12px;
+}
+
+/* Maniobras: mismo patron de tarjetas que Poderes e Inventario. */
+.bio-maneuvers__list::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.bio-maneuvers__link {
+    text-decoration: none;
+}
+
+.bio-maneuvers .bioSheetPower {
+    float: left;
+    width: 47.5%;
+    box-sizing: content-box;
+}
+
+@media (max-width: 720px) {
+    div.bioSheetPowers.bio-maneuvers {
+        float: none;
+        width: auto;
+        max-width: none;
+        margin: 2px 8px;
+        padding: 6px 0;
+    }
+
+    .bio-maneuvers .bioSheetPower {
+        float: none;
+        width: auto;
+        min-height: 22px;
+        height: auto;
+        margin: 4px 0;
+        padding: 7px 8px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+    }
+
+    .bio-maneuvers .bio-inline-icon {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+    }
+}
+
+/* Separacion icono/texto en tarjetas de maniobra. */
+.bio-maneuvers__icon {margin-right:5px;}
+@media (max-width: 720px) {.bio-maneuvers .bio-maneuvers__icon {margin-right:0;}}
+
+/* Actions tab */
+.bio-actions { max-width: 650px; margin: 0 auto; padding: 10px; }
+.bio-actions__sheet { float: none; width: auto; margin: 0; padding: 0; }
+.bio-actions__fieldset { min-inline-size: 0; padding: 10px; }
+.bio-actions__intro { margin: 0 0 9px; color: #b9c9cf; font-size: 12px; text-align: left; }
+.bio-actions__search { display: grid; gap: 4px; margin: 0 0 10px; color: #b8c7d5; font-size: 11px; text-align: left; }
+.bio-actions__search input { width: 100%; min-height: 30px; box-sizing: border-box; padding: 5px 8px; border: 1px solid #009; border-radius: 4px; background: #000055; color: #fff; font: inherit; font-size: 13px; }
+.bio-actions__search input:focus { outline: 1px solid #7ff; border-color: #7ff; }
+.bio-actions__empty { margin: 8px 0; color: #b8c7d5; font-size: 12px; text-align: left; }
+.bio-actions__list { display: flex; flex-direction: column; gap: 12px; }
+.bio-actions__category { margin: 0; padding: 0; }
+.bio-actions__category-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0; padding: 7px 9px; cursor: pointer; color: #7ff; border: 1px solid rgba(107, 232, 241, .35); border-radius: 4px; background: rgba(1, 12, 42, .72); font-size: 14px; list-style: none; text-align: left; }
+.bio-actions__category-title::-webkit-details-marker { display: none; }
+.bio-actions__category-title::before { content: '\25B8'; margin-right: 6px; transition: transform .15s ease; }
+.bio-actions__category[open] .bio-actions__category-title::before { transform: rotate(90deg); }
+.bio-actions__category-title span { color: #b8c7d5; font-size: 11px; font-weight: normal; }
+.bio-actions__category-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.bio-actions__card { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 9px; border: 1px solid rgba(107, 232, 241, .35); border-radius: 4px; background: rgba(1, 12, 42, .72); text-align: left; }
+.bio-actions__icon { display: none; }
+.bio-actions__main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 3px; align-items: baseline; }
+.bio-actions__title { grid-column: 1 / -1; min-width: 0; color: #7ff; font-weight: 700; line-height: 1.15; text-decoration: none; }
+.bio-actions__title:hover { color: #fff; text-decoration: underline; }
+.bio-actions__combo { color: #eef; font-size: 12px; white-space: normal; }
+.bio-actions__meta { color: #b8c7d5; font-size: 11px; text-align: right; white-space: nowrap; }
+.bio-actions__controls { display: flex; align-items: end; justify-content: space-between; gap: 8px; min-width: 0; }
+.bio-actions__difficulty { display: flex; align-items: center; gap: 5px; color: #b8c7d5; font-size: 11px; }
+.bio-actions__difficulty select { width: 70px; min-height: 28px; padding: 2px 6px; font-size: 13px; }
+.bio-actions__difficulty strong { display: block; min-width: 70px; min-height: 28px; box-sizing: border-box; padding: 6px 7px; border: 1px solid #009; background: #000055; color: #fff; font-size: 13px; font-weight: normal; }
+.bio-actions__roll { min-width: 76px; min-height: 28px; box-sizing: border-box; padding: 6px 10px; text-align: center; text-decoration: none; }
+@media (max-width: 620px) {
+    .bio-actions { padding: 6px; }
+    .bio-actions__category-list { grid-template-columns: 1fr; }
+    .bio-actions__controls { justify-content: flex-end; }
+}
+/* Acciones: paleta compartida con Poderes e Inventario. */
+.bio-actions__category-title { justify-content: flex-start; gap: 6px; color: #fff; border-color: #009; background: #000066; text-align: left; }
+.bio-actions__category-title:hover { background: #000077; }
+.bio-actions__category-title::before { margin-right: 0; }
+.bio-actions__category-label { color: #fff; font-size: 14px; font-weight: bold; text-align: left; }
+.bio-actions__category-count { margin-left: auto; color: #fff; font-size: 11px; font-weight: normal; }
+.bio-actions__card { border-color: #009; background: #000055; }
+.bio-actions__card:hover { background: #000066; }

@@ -2680,3 +2680,49 @@ html {
 .hg-mobile-home-archive-card {
     background: var(--hg-mobile-surface);
 }
+
+/* Character forms and form-dependent maneuvers. */
+.hg-mobile-forms {
+    display: grid;
+    gap: 10px;
+}
+
+.hg-mobile-form-control {
+    display: grid;
+    gap: 5px;
+    color: var(--hg-mobile-muted);
+    font-size: 12px;
+}
+
+.hg-mobile-form-control select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 10px;
+    border: 1px solid var(--hg-mobile-border);
+    border-radius: 6px;
+    background: var(--hg-mobile-surface);
+    color: var(--hg-mobile-text);
+}
+
+.hg-mobile-forms p {
+    margin: 0;
+    color: var(--hg-mobile-muted);
+    font-size: 13px;
+}
+
+.hg-mobile-maneuvers .hg-mobile-list a {
+    display: block;
+    min-height: 20px;
+    padding-left: 24px;
+    background: url('/img/ui/icons/icon_machete.webp') left center / 16px 16px no-repeat;
+}
+
+/* Acciones de ficha móvil: plegado total/categorías y buscador. */
+.hg-mobile-actions__section > summary,
+.hg-mobile-actions__category > summary { display: flex; align-items: center; gap: 8px; }
+.hg-mobile-actions__count { margin-left: auto; color: var(--hg-mobile-muted); font-size: 12px; }
+.hg-mobile-actions__content { padding: 0 10px 10px; }
+.hg-mobile-actions__search { display: grid; gap: 5px; margin: 8px 0 10px; color: var(--hg-mobile-muted); font-size: 12px; }
+.hg-mobile-actions__search input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--hg-mobile-border); border-radius: 6px; background: var(--hg-mobile-surface); color: var(--hg-mobile-text); font: inherit; }
+.hg-mobile-actions__category { margin: 8px 0 0; }
+.hg-mobile-actions__category .hg-mobile-list { padding: 0 8px 8px; }

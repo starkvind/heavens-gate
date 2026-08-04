@@ -227,6 +227,54 @@ if ($type === 'don') {
         }
         $st->close();
     }
+} elseif ($type === 'maneuver' || $type === 'combat_maneuver' || $type === 'fact_combat_maneuvers') {
+    if ($st = $link->prepare('SELECT name, text, roll, difficulty, damage, actions, system_name, image_url FROM fact_combat_maneuvers WHERE id = ? LIMIT 1')) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = (string)($r['name'] ?? '');
+            $actions = trim((string)($r['actions'] ?? ''));
+            $outMeta = tt_join_meta([
+                trim((string)($r['system_name'] ?? '')),
+                $actions !== '' ? $actions . ' acci' . ((int)$actions === 1 ? 'on' : 'ones') : '',
+            ]);
+            $outPreDescLabel = 'Tirada';
+            $outPreDesc = tt_join_meta([
+                trim((string)($r['roll'] ?? '')),
+                trim((string)($r['difficulty'] ?? '')) !== '' ? 'Dificultad ' . trim((string)($r['difficulty'] ?? '')) : '',
+                trim((string)($r['damage'] ?? '')) !== '' ? 'Daño ' . trim((string)($r['damage'] ?? '')) : '',
+            ]);
+            $outDesc = short_text((string)($r['text'] ?? ''), 360);
+            $outImg = trim((string)($r['image_url'] ?? ''));
+            if ($outImg !== '' && strpos($outImg, '/') === false) $outImg = '/img/maneuvers/' . $outImg;
+            $outImgAlt = $outTitle;
+        }
+        $st->close();
+    }
+} elseif ($type === 'action' || $type === 'fact_action' || $type === 'fact_actions') {
+    if ($st = $link->prepare('SELECT a.name, a.category, a.text, a.difficulty_mode, a.fixed_difficulty, a.suggested_difficulty, a.min_difficulty, a.max_difficulty, attr.name AS attribute_name, skill.name AS skill_name FROM fact_actions a JOIN dim_traits attr ON attr.id = a.attribute_trait_id JOIN dim_traits skill ON skill.id = a.skill_trait_id WHERE a.id = ? LIMIT 1')) {
+        $st->bind_param('i', $id);
+        $st->execute();
+        $rs = $st->get_result();
+        if ($r = $rs->fetch_assoc()) {
+            $outTitle = (string)($r['name'] ?? '');
+            $outMeta = h(trim((string)($r['category'] ?? '')));
+            $outPreDescLabel = 'Tirada';
+            $outPreDesc = tt_join_meta([(string)($r['attribute_name'] ?? ''), (string)($r['skill_name'] ?? '')]);
+            if (($r['difficulty_mode'] ?? '') === 'fixed') {
+                $outExtra = 'Fija: ' . (int)($r['fixed_difficulty'] ?? 0);
+            } else {
+                $difficultyParts = [];
+                if ((int)($r['suggested_difficulty'] ?? 0) > 0) $difficultyParts[] = 'Sugerida ' . (int)$r['suggested_difficulty'];
+                if ((int)($r['min_difficulty'] ?? 0) > 0 && (int)($r['max_difficulty'] ?? 0) > 0) $difficultyParts[] = (int)$r['min_difficulty'] . ' - ' . (int)$r['max_difficulty'];
+                $outExtra = implode(' / ', $difficultyParts);
+            }
+            $outExtraLabel = 'Dificultad';
+            $outDesc = short_text((string)($r['text'] ?? ''), 360);
+        }
+        $st->close();
+    }
 } elseif ($type === 'trait') {
     if ($st = $link->prepare("SELECT name, kind, description FROM dim_traits WHERE id=? LIMIT 1")) {
         $st->bind_param('i', $id);

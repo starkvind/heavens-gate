@@ -1,25 +1,31 @@
 <?php
 // Atributos en 3 columnas (1-3, 4-6, 7-9)
-$cols = $bioAttrCols ?? [[],[],[]];
-$imgs = $bioAttrColImgs ?? [[],[],[]];
+$cols = $bioAttrCols ?? [[], [], []];
+$imgs = $bioAttrColImgs ?? [[], [], []];
 $maxRows = 0;
-foreach ($cols as $c) { $maxRows = max($maxRows, count($c)); }
-for ($i = 0; $i < $maxRows; $i++) {
-    for ($c = 0; $c < 3; $c++) {
-        if (!isset($cols[$c][$i])) continue;
-        $t = $cols[$c][$i];
-        $name = h($t['name'] ?? '');
-        $tid = (int)($t['id'] ?? 0);
+foreach ($cols as $column) { $maxRows = max($maxRows, count($column)); }
+
+for ($row = 0; $row < $maxRows; $row++) {
+    for ($column = 0; $column < 3; $column++) {
+        if (!isset($cols[$column][$row])) continue;
+        $trait = $cols[$column][$row];
+        $name = h($trait['name'] ?? '');
+        $traitId = (int)($trait['id'] ?? 0);
         if ($name === '') continue;
-        $img = $imgs[$c][$i] ?? '';
-        if ($tid > 0 && function_exists('pretty_url')) {
-            $href = pretty_url($link, 'dim_traits', '/rules/traits', $tid);
-            $nameHtml = "<a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $tid . "'>{$name}</a>";
+
+        $image = $imgs[$column][$row] ?? '';
+        if ($traitId > 0 && function_exists('pretty_url')) {
+            $href = pretty_url($link, 'dim_traits', '/rules/traits', $traitId);
+            $nameHtml = "<a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='trait' data-id='" . $traitId . "'>{$name}</a>";
         } else {
             $nameHtml = $name;
         }
+
+        $formData = $traitId > 0
+            ? " data-bio-form-trait-id='{$traitId}' data-bio-form-base='" . (int)($trait['value'] ?? 0) . "'"
+            : '';
         echo "<div class='bioSheetAttrLeft'>{$nameHtml}:</div>";
-        echo "<div class='bioSheetAttrRight'>{$img}</div>";
+        echo "<div class='bioSheetAttrRight'{$formData}>{$image}<span class='bio-form-attribute-value' aria-live='polite'></span></div>";
     }
 }
 ?>

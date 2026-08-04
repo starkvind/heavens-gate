@@ -1,6 +1,7 @@
 <?php
 // admin_systems.php -- CRUD Sistemas (dim_systems)
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/maneuver_bridges.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
@@ -135,7 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
                     $newId = (int)$st->insert_id;
                     hg_update_pretty_id_if_exists($link, 'dim_systems', $newId, $name);
                     hg_content_touch_table($link, 'dim_systems', $newId);
-                    $flash[] = ['type'=>'ok','msg'=>'Sistema creado.'];
+                    $defaultManeuvers = hg_assign_default_maneuvers_to_system($link, $newId);
+                    $flash[] = ['type'=>'ok','msg'=>'Sistema creado. Maniobras basicas asignadas: ' . $defaultManeuvers . '.'];
                 } else {
                     $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
                 }

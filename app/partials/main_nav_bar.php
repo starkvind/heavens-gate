@@ -500,6 +500,13 @@
 				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/conditions' title='Condiciones'>Condiciones</a> $pillSeparator $conditionNavName";
 				break;
 			// ========================================== //
+						case "actions":
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator Acciones";
+				break;
+			case "veraction":
+				$actionNavName = isset($pageTitle2) ? $pageTitle2 : '';
+				echo "<a href='/rules' title='Reglamento'>Reglamento</a> $pillSeparator <a href='/rules/actions' title='Acciones'>Acciones</a> $pillSeparator $actionNavName";
+				break;
 			// Meritos y Defectos
 			// ========================================== //
 			case "listamyd":

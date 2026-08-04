@@ -412,6 +412,138 @@ foreach ($traitRows as $row) {
     $traitsByKind[$kind][] = $row;
 }
 
+$mobileActions = [];
+if ($hasCharacterSheet && hg_mobile_bio_table_exists($link, 'fact_actions')) {
+    $mobileActions = hg_mobile_bio_rows($link, "
+        SELECT a.id, a.name, a.category, a.text, a.attribute_trait_id, a.skill_trait_id,
+               a.difficulty_mode, a.fixed_difficulty, a.suggested_difficulty,
+               attr.name AS attribute_name, skill.name AS skill_name,
+               attribute_value.value AS attribute_value, skill_value.value AS skill_value
+        FROM fact_actions a
+        INNER JOIN bridge_characters_traits attribute_value
+            ON attribute_value.character_id = {$cid} AND attribute_value.trait_id = a.attribute_trait_id
+        INNER JOIN bridge_characters_traits skill_value
+            ON skill_value.character_id = {$cid} AND skill_value.trait_id = a.skill_trait_id
+        INNER JOIN dim_traits attr ON attr.id = a.attribute_trait_id
+        INNER JOIN dim_traits skill ON skill.id = a.skill_trait_id
+        WHERE attribute_value.value > 0 AND skill_value.value > 0
+        ORDER BY a.category, a.name
+    ");
+    foreach ($mobileActions as &$action) {
+        $action['href'] = hg_mobile_bio_pretty_href($link, 'fact_actions', '/rules/actions', (int)($action['id'] ?? 0));
+        $difficulty = (int)(($action['difficulty_mode'] ?? '') === 'fixed'
+            ? ($action['fixed_difficulty'] ?? 6)
+            : ($action['suggested_difficulty'] ?? 6));
+        $action['roll_href'] = '/tools/dice?' . http_build_query([
+            'character_id' => $cid,
+            'attr_trait_id' => (int)($action['attribute_trait_id'] ?? 0),
+            'skill_trait_id' => (int)($action['skill_trait_id'] ?? 0),
+            'dificultad' => $difficulty,
+            'action_name' => (string)($action['name'] ?? 'Acción'),
+        ], '', '&', PHP_QUERY_RFC3986);
+    }
+    unset($action);
+}
+$mobileActionsByCategory = [];
+foreach ($mobileActions as $action) {
+    $category = trim((string)($action['category'] ?? '')) ?: 'Sin categoría';
+    $mobileActionsByCategory[$category][] = $action;
+}
+$mobileResourcesByKind = [
+    'renombre' => [],
+    'estado' => [],
+    'exp' => [],
+];
+$mobileResourceBridge = null;
+foreach (['bridge_characters_system_resources', 'bridge_characters_resources'] as $candidate) {
+    if (hg_mobile_bio_table_exists($link, $candidate)) {
+        $mobileResourceBridge = $candidate;
+        break;
+    }
+}
+if ($hasCharacterSheet && $mobileResourceBridge !== null && hg_mobile_bio_table_exists($link, 'dim_systems_resources')) {
+    $mobileResourceRows = hg_mobile_bio_rows($link, "
+        SELECT r.id, r.name, r.kind, b.value_permanent, b.value_temporary
+        FROM `{$mobileResourceBridge}` b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+        WHERE b.character_id = {$cid}
+        ORDER BY r.kind, COALESCE(r.sort_order, 9999), r.name
+    ");
+    foreach ($mobileResourceRows as $resource) {
+        $kind = strtolower(trim((string)($resource['kind'] ?? '')));
+        if (!array_key_exists($kind, $mobileResourcesByKind)) {
+            continue;
+        }
+        $mobileResourcesByKind[$kind][] = [
+            'id' => (int)($resource['id'] ?? 0),
+            'name' => (string)($resource['name'] ?? ''),
+            'perm' => (int)($resource['value_permanent'] ?? 0),
+            'temp' => (int)($resource['value_temporary'] ?? 0),
+        ];
+    }
+}
+
+$mobileForms = [];
+$mobileBaseManeuvers = [];
+if (
+    $hasCharacterSheet
+    && $systemId > 0
+    && hg_mobile_bio_table_exists($link, 'dim_forms')
+    && hg_mobile_bio_table_exists($link, 'bridge_maneuvers_systems')
+    && hg_mobile_bio_table_exists($link, 'bridge_maneuvers_forms')
+) {
+    $sortSelect = hg_mobile_bio_column_exists($link, 'dim_forms', 'sort_order')
+        ? 'COALESCE(sort_order, 999) AS sort_order'
+        : '999 AS sort_order';
+    $forms = hg_mobile_bio_rows($link, "SELECT id, form, race, {$sortSelect} FROM dim_forms WHERE system_id = {$systemId} AND TRIM(COALESCE(form, '')) <> '' ORDER BY sort_order, form");
+    $races = [];
+    foreach ($forms as $form) {
+        $race = trim((string)($form['race'] ?? ''));
+        if ($race !== '') $races[$race] = true;
+    }
+
+    $formIds = [];
+    foreach ($forms as $form) {
+        if (count($races) > 1 && trim((string)($form['race'] ?? '')) !== trim((string)($character['tribe_name'] ?? ''))) continue;
+        $formIds[] = (int)$form['id'];
+    }
+
+    $modifiersByForm = [];
+    if (!empty($formIds) && hg_mobile_bio_table_exists($link, 'bridge_forms_traits')) {
+        $formIdSql = implode(',', array_map('intval', $formIds));
+        foreach (hg_mobile_bio_rows($link, "SELECT form_id, trait_id, modifier FROM bridge_forms_traits WHERE form_id IN ({$formIdSql})") as $modifier) {
+            $modifiersByForm[(int)$modifier['form_id']][(int)$modifier['trait_id']] = (int)$modifier['modifier'];
+        }
+    }
+
+    foreach (hg_mobile_bio_rows($link, "SELECT m.id, m.name, m.image_url FROM bridge_maneuvers_systems b JOIN fact_combat_maneuvers m ON m.id=b.maneuver_id WHERE b.system_id={$systemId} ORDER BY m.name") as $maneuver) {
+        $maneuver['href'] = hg_mobile_bio_pretty_href($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuver['id']);
+        $mobileBaseManeuvers[(int)$maneuver['id']] = $maneuver;
+    }
+
+    $formManeuvers = [];
+    if (!empty($formIds)) {
+        $formIdSql = implode(',', array_map('intval', $formIds));
+        foreach (hg_mobile_bio_rows($link, "SELECT b.form_id, m.id, m.name, m.image_url FROM bridge_maneuvers_forms b JOIN fact_combat_maneuvers m ON m.id=b.maneuver_id WHERE b.form_id IN ({$formIdSql}) ORDER BY m.name") as $maneuver) {
+            $maneuver['href'] = hg_mobile_bio_pretty_href($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuver['id']);
+            $formManeuvers[(int)$maneuver['form_id']][(int)$maneuver['id']] = $maneuver;
+        }
+    }
+
+    foreach ($forms as $form) {
+        $formId = (int)$form['id'];
+        if (!in_array($formId, $formIds, true)) continue;
+        $maneuvers = $mobileBaseManeuvers;
+        foreach (($formManeuvers[$formId] ?? []) as $maneuverId => $maneuver) $maneuvers[(int)$maneuverId] = $maneuver;
+        $mobileForms[] = [
+            'id' => $formId,
+            'name' => trim((string)$form['form']),
+            'modifiers' => $modifiersByForm[$formId] ?? [],
+            'maneuvers' => array_values($maneuvers),
+        ];
+    }
+}
+$mobileBaseManeuvers = array_values($mobileBaseManeuvers);
 $merits = hg_mobile_bio_rows($link, "
     SELECT mf.id, mf.name, mf.kind, mf.cost, b.level
     FROM bridge_characters_merits_flaws b
@@ -694,7 +826,103 @@ if (hg_mobile_bio_table_exists($link, 'bridge_characters_external_links') && hg_
                         <?php foreach ($traits as $trait): ?>
                             <div>
                                 <span><?= hg_mobile_bio_link(hg_mobile_bio_pretty_href($link, 'dim_traits', '/rules/traits', (int)($trait['id'] ?? 0)), (string)($trait['name'] ?? '')) ?></span>
-                                <strong><?= (int)($trait['value'] ?? 0) ?> <?= hg_mobile_bio_trait_dots((int)($trait['value'] ?? 0)) ?></strong>
+                                <strong data-hg-mobile-form-trait="<?= (int)($trait['id'] ?? 0) ?>" data-hg-mobile-form-base="<?= (int)($trait['value'] ?? 0) ?>"><span data-hg-mobile-form-value><?= (int)($trait['value'] ?? 0) ?></span> <span data-hg-mobile-form-dots><?= hg_mobile_bio_trait_dots((int)($trait['value'] ?? 0)) ?></span></strong>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </details>
+            <?php endforeach; ?>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($hasCharacterSheet && !empty($mobileActions)): ?>
+        <section class="hg-mobile-section hg-mobile-actions" data-mobile-actions>
+            <details class="hg-mobile-details hg-mobile-actions__section" open>
+                <summary>Acciones <span class="hg-mobile-actions__count"><?= count($mobileActions) ?></span></summary>
+                <div class="hg-mobile-actions__content">
+                    <label class="hg-mobile-actions__search">
+                        <span>Buscar acciones</span>
+                        <input type="search" data-mobile-action-search placeholder="Nombre, categoría, atributo o habilidad" autocomplete="off">
+                    </label>
+                    <p class="hg-mobile-list-empty" data-mobile-action-empty hidden>No hay acciones que coincidan.</p>
+                    <?php foreach ($mobileActionsByCategory as $category => $categoryActions): ?>
+                        <details class="hg-mobile-details hg-mobile-actions__category" data-mobile-action-category open>
+                            <summary><?= hg_mobile_bio_h($category) ?> <span class="hg-mobile-actions__count"><?= count($categoryActions) ?></span></summary>
+                            <div class="hg-mobile-list">
+                                <?php foreach ($categoryActions as $action): ?>
+                                    <?php
+                                        $difficultyLabel = (string)($action['difficulty_mode'] ?? '') === 'fixed'
+                                            ? 'Dificultad ' . (int)($action['fixed_difficulty'] ?? 6)
+                                            : 'Dificultad variable (base ' . (int)($action['suggested_difficulty'] ?? 6) . ')';
+                                        $dice = (int)($action['attribute_value'] ?? 0) + (int)($action['skill_value'] ?? 0);
+                                        $searchText = implode(' ', [
+                                            (string)($action['name'] ?? ''), (string)$category, (string)($action['text'] ?? ''),
+                                            (string)($action['attribute_name'] ?? ''), (string)($action['skill_name'] ?? ''),
+                                        ]);
+                                    ?>
+                                    <div data-mobile-action-card data-mobile-action-search-text="<?= hg_mobile_bio_h($searchText) ?>">
+                                        <strong><img src="/img/ui/icons/icon_book.webp" alt="" width="20" height="20" loading="lazy"> <?= hg_mobile_bio_link((string)($action['href'] ?? ''), (string)($action['name'] ?? 'Acción')) ?></strong>
+                                        <span><?= hg_mobile_bio_h((string)($action['attribute_name'] ?? '')) ?> + <?= hg_mobile_bio_h((string)($action['skill_name'] ?? '')) ?> · <?= $dice ?> dados · <?= hg_mobile_bio_h($difficultyLabel) ?></span>
+                                        <a class="boton2" href="<?= hg_mobile_bio_h((string)($action['roll_href'] ?? '/tools/dice')) ?>">Tirar</a>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                </div>
+            </details>
+        </section>
+        <script>
+        (() => {
+            const root = document.querySelector('[data-mobile-actions]');
+            if (!root) return;
+            const input = root.querySelector('[data-mobile-action-search]');
+            const empty = root.querySelector('[data-mobile-action-empty]');
+            const normalize = value => String(value || '').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const filter = () => {
+                const query = normalize(input.value.trim());
+                let visible = 0;
+                root.querySelectorAll('[data-mobile-action-category]').forEach(category => {
+                    let categoryVisible = 0;
+                    category.querySelectorAll('[data-mobile-action-card]').forEach(card => {
+                        const match = !query || normalize(card.dataset.mobileActionSearchText).includes(query);
+                        card.hidden = !match;
+                        if (match) { categoryVisible++; visible++; }
+                    });
+                    category.hidden = categoryVisible === 0;
+                });
+                empty.hidden = visible > 0;
+            };
+            input.addEventListener('input', filter);
+        })();
+        </script>
+    <?php endif; ?>    <?php if ($hasCharacterSheet && array_filter($mobileResourcesByKind)): ?>
+        <section class="hg-mobile-section">
+            <h2>Recursos</h2>
+            <?php foreach (['renombre' => 'Renombre', 'estado' => 'Estado', 'exp' => 'Experiencia'] as $kind => $title): ?>
+                <?php $resources = $mobileResourcesByKind[$kind] ?? []; ?>
+                <?php if (empty($resources)) { continue; } ?>
+                <details class="hg-mobile-details" open>
+                    <summary><?= hg_mobile_bio_h($title) ?></summary>
+                    <div class="hg-mobile-list">
+                        <?php foreach ($resources as $resource): ?>
+                            <?php
+                                $perm = (int)($resource['perm'] ?? 0);
+                                $temp = (int)($resource['temp'] ?? 0);
+                                $dots = static fn(int $value): string => html_entity_decode(
+                                    strip_tags(hg_mobile_bio_trait_dots($value)),
+                                    ENT_QUOTES | ENT_HTML5,
+                                    'UTF-8'
+                                );
+                                $value = $kind === 'renombre'
+                                    ? 'P ' . $perm . ' ' . $dots($perm) . ' / T ' . $temp . ' ' . $dots($temp)
+                                    : ($kind === 'exp'
+                                        ? $temp . ' / ' . $perm . ' PX'
+                                        : 'T ' . $temp . ' / P ' . $perm . ' ' . $dots($temp));
+                            ?>
+                            <div>
+                                <strong><?= hg_mobile_bio_h($resource['name'] ?? '') ?></strong>
+                                <span><?= hg_mobile_bio_h($value) ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -729,6 +957,90 @@ if (hg_mobile_bio_table_exists($link, 'bridge_characters_external_links') && hg_
                 <?php endforeach; ?>
             </div>
         </section>
+    <?php endif; ?>
+
+    <?php if ($hasCharacterSheet && !empty($mobileForms)): ?>
+        <?php
+            $mobileFormsJson = json_encode($mobileForms, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            $mobileBaseManeuversJson = json_encode($mobileBaseManeuvers, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        ?>
+        <section class="hg-mobile-section hg-mobile-forms"
+                 data-hg-mobile-forms='<?= hg_mobile_bio_h((string)$mobileFormsJson) ?>'
+                 data-hg-mobile-base-maneuvers='<?= hg_mobile_bio_h((string)$mobileBaseManeuversJson) ?>'>
+            <h2>Formas</h2>
+            <label class="hg-mobile-form-control">Forma activa
+                <select data-hg-mobile-form-select>
+                    <option value="">Forma base</option>
+                    <?php foreach ($mobileForms as $form): ?>
+                        <option value="<?= (int)$form['id'] ?>"><?= hg_mobile_bio_h($form['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <p data-hg-mobile-form-summary>Forma base: atributos originales.</p>
+        </section>
+        <script>
+        (() => {
+            const root = document.querySelector('.hg-mobile-forms[data-hg-mobile-forms]');
+            if (!root) return;
+            const select = root.querySelector('[data-hg-mobile-form-select]');
+            const summary = root.querySelector('[data-hg-mobile-form-summary]');
+            let forms = [], baseManeuvers = [];
+            try {
+                forms = JSON.parse(root.dataset.hgMobileForms || '[]');
+                baseManeuvers = JSON.parse(root.dataset.hgMobileBaseManeuvers || '[]');
+            } catch (_) { return; }
+            const dots = value => '\u25cf'.repeat(Math.min(5, value)) + '\u25cb'.repeat(Math.max(0, 5 - value));
+            const render = () => {
+                const form = forms.find(item => String(item.id) === select.value) || null;
+                const modifiers = form && form.modifiers ? form.modifiers : {};
+                document.querySelectorAll('[data-hg-mobile-form-trait]').forEach(cell => {
+                    const traitId = cell.dataset.hgMobileFormTrait;
+                    const base = Number(cell.dataset.hgMobileFormBase || 0);
+                    const total = Math.max(1, base + Number(modifiers[traitId] || 0));
+                    cell.querySelector('[data-hg-mobile-form-value]').textContent = form ? total : base;
+                    cell.querySelector('[data-hg-mobile-form-dots]').textContent = dots(total);
+                });
+                summary.textContent = form ? form.name + ': cambios aplicados visualmente.' : 'Forma base: atributos originales.';
+                document.dispatchEvent(new CustomEvent('hg-mobile-form-change', { detail: { maneuvers: form ? (form.maneuvers || []) : baseManeuvers } }));
+            };
+            select.addEventListener('change', render);
+            render();
+        })();
+        </script>
+    <?php endif; ?>
+
+    <?php if ($hasCharacterSheet && !empty($mobileForms)): ?>
+        <?php $mobileBaseManeuversJson = json_encode($mobileBaseManeuvers, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
+        <section class="hg-mobile-section hg-mobile-maneuvers" data-hg-mobile-base-maneuvers='<?= hg_mobile_bio_h((string)$mobileBaseManeuversJson) ?>'>
+            <h2>Maniobras</h2>
+            <div class="hg-mobile-list" data-hg-mobile-maneuver-list></div>
+        </section>
+        <script>
+        (() => {
+            const root = document.querySelector('.hg-mobile-maneuvers[data-hg-mobile-base-maneuvers]');
+            if (!root) return;
+            const list = root.querySelector('[data-hg-mobile-maneuver-list]');
+            let base = [];
+            try { base = JSON.parse(root.dataset.hgMobileBaseManeuvers || '[]'); } catch (_) { return; }
+            const render = maneuvers => {
+                list.innerHTML = '';
+                if (!maneuvers.length) {
+                    list.textContent = 'No hay maniobras disponibles para esta forma.';
+                    return;
+                }
+                maneuvers.forEach(item => {
+                    const row = document.createElement('div');
+                    const link = document.createElement('a');
+                    link.href = item.href;
+                    link.textContent = item.name;
+                    row.appendChild(link);
+                    list.appendChild(row);
+                });
+            };
+            document.addEventListener('hg-mobile-form-change', event => render((event.detail && event.detail.maneuvers) || []));
+            render(base);
+        })();
+        </script>
     <?php endif; ?>
 
     <?php if ($hasCharacterSheet): ?>

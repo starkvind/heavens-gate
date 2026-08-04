@@ -258,6 +258,7 @@ $rulesHub = [
     ['Rasgos', '/rules/traits', 'Atributos, habilidades, trasfondos y otros rasgos numericos.'],
     ['Méritos y Defectos', '/rules/merits-flaws', 'Ventajas, desventajas y rasgos especiales.'],
     ['Condiciones', '/rules/conditions', 'Estados, heridas, trastornos y efectos persistentes.'],
+        ['Acciones', '/rules/actions', 'Tiradas básicas de Atributo + Habilidad.'],
     ['Personalidades', '/rules/archetypes', 'Naturaleza, conducta y arquetipos de interpretacion.'],
     ['Maniobras de pelea', '/rules/maneuvers', 'Tecnicas de combate y acciones especiales.'],
 ];
@@ -284,6 +285,13 @@ $catalogs = [
         'body' => [['Descripción', 'description']],
         'owners' => ['table' => 'bridge_characters_conditions', 'where' => hg_mrp_col($link, 'bridge_characters_conditions', 'is_active') ? 'b.condition_id = ? AND (b.is_active = 1 OR b.is_active IS NULL)' : 'b.condition_id = ?'],
         'order' => 'name ASC',
+    ],
+        'actions' => [
+        'key' => 'actions', 'title' => 'Acciones', 'singular' => 'Acción', 'table' => 'fact_actions', 'list_base' => '/rules/actions', 'item_base' => '/rules/actions',
+        'list_routes' => ['actions'], 'detail_routes' => ['veraction'],
+        'fields' => [['Categoría', 'category'], ['Atributo', 'attribute_trait_id', 'dim_traits'], ['Habilidad', 'skill_trait_id', 'dim_traits'], ['Dificultad', 'difficulty_mode']],
+        'body' => [['Descripción', 'text']],
+        'order' => 'category ASC, name ASC',
     ],
     'merits' => [
         'key' => 'merits', 'title' => 'Méritos y Defectos', 'singular' => 'Merito o defecto', 'table' => 'dim_merits_flaws', 'list_base' => '/rules/merits-flaws', 'item_base' => '/rules/merits-flaws',

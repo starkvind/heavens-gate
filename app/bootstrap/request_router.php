@@ -242,6 +242,7 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'rules' => '/rules',
         'listarasgos' => '/rules/traits',
         'listconditions' => '/rules/conditions',
+        'actions' => '/rules/actions',
         'listamyd' => '/rules/merits-flaws',
         'maneuver' => '/rules/maneuvers',
         'arquetip' => '/rules/archetypes',
@@ -396,6 +397,11 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
                 return '/rules/conditions';
             }
             return '/rules/conditions/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'dim_character_conditions', (string)$query['b']));
+        case 'veraction':
+            if (!isset($query['b'])) {
+                return '/rules/actions';
+            }
+            return '/rules/actions/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'fact_actions', (string)$query['b']));
         case 'vermyd':
             if (!isset($query['b'])) {
                 return '/rules/merits-flaws';
@@ -565,6 +571,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/rules' => ['p' => 'rules'],
         '/rules/traits' => ['p' => 'listarasgos'],
         '/rules/conditions' => ['p' => 'listconditions'],
+        '/rules/actions' => ['p' => 'actions'],
         '/rules/merits-flaws' => ['p' => 'listamyd'],
         '/rules/maneuvers' => ['p' => 'maneuver'],
         '/rules/archetypes' => ['p' => 'arquetip'],
@@ -590,6 +597,7 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/admin/game-cards/seed' => ['p' => 'talim', 's' => 'admin_game_cards_seed'],
         '/admin/seed-game-cards' => ['p' => 'talim', 's' => 'admin_game_cards_seed'],
         '/admin/merits-flaws' => ['p' => 'talim', 's' => 'admin_merits_flaws'],
+        '/admin/actions' => ['p' => 'talim', 's' => 'admin_actions'],
         '/forum/message' => ['p' => 'forum_message'],
         '/forum/diceroll' => ['p' => 'forum_diceroll'],
         '/forum/item' => ['p' => 'forum_item'],
@@ -742,6 +750,9 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         },
         '#^/rules/conditions/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'vercondition', 'b' => $m[1]];
+        },
+        '#^/rules/actions/([^/]+)$#' => static function (array $m): array {
+            return ['p' => 'veraction', 'b' => $m[1]];
         },
         '#^/rules/merits-flaws/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'vermyd', 'b' => $m[1]];

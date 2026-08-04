@@ -122,6 +122,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_traits':
 					include("admin_traits.php");
 					break;
+                case 'admin_actions':
+                    include('admin_actions.php');
+                    break;
 				case 'admin_merits_flaws':
 					include("admin_merits_flaws.php");
 					break;
@@ -179,6 +182,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					break;
 				case 'admin_forms':
 					include("admin_forms.php");
+					break;
+				case 'admin_maneuvers':
+					include("admin_maneuvers.php");
 					break;
 				case 'admin_timelines':
 					include("admin_timelines.php");
@@ -357,6 +363,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_forms':
 					include("admin_forms.php");
 					break;
+				case 'admin_maneuvers':
+					include("admin_maneuvers.php");
+					break;
 				case 'admin_system_details':
 					include("admin_system_details.php");
 					break;
@@ -372,6 +381,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_traits':
 					include("admin_traits.php");
 					break;
+                case 'admin_actions':
+                    include('admin_actions.php');
+                    break;
 				case 'admin_merits_flaws':
 					include("admin_merits_flaws.php");
 					break;
@@ -494,6 +506,8 @@ if (!function_exists('hg_admin_render_menu_section')) {
 						['href' => '/talim?s=admin_systems_resources', 'label' => 'Asignar Recursos por Sistema', 'keywords' => ['resources']],
 						['href' => '/talim?s=admin_resources', 'label' => 'Gestionar Recursos (Catálogo)', 'keywords' => ['catalogo']],
 						['href' => '/talim?s=admin_forms', 'label' => 'Gestionar Formas', 'keywords' => ['formas']],
+                        ['href' => '/talim?s=admin_maneuvers', 'label' => 'Asignar Maniobras a Sistemas y Formas', 'keywords' => ['maniobras', 'forms', 'bridges']],
+                        ['href' => '/talim?s=admin_actions', 'label' => 'Gestionar Acciones', 'keywords' => ['acciones', 'tiradas', 'dificultad']],
 					],
 				],
 				[

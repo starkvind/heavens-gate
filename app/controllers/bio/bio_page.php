@@ -666,6 +666,8 @@
 			$titleInfo	 = "&nbsp;Informaci&oacute;n&nbsp;";		// Titulo de la seccion "Informacion"
 			$titleId	 = "&nbsp;Detalles de $bioName&nbsp;";// Titulo de la seccion "Identificacion"
 			$titleAttr	 = "&nbsp;Atributos&nbsp;";			// Titulo de la seccion "Atributos"
+			$titleForms	 = "&nbsp;Formas&nbsp;";				// Simulaci?n temporal de cambio de forma.
+			$titleManeuvers = "&nbsp;Maniobras&nbsp;";
 			$titleSkill	 = "&nbsp;Habilidades&nbsp;";		// Titulo de la seccion "Habilidades"
 			$titleBackg	 = "&nbsp;Trasfondos&nbsp;";		// Titulo de la seccion "Trasfondos"
 			$titleMerits = "&nbsp;M&eacute;ritos y Defectos&nbsp;";// Titulo de la seccion "Meritos y Defectos"
@@ -720,6 +722,8 @@
 			// Cambiamos títulos de secciones acorde al Sistema del PJ
 			include ("app/partials/bio/bio_page_section_00_system.php"); // Utilizamos "include" para no sobrecargar la página con código
 		// ================================================================== //
+		$bioHasActions = false;
+
 		if ($bioHasSheet) { // <--- Inicio de comprobación si lleva hoja
 		// ================================================================== //
 		// Traits normalizados (bridge_characters_traits)
@@ -810,6 +814,155 @@
 			$bioTraitImgsByType[$tipo] = createSkillCircle($vals, 'gem-attr');
 		}
 
+
+			$bioForms = [];
+
+			// Form changes are simulated client-side and never stored on the character.
+			if ($bioSheetRaw === 'pj' && $bioSystemId > 0 && table_exists($link, 'dim_forms')) {
+				$formCandidates = [];
+				$formSortSelect = column_exists($link, 'dim_forms', 'sort_order') ? 'COALESCE(sort_order, 999) AS sort_order' : '999 AS sort_order';
+				$formOrderSql = "ORDER BY sort_order ASC, CASE LOWER(form) WHEN 'hominido' THEN 10 WHEN 'glabro' THEN 20 WHEN 'glabrus' THEN 20 WHEN 'sokto' THEN 20 WHEN 'crinos' THEN 30 WHEN 'hispo' THEN 40 WHEN 'chatro' THEN 40 WHEN 'lupus' THEN 50 WHEN 'felino' THEN 50 ELSE 500 END ASC, form ASC";
+				$sqlForms = "SELECT id, form, race, strength_bonus, dexterity_bonus, stamina_bonus, {$formSortSelect} FROM dim_forms WHERE system_id = ? AND TRIM(COALESCE(form, '')) <> '' {$formOrderSql}";
+				if ($stForms = $link->prepare($sqlForms)) {
+					$stForms->bind_param('i', $bioSystemId); $stForms->execute(); $rsForms = $stForms->get_result();
+					if ($rsForms) { while ($formRow = $rsForms->fetch_assoc()) $formCandidates[] = $formRow; $rsForms->free(); }
+					$stForms->close();
+				}
+				$formRaces = [];
+				foreach ($formCandidates as $formRow) { $race = trim((string)($formRow['race'] ?? '')); if ($race !== '') $formRaces[$race] = true; }
+				$bioFormRace = '';
+				if (count($formRaces) > 1 && (int)$bioTribe > 0 && table_exists($link, 'dim_tribes')) {
+					if ($stRace = $link->prepare('SELECT name FROM dim_tribes WHERE id = ? LIMIT 1')) {
+						$stRace->bind_param('i', $bioTribe); $stRace->execute(); $rsRace = $stRace->get_result();
+						if ($rsRace && ($raceRow = $rsRace->fetch_assoc())) $bioFormRace = trim((string)($raceRow['name'] ?? ''));
+						if ($rsRace) $rsRace->free(); $stRace->close();
+					}
+				}
+				$formModifiers = [];
+				if (!empty($formCandidates) && table_exists($link, 'bridge_forms_traits')) {
+					$sqlModifiers = 'SELECT form_id, trait_id, modifier FROM bridge_forms_traits WHERE form_id IN (' . implode(',', array_map('intval', array_column($formCandidates, 'id'))) . ')';
+					if ($rsModifiers = $link->query($sqlModifiers)) { while ($modifierRow = $rsModifiers->fetch_assoc()) $formModifiers[(int)$modifierRow['form_id']][(int)$modifierRow['trait_id']] = (int)$modifierRow['modifier']; $rsModifiers->free(); }
+				}
+				$bioBaseManeuvers = [];
+				$formManeuversByForm = [];
+				$formatManeuver = static function (array $maneuver) use ($link): array {
+					$id = (int)($maneuver['id'] ?? 0);
+					return [
+						'id' => $id,
+						'name' => trim((string)($maneuver['name'] ?? '')),
+						'image_url' => trim((string)($maneuver['image_url'] ?? '')),
+						'href' => pretty_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', $id),
+					];
+				};
+				if (table_exists($link, 'bridge_maneuvers_systems') && table_exists($link, 'bridge_maneuvers_forms')) {
+					if ($stSystemManeuvers = $link->prepare('SELECT m.id, m.name, m.image_url FROM bridge_maneuvers_systems b JOIN fact_combat_maneuvers m ON m.id = b.maneuver_id WHERE b.system_id = ? ORDER BY m.name ASC')) {
+						$stSystemManeuvers->bind_param('i', $bioSystemId);
+						$stSystemManeuvers->execute();
+						$rsSystemManeuvers = $stSystemManeuvers->get_result();
+						if ($rsSystemManeuvers) {
+							while ($maneuverRow = $rsSystemManeuvers->fetch_assoc()) $bioBaseManeuvers[(int)$maneuverRow['id']] = $formatManeuver($maneuverRow);
+							$rsSystemManeuvers->free();
+						}
+						$stSystemManeuvers->close();
+					}
+					if (!empty($formCandidates)) {
+						$formIdsSql = implode(',', array_map('intval', array_column($formCandidates, 'id')));
+						$sqlFormManeuvers = "SELECT b.form_id, m.id, m.name, m.image_url FROM bridge_maneuvers_forms b JOIN fact_combat_maneuvers m ON m.id = b.maneuver_id WHERE b.form_id IN ({$formIdsSql}) ORDER BY m.name ASC";
+						if ($rsFormManeuvers = $link->query($sqlFormManeuvers)) {
+							while ($maneuverRow = $rsFormManeuvers->fetch_assoc()) {
+								$formManeuversByForm[(int)$maneuverRow['form_id']][(int)$maneuverRow['id']] = $formatManeuver($maneuverRow);
+							}
+							$rsFormManeuvers->free();
+						}
+					}
+				}
+				$bioBaseManeuvers = array_values($bioBaseManeuvers);
+				$legacyModifierColumns = [];
+				foreach (($bioTraitsByType['Atributos'] ?? []) as $attribute) {
+					$legacyColumn = ['Fuerza' => 'strength_bonus', 'Destreza' => 'dexterity_bonus', 'Resistencia' => 'stamina_bonus'][(string)($attribute['name'] ?? '')] ?? null;
+					if ($legacyColumn !== null) $legacyModifierColumns[(int)($attribute['id'] ?? 0)] = $legacyColumn;
+				}
+				foreach ($formCandidates as $formRow) {
+					if (count($formRaces) > 1 && ($bioFormRace === '' || (string)($formRow['race'] ?? '') !== $bioFormRace)) continue;
+					$formId = (int)($formRow['id'] ?? 0); $formName = trim((string)($formRow['form'] ?? '')); $modifiers = $formModifiers[$formId] ?? [];
+					// Legacy fallback until the bridge is backfilled. Bridge values override it.
+					foreach ($legacyModifierColumns as $traitId => $legacyColumn) if (!array_key_exists($traitId, $modifiers)) $modifiers[$traitId] = (int)($formRow[$legacyColumn] ?? 0);
+					// Si existe puente para esta Forma, es lista permitida: no se suma al
+					// catálogo entero del Sistema. Sin puente, conserva Maniobras genéricas.
+					$formManeuvers = $formManeuversByForm[$formId] ?? $bioBaseManeuvers;
+					$bioForms[] = ['id' => $formId, 'name' => $formName, 'modifiers' => $modifiers, 'maneuvers' => array_values($formManeuvers)];
+				}
+			}
+		$bioActions = [];
+		if ($bioSheetRaw === 'pj' && table_exists($link, 'fact_actions')) {
+			$sqlActions = "SELECT a.id, a.name, a.category, a.text, a.attribute_trait_id, a.skill_trait_id,
+				a.difficulty_mode, a.fixed_difficulty, a.suggested_difficulty, a.min_difficulty, a.max_difficulty,
+				attr.name AS attribute_name, skill.name AS skill_name,
+				attribute_value.value AS attribute_value, skill_value.value AS skill_value
+				FROM fact_actions a
+				JOIN bridge_characters_traits attribute_value ON attribute_value.character_id = ? AND attribute_value.trait_id = a.attribute_trait_id
+				JOIN bridge_characters_traits skill_value ON skill_value.character_id = ? AND skill_value.trait_id = a.skill_trait_id
+				JOIN dim_traits attr ON attr.id = a.attribute_trait_id
+				JOIN dim_traits skill ON skill.id = a.skill_trait_id
+				WHERE attribute_value.value > 0 AND skill_value.value > 0
+				ORDER BY a.category ASC, a.name ASC";
+			if ($stActions = $link->prepare($sqlActions)) {
+				$stActions->bind_param('ii', $characterId, $characterId);
+				$stActions->execute();
+				$rsActions = $stActions->get_result();
+				if ($rsActions) {
+					while ($actionRow = $rsActions->fetch_assoc()) {
+						$actionRow['source_type'] = 'action';
+						$actionRow['source_id'] = (int)$actionRow['id'];
+						$actionRow['href'] = pretty_url($link, 'fact_actions', '/rules/actions', (int)$actionRow['id']);
+						$bioActions[] = $actionRow;
+					}
+					$rsActions->free();
+				}
+				$stActions->close();
+			}
+		}
+
+		// Las Maniobras conservan sus puentes existentes (Sistema/Forma) y solo
+		// reutilizan fact_power_rolls para definir la tirada concreta.
+		if ($bioSheetRaw === 'pj' && $bioSystemId > 0 && table_exists($link, 'fact_power_rolls') && table_exists($link, 'bridge_maneuvers_systems') && table_exists($link, 'bridge_maneuvers_forms') && table_exists($link, 'dim_forms') && table_exists($link, 'fact_combat_maneuvers')) {
+			$sqlManeuverActions = "SELECT DISTINCT m.id, m.name, 'Maniobras' AS category, m.text,
+				pr.attribute_trait_id, pr.skill_trait_id, pr.difficulty_mode,
+				pr.fixed_difficulty, NULL AS suggested_difficulty, pr.min_difficulty, pr.max_difficulty,
+				pr.label AS roll_label, pr.roll_order,
+				attr.name AS attribute_name, skill.name AS skill_name,
+				attribute_value.value AS attribute_value, COALESCE(skill_value.value, 0) AS skill_value
+				FROM fact_combat_maneuvers m
+				JOIN fact_power_rolls pr ON pr.power_type = 'maneuver' AND pr.power_id = m.id
+				LEFT JOIN bridge_maneuvers_systems system_bridge ON system_bridge.maneuver_id = m.id AND system_bridge.system_id = ?
+				LEFT JOIN bridge_maneuvers_forms form_bridge ON form_bridge.maneuver_id = m.id
+				LEFT JOIN dim_forms maneuver_form ON maneuver_form.id = form_bridge.form_id AND maneuver_form.system_id = ?
+				JOIN bridge_characters_traits attribute_value ON attribute_value.character_id = ? AND attribute_value.trait_id = pr.attribute_trait_id AND attribute_value.value > 0
+				LEFT JOIN bridge_characters_traits skill_value ON skill_value.character_id = ? AND skill_value.trait_id = pr.skill_trait_id
+				JOIN dim_traits attr ON attr.id = pr.attribute_trait_id
+				JOIN dim_traits skill ON skill.id = pr.skill_trait_id
+				WHERE (system_bridge.system_id IS NOT NULL OR maneuver_form.id IS NOT NULL) AND pr.status IN ('verified', 'manual')
+				ORDER BY m.name ASC, pr.roll_order ASC";
+			if ($stManeuverActions = $link->prepare($sqlManeuverActions)) {
+				$stManeuverActions->bind_param('iiii', $bioSystemId, $bioSystemId, $characterId, $characterId);
+				$stManeuverActions->execute();
+				$rsManeuverActions = $stManeuverActions->get_result();
+				if ($rsManeuverActions) {
+					while ($maneuverRow = $rsManeuverActions->fetch_assoc()) {
+						$maneuverRow['source_type'] = 'maneuver';
+						$maneuverRow['source_id'] = (int)$maneuverRow['id'];
+						$maneuverRow['href'] = pretty_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuverRow['id']);
+						$bioActions[] = $maneuverRow;
+					}
+					$rsManeuverActions->free();
+				}
+				$stManeuverActions->close();
+			}
+		}
+		usort($bioActions, static function (array $left, array $right): int {
+			return [(string)($left['category'] ?? ''), (string)($left['name'] ?? ''), (int)($left['roll_order'] ?? 0)] <=> [(string)($right['category'] ?? ''), (string)($right['name'] ?? ''), (int)($right['roll_order'] ?? 0)];
+		});
+		$bioHasActions = !empty($bioActions);
 		$bioAttrList = $bioTraitsByType['Atributos'] ?? [];
 		$bioDebugTraitsEnabled = isset($_GET['debug_traits']) && (string)$_GET['debug_traits'] === '1';
 		if ($bioDebugTraitsEnabled && $bioIsMonster) {
@@ -1324,6 +1477,7 @@
 			'default'  => $bioTabIconDefault, // Fallback global
 			'info'     => '/img/ui/icons/icon_character_info.webp',
 			'sheet'    => '/img/ui/icons/icon_character_sheet.webp',
+			'actions'  => '/img/ui/icons/icon_book.webp',
 			'rel'      => '/img/ui/icons/icon_character_relationships.webp',
 			'part'     => '/img/ui/icons/icon_character_participation.webp',
 			'docs'     => '/img/ui/icons/icon_document.webp',
@@ -1333,7 +1487,7 @@
 		];
 
 		// Fallback por si alguna ruta llega vacia.
-		foreach (['info', 'sheet', 'rel', 'part', 'docs', 'bso', 'comments'] as $k) {
+		foreach (['info', 'sheet', 'actions', 'rel', 'part', 'docs', 'bso', 'comments'] as $k) {
 			if (!isset($bioTabIcons[$k]) || trim((string)$bioTabIcons[$k]) === '') {
 				$bioTabIcons[$k] = $bioTabIconDefault;
 			}
@@ -1355,10 +1509,12 @@
 		echo "<div class='hg-tabs'>";
 		if ($hasInfo) $renderBioTab('info', 'Informaci&oacute;n');
 		if ($hasSheet) $renderBioTab('sheet', 'Hoja de personaje');
+		if ($bioHasActions) $renderBioTab('actions', 'Acciones');
 		if ($hasRel) $renderBioTab('rel', 'Relaciones');
 		if ($hasPart) $renderBioTab('part', 'Participaci&oacute;n');
 		if ($hasDocsLinks) $renderBioTab('docs', 'Documentaci&oacute;n');
 		if ($hasBso) $renderBioTab('bso', 'Banda sonora');
+
 		if ($hasComments) $renderBioTab('comments', 'Comentarios');
 		if ($hasSheet) $renderBioTab('export', 'Exportar');
 		echo "</div>";
@@ -1406,6 +1562,13 @@
 				// ----------------------------------------- //
 			echo "</fieldset>";
 			echo "</div>"; // Cerramos Atributos ~~
+			if (!empty($bioForms)) {
+				echo "<div class='bioSheetData bioFormsData'>";
+				echo "<fieldset class='bioSeccion'><legend>$titleForms</legend>";
+				include ("app/partials/bio/bio_page_section_05_forms.php");
+				echo "</fieldset>";
+				echo "</div>";
+			}
 			// ================================================================== //
 			include ("app/partials/bio/bio_page_section_06_skills.php"); // Utilizamos "include" para no sobrecargar la página con código
 			// ================================================================== //
@@ -1446,6 +1609,8 @@
 			// ================================================================== //
 			// PODERES, DONES, RITUALES Y DISCIPLINAS
 			// ================================================================== //
+						
+			// ================================================================== //
 			include ("app/partials/bio/bio_page_section_11_power.php"); // Utilizamos "include" para no sobrecargar la página con código
 			// ================================================================== //
 			// INVENTARIO Y OBJETOS
@@ -1454,6 +1619,9 @@
 			// ================================================================== //
 			echo "</section>";
 		} // Finalizamos la Hoja de Personaje
+		if ($bioHasActions) {
+			include ('app/partials/bio/bio_page_section_12_actions.php');
+		}
 		?>
 		
 		<?php if ($hasRel): ?>
