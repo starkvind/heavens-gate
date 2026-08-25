@@ -854,11 +854,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if (!empty($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
                         $res = save_avatar_file($_FILES['avatar'], $newId, $nombre, $AV_UPLOADDIR, $AV_URLBASE);
                         if ($res['ok']) {
+                            $avatarStored = false;
                             if ($st2 = $link->prepare("UPDATE fact_characters SET image_url=? WHERE id=?")) {
                                 $st2->bind_param("si", $res['url'], $newId);
-                                $st2->execute(); $st2->close();
+                                $avatarStored = (bool)$st2->execute();
+                                $st2->close();
                             }
-                            $flash[] = ['type'=>'ok','msg'=>'Avatar subido.'];
+                            if ($avatarStored) {
+                                $flash[] = ['type'=>'ok','msg'=>'Avatar convertido y guardado como WebP.'];
+                            } else {
+                                if (!empty($res['path']) && is_file($res['path'])) @unlink($res['path']);
+                                $flash[] = ['type'=>'error','msg'=>'[WARN] El avatar se convirtio, pero no se pudo guardar su ruta.'];
+                            }
                         } elseif ($res['msg']!=='no_file') {
                             $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                         }
@@ -955,31 +962,45 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
               if ($stmt->execute()) {
                   $saved_character_id = (int)$id;
                   hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
-                  // Avatar
-                  if ($rm_avatar && $current_img) {
-                      safe_unlink_avatar($current_img, $AV_UPLOADDIR);
-                      if ($st2 = $link->prepare("UPDATE fact_characters SET image_url='' WHERE id=?")) {
-                          $st2->bind_param("i",$id);
-                          $st2->execute();
-                          $st2->close();
-                      }
-                      $flash[] = ['type'=>'ok','msg'=>'Avatar eliminado.'];
-                      $current_img = '';
-                  }
-                  if (!empty($_FILES['avatar']) && ($_FILES['avatar']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                  // Avatar: el anterior solo se elimina despues de guardar correctamente el nuevo.
+                  $hasAvatarUpload = !empty($_FILES['avatar'])
+                      && ($_FILES['avatar']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+                  if ($hasAvatarUpload) {
                       $res = save_avatar_file($_FILES['avatar'], $id, $nombre, $AV_UPLOADDIR, $AV_URLBASE);
                       if ($res['ok']) {
-                          if ($current_img) safe_unlink_avatar($current_img, $AV_UPLOADDIR);
+                          $avatarStored = false;
                           if ($st3 = $link->prepare("UPDATE fact_characters SET image_url=? WHERE id=?")) {
                               $st3->bind_param("si", $res['url'], $id);
-                              $st3->execute();
+                              $avatarStored = (bool)$st3->execute();
                               $st3->close();
                           }
-                          $flash[] = ['type'=>'ok','msg'=>'Avatar actualizado.'];
-                      } elseif ($res['msg']!=='no_file') {
+                          if ($avatarStored) {
+                              if ($current_img) safe_unlink_avatar($current_img, $AV_UPLOADDIR);
+                              $current_img = (string)$res['url'];
+                              $flash[] = ['type'=>'ok','msg'=>'Avatar convertido y actualizado como WebP.'];
+                          } else {
+                              if (!empty($res['path']) && is_file($res['path'])) @unlink($res['path']);
+                              $flash[] = ['type'=>'error','msg'=>'[WARN] El avatar anterior se conserva porque no se pudo actualizar la ruta del nuevo WebP.'];
+                          }
+                      } elseif ($res['msg'] !== 'no_file') {
                           $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                       }
+                  } elseif ($rm_avatar && $current_img) {
+                      $avatarRemoved = false;
+                      if ($st2 = $link->prepare("UPDATE fact_characters SET image_url='' WHERE id=?")) {
+                          $st2->bind_param("i", $id);
+                          $avatarRemoved = (bool)$st2->execute();
+                          $st2->close();
+                      }
+                      if ($avatarRemoved) {
+                          safe_unlink_avatar($current_img, $AV_UPLOADDIR);
+                          $current_img = '';
+                          $flash[] = ['type'=>'ok','msg'=>'Avatar eliminado.'];
+                      } else {
+                          $flash[] = ['type'=>'error','msg'=>'[WARN] No se pudo eliminar el avatar.'];
+                      }
                   }
+
                   // Bridges: aqui si guardas clan/manada (fuente de verdad)
                   sync_character_bridges($link, (int)$id, (int)$manada, (int)$clan);
 
@@ -1705,9 +1726,9 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
             <div class="avatar-wrap">
               <img id="f_avatar_preview" src="" alt="avatar" class="adm-hidden">
               <div>
-                <input class="inp" type="file" name="avatar" id="f_avatar" accept="image/*">
+                <input class="inp" type="file" name="avatar" id="f_avatar" accept="image/jpeg,image/png,image/webp">
                 <label class="small-note"><input type="checkbox" name="avatar_remove" id="f_avatar_remove" value="1"> Quitar avatar</label>
-                <span class="small-note">JPG/PNG/GIF/WebP · máx. 5 MB</span>
+                <span class="small-note">JPG/PNG/WebP &middot; m&aacute;x. 5 MB &middot; guardado autom&aacute;tico como WebP</span>
               </div>
             </div>
           </label>

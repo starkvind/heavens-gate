@@ -1,111 +1,155 @@
 <?php
-setMetaFromPage("Biografías | Heaven's Gate", "Listado de biografías y personajes.", null, 'website');
+$bioListTitle = html_entity_decode('Biograf&iacute;as | Heaven\'s Gate', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+$bioListDescription = html_entity_decode('Listado de biograf&iacute;as y personajes.', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+setMetaFromPage($bioListTitle, $bioListDescription, '/img/og/og_image_bio.webp', 'website');
+echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 include_once(__DIR__ . '/../../helpers/public_response.php');
 
 if (!$link) {
     hg_public_log_error('bio_list', 'missing DB connection');
-    hg_public_render_error('Biografías no disponibles', 'No se pudo cargar el listado de biografías en este momento.');
+    hg_public_render_error('Biografias no disponibles', 'No se pudo cargar el listado de biografias en este momento.');
     return;
 }
 
-function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-
-function sanitize_int_csv($csv){
-    $csv = (string)$csv;
-    if (trim($csv) === '') return '';
-    $parts = preg_split('/\s*,\s*/', trim($csv));
-    $ints = [];
-    foreach ($parts as $p) {
-        if ($p === '') continue;
-        if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
+if (!function_exists('hg_bio_list_h')) {
+    function hg_bio_list_h($value): string
+    {
+        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
-    $ints = array_values(array_unique($ints));
-    return implode(',', $ints);
 }
 
-$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
+if (!function_exists('hg_bio_list_sanitize_int_csv')) {
+    function hg_bio_list_sanitize_int_csv($csv): string
+    {
+        $parts = preg_split('/\s*,\s*/', trim((string)$csv));
+        $ints = [];
+        foreach ($parts as $part) {
+            if (preg_match('/^\d+$/', (string)$part)) $ints[] = (string)(int)$part;
+        }
+        return implode(',', array_values(array_unique($ints)));
+    }
+}
 
-include("app/partials/main_nav_bar.php");
-echo "<h2>Biografías por tipo</h2>";
-print("<fieldset class='grupoBioClan'>");
+if (!function_exists('hg_bio_list_has_column')) {
+    function hg_bio_list_has_column(mysqli $link, string $table, string $column): bool
+    {
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($table === '' || $column === '') return false;
+        $result = $link->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+        if (!$result) return false;
+        $exists = $result->num_rows > 0;
+        $result->free();
+        return $exists;
+    }
+}
+if (!function_exists('hg_bio_list_collect_types')) {
+    function hg_bio_list_collect_types(mysqli $link, array $types, string $typeColumn, string $chronicleExclusion): ?array
+    {
+        $sql = "
+            SELECT COUNT(DISTINCT p.id) AS total, MIN(NULLIF(p.image_url, '')) AS representative_image_url
+            FROM fact_characters p
+            WHERE p.`{$typeColumn}` = ? {$chronicleExclusion}
+        ";
+        $stmt = $link->prepare($sql);
+        if (!$stmt) return null;
 
-$howMuch = 0;
+        $cards = [];
+        foreach ($types as $type) {
+            $typeId = (int)($type['id'] ?? 0);
+            if ($typeId <= 0) continue;
+            $stmt->bind_param('i', $typeId);
+            if (!$stmt->execute()) continue;
+            $result = $stmt->get_result();
+            $row = $result ? $result->fetch_assoc() : null;
+            if ($result) $result->free();
+            $total = (int)($row['total'] ?? 0);
+            if ($total <= 0) continue;
+            $image = trim((string)($type['image_url'] ?? ''));
+            if ($image === '') $image = trim((string)($row['representative_image_url'] ?? ''));
+            if (strpos($image, '/public/') === 0) $image = substr($image, 7);
+            if ($image === '') $image = '/img/og/og_image_bio.webp';
+            $cards[] = [
+                'id' => $typeId,
+                'name' => (string)($type['name'] ?? ''),
+                'total' => $total,
+                'image_url' => $image,
+                'description' => trim((string)($type['description'] ?? '')),
+            ];
+        }
+        $stmt->close();
+        return $cards;
+    }
+}
+
+$excludeChronicles = isset($excludeChronicles) ? hg_bio_list_sanitize_int_csv($excludeChronicles) : '';
+$chronicleExclusion = $excludeChronicles !== '' ? " AND p.chronicle_id NOT IN ({$excludeChronicles})" : '';
 $types = [];
-$queryType = "SELECT id, kind FROM dim_character_types ORDER BY sort_order";
-$resultType = mysqli_query($link, $queryType);
-if ($resultType) {
-    while ($row = mysqli_fetch_assoc($resultType)) {
+$hasTypeImage = hg_bio_list_has_column($link, 'dim_character_types', 'image_url');
+$hasTypeDescription = hg_bio_list_has_column($link, 'dim_character_types', 'description');
+$typeImageSelect = $hasTypeImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";
+$typeDescriptionSelect = $hasTypeDescription ? ", COALESCE(description, '') AS description" : ", '' AS description";
+
+if ($result = $link->query("SELECT id, kind {$typeImageSelect} {$typeDescriptionSelect} FROM dim_character_types ORDER BY sort_order, kind")) {
+    while ($row = $result->fetch_assoc()) {
         $types[] = [
-            'id' => (int)$row['id'],
-            'name' => (string)$row['kind'],
+            'id' => (int)($row['id'] ?? 0),
+            'name' => (string)($row['kind'] ?? ''),
+            'image_url' => (string)($row['image_url'] ?? ''),
+            'description' => (string)($row['description'] ?? ''),
         ];
     }
-    mysqli_free_result($resultType);
+    $result->free();
 } else {
-    hg_public_log_error('bio_list', 'type query failed: ' . mysqli_error($link));
-    print("</fieldset>");
-    hg_public_render_error('Biografías no disponibles', 'No se pudo cargar el listado de biografías en este momento.');
+    hg_public_log_error('bio_list', 'type query failed: ' . $link->error);
+    hg_public_render_error('Biografias no disponibles', 'No se pudo cargar el listado de biografias en este momento.');
     return;
 }
 
-function renderTypesByColumn($link, $types, $typeCol, $cronicaNotInSQL){
-    $howMuch = 0;
-    $countQuery = "
-        SELECT COUNT(DISTINCT p.id) AS count
-        FROM fact_characters p
-        WHERE p.$typeCol = ?
-          $cronicaNotInSQL
-    ";
-    $stmtCount = mysqli_prepare($link, $countQuery);
-    if (!$stmtCount) {
-        return -1;
-    }
-
-    foreach ($types as $t) {
-        $idType = (int)$t['id'];
-        $nombreType = (string)$t['name'];
-
-        mysqli_stmt_bind_param($stmtCount, 'i', $idType);
-        mysqli_stmt_execute($stmtCount);
-        $resultCount = mysqli_stmt_get_result($stmtCount);
-
-        $rowsCountQuery = 0;
-        if ($resultCount) {
-            $row = mysqli_fetch_assoc($resultCount);
-            $rowsCountQuery = (int)($row['count'] ?? 0);
-            mysqli_free_result($resultCount);
-        }
-
-        if ($rowsCountQuery > 0) {
-            $howMuch++;
-            $hrefType = pretty_url($link, 'dim_character_types', '/characters/type', $idType);
-            print("
-                <a href='" . h($hrefType) . "'>
-                    <div class='renglon2col' style='text-align: center;'>
-                        " . h($nombreType) . "
-                    </div>
-                </a>
-            ");
-        }
-    }
-
-    mysqli_stmt_close($stmtCount);
-    return $howMuch;
-}
-
-if (!empty($types)) {
-    $howMuch = renderTypesByColumn($link, $types, 'character_type_id', $cronicaNotInSQL);
-    if ($howMuch <= 0) {
-        $howMuchLegacy = renderTypesByColumn($link, $types, 'kind', $cronicaNotInSQL);
-        if ($howMuchLegacy > 0) $howMuch = $howMuchLegacy;
-    }
-    if ($howMuch <= 0) {
-        $howMuchLegacy2 = renderTypesByColumn($link, $types, 'tipo', $cronicaNotInSQL);
-        if ($howMuchLegacy2 > 0) $howMuch = $howMuchLegacy2;
+$typeCards = [];
+foreach (['character_type_id', 'kind', 'tipo'] as $typeColumn) {
+    $candidateCards = hg_bio_list_collect_types($link, $types, $typeColumn, $chronicleExclusion);
+    if ($candidateCards === null) continue;
+    if (!empty($candidateCards)) {
+        $typeCards = $candidateCards;
+        break;
     }
 }
 
-print("</fieldset>");
-print("<p align='right'>Categorias: " . h($howMuch) . "</p>");
+include('app/partials/main_nav_bar.php');
 ?>
+<div class="chron-detail">
+    <section class="chron-box">
+        <div class="chron-box-head">
+            <h2>Biograf&iacute;as por tipo</h2>
+            <p>Consulta aqu&iacute; los personajes de Heaven's Gate agrupados por su funci&oacute;n en la historia.</p>
+        </div>
+
+        <?php if (empty($typeCards)): ?>
+            <p class="texti chron-empty">No hay tipos de personaje disponibles.</p>
+        <?php else: ?>
+            <div class="chron-grid">
+                <?php foreach ($typeCards as $type): ?>
+                    <?php
+                    $typeId = (int)$type['id'];
+                    $typeName = (string)$type['name'];
+                    $characterCount = (int)$type['total'];
+                    $typeDescription = trim((string)($type['description'] ?? ''));
+                    if ($typeDescription === '') $typeDescription = 'Personajes clasificados como ' . $typeName . '.';
+                    $href = pretty_url($link, 'dim_character_types', '/characters/type', $typeId);
+                    ?>
+                    <a class="chron-card" href="<?= hg_bio_list_h($href) ?>" title="<?= hg_bio_list_h($typeName) ?>">
+                        <img src="<?= hg_bio_list_h($type['image_url']) ?>" alt="<?= hg_bio_list_h($typeName) ?>">
+                        <div class="chron-card-body">
+                            <h3><?= hg_bio_list_h($typeName) ?></h3>
+                            <p><?= hg_bio_list_h($typeDescription) ?></p>
+                            <div class="chron-card-meta">
+                                <span><?= number_format($characterCount, 0, ',', '.') ?> <?= $characterCount === 1 ? 'personaje' : 'personajes' ?></span>
+                            </div>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+</div>

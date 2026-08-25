@@ -71,6 +71,57 @@ if (!function_exists('hg_admin_redirect')) {
     }
 }
 
+if (!function_exists('hg_admin_login_return_path')) {
+    /**
+     * Devuelve una sección administrativa válida como destino tras el login.
+     * Solo se permiten rutas locales que el panel realmente sabe cargar.
+     */
+    function hg_admin_login_return_path(?string $candidate = null): string
+    {
+        $candidate = trim((string)($candidate ?? ($_SERVER['REQUEST_URI'] ?? '')));
+        if ($candidate === '' || strpbrk($candidate, "\r\n") !== false || $candidate[0] !== '/') {
+            return '/talim';
+        }
+
+        $path = (string)(parse_url($candidate, PHP_URL_PATH) ?? '');
+        $query = (string)(parse_url($candidate, PHP_URL_QUERY) ?? '');
+        if ($path !== '/talim' || $query === '') {
+            return '/talim';
+        }
+
+        parse_str($query, $params);
+        $section = $params['s'] ?? null;
+        if (!is_string($section)) {
+            return '/talim';
+        }
+
+        $allowedSections = [
+            'admin_pjs', 'admin_characters', 'admin_avatar_mass', 'admin_characters_worlds',
+            'admin_character_deaths', 'admin_characters_clone', 'admin_sim_character_talk',
+            'admin_sim_browser', 'admin_groups', 'admin_organizations', 'admin_temp',
+            'admin_seasons', 'admin_season_order', 'admin_season_order_schema', 'admin_epis',
+            'admin_chapters', 'admin_pois', 'admin_players', 'admin_chronicles', 'admin_realities',
+            'admin_bso', 'admin_bso_link', 'admin_timelines', 'admin_birthdays_quick',
+            'admin_gallery', 'admin_plots', 'admin_parties', 'admin_powers', 'admin_gift_image_mass',
+            'admin_game_cards', 'admin_game_cards_seed', 'admin_docs', 'admin_external_links',
+            'admin_character_links', 'admin_doc_links', 'admin_topic_viewer', 'admin_bridges',
+            'admin_items', 'admin_menu', 'admin_relations', 'admin_news', 'admin_systems',
+            'admin_forms', 'admin_maneuvers', 'admin_system_details', 'admin_systems_extra_details',
+            'admin_systems_energy', 'admin_trait_sets', 'admin_traits', 'admin_actions',
+            'admin_merits_flaws', 'admin_character_conditions', 'admin_character_conditions_bridge',
+            'admin_characters_conditions_brige', 'admin_character_misc_bridge',
+            'admin_character_affiliations_canonical', 'admin_systems_resources', 'admin_resources',
+            'admin_resources_migration', 'admin_inspect_db', 'admin_schema_hardening_audit',
+            'admin_mentions_help', 'admin_org_chart_schema',
+        ];
+
+        if (!in_array($section, $allowedSections, true) || isset($params['ajax'])) {
+            return '/talim';
+        }
+
+        return '/talim?' . $query;
+    }
+}
 if (!function_exists('hg_admin_logout')) {
     function hg_admin_logout(string $redirectPath = '/talim'): void
     {

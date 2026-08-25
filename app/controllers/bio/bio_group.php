@@ -8,6 +8,7 @@ setMetaFromPage(
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
 
 if (!$link) {
     hg_public_log_error('bio_group', 'missing DB connection');
@@ -25,6 +26,19 @@ if (!function_exists('hg_bio_group_h')) {
     }
 }
 
+if (!function_exists('hg_bio_group_has_column')) {
+    function hg_bio_group_has_column(mysqli $link, string $table, string $column): bool
+    {
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($table === '' || $column === '') return false;
+        $result = $link->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
+        if (!$result) return false;
+        $exists = $result->num_rows > 0;
+        $result->free();
+        return $exists;
+    }
+}
 if (!function_exists('hg_bio_group_sanitize_int_csv')) {
     function hg_bio_group_sanitize_int_csv($csv): string
     {
@@ -111,7 +125,11 @@ $cronicaNotInSQL = ($excludeChronicles !== '')
     ? " AND p.chronicle_id NOT IN ($excludeChronicles) "
     : '';
 
-$typeQuery = "SELECT kind FROM dim_character_types WHERE id = ? LIMIT 1";
+$hasTypeImage = hg_bio_group_has_column($link, 'dim_character_types', 'image_url');
+$hasTypeDescription = hg_bio_group_has_column($link, 'dim_character_types', 'description');
+$typeImageSelect = $hasTypeImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";
+$typeDescriptionSelect = $hasTypeDescription ? ", COALESCE(description, '') AS description" : ", '' AS description";
+$typeQuery = "SELECT kind {$typeImageSelect} {$typeDescriptionSelect} FROM dim_character_types WHERE id = ? LIMIT 1";
 $stmtType = mysqli_prepare($link, $typeQuery);
 if (!$stmtType) {
     hg_public_log_error('bio_group', 'type prepare failed: ' . mysqli_error($link));
@@ -165,16 +183,20 @@ if (!$rowType) {
 
 $nombreTipoRaw = (string)($rowType['kind'] ?? '');
 $nombreTipo = hg_bio_group_h($nombreTipoRaw);
-$pageSect = $nombreTipoRaw . " | Biografías";
+$typeImageUrl = trim((string)($rowType['image_url'] ?? ''));
+if (strpos($typeImageUrl, '/public/') === 0) $typeImageUrl = substr($typeImageUrl, 7);
+if ($typeImageUrl === '') $typeImageUrl = '/img/og/og_image_bio.webp';
+$typeDescription = trim((string)($rowType['description'] ?? ''));
+$bioLabel = html_entity_decode('Biograf&iacute;as', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+$pageSect = $nombreTipoRaw . ' | ' . $bioLabel;
 $pageTitle2 = $nombreTipoRaw;
 
 setMetaFromPage(
-    $nombreTipoRaw . " | Biografías | Heaven's Gate",
-    "Listado de personajes agrupados por clan para el tipo " . $nombreTipoRaw . ".",
-    null,
+    $nombreTipoRaw . ' | ' . $bioLabel . " | Heaven's Gate",
+    $typeDescription !== '' ? $typeDescription : ('Listado de personajes agrupados por clan para el tipo ' . $nombreTipoRaw . '.'),
+    $typeImageUrl,
     'website'
 );
-
 $queryPJBase = "
     SELECT $valuePJ
     FROM fact_characters p
@@ -282,7 +304,33 @@ usort(
 );
 
 include("app/partials/main_nav_bar.php");
-echo "<h2>$nombreTipo</h2>";
+?>
+<div class="chron-detail">
+    <section class="chron-hero">
+        <div class="chron-hero-media">
+            <img src="<?= hg_bio_group_h($typeImageUrl) ?>" alt="<?= hg_bio_group_h($nombreTipoRaw) ?>">
+            <div class="chron-hero-overlay">
+                <p class="chron-kicker">Tipo de personaje</p>
+                <h2><?= hg_bio_group_h($nombreTipoRaw) ?></h2>
+                <?php if ($howMuch > 0): ?>
+                    <div class="chron-hero-meta">
+                        <span class="chron-hero-pill"><?= number_format($howMuch, 0, ',', '.') ?> <?= $howMuch === 1 ? 'personaje' : 'personajes' ?></span>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <?php if ($typeDescription !== ''): ?>
+        <section class="chron-box">
+            <div class="chron-box-head">
+                <h3>Descripci&oacute;n</h3>
+            </div>
+            <div class="chron-rich"><?= nl2br(hg_bio_group_h($typeDescription)) ?></div>
+        </section>
+    <?php endif; ?>
+</div>
+<?php
 
 foreach ($keys as $key) {
     $grupo = $grupos[$key];

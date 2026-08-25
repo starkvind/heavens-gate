@@ -1,62 +1,3 @@
-﻿<?php
-$isAjaxRequest = (
-  (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
-  || (
-    $_SERVER['REQUEST_METHOD'] === 'POST'
-    && (
-      ((string)($_POST['ajax'] ?? '') === '1')
-      || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
-    )
-  )
-);
-if (!$isAjaxRequest):
-?>
-<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
-<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
-<style>
-#agModal{
-  --adm-s2-bg: #000033;
-  --adm-s2-color: #ffffff;
-  --adm-s2-border: #333333;
-  --adm-s2-hover: #001199;
-  --adm-s2-selected: #00105f;
-}
-#agModal .select2-dropdown{
-  background: var(--adm-s2-bg) !important;
-  border: 1px solid var(--adm-s2-border) !important;
-  color: var(--adm-s2-color) !important;
-}
-#agModal .select2-results__option{
-  background: transparent !important;
-  color: var(--adm-s2-color) !important;
-}
-#agModal .select2-container--default .select2-results__option--selected{
-  background: var(--adm-s2-selected) !important;
-  color: var(--adm-s2-color) !important;
-}
-#agModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
-  background: var(--adm-s2-hover) !important;
-  color: #ffffff !important;
-}
-#agModal .select2-container--default .select2-selection--single{
-  background: var(--adm-s2-bg) !important;
-  border-color: var(--adm-s2-border) !important;
-}
-#agModal .select2-container--default .select2-selection--single .select2-selection__rendered{
-  color: var(--adm-s2-color) !important;
-}
-#agModal .select2-container--default .select2-selection--single .select2-selection__placeholder{
-  color: rgba(255,255,255,.78) !important;
-}
-#agModal .select2-container--default .select2-selection--single .select2-selection__arrow b{
-  border-color: #9fd8ff transparent transparent transparent !important;
-}
-#agModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b{
-  border-color: transparent transparent #9fd8ff transparent !important;
-}
-</style>
-<?php endif; ?>
 <?php
 /**
  * admin_groups.php — Modales + creación/renombrado + HTML server-side
@@ -66,25 +7,25 @@ if (!$isAjaxRequest):
  * - Tablas: dim_organizations(id,name,...) | dim_groups(id,name,chronicle_id,totem_id,is_active,`description`)
  * - Puentes: bridge_organizations_groups(organization_id,group_id,is_active)
  *            bridge_characters_groups(character_id,group_id,is_active,position)
- * - fact_characters(id,nombre,alias,nombregarou)
+ * - fact_characters(id,name,alias,garou_name)
  */
 
-if (!isset($link) || !$link) {
-  echo "<div class='adm-color-error'>Error: conexión DB no disponible.</div>";
-  return;
-}
+include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+if (!hg_admin_require_db($link)) { return; }
+
+if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) {
   $link->set_charset('utf8mb4');
 } else {
   mysqli_set_charset($link, 'utf8mb4');
 }
-if (session_status() === PHP_SESSION_NONE) { @session_start(); }
-if (!headers_sent()) {
-  header('Content-Type: text/html; charset=UTF-8');
-}
 include_once(__DIR__ . '/../../helpers/pretty.php');
-include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
+
+$isAjaxRequest = hg_admin_is_ajax_request();
+if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+  hg_admin_json_error('Método no permitido', 405, ['method' => 'POST requerido']);
+}
 
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_groups';
 $ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
@@ -440,11 +381,11 @@ function render_group_modal($link,$group_id){
                 <input id='groupActiva' type='checkbox' ".($groupIsActive?'checked':'')."> Manada activa
               </label>
               <button class='btn btn-ok' id='btnSaveGroupBasic' data-id='".e($g['id'])."'>Guardar</button>
-              <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver p?gina</a>
+              <a class='btn' href='/groups/".e($g['id'])."' target='_blank'>Ver página</a>
             </div>
             <div class='small adm-mt-4'>Este interruptor activa o desactiva la manada completa. El vínculo con una organización se gestiona desde la ficha de la organización.</div>
             <div class='toolbar adm-mt-8'>
-              <textarea id='groupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripci?n'>".e($groupDesc)."</textarea>
+              <textarea id='groupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripción'>".e($groupDesc)."</textarea>
             </div>
           </div>
           <div class='hr'></div>
@@ -512,7 +453,7 @@ function render_group_create_form($link,$prefill_clan_id=0){
                 </label>
               </div>
               <div class='toolbar adm-mt-8'>
-                <textarea id='newGroupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripci?n'></textarea>
+                <textarea id='newGroupDescription' rows='4' class='adm-w-full-resize-v' placeholder='Descripción'></textarea>
               </div>
               <div class='small adm-mt-4'>Indica el nombre, la crónica base y, si quieres, un tótem inicial para la manada.</div>
             </div>
@@ -748,11 +689,45 @@ if(!empty($_POST['action'])){
   echo "<div class='err'>Acción no reconocida.</div>"; exit;
 }
 
-/* ----------------------- Estilos + UI ----------------------- */ ?>
-<?php
+/* ----------------------- UI ----------------------- */
 $ADMIN_GROUPS_ENDPOINT = '/talim?s=admin_groups&ajax=1';
 admin_panel_open('Grupos (Manadas y Clanes)');
 ?>
+<link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+<style>
+#agModal {
+  --adm-s2-bg: #000033;
+  --adm-s2-color: #ffffff;
+  --adm-s2-border: #333333;
+  --adm-s2-hover: #001199;
+  --adm-s2-selected: #00105f;
+}
+#adminGroupsApp,
+#adminGroupsApp h3,
+#adminGroupsApp .small,
+#adminGroupsApp th,
+#adminGroupsApp td,
+#agModal .modal-body,
+#agModal .modal-body h3,
+#agModal .modal-body h4,
+#agModal .modal-body .small,
+#agModal .modal-body label {
+  text-align: left;
+}
+#adminGroupsApp .btn,
+#agModal .modal-body .btn {
+  text-align: center;
+}
+#agModal .select2-dropdown { background: var(--adm-s2-bg) !important; border: 1px solid var(--adm-s2-border) !important; color: var(--adm-s2-color) !important; }
+#agModal .select2-results__option { background: transparent !important; color: var(--adm-s2-color) !important; }
+#agModal .select2-container--default .select2-results__option--selected { background: var(--adm-s2-selected) !important; color: var(--adm-s2-color) !important; }
+#agModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background: var(--adm-s2-hover) !important; color: #ffffff !important; }
+#agModal .select2-container--default .select2-selection--single { background: var(--adm-s2-bg) !important; border-color: var(--adm-s2-border) !important; }
+#agModal .select2-container--default .select2-selection--single .select2-selection__rendered { color: var(--adm-s2-color) !important; }
+#agModal .select2-container--default .select2-selection--single .select2-selection__placeholder { color: rgba(255, 255, 255, .78) !important; }
+#agModal .select2-container--default .select2-selection--single .select2-selection__arrow b { border-color: #9fd8ff transparent transparent !important; }
+#agModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b { border-color: transparent transparent #9fd8ff !important; }
+</style>
 <div class="adm-crud-wrap" id="adminGroupsApp">
   <div class="tabs">
     <a href="#" class="tablink active" data-tab="clans">Clanes</a>
@@ -798,6 +773,8 @@ window.HG_ADMIN_GROUPS_BOOT = <?= json_encode([
   'endpoint' => $ADMIN_GROUPS_ENDPOINT,
 ], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 </script>
+<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 <script src="<?= e($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <?php
 $adminGroupsJs = '/assets/js/admin/admin-groups.js';

@@ -588,40 +588,99 @@ if (!function_exists('slugify')) {
         return $text !== '' ? $text : 'pj';
     }
 }
+if (!function_exists('hg_avatar_decode_image')) {
+    function hg_avatar_decode_image(string $path, int $imageType) {
+        if ($imageType === IMAGETYPE_JPEG && function_exists('imagecreatefromjpeg')) return @imagecreatefromjpeg($path);
+        if ($imageType === IMAGETYPE_PNG && function_exists('imagecreatefrompng')) return @imagecreatefrompng($path);
+        if ($imageType === IMAGETYPE_WEBP && function_exists('imagecreatefromwebp')) return @imagecreatefromwebp($path);
+        return false;
+    }
+}
+if (!function_exists('hg_avatar_apply_jpeg_orientation')) {
+    function hg_avatar_apply_jpeg_orientation($image, string $path) {
+        if (!function_exists('exif_read_data') || !function_exists('imagerotate')) return $image;
+        $exif = @exif_read_data($path);
+        $orientation = (int)($exif['Orientation'] ?? 1);
+        $angle = $orientation === 3 ? 180 : ($orientation === 6 ? -90 : ($orientation === 8 ? 90 : 0));
+        if ($angle === 0) return $image;
+        $rotated = @imagerotate($image, $angle, 0);
+        if (!$rotated) return $image;
+        imagedestroy($image);
+        return $rotated;
+    }
+}
 if (!function_exists('save_avatar_file')) {
     function save_avatar_file(array $file, int $pjId, string $displayName, string $uploadDir, string $urlBase): array {
-        if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
-        if ((int)$file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Upload error (#'.(int)$file['error'].')'];
-        if ((int)($file['size'] ?? 0) > 5 * 1024 * 1024) return ['ok'=>false,'msg'=>'File exceeds 5 MB'];
+        if (!isset($file['error']) || (int)$file['error'] === UPLOAD_ERR_NO_FILE) return ['ok'=>false,'msg'=>'no_file'];
+        if ((int)$file['error'] !== UPLOAD_ERR_OK) return ['ok'=>false,'msg'=>'Error de subida (#'.(int)$file['error'].').'];
+        if ((int)($file['size'] ?? 0) <= 0) return ['ok'=>false,'msg'=>'El archivo esta vacio.'];
+        if ((int)$file['size'] > 5 * 1024 * 1024) return ['ok'=>false,'msg'=>'El archivo supera el limite de 5 MB.'];
 
         $tmp = (string)($file['tmp_name'] ?? '');
-        if ($tmp === '' || !is_uploaded_file($tmp)) return ['ok'=>false,'msg'=>'Invalid upload'];
+        if ($tmp === '' || !is_uploaded_file($tmp)) return ['ok'=>false,'msg'=>'La subida no es valida.'];
+        if (!function_exists('imagewebp')) return ['ok'=>false,'msg'=>'El servidor no dispone de soporte GD para guardar WebP.'];
 
-        $mime = '';
-        if (function_exists('finfo_open')) {
-            $fi = finfo_open(FILEINFO_MIME_TYPE);
-            if ($fi) {
-                $mime = (string)finfo_file($fi, $tmp);
-                finfo_close($fi);
-            }
+        $imageInfo = @getimagesize($tmp);
+        if (!is_array($imageInfo)) return ['ok'=>false,'msg'=>'El archivo no es una imagen valida.'];
+        $width = (int)($imageInfo[0] ?? 0);
+        $height = (int)($imageInfo[1] ?? 0);
+        $imageType = (int)($imageInfo[2] ?? 0);
+        if ($imageType === IMAGETYPE_GIF) {
+            return ['ok'=>false,'msg'=>'Los GIF no se admiten como avatar porque su animacion se perderia al convertirlos. Usa JPG, PNG o WebP.'];
         }
-        if ($mime === '') {
-            $gi = @getimagesize($tmp);
-            $mime = (string)($gi['mime'] ?? '');
+        if (!in_array($imageType, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            return ['ok'=>false,'msg'=>'Formato no permitido. Usa JPG, PNG o WebP.'];
+        }
+        if ($width <= 0 || $height <= 0 || $width > 12000 || $height > 12000 || ($width * $height) > 40000000) {
+            return ['ok'=>false,'msg'=>'La imagen supera el limite de 40 megapixeles o 12.000 px por lado.'];
         }
 
-        $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'];
-        if (!isset($allowed[$mime])) return ['ok'=>false,'msg'=>'Unsupported format (JPG/PNG/GIF/WebP only)'];
+        $image = hg_avatar_decode_image($tmp, $imageType);
+        if (!$image) return ['ok'=>false,'msg'=>'No se pudo decodificar la imagen. Comprueba que el archivo no este danado.'];
+        if ($imageType === IMAGETYPE_JPEG) $image = hg_avatar_apply_jpeg_orientation($image, $tmp);
+        if (function_exists('imagepalettetotruecolor') && !imageistruecolor($image)) @imagepalettetotruecolor($image);
+        if ($imageType === IMAGETYPE_PNG || $imageType === IMAGETYPE_WEBP) {
+            @imagealphablending($image, true);
+            @imagesavealpha($image, true);
+        }
 
-        if (!is_dir($uploadDir)) @mkdir($uploadDir, 0775, true);
-        $ext = $allowed[$mime];
+        if (!is_dir($uploadDir) && !@mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
+            imagedestroy($image);
+            return ['ok'=>false,'msg'=>'No se pudo crear el directorio de avatares.'];
+        }
+        if (!is_writable($uploadDir)) {
+            imagedestroy($image);
+            return ['ok'=>false,'msg'=>'El directorio de avatares no tiene permisos de escritura.'];
+        }
+
+        try {
+            $nonce = bin2hex(random_bytes(3));
+        } catch (Throwable $e) {
+            $nonce = substr(sha1(uniqid((string)$pjId, true)), 0, 6);
+        }
         $slug = slugify($displayName !== '' ? $displayName : 'pj');
-        $name = sprintf('pj-%d-%s-%s.%s', $pjId, $slug, date('YmdHis'), $ext);
+        $name = sprintf('pj-%d-%s-%s-%s.webp', $pjId, $slug, date('YmdHis'), $nonce);
         $dst = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $name;
-        if (!@move_uploaded_file($tmp, $dst)) return ['ok'=>false,'msg'=>'Could not move uploaded file'];
+        $pending = $dst . '.part';
+
+        $written = @imagewebp($image, $pending, 84);
+        imagedestroy($image);
+        if (!$written || !is_file($pending) || (int)@filesize($pending) <= 0) {
+            if (is_file($pending)) @unlink($pending);
+            return ['ok'=>false,'msg'=>'No se pudo convertir el avatar a WebP.'];
+        }
+        if (!@rename($pending, $dst)) {
+            @unlink($pending);
+            return ['ok'=>false,'msg'=>'No se pudo completar el guardado del avatar WebP.'];
+        }
         @chmod($dst, 0644);
 
-        return ['ok'=>true,'url'=>rtrim($urlBase, '/').'/'.$name,'path'=>$dst];
+        return [
+            'ok'=>true,
+            'url'=>rtrim($urlBase, '/').'/'.$name,
+            'path'=>$dst,
+            'mime'=>'image/webp',
+        ];
     }
 }
 if (!function_exists('safe_unlink_avatar')) {

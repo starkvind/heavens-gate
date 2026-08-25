@@ -76,6 +76,14 @@ $stats = [
     ['label' => 'Documentos', 'value' => $counts['documents']],
 ];
 
+$latestNews = null;
+if ($stmt = $link->prepare('SELECT title, message, author, posted_at FROM fact_admin_posts ORDER BY posted_at DESC, id DESC LIMIT 1')) {
+    if ($stmt->execute() && ($result = $stmt->get_result())) {
+        $latestNews = $result->fetch_assoc() ?: null;
+        $result->free();
+    }
+    $stmt->close();
+}
 $recentContent = hg_recent_content_feed($link);
 ?>
 
@@ -93,6 +101,33 @@ $recentContent = hg_recent_content_feed($link);
         </form>
     </section>
 
+    <?php if ($latestNews): ?>
+        <?php
+        $latestNewsExcerpt = trim(preg_replace('/\s+/', ' ', strip_tags((string)($latestNews['message'] ?? ''))));
+        if (function_exists('mb_strimwidth')) {
+            $latestNewsExcerpt = mb_strimwidth($latestNewsExcerpt, 0, 420, '...', 'UTF-8');
+        }
+        $latestNewsDate = strtotime((string)($latestNews['posted_at'] ?? ''));
+        ?>
+        <section class="home-section home-latest-news" aria-labelledby="home-latest-news-title">
+            <div class="home-section-head">
+                <h2 id="home-latest-news-title">&Uacute;ltima noticia</h2>
+            </div>
+            <a class="home-latest-news-card" href="/news">
+                <span class="home-latest-news-main">
+                    <span class="home-latest-news-title-row">
+                        <span class="home-latest-news-title"><?= hg_home_h($latestNews['title'] ?? '') ?></span>
+                        <?php if ($latestNewsDate): ?><time class="home-latest-news-date" datetime="<?= hg_home_h(date('Y-m-d', $latestNewsDate)) ?>"><?= hg_home_h(date('d/m/Y', $latestNewsDate)) ?></time><?php endif; ?>
+                    </span>
+                    <?php if ($latestNewsExcerpt !== ''): ?><span class="home-latest-news-description"><?= hg_home_h($latestNewsExcerpt) ?></span><?php endif; ?>
+                </span>
+                <span class="home-latest-news-meta">
+                    <?php if (trim((string)($latestNews['author'] ?? '')) !== ''): ?><span>por <?= hg_home_h($latestNews['author']) ?></span><?php endif; ?>
+                    <span class="home-latest-news-link" aria-hidden="true">Ver noticias &rarr;</span>
+                </span>
+            </a>
+        </section>
+    <?php endif; ?>
     <section class="home-section" aria-labelledby="home-explore-title">
         <div class="home-section-head">
             <h2 id="home-explore-title">Explora</h2>

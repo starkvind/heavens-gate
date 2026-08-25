@@ -76,6 +76,7 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
 
     $text = preg_replace('/\[\s*\/li\s*\]\s*\n\s*\[\s*li\s*\]/i', '[/li][li]', $text);
     $text = preg_replace('/\[\s*\/list\s*\]\s*\n/i', '[/list]', $text);
+    $text = preg_replace('/\[list\s+type\s*=\s*(?:"decimal"|\'decimal\'|decimal)\s*\]\s*\n/i', '[list type=decimal]', $text);
     $text = preg_replace('/\[\s*list\s*\]\s*\n/i', '[list]', $text);
 
     // [spoiler]...[/spoiler] y [spoiler=Titulo]...[/spoiler]
@@ -137,6 +138,14 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
         $text
     );
 
+    // SMF usa [list type=decimal] para las listas numeradas.
+    $text = preg_replace_callback(
+        '/\[list\s+type\s*=\s*(?:"decimal"|\'decimal\'|decimal)\s*\](.*?)\[\/list\]/is',
+        static function ($m) {
+            return '<ol class="hg-bb-list-decimal">' . $m[1] . '</ol>';
+        },
+        $text
+    );
     $text = preg_replace([
         '/\[b\](.*?)\[\/b\]/is',
         '/\[i\](.*?)\[\/i\]/is',
@@ -232,6 +241,8 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
         '/(<\/div>)\s*<br\s*\/?>/i',
         '/<br\s*\/?>\s*(<ul[^>]*>)/i',
         '/(<\/ul>)\s*<br\s*\/?>/i',
+        '/<br\s*\/?>\s*(<ol[^>]*>)/i',
+        '/(<\/ol>)\s*<br\s*\/?>/i',
         '/<br\s*\/?>\s*(<li[^>]*>)/i',
         '/(<\/li>)\s*<br\s*\/?>/i',
         '/<br\s*\/?>\s*(<blockquote[^>]*>)/i',
@@ -243,7 +254,7 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
         '/<br\s*\/?>\s*(<hr[^>]*>)/i',
         '/(<hr[^>]*>)\s*<br\s*\/?>/i',
     ], [
-        '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1',
+        '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1', '$1',
     ], $text);
 
     $text = preg_replace('/^(?:(?:\s|&nbsp;|<br\s*\/?>)+|<p>\s*(?:&nbsp;|<br\s*\/?>|\s)*<\/p>)+/i', '', $text);
@@ -1201,8 +1212,9 @@ $hgfvAssets = <<<'HTML'
     }
     .hgfv-jump-nav {
         position: fixed;
-        right: 16px;
-        bottom: 18px;
+        right: 18px;
+        /* 42px del botón universal + 12px de separación + su margen inferior. */
+        bottom: 72px;
         z-index: 40;
         display: grid;
         gap: 7px;
@@ -1276,6 +1288,14 @@ $hgfvAssets = <<<'HTML'
         visibility: hidden;
     }
     .hgfv-body a { color: #1840a4; }
+    .hgfv-body .hg-bb-list-decimal {
+        list-style-type: decimal;
+        margin: 0.75em 0 0.75em 1.75em;
+        padding-left: 1.25em;
+    }
+    .hgfv-body .hg-bb-list-decimal > li {
+        margin: 0.2em 0;
+    }
     .hgfv-body blockquote {
         border-left: 4px solid #9ab0e6;
         margin: 8px 0;
@@ -1353,6 +1373,11 @@ $hgfvAssets = <<<'HTML'
         .hgfv-wrap { padding: 16px 10px 30px; }
         .hgfv-form-row input { width: 100%; max-width: 230px; }
         .hgfv-form-row select { max-width: 100%; }
+        .hgfv-jump-nav {
+            right: 14px;
+            /* 44px del botón universal móvil + 12px de separación. */
+            bottom: calc(74px + env(safe-area-inset-bottom));
+        }
     }
 </style>
 HTML;
@@ -1548,7 +1573,6 @@ if (!$hgfvEmbedded) {
         <nav class="hgfv-jump-nav" aria-label="Navegación entre mensajes">
             <button type="button" id="hgfv-prev-message" title="Mensaje anterior" aria-label="Mensaje anterior">&#8593;</button>
             <button type="button" id="hgfv-next-message" title="Mensaje siguiente" aria-label="Mensaje siguiente">&#8595;</button>
-            <button type="button" id="hgfv-page-top" title="Ir al inicio de la página" aria-label="Ir al inicio de la página">&#8679;</button>
         </nav><script>
 var hgfvMetaTitle = <?= json_encode((string)$metaTitle, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var hgfvMetaDescription = <?= json_encode((string)$metaDescription, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
@@ -1599,9 +1623,8 @@ window.addEventListener('load', detectAndApplyTextColor);
 (function(){
     var previous = document.getElementById('hgfv-prev-message');
     var next = document.getElementById('hgfv-next-message');
-    var top = document.getElementById('hgfv-page-top');
     var messages = Array.prototype.slice.call(document.querySelectorAll('.hgfv-message'));
-    if (!previous || !next || !top) return;
+    if (!previous || !next) return;
 
     function activeIndex() {
         if (!messages.length) return -1;
@@ -1628,7 +1651,6 @@ window.addEventListener('load', detectAndApplyTextColor);
     next.disabled = messages.length < 2;
     previous.addEventListener('click', function(){ move(-1); });
     next.addEventListener('click', function(){ move(1); });
-    top.addEventListener('click', function(){ window.scrollTo({ top: 0, behavior: 'smooth' }); });
 })();
 (function(){
     var pick = document.getElementById('saved_topic_pick');
