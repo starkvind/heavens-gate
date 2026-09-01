@@ -287,6 +287,9 @@
 					case 'admin_characters_worlds':
 						echo " $pillSeparator Asignación crónicas y realidades";
 						break;
+					case 'admin_character_collision_audit':
+						echo " $pillSeparator Auditoría de colisiones de personajes";
+						break;
 					case 'admin_character_deaths':
 						echo " $pillSeparator Muertes de personajes";
 						break;
