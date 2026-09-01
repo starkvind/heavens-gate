@@ -118,7 +118,6 @@ CRÓNICA
         └── CAPÍTULO
 
 REALIDAD
-  ├── TEMPORADAS (N:M)
   ├── PERSONAJE
   └── EVENTO
 ```
@@ -133,46 +132,48 @@ CRO-HEAVENS-GATE
 
 Una misma crónica puede, por tanto, atravesar varias realidades.
 
-## Gap de esquema detectado
+## Resolución de realidades en capítulos y temporadas
 
-La BDD actual ya contiene:
+No debe existir una relación canónica directa entre `dim_seasons` y `dim_realities`, ni entre `dim_chapters` y `dim_realities`.
 
-- `dim_seasons.chronicle_id`
-- `fact_characters.reality_id`
-- `bridge_timeline_events_realities.reality_id`
-
-No se ha encontrado una relación explícita entre temporadas y realidades.
-
-La relación correcta **no puede resolverse con `dim_seasons.reality_id`**, porque una misma temporada puede mostrarse o vincularse a varias realidades.
-
-### Cambio de esquema recomendado
-
-Añadir una tabla puente:
-
-```sql
-bridge_seasons_realities
-```
-
-con, como mínimo:
+La realidad es una propiedad de los **eventos**. La BDD ya dispone de la relación:
 
 ```text
-season_id
-reality_id
+CAPÍTULO
+  ↓
+bridge_timeline_events_chapters
+  ↓
+EVENTO
+  ↓
+bridge_timeline_events_realities
+  ↓
+REALIDAD
 ```
 
-y una restricción única sobre `(season_id, reality_id)`.
-
-Así, una temporada puede vincularse a una o varias realidades sin duplicar la temporada ni imponer una realidad única.
-
-Ejemplo:
+Por tanto, las realidades recorridas por un capítulo se obtienen derivando las realidades de sus eventos:
 
 ```text
-Temporada 10
-  ├── Gaia2β
-  └── [otras realidades que correspondan]
+Episodio → Eventos → Realidades
 ```
 
-No se recomienda añadir `reality_id` directamente a `dim_chronicles` ni a `dim_seasons`: ambas decisiones introducirían una cardinalidad 1:N que el canon y la interfaz no garantizan.
+Y las de una temporada se obtienen agregando las de todos sus capítulos:
+
+```text
+Temporada → Episodios → Eventos → Realidades
+```
+
+Esta derivación evita duplicar información y elimina el riesgo de inconsistencias entre una relación temporada↔realidad y la cronología efectiva.
+
+### Criterio técnico
+
+No crear:
+
+- `dim_seasons.reality_id`
+- `bridge_seasons_realities`
+- `dim_chapters.reality_id`
+- `bridge_chapters_realities`
+
+Si la interfaz necesita consultar estas relaciones con frecuencia, pueden resolverse mediante una **vista SQL derivada** o una consulta agregada, pero nunca como una segunda fuente de verdad.
 
 ## Invariantes de migración
 
@@ -180,16 +181,16 @@ No se recomienda añadir `reality_id` directamente a `dim_chronicles` ni a `dim_
 2. El `pretty_id` es URL/alias, no identidad ontológica.
 3. Los nombres de mesa o autoría deben separarse de los nombres editoriales.
 4. `Gaia2β` y `Gaia1β` son conceptos distintos; no se fusionan por compartir sufijo beta.
-5. La Décima Temporada de Heaven's Gate debe estar vinculada a `REA-GAIA2-B`.
-6. Una temporada puede estar vinculada a varias realidades mediante bridge.
-7. Una temporada no puede quedar sin crónica.
-8. La relación temporada ↔ realidad debe ser N:M.
+5. Gaia2β es una realidad canónica utilizada por acontecimientos de la Décima Temporada de Heaven's Gate.
+6. La realidad de un capítulo se deriva de las realidades asociadas a sus eventos.
+7. La realidad de una temporada se deriva de las realidades asociadas a los eventos de sus capítulos.
+8. No se almacenará una segunda relación temporada↔realidad o capítulo↔realidad.
 9. Los eventos pueden pertenecer a varias realidades mediante bridge cuando el contenido lo exija.
 10. Las relaciones entre realidades no deben modelarse como una jerarquía de carpetas.
 
 ## Siguiente bloque
 
-Antes de migrar personajes, debe crearse/auditarse la relación N:M entre temporadas y realidades y comprobar qué realidades muestra cada temporada.
+Antes de migrar personajes, debe auditarse la cadena capítulo → evento → realidad y comprobar que permite reconstruir correctamente las realidades recorridas por cada episodio y temporada.
 
 Después:
 
