@@ -92,7 +92,7 @@ La instantánea `admin_docs/bdd_structure.txt` conserva al menos cinco registros
 
 ### Decisiones editoriales
 
-**Heaven's Gate** es una única crónica aunque atraviese más de una realidad. Sus temporadas 1–9 pertenecen a Gaia2 y la Décima Temporada pertenece a Gaia2β.
+**Heaven's Gate** es una única crónica aunque sus acontecimientos atraviesen varias realidades. **Gaia2β aparece canónicamente en la Décima Temporada**, pero la relación entre temporada y realidad no se almacena de forma directa: se deriva de los eventos de sus episodios.
 
 **Partida Original** sustituye el nombre editorial heredado `Javi`. El legacy ID se conserva solo como trazabilidad.
 
@@ -126,11 +126,13 @@ Ejemplo canónico:
 
 ```text
 CRO-HEAVENS-GATE
-  ├── Temporadas 1–9  → REA-GAIA2
-  └── Temporada 10    → REA-GAIA2-B
+  └── Temporada 10
+        └── Episodios
+              └── Eventos
+                    └── entre sus realidades: REA-GAIA2-B
 ```
 
-Una misma crónica puede, por tanto, atravesar varias realidades.
+Una misma crónica, temporada o episodio puede, por tanto, recorrer varias realidades a través de sus eventos.
 
 ## Resolución de realidades en capítulos y temporadas
 
