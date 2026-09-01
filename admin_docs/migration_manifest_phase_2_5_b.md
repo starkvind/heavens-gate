@@ -3,20 +3,29 @@
 ## Fase 2.5-B — Realidades y Crónicas
 
 Fecha: 2026-09-01  
-Estado: primer bloque operativo  
+Estado: corregido tras revisión de continuidad  
 Repositorio: `starkvind/heavens-gate`
 
 ## Objetivo
 
 Este documento convierte el inventario de la BDD heredada en un mapa explícito de migración hacia un modelo canónico estable.
 
-La BDD actual ya distingue `dim_realities` y `dim_chronicles`, por lo que esta fase no crea una capa conceptual nueva: normaliza nombres, IDs editoriales y pertenencias, y documenta los casos que no deben resolverse automáticamente.
+La BDD actual distingue `dim_realities` y `dim_chronicles`. Esas dos dimensiones no forman una jerarquía rígida: una misma crónica puede atravesar varias realidades a lo largo de sus temporadas.
+
+## Corrección de continuidad
+
+`Gaia2β` **existe como realidad canónica propia** y es la realidad de la **Décima Temporada de Heaven's Gate**.
+
+No es un alias antiguo de Gaia1β ni debe renombrarse o fusionarse con ella.
+
+El helper `app/helpers/pretty.php` que conserva `gaia2β => gaia-2b` refleja una entidad legítima.
 
 ## Convenciones
 
 Acciones permitidas:
 
 - `KEEP`: conservar entidad y significado.
+- `CREATE`: entidad canónica que todavía no consta en la instantánea heredada.
 - `RENAME`: misma entidad, nombre o identificador canónico distinto.
 - `MERGE`: varios registros heredados representan una única entidad.
 - `SPLIT`: un registro heredado contiene más de una entidad.
@@ -25,18 +34,19 @@ Acciones permitidas:
 
 Los IDs numéricos heredados nunca se consideran identidad canónica. Son referencias de origen.
 
-## Realidades canónicas
+## Realidades
 
-| Canon ID | Nombre editorial | Estado | Nota |
-|---|---|---|---|
-| `REA-GAIA0` | Gaia0 | CANON | Realidad original previa al colapso/fractura. |
-| `REA-GAIA1` | Gaia1 | CANON | Continuidad de la Partida Original. |
-| `REA-GAIA1-B` | Gaia1β | CANON | Identificador técnico estable; nombre editorial Gaia1β. |
-| `REA-GAIA2` | Gaia2 | CANON | Continuidad principal de Heaven's Gate. |
+| Canon ID | Nombre editorial | Acción | Estado | Nota |
+|---|---|---|---|---|
+| `REA-GAIA0` | Gaia0 | KEEP | CANON | Realidad original previa al colapso/fractura. |
+| `REA-GAIA1` | Gaia1 | KEEP | CANON | Continuidad principal de la Partida Original. |
+| `REA-GAIA2` | Gaia2 | KEEP | CANON | Continuidad de Heaven's Gate hasta la Novena Temporada. |
+| `REA-GAIA2-B` | Gaia2β | KEEP | CANON | Realidad de la Décima Temporada de Heaven's Gate. |
+| `REA-GAIA1-B` | Gaia1β | CREATE / REVIEW | PENDIENTE | Rama propuesta de Gaia1; no confundir con Gaia2β. |
 
-### Colisión heredada detectada
+### Slugs heredados
 
-El helper `app/helpers/pretty.php` conserva actualmente esta política:
+El helper `app/helpers/pretty.php` conserva:
 
 ```php
 'dim_realities' => [
@@ -47,18 +57,16 @@ El helper `app/helpers/pretty.php` conserva actualmente esta política:
 ],
 ```
 
-La etiqueta heredada `Gaia2β` entra en conflicto con el modelo canónico actual, que utiliza `Gaia1β` / `REA-GAIA1-B`.
+Tratamiento:
 
-**Decisión:** no modificar todavía registros en producción. La correspondencia se marca como `RENAME + REVIEW` hasta confirmar qué entidades dependen actualmente de la realidad heredada y comprobar que no existe contenido legítimo que deba permanecer como una Gaia2β separada.
+| Slug heredado | Entidad |
+|---|---|
+| `gaia-zero` | `REA-GAIA0` |
+| `gaia-1` | `REA-GAIA1` |
+| `gaia-2a` | `REA-GAIA2` |
+| `gaia-2b` | `REA-GAIA2-B` |
 
-## Mapa de migración de realidades
-
-| Origen heredado | Destino canónico | Acción | Confianza | Observación |
-|---|---|---|---|---|
-| Gaia0 / `gaia-zero` | `REA-GAIA0` / Gaia0 | KEEP | Alta | Normalización de identificador. |
-| Gaia1 / `gaia-1` | `REA-GAIA1` / Gaia1 | KEEP | Alta | Partida Original. |
-| Gaia2β / `gaia-2b` | `REA-GAIA1-B` / Gaia1β | RENAME + REVIEW | Media | Colisión nominal detectada; no ejecutar UPDATE global todavía. |
-| Gaia2 / `gaia-2a` | `REA-GAIA2` / Gaia2 | KEEP | Alta | Heaven's Gate. |
+No debe ejecutarse ninguna sustitución `Gaia2β → Gaia1β`.
 
 ## Crónicas heredadas confirmadas
 
@@ -74,63 +82,112 @@ La instantánea `admin_docs/bdd_structure.txt` conserva al menos cinco registros
 
 ## Crónicas canónicas — primer pase
 
-| Legacy ID | Nombre heredado | Canon ID | Nombre canónico | Realidad | Acción | Confianza |
-|---:|---|---|---|---|---|---|
-| 1 | Heaven's Gate | `CRO-HEAVENS-GATE` | Heaven's Gate | `REA-GAIA2` | KEEP | Alta |
-| 2 | Javi | `CRO-PARTIDA-ORIGINAL` | Partida Original | `REA-GAIA1` | RENAME | Alta |
-| 3 | Werewolf GT | `CRO-WEREWOLF-GT` | Werewolf GT | — | REVIEW | Baja |
-| 4 | HG: Tercer Ojo | `CRO-HG-TERCER-OJO` | Tercer Ojo | — | REVIEW | Media |
-| 5 | HG: Babylon | `CRO-HG-BABYLON` | Babylon | `REA-GAIA2` | RENAME | Alta |
+| Legacy ID | Nombre heredado | Canon ID | Nombre canónico | Acción | Confianza |
+|---:|---|---|---|---|---|
+| 1 | Heaven's Gate | `CRO-HEAVENS-GATE` | Heaven's Gate | KEEP | Alta |
+| 2 | Javi | `CRO-PARTIDA-ORIGINAL` | Partida Original | RENAME | Alta |
+| 3 | Werewolf GT | `CRO-WEREWOLF-GT` | Werewolf GT | REVIEW | Baja |
+| 4 | HG: Tercer Ojo | `CRO-HG-TERCER-OJO` | Tercer Ojo | REVIEW | Media |
+| 5 | HG: Babylon | `CRO-HG-BABYLON` | Babylon | RENAME | Alta |
 
 ### Decisiones editoriales
 
-**Heaven's Gate** es la crónica principal de Gaia2.
+**Heaven's Gate** es una única crónica aunque atraviese más de una realidad. Sus temporadas 1–9 pertenecen a Gaia2 y la Décima Temporada pertenece a Gaia2β.
 
-**Javi** no debe sobrevivir como nombre editorial. Es una etiqueta de mesa/autoría, no una entidad de ficción o catálogo. Se migra a **Partida Original**, manteniendo el legacy ID para trazabilidad.
+**Partida Original** sustituye el nombre editorial heredado `Javi`. El legacy ID se conserva solo como trazabilidad.
 
-**Babylon** pertenece al universo narrativo de Heaven's Gate y describe la historia antigua de Apae, los Caelesti y las Estigmas, por lo que se vincula a Gaia2.
+**Babylon** forma parte del corpus de Heaven's Gate, pero su realidad debe fijarse a nivel de temporada/obra concreta y no por una supuesta propiedad global de la crónica.
 
-**Werewolf GT** necesita revisión documental antes de asignarle realidad. La descripción heredada la define como derivada de la Partida Original pero ambientada en el universo de Heaven's Gate; esa frase no basta para decidir si comparte Gaia2, es una rama propia o debe quedar archivada.
+**Werewolf GT** y **Tercer Ojo** continúan en `REVIEW` hasta fijar sus relaciones exactas con crónicas y realidades.
 
-**Tercer Ojo** necesita revisión de continuidad. Su relación con Mark Harley la vincula al material de Heaven's Gate, pero la pertenencia ontológica debe confirmarse antes de fijar `reality_id`.
+## Modelo estructural corregido
 
-## Regla estructural
-
-La relación correcta es:
+La relación **NO** es:
 
 ```text
 REALIDAD
   └── CRÓNICA
-        └── TEMPORADA / HISTORIA PERSONAL / ESPECIAL
+        └── TEMPORADA
 ```
 
-Una crónica pertenece a una realidad canónica. Las temporadas pertenecen a una crónica. Los personajes pueden estar asociados a crónica y realidad por conveniencia de consulta, pero esa duplicidad debe validarse para impedir combinaciones incompatibles.
+El modelo correcto trata Crónica y Realidad como dimensiones ortogonales:
+
+```text
+CRÓNICA
+  └── TEMPORADA
+        └── CAPÍTULO
+
+REALIDAD
+  ├── TEMPORADA
+  ├── PERSONAJE
+  └── EVENTO
+```
+
+Ejemplo canónico:
+
+```text
+CRO-HEAVENS-GATE
+  ├── Temporadas 1–9  → REA-GAIA2
+  └── Temporada 10    → REA-GAIA2-B
+```
+
+Una misma crónica puede, por tanto, atravesar varias realidades.
+
+## Gap de esquema detectado
+
+La BDD actual ya contiene:
+
+- `dim_seasons.chronicle_id`
+- `fact_characters.reality_id`
+- `bridge_timeline_events_realities.reality_id`
+
+Pero no se ha encontrado `dim_seasons.reality_id`.
+
+Eso impide representar limpiamente que la Décima Temporada pertenece a Gaia2β mientras las anteriores pertenecen a Gaia2.
+
+### Cambio de esquema recomendado
+
+Añadir:
+
+```sql
+dim_seasons.reality_id
+```
+
+con FK a:
+
+```sql
+dim_realities.id
+```
+
+La realidad de un capítulo se heredará de su temporada salvo que en el futuro exista un caso explícito de capítulo multirrealidad.
+
+No se recomienda añadir `reality_id` directamente a `dim_chronicles`, porque Heaven's Gate demuestra que una crónica puede atravesar varias realidades.
 
 ## Invariantes de migración
 
 1. Ningún registro debe migrarse basándose únicamente en su ID numérico.
-2. El `pretty_id` es una URL/alias, no la identidad ontológica.
+2. El `pretty_id` es URL/alias, no identidad ontológica.
 3. Los nombres de mesa o autoría deben separarse de los nombres editoriales.
-4. `REA-GAIA1-B` es el identificador técnico estable de Gaia1β.
-5. No se ejecutarán fusiones o renombrados destructivos sobre `Gaia2β` hasta auditar dependencias.
-6. Una temporada no puede quedar sin crónica.
-7. Una crónica canónica no puede quedar sin realidad salvo mientras figure explícitamente como `REVIEW`.
-8. Las relaciones entre realidades no deben modelarse como jerarquía padre/hijo; son continuidades relacionadas, no carpetas.
+4. `Gaia2β` y `Gaia1β` son conceptos distintos; no se fusionan por compartir sufijo beta.
+5. La Décima Temporada de Heaven's Gate debe resolver a `REA-GAIA2-B`.
+6. Las Temporadas 1–9 de Heaven's Gate deben resolver a `REA-GAIA2`, salvo corrección específica posterior.
+7. Una temporada no puede quedar sin crónica.
+8. Una temporada canónica debe tener realidad explícita.
+9. Los eventos pueden pertenecer a varias realidades mediante bridge cuando el contenido lo exija.
+10. Las relaciones entre realidades no deben modelarse como una jerarquía de carpetas.
 
 ## Siguiente bloque
 
-Una vez auditados `Werewolf GT`, `Tercer Ojo` y las dependencias de `Gaia2β`, la Fase 2.5-B continúa con:
+Antes de migrar personajes, debe añadirse la realidad a nivel de temporada y auditar qué temporadas heredadas corresponden a Gaia2 y Gaia2β.
+
+Después:
 
 ```text
-Realidades
-  ↓
-Crónicas
-  ↓
-Organizaciones
-  ↓
-Grupos
-  ↓
-Personajes
+Crónicas + Realidades
+        ↓
+    Temporadas
+        ↓
+Organizaciones / Grupos
+        ↓
+    Personajes
 ```
-
-El siguiente manifest debe inventariar `dim_organizations`, `dim_groups` y `bridge_organizations_groups`, preservando de forma estricta la diferencia entre organización y grupo.
