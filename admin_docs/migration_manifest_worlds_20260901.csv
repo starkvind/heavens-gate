@@ -1,0 +1,10 @@
+entity_type,legacy_id,legacy_name,canonical_id,canonical_name,reality_id,action,confidence,status,notes
+reality,,Gaia0,REA-GAIA0,Gaia0,,KEEP,high,canonical,"Normalizar identificador; conservar entidad"
+reality,,Gaia1,REA-GAIA1,Gaia1,,KEEP,high,canonical,"Continuidad de la Partida Original"
+reality,,Gaia2β,REA-GAIA1-B,Gaia1β,,RENAME_REVIEW,medium,review,"Colisión nominal heredada; auditar dependencias antes de UPDATE"
+reality,,Gaia2,REA-GAIA2,Gaia2,,KEEP,high,canonical,"Continuidad principal de Heaven's Gate"
+chronicle,1,"Heaven's Gate",CRO-HEAVENS-GATE,"Heaven's Gate",REA-GAIA2,KEEP,high,canonical,"Crónica principal"
+chronicle,2,Javi,CRO-PARTIDA-ORIGINAL,"Partida Original",REA-GAIA1,RENAME,high,canonical,"Eliminar nombre editorial de mesa; conservar alias legacy"
+chronicle,3,"Werewolf GT",CRO-WEREWOLF-GT,"Werewolf GT",,REVIEW,low,review,"Derivada de Partida Original pero ambientada en universo HG; realidad sin fijar"
+chronicle,4,"HG: Tercer Ojo",CRO-HG-TERCER-OJO,"Tercer Ojo",,REVIEW,medium,review,"Vinculada a Mark Harley; confirmar continuidad"
+chronicle,5,"HG: Babylon",CRO-HG-BABYLON,Babylon,REA-GAIA2,RENAME,high,canonical,"Historia antigua de Heaven's Gate"
