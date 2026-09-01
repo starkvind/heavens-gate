@@ -252,6 +252,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_characters_worlds':
 					include("admin_characters_worlds.php");
 					break;
+				case 'admin_character_collision_audit':
+					include("admin_character_collision_audit.php");
+					break;
 				case 'admin_character_deaths':
 					include("admin_character_deaths.php");
 					break;
@@ -452,6 +455,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 						['href' => '/talim?s=admin_groups', 'label' => 'Gestionar Grupos y manadas', 'keywords' => ['packs', 'afiliaciones']],
 						['href' => '/talim?s=admin_organizations', 'label' => 'Gestionar Organizaciones', 'keywords' => ['facciones']],
 						['href' => '/talim?s=admin_characters_worlds', 'label' => 'Asignar Crónicas y Realidades', 'keywords' => ['cronicas', 'realidades']],
+						['href' => '/talim?s=admin_character_collision_audit', 'label' => 'Auditar Colisiones de Personajes', 'keywords' => ['duplicados', 'multiverso', 'identidad', 'migracion']],
 						['href' => '/talim?s=admin_character_conditions_bridge', 'label' => 'Asignar Condiciones a PJs', 'keywords' => ['bridge', 'condiciones']],
 						['href' => '/talim?s=admin_character_misc_bridge', 'label' => 'Asignar Datos misceláneos a PJs', 'keywords' => ['bridge', 'misc']],
 						['href' => '/talim?s=admin_bridges', 'label' => 'Editar Bridges', 'keywords' => ['vinculos']],
