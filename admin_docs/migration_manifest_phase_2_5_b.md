@@ -118,7 +118,7 @@ CRÓNICA
         └── CAPÍTULO
 
 REALIDAD
-  ├── TEMPORADA
+  ├── TEMPORADAS (N:M)
   ├── PERSONAJE
   └── EVENTO
 ```
@@ -141,27 +141,38 @@ La BDD actual ya contiene:
 - `fact_characters.reality_id`
 - `bridge_timeline_events_realities.reality_id`
 
-Pero no se ha encontrado `dim_seasons.reality_id`.
+No se ha encontrado una relación explícita entre temporadas y realidades.
 
-Eso impide representar limpiamente que la Décima Temporada pertenece a Gaia2β mientras las anteriores pertenecen a Gaia2.
+La relación correcta **no puede resolverse con `dim_seasons.reality_id`**, porque una misma temporada puede mostrarse o vincularse a varias realidades.
 
 ### Cambio de esquema recomendado
 
-Añadir:
+Añadir una tabla puente:
 
 ```sql
-dim_seasons.reality_id
+bridge_seasons_realities
 ```
 
-con FK a:
+con, como mínimo:
 
-```sql
-dim_realities.id
+```text
+season_id
+reality_id
 ```
 
-La realidad de un capítulo se heredará de su temporada salvo que en el futuro exista un caso explícito de capítulo multirrealidad.
+y una restricción única sobre `(season_id, reality_id)`.
 
-No se recomienda añadir `reality_id` directamente a `dim_chronicles`, porque Heaven's Gate demuestra que una crónica puede atravesar varias realidades.
+Así, una temporada puede vincularse a una o varias realidades sin duplicar la temporada ni imponer una realidad única.
+
+Ejemplo:
+
+```text
+Temporada 10
+  ├── Gaia2β
+  └── [otras realidades que correspondan]
+```
+
+No se recomienda añadir `reality_id` directamente a `dim_chronicles` ni a `dim_seasons`: ambas decisiones introducirían una cardinalidad 1:N que el canon y la interfaz no garantizan.
 
 ## Invariantes de migración
 
@@ -169,16 +180,16 @@ No se recomienda añadir `reality_id` directamente a `dim_chronicles`, porque He
 2. El `pretty_id` es URL/alias, no identidad ontológica.
 3. Los nombres de mesa o autoría deben separarse de los nombres editoriales.
 4. `Gaia2β` y `Gaia1β` son conceptos distintos; no se fusionan por compartir sufijo beta.
-5. La Décima Temporada de Heaven's Gate debe resolver a `REA-GAIA2-B`.
-6. Las Temporadas 1–9 de Heaven's Gate deben resolver a `REA-GAIA2`, salvo corrección específica posterior.
+5. La Décima Temporada de Heaven's Gate debe estar vinculada a `REA-GAIA2-B`.
+6. Una temporada puede estar vinculada a varias realidades mediante bridge.
 7. Una temporada no puede quedar sin crónica.
-8. Una temporada canónica debe tener realidad explícita.
+8. La relación temporada ↔ realidad debe ser N:M.
 9. Los eventos pueden pertenecer a varias realidades mediante bridge cuando el contenido lo exija.
 10. Las relaciones entre realidades no deben modelarse como una jerarquía de carpetas.
 
 ## Siguiente bloque
 
-Antes de migrar personajes, debe añadirse la realidad a nivel de temporada y auditar qué temporadas heredadas corresponden a Gaia2 y Gaia2β.
+Antes de migrar personajes, debe crearse/auditarse la relación N:M entre temporadas y realidades y comprobar qué realidades muestra cada temporada.
 
 Después:
 
