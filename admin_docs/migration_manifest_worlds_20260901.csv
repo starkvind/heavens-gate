@@ -1,10 +1,10 @@
 entity_type,legacy_id,legacy_name,canonical_id,canonical_name,reality_id,action,confidence,status,notes
 reality,,Gaia0,REA-GAIA0,Gaia0,,KEEP,high,canonical,"Conservar entidad"
 reality,,Gaia1,REA-GAIA1,Gaia1,,KEEP,high,canonical,"Continuidad principal de Partida Original"
-reality,,Gaia2,REA-GAIA2,Gaia2,,KEEP,high,canonical,"Heaven's Gate temporadas 1-9"
-reality,,Gaia2β,REA-GAIA2-B,Gaia2β,,KEEP,high,canonical,"Realidad canónica de la Décima Temporada de Heaven's Gate"
+reality,,Gaia2,REA-GAIA2,Gaia2,,KEEP,high,canonical,"Realidad canónica presente en Heaven's Gate; su aparición concreta se deriva de eventos"
+reality,,Gaia2β,REA-GAIA2-B,Gaia2β,,KEEP,high,canonical,"Realidad canónica presente en acontecimientos de la Décima Temporada de Heaven's Gate"
 reality,,Gaia1β,REA-GAIA1-B,Gaia1β,,CREATE_REVIEW,medium,review,"Rama propuesta de Gaia1; entidad distinta de Gaia2β"
-chronicle,1,"Heaven's Gate",CRO-HEAVENS-GATE,"Heaven's Gate",,KEEP,high,canonical,"Crónica multirrealidad: T1-T9 Gaia2; T10 Gaia2β"
+chronicle,1,"Heaven's Gate",CRO-HEAVENS-GATE,"Heaven's Gate",,KEEP,high,canonical,"Crónica multirrealidad; las realidades se derivan de los eventos de cada episodio"
 chronicle,2,Javi,CRO-PARTIDA-ORIGINAL,"Partida Original",,RENAME,high,canonical,"Eliminar nombre editorial de mesa; conservar alias legacy"
 chronicle,3,"Werewolf GT",CRO-WEREWOLF-GT,"Werewolf GT",,REVIEW,low,review,"Realidad por fijar"
 chronicle,4,"HG: Tercer Ojo",CRO-HG-TERCER-OJO,"Tercer Ojo",,REVIEW,medium,review,"Realidad por fijar"
