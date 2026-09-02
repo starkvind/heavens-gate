@@ -1,3 +1,5 @@
+> **Registro histórico de migración — 2026-09-01.** Este documento conserva decisiones y pasos de la fase 2.5. No describe por sí solo el runtime ni el esquema vigente. Para el estado actual, consulta `admin_docs/TECHNICAL_DOCUMENTATION.md` y `admin_docs/DATABASE_SCHEMA.md`.
+
 # Heaven's Gate — Fase 2.5-D: auditoría de personajes
 
 Fecha: 2026-09-01
