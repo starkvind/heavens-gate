@@ -297,7 +297,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'forum_message' => '/forum/message',
         'forum_diceroll' => '/forum/diceroll',
         'forum_item' => '/forum/item',
-        'keygen' => '/tools/keygen',
         'crop' => '/tools/crop',
     ];
 
@@ -601,7 +600,6 @@ function hg_request_router_match_path(mysqli $link, string $path): array
         '/forum/message' => ['p' => 'forum_message'],
         '/forum/diceroll' => ['p' => 'forum_diceroll'],
         '/forum/item' => ['p' => 'forum_item'],
-        '/tools/keygen' => ['p' => 'keygen'],
         '/tools/crop' => ['p' => 'crop'],
         '/tools/dice' => ['p' => 'dados'],
         '/tools/csp' => ['p' => 'csp'],
@@ -648,7 +646,6 @@ function hg_request_router_match_path(mysqli $link, string $path): array
     $redirects = [
         '#^/index\.php$#' => '/',
         '#^/game_cards\.php$#' => '/games/card-game',
-        '#^/generador_claves\.php$#' => '/tools/keygen',
         '#^/crop\.html$#' => '/tools/crop',
         '#^/sep/snippet_forum_hg\.php$#' => '/forum/message',
         '#^/characters/chronicles$#' => '/chronicles',
