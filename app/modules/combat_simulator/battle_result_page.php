@@ -575,7 +575,7 @@ if ($randomFormsToggle !== 'yes') {
 $maxturn = ($randomTurnsToggle === 'yes') ? rand(1, 99) : (int)($_POST['turnos'] ?? 5);
 $vitmax = ($randomHealthToggle === 'yes') ? rand(1, 99) : (int)($_POST['vit'] ?? 7);
 
-$debug = $_POST['debug'] ?? 'no';
+$debug = 'no';
 $ventaja = $_POST['ventaja'] ?? 'no';
 
 $heridas1 = 0;
