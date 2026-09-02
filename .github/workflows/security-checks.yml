@@ -1,0 +1,62 @@
+name: PHP security checks
+
+on:
+  push:
+    branches:
+      - security/hardening-2026-09-02
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Lint PHP
+        shell: bash
+        run: |
+          set -euo pipefail
+          find app api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l index.php
+
+      - name: Security regression guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          roots = [Path("app"), Path("api")]
+          forbidden = {
+              "$_COOKIE['is_admin']": "client-controlled admin cookie",
+              '$_COOKIE["is_admin"]': "client-controlled admin cookie",
+              "$_POST['tournament_background']": "client-controlled tournament bypass",
+              '$_POST["tournament_background"]': "client-controlled tournament bypass",
+              "$_GET['debug_forced_rolls']": "forced dice API input",
+              '$_GET["debug_forced_rolls"]': "forced dice API input",
+              "$_POST['debug_forced_rolls']": "forced dice form input",
+              '$_POST["debug_forced_rolls"]': "forced dice form input",
+          }
+
+          failures = []
+          for root in roots:
+              for path in root.rglob("*.php"):
+                  text = path.read_text(encoding="utf-8", errors="ignore")
+                  for needle, label in forbidden.items():
+                      if needle in text:
+                          failures.append(f"{path}: {label}: {needle}")
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
