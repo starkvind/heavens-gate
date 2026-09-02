@@ -17,7 +17,7 @@ if (hg_admin_is_authenticated()) {
 $error = '';
 
 if (!empty($adminPasswordLoadError)) {
-    $error = (string)$adminPasswordLoadError;
+    $error = 'Acceso administrativo no disponible.';
 }
 
 if ($error === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
