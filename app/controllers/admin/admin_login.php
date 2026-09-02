@@ -23,25 +23,14 @@ if (!empty($adminPasswordLoadError)) {
 if ($error === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
     $submittedPassword = (string)$_POST['admin_pass'];
     $storedPassword = is_string($adminPassword) ? $adminPassword : '';
-    $storedPasswordMode = (string)($adminPasswordMode ?? 'legacy');
     $loginOk = false;
 
     if ($storedPassword !== '') {
-        if ($storedPasswordMode === 'hash') {
-            $loginOk = password_verify($submittedPassword, $storedPassword);
-            if ($loginOk && password_needs_rehash($storedPassword, PASSWORD_DEFAULT)) {
-                $rehash = password_hash($submittedPassword, PASSWORD_DEFAULT);
-                if (is_string($rehash) && $rehash !== '') {
-                    hg_admin_store_password_value($link, $rehash);
-                }
-            }
-        } else {
-            $loginOk = hash_equals($storedPassword, $submittedPassword);
-            if ($loginOk) {
-                $newHash = password_hash($submittedPassword, PASSWORD_DEFAULT);
-                if (is_string($newHash) && $newHash !== '') {
-                    hg_admin_store_password_value($link, $newHash);
-                }
+        $loginOk = password_verify($submittedPassword, $storedPassword);
+        if ($loginOk && password_needs_rehash($storedPassword, PASSWORD_DEFAULT)) {
+            $rehash = password_hash($submittedPassword, PASSWORD_DEFAULT);
+            if (is_string($rehash) && $rehash !== '') {
+                hg_admin_store_password_value($link, $rehash);
             }
         }
     }
