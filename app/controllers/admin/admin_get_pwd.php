@@ -2,17 +2,9 @@
 
 include_once(__DIR__ . '/../../helpers/runtime_response.php');
 
-$securityPath = __DIR__ . '/../../helpers/security.php';
 $adminPassword = '';
 $adminPasswordMode = 'hash';
 $adminPasswordLoadError = '';
-
-if (!file_exists($securityPath)) {
-    hg_runtime_log_error('admin_get_pwd.security_missing', $securityPath);
-    $adminPasswordLoadError = 'No se pudo cargar la configuracion de seguridad.';
-    return;
-}
-include_once($securityPath);
 
 if (!function_exists('hg_admin_password_is_hash')) {
     function hg_admin_password_is_hash(string $value): bool
@@ -59,14 +51,13 @@ if ($stmt) {
     }
 
     $adminPasswordRaw = (string)$resultQuery['config_value'];
-    $adminPasswordMode = 'legacy';
-
-    if (hg_admin_password_is_hash($adminPasswordRaw)) {
-        $adminPassword = $adminPasswordRaw;
-        $adminPasswordMode = 'hash';
-    } else {
-        $adminPassword = decrypt_string($adminPasswordRaw);
+    if (!hg_admin_password_is_hash($adminPasswordRaw)) {
+        hg_runtime_log_error('admin_get_pwd.password_format', 'rel_pwd no utiliza un password hash reconocido.');
+        $adminPasswordLoadError = 'La configuracion de acceso administrativo requiere migracion.';
+        return;
     }
+
+    $adminPassword = $adminPasswordRaw;
 } else {
     hg_runtime_log_error('admin_get_pwd.query_prepare', mysqli_error($link));
     $adminPasswordLoadError = 'No se pudo cargar la configuracion de acceso.';
