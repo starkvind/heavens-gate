@@ -342,7 +342,7 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JS
 
 admin_panel_open(
     'Cartas del gacha',
-    "<span class='adm-flex-right-8'><a class='btn' href='/admin/game-cards/seed'>Ejecutar seed</a><a class='btn' href='/games/card-game' target='_blank' rel='noopener'>Ver gacha</a></span>"
+    "<span class='adm-flex-right-8'><a class='btn' href='/games/card-game' target='_blank' rel='noopener'>Ver gacha</a></span>"
 );
 ?>
 <style>
