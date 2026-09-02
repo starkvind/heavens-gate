@@ -801,8 +801,16 @@ if (hgfv_table_exists($link, 'fact_tools_topic_viewer')) {
     }
 }
 
-if ($topicId > 0 && isset($savedTopicsByTopicId[$topicId])) {
-    $selectedSavedTopic = $savedTopicsByTopicId[$topicId];
+if ($topicId > 0) {
+    if (!$hasSavedTopicsTable || !isset($savedTopicsByTopicId[$topicId])) {
+        if (!headers_sent()) {
+            http_response_code(404);
+        }
+        $error = 'Tema no disponible.';
+        $topicId = 0;
+    } else {
+        $selectedSavedTopic = $savedTopicsByTopicId[$topicId];
+    }
 }
 
 if ($topicId > 0) {
@@ -857,11 +865,13 @@ if ($topicId > 0) {
 
         $stmt = mysqli_prepare($link, $query);
         if (!$stmt) {
-            $error = 'No se pudo preparar la consulta: ' . mysqli_error($link);
+            error_log('forum_topic_viewer.prepare_failed: ' . mysqli_error($link));
+            $error = 'No se pudo cargar el tema solicitado.';
         } else {
             mysqli_stmt_bind_param($stmt, 'i', $topicId);
             if (!mysqli_stmt_execute($stmt)) {
-                $error = 'No se pudo ejecutar la consulta: ' . mysqli_stmt_error($stmt);
+                error_log('forum_topic_viewer.execute_failed: ' . mysqli_stmt_error($stmt));
+                $error = 'No se pudo cargar el tema solicitado.';
             } else {
                 $res = mysqli_stmt_get_result($stmt);
                 while ($row = mysqli_fetch_assoc($res)) {
@@ -1413,11 +1423,7 @@ if (!$hgfvEmbedded) {
         <section class="hgfv-panel hgfv-top">
             <h1><?= h($panelTitle) ?></h1>
             <?php if (empty($savedTopics)): ?>
-                <form method="get" class="hgfv-form-row">
-                    <label for="id_topic"><strong>id_topic:</strong></label>
-                    <input type="number" min="1" id="id_topic" name="id_topic" value="<?= $topicId > 0 ? $topicId : '' ?>" placeholder="Ej: 39" required>
-                    <button type="submit">Cargar hilo</button>
-                </form>
+                <div class="hgfv-thread-head">No hay temas públicos autorizados para el visor.</div>
             <?php endif; ?>
 
             <?php if (!empty($savedTopics)): ?>
@@ -1487,10 +1493,6 @@ if (!$hgfvEmbedded) {
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-
-            <!-- <?php if ($query !== ''): ?>
-                <div class="hgfv-query-box"><?= h($query) ?> | params: [id_topic=<?= $topicId ?>]</div>
-            <?php endif; ?> -->
 
             <?php if ($error !== ''): ?>
                 <div class="hgfv-error"><?= h($error) ?></div>

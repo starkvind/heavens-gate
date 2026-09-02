@@ -26,7 +26,6 @@ function hg_mobile_is_excluded_route(string $routeKey): bool
         'forum_message',
         'forum_diceroll',
         'forum_item',
-        'keygen',
         'crop',
         'tooltip',
         'mentions',
@@ -39,7 +38,6 @@ function hg_mobile_is_excluded_route(string $routeKey): bool
         'nebula_character',
         'nebula_groups',
         'org_chart',
-        'schema_sanitizer',
     ];
 
     return in_array($routeKey, $excludedRoutes, true);

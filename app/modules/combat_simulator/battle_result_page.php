@@ -455,7 +455,9 @@ $simRubberbandingEnabled = ($simRubberbandingEnabled === 'no') ? 'no' : 'yes';
 $combatModeTitle = sim_combat_mode_title($combatType, $simNarrativeTone);
 $combatModeTitleHtml = htmlspecialchars((string)$combatModeTitle, ENT_QUOTES, 'UTF-8');
 $postedTournamentKey = trim((string)($_POST['tournament_id'] ?? ''));
-$isTournamentContext = (!empty($_POST['tournament_background']) && (string)$_POST['tournament_background'] === '1' && $postedTournamentKey !== '');
+$isTournamentContext = defined('HG_SIM_INTERNAL_TOURNAMENT_RUN')
+    && HG_SIM_INTERNAL_TOURNAMENT_RUN === true
+    && $postedTournamentKey !== '';
 if ($isTournamentContext) {
     $tournamentInfo = sim_fetch_tournament_by_key($link, $postedTournamentKey);
     if (is_array($tournamentInfo) && (int)($tournamentInfo['id'] ?? 0) > 0) {
@@ -573,7 +575,7 @@ if ($randomFormsToggle !== 'yes') {
 $maxturn = ($randomTurnsToggle === 'yes') ? rand(1, 99) : (int)($_POST['turnos'] ?? 5);
 $vitmax = ($randomHealthToggle === 'yes') ? rand(1, 99) : (int)($_POST['vit'] ?? 7);
 
-$debug = $_POST['debug'] ?? 'no';
+$debug = 'no';
 $ventaja = $_POST['ventaja'] ?? 'no';
 
 $heridas1 = 0;
@@ -696,7 +698,7 @@ $combateArray['combat_mode_label'] = $combatModeTitle;
 $combateArray['relation_type'] = $simRelationType;
 $combateArray['relation_context'] = $simRelationContext;
 $combateArray['season_id'] = (int)$simSeasonId;
-$combateArray['is_tournament'] = (!empty($_POST['tournament_background']) && (string)$_POST['tournament_background'] === '1') ? 1 : 0;
+$combateArray['is_tournament'] = $isTournamentContext ? 1 : 0;
 $combateArray['tournament_key'] = (string)($_POST['tournament_id'] ?? '');
 $combateArray['tournament_round'] = isset($_POST['tournament_round']) ? (int)$_POST['tournament_round'] : 0;
 $combateArray['tournament_match'] = isset($_POST['tournament_match']) ? (int)$_POST['tournament_match'] : 0;

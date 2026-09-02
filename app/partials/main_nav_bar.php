@@ -272,12 +272,6 @@
 					case 'admin_resources':
 						echo " $pillSeparator Gestionar recursos (catálogo)";
 						break;
-					case 'admin_resources_migration':
-						echo " $pillSeparator Migracion de recursos";
-						break;
-					case 'admin_schema_hardening_audit':
-						echo " $pillSeparator Evaluar schema";
-						break;
 					case 'admin_inspect_db':
 						echo " $pillSeparator Inspeccionar BDD";
 						break;

@@ -58,7 +58,7 @@ Busca `config.env` en:
 
 La conexión se reutiliza dentro de la request si sigue viva y fuerza `utf8mb4`.
 
-`app/helpers/security.php` añade `ENCRYPTION_KEY` para cifrado reversible AES-256-CBC. Este mecanismo es de compatibilidad/secretos; no sustituye el hashing de contraseñas.
+El acceso administrativo usa hashes de contraseña y no mantiene compatibilidad con credenciales reversiblemente cifradas.
 
 ## 4. Seguridad web
 

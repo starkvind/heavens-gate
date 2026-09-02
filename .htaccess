@@ -20,6 +20,10 @@ RewriteRule (^|/)(?:README|TECHNICAL_DOCUMENTATION|TELEGRAM_BOT_BACKEND_GUIDE)\.
 RewriteRule (^|/)(?:composer\.(?:json|lock)|phpunit\.xml(?:\.dist)?|dump-[^/]+\.sql|check_encoding\.ps1)$ index.php?p=error404 [L,NC,QSA]
 RewriteRule (^|/)admin_upgrade_notes(?:/|$) index.php?p=error404 [L,NC,QSA]
 
+# Block executable/script payloads from public asset/upload trees.
+# Keep this before the existing-file short circuit and /img alias.
+RewriteRule ^(?:public/)?img/.*\.(?:php[0-9]?|phtml|phar|cgi|pl|py|sh)$ index.php?p=error404 [L,NC,QSA]
+
 # ==============================
 # Existing files and folders
 # ==============================
@@ -37,4 +41,9 @@ RewriteRule ^sounds/(.*)$ public/sounds/$1 [L]
 # ==============================
 RewriteRule ^ index.php [L,QSA]
 
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>

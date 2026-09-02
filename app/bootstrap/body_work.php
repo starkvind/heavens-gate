@@ -601,7 +601,6 @@ $routes = [
 	'game_cards_lab_combat' => ['app/controllers/tool/game_cards.php', 'Combate del Archivo de MnemÃ³geno Dev Lab'],
 	'game_cards_lab_mobile' => ['app/controllers/tool/game_cards_mobile.php', 'Archivo mÃ³vil de mnemÃ³geno Dev Lab'],
 	'game_cards_lab_explanation' => ['app/controllers/tool/game_cards.php', 'ExplicaciÃ³n del Archivo de MnemÃ³geno Dev Lab'],
-	'schema_sanitizer' => ['app/controllers/tool/schema_sanitizer.php', 'Saneador de esquema'],
 
 	// Legacy aliases
 	'simulador'        => ['app/controllers/tool/combat_simulator.php', 'Simulador de Combate'],
@@ -611,7 +610,6 @@ $routes = [
 	'punts'            => ['app/controllers/tool/combat_simulator.php', 'Puntuaciones'],
 	'arms'             => ['app/controllers/tool/combat_simulator.php', 'Armas utilizadas'],
 	'sim_tournament'   => ['app/controllers/tool/combat_simulator.php', 'Torneo del Simulador'],
-	'keygen'           => ['app/tools/key_generator.php', 'Generador de claves'],
 	'crop'             => ['app/tools/crop.html', 'Recortador de imágenes'],
 	
 	// 🎼 Banda sonora
@@ -649,7 +647,7 @@ normalize_pretty_request($link, $routeKey);
 if (isset($routes[$routeKey])) {
 	[$file, $sect] = $routes[$routeKey];
 	if ($sect) $pageSect = $sect;
-	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'keygen', 'crop', 'tooltip', 'mentions', 'maps_api', 'dice_api', 'forum_avatar_api', 'chronicle_image', 'schema_sanitizer'], true)) {
+	if (in_array($routeKey, ['snippet_forum_a', 'forum_message', 'forum_diceroll', 'forum_item', 'crop', 'tooltip', 'mentions', 'maps_api', 'dice_api', 'forum_avatar_api', 'chronicle_image'], true)) {
 		$isBarePage = true;
 	}
 	include($file);

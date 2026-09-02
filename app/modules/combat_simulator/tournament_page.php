@@ -16,12 +16,10 @@ if (!function_exists('sim_tournament_h')) {
 if (!function_exists('sim_tournament_is_admin')) {
     function sim_tournament_is_admin()
     {
-        $sessionAdmin = (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
-        if ($sessionAdmin) {
-            return true;
+        if (function_exists('hg_admin_is_authenticated')) {
+            return hg_admin_is_authenticated();
         }
-        $cookieValue = isset($_COOKIE['is_admin']) ? strtoupper(trim((string)$_COOKIE['is_admin'])) : '';
-        return in_array($cookieValue, array('1', 'TRUE', 'YES', 'ON'), true);
+        return (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
     }
 }
 
@@ -540,7 +538,6 @@ if (!function_exists('sim_tournament_resolve_engine')) {
                 'armasrandom' => 'yes',
                 'protrandom' => 'yes',
                 'formarandom' => 'yes',
-                'tournament_background' => '1',
                 'tournament_id' => (string)$tournamentId,
                 'tournament_round' => (string)$round,
                 'tournament_match' => (string)$match
@@ -550,6 +547,9 @@ if (!function_exists('sim_tournament_resolve_engine')) {
             $GLOBALS['sim_last_battle_outcome'] = '';
             $GLOBALS['sim_last_battle_winner_character_id'] = 0;
 
+            if (!defined('HG_SIM_INTERNAL_TOURNAMENT_RUN')) {
+                define('HG_SIM_INTERNAL_TOURNAMENT_RUN', true);
+            }
             ob_start();
             include(__DIR__ . '/battle_result_page.php');
             ob_end_clean();

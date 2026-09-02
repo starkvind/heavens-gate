@@ -8,7 +8,9 @@ if (session_status() === PHP_SESSION_NONE) {
 $cronicaNotInSQL = sim_chronicle_not_in_sql('c.chronicle_id');
 $pageSect = "Simulador de Combate";
 $defaultForm = "Humano";
-$isSimAdmin = (!empty($_SESSION['is_admin']) || (!empty($_COOKIE['is_admin']) && in_array(strtoupper(trim((string)$_COOKIE['is_admin'])), array('1', 'TRUE', 'YES', 'ON'), true)));
+$isSimAdmin = function_exists('hg_admin_is_authenticated')
+    ? hg_admin_is_authenticated()
+    : (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
 
 if (!defined('HG_MOBILE_COMBAT_SIMULATOR')) include("app/partials/main_nav_bar.php");
 

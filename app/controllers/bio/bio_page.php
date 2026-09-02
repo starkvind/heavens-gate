@@ -289,10 +289,10 @@
 	}
 
 	function bio_page_is_admin_flag_enabled(): bool {
-		$sessionAdmin = (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
-		if ($sessionAdmin) return true;
-		$cookieValue = isset($_COOKIE['is_admin']) ? strtoupper(trim((string)$_COOKIE['is_admin'])) : '';
-		return in_array($cookieValue, ['1', 'TRUE', 'YES', 'ON'], true);
+		if (function_exists('hg_admin_is_authenticated')) {
+			return hg_admin_is_authenticated();
+		}
+		return (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
 	}
 
 	function column_exists(mysqli $link, string $table, string $column): bool {
@@ -964,18 +964,6 @@
 		});
 		$bioHasActions = !empty($bioActions);
 		$bioAttrList = $bioTraitsByType['Atributos'] ?? [];
-		$bioDebugTraitsEnabled = isset($_GET['debug_traits']) && (string)$_GET['debug_traits'] === '1';
-		if ($bioDebugTraitsEnabled && $bioIsMonster) {
-			echo "<div class='bio-debug-box'>";
-			echo "<strong>DEBUG TRAITS (monster)</strong><br>";
-			echo "system_id=" . (int)($dataResult['system_id'] ?? 0) . "<br>";
-			foreach ($bioAttrList as $ix => $t) {
-				$nm = h((string)($t['name'] ?? ''));
-				$tv = (int)($t['value'] ?? 0);
-				echo "#" . ($ix + 1) . " {$nm} (v={$tv})<br>";
-			}
-			echo "</div>";
-		}
 		$bioAttrCols = [
 			array_slice($bioAttrList, 0, 3),
 			array_slice($bioAttrList, 3, 3),

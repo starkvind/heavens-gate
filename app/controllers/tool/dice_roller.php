@@ -286,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tirada_nombre = trim((string)($_POST['tirada_nombre'] ?? ''));
     $dados = 0;
     $dificultad = (int)($_POST['dificultad'] ?? 0);
-    $debug_forced_rolls = parse_debug_rolls((string)($_POST['debug_forced_rolls'] ?? ''));
+    $debug_forced_rolls = [];
     $form_willpower_spent = isset($_POST['willpower_spent']) ? 1 : 0;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     $maxDados = 20;
@@ -333,12 +333,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dados = (int)($_POST['dados'] ?? 0);
     }
 
-    if ($mensaje_error === '' && $debug_forced_rolls === ['__invalid__']) {
-        $mensaje_error = 'Debug de tirada invalido.';
-    } elseif ($mensaje_error === '' && ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > $maxDados || $dificultad < 2 || $dificultad > 10)) {
+    if ($mensaje_error === '' && ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > $maxDados || $dificultad < 2 || $dificultad > 10)) {
         $mensaje_error = 'Parametros invalidos.';
-    } elseif ($mensaje_error === '' && !empty($debug_forced_rolls) && count($debug_forced_rolls) !== $dados) {
-        $mensaje_error = 'El debug no coincide con el numero de dados.';
     } elseif ($mensaje_error === '' && hg_strlen($nombre_jugador) > 50) {
         $mensaje_error = 'El nombre del jugador/personaje no puede superar 50 caracteres.';
     } elseif ($mensaje_error === '' && hg_strlen($tirada_nombre) > 150) {
@@ -487,7 +483,6 @@ if (!isset($_GET['see'])) {
     echo "</select></div>";
     $checkedWillpower = ($form_willpower_spent === 1) ? " checked" : "";
     echo "<div><label class='hg-dice-label' for='willpower_spent'>Reglas opcionales</label><label class='hg-dice-check'><input type='checkbox' name='willpower_spent' id='willpower_spent' value='1'{$checkedWillpower}> Gasto de Fuerza de Voluntad (+1 &Eacute;xito automatico)</label></div>";
-    echo "<input type='hidden' name='debug_forced_rolls' id='debug_forced_rolls' value=''>";
     echo "<div class='hg-dice-actions'><button class='boton2' type='submit'>Tirar</button></div>";
     echo "</form>";
     echo "<input type='hidden' id='pj_profiles_json' value='{$pjProfilesJson}'>";

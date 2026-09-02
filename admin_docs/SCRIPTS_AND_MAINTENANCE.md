@@ -31,8 +31,6 @@ Claves obligatorias para conexión:
 - `MYSQL_PWD`
 - `MYSQL_BDD`
 
-`ENCRYPTION_KEY` no es necesaria para abrir la conexión, pero sí para `app/helpers/security.php` y las herramientas que cifran o descifran secretos.
-
 ## Herramientas CLI
 
 ### `app/tools/backfill_content_updates.php`
@@ -104,12 +102,6 @@ Incluye `app/tools/inspect_db.php`.
 
 Es un explorador de esquema y salud editorial. Permite comprobar tablas, columnas, claves y ciertos indicadores de contenido. Se usa para **inspeccionar**, no como fuente de definición del esquema.
 
-### `/talim?s=admin_schema_hardening_audit`
-
-Incluye `app/tools/schema_hardening_audit.php`.
-
-Audita endurecimiento de bridges y transición de datos heredados. El mismo módulo contiene operaciones de migración soportadas, por lo que **no debe tratarse como una página de solo lectura**. Cualquier acción de escritura requiere backup y revisión previa.
-
 ### `/talim?s=admin_character_collision_audit`
 
 Auditoría editorial de colisiones de personajes entre realidades y crónicas. Forma parte del trabajo de continuidad; no modifica por sí sola el modelo de datos general.
@@ -122,21 +114,15 @@ Rutas vigentes:
 
 | Ruta | Route key | Implementación |
 |---|---|---|
-| `/tools/keygen` | `keygen` | `app/tools/key_generator.php` |
 | `/tools/crop` | `crop` | `app/tools/crop.html` |
 | `/tools/forum-topic-viewer` | `forum_topic_viewer` | controlador público + `app/tools/forum_topic_viewer_tool.php` |
-| `/tools/schema-sanitizer` | `schema_sanitizer` | `app/controllers/tool/schema_sanitizer.php` |
 | `/tools/forum-avatar` | `forum_avatar_tool` | `app/controllers/tool/forum_avatar_builder.php` |
 
 La existencia física de un fichero en `app/tools` **no implica** que tenga una URL pública.
 
-### Schema sanitizer
+### Operaciones de esquema
 
-`/tools/schema-sanitizer` normaliza determinados `pretty_id` y puede registrar redirecciones históricas en `fact_pretty_id_aliases`. Es una herramienta de mantenimiento con capacidad de escritura. Antes de usarla debe existir backup.
-
-### Generador de claves
-
-`/tools/keygen` usa `app/helpers/security.php` y `ENCRYPTION_KEY` para producir valores cifrados reversibles. No debe utilizarse como gestor de contraseñas ni sustituye `password_hash()`.
+Las operaciones que cambian estructura o realizan migraciones destructivas no se exponen como rutas web. Deben ejecutarse mediante un flujo de mantenimiento controlado y fuera del runtime público.
 
 ## Herramientas auxiliares no enrutadas
 

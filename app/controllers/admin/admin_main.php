@@ -327,9 +327,6 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_game_cards':
 					include("admin_game_cards.php");
 					break;
-				case 'admin_game_cards_seed':
-					include("admin_game_cards_seed.php");
-					break;
 				case 'admin_docs':
 					include("admin_docs.php");
 					break;
@@ -409,14 +406,8 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_resources':
 					include("admin_resources.php");
 					break;
-				case 'admin_resources_migration':
-					include("admin_resources_migration.php");
-					break;
 				case 'admin_inspect_db':
 					include(__DIR__ . "/../../tools/inspect_db.php");
-					break;
-				case 'admin_schema_hardening_audit':
-					include(__DIR__ . "/../../tools/schema_hardening_audit.php");
 					break;
 				case 'admin_mentions_help':
 					include("mentions_help.html");
@@ -546,10 +537,8 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					'summary' => 'Herramientas internas, auditorías y utilidades de administración.',
 					'items' => [
 						['href' => '/talim?s=admin_menu', 'label' => 'Editar Menú', 'keywords' => ['menu']],
-						['href' => '/talim?s=admin_schema_hardening_audit', 'label' => 'Evaluar schema', 'keywords' => ['schema', 'audit']],
 						['href' => '/talim?s=admin_inspect_db', 'label' => 'Inspeccionar BDD', 'keywords' => ['db', 'bdd']],
 						['href' => '/talim?s=admin_mentions_help', 'label' => 'Ayuda Mentions', 'keywords' => ['mentions', 'ayuda']],
-						['href' => '/app/tools/forum_resumee_builder.html', 'label' => 'Builder resumen foro', 'keywords' => ['foro', 'resumen'], 'new_tab' => true],
 						['href' => '/talim?s=admin_season_order_schema', 'label' => 'Schema orden temporadas', 'keywords' => ['schema', 'temporadas']],
 						['href' => '/talim?s=logout', 'label' => 'Cerrar sesión', 'keywords' => ['logout', 'salir']],
 					],
