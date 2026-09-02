@@ -232,22 +232,9 @@ Estas tablas permiten reutilizar detalles entre sistemas sin duplicar catálogos
 
 ## 8. Backend administrativo
 
-Entrada:
+La aplicación dispone de un backend editorial autenticado. Las rutas privilegiadas, el inventario completo de módulos y los procedimientos operativos no se documentan en detalle en el repositorio público.
 
-`/talim`
-
-Dispatcher:
-
-`app/controllers/admin/admin_main.php`
-
-El backend actual incluye módulos para personajes, jugadores, crónicas, realidades, temporadas, capítulos, timeline, organizaciones, grupos, mapas, documentos, enlaces, BSO, sistemas, recursos, rasgos, formas, poderes, cartas y auditorías.
-
-Mutaciones AJAX deben apoyarse en:
-
-- `app/helpers/admin_auth.php`;
-- `app/helpers/admin_ajax.php`.
-
-Véase [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md).
+Las mutaciones administrativas deben utilizar los helpers compartidos de autenticación y CSRF. El acceso administrativo usa sesiones endurecidas, caducidad y limitación de intentos de login.
 
 ## 9. Herramientas y mantenimiento
 
@@ -258,7 +245,6 @@ Herramientas existentes:
 - `tools/scaffold_section.py`;
 - `tools/seed_game_cards.php`;
 - `app/tools/backfill_content_updates.php`;
-- `app/tools/inspect_db.php`, integrado en admin;
 - `app/tools/schema_hardening_audit.php`, integrado en admin;
 - `sql/audit_gaia0_content.sql`.
 
