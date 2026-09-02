@@ -1,708 +1,303 @@
-# Technical Documentation - Heaven's Gate 5.0
+# Technical Documentation — Heaven's Gate
 
-## 1. Proposito
+Última revisión: 2026-09-02.
 
-Este documento describe el estado tecnico real del proyecto despues de la actualizacion 5.0. El objetivo es que cualquier mantenimiento futuro parta del codigo y del dump vigentes, no de supuestos heredados.
+## 1. Alcance y fuentes
 
-Se ha contrastado con:
+Este documento describe el **runtime actual** del repositorio `starkvind/heavens-gate`. Se ha contrastado con el código de `master` y con el snapshot de producción del 1 de septiembre de 2026 conservado en `starkvind/heavens-gate-continuity`.
 
-- `dump-u807926597_hg-202604262235.sql`
-- `app/tools/install_schema_from_dump.php`
-- `app/tools/schema_definition.php`
-- `app/tools/schema_hardening_audit.php`
-- `.htaccess`
+Fuentes principales:
+
 - `index.php`
+- `.htaccess`
+- `app/bootstrap/request_router.php`
 - `app/bootstrap/body_work.php`
-- `app/controllers/admin/admin_main.php`
-- `app/controllers/admin/admin_map_kmz_import.php`
-- `app/controllers/maps/maps_main.php`
-- `app/controllers/maps/maps_api.php`
 - `app/helpers/db_connection.php`
-- `app/helpers/maps.php`
 - `app/helpers/pretty.php`
 - `app/helpers/admin_auth.php`
-- `app/helpers/public_response.php`
-- `app/helpers/runtime_response.php`
+- `app/helpers/admin_ajax.php`
+- `app/controllers/admin/admin_main.php`
+- `production-2026-09-01.sql`
 
-Snapshot actual del esquema:
+La documentación anterior a esta revisión contenía referencias a herramientas ya retiradas. No deben considerarse parte del sistema actual.
 
-- 91 tablas
-- 34 tablas `dim_*`
-- 28 tablas `fact_*`
-- 29 tablas `bridge_*`
-- 3 vistas del simulador:
-  - `vw_sim_characters`
-  - `vw_sim_forms`
-  - `vw_sim_items`
+## 2. Arquitectura de request
 
-Matiz importante del estado actual:
+Flujo público:
 
-- `app/tools/schema_definition.php` sigue declarando `generated_from = dump-u807926597_hg-202604031114.sql`
-- ese metadata ya no coincide con el dump mas reciente presente en la raiz
-- a nivel estructural, el unico desfase confirmado hoy entre dump y definicion embebida es `fact_pretty_id_aliases`
+1. Apache aplica `.htaccess`.
+2. Los ficheros y directorios existentes se sirven directamente, salvo zonas bloqueadas.
+3. El resto entra en `index.php`.
+4. `index.php` abre la conexión y ejecuta `hg_request_router_bootstrap()`.
+5. `app/bootstrap/request_router.php`:
+   - normaliza la URL;
+   - redirige rutas legacy;
+   - convierte rutas amigables en parámetros internos;
+   - resuelve slugs mediante `pretty_id`.
+6. `index.php` decide si debe usarse la presentación móvil.
+7. `app/bootstrap/body_work.php` asigna el route key a un controlador.
+8. El controlador renderiza contenido completo o salida bare.
+9. Si la página no es bare, `index.php` la integra en el layout común.
 
-## 2. Arquitectura general
+`app/` no es una superficie web pública. Las herramientas accesibles desde navegador deben tener una ruta explícita.
 
-HeavensGate sigue siendo una aplicacion PHP clasica con un unico front controller.
+## 3. Configuración y conexión
 
-Flujo de una request publica:
-
-1. El servidor recibe la URL y aplica `.htaccess`.
-2. La ruta amigable se reescribe a `index.php?p=...`.
-3. `index.php` carga bootstrap, conexion y layout base.
-4. `app/bootstrap/body_work.php` resuelve `p`, normaliza slugs y decide el controlador fisico.
-5. El controlador consulta la BDD y renderiza HTML completo o salida bare.
-6. Si la ruta es bare/AJAX, se devuelve solo el contenido. Si no, `index.php` envuelve la salida con el layout comun.
-
-Piezas clave:
-
-- `index.php`: front controller publico
-- `.htaccess`: routing, redirecciones legacy, bloqueos de seguridad y fallback
-- `app/bootstrap/body_work.php`: dispatch real entre `p=` y fichero fisico
-- `app/bootstrap/head_work.php`: ensamblado del `head`
-- `app/helpers/db_connection.php`: conexion robusta e idempotente
-- `app/helpers/pretty.php`: resolucion y normalizacion de `pretty_id`
-
-## 3. Configuracion y arranque
-
-### 3.1 `config.env`
-
-Variables esperadas:
+`app/helpers/db_connection.php` requiere:
 
 - `MYSQL_HOST`
 - `MYSQL_USER`
 - `MYSQL_PWD`
 - `MYSQL_BDD`
-- `ENCRYPTION_KEY`
 
-Resolucion actual de `config.env`:
+Busca `config.env` en:
 
-1. directorio padre del repositorio
-2. raiz del repositorio
-3. ubicacion legacy bajo `app/`
+1. padre de la raíz del proyecto;
+2. raíz del proyecto;
+3. ubicación legacy bajo `app/`.
 
-Recomendacion:
+La conexión se reutiliza dentro de la request si sigue viva y fuerza `utf8mb4`.
 
-- mantener `config.env` fuera del document root siempre que sea posible.
+`app/helpers/security.php` añade `ENCRYPTION_KEY` para cifrado reversible AES-256-CBC. Este mecanismo es de compatibilidad/secretos; no sustituye el hashing de contraseñas.
 
-### 3.2 Conexion y fallos de arranque
+## 4. Seguridad web
 
-`app/helpers/db_connection.php` ya no intenta reconectar sin control dentro de la misma request. Si `$link` ya existe y sigue vivo, reutiliza la conexion.
+`.htaccess` bloquea expresamente:
 
-Si falta configuracion o falla la conexion:
+- repositorios ocultos;
+- `config.env` y ficheros de entorno;
+- `/app`;
+- `/admin_docs`;
+- dumps SQL;
+- documentación técnica servida directamente;
+- otros artefactos de desarrollo.
 
-- se registra el error con `hg_runtime_log_error()`
-- se muestra una respuesta controlada via `app/helpers/runtime_response.php`
-- no se exponen errores crudos de MariaDB al usuario final
+`Options -Indexes` evita listados de directorio.
 
-### 3.3 Password admin
+Los errores de conexión y runtime pasan por `app/helpers/runtime_response.php`. La capa pública debe evitar SQL y stack traces crudos.
 
-El valor `rel_pwd` vive en `dim_web_configuration`.
+## 5. Routing
 
-Politica actual:
+`request_router.php` contiene:
 
-- instalaciones nuevas pueden sembrarlo con hash usando `--admin-password`
-- `admin_login.php` soporta hash moderno y compatibilidad con valores legacy
-- en login correcto se puede migrar automaticamente a `password_hash()`
-- `ENCRYPTION_KEY` se conserva por compatibilidad con secretos antiguos
+- mapeo de route keys legacy a URLs canónicas;
+- rutas estáticas;
+- rutas regex para entidades con slug;
+- redirecciones históricas;
+- resolución de `pretty_id`.
 
-## 4. Routing y puntos de entrada
+Ejemplos canónicos:
 
-### 4.1 Publico
+- `/characters/{slug}`
+- `/characters/worlds/{slug}`
+- `/chronicles/{slug}`
+- `/seasons/{slug}`
+- `/chapters/{slug}`
+- `/organizations/{slug}`
+- `/groups/{slug}`
+- `/players/{slug}`
+- `/timeline/event/{slug}`
+- `/maps/poi/{slug}`
+- `/systems/{slug}`
+- `/powers/gift/{slug}`
+- `/powers/rite/{slug}`
+- `/powers/totem/{slug}`
+- `/powers/discipline/{slug}`
 
-Rutas canonicas importantes:
+Los joins internos deben usar `id`. `pretty_id` es la identidad pública de URL.
 
-- `/timeline` -> `index.php?p=timeline` -> `app/controllers/main/events_main.php`
-- `/timeline/event/{slug}` -> `index.php?p=timeline_event&t={slug}` -> `app/controllers/main/events_page.php`
-- `/players/{slug}` -> `index.php?p=seeplayer&b={slug}` -> `app/controllers/playr/playr_page.php`
-- `/chronicles/{slug}` -> `index.php?p=chronicles&t={slug}`
-- `/music` -> `index.php?p=ost` -> `app/controllers/ost/bso_main.php`
-- `/maps/api` -> `index.php?p=maps_api`
-- `/ajax/tooltip` -> `index.php?p=tooltip`
-- `/ajax/mentions` -> `index.php?p=mentions`
-- `/ajax/epis` -> `index.php?p=mentions&type=episode`
+`app/helpers/pretty.php` mantiene resolución de aliases históricos mediante `fact_pretty_id_aliases`.
 
-### 4.2 Backend admin
+## 6. Modelo de datos
 
-Entrada administrativa:
+La base de producción revisada contiene **119 tablas**:
 
-- `/talim`
+- 43 `dim_*`;
+- 36 `fact_*`;
+- 39 `bridge_*`;
+- `admin_webp_image_migration_backup`.
 
-Router admin:
+Además contiene:
 
-- `app/controllers/admin/admin_main.php`
+- `vw_game_card_collection`;
+- `vw_sim_characters`;
+- `vw_sim_forms`;
+- `vw_sim_items`;
+- procedimiento `audit_signed_id_columns()`.
 
-Ese controlador ya integra los modulos nuevos de 5.0 y varias utilidades operativas actuales:
+Convención general:
 
-- `admin_chronicles`
-- `admin_realities`
-- `admin_players`
-- `admin_bso`
-- `admin_bso_link`
-- `admin_birthdays_quick`
-- `admin_map_kmz_import`
-- `admin_schema_initializer`
-- `admin_schema_hardening_audit`
-- `admin_inspect_db`
+- `dim_*`: catálogos y entidades maestras;
+- `fact_*`: contenido o hechos;
+- `bridge_*`: relaciones N:M;
+- tablas `admin_*`: auxiliares operativas/migración.
 
-### 4.3 Rutas bare o especialmente utiles para automatizacion
+Véase [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
 
-Segun `body_work.php`, estas rutas se sirven sin layout completo:
+## 7. Hubs narrativos
 
-- `forum_message`
-- `forum_diceroll`
-- `forum_item`
-- `keygen`
-- `crop`
-- `tooltip`
-- `mentions`
-- `maps_api`
-- `chronicle_image`
-- `schema_sanitizer`
+### Personajes
 
-Para integraciones internas esto es relevante porque son los puntos mas cercanos a una respuesta utilitaria o parcial.
+`fact_characters` es el hub principal.
 
-### 4.4 Restriccion deliberada sobre `app/` y patron para tools temporales
+FK directas relevantes:
 
-El proyecto bloquea por `.htaccess` cualquier acceso web directo a `app/`.
+- `chronicle_id` → `dim_chronicles`;
+- `reality_id` → `dim_realities`;
+- `player_id` → `dim_players`;
+- `system_id` → `dim_systems`;
+- `totem_id` → `dim_totems`;
+- `status_id` → `dim_character_status`.
 
-Regla relevante:
+El personaje conserva muchos vínculos N:M en `bridge_characters_*`.
 
-- `RewriteRule ^app(?:/|$) index.php?p=error404 [L,NC,QSA]`
-
-Consecuencia practica:
-
-- cualquier fichero nuevo creado bajo `app/tools/` o `app/controllers/` no debe asumirse accesible por URL directa
-- si una tool temporal necesita abrirse desde navegador, debe cablearse por el front controller
-
-Patron vigente para exponer una tool web temporal:
-
-1. crear el fichero real en `app/tools/` o `app/controllers/tool/`
-2. dar de alta un `routeKey` en `app/bootstrap/body_work.php`
-3. si la salida debe renderizar HTML propio, marcar la ruta como bare
-4. anadir una regla amigable en `.htaccess` dentro del bloque `^tools/...`
-5. documentar expresamente que la ruta es temporal y candidata a borrado al cierre de fase
-
-Estado actual:
-
-- existe una tool operativa de saneado expuesta por front controller en `/tools/schema-sanitizer`
-- hay utilidades administrativas embebidas en `/talim?s=admin_schema_initializer`, `/talim?s=admin_schema_hardening_audit` y `/talim?s=admin_inspect_db`
-- cualquier tool futura de este tipo debe desmontarse al cerrar la tanda para no dejar rutas tecnicas expuestas innecesariamente
-
-Checklist de desmontaje al cerrar la fase:
-
-- borrar el fichero temporal de la tool
-- retirar la regla temporal correspondiente de `.htaccess`
-- retirar su `routeKey` temporal del router en `app/bootstrap/body_work.php`
-- retirar el flag bare asociado si ya no lo usa ninguna otra ruta
-- actualizar `WEB_MEJORAS_IMPLEMENTADAS.txt` para dejar constancia del borrado
-
-## 5. Modelo de datos actual
-
-### 5.1 Convenciones
-
-- `dim_*`: catalogos, taxonomias y entidades maestras
-- `fact_*`: contenido principal o hechos narrativos/operativos
-- `bridge_*`: relaciones N:M y enlaces derivados
-
-La navegacion publica se apoya en `pretty_id`, pero las relaciones internas siguen usando `id`.
-
-### 5.2 Hubs principales
-
-#### Personajes
-
-Tabla central:
-
-- `fact_characters`
-
-Relaciona, entre otros, con:
+### Crónicas, temporadas y capítulos
 
 - `dim_chronicles`
-- `dim_realities`
-- `dim_players`
+- `dim_seasons.chronicle_id`
+- `dim_chapters.season_id`
+
+Una temporada no guarda una columna de realidad. Las realidades de temporada se derivan de los eventos asociados a sus capítulos.
+
+Una crónica tampoco debe asumirse unívocamente ligada a una sola realidad por columna propia; el análisis multiversal debe derivarse del contenido/eventos asociados.
+
+### Realidades
+
+`dim_realities` contiene el catálogo.
+
+Los personajes tienen `reality_id` directo.
+
+Los eventos se relacionan mediante `bridge_timeline_events_realities`.
+
+### Timeline
+
+Hub:
+
+`fact_timeline_events`
+
+Campos importantes:
+
+- `event_date`;
+- `date_precision`;
+- `date_note`;
+- `sort_date`;
+- `event_type_id`;
+- `location`;
+- `source`;
+- `timeline`, marcado como legacy.
+
+Bridges:
+
+- `bridge_timeline_events_characters`;
+- `bridge_timeline_events_chapters`;
+- `bridge_timeline_events_chronicles`;
+- `bridge_timeline_events_realities`;
+- `bridge_timeline_links`.
+
+Los bridges usan `event_id`.
+
+### Organizaciones y grupos
+
+- `dim_organizations`
+- `dim_groups`
+- `bridge_organizations_groups`
+- `bridge_characters_groups`
+- `bridge_characters_organizations`
+- `bridge_characters_org`
+
+Existen capas históricas/canónicas que conviven en afiliaciones. Antes de consolidar tablas o eliminar un bridge, revisar consumidores reales y los manifiestos de migración.
+
+### Sistemas y reglas
+
+Catálogos:
+
 - `dim_systems`
 - `dim_breeds`
 - `dim_auspices`
 - `dim_tribes`
-- `dim_character_status`
-
-La ficha publica y muchas vistas derivadas dependen tambien de varias tablas `bridge_characters_*`.
-
-#### Cronicas
-
-Tabla:
-
-- `dim_chronicles`
-
-En el dump actual tiene:
-
-- `pretty_id` unico y no nulo
-- `sort_order`
-- `name`
-- `image_url`
-- `description`
-- timestamps
-
-Dependencias funcionales relevantes:
-
-- `fact_characters.chronicle_id`
-- `bridge_timeline_events_chronicles.chronicle_id`
-- `dim_seasons.chronicle_id`
-
-#### Realidades
-
-Tabla:
-
-- `dim_realities`
-
-En el dump actual tiene:
-
-- `pretty_id` unico y nullable
-- `name`
-- `description`
-- `is_active`
-- timestamps
-
-Dependencias funcionales:
-
-- `fact_characters.reality_id`
-- `bridge_timeline_events_realities.reality_id`
-
-#### Jugadores
-
-Tabla:
-
-- `dim_players`
-
-En el dump actual tiene:
-
-- `pretty_id` unico y nullable
-- `name`
-- `surname`
-- `show_in_catalog`
-- `picture`
-- `description`
-- timestamps
-
-Dependencia principal:
-
-- `fact_characters.player_id`
-
-#### Timeline
-
-Tablas principales:
-
-- `fact_timeline_events`
-- `dim_timeline_events_types`
-- `bridge_timeline_events_characters`
-- `bridge_timeline_events_chapters`
-- `bridge_timeline_events_chronicles`
-- `bridge_timeline_events_realities`
-
-Campos importantes observados en `fact_timeline_events`:
-
-- `pretty_id`
-- `event_date`
-- `date_precision`
-- `date_note`
-- `sort_date`
-- `title`
-- `description`
-- `event_type_id`
-- `is_active`
-- `location`
-- `source`
-- `timeline` como campo legacy de apoyo
-
-Importante para no documentar mal el estado 5.0:
-
-- los puentes actuales usan `event_id`, no `timeline_event_id`
-- el dump vigente no debe tratarse como si mantuviera una columna `kind` operativa en `fact_timeline_events`
-
-#### Soundtrack / BSO
-
-Tablas:
-
-- `dim_soundtracks`
-- `bridge_soundtrack_links`
-
-En el dump actual:
-
-- `dim_soundtracks` usa `title`, `artist`, `youtube_url`, `context_title`, `added_at`
-- no debe asumirse `pretty_id` en `dim_soundtracks`
-- `bridge_soundtrack_links` usa:
-  - `soundtrack_id`
-  - `object_type` con valores `personaje`, `temporada`, `episodio`
-  - `object_id`
-
-El esquema actual ya incorpora endurecimiento seguro en este puente:
-
-- `UNIQUE (soundtrack_id, object_type, object_id)`
-- indice `idx_bsl_object_lookup (object_type, object_id)`
-
-#### Mapas
-
-Tablas:
-
-- `dim_maps`
-- `dim_map_categories`
-- `fact_map_pois`
-- `fact_map_areas`
-
-Estado funcional actual:
-
-- `dim_maps` define centro, bounds, zoom y `default_tile` por mapa
-- `dim_map_categories` centraliza nombre, color y orden editorial
-- `fact_map_pois` ya trabaja con esquema moderno por `map_id` y `category_id`, pero `app/helpers/maps.php` conserva compatibilidad con instalaciones legacy basadas en texto
-- `fact_map_areas` almacena overlays poligonales serializados como GeoJSON para render publico
-
-#### Aliases historicos de `pretty_id`
-
-Tabla:
-
-- `fact_pretty_id_aliases`
-
-Uso actual:
-
-- `app/helpers/pretty.php` resuelve slugs antiguos por `table_name` + `old_pretty_id`
-- `app/controllers/tool/schema_sanitizer.php` puede sembrar y mantener aliases al normalizar slugs
-- el dump actual la incluye, pero `schema_definition.php` no la declara hoy
-
-### 5.3 Politica actual de `pretty_id`
-
-Reglas editoriales consolidadas en 5.0:
-
-- `dim_chronicles`: se genera y persiste a partir del nombre
-- `dim_realities`: se trata como slug manual/editorial en admin
-- `dim_players`: puede ser manual; en alta se admite generacion por defecto si hace falta
-- en enlaces publicos debe preferirse siempre `pretty_id`
-- en consultas internas o joins debe seguir usandose `id`
-
-El helper base para esta logica es `app/helpers/pretty.php`.
-
-## 6. Capa publica
-
-### 6.1 Timeline 5.0
-
-Controladores:
-
-- `app/controllers/main/events_main.php`
-- `app/controllers/main/events_page.php`
-
-Comportamiento actual:
-
-- listado principal con filtro por tipo, cronica y busqueda
-- ECharts en frontend
-- DataTables cuando esta disponible
-- detalle de evento con personajes, capitulos, cronicas y realidades relacionadas
-- el filtro/section de realidades esta preparado pero oculto por defecto para controlar spoilers
-
-### 6.2 Jugadores
-
-Controladores:
-
-- `app/controllers/playr/playr_list.php`
-- `app/controllers/playr/playr_page.php`
-
-Comportamiento actual:
-
-- el listado respeta `show_in_catalog`
-- el filtrado tambien tiene en cuenta cronicas excluidas desde configuracion web
-
-### 6.3 Soundtrack publico
-
-Controlador:
-
-- `app/controllers/ost/bso_main.php`
-
-Mejoras relevantes:
-
-- normalizacion de URLs de YouTube
-- soporte `youtu.be`
-- embed via `youtube-nocookie`
-- degradacion segura si el enlace no es valido
-
-### 6.4 Mapas publicos
-
-Controladores y helper:
-
-- `app/controllers/maps/maps_main.php`
-- `app/controllers/maps/maps_api.php`
-- `app/helpers/maps.php`
-
-Comportamiento actual:
-
-- seleccion de mapa por slug, nombre o id
-- soporte de mapas globales `gaia-1` y `gaia-2` con overlay opcional de POIs de otros mapas y exclusion cruzada para evitar solapes
-- `/maps/api` expone acciones JSON `search` y `areas`
-- renderiza POIs y areas con Leaflet + MarkerCluster
-- tolera tanto el esquema moderno (`dim_maps`, `dim_map_categories`, `fact_map_areas`) como variantes legacy de `fact_map_pois`
-
-### 6.5 Respuestas publicas seguras
-
-Helper comun:
-
-- `app/helpers/public_response.php`
-
-Patron ya extendido por muchas secciones publicas:
-
-- log del error real en servidor
-- mensaje limpio al usuario
-- `404` publico controlado cuando el recurso no existe
-- sin `die()` ni texto SQL crudo en pagina
-
-## 7. Backend admin
-
-### 7.1 Seguridad y contrato AJAX
-
-Helpers base:
-
-- `app/helpers/admin_auth.php`
-- `app/helpers/admin_ajax.php`
-
-Capacidades clave:
-
-- sesion admin con cookie endurecida
-- `session.use_strict_mode`
-- regeneracion de `session_id` al autenticar
-- logout centralizado
-- CSRF por modulo
-- contrato JSON comun con claves `ok`, `message`, `msg`, `data`, `errors`, `meta`
-- `403` JSON cuando una llamada AJAX no esta autorizada
-
-### 7.2 Modulos 5.0 relevantes
-
-#### `admin_chronicles`
-
-- CRUD completo de cronicas
-- subida de imagen a `public/img/chronicles`
-- guardas de borrado por personajes, timeline y temporadas
-- persistencia segura de `pretty_id`
-
-#### `admin_realities`
-
-- CRUD completo de realidades
-- `pretty_id` obligatorio y editorial
-- soporte `is_active`
-- guardas de borrado por personajes y timeline
-- resumen visual de revision/auditoria
-
-#### `admin_players`
-
-- CRUD completo de jugadores
-- soporte `show_in_catalog`
-- soporte `picture`
-- guardas de borrado por personajes
-- `pretty_id` editable y visible en admin
-
-#### `admin_birthdays_quick`
-
-- edicion rapida de `birthdate_text`
-- crea o actualiza eventos de nacimiento en `fact_timeline_events`
-- asegura el puente en `bridge_timeline_events_characters`
-
-#### `admin_bso`
-
-- catalogo CRUD real de soundtracks
-- normalizacion de YouTube
-- visibilidad de usos por personajes, temporadas y episodios
-- filtros de auditoria y estado
-
-#### `admin_bso_link`
-
-- gestor relacional de `bridge_soundtrack_links`
-- alta y borrado de vinculos
-- deteccion de duplicados y estados inconsistentes
-- acceso rapido al destino publico cuando existe slug
-
-#### `admin_map_kmz_import`
-
-- importa `.kmz` o `.kml` exportados de Google My Maps
-- puede crear un `dim_maps` nuevo o reutilizar uno existente
-- inserta POIs en `fact_map_pois` y areas en `fact_map_areas`
-- requiere categorias previas en `dim_map_categories`
-- usa `ZipArchive` cuando esta disponible y puede degradar a `unzip`/`tar` si existen en el host
-
-#### `admin_systems_extra_details`
-
-- editor compacto para vincular detalles de otros sistemas al sistema seleccionado
-- trabaja sobre:
-  - `bridge_systems_ex_races`
-  - `bridge_systems_ex_auspices`
-  - `bridge_systems_ex_tribes`
-- no altera los catalogos base `dim_breeds`, `dim_auspices` o `dim_tribes`
-- UI centrada en seleccion por desplegable y chips removibles
-- muestra el sistema de origen de cada detalle vinculado para evitar ambiguedades
-
-### 7.3 Detalles extra por sistema
-
-Objetivo:
-
-- permitir que un sistema reutilice Razas, Auspicios o Tribus definidas originalmente en otro sistema sin duplicar filas del catalogo
-
-Tablas implicadas:
+- `dim_forms`
+- `dim_traits`
+- `dim_systems_resources`
+
+Relaciones extra:
 
 - `bridge_systems_ex_races`
 - `bridge_systems_ex_auspices`
 - `bridge_systems_ex_tribes`
+- `bridge_systems_detail_labels`
+- `bridge_systems_resources_to_system`
+- `bridge_systems_form_icons`
 
-Estructura funcional comun:
+Estas tablas permiten reutilizar detalles entre sistemas sin duplicar catálogos.
 
-- `system_id`: sistema destino
-- FK al detalle origen:
-  - `race_id` o `breed_id` en razas, segun instalacion
-  - `auspice_id`
-  - `tribe_id`
-- `is_active` cuando la tabla lo soporta
+## 8. Backend administrativo
 
-Punto de entrada admin:
+Entrada:
 
-- `/talim?s=admin_systems_extra_details`
+`/talim`
 
-Comportamiento:
+Dispatcher:
 
-- seleccion de sistema destino
-- alta por desplegable filtrado para evitar mostrar los detalles ya nativos del mismo sistema base
-- visualizacion compacta de vinculados mediante chips
-- borrado rapido desde cada chip
-- persistencia transaccional por bloque completo
+`app/controllers/admin/admin_main.php`
 
-### 7.4 Helpers de soporte creados o consolidados
+El backend actual incluye módulos para personajes, jugadores, crónicas, realidades, temporadas, capítulos, timeline, organizaciones, grupos, mapas, documentos, enlaces, BSO, sistemas, recursos, rasgos, formas, poderes, cartas y auditorías.
 
-- `app/helpers/admin_catalog_utils.php`
-- `app/helpers/admin_uploads.php`
-- `app/helpers/pretty.php`
+Mutaciones AJAX deben apoyarse en:
 
-## 8. Provisioning y mantenimiento
+- `app/helpers/admin_auth.php`;
+- `app/helpers/admin_ajax.php`.
 
-### 8.1 Instalacion desde dump
+Véase [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md).
 
-Script:
+## 9. Herramientas y mantenimiento
 
-- `app/tools/install_schema_from_dump.php`
+No existe actualmente un flujo canónico de “instalar el esquema desde un dump” dentro de este repo.
 
-Puntos importantes:
+Herramientas existentes:
 
-- solo CLI
-- si no se pasa `--dump`, intenta usar el `dump-*.sql` mas reciente de la raiz
-- crea BDD, tablas y vistas finales
-- si se pide, siembra `rel_pwd` con hash
-- evita restaurar secretos de produccion por defecto
+- `tools/scaffold_section.py`;
+- `tools/seed_game_cards.php`;
+- `app/tools/backfill_content_updates.php`;
+- `app/tools/inspect_db.php`, integrado en admin;
+- `app/tools/schema_hardening_audit.php`, integrado en admin;
+- `sql/audit_gaia0_content.sql`.
 
-Uso base:
+Las antiguas referencias a `install_schema_from_dump.php`, `schema_definition.php`, `schema_initializer.php` y `admin_schema_initializer` están retiradas.
 
-```bash
-php app/tools/install_schema_from_dump.php --database=hg
-```
+Véase [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md).
 
-Dry run:
+## 10. Añadir secciones
 
-```bash
-php app/tools/install_schema_from_dump.php --database=hg --dry-run=1
-```
+Para páginas públicas simples usar `tools/scaffold_section.py` con `--dry-run`.
 
-### 8.2 Endurecimiento acotado de esquema
+El script modifica router y dispatcher, y opcionalmente CSS y menú fallback.
 
-Script y entrada admin:
+No sirve para rutas de entidad o APIs.
 
-- `app/tools/schema_hardening_audit.php`
-- `/talim?s=admin_schema_hardening_audit`
+Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
-Objetivo:
+## 11. Archivo de Mnemógeno
 
-- auditar que bridges todavia mantienen `id` artificial y cuales ya son candidatos a PK compuesta
-- medir si `birthdate_text` ya puede retirarse a favor de `fact_timeline_events`
-- ofrecer migraciones puntuales solo en los bridges soportados expresamente por la herramienta
+El juego de cartas utiliza un runtime JS modular, no un único fichero monolítico.
 
-### 8.3 Inicializador de esquema embebido
+- catálogo: `fact_game_card_collection`;
+- reglas: tablas `dim_game_card_*` y `fact_game_card_*`;
+- APIs: `/api/game_cards.php` y `/api/game_card_rules.php`;
+- progreso de usuario: `localStorage`;
+- runtime modular: `assets/js/card-game/*`.
 
-Scripts y puntos de entrada:
+Véase [CARD_GAME.md](./CARD_GAME.md).
 
-- `app/tools/schema_definition.php`
-- `app/tools/schema_initializer.php`
-- `app/controllers/admin/admin_schema_initializer.php`
+## 12. Política documental
 
-Objetivo:
+Cuando cambie código o esquema:
 
-- no depender del dump en runtime
-- comparar la base de datos actual contra una definicion PHP embebida del esquema
-- detectar y reparar tablas, columnas, indices, claves foraneas, vistas y configuracion segura faltantes
+1. actualizar primero el documento especializado;
+2. actualizar este mapa si cambia arquitectura general;
+3. no convertir informes fechados en documentación viva;
+4. marcar expresamente las notas históricas;
+5. no copiar dumps completos dentro de `admin_docs`;
+6. registrar la fecha y la fuente de cualquier recuento de tablas.
 
-Modos de uso:
+La referencia de esquema actual está fechada. Si producción cambia, debe regenerarse [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) desde un snapshot nuevo.
 
-- CLI dry-run:
-
-```bash
-php app/tools/schema_initializer.php
-```
-
-- CLI apply:
-
-```bash
-php app/tools/schema_initializer.php --apply
-```
-
-- Admin web:
-  - `/talim?s=admin_schema_initializer`
-
-Alcance actual:
-
-- crea tablas completas cuando faltan
-- agrega columnas faltantes en tablas existentes
-- agrega indices y claves foraneas faltantes cuando no existen por nombre o firma equivalente
-- crea vistas finales faltantes
-- si `dim_web_configuration` existe, siembra la configuracion segura base que falte
-
-Limites deliberados:
-
-- no intenta borrar columnas, indices o FKs extra
-- no reescribe una definicion existente si ya hay una variante funcional
-- no sustituye una migracion editorial o de datos cuando el problema no es estructural sino semantico
-
-Desfase conocido hoy entre artefactos:
-
-- `schema_definition.php` sigue anclado al snapshot `2026-04-03`
-- el dump mas reciente del repo es `dump-u807926597_hg-202604262235.sql`
-- comparando ambos, el dump actual incluye `fact_pretty_id_aliases` y la definicion embebida no
-- en esta fecha ya no se observan tablas declaradas solo en `schema_definition.php` y ausentes del dump actual
-- por tanto, el inicializador embebido esta mucho mas cerca del dump vigente que en snapshots anteriores, pero el provisionamiento canonico completo sigue siendo el dump actual
-
-### 8.4 Herramientas de soporte revisadas en esta tanda
-
-Tambien se han alineado con el runtime actual:
-
-- `app/controllers/tool/schema_sanitizer.php`
-- `app/tools/inspect_db.php`
-- `app/tools/forum_topic_viewer_tool.php`
-
-Notas importantes tras el saneado:
-
-- `nature_id` y `demeanor_id` en `fact_characters` ya son opcionales reales y el valor canonico cuando no aplica es `NULL`, no `0`
-- la politica de `pretty_id` ya no consiste en regenerar slugs en bruto: ahora el runtime resuelve aliases historicos en `fact_pretty_id_aliases`
-- `app/tools/generate_pretty_ids.php` queda como legado retirado; no es la via valida para normalizar slugs ni para preservar URLs antiguas
-- la via operativa para saneados estructurales y editoriales de bajo riesgo es `/tools/schema-sanitizer`
-- `app/tools/inspect_db.php` ahora incluye una lectura de salud, auditoria ligera de vacios fingidos, clasificacion de `birthdate_text` y revision editorial localizada
-
-## 9. Seguridad y hardening operativo
-
-Blindajes ya activos:
-
-- `.htaccess` bloquea acceso HTTP directo a `app/`, dumps, docs markdown y secretos
-- `db_connection.php` falla con pantalla controlada, no con warning crudo
-- `public_response.php` y `runtime_response.php` centralizan el tratamiento de errores visibles
-- muchas rutas publicas y admin dejaron de exponer mensajes SQL al usuario
-- se han eliminado varios patrones de borrado destructivo por GET en admin
-
-Si se despliega en un servidor que no respeta `.htaccess`, esos bloqueos deben replicarse manualmente.
-
-## 10. Checklist rapido para futuras tandas
-
-Antes de documentar o tocar datos, asumir siempre:
-
-1. el dump de referencia actual es `dump-u807926597_hg-202604262235.sql`
-2. `app/tools/schema_definition.php` sigue sin coincidir 1:1 con ese dump porque no declara `fact_pretty_id_aliases`, y no debe tratarse como snapshot canonico del esquema
-3. el routing real sale de `.htaccess` y `app/bootstrap/body_work.php`
-4. la politica de `pretty_id` pasa por slugs canonicos + aliases historicos; no usar `generate_pretty_ids.php` como herramienta operativa
-5. la pila de mapas actual usa `dim_maps`, `dim_map_categories`, `fact_map_pois`, `fact_map_areas` y `/maps/api` con acciones JSON `search` y `areas`
-6. `dim_soundtracks` y `bridge_soundtrack_links` tienen reglas especiales respecto a slugs e integridad
-7. cualquier guia antigua que cite rutas de timeline bajo `app/controllers/timeline/` esta desfasada
