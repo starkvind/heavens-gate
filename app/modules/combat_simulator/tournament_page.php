@@ -16,12 +16,10 @@ if (!function_exists('sim_tournament_h')) {
 if (!function_exists('sim_tournament_is_admin')) {
     function sim_tournament_is_admin()
     {
-        $sessionAdmin = (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
-        if ($sessionAdmin) {
-            return true;
+        if (function_exists('hg_admin_is_authenticated')) {
+            return hg_admin_is_authenticated();
         }
-        $cookieValue = isset($_COOKIE['is_admin']) ? strtoupper(trim((string)$_COOKIE['is_admin'])) : '';
-        return in_array($cookieValue, array('1', 'TRUE', 'YES', 'ON'), true);
+        return (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
     }
 }
 
