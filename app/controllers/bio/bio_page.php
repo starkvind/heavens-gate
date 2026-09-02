@@ -289,10 +289,10 @@
 	}
 
 	function bio_page_is_admin_flag_enabled(): bool {
-		$sessionAdmin = (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
-		if ($sessionAdmin) return true;
-		$cookieValue = isset($_COOKIE['is_admin']) ? strtoupper(trim((string)$_COOKIE['is_admin'])) : '';
-		return in_array($cookieValue, ['1', 'TRUE', 'YES', 'ON'], true);
+		if (function_exists('hg_admin_is_authenticated')) {
+			return hg_admin_is_authenticated();
+		}
+		return (!empty($_SESSION) && is_array($_SESSION) && !empty($_SESSION['is_admin']));
 	}
 
 	function column_exists(mysqli $link, string $table, string $column): bool {
