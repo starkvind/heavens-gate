@@ -35,7 +35,6 @@ $chronicleConditionP = function_exists('hg_mobile_chronicle_exclusion_condition'
 $chronicleConditionBare = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('') : 'chronicle_id NOT IN (2,7)';
 $where = [$chronicleConditionP];
 
-$debugMobile = !empty($_GET['debug_mobile']);
 $debugMessages = [];
 
 if ($queryText !== '') {
@@ -357,9 +356,6 @@ function hg_mobile_char_page_url(int $page, string $queryText, int $typeFilter, 
 
     <p class="hg-mobile-muted"><?= number_format($totalRows, 0, ',', '.') ?> personajes</p>
 
-    <?php if ($debugMobile): ?>
-        <pre class="hg-mobile-debug"><?= hg_mobile_char_h(implode("\n", $debugMessages) ?: 'Sin errores SQL registrados. Filas cargadas: ' . count($characters)) ?></pre>
-    <?php endif; ?>
 
     <div class="hg-mobile-character-list">
         <?php if (empty($characters)): ?>
