@@ -279,7 +279,7 @@ if ($isAjaxRequest) {
         hg_admin_json_success(array('rows' => $rows), 'Listado de personajes', array('count' => count($rows)));
     }
 
-    if (in_array($action, array('save_season', 'delete_season', 'set_active', 'save_assignments', 'flush_combat_tables'), true)) {
+    if (in_array($action, array('save_season', 'delete_season', 'set_active', 'save_assignments'), true)) {
         $csrfToken = function_exists('hg_admin_extract_csrf_token')
             ? hg_admin_extract_csrf_token($payload)
             : (string)($payload['csrf'] ?? '');
@@ -468,30 +468,6 @@ if ($isAjaxRequest) {
         }
 
         hg_admin_json_success(array('season_id' => $seasonId, 'assigned_count' => count($ids)), 'Asignaciones guardadas.');
-    }
-
-    if ($action === 'flush_combat_tables') {
-        $tables = array('fact_sim_battles', 'fact_sim_character_scores', 'fact_sim_item_usage');
-        $flushed = array();
-        $skipped = array();
-        foreach ($tables as $tbl) {
-            if (!hg_asb_table_exists($link, $tbl)) {
-                $skipped[] = $tbl;
-                continue;
-            }
-            $sql = "TRUNCATE TABLE `{$tbl}`";
-            if (!$link->query($sql)) {
-                if (!$link->query("DELETE FROM `{$tbl}`")) {
-                    hg_admin_json_error('No se pudo vaciar la tabla ' . $tbl . '.', 500, array('db' => 'flush_failed', 'table' => $tbl));
-                }
-            }
-            $flushed[] = $tbl;
-        }
-        hg_admin_json_success(
-            array('flushed' => $flushed, 'skipped' => $skipped),
-            'Tablas de combate vaciadas.',
-            array('flushed_count' => count($flushed), 'skipped_count' => count($skipped))
-        );
     }
 
     hg_admin_json_error('Accion no soportada.', 400, array('action' => 'unsupported'));
