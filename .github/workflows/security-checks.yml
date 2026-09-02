@@ -3,6 +3,7 @@ name: PHP security checks
 on:
   push:
     branches:
+      - master
       - security/hardening-2026-09-02
   pull_request:
     branches:
