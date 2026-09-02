@@ -2,6 +2,7 @@
 // admin_main.php - Menú principal de administración
 	include_once(__DIR__ . '/../../helpers/admin_auth.php');
 	hg_admin_session_start();
+	hg_admin_send_security_headers();
 
 	// Verificar la conexión a la base de datos
 	include_once(__DIR__ . '/../../helpers/admin_ajax.php');
