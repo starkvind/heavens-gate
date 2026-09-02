@@ -62,6 +62,26 @@ jobs:
               raise SystemExit("\n".join(failures))
           PY
 
+      - name: Exercise admin login rate limiter
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r '
+            $_SERVER["REMOTE_ADDR"] = "203.0.113.250";
+            require "app/helpers/admin_login_rate_limit.php";
+            hg_admin_login_rate_reset();
+            $state = hg_admin_login_rate_status();
+            if (!empty($state["blocked"])) { exit(1); }
+            for ($i = 0; $i < 10; $i++) {
+                $state = hg_admin_login_rate_record_failure();
+            }
+            if (empty($state["blocked"])) { exit(2); }
+            if ((int)($state["retry_after"] ?? 0) <= 0) { exit(3); }
+            hg_admin_login_rate_reset();
+            $state = hg_admin_login_rate_status();
+            if (!empty($state["blocked"]) || (int)($state["failures"] ?? -1) !== 0) { exit(4); }
+          '
+
       - name: Reject schema-changing SQL in web admin controllers
         shell: bash
         run: |
