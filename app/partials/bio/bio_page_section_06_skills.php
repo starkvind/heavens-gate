@@ -53,8 +53,6 @@ if (!function_exists('hg_bio_skills_bucket')) {
     }
 }
 
-$skillsDebugEnabled = (isset($_GET['debug']) && (string)$_GET['debug'] === '1');
-
 $cid = isset($characterId) ? (int)$characterId : (int)($_GET['b'] ?? 0);
 $sid = isset($bioSystemId) ? (int)$bioSystemId : 0;
 
@@ -161,9 +159,6 @@ if ($cid > 0 && $sid > 0) {
                 $bucket = hg_bio_skills_bucket((string)$row['kind']);
                 if ($bucket === '') continue;
                 $secondaryByCol[$bucket][] = $row;
-                if ($skillsDebugEnabled) {
-                    $debugRows[] = $row + ['bucket' => $bucket, 'secondary' => 1];
-                }
             }
             $rsSec->free();
         }
