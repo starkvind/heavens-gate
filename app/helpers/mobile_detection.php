@@ -26,7 +26,6 @@ function hg_mobile_is_excluded_route(string $routeKey): bool
         'forum_message',
         'forum_diceroll',
         'forum_item',
-        'keygen',
         'crop',
         'tooltip',
         'mentions',
