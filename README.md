@@ -46,7 +46,6 @@ The current runtime expects:
   - `MYSQL_USER`
   - `MYSQL_PWD`
   - `MYSQL_BDD`
-- `ENCRYPTION_KEY` for features that use reversible encryption.
 
 `app/helpers/db_connection.php` searches `config.env` outside the project root first, then in the root, then in the legacy `app/` location.
 
@@ -114,7 +113,7 @@ The private backend is available through `/talim`. It covers, among other areas:
 - systems, resources, traits, forms and powers;
 - soundtrack;
 - card-game catalog;
-- database inspection and schema-hardening audits.
+- database inspection and editorial audits.
 
 Prefer the admin UI or a purpose-built tool over ad-hoc production SQL when the operation is already supported.
 
