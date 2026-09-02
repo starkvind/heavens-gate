@@ -305,7 +305,7 @@ $resourceId = (int)($_GET['resource_id'] ?? 0);
 $name = trim((string)($_GET['name'] ?? ($_GET['nombre'] ?? '')));
 $rollName = trim((string)($_GET['roll_name'] ?? ($_GET['tirada_nombre'] ?? '')));
 $willpowerSpent = isset($_GET['willpower_spent']) ? (int)$_GET['willpower_spent'] : 0;
-$debugForcedRolls = hg_api_parse_debug_rolls((string)($_GET['debug_forced_rolls'] ?? ''));
+$debugForcedRolls = [];
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
 $dicePool = 0;
@@ -320,11 +320,6 @@ $rollContext = [
     'is_attr_plus_skill' => false,
     'is_resource_only' => false,
 ];
-
-if ($debugForcedRolls === ['__invalid__']) {
-    hg_tool_api_error('Invalid debug_forced_rolls.', 400);
-    return;
-}
 
 if ($difficulty < 2 || $difficulty > 10) {
     hg_tool_api_error('roll_diff must be between 2 and 10.', 400);
@@ -392,11 +387,6 @@ if ($characterId > 0) {
 
 if ($name === '' || $dicePool < 1 || $dicePool > $maxDice) {
     hg_tool_api_error('Invalid roll parameters.', 400);
-    return;
-}
-
-if (!empty($debugForcedRolls) && count($debugForcedRolls) !== $dicePool) {
-    hg_tool_api_error('debug_forced_rolls count must match the final dice pool.', 400);
     return;
 }
 
