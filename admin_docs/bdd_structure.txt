@@ -1,3 +1,25 @@
+===============================================================================
+AVISO DE DOCUMENTACIÓN — 2026-09-02
+===============================================================================
+
+ESTE FICHERO ES UNA INSTANTÁNEA HISTÓRICA Y NO REPRESENTA EL ESQUEMA ACTUAL.
+
+Se conserva porque varios manifiestos de migración de septiembre de 2026 lo citan
+como evidencia de la situación heredada.
+
+Referencia vigente:
+  admin_docs/DATABASE_SCHEMA.md
+
+Fuente de producción usada para la referencia vigente:
+  starkvind/heavens-gate-continuity/
+  snapshots/web/database/production-2026-09-01.sql
+
+No añadir cambios nuevos a este fichero para "ponerlo al día". Debe permanecer como
+registro histórico.
+
+===============================================================================
+
+
 ========================================
  INSPECCIÓN DE BASE DE DATOS
 ========================================
