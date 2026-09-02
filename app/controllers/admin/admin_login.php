@@ -2,7 +2,9 @@
 // admin_login.php
 
 include_once(__DIR__ . '/../../helpers/admin_auth.php');
+include_once(__DIR__ . '/../../helpers/admin_login_rate_limit.php');
 hg_admin_session_start();
+hg_admin_send_security_headers();
 include 'admin_get_pwd.php';
 
 $returnTo = hg_admin_login_return_path(
@@ -21,11 +23,20 @@ if (!empty($adminPasswordLoadError)) {
 }
 
 if ($error === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_pass'])) {
+    $rateState = hg_admin_login_rate_status();
+    if (!empty($rateState['blocked'])) {
+        http_response_code(429);
+        if (!headers_sent()) {
+            header('Retry-After: ' . max(1, (int)($rateState['retry_after'] ?? 1)));
+        }
+        $error = 'Acceso temporalmente limitado. Inténtalo más tarde.';
+    }
+
     $submittedPassword = (string)$_POST['admin_pass'];
     $storedPassword = is_string($adminPassword) ? $adminPassword : '';
     $loginOk = false;
 
-    if ($storedPassword !== '') {
+    if ($error === '' && $storedPassword !== '') {
         $loginOk = password_verify($submittedPassword, $storedPassword);
         if ($loginOk && password_needs_rehash($storedPassword, PASSWORD_DEFAULT)) {
             $rehash = password_hash($submittedPassword, PASSWORD_DEFAULT);
@@ -36,11 +47,21 @@ if ($error === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admi
     }
 
     if ($loginOk) {
+        hg_admin_login_rate_reset();
         hg_admin_mark_authenticated();
         hg_admin_redirect($returnTo);
-    } else {
-        usleep(250000);
-        $error = "Contrase&ntilde;a incorrecta.";
+    } elseif ($error === '') {
+        $failedRate = hg_admin_login_rate_record_failure();
+        usleep(max(250000, (int)($failedRate['delay_us'] ?? 250000)));
+        if (!empty($failedRate['blocked'])) {
+            http_response_code(429);
+            if (!headers_sent()) {
+                header('Retry-After: ' . max(1, (int)($failedRate['retry_after'] ?? 1)));
+            }
+            $error = 'Acceso temporalmente limitado. Inténtalo más tarde.';
+        } else {
+            $error = "Contrase&ntilde;a incorrecta.";
+        }
     }
 }
 ?>

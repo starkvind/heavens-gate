@@ -2,7 +2,7 @@
 
 Última revisión: 2026-09-02.
 
-Los módulos del backend viven bajo `app/controllers/admin` y se despachan desde `app/controllers/admin/admin_main.php` mediante `/talim?s=<modulo>`.
+Los módulos del backend viven bajo `app/controllers/admin` y se despachan mediante el controlador administrativo común. Las rutas privilegiadas concretas no forman parte de la documentación pública.
 
 ## Contrato de seguridad
 
@@ -32,11 +32,7 @@ No mezclar HTML del layout con una respuesta JSON.
 
 Un controlador nuevo no queda disponible solo por existir como fichero.
 
-Debe añadirse a `app/controllers/admin/admin_main.php`:
-
-1. en el despacho normal;
-2. en el flujo AJAX si lo necesita;
-3. en el menú administrativo si debe ser accesible desde la UI.
+Debe registrarse en el dispatcher administrativo común, tanto en el flujo normal como en el flujo AJAX cuando corresponda, y en la navegación interna si necesita acceso desde la UI.
 
 Antes de añadir un módulo, comprobar que no exista ya uno que cubra el mismo dominio.
 

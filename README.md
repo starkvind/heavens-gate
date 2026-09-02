@@ -101,21 +101,9 @@ Start here:
 
 Historical migration manifests under `admin_docs/migration_manifest_*` remain useful as dated records, but they are not runtime documentation.
 
-## Admin
+## Administration
 
-The private backend is available through `/talim`. It covers, among other areas:
-
-- characters and players;
-- chronicles, realities, seasons and chapters;
-- organizations, groups, affiliations and relationships;
-- timeline events;
-- maps, gallery, documents and links;
-- systems, resources, traits, forms and powers;
-- soundtrack;
-- card-game catalog;
-- database inspection and editorial audits.
-
-Prefer the admin UI or a purpose-built tool over ad-hoc production SQL when the operation is already supported.
+The application includes an authenticated editorial backend for maintaining campaign content. Operational details, privileged routes and production procedures are intentionally not documented in the public README.
 
 ## License
 

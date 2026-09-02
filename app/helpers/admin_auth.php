@@ -23,6 +23,8 @@ if (!function_exists('hg_admin_session_start')) {
         }
 
         ini_set('session.use_strict_mode', '1');
+        ini_set('session.use_only_cookies', '1');
+        ini_set('session.use_trans_sid', '0');
         $params = session_get_cookie_params();
         session_set_cookie_params([
             'lifetime' => (int)($params['lifetime'] ?? 0),
@@ -30,10 +32,25 @@ if (!function_exists('hg_admin_session_start')) {
             'domain' => (string)($params['domain'] ?? ''),
             'secure' => hg_admin_is_https(),
             'httponly' => true,
-            'samesite' => 'Lax',
+            'samesite' => 'Strict',
         ]);
 
         return session_start();
+    }
+}
+
+if (!function_exists('hg_admin_send_security_headers')) {
+    function hg_admin_send_security_headers(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+        header('Cache-Control: no-store, private, max-age=0, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        header('X-Frame-Options: DENY');
+        header("Content-Security-Policy: frame-ancestors 'none'");
+        header('Referrer-Policy: no-referrer');
     }
 }
 
@@ -164,7 +181,7 @@ if (!function_exists('hg_admin_logout')) {
                 'domain' => (string)($params['domain'] ?? ''),
                 'secure' => (bool)($params['secure'] ?? false),
                 'httponly' => (bool)($params['httponly'] ?? true),
-                'samesite' => 'Lax',
+                'samesite' => 'Strict',
             ]);
         }
 

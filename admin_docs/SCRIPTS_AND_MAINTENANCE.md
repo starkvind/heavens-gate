@@ -94,17 +94,7 @@ No sirve para rutas de detalle con `pretty_id` ni para CRUD complejos. Véase [P
 
 ## Herramientas administrativas
 
-Estas herramientas se ejecutan dentro de `/talim` y dependen de sesión administrativa.
-
-### `/talim?s=admin_inspect_db`
-
-Incluye `app/tools/inspect_db.php`.
-
-Es un explorador de esquema y salud editorial. Permite comprobar tablas, columnas, claves y ciertos indicadores de contenido. Se usa para **inspeccionar**, no como fuente de definición del esquema.
-
-### `/talim?s=admin_character_collision_audit`
-
-Auditoría editorial de colisiones de personajes entre realidades y crónicas. Forma parte del trabajo de continuidad; no modifica por sí sola el modelo de datos general.
+Las herramientas internas de inspección y mantenimiento se ejecutan exclusivamente dentro del backend autenticado o mediante CLI. El repositorio público no documenta rutas privilegiadas concretas.
 
 ## Herramientas públicas enrutadas
 

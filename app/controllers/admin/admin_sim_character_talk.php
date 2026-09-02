@@ -52,10 +52,6 @@ if (!function_exists('hg_ast_bootstrap_table')) {
         }
         $meta['table_exists'] = true;
 
-        if (!hg_ast_column_exists($db, 'fact_sim_characters_talk', 'flags')) {
-            // Backward compatible extension for admin-managed placeholders/flags.
-            $db->query("ALTER TABLE fact_sim_characters_talk ADD COLUMN flags VARCHAR(255) NULL DEFAULT NULL AFTER phrase");
-        }
         $meta['flags_column'] = hg_ast_column_exists($db, 'fact_sim_characters_talk', 'flags');
         return $meta;
     }
