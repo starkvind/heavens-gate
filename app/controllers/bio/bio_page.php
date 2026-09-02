@@ -964,18 +964,6 @@
 		});
 		$bioHasActions = !empty($bioActions);
 		$bioAttrList = $bioTraitsByType['Atributos'] ?? [];
-		$bioDebugTraitsEnabled = isset($_GET['debug_traits']) && (string)$_GET['debug_traits'] === '1';
-		if ($bioDebugTraitsEnabled && $bioIsMonster) {
-			echo "<div class='bio-debug-box'>";
-			echo "<strong>DEBUG TRAITS (monster)</strong><br>";
-			echo "system_id=" . (int)($dataResult['system_id'] ?? 0) . "<br>";
-			foreach ($bioAttrList as $ix => $t) {
-				$nm = h((string)($t['name'] ?? ''));
-				$tv = (int)($t['value'] ?? 0);
-				echo "#" . ($ix + 1) . " {$nm} (v={$tv})<br>";
-			}
-			echo "</div>";
-		}
 		$bioAttrCols = [
 			array_slice($bioAttrList, 0, 3),
 			array_slice($bioAttrList, 3, 3),
