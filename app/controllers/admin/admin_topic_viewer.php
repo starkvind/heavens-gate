@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) {
@@ -95,6 +95,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             }
         }
 
+        if ($action === 'move') {
+            $id = (int)($_POST['id'] ?? 0);
+            $direction = (string)($_POST['direction'] ?? '');
+            if ($id <= 0 || !in_array($direction, ['up', 'down'], true)) {
+                $flash[] = ['type' => 'error', 'msg' => 'Movimiento de orden inválido.'];
+            } else {
+                $scopeSql = $supportsEpisodeAndScope
+                    ? "COALESCE(link_scope_type, '') = ? AND COALESCE(link_scope_id, 0) = ?"
+                    : '1 = 1';
+                $currentSelect = $supportsEpisodeAndScope ? "id, COALESCE(link_scope_type, '') AS scope_type, COALESCE(link_scope_id, 0) AS scope_id" : "id, '' AS scope_type, 0 AS scope_id";
+                $stCurrent = $link->prepare("SELECT {$currentSelect} FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
+                if (!$stCurrent) {
+                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el movimiento.'];
+                } else {
+                    $stCurrent->bind_param('i', $id);
+                    $stCurrent->execute();
+                    $current = $stCurrent->get_result()->fetch_assoc();
+                    $stCurrent->close();
+                    if (!$current) {
+                        $flash[] = ['type' => 'error', 'msg' => 'No se encontró el tema que quieres mover.'];
+                    } else {
+                        $sqlGroup = "SELECT id FROM fact_tools_topic_viewer WHERE {$scopeSql} ORDER BY sort_order ASC, topic_name ASC, id ASC";
+                        $stGroup = $link->prepare($sqlGroup);
+                        if (!$stGroup) {
+                            $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el orden del grupo.'];
+                        } else {
+                            if ($supportsEpisodeAndScope) {
+                                $scopeType = (string)$current['scope_type'];
+                                $scopeId = (int)$current['scope_id'];
+                                $stGroup->bind_param('si', $scopeType, $scopeId);
+                            }
+                            $stGroup->execute();
+                            $groupRows = $stGroup->get_result()->fetch_all(MYSQLI_ASSOC);
+                            $stGroup->close();
+                            $position = -1;
+                            foreach ($groupRows as $index => $groupRow) {
+                                if ((int)$groupRow['id'] === $id) { $position = $index; break; }
+                            }
+                            $target = $direction === 'up' ? $position - 1 : $position + 1;
+                            if ($position < 0 || $target < 0 || $target >= count($groupRows)) {
+                                $flash[] = ['type' => 'error', 'msg' => 'El tema ya está en ese extremo de su agrupación.'];
+                            } else {
+                                $swap = $groupRows[$position];
+                                $groupRows[$position] = $groupRows[$target];
+                                $groupRows[$target] = $swap;
+                                $link->begin_transaction();
+                                $stOrder = $link->prepare('UPDATE fact_tools_topic_viewer SET sort_order = ? WHERE id = ? LIMIT 1');
+                                $ok = (bool)$stOrder;
+                                if ($stOrder) {
+                                    foreach ($groupRows as $index => $groupRow) {
+                                        $order = ($index + 1) * 10;
+                                        $rowId = (int)$groupRow['id'];
+                                        $stOrder->bind_param('ii', $order, $rowId);
+                                        if (!$stOrder->execute()) { $ok = false; break; }
+                                    }
+                                    $stOrder->close();
+                                }
+                                if ($ok) {
+                                    $link->commit();
+                                    $flash[] = ['type' => 'ok', 'msg' => 'Orden actualizado dentro de su agrupación.'];
+                                } else {
+                                    $link->rollback();
+                                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar el orden.'];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if ($action === 'save') {
             $id = (int)($_POST['id'] ?? 0);
             $topicName = trim((string)($_POST['topic_name'] ?? ''));
@@ -433,6 +503,8 @@ $openTopicModal = ($editId > 0) || (
 }
 .topic-viewer-admin .topic-modal-body label {
     display: block;
+    text-align: left !important;
+    text-align-last: left;
 }
 .topic-viewer-admin .topic-modal-body input,
 .topic-viewer-admin .topic-modal-body select,
@@ -448,7 +520,17 @@ $openTopicModal = ($editId > 0) || (
     min-height: 110px;
     resize: vertical;
 }
-@media (max-width: 760px) {
+.topic-viewer-admin .topic-field-help { display: block; margin-top: 4px; color: #9dd; font-size: 11px; font-weight: 400; line-height: 1.35; }
+.topic-viewer-admin .topic-modal-section { grid-column: 1 / -1; margin: 4px 0 -2px; padding-top: 10px; border-top: 1px solid #17366e; color: #9fe7ff; font-size: 13px; font-weight: 800; }
+.topic-viewer-admin .topic-order-controls { display: flex; gap: 6px; margin-top: 5px; }
+.topic-viewer-admin .topic-order-controls .btn { padding: 4px 8px; font-size: 11px; }.topic-viewer-admin .topic-order-guide { margin: 0 0 12px; padding: 10px 12px; border: 1px solid #1b4aa0; border-radius: 8px; background: #06164a; color: #dff7ff; line-height: 1.45; }
+.topic-viewer-admin .topic-order-guide strong { color: #9fe7ff; }
+.topic-viewer-admin .topic-order-cell { min-width: 104px; }
+.topic-viewer-admin .topic-order-number { display: block; font-weight: 800; color: #9fe7ff; }
+.topic-viewer-admin .topic-order-move { display: inline-flex; gap: 4px; margin-top: 5px; }
+.topic-viewer-admin .topic-order-move form { margin: 0; }
+.topic-viewer-admin .topic-order-move .btn { min-width: 30px; padding: 3px 6px; font-size: 12px; }
+.topic-viewer-admin .topic-preview-link { white-space: nowrap; }@media (max-width: 760px) {
     .topic-viewer-admin .topic-toolbar {
         width: 100%;
         margin-left: 0;
@@ -499,6 +581,8 @@ $openTopicModal = ($editId > 0) || (
     <span class="topic-stat">Total <?= (int)$totalTopics ?></span>
     <span class="topic-stat">Activos <?= (int)$activeTopics ?></span>
     <span class="topic-stat">Inactivos <?= (int)$inactiveTopics ?></span>
+  </div>  <div class="topic-order-guide">
+    <strong>Cómo se muestra el visor:</strong> primero separa por agrupación (personaje, grupo u organización) y después usa la posición de cada tema. Usa <strong>↑</strong> y <strong>↓</strong> para reordenar sin calcular números; el campo “Posición” queda como alternativa avanzada.
   </div>
 
 <div class="topic-table-wrap">
@@ -581,7 +665,13 @@ $openTopicModal = ($editId > 0) || (
                     <span class="adm-color-muted">(vacío)</span>
                 <?php endif; ?>
             </td>
-            <td><?= (int)$r['sort_order'] ?></td>
+            <td class="topic-order-cell">
+                <span class="topic-order-number">Pos. <?= (int)$r['sort_order'] ?></span>
+                <span class="topic-order-move" aria-label="Cambiar posición">
+                  <form method="post"><input type="hidden" name="csrf" value="<?= h($csrf) ?>"><input type="hidden" name="crud_action" value="move"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="direction" value="up"><button class="btn" type="submit" title="Subir dentro de su agrupación" aria-label="Subir dentro de su agrupación">↑</button></form>
+                  <form method="post"><input type="hidden" name="csrf" value="<?= h($csrf) ?>"><input type="hidden" name="crud_action" value="move"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="direction" value="down"><button class="btn" type="submit" title="Bajar dentro de su agrupación" aria-label="Bajar dentro de su agrupación">↓</button></form>
+                </span>
+            </td>
             <td>
                 <span class="topic-status <?= ((int)$r['is_active'] === 1) ? '' : 'off' ?>">
                     <?= ((int)$r['is_active'] === 1) ? 'Activo' : 'Inactivo' ?>
@@ -606,6 +696,7 @@ $openTopicModal = ($editId > 0) || (
                     data-link-scope-type="<?= h((string)($r['link_scope_type'] ?? '')) ?>"
                     data-link-scope-id="<?= (int)($r['link_scope_id'] ?? 0) ?>"
                 >Editar</button>
+                <a class="btn topic-preview-link" href="/tools/forum-topic-viewer?id_topic=<?= (int)$r['topic_id'] ?>" target="_blank" rel="noopener noreferrer">Ver visor</a>
                 <form method="post" onsubmit="return confirm('¿Borrar este tema?');">
                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                     <input type="hidden" name="crud_action" value="delete">
@@ -633,14 +724,17 @@ $openTopicModal = ($editId > 0) || (
       <input type="hidden" name="id" id="f_topic_row_id" value="<?= (int)($editRow['id'] ?? 0) ?>">
 
       <div class="topic-modal-body">
+        <div class="topic-modal-section">1. Tema del foro</div>
         <label>Nombre del tema
           <input class="inp" type="text" name="topic_name" id="f_topic_name" maxlength="180" required value="<?= h($editRow['topic_name'] ?? '') ?>">
         </label>
 
-        <label>topic_id
+        <label>ID del hilo (topic_id)
           <input class="inp" type="number" min="1" name="topic_id" id="f_topic_id" required value="<?= h((string)($editRow['topic_id'] ?? '')) ?>">
+          <small class="topic-field-help">Al pegar una URL del foro se propone automáticamente su ID.</small>
         </label>
 
+        <div class="topic-modal-section">2. Contexto</div>
         <?php if ($hasChapterIdCol): ?>
         <label class="field-full">Episodio
           <select class="select" name="chapter_id" id="f_chapter_id">
@@ -668,12 +762,14 @@ $openTopicModal = ($editId > 0) || (
         </label>
         <?php endif; ?>
 
-        <label class="field-full">URL
+        <label class="field-full">URL del tema en el foro
           <input class="inp" type="text" name="topic_url" id="f_topic_url" maxlength="255" value="<?= h($editRow['topic_url'] ?? '') ?>" placeholder="https://naufragio-foros.duckdns.org/index.php/topic,00.0.html">
         </label>
 
-        <label>Orden
+        <div class="topic-modal-section">3. Agrupación, visibilidad y posición</div>
+        <label>Posición dentro de esta agrupación
           <input class="inp" type="number" min="0" name="sort_order" id="f_sort_order" value="<?= h((string)($editRow['sort_order'] ?? 0)) ?>">
+          <small class="topic-field-help">Los valores bajos aparecen antes. Solo compite con los temas de la misma agrupación.</small>
         </label>
 
         <label>Estado
@@ -696,13 +792,14 @@ $openTopicModal = ($editId > 0) || (
         <?php endif; ?>
 
         <?php if ($hasScopeIdCol): ?>
-        <label>ID de agrupación
+        <label>ID de la entidad
           <input class="inp" type="number" min="0" name="link_scope_id" id="f_link_scope_id" value="<?= h((string)($editRow['link_scope_id'] ?? 0)) ?>" placeholder="Ej: 110, 60, 20">
+          <small class="topic-field-help">El ID identifica el personaje, grupo u organización escogido arriba. Sin agrupación, déjalo en 0.</small>
         </label>
         <?php endif; ?>
 
         <label class="field-full">Descripción
-          <textarea class="ta" name="topic_description" id="f_topic_description" rows="4"><?= h($editRow['topic_description'] ?? '') ?></textarea>
+<textarea class="ta" name="topic_description" id="f_topic_description" rows="4"><?= h($editRow['topic_description'] ?? '') ?></textarea>
         </label>
       </div>
 
@@ -740,6 +837,16 @@ $openTopicModal = ($editId > 0) || (
         if (el) el.value = value == null ? '' : String(value);
     }
 
+    var topicUrlInput = document.getElementById('f_topic_url');
+    var topicIdInput = document.getElementById('f_topic_id');
+    if (topicUrlInput && topicIdInput) {
+        topicUrlInput.addEventListener('change', function(){
+            var match = String(topicUrlInput.value || '').match(/topic,([0-9]+)/i);
+            if (match && (!String(topicIdInput.value || '').trim() || window.confirm('¿Actualizar el ID del hilo con el de la URL?'))) {
+                topicIdInput.value = match[1];
+            }
+        });
+    }
     function openModal() {
         modal.style.display = 'flex';
         var name = document.getElementById('f_topic_name');

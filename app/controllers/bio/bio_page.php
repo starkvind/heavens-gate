@@ -1683,9 +1683,10 @@
 		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
 	}
 
-	// Limpieza del stmt principal
-	if (isset($stmt) && $stmt instanceof mysqli_stmt) {
-		@mysqli_stmt_close($stmt);
+	// Limpieza de la sentencia principal. Los partials incluidos pueden usar y
+	// cerrar su propio $stmt, por lo que no debe reutilizarse aqui.
+	if (isset($stmtMain) && $stmtMain instanceof mysqli_stmt) {
+		mysqli_stmt_close($stmtMain);
 	}
 ?>
 

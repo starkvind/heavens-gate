@@ -35,6 +35,33 @@ if (!function_exists('hg_mobile_ogd_group_url')) {
     }
 }
 
+if (!function_exists('hg_mobile_ogd_org_chart_available')) {
+    function hg_mobile_ogd_org_chart_available(mysqli $link, int $organizationId): bool
+    {
+        if ($organizationId <= 0 || !function_exists('hg_table_exists')) {
+            return false;
+        }
+        if (!hg_table_exists($link, 'dim_organization_departments') || !hg_table_exists($link, 'bridge_characters_org')) {
+            return false;
+        }
+
+        $stmt = $link->prepare("
+            SELECT
+                (SELECT COUNT(*) FROM dim_organization_departments WHERE organization_id = ? AND is_active = 1)
+              + (SELECT COUNT(*) FROM bridge_characters_org WHERE organization_id = ? AND is_active = 1) AS total
+        ");
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('ii', $organizationId, $organizationId);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $row = $rs ? $rs->fetch_assoc() : null;
+        $stmt->close();
+        return (int)($row['total'] ?? 0) > 0;
+    }
+}
+
 if (!function_exists('hg_mobile_ogd_rows')) {
     function hg_mobile_ogd_rows(mysqli $link, string $sql, string $types = '', array $params = []): array
     {
@@ -67,6 +94,70 @@ if (!function_exists('hg_mobile_ogd_rows')) {
             hg_public_log_error('mobile_organization_group_detail', 'query failed: ' . mysqli_error($link));
         }
         return $rows;
+    }
+}
+
+if (!function_exists('hg_mobile_ogd_markdown_data')) {
+    function hg_mobile_ogd_markdown_data(
+        mysqli $link,
+        int $organizationId,
+        string $characterCondition,
+        string $groupCondition
+    ): array {
+        $data = ['members' => [], 'groups' => []];
+        $characterFields = "
+            p.name,
+            COALESCE(p.alias, '') AS alias,
+            COALESCE(p.garou_name, '') AS garou_name,
+            COALESCE(p.info_text, '') AS description,
+            COALESCE(dcs.label, '') AS status
+        ";
+
+        $data['members'] = hg_mobile_ogd_rows($link, "
+            SELECT DISTINCT {$characterFields}
+            FROM bridge_characters_organizations bco
+            INNER JOIN fact_characters p ON p.id = bco.character_id
+            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
+            LEFT JOIN bridge_characters_groups bcg
+                ON bcg.character_id = p.id
+               AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
+            WHERE bco.organization_id = ?
+              AND (bco.is_active = 1 OR bco.is_active IS NULL)
+              AND bcg.character_id IS NULL
+              AND {$characterCondition}
+            ORDER BY p.name
+        ", 'i', [$organizationId]);
+
+        $groups = hg_mobile_ogd_rows($link, "
+            SELECT g.id, g.name, COALESCE(g.description, '') AS description
+            FROM bridge_organizations_groups bog
+            INNER JOIN dim_groups g ON g.id = bog.group_id
+            WHERE bog.organization_id = ?
+              AND (bog.is_active = 1 OR bog.is_active IS NULL)
+              AND {$groupCondition}
+            ORDER BY g.name
+        ", 'i', [$organizationId]);
+
+        foreach ($groups as $group) {
+            $groupId = (int)($group['id'] ?? 0);
+            $members = hg_mobile_ogd_rows($link, "
+                SELECT DISTINCT {$characterFields}
+                FROM bridge_characters_groups bcg
+                INNER JOIN fact_characters p ON p.id = bcg.character_id
+                LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
+                WHERE bcg.group_id = ?
+                  AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
+                  AND {$characterCondition}
+                ORDER BY p.name
+            ", 'i', [$groupId]);
+            $data['groups'][] = [
+                'name' => (string)($group['name'] ?? ''),
+                'description' => (string)($group['description'] ?? ''),
+                'members' => $members,
+            ];
+        }
+
+        return $data;
     }
 }
 
@@ -120,6 +211,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 $chronicleConditionP = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('p') : 'p.chronicle_id NOT IN (2,7)';
+$chronicleConditionG = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('g') : 'g.chronicle_id NOT IN (2,7)';
 
 $type = (int)($_GET['t'] ?? 0);
 $rawId = trim((string)($_GET['b'] ?? ''));
@@ -156,6 +248,9 @@ if ($type === 2) {
     $name = (string)($item['name'] ?? 'Organizacion');
     $metaTitle = $name . " | Organizaciones | Heaven's Gate";
     $metaDescription = trim(strip_tags((string)($item['description'] ?? '')));
+    $orgChartHref = hg_mobile_ogd_org_chart_available($link, $id)
+        ? rtrim(hg_mobile_ogd_url($link, 'dim_organizations', '/organizations', $id), '/') . '/org-chart'
+        : '';
 
     $activeGroups = hg_mobile_ogd_rows($link, "
         SELECT g.id, g.name, g.is_active, COALESCE(t.name, '') AS totem_name,
@@ -201,6 +296,13 @@ if ($type === 2) {
           AND {$chronicleConditionP}
         ORDER BY p.name ASC
     ", 'i', [$id]);
+    $markdownData = hg_mobile_ogd_markdown_data($link, $id, $chronicleConditionP, $chronicleConditionG);
+    $markdownData['name'] = $name;
+    $markdownData['description'] = (string)($item['description'] ?? '');
+    $markdownJson = json_encode(
+        $markdownData,
+        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
+    );
     ?>
 
     <article class="hg-mobile-bio">
@@ -211,10 +313,16 @@ if ($type === 2) {
         <section class="hg-mobile-section">
             <h1><?= hg_mobile_ogd_h($name) ?></h1>
             <div class="hg-mobile-fact-grid">
-                <?php if (!empty($item['system_name'])): ?><div><span>Sistema</span><strong><?= hg_mobile_ogd_h($item['system_name']) ?></strong></div><?php endif; ?>
                 <?php if (!empty($item['totem_name'])): ?><div><span>Totem</span><strong><?= hg_mobile_ogd_h($item['totem_name']) ?></strong></div><?php endif; ?>
                 <div><span>Grupos activos</span><strong><?= count($activeGroups) ?></strong></div>
                 <div><span>Grupos antiguos</span><strong><?= count($inactiveGroups) ?></strong></div>
+            </div>
+            <div class="hg-mobile-action-row hg-mobile-organization-actions">
+                <button type="button" data-mobile-copy-organization>Copiar estructura</button>
+                <?php if ($orgChartHref !== ''): ?>
+                    <a href="<?= hg_mobile_ogd_h($orgChartHref) ?>">Ver organigrama</a>
+                <?php endif; ?>
+                <span class="hg-mobile-copy-status" data-mobile-copy-organization-status aria-live="polite"></span>
             </div>
         </section>
 
@@ -252,6 +360,81 @@ if ($type === 2) {
             </section>
         <?php endif; ?>
     </article>
+    <script>
+    (function () {
+        var button = document.querySelector('[data-mobile-copy-organization]');
+        var status = document.querySelector('[data-mobile-copy-organization-status]');
+        var data = <?= $markdownJson ?: '{}' ?>;
+        if (!button || !data) return;
+
+        function text(html) {
+            var node = document.createElement('div');
+            node.innerHTML = html || '';
+            return node.innerText.replace(/\n{3,}/g, '\n\n').trim();
+        }
+
+        function characterLines(character) {
+            var lines = ['- **Nombre completo:** ' + String(character.name || '')];
+            var alias = String(character.alias || '').trim();
+            var garouName = String(character.garou_name || '').trim();
+            var description = text(character.description);
+            var state = String(character.status || '').trim();
+            if (alias) lines.push('  - **Alias:** ' + alias);
+            if (garouName) lines.push('  - **Nombre Garou:** ' + garouName);
+            if (description) lines.push('  - **Descripción:** ' + description.replace(/\n/g, '\n    '));
+            if (state && state.toLocaleLowerCase() !== 'en activo') lines.push('  - [' + state + ']');
+            return lines;
+        }
+
+        function build() {
+            var lines = ['# ' + data.name];
+            var description = text(data.description);
+            if (description) lines.push('', description);
+            if (data.members.length) {
+                lines.push('', '## Miembros sin grupo asociado', '');
+                data.members.forEach(function (character) { lines = lines.concat(characterLines(character)); });
+            }
+            if (data.groups.length) {
+                lines.push('', '## Grupos');
+                data.groups.forEach(function (group) {
+                    lines.push('', '### ' + group.name);
+                    var groupDescription = text(group.description);
+                    if (groupDescription) lines.push('', groupDescription);
+                    if (group.members.length) {
+                        lines.push('', '#### Miembros', '');
+                        group.members.forEach(function (character) { lines = lines.concat(characterLines(character)); });
+                    }
+                });
+            }
+            return lines.join('\n').trim();
+        }
+
+        function copy(value) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(value);
+            }
+            var area = document.createElement('textarea');
+            area.value = value;
+            area.style.position = 'fixed';
+            area.style.left = '-9999px';
+            document.body.appendChild(area);
+            area.select();
+            var copied = document.execCommand('copy');
+            document.body.removeChild(area);
+            return copied ? Promise.resolve() : Promise.reject();
+        }
+
+        button.addEventListener('click', function () {
+            copy(build()).then(function () {
+                status.textContent = 'Markdown copiado al portapapeles.';
+                status.className = 'hg-mobile-copy-status is-ok';
+            }).catch(function () {
+                status.textContent = 'No se pudo copiar automáticamente.';
+                status.className = 'hg-mobile-copy-status is-error';
+            });
+        });
+    })();
+    </script>
     <?php
     return;
 }

@@ -211,11 +211,8 @@ if ($stmt = mysqli_prepare($link, $sql)) {
     mysqli_stmt_close($stmt);
 }
 
-/* Fallback pack legacy */
-if ($bioPack === 0) {
-    $res = mysqli_query($link, "SELECT manada FROM fact_characters WHERE id = {$characterId} LIMIT 1");
-    if ($res && ($row = mysqli_fetch_assoc($res))) $bioPack = (int)$row['manada'];
-}
+// La relacion de manada se guarda en bridge_characters_groups. El antiguo
+// campo fact_characters.manada ya no existe en el esquema actual.
 
 /* 2) CLAN: prioridad por pack-clan, si no hay pack mirar vinculo directo personaje-clan */
 if ($bioPack > 0) {

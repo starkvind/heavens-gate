@@ -153,9 +153,10 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
         '/\[left\](.*?)\[\/left\]/is',
         '/\[center\](.*?)\[\/center\]/is',
         '/\[right\](.*?)\[\/right\]/is',
+        '/\[justify\](.*?)\[\/justify\]/is',
         '/\[list\](.*?)\[\/list\]/is',
         '/\[li\](.*?)\[\/li\]/is',
-        '/\[url="(https?:\/\/[^"]+)"\](.*?)\[\/url\]/is',
+        '/\[url="(https?:\/\/[^\"]+)"\](.*?)\[\/url\]/is',
         '/\[url=(https?:\/\/[^\]]+)\](.*?)\[\/url\]/is',
         '/\[url\](https?:\/\/[^\s\]]+)\[\/url\]/is',
     ], [
@@ -165,6 +166,7 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
         '<div class="hg-bb-align-left">$1</div>',
         '<div class="hg-bb-align-center">$1</div>',
         '<div class="hg-bb-align-right">$1</div>',
+        '<div class="hg-bb-align-justify">$1</div>',
         '<ul>$1</ul>',
         '<li>$1</li>',
         '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>',
@@ -1038,7 +1040,22 @@ $hgfvAssets = <<<'HTML'
         font-weight: 700;
         cursor: pointer;
     }
-    .hgfv-copy-row {
+    .hgfv-topic-browser { border: 1px solid #c4d2f2; background: #f8fbff; border-radius: 10px; padding: 12px; }
+    .hgfv-topic-browser-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+    .hgfv-topic-search { flex: 1 1 260px; min-height: 38px; padding: 8px 10px; border: 1px solid #b9c7ea; border-radius: 8px; font: inherit; }
+    .hgfv-topic-view { display: inline-flex; gap: 5px; }
+    .hgfv-topic-view button { border: 1px solid #b9c7ea; border-radius: 999px; padding: 7px 10px; background: #fff; color: #243b76; cursor: pointer; font-weight: 700; }
+    .hgfv-topic-view button[aria-pressed="true"] { background: #244cae; border-color: #244cae; color: #fff; }
+    .hgfv-topic-groups { display: grid; gap: 12px; }
+    .hgfv-topic-group { display: grid; gap: 7px; }
+    .hgfv-topic-group-title { color: #3c507f; font-size: .88rem; font-weight: 800; }
+    .hgfv-topic-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+    .hgfv-topic-card { display: block; padding: 10px; border: 1px solid #d4dff5; border-radius: 9px; background: #fff; color: #1d3470; text-decoration: none; }
+    .hgfv-topic-card:hover, .hgfv-topic-card:focus { border-color: #7595df; box-shadow: 0 2px 8px rgba(31, 74, 184, .14); }
+    .hgfv-topic-card.is-current { border: 2px solid #315fc8; background: #eef3ff; }
+    .hgfv-topic-card-title { display: block; font-weight: 800; }
+    .hgfv-topic-card-meta { display: block; margin-top: 4px; color: #5b6b90; font-size: .82rem; line-height: 1.35; }
+    .hgfv-topic-empty { color: var(--muted); font-size: .9rem; margin: 2px 0 0; }    .hgfv-copy-row {
         display: flex;
         gap: 8px;
         align-items: center;
@@ -1287,6 +1304,7 @@ $hgfvAssets = <<<'HTML'
         top: -10px;
         visibility: hidden;
     }
+    .hgfv-body .hg-bb-align-justify { text-align: justify; }
     .hgfv-body a { color: #1840a4; }
     .hgfv-body .hg-bb-list-decimal {
         list-style-type: decimal;
@@ -1403,33 +1421,35 @@ if (!$hgfvEmbedded) {
             <?php endif; ?>
 
             <?php if (!empty($savedTopics)): ?>
-                <div class="hgfv-select-block">
-                    <label for="saved_topic_pick"><strong>Temas guardados:</strong></label>
-                    <div class="hgfv-select-wrap">
-                        <select id="saved_topic_pick">
-                            <option value="">Selecciona un tema...</option>
-                            <?php foreach ($savedTopicsGrouped as $scopeGroup): ?>
-                                <optgroup label="<?= h((string)($scopeGroup['title'] ?? 'Sin agrupación')) ?>">
-                                    <?php foreach (($scopeGroup['items'] ?? []) as $topicRow): ?>
-                                        <?php
-                                            $tId = (int)($topicRow['topic_id'] ?? 0);
-                                            $tName = trim((string)($topicRow['topic_name'] ?? ''));
-                                            $chapterBadge = trim((string)($topicRow['chapter_badge'] ?? ''));
-                                            if ($tId <= 0) { continue; }
-                                            $optionText = $tName !== '' ? $tName : ('Tema #' . $tId);
-                                            if ($chapterBadge !== '') {
-                                                $optionText .= ' [' . $chapterBadge . ']';
-                                            }
-                                        ?>
-                                        <option value="<?= $tId ?>" <?= ($topicId === $tId) ? 'selected' : '' ?>>
-                                            <?= h($optionText) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </optgroup>
-                            <?php endforeach; ?>
-                        </select>
+                <div class="hgfv-topic-browser" id="hgfv-topic-browser">
+                    <div class="hgfv-topic-browser-head">
+                        <label for="hgfv-topic-search"><strong>Explorar temas</strong></label>
+                        <input class="hgfv-topic-search" id="hgfv-topic-search" type="search" placeholder="Buscar por título, episodio o agrupación">
                     </div>
-                    <!--<div class="hgfv-select-help">Selecciona un tema para cargarlo sin escribir el ID.</div>-->
+                    <div class="hgfv-topic-groups" id="hgfv-topic-groups">
+                        <?php foreach ($savedTopicsGrouped as $scopeGroup): ?>
+                            <section class="hgfv-topic-group">
+                                <div class="hgfv-topic-group-title"><?= h((string)($scopeGroup['title'] ?? 'Sin agrupación')) ?></div>
+                                <div class="hgfv-topic-cards">
+                                <?php foreach (($scopeGroup['items'] ?? []) as $topicRow): ?>
+                                    <?php
+                                        $tId = (int)($topicRow['topic_id'] ?? 0);
+                                        if ($tId <= 0) { continue; }
+                                        $tName = trim((string)($topicRow['topic_name'] ?? '')) ?: ('Tema #' . $tId);
+                                        $chapterBadge = trim((string)($topicRow['chapter_badge'] ?? ''));
+                                        $scopeTitle = trim((string)($topicRow['scope_group_title'] ?? 'Sin agrupación'));
+                                        $topicSearch = strtolower($tName . ' ' . $chapterBadge . ' ' . $scopeTitle);
+                                    ?>
+                                    <a class="hgfv-topic-card<?= ($topicId === $tId) ? ' is-current' : '' ?>" href="/tools/forum-topic-viewer?id_topic=<?= $tId ?>" data-hgfv-topic data-hgfv-search="<?= h($topicSearch) ?>">
+                                        <span class="hgfv-topic-card-title"><?= h($tName) ?></span>
+                                        <span class="hgfv-topic-card-meta"><?= h($chapterBadge !== '' ? $chapterBadge : 'Sin episodio') ?></span>
+                                    </a>
+                                <?php endforeach; ?>
+                                </div>
+                            </section>
+                        <?php endforeach; ?>
+                    </div>
+                    <p class="hgfv-topic-empty" id="hgfv-topic-empty" hidden>No hay temas que coincidan con la búsqueda.</p>
                 </div>
             <?php elseif ($hasSavedTopicsTable): ?>
                 <div class="hgfv-thread-head">No hay temas activos en `fact_tools_topic_viewer`.</div>
@@ -1653,16 +1673,24 @@ window.addEventListener('load', detectAndApplyTextColor);
     next.addEventListener('click', function(){ move(1); });
 })();
 (function(){
-    var pick = document.getElementById('saved_topic_pick');
-    if (!pick) return;
-    pick.addEventListener('change', function(){
-        var val = String(pick.value || '').trim();
-        if (val === '') return;
-        var url = new URL(window.location.href);
-        url.searchParams.set('id_topic', val);
-        window.location.href = url.pathname + '?' + url.searchParams.toString();
+    var browser = document.getElementById('hgfv-topic-browser');
+    var search = document.getElementById('hgfv-topic-search');
+    var empty = document.getElementById('hgfv-topic-empty');
+    if (!browser || !search) return;
+    search.addEventListener('input', function(){
+        var query = String(search.value || '').toLowerCase().trim();
+        var visible = 0;
+        Array.prototype.forEach.call(browser.querySelectorAll('[data-hgfv-topic]'), function(card){
+            var show = !query || String(card.getAttribute('data-hgfv-search') || '').indexOf(query) !== -1;
+            card.hidden = !show;
+            if (show) visible++;
+        });
+        Array.prototype.forEach.call(browser.querySelectorAll('.hgfv-topic-group'), function(group){
+            group.hidden = !group.querySelector('[data-hgfv-topic]:not([hidden])');
+        });
+        if (empty) empty.hidden = visible !== 0;
     });
-})();
+})();;
 
 (function(){
     var toc = document.querySelector('.hgfv-toc');

@@ -40,9 +40,10 @@ if ($character_id > 0) {
             $eventDateRaw = trim((string)($row['event_date'] ?? ''));
             $eventDateFmt = '-';
             if ($eventDateRaw !== '' && $eventDateRaw !== '0000-00-00') {
-                $ts = strtotime($eventDateRaw);
-                if ($ts !== false) {
-                    $eventDateFmt = date('d-m-Y', $ts);
+                // Las fechas de la cronologia pueden quedar fuera del rango
+                // Unix; no las conviertas a timestamp para mostrarlas.
+                if (preg_match('/^(\d+)-(\d{1,2})-(\d{1,2})(?:\s.*)?$/', $eventDateRaw, $dateParts)) {
+                    $eventDateFmt = sprintf('%02d-%02d-%s', (int)$dateParts[3], (int)$dateParts[2], $dateParts[1]);
                 } else {
                     $eventDateFmt = $eventDateRaw;
                 }

@@ -73,3 +73,5 @@ app/controllers/admin/admin_groups.php.bak-20260607-1
 app/controllers/admin/admin_sim_browser.php.bak-20260605-1
 admin_docs/HEAVENS_GATE_MOBILE_WRAPPER_PLAN.md
 admin_docs/MOBILE_ADAPTATION_2026_07.md
+
+.agents/

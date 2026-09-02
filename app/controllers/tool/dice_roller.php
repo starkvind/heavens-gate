@@ -200,12 +200,17 @@ function hg_dice_form_attribute_modifier(mysqli $db, int $characterId, int $form
     if (!$row) return 0;
     if ($row['modifier'] !== null) return (int)$row['modifier'];
     // Compatibilidad con las formas antiguas, antes del bridge_forms_traits.
-    return match ((string)($row['trait_name'] ?? '')) {
-        'Fuerza' => (int)($row['strength_bonus'] ?? 0),
-        'Destreza' => (int)($row['dexterity_bonus'] ?? 0),
-        'Resistencia' => (int)($row['stamina_bonus'] ?? 0),
-        default => 0,
-    };
+    // PHP 7 compatible: `match` was introduced in PHP 8.
+    switch ((string)($row['trait_name'] ?? '')) {
+        case 'Fuerza':
+            return (int)($row['strength_bonus'] ?? 0);
+        case 'Destreza':
+            return (int)($row['dexterity_bonus'] ?? 0);
+        case 'Resistencia':
+            return (int)($row['stamina_bonus'] ?? 0);
+        default:
+            return 0;
+    }
 }
 function render_roll_card(array $tirada, int $id): void {
     $resultados = explode(',', (string)$tirada['roll_results']);

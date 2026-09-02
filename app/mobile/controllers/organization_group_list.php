@@ -50,8 +50,7 @@ $orgSql = "
     SELECT
         o.id,
         o.name,
-        COALESCE(o.system_name, '') AS system_name,
-        COALESCE(o.color, '') AS color,
+        '' AS system_name,
         COALESCE(t.name, '') AS totem_name,
         0 AS group_count,
         0 AS member_count
@@ -70,7 +69,6 @@ if ($res = $link->query($orgSql)) {
     if ($res = $link->query($fallbackSql)) {
         while ($row = $res->fetch_assoc()) {
             $row['system_name'] = '';
-            $row['color'] = '';
             $row['totem_name'] = '';
             $row['group_count'] = 0;
             $row['member_count'] = 0;

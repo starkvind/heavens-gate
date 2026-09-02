@@ -45,7 +45,7 @@ if (isset($link) && ($link instanceof mysqli)) {
         'chronicles' => hg_mobile_home_count_table($link, 'dim_chronicles'),
         'seasons' => hg_mobile_home_count_table($link, 'dim_seasons'),
         'powers' => hg_mobile_home_count_table($link, 'fact_gifts'),
-        'maps' => hg_mobile_home_count_table($link, 'dim_maps'),
+        'organizations' => hg_mobile_home_count_table($link, 'dim_organizations'),
     ];
     $ruleCounts = [
         hg_mobile_home_count_table($link, 'dim_traits'),
@@ -60,10 +60,10 @@ if (isset($link) && ($link instanceof mysqli)) {
 $sections = [
     ['label' => 'Personajes', 'href' => '/characters', 'text' => 'Biografías, relaciones y destinos de protagonistas y figuras secundarias.', 'count' => $counts['characters'] ?? null],
     ['label' => 'Temporadas', 'href' => '/seasons', 'text' => 'Arcos narrativos, episodios y capítulos ordenados por temporada.', 'count' => $counts['seasons'] ?? null],
+    ['label' => 'Grupos', 'href' => '/organizations', 'text' => 'Clanes, sociedades y grupos que conforman el mundo de la crónica.', 'count' => $counts['organizations'] ?? null],
     ['label' => 'Crónicas', 'href' => '/chronicles', 'text' => 'Campañas, continuidades, líneas temporales y realidades.', 'count' => $counts['chronicles'] ?? null],
     ['label' => 'Reglas', 'href' => '/rules', 'text' => 'Sistemas de juego, mecánicas y material de consulta rápida.', 'count' => $rulesCount],
     ['label' => 'Poderes', 'href' => '/powers', 'text' => 'Dones, rituales, tótems, disciplinas y capacidades sobrenaturales.', 'count' => $counts['powers'] ?? null],
-    ['label' => 'Mapas', 'href' => '/maps', 'text' => 'Lugares, dominios, túmulos y geografías del archivo.', 'count' => $counts['maps'] ?? null],
 ];
 
 $stats = [
@@ -72,13 +72,23 @@ $stats = [
     ['label' => 'Eventos', 'value' => $counts['events'] ?? null],
     ['label' => 'Documentos', 'value' => $counts['documents'] ?? null],
 ];
+$latestNews = null;
+if (isset($link) && ($link instanceof mysqli)) {
+    if ($stmt = $link->prepare('SELECT title, message, author, posted_at FROM fact_admin_posts ORDER BY posted_at DESC, id DESC LIMIT 1')) {
+        if ($stmt->execute() && ($result = $stmt->get_result())) {
+            $latestNews = $result->fetch_assoc() ?: null;
+            $result->free();
+        }
+        $stmt->close();
+    }
+}
 $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_feed($link) : [];
 ?>
 
 <section class="hg-mobile-home-hero" aria-labelledby="mobile-home-title">
     <h1 id="mobile-home-title">Heaven's Gate</h1>
-    <p class="hg-mobile-home-lead">Continuidad viva de personajes, crónicas, temporadas y sistemas de juego.</p>
-    <p class="hg-mobile-home-copy">Un archivo en constante reconstrucción sobre quienes habitaron, combatieron y sobrevivieron a esta historia.</p>
+    <p class="hg-mobile-home-lead">Una campaña de Mundo de Tinieblas, completamente personalizada y con trasfondo propio, en activo desde 2006.</p>
+    <p class="hg-mobile-home-copy">Archivo digital de historias, reglas y eventos, en constante reconstrucción sobre quienes participaron en esta epopeya.</p>
     <form class="hg-mobile-home-search" action="/search/results?view=mobile" method="get">
         <label class="hg-mobile-visually-hidden" for="mobile-home-search-q">Buscar en el archivo</label>
         <input id="mobile-home-search-q" type="search" name="q" minlength="3" maxlength="80" placeholder="Buscar personajes, capítulos, lugares, poderes o documentos..." required>
@@ -86,6 +96,30 @@ $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_f
         <button type="submit">Buscar</button>
     </form>
 </section>
+
+<?php if ($latestNews): ?>
+    <?php
+    $latestNewsExcerpt = trim(preg_replace('/\s+/', ' ', strip_tags((string)($latestNews['message'] ?? ''))));
+    if (function_exists('mb_strimwidth')) {
+        $latestNewsExcerpt = mb_strimwidth($latestNewsExcerpt, 0, 420, '...', 'UTF-8');
+    }
+    $latestNewsDate = strtotime((string)($latestNews['posted_at'] ?? ''));
+    ?>
+    <section class="hg-mobile-section hg-mobile-home-section" aria-labelledby="mobile-home-latest-news-title">
+        <h2 id="mobile-home-latest-news-title">Última noticia</h2>
+        <a class="hg-mobile-home-latest-card" href="/news">
+            <span class="hg-mobile-home-latest-heading">
+                <strong><?= hg_mobile_home_h($latestNews['title'] ?? '') ?></strong>
+                <?php if ($latestNewsDate): ?><time datetime="<?= hg_mobile_home_h(date('Y-m-d', $latestNewsDate)) ?>"><?= hg_mobile_home_h(date('d/m/Y', $latestNewsDate)) ?></time><?php endif; ?>
+            </span>
+            <?php if ($latestNewsExcerpt !== ''): ?><span><?= hg_mobile_home_h($latestNewsExcerpt) ?></span><?php endif; ?>
+            <small>
+                <?php if (trim((string)($latestNews['author'] ?? '')) !== ''): ?>por <?= hg_mobile_home_h($latestNews['author']) ?> · <?php endif; ?>
+                Ver noticias <span aria-hidden="true">&rarr;</span>
+            </small>
+        </a>
+    </section>
+<?php endif; ?>
 
 <section class="hg-mobile-section hg-mobile-home-section" aria-labelledby="mobile-home-explore-title">
     <h2 id="mobile-home-explore-title">Explora</h2>
@@ -122,4 +156,3 @@ $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_f
     </div>
 </section>
 <?php endif; ?>
-

@@ -48,7 +48,7 @@ $counts = [
     'chronicles' => hg_home_count_table($link, 'dim_chronicles'),
     'seasons' => hg_home_count_table($link, 'dim_seasons'),
     'powers' => hg_home_count_table($link, 'fact_gifts'),
-    'maps' => hg_home_count_table($link, 'dim_maps'),
+    'organizations' => hg_home_count_table($link, 'dim_organizations'),
 ];
 
 $ruleCounts = [
@@ -63,10 +63,10 @@ $rulesCount = in_array(null, $ruleCounts, true) ? null : array_sum($ruleCounts);
 $categories = [
     ['title' => 'Personajes', 'description' => 'Biografías, relaciones y destinos de protagonistas y figuras secundarias.', 'href' => '/characters', 'count' => $counts['characters']],
     ['title' => 'Temporadas', 'description' => 'Arcos narrativos, episodios y capítulos ordenados por temporada.', 'href' => '/seasons', 'count' => $counts['seasons']],
+    ['title' => 'Grupos', 'description' => 'Clanes, sociedades y grupos que conforman el mundo de la crónica.', 'href' => '/organizations', 'count' => $counts['organizations']],
     ['title' => 'Crónicas', 'description' => 'Campañas, continuidades, líneas temporales y realidades.', 'href' => '/chronicles', 'count' => $counts['chronicles']],
     ['title' => 'Reglas', 'description' => 'Sistemas de juego, mecánicas y material de consulta rápida.', 'href' => '/rules', 'count' => $rulesCount],
     ['title' => 'Poderes', 'description' => 'Dones, rituales, tótems, disciplinas y capacidades sobrenaturales.', 'href' => '/powers', 'count' => $counts['powers']],
-    ['title' => 'Mapas', 'description' => 'Lugares, dominios, túmulos y geografías del archivo.', 'href' => '/maps', 'count' => $counts['maps']],
 ];
 
 $stats = [

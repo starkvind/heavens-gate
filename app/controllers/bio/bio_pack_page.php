@@ -200,6 +200,96 @@ if (!function_exists('hg_bio_pack_page_render_character_tile')) {
     }
 }
 
+
+if (!function_exists('hg_bio_pack_page_markdown_data')) {
+    function hg_bio_pack_page_markdown_data(mysqli $link, int $organizationId, string $excludeChronicles): array
+    {
+        $data = ['members' => [], 'groups' => []];
+        $chronicleFilter = $excludeChronicles !== '' ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : '';
+        $characterFields = "p.name, COALESCE(p.alias, '') AS alias, COALESCE(p.garou_name, '') AS garou_name, COALESCE(p.info_text, '') AS description, COALESCE(dcs.label, '') AS status";
+
+        $stmt = mysqli_prepare($link, "
+            SELECT DISTINCT $characterFields
+            FROM bridge_characters_organizations bc
+            INNER JOIN fact_characters p ON p.id = bc.character_id
+            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
+            LEFT JOIN bridge_characters_groups bg ON bg.character_id = p.id AND (bg.is_active = 1 OR bg.is_active IS NULL)
+            WHERE bc.organization_id = ? AND (bc.is_active = 1 OR bc.is_active IS NULL)
+              AND bg.character_id IS NULL $chronicleFilter
+            ORDER BY p.name
+        ");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 'i', $organizationId);
+            if (mysqli_stmt_execute($stmt)) {
+                $result = mysqli_stmt_get_result($stmt);
+                while ($result && ($row = mysqli_fetch_assoc($result))) {
+                    $data['members'][] = [
+                        'name' => (string)($row['name'] ?? ''),
+                        'alias' => (string)($row['alias'] ?? ''),
+                        'garou_name' => (string)($row['garou_name'] ?? ''),
+                        'description' => (string)($row['description'] ?? ''),
+                        'status' => (string)($row['status'] ?? ''),
+                    ];
+                }
+                if ($result) { mysqli_free_result($result); }
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        $stmt = mysqli_prepare($link, "
+            SELECT m.id, m.name, COALESCE(m.`description`, '') AS description
+            FROM bridge_organizations_groups bog
+            INNER JOIN dim_groups m ON m.id = bog.group_id
+            WHERE bog.organization_id = ? AND (bog.is_active = 1 OR bog.is_active IS NULL)
+            " . ($excludeChronicles !== '' ? " AND m.chronicle_id NOT IN ($excludeChronicles) " : '') . "
+            ORDER BY m.name
+        ");
+        if (!$stmt) { return $data; }
+        mysqli_stmt_bind_param($stmt, 'i', $organizationId);
+        if (!mysqli_stmt_execute($stmt)) { mysqli_stmt_close($stmt); return $data; }
+
+        $groupsResult = mysqli_stmt_get_result($stmt);
+        while ($groupsResult && ($group = mysqli_fetch_assoc($groupsResult))) {
+            $members = [];
+            $groupId = (int)($group['id'] ?? 0);
+            $memberStmt = mysqli_prepare($link, "
+                SELECT DISTINCT $characterFields
+                FROM bridge_characters_groups bg
+                INNER JOIN fact_characters p ON p.id = bg.character_id
+                LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
+                WHERE bg.group_id = ? AND (bg.is_active = 1 OR bg.is_active IS NULL)
+                $chronicleFilter
+                ORDER BY p.name
+            ");
+            if ($memberStmt) {
+                mysqli_stmt_bind_param($memberStmt, 'i', $groupId);
+                if (mysqli_stmt_execute($memberStmt)) {
+                    $memberResult = mysqli_stmt_get_result($memberStmt);
+                    while ($memberResult && ($member = mysqli_fetch_assoc($memberResult))) {
+                        $members[] = [
+                            'name' => (string)($member['name'] ?? ''),
+                            'alias' => (string)($member['alias'] ?? ''),
+                            'garou_name' => (string)($member['garou_name'] ?? ''),
+                            'description' => (string)($member['description'] ?? ''),
+                            'status' => (string)($member['status'] ?? ''),
+                        ];
+                    }
+                    if ($memberResult) { mysqli_free_result($memberResult); }
+                }
+                mysqli_stmt_close($memberStmt);
+            }
+            $data['groups'][] = [
+                'name' => (string)($group['name'] ?? ''),
+                'description' => (string)($group['description'] ?? ''),
+                'members' => $members,
+            ];
+        }
+        if ($groupsResult) { mysqli_free_result($groupsResult); }
+        mysqli_stmt_close($stmt);
+        return $data;
+    }
+}
+
 $typePack = isset($_GET['t']) ? (int)$_GET['t'] : 0;
 $packId = isset($_GET['b']) ? (int)$_GET['b'] : 0;
 
@@ -379,7 +469,13 @@ if ($typePack === 1) {
 
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . hg_bio_pack_page_h($namePack) . "</h2>";
-echo "<style>.bio-pack-action-link{display:inline-block;margin:10px 0 0;padding:5px 10px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;text-decoration:none}.bio-pack-action-link:hover{background:#003b8f;color:#fff!important}</style>";
+echo "<style>.bio-pack-action-link{display:inline-block;margin:10px 0 0;padding:5px 10px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;text-decoration:none}.bio-pack-action-link:hover{background:#003b8f;color:#fff!important}.bio-pack-copy-row{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:10px 0 0}.bio-pack-copy-btn{display:inline-block;border:1px solid #1c5ea9;border-radius:999px;background:linear-gradient(180deg,#0f2f73 0%,#0a205a 100%);color:#e8f7ff;padding:8px 16px;font-weight:bold;letter-spacing:.02em;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.bio-pack-copy-btn:hover{transform:translateY(-1px);border-color:#2bbfd1;box-shadow:0 0 0 3px rgba(43,191,209,.18)}.bio-pack-copy-status{font-size:.8rem}.bio-pack-copy-status.is-ok{color:#1e6a37}.bio-pack-copy-status.is-error{color:#9e1f1f}</style>";
+if ($typePack === 2) {
+    $markdownData = hg_bio_pack_page_markdown_data($link, $packId, $excludeChronicles);
+    $markdownData['name'] = $namePack; $markdownData['description'] = $infoPack;
+    $markdownJson = json_encode($markdownData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
+    echo "<script>window.hgBioPackMarkdownData = " . ($markdownJson ?: '{}') . ";</script>";
+}
 
 echo "<table class='notix'>";
 echo "<tr><td colspan='2' class='texti'>";
@@ -393,6 +489,9 @@ if ($totemLink !== '') {
 }
 
 echo "<b>Descripción</b>:<br/><br/>" . $infoPack;
+if ($typePack === 2) {
+    echo "<div class='bio-pack-copy-row'><span class='bio-pack-copy-status' id='bio-pack-copy-md-status'></span><button type='button' class='bio-pack-copy-btn' id='bio-pack-copy-md-btn' title='Copiar estructura de la organización en Markdown' aria-label='Copiar estructura de la organización en Markdown'>Copiar estructura</button></div>";
+}
 if ($typePack === 2 && hg_bio_pack_org_chart_available($link, $packId)) {
     $orgChartHref = rtrim(pretty_url($link, 'dim_organizations', '/organizations', $packId), '/') . '/org-chart';
     echo "<br/><a class='bio-pack-action-link' href='" . hg_bio_pack_page_h($orgChartHref) . "'>Ver organigrama</a>";
@@ -653,3 +752,13 @@ if ($typePack === 2) {
 
 echo "</table>";
 ?>
+<script>
+(function () {
+ var button=document.getElementById('bio-pack-copy-md-btn'),status=document.getElementById('bio-pack-copy-md-status'),data=window.hgBioPackMarkdownData;if(!button||!data)return;
+ function text(html){var node=document.createElement('div');node.innerHTML=html||'';return node.innerText.replace(/\n{3,}/g,'\n\n').trim();}
+ function characterLines(character){var lines=['- **Nombre completo:** '+String(character.name||'')],alias=String(character.alias||'').trim(),garouName=String(character.garou_name||'').trim(),description=text(character.description),state=String(character.status||'').trim();if(alias)lines.push('  - **Alias:** '+alias);if(garouName)lines.push('  - **Nombre Garou:** '+garouName);if(description)lines.push('  - **Descripción:** '+description.replace(/\n/g,'\n    '));if(state&&state.toLocaleLowerCase()!=='en activo')lines.push('  - ['+state+']');return lines;}
+ function build(){var lines=['# '+data.name],description=text(data.description);if(description)lines.push('',description);if(data.members.length){lines.push('','## Miembros sin grupo asociado','');data.members.forEach(function(character){lines=lines.concat(characterLines(character));});}if(data.groups.length){lines.push('','## Grupos');data.groups.forEach(function(group){lines.push('','### '+group.name);var description=text(group.description);if(description)lines.push('',description);if(group.members.length){lines.push('','#### Miembros','');group.members.forEach(function(character){lines=lines.concat(characterLines(character));});}});}return lines.join('\n').trim();}
+ function copy(value){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(value);var area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.left='-9999px';document.body.appendChild(area);area.select();var ok=document.execCommand('copy');document.body.removeChild(area);return ok?Promise.resolve():Promise.reject();}
+ button.addEventListener('click',function(){copy(build()).then(function(){status.textContent='Markdown copiado al portapapeles.';status.className='bio-pack-copy-status is-ok';button.textContent='✓';window.setTimeout(function(){button.textContent='Copiar estructura de la organización';},1000);}).catch(function(){status.textContent='No se pudo copiar automáticamente.';status.className='bio-pack-copy-status is-error';});});
+})();
+</script>

@@ -135,7 +135,7 @@
 (function () {
     const buttons = document.querySelectorAll('[data-mobile-theme]');
     if (!buttons.length) return;
-    const themeColors = { classic: '#050150', violet: '#21113d', light: '#f6f7fb', 'power-save': '#000000' };
+    const themeColors = { classic: '#050150', violet: '#21113d', 'violet-pearl': '#f3eef9', light: '#f6f7fb', 'power-save': '#000000' };
     const body = document.body;
     const themeMeta = document.querySelector('[data-mobile-theme-color]');
     buttons.forEach(function (button) {

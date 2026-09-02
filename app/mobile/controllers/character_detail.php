@@ -111,11 +111,20 @@ if (!function_exists('hg_mobile_bio_date')) {
     function hg_mobile_bio_date(?string $raw): string
     {
         $raw = trim((string)$raw);
-        if ($raw === '' || $raw === '0000-00-00') {
+        if ($raw === '' || preg_match('/^0{4}-0{2}-0{2}(?:[ T].*)?$/', $raw)) {
             return '';
         }
-        $ts = strtotime($raw);
-        return $ts !== false ? date('d-m-Y', $ts) : $raw;
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/', $raw, $parts)) {
+            $year = (int)$parts[1];
+            $month = (int)$parts[2];
+            $day = (int)$parts[3];
+            if ($year >= 1 && checkdate($month, $day, $year)) {
+                return sprintf('%02d-%02d-%04d', $day, $month, $year);
+            }
+        }
+
+        return $raw;
     }
 }
 

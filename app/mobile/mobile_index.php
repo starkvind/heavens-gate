@@ -31,7 +31,7 @@
         $mobileTitle = implode(' | ', $titleParts) ?: "Heaven's Gate";
     }
 
-    $allowedThemes = ['classic', 'violet', 'light', 'modern', 'power-save'];
+    $allowedThemes = ['classic', 'violet', 'violet-pearl', 'light', 'modern', 'power-save'];
     $activeTheme = isset($_COOKIE['hg_mobile_theme']) ? strtolower((string)$_COOKIE['hg_mobile_theme']) : 'classic';
     if (!in_array($activeTheme, $allowedThemes, true)) {
         $activeTheme = 'classic';
@@ -40,6 +40,14 @@
         $activeTheme = 'light';
     }
     $bodyThemeClass = 'theme-' . $activeTheme;
+    $themeColors = [
+        'classic' => '#050150',
+        'violet' => '#21113d',
+        'violet-pearl' => '#f3eef9',
+        'light' => '#f6f7fb',
+        'power-save' => '#000000',
+    ];
+    $activeThemeColor = $themeColors[$activeTheme] ?? $themeColors['classic'];
 
     if (!function_exists('hg_mobile_h')) {
         function hg_mobile_h($value): string
@@ -80,7 +88,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#050150" data-mobile-theme-color>
+    <meta name="theme-color" content="<?= hg_mobile_h($activeThemeColor) ?>" data-mobile-theme-color>
     <base href="/">
     <title><?= hg_mobile_h($mobileTitle) ?></title>
     <link rel="shortcut icon" href="img/ui/branding/infinidice.ico" type="image/x-icon">
@@ -117,6 +125,7 @@
                 <div class="hg-mobile-menu-links hg-mobile-theme-links">
                     <button type="button" data-mobile-theme="classic"<?= $activeTheme === 'classic' ? ' class="is-active" aria-current="true"' : '' ?>>Clásico</button>
                     <button type="button" data-mobile-theme="violet"<?= $activeTheme === 'violet' ? ' class="is-active" aria-current="true"' : '' ?>>Violeta</button>
+                    <button type="button" data-mobile-theme="violet-pearl"<?= $activeTheme === 'violet-pearl' ? ' class="is-active" aria-current="true"' : '' ?>>Violeta perla</button>
                     <button type="button" data-mobile-theme="light"<?= $activeTheme === 'light' ? ' class="is-active" aria-current="true"' : '' ?>>Claro</button>
                     <button type="button" data-mobile-theme="power-save"<?= $activeTheme === 'power-save' ? ' class="is-active" aria-current="true"' : '' ?>>Ahorro energía</button>
                 </div>

@@ -39,6 +39,15 @@ html {
     --hg-mobile-text: #fffaff; --hg-mobile-muted: #d5c2ed; --hg-mobile-link: #e0b6ff;
 }
 
+.hg-mobile-body.theme-violet-pearl {
+    --hg-mobile-bg: #f3eef9;
+    --hg-mobile-surface: #fffdfd;
+    --hg-mobile-border: #b8a2cf;
+    --hg-mobile-text: #2b1a3d;
+    --hg-mobile-muted: #695b78;
+    --hg-mobile-link: #6f2f9f;
+}
+
 .hg-mobile-body.theme-power-save {
     --hg-mobile-bg: #000000;
     --hg-mobile-surface: #050505;
@@ -183,13 +192,43 @@ html {
 }
 
 .hg-mobile-action-row a,
+.hg-mobile-action-row button,
 .hg-mobile-pagination a {
     min-height: 42px;
     padding: 11px 12px;
     border: 1px solid var(--hg-mobile-border);
     border-radius: 6px;
     background: var(--hg-mobile-surface);
+    color: var(--hg-mobile-link);
+    font: inherit;
     text-align: center;
+}
+
+.hg-mobile-organization-actions {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin-top: 12px;
+}
+
+.hg-mobile-organization-actions button {
+    cursor: pointer;
+}
+
+.hg-mobile-copy-status {
+    grid-column: 1 / -1;
+    color: var(--hg-mobile-muted);
+    font-size: 0.8rem;
+}
+
+.hg-mobile-copy-status:empty {
+    display: none;
+}
+
+.hg-mobile-copy-status.is-ok {
+    color: #278347;
+}
+
+.hg-mobile-copy-status.is-error {
+    color: #c54c62;
 }
 
 .hg-mobile-section {
@@ -2447,18 +2486,29 @@ html {
   display: none;
 }
 
-/* Contenido historico guardado con texto blanco: legible en tema claro. */
+/* Contenido historico guardado con texto blanco: legible en temas claros. */
 .theme-light .hg-mobile-doc-body [style*="color:white" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color:white" i],
 .theme-light .hg-mobile-doc-body [style*="color: white" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color: white" i],
 .theme-light .hg-mobile-doc-body [style*="color:#fff" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color:#fff" i],
 .theme-light .hg-mobile-doc-body [style*="color: #fff" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color: #fff" i],
 .theme-light .hg-mobile-doc-body [style*="color:#ffffff" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color:#ffffff" i],
 .theme-light .hg-mobile-doc-body [style*="color: #ffffff" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color: #ffffff" i],
 .theme-light .hg-mobile-doc-body [style*="color:rgb(255,255,255)" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color:rgb(255,255,255)" i],
 .theme-light .hg-mobile-doc-body [style*="color: rgb(255,255,255)" i],
+.theme-violet-pearl .hg-mobile-doc-body [style*="color: rgb(255,255,255)" i],
 .theme-light .hg-mobile-doc-body font[color="white" i],
+.theme-violet-pearl .hg-mobile-doc-body font[color="white" i],
 .theme-light .hg-mobile-doc-body font[color="#fff" i],
-.theme-light .hg-mobile-doc-body font[color="#ffffff" i] {
+.theme-violet-pearl .hg-mobile-doc-body font[color="#fff" i],
+.theme-light .hg-mobile-doc-body font[color="#ffffff" i],
+.theme-violet-pearl .hg-mobile-doc-body font[color="#ffffff" i] {
   color: var(--hg-mobile-text) !important;
 }
 .hg-mobile-list-filter {
@@ -2619,6 +2669,41 @@ html {
     color: var(--hg-mobile-text);
 }
 
+.hg-mobile-home-latest-card {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--hg-mobile-border);
+    border-left: 4px solid var(--hg-mobile-link);
+    border-radius: 7px;
+    background: var(--hg-mobile-surface);
+    color: var(--hg-mobile-text);
+    text-decoration: none;
+}
+
+.hg-mobile-home-latest-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.hg-mobile-home-latest-heading strong {
+    color: var(--hg-mobile-text);
+    font-size: 1.05rem;
+}
+
+.hg-mobile-home-latest-heading time,
+.hg-mobile-home-latest-card small {
+    color: var(--hg-mobile-link);
+    font-size: 0.8rem;
+}
+
+.hg-mobile-home-latest-card > span:not(.hg-mobile-home-latest-heading) {
+    color: var(--hg-mobile-muted);
+    line-height: 1.5;
+}
+
 .hg-mobile-home-stats {
     display: flex;
     flex-wrap: wrap;
@@ -2650,6 +2735,7 @@ html {
 
 .hg-mobile-home-card:focus-visible,
 .hg-mobile-home-archive-card:focus-visible,
+.hg-mobile-home-latest-card:focus-visible,
 .hg-mobile-home-search :is(input, button):focus-visible {
     outline: 3px solid var(--hg-mobile-link);
     outline-offset: 3px;
