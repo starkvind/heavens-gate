@@ -8,8 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 	@session_start();
 }
 
-// Tournament runner executes battles in background; skip IP limiter for those internal runs.
-if (!empty($_POST['tournament_background']) && (string)$_POST['tournament_background'] === '1') {
+// Only server-side tournament execution may bypass the public IP limiter.
+if (defined('HG_SIM_INTERNAL_TOURNAMENT_RUN') && HG_SIM_INTERNAL_TOURNAMENT_RUN === true) {
 	return;
 }
 
