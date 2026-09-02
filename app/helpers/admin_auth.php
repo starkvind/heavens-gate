@@ -44,7 +44,32 @@ if (!function_exists('hg_admin_is_authenticated')) {
             return false;
         }
 
-        return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+        if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
+            return false;
+        }
+
+        $now = time();
+        $loggedInAt = (int)($_SESSION['admin_logged_in_at'] ?? 0);
+        $lastSeenAt = (int)($_SESSION['admin_last_seen_at'] ?? $loggedInAt);
+
+        // Defence in depth: admin sessions expire after 12 hours absolutely
+        // and after 2 hours without an authenticated request.
+        $absoluteTimeout = 12 * 60 * 60;
+        $idleTimeout = 2 * 60 * 60;
+        $expired = $loggedInAt <= 0
+            || ($now - $loggedInAt) > $absoluteTimeout
+            || ($lastSeenAt > 0 && ($now - $lastSeenAt) > $idleTimeout);
+
+        if ($expired) {
+            unset($_SESSION['is_admin'], $_SESSION['admin_logged_in_at'], $_SESSION['admin_last_seen_at']);
+            if (!headers_sent() && session_status() === PHP_SESSION_ACTIVE) {
+                @session_regenerate_id(true);
+            }
+            return false;
+        }
+
+        $_SESSION['admin_last_seen_at'] = $now;
+        return true;
     }
 }
 
@@ -56,8 +81,10 @@ if (!function_exists('hg_admin_mark_authenticated')) {
         }
 
         session_regenerate_id(true);
+        $now = time();
         $_SESSION['is_admin'] = true;
-        $_SESSION['admin_logged_in_at'] = time();
+        $_SESSION['admin_logged_in_at'] = $now;
+        $_SESSION['admin_last_seen_at'] = $now;
     }
 }
 
@@ -73,7 +100,7 @@ if (!function_exists('hg_admin_redirect')) {
 
 if (!function_exists('hg_admin_login_return_path')) {
     /**
-     * Devuelve una secciÛn administrativa v·lida como destino tras el login.
+     * Devuelve una secci√≥n administrativa v√°lida como destino tras el login.
      * Solo se permiten rutas locales que el panel realmente sabe cargar.
      */
     function hg_admin_login_return_path(?string $candidate = null): string
@@ -103,7 +130,7 @@ if (!function_exists('hg_admin_login_return_path')) {
             'admin_chapters', 'admin_pois', 'admin_players', 'admin_chronicles', 'admin_realities',
             'admin_bso', 'admin_bso_link', 'admin_timelines', 'admin_birthdays_quick',
             'admin_gallery', 'admin_plots', 'admin_parties', 'admin_powers', 'admin_gift_image_mass',
-            'admin_game_cards', 'admin_game_cards_seed', 'admin_docs', 'admin_external_links',
+            'admin_game_cards', 'admin_docs', 'admin_external_links',
             'admin_character_links', 'admin_doc_links', 'admin_topic_viewer', 'admin_bridges',
             'admin_items', 'admin_menu', 'admin_relations', 'admin_news', 'admin_systems',
             'admin_forms', 'admin_maneuvers', 'admin_system_details', 'admin_systems_extra_details',
@@ -111,7 +138,7 @@ if (!function_exists('hg_admin_login_return_path')) {
             'admin_merits_flaws', 'admin_character_conditions', 'admin_character_conditions_bridge',
             'admin_characters_conditions_brige', 'admin_character_misc_bridge',
             'admin_character_affiliations_canonical', 'admin_systems_resources', 'admin_resources',
-            'admin_resources_migration', 'admin_inspect_db', 'admin_schema_hardening_audit',
+            'admin_inspect_db',
             'admin_mentions_help', 'admin_org_chart_schema',
         ];
 
