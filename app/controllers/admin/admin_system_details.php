@@ -1,6 +1,7 @@
 <?php
 // admin_system_details.php -- CRUD detalles de sistemas (breeds/auspices/tribes/misc)
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/admin_uploads.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
@@ -365,21 +366,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 if ($removeFlag) {
                     $vals['image_url'] = '';
                 }
-                if (isset($_FILES['file_image_url']) && is_array($_FILES['file_image_url']) && $_FILES['file_image_url']['error'] === UPLOAD_ERR_OK) {
-                    $tmp = $_FILES['file_image_url']['tmp_name'];
-                    $orig = $_FILES['file_image_url']['name'] ?? 'img';
-                    $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-                    if ($ext === '') $ext = 'jpg';
-                    $base = slugify_pretty_id(pathinfo($orig, PATHINFO_FILENAME));
-                    if ($base === '') $base = 'img';
-                    $name = $base . '-' . date('YmdHis') . '.' . $ext;
-                    $destDir = __DIR__ . '/../../../public/img/system';
-                    if (!is_dir($destDir)) @mkdir($destDir, 0775, true);
-                    $dest = $destDir . '/' . $name;
-                    if (@move_uploaded_file($tmp, $dest)) {
-                        $vals['image_url'] = 'img/system/' . $name;
+                if (isset($_FILES['file_image_url']) && is_array($_FILES['file_image_url']) && (int)($_FILES['file_image_url']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                    $displayName = trim((string)($vals['name'] ?? $vals['label'] ?? $postTab));
+                    $upload = hg_admin_save_image_upload(
+                        $_FILES['file_image_url'],
+                        'system-' . $postTab,
+                        $id,
+                        $displayName,
+                        hg_admin_project_root() . '/public/img/system',
+                        'img/system'
+                    );
+                    if (!empty($upload['ok'])) {
+                        $vals['image_url'] = (string)($upload['url'] ?? '');
                     } else {
-                        $flash[] = ['type'=>'error','msg'=>'Error al subir la imagen.'];
+                        $flash[] = ['type'=>'error','msg'=>'Imagen rechazada: ' . (string)($upload['msg'] ?? 'upload_invalid')];
                         $hasErr = true;
                     }
                 }
