@@ -61,3 +61,25 @@ jobs:
           if failures:
               raise SystemExit("\n".join(failures))
           PY
+
+      - name: Reject schema-changing SQL in web admin controllers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          pattern = re.compile(r'\b(?:ALTER|CREATE|DROP|TRUNCATE)\s+TABLE\b', re.I)
+          failures = []
+          for path in Path("app/controllers/admin").rglob("*.php"):
+              source = path.read_text(encoding="utf-8", errors="ignore")
+              if pattern.search(source):
+                  failures.append(str(path))
+
+          if failures:
+              raise SystemExit(
+                  "Schema-changing SQL is not allowed in web admin controllers:\n"
+                  + "\n".join(failures)
+              )
+          PY
