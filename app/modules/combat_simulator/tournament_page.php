@@ -538,7 +538,6 @@ if (!function_exists('sim_tournament_resolve_engine')) {
                 'armasrandom' => 'yes',
                 'protrandom' => 'yes',
                 'formarandom' => 'yes',
-                'tournament_background' => '1',
                 'tournament_id' => (string)$tournamentId,
                 'tournament_round' => (string)$round,
                 'tournament_match' => (string)$match
@@ -548,6 +547,9 @@ if (!function_exists('sim_tournament_resolve_engine')) {
             $GLOBALS['sim_last_battle_outcome'] = '';
             $GLOBALS['sim_last_battle_winner_character_id'] = 0;
 
+            if (!defined('HG_SIM_INTERNAL_TOURNAMENT_RUN')) {
+                define('HG_SIM_INTERNAL_TOURNAMENT_RUN', true);
+            }
             ob_start();
             include(__DIR__ . '/battle_result_page.php');
             ob_end_clean();
