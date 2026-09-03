@@ -1,6 +1,7 @@
 <?php
     if (!headers_sent()) {
         header('Content-Type: text/html; charset=UTF-8');
+        header('Cache-Control: no-cache, max-age=0, must-revalidate');
     }
     ini_set('default_charset', 'UTF-8');
     if (function_exists('mb_internal_encoding')) {
