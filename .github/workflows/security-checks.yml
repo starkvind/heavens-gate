@@ -138,7 +138,7 @@ jobs:
             if (!empty($state["blocked"]) || (int)($state["failures"] ?? -1) !== 0) { exit(4); }
           '
 
-      - name: Reject schema-changing SQL in web admin controllers
+      - name: Reject schema-changing SQL in web runtime
         shell: bash
         run: |
           set -euo pipefail
@@ -148,7 +148,7 @@ jobs:
 
           pattern = re.compile(r'\b(?:ALTER|CREATE|DROP|TRUNCATE)\s+TABLE\b', re.I)
           failures = []
-          roots = [Path("app/controllers/admin"), Path("app/helpers")]
+          roots = [Path("app/controllers"), Path("app/helpers")]
           for root in roots:
               for path in root.rglob("*.php"):
                   source = path.read_text(encoding="utf-8", errors="ignore")
@@ -157,7 +157,7 @@ jobs:
 
           if failures:
               raise SystemExit(
-                  "Schema-changing SQL is not allowed in web admin/runtime helpers:\n"
+                  "Schema-changing SQL is not allowed in web runtime controllers/helpers:\n"
                   + "\n".join(failures)
               )
           PY
