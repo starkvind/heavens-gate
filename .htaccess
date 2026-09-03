@@ -13,8 +13,10 @@ RewriteBase /
 # Security
 # ==============================
 RewriteRule (^|/)\.(?:git|svn|hg)(?:/|$) index.php?p=error404 [L,NC,QSA]
+RewriteRule ^\.github(?:/|$) index.php?p=error404 [L,NC,QSA]
 RewriteRule (^|/)(?:\.(?:gitignore|gitattributes|env(?:\..*)?)|config\.env(?:\..*)?)$ index.php?p=error404 [L,NC,QSA]
 RewriteRule ^app(?:/|$) index.php?p=error404 [L,NC,QSA]
+RewriteRule ^(?:tools|sql)(?:/|$) index.php?p=error404 [L,NC,QSA]
 RewriteRule (^|/)admin_docs(?:/|$) index.php?p=error404 [L,NC,QSA]
 RewriteRule (^|/)(?:README|TECHNICAL_DOCUMENTATION|TELEGRAM_BOT_BACKEND_GUIDE)\.md$ index.php?p=error404 [L,NC,QSA]
 RewriteRule (^|/)(?:composer\.(?:json|lock)|phpunit\.xml(?:\.dist)?|dump-[^/]+\.sql|check_encoding\.ps1)$ index.php?p=error404 [L,NC,QSA]
