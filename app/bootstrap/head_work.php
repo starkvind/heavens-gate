@@ -50,7 +50,6 @@
 	<link rel="stylesheet" href="assets/css/hg-core.css?v=<?= $coreCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>">
 
-	<?php
 	<script type="text/javascript" src="assets/js/permutloading.js"></script>
 	<script type="text/javascript" src="assets/js/hg-tabs.js"></script>
 	<script type="text/javascript" src="assets/js/hg-tooltip.js?v=<?= (int)$tooltipScriptVersion ?>" defer></script>
