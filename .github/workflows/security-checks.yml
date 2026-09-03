@@ -102,26 +102,40 @@ jobs:
               raise SystemExit('\n'.join(failures))
           PY
 
-      - name: Verify global CSS cache busting
+      - name: Verify dynamic cache and global asset versioning
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
 
-          source = Path("app/bootstrap/head_work.php").read_text(encoding="utf-8", errors="ignore")
-          required = [
+          head = Path("app/bootstrap/head_work.php").read_text(encoding="utf-8", errors="ignore")
+          index = Path("index.php").read_text(encoding="utf-8", errors="ignore")
+
+          required_head = [
               "assets/css/hg-core.css?v=<?= $coreCssVersion ?>",
               "assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>",
+              "assets/js/permutloading.js?v=<?= $permutScriptVersion ?>",
+              "assets/js/hg-tabs.js?v=<?= $tabsScriptVersion ?>",
+              "assets/js/hg-tooltip.js?v=<?= $tooltipScriptVersion ?>",
               "@filemtime(__DIR__ . '/../../assets/css/hg-core.css')",
               "@filemtime(__DIR__ . '/../../assets/css/hg-layout.css')",
+              "@filemtime(__DIR__ . '/../../assets/js/permutloading.js')",
+              "@filemtime(__DIR__ . '/../../assets/js/hg-tabs.js')",
+              "@filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js')",
           ]
-          missing = [item for item in required if item not in source]
+          missing = [item for item in required_head if item not in head]
           if missing:
-              raise SystemExit("Global CSS cache busting is incomplete:\n" + "\n".join(missing))
+              raise SystemExit("Global asset versioning is incomplete:\n" + "\n".join(missing))
 
-          if "?: time()" in source:
+          if "?: time()" in head:
               raise SystemExit("Do not use time() as the global asset-version fallback; it defeats browser caching.")
+
+          cache_header = "Cache-Control: no-cache, max-age=0, must-revalidate"
+          if cache_header not in index:
+              raise SystemExit("Dynamic HTML must remain cacheable only with mandatory revalidation.")
+          if "Cache-Control: no-store" in index:
+              raise SystemExit("Do not disable dynamic HTML storage globally; revalidate it instead.")
           PY
 
       - name: Guard tool API auth and legacy deserialization
