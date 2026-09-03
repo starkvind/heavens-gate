@@ -92,14 +92,16 @@ jobs:
 
           pattern = re.compile(r'\b(?:ALTER|CREATE|DROP|TRUNCATE)\s+TABLE\b', re.I)
           failures = []
-          for path in Path("app/controllers/admin").rglob("*.php"):
-              source = path.read_text(encoding="utf-8", errors="ignore")
-              if pattern.search(source):
-                  failures.append(str(path))
+          roots = [Path("app/controllers/admin"), Path("app/helpers")]
+          for root in roots:
+              for path in root.rglob("*.php"):
+                  source = path.read_text(encoding="utf-8", errors="ignore")
+                  if pattern.search(source):
+                      failures.append(str(path))
 
           if failures:
               raise SystemExit(
-                  "Schema-changing SQL is not allowed in web admin controllers:\n"
+                  "Schema-changing SQL is not allowed in web admin/runtime helpers:\n"
                   + "\n".join(failures)
               )
           PY
