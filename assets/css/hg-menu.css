@@ -1,0 +1,19 @@
+/* Desktop left-menu normalization.
+ *
+ * dim_menu_items can attach extra css_class values to individual entries. The
+ * classic menu must keep one visual language regardless of those editorial
+ * classes: dark blue border/background for every submenu row, with the legacy
+ * hover treatment. Separators are deliberately excluded.
+ */
+
+table.tmenu div.renglonMenu:not(.menuSeparator) {
+    border: 1px solid #000088 !important;
+    background: #05014E !important;
+    box-shadow: none !important;
+}
+
+table.tmenu a:hover div.renglonMenu:not(.menuSeparator),
+table.tmenu div.renglonMenu:not(.menuSeparator):hover {
+    border-color: #000099 !important;
+    background: #000066 !important;
+}
