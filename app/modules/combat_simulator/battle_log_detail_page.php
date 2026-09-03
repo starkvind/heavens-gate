@@ -349,7 +349,7 @@ if (!$IdConsulta || mysql_num_rows($IdConsulta) === 0) {
 
 $ResultQuery = mysql_fetch_array($IdConsulta);
 $resultDataCombat = (string)($ResultQuery['turns_payload'] ?? '');
-$arrayOfTurns = @unserialize($resultDataCombat);
+$arrayOfTurns = @unserialize($resultDataCombat, ['allowed_classes' => false]);
 if (!is_array($arrayOfTurns)) {
     sim_log_error_box('Los datos del combate est&aacute;n da&ntilde;ados o son incompatibles.');
     return;

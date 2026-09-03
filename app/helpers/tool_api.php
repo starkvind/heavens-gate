@@ -70,12 +70,49 @@ if (!function_exists('hg_tool_api_expected_token')) {
     }
 }
 
+if (!function_exists('hg_tool_api_request_token')) {
+    function hg_tool_api_request_token(): array
+    {
+        $authorization = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        if ($authorization !== '' && preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            $token = trim((string)($matches[1] ?? ''));
+            if ($token !== '') {
+                return ['token' => $token, 'source' => 'authorization'];
+            }
+        }
+
+        $headerToken = trim((string)($_SERVER['HTTP_X_HG_TOOL_TOKEN'] ?? ''));
+        if ($headerToken !== '') {
+            return ['token' => $headerToken, 'source' => 'x-hg-tool-token'];
+        }
+
+        // Temporary compatibility path for existing external integrations.
+        // Remove after all clients have migrated to Authorization: Bearer.
+        $queryToken = trim((string)($_GET['token'] ?? ''));
+        if ($queryToken !== '') {
+            return ['token' => $queryToken, 'source' => 'query'];
+        }
+
+        return ['token' => '', 'source' => 'none'];
+    }
+}
+
+if (!function_exists('hg_tool_api_require_request_token')) {
+    function hg_tool_api_require_request_token(): bool
+    {
+        $provided = hg_tool_api_request_token();
+        return hg_tool_api_require_token((string)($provided['token'] ?? ''));
+    }
+}
+
 if (!function_exists('hg_tool_api_send_text')) {
     function hg_tool_api_send_text(string $body, int $status = 200): void
     {
         hg_runtime_send_status($status);
         if (!headers_sent()) {
             header('Content-Type: text/plain; charset=UTF-8');
+            header('Cache-Control: no-store, max-age=0');
+            header('Referrer-Policy: no-referrer');
         }
         echo $body;
     }

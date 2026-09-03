@@ -84,6 +84,40 @@ jobs:
               raise SystemExit("Do not use time() as the global asset-version fallback; it defeats browser caching.")
           PY
 
+      - name: Guard tool API auth and legacy deserialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          failures = []
+
+          for path in [
+              Path("app/controllers/tool/dice_api.php"),
+              Path("app/controllers/tool/forum_avatar_api.php"),
+          ]:
+              source = path.read_text(encoding="utf-8", errors="ignore")
+              if "$_GET['token']" in source or '$_GET["token"]' in source:
+                  failures.append(f"{path}: API token must not be read directly from the query string")
+              if "hg_tool_api_require_request_token()" not in source:
+                  failures.append(f"{path}: shared request-token authentication is missing")
+
+          helper = Path("app/helpers/tool_api.php").read_text(encoding="utf-8", errors="ignore")
+          if "HTTP_AUTHORIZATION" not in helper or "Bearer" not in helper:
+              failures.append("app/helpers/tool_api.php: Bearer-token support is missing")
+
+          for path in Path("app").rglob("*.php"):
+              source = path.read_text(encoding="utf-8", errors="ignore")
+              for match in re.finditer(r'(?:@)?unserialize\s*\(([^\n;]*)\)', source):
+                  if "allowed_classes" not in match.group(1):
+                      failures.append(f"{path}: unserialize without allowed_classes=false")
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
+
       - name: Exercise admin login rate limiter
         shell: bash
         run: |
