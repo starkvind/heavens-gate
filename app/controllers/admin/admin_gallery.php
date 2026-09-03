@@ -61,6 +61,46 @@ function isValidFileName(string $file, array $allowed): bool {
     $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
     return in_array($ext, $allowed, true);
 }
+function galleryValidateUpload(array $file, int $maxBytes = 5242880, int $maxPixels = 25000000): array {
+    if (!isset($file['error']) || (int)$file['error'] === UPLOAD_ERR_NO_FILE) {
+        return ['ok' => false, 'msg' => 'No se recibio archivo.'];
+    }
+    if ((int)$file['error'] !== UPLOAD_ERR_OK) {
+        return ['ok' => false, 'msg' => 'Error en la subida (#' . (int)$file['error'] . ').'];
+    }
+
+    $size = (int)($file['size'] ?? 0);
+    if ($size <= 0 || $size > $maxBytes) {
+        return ['ok' => false, 'msg' => 'La imagen supera el limite de 5 MB o esta vacia.'];
+    }
+
+    $tmp = (string)($file['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        return ['ok' => false, 'msg' => 'La subida no es valida.'];
+    }
+
+    $info = @getimagesize($tmp);
+    if (!is_array($info)) {
+        return ['ok' => false, 'msg' => 'El archivo no es una imagen valida.'];
+    }
+
+    $width = (int)($info[0] ?? 0);
+    $height = (int)($info[1] ?? 0);
+    $type = (int)($info[2] ?? 0);
+    if ($width <= 0 || $height <= 0) {
+        return ['ok' => false, 'msg' => 'La imagen no tiene dimensiones validas.'];
+    }
+    if (($width * $height) > $maxPixels) {
+        return ['ok' => false, 'msg' => 'La imagen es demasiado grande para procesarla con seguridad.'];
+    }
+
+    $allowedTypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP];
+    if (!in_array($type, $allowedTypes, true)) {
+        return ['ok' => false, 'msg' => 'Formato no permitido (JPG/PNG/GIF/WebP).'];
+    }
+
+    return ['ok' => true, 'tmp_name' => $tmp, 'width' => $width, 'height' => $height, 'type' => $type];
+}
 function fsPathJoin(string $base, string $rel = ''): string {
     $rel = trim($rel, "/");
     return $rel === '' ? $base : ($base . "/" . $rel);
@@ -300,12 +340,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $resp["msg"] = "No se recibio archivo.";
         } else {
             $file = $_FILES['imagen'];
-            if ($file['error'] === UPLOAD_ERR_OK) {
-                $origName = basename($file['name']);
+            $validation = galleryValidateUpload($file);
+            if (empty($validation['ok'])) {
+                $resp["msg"] = (string)($validation['msg'] ?? 'Imagen no valida.');
+            } else {
+                $origName = basename((string)($file['name'] ?? ''));
                 if (!isValidFileName($origName, $ALLOWED_EXT)) {
                     $resp["msg"] = "Extension no permitida ($origName).";
                 } else {
-                    $tmpName  = $file['tmp_name'];
+                    $tmpName  = (string)$validation['tmp_name'];
                     $safeName = uniqueFileName($postAbs, galleryWebpFileName($origName));
                     $destAbs  = fsPathJoin($postAbs, $safeName);
                     if (compressImage($tmpName, $destAbs, 80)) {
@@ -323,8 +366,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $resp["msg"] = "Error al procesar $origName.";
                     }
                 }
-            } else {
-                $resp["msg"] = "Error en la subida.";
             }
         }
 
@@ -397,10 +438,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $count = count($_FILES['images']['name']);
             $okN = 0;
             for ($i = 0; $i < $count; $i++) {
-                if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) continue;
-                $origName = basename($_FILES['images']['name'][$i]);
+                $candidate = [
+                    'error' => (int)($_FILES['images']['error'][$i] ?? UPLOAD_ERR_NO_FILE),
+                    'size' => (int)($_FILES['images']['size'][$i] ?? 0),
+                    'tmp_name' => (string)($_FILES['images']['tmp_name'][$i] ?? ''),
+                ];
+                $validation = galleryValidateUpload($candidate);
+                if (empty($validation['ok'])) { continue; }
+
+                $origName = basename((string)($_FILES['images']['name'][$i] ?? ''));
                 if (!isValidFileName($origName, $ALLOWED_EXT)) { continue; }
-                $tmpName  = $_FILES['images']['tmp_name'][$i];
+                $tmpName  = (string)$validation['tmp_name'];
                 $safeName = uniqueFileName($postAbs, galleryWebpFileName($origName));
                 $destAbs  = fsPathJoin($postAbs, $safeName);
                 if (compressImage($tmpName, $destAbs, 80)) {
