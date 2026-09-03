@@ -245,7 +245,6 @@ Herramientas existentes:
 - `tools/scaffold_section.py`;
 - `tools/seed_game_cards.php`;
 - `app/tools/backfill_content_updates.php`;
-- `app/tools/schema_hardening_audit.php`, integrado en admin;
 - `sql/audit_gaia0_content.sql`.
 
 Las antiguas referencias a `install_schema_from_dump.php`, `schema_definition.php`, `schema_initializer.php` y `admin_schema_initializer` están retiradas.
