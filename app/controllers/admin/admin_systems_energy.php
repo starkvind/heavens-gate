@@ -250,26 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     $action = (string)($_POST['action'] ?? '');
-    if ($action === 'schema_apply') {
-        $apply = hg_ser_ensure_energy_schema($link);
-        $state = ase_state($link, $tab, $systemId, $q, $resourcesAll, $resourcesBySystem);
-        if (!empty($apply['ok'])) {
-            if (function_exists('hg_admin_json_success')) {
-                hg_admin_json_success(['state' => $state, 'messages' => $apply['messages']], 'Schema preparado.');
-            }
-            header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode(['ok' => true, 'message' => 'Schema preparado.', 'data' => ['state' => $state, 'messages' => $apply['messages']]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-            exit;
-        }
-        $error = (string)($apply['errors'][0]['error'] ?? 'No se pudo preparar el schema.');
-        if (function_exists('hg_admin_json_error')) {
-            hg_admin_json_error($error, 400, ['errors' => $apply['errors']], ['state' => $state, 'messages' => $apply['messages']]);
-        }
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(['ok' => false, 'message' => $error, 'errors' => $apply['errors'], 'data' => ['state' => $state, 'messages' => $apply['messages']]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        exit;
-    }
-
     if ($action === 'save_assignments') {
         $updatesRaw = isset($_POST['updates']) && is_array($_POST['updates']) ? $_POST['updates'] : [];
         $allowAllStateResources = ((int)($_POST['allow_all_state_resources'] ?? 0) === 1);
@@ -291,25 +271,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($action === 'legacy_retire') {
-        $retire = hg_ser_retire_legacy_schema($link);
-        $state = ase_state($link, $tab, $systemId, $q, $resourcesAll, $resourcesBySystem);
-        if (!empty($retire['ok'])) {
-            if (function_exists('hg_admin_json_success')) {
-                hg_admin_json_success(['state' => $state, 'messages' => $retire['messages']], 'Columnas legacy retiradas.');
-            }
-            header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode(['ok' => true, 'message' => 'Columnas legacy retiradas.', 'data' => ['state' => $state, 'messages' => $retire['messages']]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-            exit;
-        }
-        $error = (string)($retire['errors'][0]['error'] ?? 'No se pudieron retirar las columnas legacy.');
-        if (function_exists('hg_admin_json_error')) {
-            hg_admin_json_error($error, 400, ['errors' => $retire['errors']], ['state' => $state, 'messages' => $retire['messages']]);
-        }
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(['ok' => false, 'message' => $error, 'errors' => $retire['errors'], 'data' => ['state' => $state, 'messages' => $retire['messages']]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        exit;
-    }
 }
 
 $initialState = ase_state($link, $tab, $systemId, $q, $resourcesAll, $resourcesBySystem);
@@ -325,8 +286,6 @@ $actions = '<span class="adm-flex-right-8">'
     . '<label class="adm-text-left">Filtro rápido <input class="inp" type="text" id="aseQuickFilter" placeholder="En esta vista..."></label>'
     . '<label class="adm-text-left"><input type="checkbox" id="aseAllowAllStateResources" value="1"> Mostrar todos los recursos de estado</label>'
     . '<button class="btn" type="button" id="aseReloadBtn">Recargar</button>'
-    . '<button class="btn" type="button" id="aseSchemaBtn">Preparar schema</button>'
-    . '<button class="btn" type="button" id="aseLegacyBtn">Retirar legacy</button>'
     . '<button class="btn btn-green" type="button" id="aseSaveBtn">Guardar cambios</button>'
     . '</span>';
 admin_panel_open('Vincular energías a recursos', $actions);
@@ -399,8 +358,6 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
   var tabs = Array.from(document.querySelectorAll('.ase-tab'));
   var quickFilter = document.getElementById('aseQuickFilter');
   var systemFilter = document.getElementById('aseSystemFilter');
-  var schemaBtn = document.getElementById('aseSchemaBtn');
-  var legacyBtn = document.getElementById('aseLegacyBtn');
   var saveBtn = document.getElementById('aseSaveBtn');
   var reloadBtn = document.getElementById('aseReloadBtn');
   var schemaStatus = document.getElementById('aseSchemaStatus');
@@ -556,20 +513,6 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
     });
     if (systemFilter) systemFilter.value = String(parseInt(state.system_id || 0, 10) || 0);
     if (saveBtn) saveBtn.disabled = !state.schema_ready;
-    if (legacyBtn) {
-      var blockers = ['dim_breeds','dim_auspices','dim_tribes','fact_misc_systems'].map(function(key){
-        var row = ((state.legacy_status || {})[key] || {});
-        var hasLegacy = !!(row.has_energy || row.has_resource || row.has_energy_name);
-        var pending = parseInt(row.pending_count || 0, 10) || 0;
-        if (hasLegacy && !row.can_retire) {
-          var names = pendingRowsForTable(key).slice(0, 3).map(function(entry){ return formatPendingRow(entry); }).join(', ');
-          return pendingLabelForTable(key) + ':' + pending + (names ? ' [' + names + ']' : '');
-        }
-        return '';
-      }).filter(Boolean);
-      legacyBtn.disabled = false;
-      legacyBtn.title = blockers.length ? ('Pendientes antes de retirar legacy: ' + blockers.join(', ')) : 'Retirar columnas legacy';
-    }
     renderSchemaStatus(state.schema_status || {});
     renderLegacyPending();
     renderRows(state.rows || []);
@@ -706,34 +649,6 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
   if (allowAllStateResources) {
     allowAllStateResources.addEventListener('change', function(){
       refreshVisibleResourceOptions();
-    });
-  }
-  if (schemaBtn) {
-    schemaBtn.addEventListener('click', function(){
-      postAction('schema_apply', {}, schemaBtn).catch(function(err){
-        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error'));
-      });
-    });
-  }
-  if (legacyBtn) {
-    legacyBtn.addEventListener('click', function(){
-      var blockers = ['dim_breeds','dim_auspices','dim_tribes','fact_misc_systems'].map(function(key){
-        var row = ((state.legacy_status || {})[key] || {});
-        var hasLegacy = !!(row.has_energy || row.has_resource || row.has_energy_name);
-        var pending = parseInt(row.pending_count || 0, 10) || 0;
-        if (hasLegacy && !row.can_retire) {
-          var names = pendingRowsForTable(key).slice(0, 5).map(function(entry){ return formatPendingRow(entry); }).join(', ');
-          return pendingLabelForTable(key) + ' (' + pending + ')' + (names ? ': ' + names : '');
-        }
-        return '';
-      }).filter(Boolean);
-      if (blockers.length) {
-        alert('Aun quedan legacy pendientes: ' + blockers.join(', '));
-        return;
-      }
-      postAction('legacy_retire', {}, legacyBtn).catch(function(err){
-        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error'));
-      });
     });
   }
   if (saveBtn) {

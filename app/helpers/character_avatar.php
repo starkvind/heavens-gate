@@ -220,34 +220,9 @@ if (!function_exists('hg_character_avatar_variants_table_exists')) {
 if (!function_exists('hg_character_avatar_variants_ensure_schema')) {
     function hg_character_avatar_variants_ensure_schema(mysqli $link): bool
     {
-        static $attempted = false;
-        if (hg_character_avatar_variants_table_exists($link, true)) {
-            return true;
-        }
-        if ($attempted) {
-            return false;
-        }
-        $attempted = true;
-
-        $sql = "CREATE TABLE IF NOT EXISTS `fact_character_avatar_variants` (
-            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-            `character_id` int(10) unsigned NOT NULL,
-            `variant_code` varchar(50) NOT NULL,
-            `image_url` varchar(600) NOT NULL DEFAULT '',
-            `is_active` tinyint(1) NOT NULL DEFAULT 1,
-            `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-            `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-            PRIMARY KEY (`id`),
-            UNIQUE KEY `uniq_character_variant` (`character_id`,`variant_code`),
-            KEY `idx_fcav_variant_code` (`variant_code`),
-            CONSTRAINT `fk_fcav_character` FOREIGN KEY (`character_id`) REFERENCES `fact_characters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-
-        $ok = @mysqli_query($link, $sql);
-        if ($ok) {
-            return hg_character_avatar_variants_table_exists($link, true);
-        }
-        return false;
+        // Runtime code must never create or migrate schema. The table is
+        // provisioned through controlled maintenance outside the web request.
+        return hg_character_avatar_variants_table_exists($link, true);
     }
 }
 

@@ -857,181 +857,25 @@ if (!function_exists('hg_ser_legacy_pending_rows')) {
 if (!function_exists('hg_ser_retire_legacy_schema')) {
     function hg_ser_retire_legacy_schema(mysqli $link): array
     {
-        $result = ['ok' => true, 'messages' => [], 'errors' => []];
-        $legacyStatus = hg_ser_legacy_status($link);
-
-        foreach (hg_ser_energy_tables() as $table => $meta) {
-            $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-            $legacyNameColumn = (string)($meta['legacy_name_column'] ?? '');
-            $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-            $index = (string)($meta['index_name'] ?? '');
-            $constraint = (string)($meta['constraint_name'] ?? '');
-            $rowStatus = $legacyStatus[$table] ?? [];
-            if (empty($rowStatus['can_retire'])) {
-                if (!empty($rowStatus['has_energy']) || !empty($rowStatus['has_resource']) || !empty($rowStatus['has_energy_name'])) {
-                    $result['ok'] = false;
-                    $result['errors'][] = [
-                        'table' => $table,
-                        'error' => 'Todavía hay filas pendientes de migrar o falta la columna de configuración.',
-                        'pending_count' => (int)($rowStatus['pending_count'] ?? 0),
-                    ];
-                }
-                continue;
-            }
-
-            if (!empty($rowStatus['has_resource'])) {
-                if ($constraint !== '' && hg_ser_constraint_exists($link, $table, $constraint)) {
-                    $sql = "ALTER TABLE `$table` DROP FOREIGN KEY `$constraint`";
-                    if (!$link->query($sql)) {
-                        $result['ok'] = false;
-                        $result['errors'][] = ['table' => $table, 'error' => $link->error, 'sql' => $sql];
-                        continue;
-                    }
-                    $GLOBALS['hg_ser_cache']['fk:' . $table . ':' . $constraint] = false;
-                }
-                if ($index !== '' && hg_ser_index_exists($link, $table, $index)) {
-                    $sql = "ALTER TABLE `$table` DROP INDEX `$index`";
-                    if (!$link->query($sql)) {
-                        $result['ok'] = false;
-                        $result['errors'][] = ['table' => $table, 'error' => $link->error, 'sql' => $sql];
-                        continue;
-                    }
-                    $GLOBALS['hg_ser_cache']['i:' . $table . ':' . $index] = false;
-                }
-                $sql = "ALTER TABLE `$table` DROP COLUMN `$legacyFk`";
-                if (!$link->query($sql)) {
-                    $result['ok'] = false;
-                    $result['errors'][] = ['table' => $table, 'error' => $link->error, 'sql' => $sql];
-                    continue;
-                }
-                $GLOBALS['hg_ser_cache']['c:' . $table . ':' . $legacyFk] = false;
-                $result['messages'][] = $table . ': columna ' . $legacyFk . ' eliminada.';
-            }
-
-            if (!empty($rowStatus['has_energy'])) {
-                $sql = "ALTER TABLE `$table` DROP COLUMN `$legacyValueColumn`";
-                if (!$link->query($sql)) {
-                    $result['ok'] = false;
-                    $result['errors'][] = ['table' => $table, 'error' => $link->error, 'sql' => $sql];
-                    continue;
-                }
-                $GLOBALS['hg_ser_cache']['c:' . $table . ':' . $legacyValueColumn] = false;
-                $result['messages'][] = $table . ': columna ' . $legacyValueColumn . ' eliminada.';
-            }
-
-            if ($legacyNameColumn !== '' && !empty($rowStatus['has_energy_name'])) {
-                $sql = "ALTER TABLE `$table` DROP COLUMN `$legacyNameColumn`";
-                if (!$link->query($sql)) {
-                    $result['ok'] = false;
-                    $result['errors'][] = ['table' => $table, 'error' => $link->error, 'sql' => $sql];
-                    continue;
-                }
-                $GLOBALS['hg_ser_cache']['c:' . $table . ':' . $legacyNameColumn] = false;
-                $result['messages'][] = $table . ': columna ' . $legacyNameColumn . ' eliminada.';
-            }
-        }
-
-        return $result;
+        return [
+            'ok' => false,
+            'messages' => [],
+            'errors' => [[
+                'error' => 'Las migraciones de esquema están deshabilitadas en el runtime web.',
+            ]],
+        ];
     }
 }
 
 if (!function_exists('hg_ser_ensure_energy_schema')) {
     function hg_ser_ensure_energy_schema(mysqli $link): array
     {
-        $result = ['ok' => true, 'messages' => [], 'errors' => []];
-        if (!hg_ser_table_exists($link, 'dim_systems_resources')) {
-            $result['ok'] = false;
-            $result['errors'][] = ['table' => 'dim_systems_resources', 'error' => 'Falta dim_systems_resources.'];
-            return $result;
-        }
-
-        foreach (hg_ser_energy_tables() as $table => $meta) {
-            $bridgeTable = (string)($meta['bridge_table'] ?? '');
-            $detailFk = (string)($meta['detail_fk'] ?? '');
-            $configColumn = (string)($meta['config_column'] ?? '');
-            $detailConstraint = (string)($meta['bridge_constraint_detail'] ?? '');
-            $resourceConstraint = (string)($meta['bridge_constraint_resource'] ?? '');
-            if ($bridgeTable === '' || $detailFk === '') continue;
-
-            if (!hg_ser_table_exists($link, $table)) {
-                $result['ok'] = false;
-                $result['errors'][] = ['table' => $table, 'error' => 'La tabla detalle no existe.'];
-                continue;
-            }
-
-            if (!hg_ser_table_exists($link, $bridgeTable)) {
-                $sql = "
-                    CREATE TABLE `$bridgeTable` (
-                      `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-                      `$detailFk` int(10) unsigned NOT NULL,
-                      `resource_id` int(10) unsigned NOT NULL,
-                      `energy_value` int(11) NOT NULL DEFAULT 0,
-                      `sort_order` int(11) NOT NULL DEFAULT 0,
-                      `is_active` tinyint(1) NOT NULL DEFAULT 1,
-                      `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-                      `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-                      PRIMARY KEY (`id`),
-                      UNIQUE KEY `uq_{$bridgeTable}_detail_resource` (`$detailFk`,`resource_id`),
-                      KEY `idx_{$bridgeTable}_detail` (`$detailFk`),
-                      KEY `idx_{$bridgeTable}_resource` (`resource_id`),
-                      KEY `idx_{$bridgeTable}_active_sort` (`is_active`,`sort_order`),
-                      CONSTRAINT `$detailConstraint` FOREIGN KEY (`$detailFk`) REFERENCES `$table` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-                      CONSTRAINT `$resourceConstraint` FOREIGN KEY (`resource_id`) REFERENCES `dim_systems_resources` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                ";
-                if ($link->query($sql)) {
-                    $GLOBALS['hg_ser_cache']['t:' . $bridgeTable] = true;
-                    $result['messages'][] = $bridgeTable . ': tabla bridge creada.';
-                } else {
-                    $result['ok'] = false;
-                    $result['errors'][] = ['table' => $bridgeTable, 'error' => $link->error, 'sql' => $sql];
-                    continue;
-                }
-            } else {
-                $result['messages'][] = $bridgeTable . ': tabla bridge ya existe.';
-            }
-
-            if ($configColumn !== '' && !hg_ser_column_exists($link, $table, $configColumn)) {
-                $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-                $afterColumn = ($legacyValueColumn !== '' && hg_ser_column_exists($link, $table, $legacyValueColumn)) ? $legacyValueColumn : 'system_id';
-                $sql = "ALTER TABLE `$table` ADD COLUMN `$configColumn` tinyint(1) NOT NULL DEFAULT 0 AFTER `$afterColumn`";
-                if ($link->query($sql)) {
-                    $GLOBALS['hg_ser_cache']['c:' . $table . ':' . $configColumn] = true;
-                    $result['messages'][] = $table . ': columna ' . $configColumn . ' creada.';
-                } else {
-                    $result['ok'] = false;
-                    $result['errors'][] = ['table' => $table, 'error' => $link->error, 'sql' => $sql];
-                    continue;
-                }
-            } elseif ($configColumn !== '') {
-                $result['messages'][] = $table . ': columna ' . $configColumn . ' ya existe.';
-            }
-
-            if (hg_ser_has_energy_resource_column($link, $table)) {
-                $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-                $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-                $sqlBackfill = "
-                    INSERT INTO `$bridgeTable` (`$detailFk`, resource_id, energy_value, sort_order, is_active)
-                    SELECT d.id, d.`$legacyFk`, COALESCE(d.`$legacyValueColumn`, 0), 0, 1
-                    FROM `$table` d
-                    LEFT JOIN `$bridgeTable` b ON b.`$detailFk` = d.id AND b.resource_id = d.`$legacyFk`
-                    WHERE d.`$legacyFk` IS NOT NULL
-                      AND d.`$legacyFk` > 0
-                      AND COALESCE(d.`$legacyValueColumn`, 0) > 0
-                      AND b.id IS NULL
-                ";
-                if ($link->query($sqlBackfill)) {
-                    $affected = (int)$link->affected_rows;
-                    if ($affected > 0) {
-                        $result['messages'][] = $bridgeTable . ': migradas ' . $affected . ' relaciones legacy.';
-                    }
-                } else {
-                    $result['ok'] = false;
-                    $result['errors'][] = ['table' => $bridgeTable, 'error' => $link->error, 'sql' => $sqlBackfill];
-                }
-            }
-        }
-
-        return $result;
+        return [
+            'ok' => false,
+            'messages' => [],
+            'errors' => [[
+                'error' => 'Las migraciones de esquema están deshabilitadas en el runtime web.',
+            ]],
+        ];
     }
 }
