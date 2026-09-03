@@ -358,8 +358,6 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
   var tabs = Array.from(document.querySelectorAll('.ase-tab'));
   var quickFilter = document.getElementById('aseQuickFilter');
   var systemFilter = document.getElementById('aseSystemFilter');
-  var schemaBtn = document.getElementById('aseSchemaBtn');
-  var legacyBtn = document.getElementById('aseLegacyBtn');
   var saveBtn = document.getElementById('aseSaveBtn');
   var reloadBtn = document.getElementById('aseReloadBtn');
   var schemaStatus = document.getElementById('aseSchemaStatus');
@@ -515,20 +513,6 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
     });
     if (systemFilter) systemFilter.value = String(parseInt(state.system_id || 0, 10) || 0);
     if (saveBtn) saveBtn.disabled = !state.schema_ready;
-    if (legacyBtn) {
-      var blockers = ['dim_breeds','dim_auspices','dim_tribes','fact_misc_systems'].map(function(key){
-        var row = ((state.legacy_status || {})[key] || {});
-        var hasLegacy = !!(row.has_energy || row.has_resource || row.has_energy_name);
-        var pending = parseInt(row.pending_count || 0, 10) || 0;
-        if (hasLegacy && !row.can_retire) {
-          var names = pendingRowsForTable(key).slice(0, 3).map(function(entry){ return formatPendingRow(entry); }).join(', ');
-          return pendingLabelForTable(key) + ':' + pending + (names ? ' [' + names + ']' : '');
-        }
-        return '';
-      }).filter(Boolean);
-      legacyBtn.disabled = false;
-      legacyBtn.title = blockers.length ? ('Pendientes antes de retirar legacy: ' + blockers.join(', ')) : 'Retirar columnas legacy';
-    }
     renderSchemaStatus(state.schema_status || {});
     renderLegacyPending();
     renderRows(state.rows || []);
@@ -665,34 +649,6 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
   if (allowAllStateResources) {
     allowAllStateResources.addEventListener('change', function(){
       refreshVisibleResourceOptions();
-    });
-  }
-  if (schemaBtn) {
-    schemaBtn.addEventListener('click', function(){
-      postAction('schema_apply', {}, schemaBtn).catch(function(err){
-        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error'));
-      });
-    });
-  }
-  if (legacyBtn) {
-    legacyBtn.addEventListener('click', function(){
-      var blockers = ['dim_breeds','dim_auspices','dim_tribes','fact_misc_systems'].map(function(key){
-        var row = ((state.legacy_status || {})[key] || {});
-        var hasLegacy = !!(row.has_energy || row.has_resource || row.has_energy_name);
-        var pending = parseInt(row.pending_count || 0, 10) || 0;
-        if (hasLegacy && !row.can_retire) {
-          var names = pendingRowsForTable(key).slice(0, 5).map(function(entry){ return formatPendingRow(entry); }).join(', ');
-          return pendingLabelForTable(key) + ' (' + pending + ')' + (names ? ': ' + names : '');
-        }
-        return '';
-      }).filter(Boolean);
-      if (blockers.length) {
-        alert('Aun quedan legacy pendientes: ' + blockers.join(', '));
-        return;
-      }
-      postAction('legacy_retire', {}, legacyBtn).catch(function(err){
-        alert((window.HGAdminHttp && window.HGAdminHttp.errorMessage) ? window.HGAdminHttp.errorMessage(err) : (err.message || 'Error'));
-      });
     });
   }
   if (saveBtn) {
