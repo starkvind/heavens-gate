@@ -115,11 +115,13 @@ jobs:
           required_head = [
               "assets/css/hg-core.css?v=<?= $coreCssVersion ?>",
               "assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>",
+              "assets/css/hg-menu.css?v=<?= $menuCssVersion ?>",
               "assets/js/permutloading.js?v=<?= $permutScriptVersion ?>",
               "assets/js/hg-tabs.js?v=<?= $tabsScriptVersion ?>",
               "assets/js/hg-tooltip.js?v=<?= $tooltipScriptVersion ?>",
               "@filemtime(__DIR__ . '/../../assets/css/hg-core.css')",
               "@filemtime(__DIR__ . '/../../assets/css/hg-layout.css')",
+              "@filemtime(__DIR__ . '/../../assets/css/hg-menu.css')",
               "@filemtime(__DIR__ . '/../../assets/js/permutloading.js')",
               "@filemtime(__DIR__ . '/../../assets/js/hg-tabs.js')",
               "@filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js')",
