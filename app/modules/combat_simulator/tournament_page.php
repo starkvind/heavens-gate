@@ -712,7 +712,7 @@ if (!function_exists('sim_tournament_state_decode')) {
         if (!is_string($payload) || trim($payload) === '') {
             return null;
         }
-        $state = @unserialize($payload);
+        $state = @unserialize($payload, ['allowed_classes' => false]);
         return is_array($state) ? $state : null;
     }
 }
