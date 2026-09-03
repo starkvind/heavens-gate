@@ -235,7 +235,7 @@ if (!hg_runtime_require_db($link, 'dice_api', 'plain', [
     return;
 }
 
-if (!hg_tool_api_require_token((string)($_GET['token'] ?? ''))) {
+if (!hg_tool_api_require_request_token()) {
     return;
 }
 
