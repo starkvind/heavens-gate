@@ -70,25 +70,33 @@ jobs:
           from pathlib import Path
 
           source = Path('.htaccess').read_text(encoding='utf-8', errors='ignore')
-          existing_file_short_circuit = 'RewriteCond %{REQUEST_FILENAME} -f'
-          boundary = source.find(existing_file_short_circuit)
-          if boundary < 0:
-              raise SystemExit('Could not locate the existing-file short circuit in .htaccess')
+          security_start = source.find('# Security')
+          boundary = source.find('# Existing files and folders')
+          if security_start < 0 or boundary < 0 or boundary <= security_start:
+              raise SystemExit('Could not locate the security/private-tree boundary in .htaccess')
 
-          required_before_boundary = [
+          security_block = source[security_start:boundary]
+          required = [
               r'RewriteRule ^\.github(?:/|$) index.php?p=error404 [L,NC,QSA]',
               r'RewriteRule ^app(?:/|$) index.php?p=error404 [L,NC,QSA]',
-              r'RewriteRule ^(?:tools|sql)(?:/|$) index.php?p=error404 [L,NC,QSA]',
               r'RewriteRule (^|/)admin_docs(?:/|$) index.php?p=error404 [L,NC,QSA]',
           ]
+          physical_private_tree_guard = (
+              'RewriteCond %{REQUEST_FILENAME} -f [OR]\n'
+              'RewriteCond %{REQUEST_FILENAME} -d\n'
+              'RewriteRule ^(?:tools|sql)(?:/|$) index.php?p=error404 [L,NC,QSA]'
+          )
 
           failures = []
-          for rule in required_before_boundary:
-              pos = source.find(rule)
-              if pos < 0:
-                  failures.append(f'Missing private-tree rule: {rule}')
-              elif pos > boundary:
-                  failures.append(f'Private-tree rule appears after existing-file bypass: {rule}')
+          for rule in required:
+              if rule not in security_block:
+                  failures.append(f'Missing private-tree rule before existing-file bypass: {rule}')
+
+          if physical_private_tree_guard not in security_block:
+              failures.append(
+                  'Physical /tools and /sql guard is missing or unconditioned; '
+                  'virtual routes such as /tools/forum-topic-viewer must remain routable.'
+              )
 
           if failures:
               raise SystemExit('\n'.join(failures))
