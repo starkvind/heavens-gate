@@ -37,12 +37,19 @@
 	<link rel="icon" type="image/webp" sizes="16x16" href="img/favicon/favicon-16x16.webp">
 	<link rel="manifest" href="img/favicon/site.webmanifest">
 
-	<link rel="stylesheet" href="assets/css/hg-core.css">
-	<link rel="stylesheet" href="assets/css/hg-layout.css">
-
 	<?php
-		$tooltipScriptVersion = @filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js') ?: time();
+		$coreCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-core.css');
+		$layoutCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-layout.css');
+		$tooltipScriptVersion = @filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js');
+
+		$coreCssVersion = ($coreCssVersion !== false) ? (int)$coreCssVersion : 1;
+		$layoutCssVersion = ($layoutCssVersion !== false) ? (int)$layoutCssVersion : 1;
+		$tooltipScriptVersion = ($tooltipScriptVersion !== false) ? (int)$tooltipScriptVersion : 1;
 	?>
+
+	<link rel="stylesheet" href="assets/css/hg-core.css?v=<?= $coreCssVersion ?>">
+	<link rel="stylesheet" href="assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>">
+
 	<script type="text/javascript" src="assets/js/permutloading.js"></script>
 	<script type="text/javascript" src="assets/js/hg-tabs.js"></script>
 	<script type="text/javascript" src="assets/js/hg-tooltip.js?v=<?= (int)$tooltipScriptVersion ?>" defer></script>
