@@ -27,7 +27,7 @@ if (!function_exists('hg_status_h')) {
 $metrics = hg_public_status_metrics($link);
 
 echo "<h2>Estado</h2>";
-echo "<p>Resumen público del archivo. Esta página muestra únicamente magnitudes editoriales y no expone información de infraestructura o mantenimiento.</p>";
+echo "<p>Resumen público del archivo.</p>";
 echo "<fieldset class='renglonPaginaDon'>";
 echo "<legend>Archivo de Heaven's Gate</legend>";
 foreach ($metrics as $label => $value) {
