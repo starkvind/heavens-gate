@@ -83,11 +83,6 @@ table.notix {
 	width: 100%;
 }
 
-fieldset.systemDonList {
-	border: 0px;
-	padding: 2px;
-}
-
 fieldset.notf {
 	border: 1px solid #000066;
 	text-align: justify;
@@ -122,38 +117,6 @@ legend.notf {
 	letter-spacing: 1px;
 }
 
-.biotitle {
-	text-align:center;
-	border: 1px solid #009;
-	color: #efe;
-
-}
-
-td.bext1 {
-	width: 100px;
-	color: #33FFFF;
-	border: 1px solid #009;/* dotted #bbb;*/
-	padding: 2px;
-	text-align: right;
-	background-color: #000066;
-	font-size:9px;
-	height: 18px;
-
-}
-
-td.bext2 {
-	width: 100px;
-	color: #FFF;
-	border: 1px solid #009;/* dotted #bbb;*/
-	padding: 2px;
-	text-align: left;
-	background-color: #000055;
-	font-size:9px;
-	empty-cells: show;
-	height: 18px;
-	
-}
-
 td.texti {
 	border: 1px solid #009;/* dotted #bbb;*/
 	background-color: #000055;
@@ -166,55 +129,6 @@ td.chapter_text {
 	background-color: #000055;
 	padding: 8px;
 	text-align: left;
-}
-
-table.inventoryMerits {
-	padding-left: 16px;
-	padding-top: 8px;
-}
-
-td.invMeDeZone {
-	width: 50%;
-	color: #FFF;
-	border: 1px solid #009;
-	padding: 2px;
-	text-align: left;
-	background-color: #000055;
-	font-size:9px;
-	empty-cells: hide;
-	
-}
-
-img.infoPic {
-
-	border: 1px solid #009;/* dotted #bbb;*/
-	
-}
-td.imgInfoPic {
-
-	font-size:9px;
-	width: 270px;
-	height: 180px;
-	color: #FFF;
-	border: 1px solid #009;/* dotted #bbb;*/
-	padding: 2px;
-	background-color: #000055;
-
-}
-
-ul.systemInfoList {
-
-	padding-left: 25px;
-	padding-right: 10px;
-
-}
-
-table.tableSystemInfo {
-
-	width: 50%;
-	border: 1px dotted #fff;
-	text-align: center;
-
 }
 
 .ajustcelda {
@@ -277,22 +191,6 @@ img.photochapter  {
 	border: 1px solid #009;
 	background-color:#006;
 
-
-}
-
-/* CORREO SINCRONIZADO PUNTEADO */
-
-.nvmsg {
-	width: 125px;
-	border: 1px #fff;
-	padding: 3px;
-	background-color: #333399;
-	text-align: center;
-}
-
-td.nvmsg:hover {
-
-	background-color: #330066;
 
 }
 
@@ -761,43 +659,6 @@ fieldset#campoTurnoComb legend {
 	border: 1px solid #009;
 	padding: 8px;
 	background-color: #005;
-}
-
-/* Seccion de Usuarios */ 
-
-#zonaUsuario {
-	position: fixed;
-	right: 8px;
-	width: 18%;
-	padding: 2px;
-}
-
-#zonaUsuario img {
-	width: 20px;
-	height: 20px;
-	vertical-align: center;
-	margin-left: 6px;
-	margin-top: 4px;
-	margin-bottom: 2px;
-}
-
-#zonaUsuario fieldset {
-	padding: 4px;
-	background-color: #000066;
-	border: 1px solid #000088;
-}
-
-#zonaUsuario legend {
-	font-size: 10px;
-	font-weight: bold;
-	font-variant: small-caps;
-	padding: 2px;
-	background-color: #000066;
-	border: 1px solid #000088;
-}
-
-#textoUsuario {
-	float: right;
 }
 
 /* Cabecera */
