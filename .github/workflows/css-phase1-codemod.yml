@@ -47,3 +47,5 @@ jobs:
           git add app assets/css/pages/legacy
           git commit -m "refactor: migrate legacy public CSS emitters"
           git push origin HEAD:css-refactor
+
+# This workflow is temporary migration infrastructure and will be removed when Phase 1 closes.
