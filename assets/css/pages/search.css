@@ -1,0 +1,112 @@
+.search-page {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.search-panel {
+    border: 1px solid #000088;
+    background: #05014e;
+    padding: 18px;
+}
+
+.search-panel p {
+    margin: 0 0 14px;
+    color: #d5defe;
+}
+
+.search-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(220px, 1fr);
+    gap: 12px;
+    align-items: end;
+}
+
+.search-field label {
+    display: block;
+    margin-bottom: 5px;
+    color: #99ffff;
+    font-weight: bold;
+}
+
+.search-field input,
+.search-field select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 8px;
+    font-size: 11px;
+}
+
+.search-actions {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.search-actions .boton1 {
+    width: auto;
+    min-width: 110px;
+    padding: 7px 14px;
+}
+
+.search-help {
+    margin-top: 12px;
+    color: #a9bff7;
+    font-size: 10px;
+}
+
+.search-recent {
+    margin-top: 16px;
+    display: none;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-recent.is-ready {
+    display: flex;
+}
+
+.search-recent-label {
+    color: #99ffff;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.search-recent-items {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.search-recent-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid rgba(0, 120, 220, 0.55);
+    background: rgba(0, 30, 80, 0.22);
+    color: #cfe0ff;
+    text-decoration: none;
+    font-size: 10px;
+}
+
+.search-recent-chip:hover {
+    background: rgba(0, 40, 95, 0.38);
+    border-color: rgba(0, 150, 255, 0.75);
+}
+
+@media (max-width: 720px) {
+    .search-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .search-actions {
+        justify-content: stretch;
+    }
+
+    .search-actions .boton1 {
+        width: 100%;
+    }
+}
