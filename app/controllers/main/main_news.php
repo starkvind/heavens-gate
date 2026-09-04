@@ -1,6 +1,6 @@
 <?php setMetaFromPage("Noticias | Heaven's Gate", "Últimas novedades de la campaña Heaven's Gate.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
-<link rel="stylesheet" href="/assets/css/hg-main.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-main.css'); } ?>
 <h2> Noticias </h2>
 
 
