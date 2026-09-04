@@ -3,6 +3,11 @@ setMetaFromPage("Reglamento | Heaven's Gate", "Resumen y acceso al reglamento de
 
 $pageSect = 'Reglamento';
 
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+    hg_page_register_stylesheet('/assets/css/hg-docs.css');
+}
+
 if (!function_exists('hg_rules_home_h')) {
     function hg_rules_home_h($value): string
     {
@@ -40,9 +45,6 @@ foreach ($rulesTypes as &$rule) {
 }
 unset($rule);
 ?>
-
-<link rel="stylesheet" href="/assets/css/hg-main.css">
-<link rel="stylesheet" href="/assets/css/hg-docs.css">
 
 <main class="chron-detail rules-chron-home" aria-labelledby="rules-home-title">
     <section class="chron-box">
