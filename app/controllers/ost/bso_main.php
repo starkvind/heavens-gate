@@ -10,6 +10,10 @@ if (!hg_runtime_require_db($link, 'bso_main', 'public', [
     return;
 }
 
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-ost.css');
+}
+
 $result = $link->query("SELECT id, context_title, artist, youtube_url, title, added_at FROM dim_soundtracks ORDER BY context_title ASC");
 if (!$result) {
     hg_runtime_log_error('bso_main.query', $link->error);
@@ -26,7 +30,6 @@ $canciones = [];
 while ($row = $result->fetch_assoc()) $canciones[] = $row;
 mysqli_free_result($result);
 ?>
-<link rel="stylesheet" href="/assets/css/hg-ost.css">
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2 class="ost-title">Banda sonora</h2>
