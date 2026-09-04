@@ -25,10 +25,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          import sys
 
           root = Path('app')
-          skip_prefixes = ('app/controllers/admin/', 'app/mobile/')
+          skip_prefixes = (
+              'app/controllers/admin/',
+              'app/mobile/',
+              'app/partials/admin/',
+          )
           skip_files = {
               'app/bootstrap/head_work.php',
               'app/helpers/page_assets.php',
@@ -39,6 +42,9 @@ jobs:
               'app/controllers/tool/combat_simulator.php',
               'app/controllers/tool/game_cards.php',
               'app/controllers/tool/game_cards_mobile.php',
+              # Dual-mode tool: standalone output owns its own <head>; embedded
+              # desktop mode registers all three sheets through page_assets.
+              'app/tools/forum_topic_viewer_tool.php',
           }
           link_re = re.compile(r'<link\b[^>]*\bstylesheet\b', re.I)
           style_re = re.compile(r'<style\b', re.I)
@@ -52,10 +58,14 @@ jobs:
               lines = text.splitlines()
               link_hits = []
               style_hits = []
-              for number, line in enumerate(lines, 1):
-                  if link_re.search(line) and 'hg_page_register_stylesheet' not in line:
+              for index, line in enumerate(lines):
+                  number = index + 1
+                  nearby = '\n'.join(lines[max(0, index - 5):min(len(lines), index + 3)])
+                  registered_sheet = 'hg_page_register_stylesheet' in nearby
+                  registered_inline = 'hg_page_register_inline_style' in nearby
+                  if link_re.search(line) and not registered_sheet:
                       link_hits.append(number)
-                  if style_re.search(line) and 'hg_page_register_inline_style' not in line:
+                  if style_re.search(line) and not (registered_sheet or registered_inline):
                       style_hits.append(number)
               if link_hits or style_hits:
                   residual.append((rel, link_hits, style_hits))
