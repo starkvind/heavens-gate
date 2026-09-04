@@ -41,8 +41,7 @@ if (!function_exists('hg_render_power_catalog_tabs')) {
 
         if (!$stylesPrinted) {
             $stylesPrinted = true;
-            echo <<<HTML
-<style>
+            $tabCss = <<<'CSS'
 .hg-power-catalog-tabs {
     justify-content: flex-start;
     margin: 8px 0 14px;
@@ -57,8 +56,14 @@ if (!function_exists('hg_render_power_catalog_tabs')) {
 @media print {
     .hg-power-catalog-tabs { display: none !important; }
 }
-</style>
-HTML;
+CSS;
+
+            if (function_exists('hg_page_register_inline_style')) {
+                hg_page_register_inline_style($tabCss);
+            } else {
+                // Bare/mobile compatibility until their asset pipelines are migrated.
+                echo "<style>\n" . $tabCss . "\n</style>\n";
+            }
         }
 
         $defs = [
