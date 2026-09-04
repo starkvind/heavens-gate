@@ -7,6 +7,10 @@ $GALLERY_BASE_WEB = "/img/gallery";
 $GALLERY_BASE_FS  = rtrim($_SERVER['DOCUMENT_ROOT'], "/") . "/public/img/gallery";
 $ALLOWED_EXT = ['jpg','jpeg','png','gif','webp'];
 
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+}
+
 // Helpers
 function isValidRelPath(string $rel): bool {
     return $rel === '' || (bool)preg_match('#^(?!/)(?!.*\.\.)([A-Za-z0-9 _\.\-]+/)*[A-Za-z0-9 _\.\-]+$#', $rel);
@@ -72,8 +76,6 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
     return webPathJoin($baseWeb, $thumbRel);
 }
 ?>
-
-<link rel="stylesheet" href="/assets/css/hg-main.css">
 
 <h2>Galería</h2>
 
