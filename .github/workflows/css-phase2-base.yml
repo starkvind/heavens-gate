@@ -1,0 +1,178 @@
+name: Phase 2 base extraction
+
+on:
+  push:
+    branches:
+      - css-refactor
+    paths:
+      - '.github/workflows/css-phase2-base.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  extract-base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+        with:
+          ref: css-refactor
+
+      - name: Extract stable global primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          core_path = Path('assets/css/hg-core.css')
+          head_path = Path('app/bootstrap/head_work.php')
+          base_path = Path('assets/css/hg-base.css')
+
+          core = core_path.read_text(encoding='utf-8')
+          head = head_path.read_text(encoding='utf-8')
+
+          blocks = [
+          '''body {
+          \tcolor: var(--hg-text);
+          \tfont: normal 11px var(--hg-font-body);
+          \tbackground: var(--hg-bg);
+          \t/*background: #05014E url("../../img/ui/backgrounds/hg_background.webp");
+          \tbackground-attachment: fixed;
+          \tbackground-repeat: no-repeat;
+          \tbackground-position: bottom right;*/
+          \tmargin-top: 20px;
+          \tmargin-bottom: 20px;
+          \ttext-align: center;
+          }''',
+          '''table {
+          \tfont: normal 11px var(--hg-font-body);
+          }''',
+          '''img {
+          \tborder: 0px;
+          }''',
+          '''h1 {
+          \tmargin-top: 0px;
+          \tmargin-bottom: 2px;
+          }''',
+          '''h2 {
+          \tmargin-top: 0px;
+          \tmargin-bottom: 6px;
+          \tmargin-right: 8px;
+          \tfont-size: 16px;
+          \ttext-align: right;
+          \tcolor: var(--hg-h2);
+          \tpadding: 2px;
+          }''',
+          '''h3 {
+          \tmargin-top: 0px;
+          \tcolor: var(--hg-h3);
+          \tfont-family: var(--hg-font-head);
+          \tfont-size: 14px;
+          \tfont-weight: bolder;
+          }''',
+          '''a {
+          \tcolor: var(--hg-link);
+          \ttext-decoration: none;
+          }''',
+          '''a:hover {
+
+          \tcolor: var(--hg-link-hover);
+          \tcursor: pointer;
+          \t/* text-decoration: underline; */
+
+          }''',
+          '''textarea {
+          \tfont-family: var(--hg-font-ui);
+          \tfont-size: 10px;
+          \tbackground-color: var(--hg-field-bg);
+          \tcolor: var(--hg-text);
+          \tborder: 1px solid var(--hg-field-border);
+          \tpadding: 5px;
+          }''',
+          '''input {
+          \tfont-family: var(--hg-font-ui);
+          \tfont-size: 10px;
+          \tbackground-color: var(--hg-field-bg);
+          \tcolor: var(--hg-text);
+          \tpadding: 1px;
+          \tborder: 1px solid var(--hg-field-border);
+          }''',
+          '''select {
+
+          \tfont-family: var(--hg-font-ui);
+          \tfont-size: 10px;
+          \tbackground-color: var(--hg-field-bg);
+          \tcolor: var(--hg-text);
+          \tborder: 1px solid var(--hg-field-border);
+
+          }''',
+          ]
+
+          for block in blocks:
+              count = core.count(block)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one base block, found {count}: {block.splitlines()[0]}')
+              core = core.replace(block, '', 1)
+
+          while '\n\n\n' in core[:2000]:
+              prefix = core[:2000].replace('\n\n\n', '\n\n')
+              core = prefix + core[2000:]
+
+          base = '''/* Heaven's Gate public frontend base styles.
+           *
+           * Only global HTML primitives belong here. The classic visual shell,
+           * static branding artwork, menu imagery and component presentation stay
+           * outside this layer. Values are moved unchanged from hg-core.css.
+           */
+
+          ''' + '\n\n'.join(blocks) + '\n'
+
+          if 'theme-modern' in base or 'theme-power-save' in base:
+              raise SystemExit('Theme-specific selectors must not enter hg-base.css')
+          if 'menu.webp' in base or 'hg_header.webp' in base:
+              raise SystemExit('Brand/menu artwork must not enter hg-base.css')
+
+          if 'hg-base.css' in head:
+              raise SystemExit('hg-base.css is already registered in head_work.php')
+
+          head = head.replace(
+              "\t\t$tokensCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-tokens.css');\n",
+              "\t\t$tokensCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-tokens.css');\n\t\t$baseCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-base.css');\n",
+              1,
+          )
+          head = head.replace(
+              "\t\t$tokensCssVersion = ($tokensCssVersion !== false) ? (int)$tokensCssVersion : 1;\n",
+              "\t\t$tokensCssVersion = ($tokensCssVersion !== false) ? (int)$tokensCssVersion : 1;\n\t\t$baseCssVersion = ($baseCssVersion !== false) ? (int)$baseCssVersion : 1;\n",
+              1,
+          )
+          head = head.replace(
+              "\t<link rel=\"stylesheet\" href=\"assets/css/hg-tokens.css?v=<?= $tokensCssVersion ?>\">\n",
+              "\t<link rel=\"stylesheet\" href=\"assets/css/hg-tokens.css?v=<?= $tokensCssVersion ?>\">\n\t<link rel=\"stylesheet\" href=\"assets/css/hg-base.css?v=<?= $baseCssVersion ?>\">\n",
+              1,
+          )
+
+          if head.count('hg-base.css') != 2:
+              raise SystemExit('Unexpected hg-base.css registration count in head_work.php')
+
+          base_path.write_text(base, encoding='utf-8')
+          core_path.write_text(core, encoding='utf-8')
+          head_path.write_text(head, encoding='utf-8')
+          PY
+
+          php -l app/bootstrap/head_work.php
+          git diff --check
+          grep -F 'background: url("../../img/ui/backgrounds/menu.webp")' assets/css/hg-core.css >/dev/null
+          grep -F 'img/ui/branding/hg_header.webp' index.php >/dev/null
+
+      - name: Commit generated base layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/css-phase2-base.yml
+          git config user.name "Maurick Starkvind"
+          git config user.email "maverickk@gmail.com"
+          git add -A
+          git commit -m "refactor(css): establish base stylesheet"
+          git push origin HEAD:css-refactor
