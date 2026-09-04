@@ -37,6 +37,7 @@
     require_once(__DIR__ . "/app/bootstrap/error_reporting.php");
     require_once(__DIR__ . "/app/bootstrap/request_router.php");
     require_once(__DIR__ . "/app/helpers/mobile_detection.php");
+    require_once(__DIR__ . "/app/helpers/page_assets.php");
 
     $pageTitle = "Heaven's Gate";
     $unknownOrigin = "-";
@@ -64,6 +65,12 @@
         echo $pageContent;
         exit;
     }
+
+    // Phase 1 CSS migration bridge: full desktop pages are buffered before
+    // <head> is rendered, so legacy page-local stylesheet/style tags can be
+    // removed from body content and registered centrally without changing
+    // bare/self-contained responses.
+    $pageContent = hg_page_collect_legacy_styles($pageContent);
 
     $allowedThemes = ['classic', 'modern', 'power-save'];
     $requestedTheme = isset($_GET['theme']) ? strtolower(trim((string)$_GET['theme'])) : '';
