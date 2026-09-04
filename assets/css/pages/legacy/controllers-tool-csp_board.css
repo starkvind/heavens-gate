@@ -1,0 +1,17 @@
+/* CSP message board legacy table styling. */
+
+.klax1 {
+    padding: 5px;
+    text-align: left;
+    background-color: #000066;
+    color: #66FF99;
+    font-weight: bold;
+    border: 1px solid #009;
+}
+
+.klax2 {
+    padding: 5px;
+    text-align: left;
+    background-color: #000066;
+    border: 1px solid #009;
+}
