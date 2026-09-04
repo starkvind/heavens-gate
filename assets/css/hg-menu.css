@@ -1,14 +1,12 @@
 /* Desktop left-menu component.
  *
- * This file is the final visual owner of the classic desktop menu. Geometry,
- * panel chrome, submenu rows, separators, dynamic season rows and the legacy
- * menu-adjacent selectors live together here so the component can be audited
- * without reconstructing or modernising its appearance.
+ * This file is the visual owner of the classic desktop menu. Geometry, panel
+ * chrome, submenu rows, separators and dynamic season rows live together here
+ * without reconstructing or modernising the current appearance.
  *
- * dim_menu_items can attach extra css_class values to individual entries. The
- * classic menu must keep one visual language regardless of those editorial
- * classes: dark blue border/background for every submenu row, with the legacy
- * hover treatment. Separators are deliberately excluded from that lock.
+ * Production verification on 2026-09-04 confirmed that no enabled
+ * dim_menu_items row has a non-empty css_class value. The old defensive
+ * !important normalization is therefore no longer required.
  */
 
 /* Panel and legacy menu chrome. */
@@ -82,7 +80,7 @@ table.menu_sect {
 }
 
 /* Standard submenu rows. */
-div.renglonMenu {
+table.tmenu div.renglonMenu:not(.menuSeparator) {
     float: left;
     margin-bottom: 4px;
     margin-left: 10%;
@@ -91,23 +89,25 @@ div.renglonMenu {
     padding-top: 3px;
     text-align: center;
     border: 1px solid #000088;
-    background-color: #05014E;
+    background: #05014E;
+    box-shadow: none;
 }
 
-div.renglonMenu:hover {
-    border: 1px solid #000099;
+table.tmenu a:hover div.renglonMenu:not(.menuSeparator),
+table.tmenu div.renglonMenu:not(.menuSeparator):hover {
+    border-color: #000099;
     background: #000066;
 }
 
 .menuSeparator {
-    border: 0 !important;
-    background-color: transparent !important;
+    border: 0;
+    background-color: transparent;
     margin-top: -1em;
 }
 
 /* Dynamic season rows. */
 .menu-season-label {
-    float: none !important;
+    float: none;
     margin-left: 0;
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -121,37 +121,37 @@ div.renglonMenu:hover {
 }
 
 .menu-season-status {
-    float: none !important;
+    float: none;
     flex: 0 0 16px;
     text-align: right;
     margin-left: 6px;
 }
 
-.menuGroupTitle {
+table.tmenu div.renglonMenu.menuGroupTitle {
     font-size: 11px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     opacity: 0.8;
-    height: auto !important;
+    height: auto;
     min-height: 14px;
-    padding-top: 2px !important;
+    padding-top: 2px;
     padding-bottom: 2px;
-    width: calc(100% - 12px) !important;
-    margin-left: 6px !important;
+    width: calc(100% - 12px);
+    margin-left: 6px;
 }
 
-.menu-season-row {
-    display: flex !important;
+table.tmenu div.renglonMenu.menu-season-row {
+    display: flex;
     align-items: flex-start;
     gap: 0;
-    height: auto !important;
+    height: auto;
     min-height: 20px;
     box-sizing: border-box;
-    width: calc(100% - 16px) !important;
-    margin-left: 8px !important;
-    margin-bottom: 3px !important;
-    padding: 3px 8px !important;
-    text-align: left !important;
+    width: calc(100% - 16px);
+    margin-left: 8px;
+    margin-bottom: 3px;
+    padding: 3px 8px;
+    text-align: left;
 }
 
 .menu-season-row--nostatus .menu-season-label {
@@ -160,22 +160,4 @@ div.renglonMenu:hover {
 
 .menu-season-row--nostatus .menu-season-status {
     display: none;
-}
-
-/*
- * Final classic-row normalization.
- *
- * Database-provided css_class values are editorial metadata appended to
- * .renglonMenu. They must not be able to replace the classic row material.
- */
-table.tmenu div.renglonMenu:not(.menuSeparator) {
-    border: 1px solid #000088 !important;
-    background: #05014E !important;
-    box-shadow: none !important;
-}
-
-table.tmenu a:hover div.renglonMenu:not(.menuSeparator),
-table.tmenu div.renglonMenu:not(.menuSeparator):hover {
-    border-color: #000099 !important;
-    background: #000066 !important;
 }
