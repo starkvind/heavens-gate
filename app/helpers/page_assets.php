@@ -2,13 +2,12 @@
 /**
  * Ordered public-page style registry.
  *
- * Phase 1 of the CSS refactor uses this helper in two ways:
- * - migrated controllers register styles explicitly before <head> is rendered;
- * - legacy controllers are temporarily supported by extracting their emitted
- *   stylesheet/style tags from buffered page content and moving those tags to
- *   the document head without changing their relative order.
+ * Public desktop controllers register route/domain styles before <head> is
+ * rendered. The head bootstrap then emits them once, in registration order,
+ * after the global shell styles.
  *
- * Bare/self-contained responses must bypass the compatibility collector.
+ * Bare/self-contained, mobile and special-application surfaces may keep their
+ * own asset pipeline until their dedicated refactor phases.
  */
 
 if (!function_exists('hg_page_assets_registry')) {
@@ -137,30 +136,6 @@ if (!function_exists('hg_page_register_inline_style')) {
         hg_page_register_style_tag(
             '<style' . hg_page_asset_attributes($attributes) . '>' . "\n" . $css . "\n" . '</style>'
         );
-    }
-}
-
-if (!function_exists('hg_page_collect_legacy_styles')) {
-    function hg_page_collect_legacy_styles(string $html): string
-    {
-        // Compatibility bridge only. This deliberately preserves each legacy
-        // tag verbatim and in encounter order so Phase 1 can migrate emitters
-        // incrementally without changing their cascade order.
-        $pattern = '~'
-            . '<link\b(?=[^>]*\brel\s*=\s*(?:"[^"]*\bstylesheet\b[^"]*"|\'[^\']*\bstylesheet\b[^\']*\'|stylesheet\b))[^>]*>'
-            . '|<style\b[^>]*>.*?</style\s*>'
-            . '~is';
-
-        $result = preg_replace_callback(
-            $pattern,
-            static function (array $match): string {
-                hg_page_register_style_tag((string)$match[0]);
-                return '';
-            },
-            $html
-        );
-
-        return is_string($result) ? $result : $html;
     }
 }
 
