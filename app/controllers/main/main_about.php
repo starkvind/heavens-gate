@@ -1,5 +1,5 @@
 <?php setMetaFromPage("Acerca de | Heaven's Gate", "Archivo y crónica alternativa de Hombre Lobo: El Apocalipsis iniciada en 2006.", null, 'website'); ?>
-<link rel="stylesheet" href="/assets/css/hg-main.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-main.css'); } ?>
 <div>
 	<h2>Acerca de Heaven's Gate</h2>
 	<hr class="main-about-sep"/>
