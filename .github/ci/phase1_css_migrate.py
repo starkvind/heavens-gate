@@ -23,12 +23,16 @@ SKIP_FILES = {
     "app/controllers/tool/game_cards_mobile.php",
 }
 
+# Only match stylesheet tags that are literal HTML on their own line. This
+# deliberately excludes tags embedded inside PHP echo strings/heredocs.
 RAW_LINK_RE = re.compile(
-    r"(?P<tag><link\b(?=[^>]*\brel\s*=\s*(['\"])stylesheet\2)[^>]*\bhref\s*=\s*(['\"])(?P<href>[^'\"]+)\3[^>]*>)",
+    r"(?m)^(?P<indent>[ \t]*)(?P<tag><link\b(?=[^>]*\brel\s*=\s*(['\"])stylesheet\3)[^>]*\bhref\s*=\s*(['\"])(?P<href>[^'\"]+)\4[^>]*>)[ \t]*$",
     re.I,
 )
-RAW_STYLE_RE = re.compile(r"<style\b[^>]*>(?P<css>.*?)</style\s*>", re.I | re.S)
-PHP_CHUNK_RE = re.compile(r"<\?(?:php|=)?.*?\?>", re.I | re.S)
+RAW_STYLE_RE = re.compile(
+    r"(?ms)^(?P<indent>[ \t]*)<style\b[^>]*>(?P<css>.*?)</style\s*>[ \t]*$",
+    re.I,
+)
 
 
 def public_migration_file(path: Path) -> bool:
@@ -43,10 +47,7 @@ def public_migration_file(path: Path) -> bool:
 
 
 def is_inside_php(text: str, start: int) -> bool:
-    """Return True when start lies in an open PHP block.
-
-    This keeps the codemod away from tags embedded in PHP strings/heredocs.
-    """
+    """Return True when start lies in an open PHP block."""
     last_open = text.rfind("<?", 0, start)
     last_close = text.rfind("?>", 0, start)
     return last_open > last_close
@@ -56,11 +57,12 @@ def php_string(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
-def register_or_fallback(href: str, original_tag: str) -> str:
+def register_or_fallback(href: str, original_tag: str, indent: str = "") -> str:
     return (
-        "<?php if (function_exists('hg_page_register_stylesheet')) { "
-        f"hg_page_register_stylesheet({php_string(href)}); "
-        f"}} else {{ ?>{original_tag}<?php }} ?>"
+        indent
+        + "<?php if (function_exists('hg_page_register_stylesheet')) { "
+        + f"hg_page_register_stylesheet({php_string(href)}); "
+        + f"}} else {{ ?>{original_tag}<?php }} ?>"
     )
 
 
@@ -81,9 +83,10 @@ def migrate_file(path: Path) -> tuple[bool, int, int, list[str]]:
     for match in reversed(link_matches):
         href = match.group("href")
         tag = match.group("tag")
+        indent = match.group("indent") or ""
         if "<?" in href or "?>" in href:
             continue
-        replacement = register_or_fallback(href, tag)
+        replacement = register_or_fallback(href, tag, indent)
         text = text[: match.start()] + replacement + text[match.end() :]
         links_migrated += 1
 
@@ -92,12 +95,13 @@ def migrate_file(path: Path) -> tuple[bool, int, int, list[str]]:
     css_blocks: list[str] = []
     for match in reversed(style_matches):
         css = match.group("css").strip()
+        indent = match.group("indent") or ""
         if "<?" in css or "?>" in css:
             continue
         css_blocks.insert(0, css)
         href = legacy_css_href(path)
         fallback = f'<link rel="stylesheet" href="{href}">'
-        replacement = register_or_fallback(href, fallback)
+        replacement = register_or_fallback(href, fallback, indent)
         text = text[: match.start()] + replacement + text[match.end() :]
         styles_migrated += 1
 
