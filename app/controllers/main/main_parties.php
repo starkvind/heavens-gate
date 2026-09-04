@@ -7,6 +7,10 @@ if (!$link) {
     return;
 }
 
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+}
+
 // Excluir cr?nicas si aplica
 if (!function_exists('sanitize_int_csv')) {
     function sanitize_int_csv($csv){
@@ -124,7 +128,6 @@ mysqli_free_result($resChanges);
 ?>
 
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
-<link rel="stylesheet" href="/assets/css/hg-main.css">
 
 <h2 class="main-right-title">Grupos en activo</h2>
 
