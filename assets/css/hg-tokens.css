@@ -1,0 +1,60 @@
+/* Heaven's Gate public frontend design tokens.
+ *
+ * Phase 2 starts by relocating the effective theme values that previously lived
+ * at the top of hg-core.css. This file is intentionally value-preserving: no
+ * palette, typography or component redesign belongs in this extraction.
+ */
+
+:root {
+	--hg-bg: #050150;
+	--hg-text: #ffffff;
+	--hg-h2: #33cccc;
+	--hg-h3: #99ffff;
+	--hg-font-body: Verdana, sans-serif;
+	--hg-font-ui: Verdana, sans-serif;
+	--hg-font-head: Verdana, sans-serif;
+	--hg-link: #44aaee;
+	--hg-link-hover: #66ccff;
+	--hg-info-link: #ffffff;
+	--hg-info-link-hover: #ffeedd;
+	--hg-field-bg: #000066;
+	--hg-field-border: #000099;
+	--hg-btn-accent: #00ffff;
+	--hg-btn-accent-hover: #00ccff;
+}
+
+body.theme-modern {
+	--hg-bg: #f7f7f7;
+	--hg-text: #111111;
+	--hg-h2: #222222;
+	--hg-h3: #333333;
+	--hg-font-body: "Trebuchet MS", Arial, sans-serif;
+	--hg-font-ui: "Trebuchet MS", Arial, sans-serif;
+	--hg-font-head: "Trebuchet MS", Arial, sans-serif;
+	--hg-link: #0b4b91;
+	--hg-link-hover: #06346a;
+	--hg-info-link: #111111;
+	--hg-info-link-hover: #333333;
+	--hg-field-bg: #ffffff;
+	--hg-field-border: #bbbbbb;
+	--hg-btn-accent: #111111;
+	--hg-btn-accent-hover: #333333;
+}
+
+body.theme-power-save {
+	--hg-bg: #000000;
+	--hg-text: #d9d9d9;
+	--hg-h2: #a6a6a6;
+	--hg-h3: #bfbfbf;
+	--hg-font-body: "Lucida Console", Monaco, monospace;
+	--hg-font-ui: "Lucida Console", Monaco, monospace;
+	--hg-font-head: "Lucida Console", Monaco, monospace;
+	--hg-link: #9cc3ff;
+	--hg-link-hover: #c4dbff;
+	--hg-info-link: #d9d9d9;
+	--hg-info-link-hover: #ffffff;
+	--hg-field-bg: #050505;
+	--hg-field-border: #222222;
+	--hg-btn-accent: #d9d9d9;
+	--hg-btn-accent-hover: #ffffff;
+}
