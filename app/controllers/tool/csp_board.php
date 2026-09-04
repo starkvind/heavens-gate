@@ -1,4 +1,12 @@
-<?php if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");	// Barra Navegación ?>
+<?php
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-tool-csp_board.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-tool-csp_board.css">';
+}
+
+if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");	// Barra Navegación
+?>
 <h2>Tablón de Mensajes</h2>
 
 <center>
@@ -46,4 +54,3 @@
         ?>
     </table>
 </center>
-
