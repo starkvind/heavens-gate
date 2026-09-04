@@ -1,8 +1,14 @@
 /* Heaven's Gate public frontend design tokens.
  *
  * Phase 2 starts by relocating the effective theme values that previously lived
- * at the top of hg-core.css. This file is intentionally value-preserving: no
- * palette, typography or component redesign belongs in this extraction.
+ * at the top of hg-core.css. Theme-facing values remain exact; this layer does
+ * not introduce a visual redesign.
+ *
+ * Shared component primitives below intentionally keep the legacy desktop
+ * palette inherited by Modern and Power Save. Those themes currently change
+ * the global page/type/form tokens but leave these component colors unchanged.
+ * Keeping that distinction here preserves the effective appearance while
+ * giving shared components one semantic source of truth.
  */
 
 :root {
@@ -21,6 +27,14 @@
 	--hg-field-border: #000099;
 	--hg-btn-accent: #00ffff;
 	--hg-btn-accent-hover: #00ccff;
+
+	/* Shared desktop component primitives. */
+	--hg-surface: #05014e;
+	--hg-surface-raised: #000066;
+	--hg-border: #000088;
+	--hg-border-strong: #000099;
+	--hg-accent: #33ffff;
+	--hg-text-on-surface: #ffffff;
 }
 
 body.theme-modern {
