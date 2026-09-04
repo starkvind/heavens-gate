@@ -1,17 +1,5 @@
 
 
-.ocultable {
-	max-height: 0;
-	overflow: hidden;
-	transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-	padding: 0;
-}
-
-.ocultable.open {
-	max-height: 600px; /* puedes ajustar si necesitas más */
-	padding: 4px 0;
-}
-
 .main-wrapper {
 	display: inline-block;
 	text-align: left;
@@ -70,75 +58,9 @@ table.todou {
 
 }
 
-table.tmenu {
-
-	width: 196px;
-	border: 1px solid #000088;
-	padding: 5px;
-	background: url("../../img/ui/backgrounds/menu.webp");
-
-}
-
-td.upMenu {
-
-	width: 14%;
-	border: 1px solid #000066;
-	text-align: center;
-	height: 24px;
-	
-}
-
-td.upMenu:hover {
-
-	background-color: #000077;
-
-}
-
-a.enlaceUpMenu:hover {
-
-	font-weight: bold;
-
-}
-
-a.titMenu { /* Enlace para el men? */
-
-	padding: 5px;
-	font-weight: bolder;
-	color: #33FFFF;
-	text-align: left;
-
-}
-
-img.menuIcon {
-
-	border: 1px solid #000088; /* 006699; */
-}
-
-td.sekz { /* Secci?n de men? */
-
-	padding: 5px;
-	font-weight: bolder;
-	color: #33FFFF;
-	text-align: left;
-
-}
-
-td.sekzo { /* Subsecci?n de men? */
-
-	padding-left: 5px;
-	text-align: left;
-
-}
-
 img.valign {
 	vertical-align: middle;
 	padding-bottom: 4px;
-
-}
-
-td.sepmenu { /* Separacion entre secciones */
-
-	border-bottom: 1px dotted #006699;
 
 }
 
@@ -159,14 +81,6 @@ td.fcentro {
 
 table.notix {
 	width: 100%;
-}
-
-table.menu_sect {
-	width: 165px;
-	padding-top: 2px;
-	padding-bottom: 2px;
-	padding-right: 2px;
-
 }
 
 fieldset.systemDonList {
@@ -539,29 +453,6 @@ div.userRightMenu {
 	/* -- */
 	background: #000066;	
 	font-size: 10px;
-}
-
-div.renglonMenu {
-	float: left;
-	margin-bottom: 4px;
-	margin-left: 10%;
-	width: 130px;
-	height: 18px;
-	padding-top: 3px;
-	text-align: center;
-	border: 1px solid #000088;
-	background-color: #05014E;
-}
-
-div.renglonMenu:hover {
-	border: 1px solid #000099;
-	background: #000066;
-}
-
-.menuSeparator {
-	border: 0!important; 
-	background-color: transparent!important; 
-	margin-top:-1em;
 }
 
 /* Estado */
