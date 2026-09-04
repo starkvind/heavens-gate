@@ -57,6 +57,15 @@
 	<link rel="stylesheet" href="assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-menu.css?v=<?= $menuCssVersion ?>">
 
+	<?php
+		// Route/domain styles are registered while body_work.php is buffered,
+		// then emitted here in one deterministic location. Legacy body emitters
+		// are temporarily collected by page_assets.php until migrated.
+		if (function_exists('hg_page_render_registered_styles')) {
+			hg_page_render_registered_styles();
+		}
+	?>
+
 	<script type="text/javascript" src="assets/js/permutloading.js?v=<?= $permutScriptVersion ?>"></script>
 	<script type="text/javascript" src="assets/js/hg-tabs.js?v=<?= $tabsScriptVersion ?>"></script>
 	<script type="text/javascript" src="assets/js/hg-tooltip.js?v=<?= $tooltipScriptVersion ?>" defer></script>
