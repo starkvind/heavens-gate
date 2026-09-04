@@ -38,6 +38,7 @@
 	<link rel="manifest" href="img/favicon/site.webmanifest">
 
 	<?php
+		$tokensCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-tokens.css');
 		$coreCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-core.css');
 		$layoutCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-layout.css');
 		$menuCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-menu.css');
@@ -45,6 +46,7 @@
 		$tabsScriptVersion = @filemtime(__DIR__ . '/../../assets/js/hg-tabs.js');
 		$tooltipScriptVersion = @filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js');
 
+		$tokensCssVersion = ($tokensCssVersion !== false) ? (int)$tokensCssVersion : 1;
 		$coreCssVersion = ($coreCssVersion !== false) ? (int)$coreCssVersion : 1;
 		$layoutCssVersion = ($layoutCssVersion !== false) ? (int)$layoutCssVersion : 1;
 		$menuCssVersion = ($menuCssVersion !== false) ? (int)$menuCssVersion : 1;
@@ -53,6 +55,7 @@
 		$tooltipScriptVersion = ($tooltipScriptVersion !== false) ? (int)$tooltipScriptVersion : 1;
 	?>
 
+	<link rel="stylesheet" href="assets/css/hg-tokens.css?v=<?= $tokensCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-core.css?v=<?= $coreCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-menu.css?v=<?= $menuCssVersion ?>">
