@@ -144,7 +144,6 @@ def migrate_echo_styles(path: Path, text: str) -> tuple[str, int, list[str]]:
         matches = list(pattern.finditer(text))
         for match in reversed(matches):
             css = match.group("css").strip()
-            # Persistent presentation only. Skip anything with PHP interpolation.
             if "<?" in css or "?>" in css or "${" in css:
                 continue
             href = legacy_css_href(path)
@@ -205,6 +204,61 @@ def migrate_file(path: Path) -> tuple[bool, int, int, list[str]]:
     return False, 0, 0, []
 
 
+def migrate_forum_topic_viewer() -> tuple[bool, str | None]:
+    path = ROOT / "app/tools/forum_topic_viewer_tool.php"
+    text = path.read_text(encoding="utf-8")
+    if "/assets/css/pages/forum-topic-viewer.css" in text:
+        return False, None
+
+    asset_match = re.search(
+        r"\$hgfvAssets = <<<'HTML'\n(?P<body>.*?)\nHTML;",
+        text,
+        flags=re.S,
+    )
+    if not asset_match:
+        raise RuntimeError("forum topic viewer asset heredoc not found")
+
+    body = asset_match.group("body")
+    style_match = re.search(r"<style>\n(?P<css>.*?)\n</style>", body, flags=re.S)
+    if not style_match:
+        raise RuntimeError("forum topic viewer embedded style block not found")
+
+    css = style_match.group("css").strip()
+    css_target = ROOT / "assets/css/pages/forum-topic-viewer.css"
+    css_target.parent.mkdir(parents=True, exist_ok=True)
+    css_target.write_text(
+        "/* Forum topic viewer presentation extracted during Phase 1. */\n\n" + css + "\n",
+        encoding="utf-8",
+    )
+
+    new_body = body[:style_match.start()] + '<link rel="stylesheet" href="/assets/css/pages/forum-topic-viewer.css">' + body[style_match.end():]
+    text = text[:asset_match.start()] + "$hgfvAssets = <<<'HTML'\n" + new_body + "\nHTML;" + text[asset_match.end():]
+
+    old_branch = '''if (!$hgfvEmbedded) {
+    echo "<!doctype html>\\n<html lang='es'>\\n<head>\\n";
+    echo "<meta charset='UTF-8'>\\n<meta name='viewport' content='width=device-width, initial-scale=1.0'>\\n<title>" . h($metaTitle) . "</title>\\n";
+    echo $hgfvAssets . "\\n</head>\\n<body>\\n";
+} else {
+    echo $hgfvAssets . "\\n";
+}'''
+    new_branch = '''if (!$hgfvEmbedded) {
+    echo "<!doctype html>\\n<html lang='es'>\\n<head>\\n";
+    echo "<meta charset='UTF-8'>\\n<meta name='viewport' content='width=device-width, initial-scale=1.0'>\\n<title>" . h($metaTitle) . "</title>\\n";
+    echo $hgfvAssets . "\\n</head>\\n<body>\\n";
+} elseif (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/vendor/fonts/quicksand/quicksand.css');
+    hg_page_register_stylesheet('/assets/css/hg-embeds.css');
+    hg_page_register_stylesheet('/assets/css/pages/forum-topic-viewer.css');
+} else {
+    echo $hgfvAssets . "\\n";
+}'''
+    if old_branch not in text:
+        raise RuntimeError("forum topic viewer embedded asset branch not found")
+    text = text.replace(old_branch, new_branch, 1)
+    path.write_text(text, encoding="utf-8")
+    return True, css_target.relative_to(ROOT).as_posix()
+
+
 def main() -> None:
     changed_files: list[str] = []
     extracted_files: list[str] = []
@@ -220,6 +274,13 @@ def main() -> None:
             total_links += links
             total_styles += styles
             extracted_files.extend(extracted)
+
+    forum_changed, forum_css = migrate_forum_topic_viewer()
+    if forum_changed:
+        changed_files.append("app/tools/forum_topic_viewer_tool.php")
+        total_styles += 1
+        if forum_css:
+            extracted_files.append(forum_css)
 
     print(f"Migrated stylesheet tags: {total_links}")
     print(f"Extracted static style blocks: {total_styles}")
