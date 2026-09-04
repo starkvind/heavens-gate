@@ -117,8 +117,16 @@ if (!function_exists('hg_events_table_exists')) {
 $hasTimelineTable = hg_events_table_exists($link, 'fact_timeline_events');
 if (!$hasTimelineTable) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include("app/partials/main_nav_bar.php"); }
-    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
-    echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-main.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    }
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-events.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+    }
     if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) { echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">'; }
     echo "<div class='events-wrap'><div class='events-empty'>No existe la tabla fact_timeline_events en esta base de datos.</div></div>";
     return;

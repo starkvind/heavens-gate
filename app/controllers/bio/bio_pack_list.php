@@ -57,7 +57,11 @@ if (!function_exists('hg_bio_pack_org_chart_available')) {
 
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . htmlspecialchars($nameTypePack, ENT_QUOTES, 'UTF-8') . "</h2>";
-echo "<style>.bio-pack-org-chart-link{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;font-size:10px;text-decoration:none}.bio-pack-org-chart-link:hover{background:#003b8f;color:#fff!important}</style>";
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_list.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_list.css">';
+}
 
 $consulta = "SELECT id, name FROM dim_organizations ORDER BY sort_order";
 $result = mysqli_query($link, $consulta);

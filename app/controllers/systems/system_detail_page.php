@@ -124,7 +124,11 @@ if ($table !== "") {
 
         include("app/helpers/system_category_helper.php");
         if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); // Barra navegacion
-        echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-systems.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
+        }
 
         // Comprobar si los datos tienen energia para mostrarla
         $checkEnergy = isset($ResultQuery["energy"]) ? (int)$ResultQuery["energy"] : 0;

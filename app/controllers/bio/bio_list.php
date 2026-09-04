@@ -2,7 +2,11 @@
 $bioListTitle = html_entity_decode('Biograf&iacute;as | Heaven\'s Gate', ENT_QUOTES | ENT_HTML5, 'UTF-8');
 $bioListDescription = html_entity_decode('Listado de biograf&iacute;as y personajes.', ENT_QUOTES | ENT_HTML5, 'UTF-8');
 setMetaFromPage($bioListTitle, $bioListDescription, '/img/og/og_image_bio.webp', 'website');
-echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+}
 include_once(__DIR__ . '/../../helpers/public_response.php');
 
 if (!$link) {

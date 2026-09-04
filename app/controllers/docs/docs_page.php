@@ -115,7 +115,11 @@ setMetaFromPage($titleDoc . " | Documentos | Heaven's Gate", meta_excerpt($texto
 
 // Barra navegacion (la tuya)
 include("app/partials/main_nav_bar.php");
-echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-docs.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+}
 ?>
 
 

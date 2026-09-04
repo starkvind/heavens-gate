@@ -128,7 +128,11 @@ if ($rowsQueryMaf > 0) {
 
     // Incluir archivos para navegaci&oacute;n y contenido
     include("app/partials/main_nav_bar.php"); // Barra navegaci&oacute;n
-    echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-docs.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+    }
 
     ob_start();
 

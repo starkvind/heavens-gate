@@ -469,7 +469,11 @@ if ($typePack === 1) {
 
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . hg_bio_pack_page_h($namePack) . "</h2>";
-echo "<style>.bio-pack-action-link{display:inline-block;margin:10px 0 0;padding:5px 10px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;text-decoration:none}.bio-pack-action-link:hover{background:#003b8f;color:#fff!important}.bio-pack-copy-row{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:10px 0 0}.bio-pack-copy-btn{display:inline-block;border:1px solid #1c5ea9;border-radius:999px;background:linear-gradient(180deg,#0f2f73 0%,#0a205a 100%);color:#e8f7ff;padding:8px 16px;font-weight:bold;letter-spacing:.02em;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.bio-pack-copy-btn:hover{transform:translateY(-1px);border-color:#2bbfd1;box-shadow:0 0 0 3px rgba(43,191,209,.18)}.bio-pack-copy-status{font-size:.8rem}.bio-pack-copy-status.is-ok{color:#1e6a37}.bio-pack-copy-status.is-error{color:#9e1f1f}</style>";
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_page.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_page.css">';
+}
 if ($typePack === 2) {
     $markdownData = hg_bio_pack_page_markdown_data($link, $packId, $excludeChronicles);
     $markdownData['name'] = $namePack; $markdownData['description'] = $infoPack;

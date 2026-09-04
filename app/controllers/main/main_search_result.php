@@ -426,7 +426,11 @@ if ($query !== '' && $queryLength > 2) {
 }
 
 include('app/partials/main_nav_bar.php');
-echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+}
 ?>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-main-main_search_result.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-main-main_search_result.css"><?php } ?>
 <div class="search-page">
