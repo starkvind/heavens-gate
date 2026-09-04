@@ -195,7 +195,11 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
             if (function_exists('hg_page_register_stylesheet')) {
                 hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-docs-item_page.css');
             } else {
-                echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-docs-item_page.css">';
+                if (function_exists('hg_page_register_stylesheet')) {
+                    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-docs-item_page.css');
+                } else {
+                    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-docs-item_page.css">';
+                }
             }
             echo "<div class='item-embed-wrap'>";
             echo "<div class='power-card__desc-title' style='margin-bottom:1.5em;'>Embeber en el foro</div>";

@@ -109,7 +109,11 @@ if ($chapter_numberId > 0 && $stmt) {
         if (function_exists('hg_page_register_stylesheet')) {
             hg_page_register_stylesheet('/assets/css/hg-chapters.css');
         } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+            if (function_exists('hg_page_register_stylesheet')) {
+                hg_page_register_stylesheet('/assets/css/hg-chapters.css');
+            } else {
+                echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+            }
         }
         ?>
 

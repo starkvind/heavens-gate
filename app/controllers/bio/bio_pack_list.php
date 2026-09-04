@@ -60,7 +60,11 @@ echo "<h2>" . htmlspecialchars($nameTypePack, ENT_QUOTES, 'UTF-8') . "</h2>";
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_list.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_list.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_list.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_list.css">';
+    }
 }
 
 $consulta = "SELECT id, name FROM dim_organizations ORDER BY sort_order";

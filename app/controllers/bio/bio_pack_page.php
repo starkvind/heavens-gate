@@ -472,7 +472,11 @@ echo "<h2>" . hg_bio_pack_page_h($namePack) . "</h2>";
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_page.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_page.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_page.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_page.css">';
+    }
 }
 if ($typePack === 2) {
     $markdownData = hg_bio_pack_page_markdown_data($link, $packId, $excludeChronicles);

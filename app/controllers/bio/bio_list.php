@@ -5,7 +5,11 @@ setMetaFromPage($bioListTitle, $bioListDescription, '/img/og/og_image_bio.webp',
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-main.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-main.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    }
 }
 include_once(__DIR__ . '/../../helpers/public_response.php');
 

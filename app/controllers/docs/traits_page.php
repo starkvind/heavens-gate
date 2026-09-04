@@ -132,7 +132,11 @@ if ($result->num_rows > 0) {
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-docs.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-docs.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+        }
     }
 
     ob_start();

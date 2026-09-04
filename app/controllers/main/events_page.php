@@ -105,12 +105,20 @@ if (!$hasTimelineTable) {
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-main.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-main.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        }
     }
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-events.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+        }
     }
     echo "<div class='event-page'><div class='events-empty'>No existe la tabla fact_timeline_events en esta base de datos.</div></div>";
     return;
@@ -137,12 +145,20 @@ if ($eventId <= 0) {
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-main.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-main.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        }
     }
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-events.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+        }
     }
     echo "<div class='event-page'><div class='events-empty'>Evento no encontrado.</div></div>";
     return;
@@ -203,12 +219,20 @@ if (!$event) {
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-main.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-main.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        }
     }
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-events.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+        }
     }
     echo "<div class='event-page'><div class='events-empty'>Evento no encontrado.</div></div>";
     return;
@@ -382,17 +406,29 @@ if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-main.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-main.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    }
 }
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-events.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-events.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+    }
 }
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-chapters.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-chapters.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+    }
 }
 if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) { echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">'; }
 

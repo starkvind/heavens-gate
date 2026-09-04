@@ -52,17 +52,29 @@ setMetaFromPage(
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-chapters.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-chapters.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+    }
 }
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-maps.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-maps.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-maps.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-maps.css">';
+    }
 }
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-main.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-main.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    }
 }
 
 if (!hg_runtime_require_db($link, 'season_order', 'public', [

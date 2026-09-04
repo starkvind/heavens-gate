@@ -130,7 +130,11 @@ setMetaFromPage($routeConfig['meta_title'], $routeConfig['meta_desc'], null, 'we
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-main.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-main.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    }
 }
 
 if (!hg_runtime_require_db($link, 'seasons_home', 'public', [

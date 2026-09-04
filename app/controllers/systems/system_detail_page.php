@@ -127,7 +127,11 @@ if ($table !== "") {
         if (function_exists('hg_page_register_stylesheet')) {
             hg_page_register_stylesheet('/assets/css/hg-systems.css');
         } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
+            if (function_exists('hg_page_register_stylesheet')) {
+                hg_page_register_stylesheet('/assets/css/hg-systems.css');
+            } else {
+                echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
+            }
         }
 
         // Comprobar si los datos tienen energia para mostrarla

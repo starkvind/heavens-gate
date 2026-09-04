@@ -181,7 +181,11 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         if (function_exists('hg_page_register_stylesheet')) {
             hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-totm_page.css');
         } else {
-            echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-pwrs-totm_page.css">';
+            if (function_exists('hg_page_register_stylesheet')) {
+                hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-totm_page.css');
+            } else {
+                echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-pwrs-totm_page.css">';
+            }
         }
 
         echo "<div class='hg-tabs'>";
