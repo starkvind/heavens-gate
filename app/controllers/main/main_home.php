@@ -9,7 +9,9 @@ if (!$link) {
 }
 
 include('app/partials/main_nav_bar.php');
-echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+}
 
 if (!function_exists('hg_home_h')) {
     function hg_home_h($value): string
@@ -37,8 +39,6 @@ if (!function_exists('hg_home_count_table')) {
         return isset($row['total']) ? (int)$row['total'] : 0;
     }
 }
-
-
 
 $counts = [
     'characters' => hg_home_count_table($link, 'fact_characters'),
