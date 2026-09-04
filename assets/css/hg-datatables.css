@@ -8,13 +8,13 @@ table.dataTable {
     border-collapse: collapse;
     width: 100%;
     font-size: 0.9em;
-    border: 1px solid #000099;
+    border: 1px solid var(--hg-border-strong);
 }
 
 table.dataTable td {
     text-align: left;
-    border-bottom: 1px solid #000099;
-    border-top: 1px solid #000099;
+    border-bottom: 1px solid var(--hg-border-strong);
+    border-top: 1px solid var(--hg-border-strong);
 }
 
 .dataTables_info,
@@ -23,8 +23,8 @@ table.dataTable td {
 }
 
 table.dataTable th {
-    background-color: #000066;
-    color: #fff;
+    background-color: var(--hg-surface-raised);
+    color: var(--hg-text-on-surface);
 }
 
 table.dataTable tbody tr:hover {
@@ -36,10 +36,10 @@ table.dataTable tbody tr:hover {
 .dataTables_length select {
     font-family: verdana, sans-serif;
     font-size: 10px;
-    background-color: #000066;
-    color: #fff;
+    background-color: var(--hg-surface-raised);
+    color: var(--hg-text-on-surface);
     padding: 0.5em;
-    border: 1px solid #000099 !important;
+    border: 1px solid var(--hg-border-strong) !important;
     margin-bottom: 1em;
 }
 
@@ -48,16 +48,16 @@ table.dataTable tbody tr:hover {
 }
 
 .dataTables_paginate .paginate_button {
-    color: #fff !important;
-    background: #000066 !important;
-    border: 1px solid #000099 !important;
+    color: var(--hg-text-on-surface) !important;
+    background: var(--hg-surface-raised) !important;
+    border: 1px solid var(--hg-border-strong) !important;
     margin: 2px;
 }
 
 .dataTables_paginate .paginate_button:hover {
     color: #00ccff !important;
     cursor: pointer;
-    border: 1px solid #000088 !important;
+    border: 1px solid var(--hg-border) !important;
 }
 
 .dataTables_paginate .paginate_button.current {
