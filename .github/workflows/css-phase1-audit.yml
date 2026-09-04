@@ -1,0 +1,71 @@
+name: CSS Phase 1 residual audit
+
+on:
+  push:
+    branches:
+      - css-refactor
+    paths:
+      - '.github/workflows/css-phase1-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: css-refactor
+
+      - name: Find residual public CSS emitters
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          root = Path('app')
+          skip_prefixes = ('app/controllers/admin/', 'app/mobile/')
+          skip_files = {
+              'app/bootstrap/head_work.php',
+              'app/helpers/page_assets.php',
+              'app/helpers/public_response.php',
+              'app/helpers/runtime_response.php',
+              'app/partials/datatable_assets.php',
+              'app/partials/power_catalog_tabs.php',
+              'app/controllers/tool/combat_simulator.php',
+              'app/controllers/tool/game_cards.php',
+              'app/controllers/tool/game_cards_mobile.php',
+          }
+          link_re = re.compile(r'<link\b[^>]*\bstylesheet\b', re.I)
+          style_re = re.compile(r'<style\b', re.I)
+          residual = []
+
+          for path in sorted(root.rglob('*.php')):
+              rel = path.as_posix()
+              if rel in skip_files or any(rel.startswith(p) for p in skip_prefixes) or rel.startswith('app/partials/forum_'):
+                  continue
+              text = path.read_text(encoding='utf-8', errors='replace')
+              lines = text.splitlines()
+              link_hits = []
+              style_hits = []
+              for number, line in enumerate(lines, 1):
+                  if link_re.search(line) and 'hg_page_register_stylesheet' not in line:
+                      link_hits.append(number)
+                  if style_re.search(line) and 'hg_page_register_inline_style' not in line:
+                      style_hits.append(number)
+              if link_hits or style_hits:
+                  residual.append((rel, link_hits, style_hits))
+
+          if not residual:
+              print('Residual normal-public CSS emitters: 0')
+              raise SystemExit(0)
+
+          print(f'Residual normal-public CSS emitter files: {len(residual)}')
+          for rel, links, styles in residual:
+              print(f'{rel}\tlinks={links}\tstyles={styles}')
+          raise SystemExit(1)
+          PY
