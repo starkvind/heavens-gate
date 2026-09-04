@@ -27,8 +27,7 @@ if (!function_exists('hg_public_render_state_styles')) {
         }
         $printed = true;
 
-        echo <<<HTML
-<style>
+        $css = <<<'CSS'
 .hg-public-state{
     max-width: 860px;
     margin: 24px auto;
@@ -48,8 +47,13 @@ if (!function_exists('hg_public_render_state_styles')) {
     color: #d8d1c6;
     line-height: 1.7;
 }
-</style>
-HTML;
+CSS;
+
+        if (function_exists('hg_page_register_inline_style')) {
+            hg_page_register_inline_style($css);
+        } else {
+            echo "<style>\n" . $css . "\n</style>\n";
+        }
     }
 }
 
