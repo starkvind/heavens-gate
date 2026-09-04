@@ -1,0 +1,91 @@
+/* Heaven's Gate public frontend base styles.
+ *
+ * Only global HTML primitives belong here. The classic visual shell,
+ * static branding artwork, menu imagery and component presentation stay
+ * outside this layer. Values are moved unchanged from hg-core.css.
+ */
+
+body {
+	color: var(--hg-text);
+	font: normal 11px var(--hg-font-body);
+	background: var(--hg-bg);
+	/*background: #05014E url("../../img/ui/backgrounds/hg_background.webp");
+	background-attachment: fixed;
+	background-repeat: no-repeat;
+	background-position: bottom right;*/
+	margin-top: 20px;
+	margin-bottom: 20px;
+	text-align: center;
+}
+
+table {
+	font: normal 11px var(--hg-font-body);
+}
+
+img {
+	border: 0px;
+}
+
+h1 {
+	margin-top: 0px;
+	margin-bottom: 2px;
+}
+
+h2 {
+	margin-top: 0px;
+	margin-bottom: 6px;
+	margin-right: 8px;
+	font-size: 16px;
+	text-align: right;
+	color: var(--hg-h2);
+	padding: 2px;
+}
+
+h3 {
+	margin-top: 0px;
+	color: var(--hg-h3);
+	font-family: var(--hg-font-head);
+	font-size: 14px;
+	font-weight: bolder;
+}
+
+a {
+	color: var(--hg-link);
+	text-decoration: none;
+}
+
+a:hover {
+
+	color: var(--hg-link-hover);
+	cursor: pointer;
+	/* text-decoration: underline; */
+
+}
+
+textarea {
+	font-family: var(--hg-font-ui);
+	font-size: 10px;
+	background-color: var(--hg-field-bg);
+	color: var(--hg-text);
+	border: 1px solid var(--hg-field-border);
+	padding: 5px;
+}
+
+input {
+	font-family: var(--hg-font-ui);
+	font-size: 10px;
+	background-color: var(--hg-field-bg);
+	color: var(--hg-text);
+	padding: 1px;
+	border: 1px solid var(--hg-field-border);
+}
+
+select {
+
+	font-family: var(--hg-font-ui);
+	font-size: 10px;
+	background-color: var(--hg-field-bg);
+	color: var(--hg-text);
+	border: 1px solid var(--hg-field-border);
+
+}
