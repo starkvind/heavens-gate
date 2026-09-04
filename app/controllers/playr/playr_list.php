@@ -58,7 +58,7 @@ mysqli_free_result($result);
 
 $pageSect = "Jugadores";
 ?>
-<link rel="stylesheet" href="/assets/css/hg-playr.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-playr.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-playr.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2 class="playr-title">Jugadores</h2>

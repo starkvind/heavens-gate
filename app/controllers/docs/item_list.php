@@ -83,7 +83,7 @@ usort($origins, function($a, $b){
 });
 ?>
 
-<link rel="stylesheet" href="/assets/css/hg-docs.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
 
 <h2 class="docs-table-title"><?= h($typeName) ?></h2>
 

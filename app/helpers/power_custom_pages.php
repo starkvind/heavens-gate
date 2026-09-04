@@ -635,7 +635,7 @@ if (!function_exists('hg_power_custom_render')) {
             JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
         );
         ?>
-        <link rel="stylesheet" href="/assets/css/hg-power-custom.css">
+        <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-power-custom.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-power-custom.css"><?php } ?>
         <script src="/assets/js/hg-power-custom.js" defer></script>
 
         <div class="hg-power-custom<?= $printMode ? ' hg-power-custom--print' : ''; ?>" id="hgpc-root" data-print-mode="<?= $printMode ? '1' : '0'; ?>">
@@ -760,7 +760,7 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
         $printHref = hg_power_custom_h(hg_power_custom_current_page_href(['print' => '1']));
         $markdownHref = hg_power_custom_h(hg_power_custom_current_page_href(['export' => 'md', 'print' => null]));
         ?>
-        <link rel="stylesheet" href="/assets/css/hg-power-custom.css">
+        <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-power-custom.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-power-custom.css"><?php } ?>
         <div class="hg-power-custom<?= $printMode ? ' hg-power-custom--print' : ''; ?>" id="hgpc-root" data-print-mode="<?= $printMode ? '1' : '0'; ?>">
             <div class="hgpc-wrap">
                 <?php

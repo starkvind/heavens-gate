@@ -148,22 +148,7 @@ $pageTitle2 = "Manadas";
 ?>
 <script type="text/javascript" src="assets/vendor/vis/vis-network.min.10.0.2.js"></script>
 
-<style>
-    #network {
-        border: 0;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-        height: 70vh;
-        width: 100%;
-        background-color: #05014e;
-    }
-
-    #fullscreen-btn {
-        position: relative;
-        z-index: 1000;
-        cursor: pointer;
-        float: right;
-    }
-</style>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_reltree_groups.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_reltree_groups.css"><?php } ?>
 
 <h2>Nebulosa de relaciones</h2>
 <div class="bioTextData">

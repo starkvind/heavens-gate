@@ -67,40 +67,9 @@ usort($origins, function($a, $b){
 });
 ?>
 
-<style>
-	.item-thumb{ width:18px; height:18px; object-fit:contain; display:inline-block; vertical-align:middle; position:relative; z-index:1; }
-	.item-icon{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; margin-right:6px; position:relative; }
-	.item-icon::before{ content:""; position:absolute; left:50%; top:50%; width:20px; height:20px; border-radius:50%; background:#001188; opacity:.65; transform:translate(-50%,-50%); }
-	.item-cell{ display:inline-flex; align-items:center; gap:6px; }
-</style>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-totm_group_list.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-pwrs-totm_group_list.css"><?php } ?>
 
-<style>
-	.toggleAfiliacion {
-	  background: #05014e;
-	  color: #fff;
-	  border: 1px solid #000088;
-	  padding: 6px 10px;
-	  margin: 8px 0 0 0;
-	  font-size: 1.1em;
-	  cursor: pointer;
-	  width: 85%;
-	  text-align: left;
-	}
-
-	.toggleAfiliacion:hover {
-	  background: #000066;
-	  border: 1px solid #0000BB;
-	}
-
-	.contenidoAfiliacion {
-	  display: flex;
-	  flex-wrap: wrap;
-	  gap: 6px;
-	  padding: 8px 0 12px 0;
-	}
-
-	.oculto { display: none; }
-</style>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-totm_group_list.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-pwrs-totm_group_list.css"><?php } ?>
 
 <h2 style="text-align:right;">T&oacute;tems <?= h($totemName) ?></h2>
 

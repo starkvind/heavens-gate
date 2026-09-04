@@ -2,7 +2,7 @@
 <?php include_once(__DIR__ . '/../../helpers/character_avatar.php'); ?>
 <?php include_once(__DIR__ . '/../../helpers/content_image.php'); ?>
 <?php include_once(__DIR__ . '/../../helpers/runtime_response.php'); ?>
-<link rel="stylesheet" href="/assets/css/hg-chapters.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-chapters.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-chapters.css"><?php } ?>
 
 <?php
 if (!hg_runtime_require_db($link, 'season_archive', 'public', [

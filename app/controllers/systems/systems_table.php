@@ -38,7 +38,7 @@ $pageTitle2 = "Sistemas";
 	$selectAll = "&nbsp;&nbsp;Todo&nbsp;&nbsp;";
 	$clearAll  = "&nbsp;Limpiar&nbsp;";
 ?>
-<link rel="stylesheet" href="/assets/css/hg-systems.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-systems.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-systems.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2 class="syst-table-title">Seres sobrenaturales</h2>

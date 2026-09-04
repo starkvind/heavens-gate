@@ -176,30 +176,7 @@ if ($clanesUsados && $manadasUsadas) {
 ?>
 <script type="text/javascript" src="assets/vendor/vis/vis-network.min.10.0.2.js"></script>
 
-<style>
-    #relationInfo {
-        background-color: #ffffff;
-        color: #333;
-        border-color: #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-    }
-
-    #network {
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-        height: 70vh;
-        width: 100%;
-        border: none;
-        background-color: #05014e;
-    }
-
-    #fullscreen-btn {
-        position: relative;
-        z-index: 1000;
-        cursor: pointer;
-        float: right;
-    }
-</style>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_reltree_clans.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_reltree_clans.css"><?php } ?>
 
 <h2>Nebulosa de relaciones</h2>
 

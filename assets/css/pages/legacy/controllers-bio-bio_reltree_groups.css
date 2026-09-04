@@ -1,0 +1,16 @@
+/* Phase 1 extraction from app/controllers/bio/bio_reltree_groups.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+
+#network {
+        border: 0;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+        height: 70vh;
+        width: 100%;
+        background-color: #05014e;
+    }
+
+    #fullscreen-btn {
+        position: relative;
+        z-index: 1000;
+        cursor: pointer;
+        float: right;
+    }

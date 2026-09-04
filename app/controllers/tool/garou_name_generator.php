@@ -3,7 +3,7 @@ if (function_exists('setMetaFromPage')) {
     setMetaFromPage("Generador de nombres Garou | Heaven's Gate", "Generador rapido de nombres Garou.", null, 'website');
 }
 ?>
-<link rel="stylesheet" href="/assets/css/hg-tools.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-tools.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-tools.css"><?php } ?>
 
 <div id="garou-name-gen">
 	<div class="hg-garou-card">

@@ -3,7 +3,7 @@
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <?php include_once("app/helpers/runtime_response.php"); ?>
 
-<link rel="stylesheet" href="/assets/css/hg-tools.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-tools.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-tools.css"><?php } ?>
 
 <?php
 if (!hg_runtime_require_db($link, 'dice_roller', 'public', [

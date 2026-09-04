@@ -119,42 +119,9 @@ if ($result instanceof mysqli_result) {
 
 $pageSect = "Capítulos";
 ?>
-<link rel="stylesheet" href="/assets/css/hg-docs.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
-<style>
-    .docs-table-inner .dt-toolbar {
-        justify-content: flex-start;
-    }
-
-    .docs-table-inner .dt-toolbar .left {
-        justify-content: flex-start;
-        flex: 0 1 auto;
-    }
-
-    .docs-table-inner .ms-wrap {
-        width: 210px;
-    }
-
-    .docs-table-inner .ms-wrap--wide {
-        width: 260px;
-    }
-
-    .docs-table-inner .ms-btn {
-        display: block;
-        text-align: left;
-    }
-
-    .docs-table-inner .ms-btn .ms-label,
-    .docs-table-inner .ms-btn .ms-summary {
-        display: inline;
-        margin-left: 0;
-        text-align: left;
-    }
-
-    .docs-table-inner .ms-btn .ms-summary::before {
-        content: " ";
-    }
-</style>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-chapters-chapter_table.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-chapters-chapter_table.css"><?php } ?>
 
 <h2 class="docs-table-title">Tabla de episodios</h2>
 

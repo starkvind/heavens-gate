@@ -1,30 +1,7 @@
 <?php
 setMetaFromPage("Biografías por realidad | Heaven's Gate", "Listado de personajes agrupados por realidad.", null, 'website');
 ?>
-<style>
-    .toggleAfiliacion {
-      background: #05014e;
-      color: #fff;
-      border: 1px solid #000088;
-      padding: 6px 10px;
-      margin: 8px 0 0 0;
-      font-size: 1.1em;
-      cursor: pointer;
-      width: 85%;
-      text-align: left;
-    }
-    .toggleAfiliacion:hover {
-      background: #000066;
-      border: 1px solid #0000BB;
-    }
-    .contenidoAfiliacion {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 0 12px 0;
-    }
-    .oculto { display: none; }
-</style>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_worlds.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_worlds.css"><?php } ?>
 
 <?php
 include_once(__DIR__ . '/../../helpers/public_response.php');

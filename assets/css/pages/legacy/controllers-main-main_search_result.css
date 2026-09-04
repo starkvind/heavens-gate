@@ -1,0 +1,322 @@
+/* Phase 1 extraction from app/controllers/main/main_search_result.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+
+.search-page {
+    max-width: 940px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.search-header,
+.search-results-panel {
+    border: 1px solid #000088;
+    background: #05014e;
+    padding: 22px 24px;
+}
+
+.search-header {
+    margin-bottom: 18px;
+}
+
+.search-header h2,
+.search-header p {
+    text-align: left;
+}
+
+.search-header p {
+    margin: 0;
+    color: #d5defe;
+    max-width: 720px;
+    line-height: 1.5;
+}
+
+.search-kicker {
+    margin: 0 0 8px;
+    color: #99ffff;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.82;
+}
+
+.search-header h2 {
+    margin-bottom: 10px;
+}
+
+.search-header-copy {
+    margin-bottom: 18px;
+}
+
+.search-refine {
+    margin-top: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(220px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.search-refine label {
+    display: block;
+    margin-bottom: 5px;
+    color: #99ffff;
+    font-weight: bold;
+}
+
+.search-refine input,
+.search-refine select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 8px;
+    font-size: 11px;
+}
+
+.search-refine .boton1 {
+    width: auto;
+    min-width: 96px;
+    padding: 7px 14px;
+}
+
+.search-results-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(0, 80, 160, 0.45);
+}
+
+.search-summary {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border: 1px solid rgba(0, 120, 220, 0.6);
+    background: rgba(0, 30, 80, 0.28);
+    color: #cfe0ff;
+    font-size: 10px;
+}
+
+.search-chip strong {
+    color: #99ffff;
+}
+
+.search-results-count {
+    color: #99ffff;
+    font-size: 11px;
+}
+
+.search-results-tools {
+    margin: 0 0 18px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.search-results-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border: 1px solid rgba(0, 120, 220, 0.55);
+    background: rgba(0, 30, 80, 0.2);
+    color: #cfe0ff;
+    text-decoration: none;
+    font-size: 10px;
+}
+
+.search-results-tool:hover {
+    background: rgba(0, 40, 95, 0.38);
+    border-color: rgba(0, 150, 255, 0.75);
+}
+
+.search-section-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+}
+
+.search-section-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid rgba(0, 120, 220, 0.55);
+    background: rgba(0, 30, 80, 0.22);
+    color: #cfe0ff;
+    text-decoration: none;
+    font-size: 10px;
+}
+
+.search-section-link strong {
+    color: #99ffff;
+}
+
+.search-section-link:hover {
+    background: rgba(0, 40, 95, 0.4);
+    border-color: rgba(0, 150, 255, 0.75);
+}
+
+.search-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.search-result-card {
+    display: block;
+    border: 1px solid #000088;
+    background: rgba(0, 0, 40, 0.35);
+    padding: 12px;
+    text-decoration: none;
+}
+
+.search-result-card:hover {
+    border-color: #003399;
+    background: #000066;
+}
+
+.search-result-type {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 2px 7px;
+    border: 1px solid #003399;
+    color: #99ffff;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.search-result-card h3 {
+    margin-bottom: 6px;
+}
+
+.search-result-card p {
+    margin: 0;
+    color: #d5defe;
+    line-height: 1.45;
+}
+
+.search-hit {
+    background: rgba(0, 255, 255, 0.14);
+    color: #ffffff;
+    padding: 0 2px;
+}
+
+.search-result-foot {
+    margin-top: 10px;
+    color: #9fb7f0;
+    font-size: 10px;
+}
+
+.search-empty {
+    padding: 18px;
+    border: 1px solid #000088;
+    background: rgba(0, 0, 40, 0.28);
+}
+
+.search-empty h3 {
+    margin-bottom: 6px;
+}
+
+.search-empty p {
+    margin: 0;
+    color: #d5defe;
+}
+
+.search-results-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.search-results-actions .search-results-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    padding: 7px 14px;
+    border: 1px solid rgba(0, 120, 220, 0.55);
+    background: rgba(0, 30, 80, 0.22);
+    color: #cfe0ff;
+    text-decoration: none;
+    font-size: 11px;
+}
+
+.search-results-actions .search-results-back:hover {
+    background: rgba(0, 40, 95, 0.38);
+    border-color: rgba(0, 150, 255, 0.75);
+}
+
+.search-recent {
+    margin: 0 0 18px;
+    display: none;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-recent.is-ready {
+    display: flex;
+}
+
+.search-recent-label {
+    color: #99ffff;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.search-recent-items {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.search-recent-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid rgba(0, 120, 220, 0.55);
+    background: rgba(0, 30, 80, 0.22);
+    color: #cfe0ff;
+    text-decoration: none;
+    font-size: 10px;
+}
+
+.search-recent-chip:hover {
+    background: rgba(0, 40, 95, 0.38);
+    border-color: rgba(0, 150, 255, 0.75);
+}
+
+@media (max-width: 760px) {
+    .search-header,
+    .search-results-panel {
+        padding: 18px;
+    }
+
+    .search-header-copy {
+        margin-bottom: 14px;
+    }
+
+    .search-refine {
+        grid-template-columns: 1fr;
+    }
+
+    .search-refine .boton1,
+    .search-results-actions .search-results-back {
+        width: 100%;
+    }
+
+    .search-results-actions {
+        justify-content: stretch;
+    }
+}

@@ -73,13 +73,13 @@ $mainConfig = [
 ];
 ?>
 
-<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/vendor/leaflet/leaflet.1.9.4.css'); } else { ?><link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.1.9.4.css"><?php } ?>
 <script src="/assets/vendor/leaflet/leaflet.1.9.4.js"></script>
-<link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css">
-<link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css'); } else { ?><link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css"><?php } ?>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css'); } else { ?><link rel="stylesheet" href="/assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css"><?php } ?>
 <script src="/assets/vendor/leaflet/markercluster/leaflet.markercluster.1.5.3.js"></script>
-<link rel="stylesheet" href="/assets/css/hg-chapters.css">
-<link rel="stylesheet" href="/assets/css/hg-maps.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-chapters.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-chapters.css"><?php } ?>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-maps.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-maps.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <script src="/assets/js/hg-maps.js"></script>
 

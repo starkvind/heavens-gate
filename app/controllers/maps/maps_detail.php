@@ -38,8 +38,8 @@ if (function_exists('setMetaFromPage')) {
 
 ?>
 
-<link rel="stylesheet" href="/assets/css/hg-chapters.css">
-<link rel="stylesheet" href="/assets/css/hg-maps.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-chapters.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-chapters.css"><?php } ?>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-maps.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-maps.css"><?php } ?>
 
 <div class="chapter-shell map-shell-root map-shell-root-detail">
   <div class="chapter-hero map-hero">

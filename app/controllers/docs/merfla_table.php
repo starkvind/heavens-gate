@@ -106,7 +106,7 @@ $meritos = ensure_utf8($meritos);
 
 $pageSect = "Méritos y Defectos";
 ?>
-<link rel="stylesheet" href="/assets/css/hg-docs.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2 class="docs-table-title">Méritos y Defectos</h2>

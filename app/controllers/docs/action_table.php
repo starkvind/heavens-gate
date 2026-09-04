@@ -32,7 +32,7 @@ if ($result = $link->query($sql)) {
     return;
 }
 ?>
-<link rel="stylesheet" href="/assets/css/hg-docs.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
 <?php include_once 'app/partials/datatable_assets.php'; ?>
 
 <h2 class="docs-table-title">Acciones</h2>

@@ -50,7 +50,7 @@ $totems = ensure_utf8($totems);
 $pageSect = "Lista de Tótems";
 ?>
 
-<link rel="stylesheet" href="/assets/css/hg-powers.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-powers.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-powers.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <?php include_once("app/partials/power_catalog_tabs.php"); ?>
 
