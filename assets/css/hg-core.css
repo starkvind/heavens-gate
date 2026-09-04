@@ -256,43 +256,6 @@ table.tableSystemInfo {
 	text-align: justify;
 
 }
-/* Estilo de la Galeria de Imagenes */
-table.galerytable {
-	padding-left: 30px;
-	/* border: 1px dotted #000099; */
-}
-img.ph_gallery {
-	border:1px solid #EEE;
-	width: 105px;
-	height: 70px;
-}
-img.sysInfo {
-	width: 260px;
-	height: 180px;
-}
-
-.contenedorfoto {
-	float:left;
-	width:105px;
-	height:90px;
-	margin:10px;
-	padding:5px;
-	background-color:#f5f7f9;
-	border-right: #a5a7aa solid 1px;
-	border-bottom: #a5a7aa solid 1px;
-	text-align:center;
-}
-
-.contenedorfoto a {
-	text-decoration: none;
-}
-
-.contenedorfoto span {
-	color:#515151;
-	font-family: Trebuchet MS;
-	font-size: 7pt;
-}
-/* Estilo de la Galeria de Imagenes */ 
 
 img.photobio  {
 	margin-top: 4px;
@@ -350,71 +313,6 @@ td.nvmsg:hover {
 	text-align: left;
 	background-color: #000066;
 	border: 1px solid #009;
-
-}
-
-table.inventario {
-
-	width: 100%;
-
-}
-
-td.fotoit {
-
-	width: 100px;
-	height: 100px;
-	border: 1px solid #007;
-
-
-}
-
-img.imginvent {
-
-	width: 100px;
-	height: 100px;
-
-}
-
-td.itname {
-
-	width: 90px;
-	color: #0ff;
-	border: 1px solid #007;
-	padding-left: 5px;
-	padding-top: 2px;
-	padding-bottom: 2px;
-
-}
-
-td.itnam2 {
-
-	border: 1px solid #007;
-	padding-left: 5px;
-	padding-right: 5px;
-	padding-top: 2px;
-	padding-bottom: 2px;
-
-}
-
-fieldset.dans {
-
-	border: 1px solid #007;
-	padding: 10px;
-	background: #05014E;
-
-}
-
-legend.dens {
-
-	border: 1px solid #007;
-	padding: 2px;
-	background: #05014E;
-	
-}
-
-td.inav {
-
-	width: 150px;
 
 }
 
@@ -553,53 +451,6 @@ div.renglon2colIz {
 div.renglon2colDe {
 	float: right;
 	font-size: 9px;
-}
-
-/* NUEVO ASPECTO DE LOS MENUS SISTEMAS GAROU, ETC */
-
-div.renglonImagenSistema {
-	float: left;
-	border: 0px solid white;
-	width: 100%;
-	margin-bottom: 8px;
-	text-align: center;
-}
-
-img.imagenSistema {
-	border: 1px solid #000099;
-	vertical-align: middle;
-}
-
-div.renglonDatosSistema {
-	float: left;
-	border: 1px solid #000099;
-	width: 60%;
-	padding: 8px;
-}
-
-div.renglonContenidoSistema {
-	float: right;
-	border: 0px solid white;
-	width: 35%;
-}
-
-fieldset.renglonContenidoSist {
-	border: 0px;
-	margin-left: 16px;
-}
-
-div.renglonSistema {
-	float: left;
-	border: 1px solid #000077;
-	padding: 2px;
-	margin: 2px;
-	width: 160px;
-	text-align: center;
-}
-
-div.renglonSistema:hover {
-	border: 1px solid #000099;
-	background-color: #000066;
 }
 
 /* NUEVO ASPECTO DE LA BIOGRAFIA */
