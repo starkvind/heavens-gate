@@ -2,7 +2,7 @@
   position: absolute;
   z-index: 20050;
   background: #050b36;
-  border: 1px solid #000088;
+  border: 1px solid var(--hg-border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.45);
   padding: 6px;
@@ -22,7 +22,7 @@
 .hg-mention-item:hover,
 .hg-mention-item.active {
   background: #001199;
-  color: #33ffff;
+  color: var(--hg-accent);
 }
 .hg-mention-empty {
   padding: 6px 8px;
