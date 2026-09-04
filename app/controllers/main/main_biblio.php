@@ -1,7 +1,7 @@
 <?php setMetaFromPage("Bibliografia | Heaven's Gate", "Bibliografia y referencias de la campana.", null, 'website'); ?>
 <?php include_once(__DIR__ . '/../../helpers/public_response.php'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
-<link rel="stylesheet" href="/assets/css/hg-main.css">
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-main.css'); } ?>
 <h2>Bibliograf&iacute;a</h2>
 <fieldset class="grupoHabilidad">
     <?php
