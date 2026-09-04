@@ -1,0 +1,199 @@
+name: CSS refactor preview
+
+on:
+  push:
+    branches:
+      - css-refactor
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout website branch
+        uses: actions/checkout@v4
+
+      - name: Checkout continuity repository
+        uses: actions/checkout@v4
+        with:
+          repository: starkvind/heavens-gate-continuity
+          ref: main
+          path: .continuity
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, mbstring, gd
+          coverage: none
+
+      - name: Install MariaDB client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mariadb-client
+
+      - name: Wait for MariaDB
+        run: |
+          for attempt in $(seq 1 30); do
+            if mariadb-admin ping -h 127.0.0.1 -uroot -proot --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MariaDB did not become ready in time" >&2
+          exit 1
+
+      - name: Import production snapshot into isolated database
+        run: |
+          set -euo pipefail
+          DUMP=.continuity/snapshots/web/database/production-2026-09-01.sql
+          test -s "$DUMP"
+
+          mariadb -h 127.0.0.1 -uroot -proot -e "
+            CREATE DATABASE IF NOT EXISTS \`u807926597_hg\`
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+          "
+
+          mariadb -h 127.0.0.1 -uroot -proot u807926597_hg < "$DUMP"
+
+          TABLES=$(mariadb -h 127.0.0.1 -uroot -proot -Nse \
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='u807926597_hg';")
+          echo "Imported tables: $TABLES"
+          if [ "$TABLES" -lt 10 ]; then
+            echo "Snapshot import produced too few tables" >&2
+            exit 1
+          fi
+
+      - name: Create least-privilege application user
+        run: |
+          mariadb -h 127.0.0.1 -uroot -proot -e "
+            CREATE USER IF NOT EXISTS 'heavensgate_app'@'%' IDENTIFIED BY 'hg_ci_test';
+            GRANT SELECT, INSERT, UPDATE, DELETE ON \`u807926597_hg\`.* TO 'heavensgate_app'@'%';
+            FLUSH PRIVILEGES;
+          "
+
+          mariadb -h 127.0.0.1 -uheavensgate_app -phg_ci_test -Nse \
+            "SELECT COUNT(*) FROM u807926597_hg.dim_menu_items;"
+
+      - name: Write ephemeral runtime configuration
+        run: |
+          cat > config.env <<'EOF'
+          MYSQL_HOST=127.0.0.1
+          MYSQL_USER=heavensgate_app
+          MYSQL_PWD=hg_ci_test
+          MYSQL_BDD=u807926597_hg
+          EOF
+
+      - name: Start isolated PHP preview
+        run: |
+          mkdir -p .preview/html
+          php -d display_errors=1 -S 127.0.0.1:8080 .github/ci/php-router.php \
+            > .preview/php-server.log 2>&1 &
+          echo $! > .preview/php-server.pid
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          cat .preview/php-server.log >&2 || true
+          exit 1
+
+      - name: Smoke-test representative public routes
+        run: |
+          set -euo pipefail
+          : > .preview/smoke-report.txt
+
+          routes=(
+            "/"
+            "/characters"
+            "/seasons"
+            "/systems"
+            "/rules/traits"
+            "/rules/merits-flaws"
+            "/rules/conditions"
+            "/powers/gifts"
+            "/inventory"
+            "/timeline"
+            "/search"
+          )
+
+          for route in "${routes[@]}"; do
+            slug=$(printf '%s' "$route" | sed 's#^/$#home#; s#^/##; s#[/?&=]#-#g')
+            target=".preview/html/${slug}.html"
+            code=$(curl -sS -o "$target" -w '%{http_code}' "http://127.0.0.1:8080${route}")
+            printf '%-28s %s\n' "$route" "$code" | tee -a .preview/smoke-report.txt
+            if [ "$code" -lt 200 ] || [ "$code" -ge 400 ]; then
+              echo "Unexpected HTTP status for $route: $code" >&2
+              exit 1
+            fi
+          done
+
+      - name: Record CSS load-order baseline
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          rows = []
+          for path in sorted(Path('.preview/html').glob('*.html')):
+              text = path.read_text(encoding='utf-8', errors='replace')
+              lower = text.lower()
+              body_pos = lower.find('<body')
+              if body_pos < 0:
+                  body_pos = 0
+              tail = text[body_pos:]
+              late_links = len(re.findall(r'<link\b[^>]*rel=["\']stylesheet["\']', tail, flags=re.I))
+              late_styles = len(re.findall(r'<style\b', tail, flags=re.I))
+              all_links = len(re.findall(r'<link\b[^>]*rel=["\']stylesheet["\']', text, flags=re.I))
+              all_styles = len(re.findall(r'<style\b', text, flags=re.I))
+              rows.append((path.name, all_links, late_links, all_styles, late_styles))
+
+          out = Path('.preview/css-baseline.txt')
+          with out.open('w', encoding='utf-8') as fh:
+              fh.write('file\tstylesheets\tstylesheets_after_body\tstyle_blocks\tstyle_blocks_after_body\n')
+              for row in rows:
+                  fh.write('\t'.join(map(str, row)) + '\n')
+          print(out.read_text(encoding='utf-8'))
+          PY
+
+      - name: Capture desktop screenshots
+        run: |
+          npm --version
+          npx --yes playwright@1.55.0 install --with-deps chromium
+          npx --yes playwright@1.55.0 screenshot --browser chromium --full-page \
+            --viewport-size="1280,900" http://127.0.0.1:8080/ .preview/home.png
+          npx --yes playwright@1.55.0 screenshot --browser chromium --full-page \
+            --viewport-size="1280,900" http://127.0.0.1:8080/systems .preview/systems.png
+          npx --yes playwright@1.55.0 screenshot --browser chromium --full-page \
+            --viewport-size="1280,900" http://127.0.0.1:8080/rules/merits-flaws .preview/merits-flaws.png
+          npx --yes playwright@1.55.0 screenshot --browser chromium --full-page \
+            --viewport-size="1280,900" http://127.0.0.1:8080/rules/conditions .preview/conditions.png
+
+      - name: Upload preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: css-refactor-preview-${{ github.sha }}
+          path: .preview/
+          retention-days: 14
