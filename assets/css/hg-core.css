@@ -455,15 +455,6 @@ div.renglon2colDe {
 
 /* NUEVO ASPECTO DE LA BIOGRAFIA */
 
-#clanTitle {
-	font-weight: bold;
-	background: #001166;
-	margin-top: -1px;
-	margin-bottom: -1px;
-	padding: 2px;
-	border: 1px solid #007;
-}
-
 ul.listaManadas {
 	list-style-type: none;
 	width: 90%;
@@ -483,31 +474,6 @@ div.bioBody {
 	width: 100%;
 }
 
-div.bioHeader {
-	text-align:center;
-	border: 1px solid #009;
-	color: #efe;
-	text-transform: uppercase;
-}
-
-div.bioSquarePhoto {
-	float: left;
-	text-align: center;
-	border: 1px solid #009;
-	width: 130px;
-	padding-right: 3px;
-	padding-bottom: 4px;
-	margin-top: 16px;
-	margin-left: 30px;
-}
-
-div.bioSquareData {
-	float: right;
-	width: 442px;
-	padding: 10px;
-	margin-top: 6px;
-}
-
 fieldset.bioSeccion  {
 	border: 1px solid #009;
 }
@@ -516,35 +482,6 @@ fieldset.bioSeccion legend{
 	border: 1px solid #009;
 	font-weight: bold;
 	padding: 2px;
-}
-
-div.bioRenglonData {
-	width: 100%;
-	float: left;
-	margin-bottom: 4px;
-}
-
-div.bioDataName {
-	float: left;
-	border: 1px solid #009;
-	background: #000066;
-	color: cyan;
-	font-size: 9px;
-	padding: 2px;
-	width: 22%;
-	height: 14px;
-	text-align: right;
-}
-
-div.bioDataText {
-	float: right;
-	border: 1px solid #009;
-	background-color: #000055;
-	color: #FFF;
-	font-size: 9px;
-	padding: 2px;
-	width: 74.5%;
-	height: 14px;
 }
 
 div.bioTextData {
@@ -561,81 +498,9 @@ div.bioSheetData {
 	margin: 2px 0px 0px 0px;
 }
 
-fieldset.bioCommentText {
-
-	border: 0px;
-	border-bottom: 1px solid #009;
-	margin: 0px 0px 8px 0px;
-}
-
-fieldset.bioCommentText legend {
-	background-color: #000066;
-	font-size: 9px;
-	color: cyan;
-	padding: 2px;
-	border: 0px;
-}
-
 img.bioAttCircle {
 	vertical-align: middle;
 	padding: 2px;
-}
-
-div.renglonSkillIzq {
-	float: left;
-	border: 1px solid #009;
-	width: 116px;
-	color: cyan;
-	padding: 2px;
-	text-align: right;
-	background-color: #000066;
-	font-size: 9px;
-	height: 13px;
-	margin-bottom: 2px;
-	margin-right: 2px;
-}
-
-div.renglonSkillDer {
-	float: right;
-	color: #FFF;
-	border: 1px solid #009;
-	background-color: #000055;
-	font-size:9px;
-	width: 130px;
-	padding: 2px;
-	text-align: center;
-	height: 13px;
-	margin-bottom: 2px;
-	margin-right: 2px;
-}
-
-div.renglonDonDiscBio {
-	float: left;
-	border: 1px solid #009;
-	background-color: #000055;
-	font-size:9px;
-	width: 47%;
-	padding: 4px;
-	height: 14px;
-	margin: 2px;
-}
-
-div.renglonDonDiscBio:hover {
-	background-color: #000066;
-}
-
-/* NUEVO ASPECTO DEL INVENTARIO */
-
-div.itemSquarePhoto {
-	float: left;
-	text-align: center;
-	border: 1px solid #009;
-	width: 130px;
-	padding-right: 4px;
-	padding-bottom: 4px;
-	margin-top: 16px;
-	margin-left: 12px;
-	margin-bottom: 12px;
 }
 
 /* NUEVO ASPECTO DE LOS DONES, HABILIDADES, ETC */
@@ -649,27 +514,6 @@ fieldset.renglonPaginaDon legend {
 	border: 1px solid #000077;
 	padding: 5px;
 	font-weight: bold;
-}
-
-div.renglonDonIz {
-	float: left;
-	border: 1px solid #000077;
-	background: #000066;
-	color: cyan;
-	padding: 4px;
-	margin-bottom: 4px;
-	min-width: 15%;
-	max-width: 15%;
-	text-align: right;
-}
-
-div.renglonDonDe {
-	float: right;
-	padding: 5px;
-	margin-bottom: 4px;
-	min-width: 80%;
-	max-width: 80%;
-	text-align: left;
 }
 
 div.renglonDonData {
