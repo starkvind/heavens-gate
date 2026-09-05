@@ -1,9 +1,14 @@
 <?php if ($numero_temporada <= 50) { ?>
 
+	<?php
+	if (function_exists('hg_page_register_stylesheet')) {
+		hg_page_register_stylesheet('/assets/css/hg-archive-panel.css');
+	}
+	?>
 	<script src="/assets/vendor/chartjs/chart.min.js"></script>
 
-		<fieldset class="bioSeccion" id='renglonArchivos'>
-			<legend id='archivosLegend'>&nbsp;Participación en la temporada&nbsp;</legend>
+		<fieldset class="hg-archive-panel">
+			<legend class="hg-archive-panel__legend">&nbsp;Participación en la temporada&nbsp;</legend>
 			<canvas id="graficoTemporada" width="500" height="200"></canvas>
 		</fieldset>
 
