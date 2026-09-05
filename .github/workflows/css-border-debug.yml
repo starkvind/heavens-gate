@@ -34,7 +34,7 @@ jobs:
           "$BROWSER" --headless --no-sandbox --disable-gpu --dump-dom "$URL" > /tmp/border-fixture-dom.html
           grep -o 'RESULT:{.*}</title>' /tmp/border-fixture-dom.html || true
           grep -o '{"probe-menu".*}' /tmp/border-fixture-dom.html | head -n 1
-      - name: Check Firefox rendering availability
+      - name: Capture Firefox fixture
         shell: bash
         run: |
           FIREFOX="$(command -v firefox || command -v firefox-esr || true)"
@@ -42,14 +42,13 @@ jobs:
             echo 'No preinstalled Firefox found on runner.'
             exit 0
           fi
-          echo "Using $FIREFOX"
           "$FIREFOX" --version
           URL="file://${GITHUB_WORKSPACE}/.github/ci/css_border_fixture.html"
-          set +e
-          timeout 25s "$FIREFOX" --headless --dump-dom "$URL" > /tmp/firefox-border-dom.html 2>/tmp/firefox-border.err
-          RC=$?
-          set -e
-          echo "Firefox probe rc=$RC"
-          cat /tmp/firefox-border.err || true
-          grep -o 'RESULT:{.*}</title>' /tmp/firefox-border-dom.html || true
-          grep -o '{"probe-menu".*}' /tmp/firefox-border-dom.html | head -n 1 || true
+          timeout 25s "$FIREFOX" --headless --window-size 1200,800 --screenshot /tmp/firefox-border.png "$URL"
+          file /tmp/firefox-border.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: firefox-border-fixture
+          path: /tmp/firefox-border.png
+          if-no-files-found: ignore
