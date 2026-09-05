@@ -26,10 +26,12 @@ Los estilos que pertenecen a una sección concreta deben vivir en un fichero de 
 - `hg-bio.css`: personajes y ficha de personaje.
 - `hg-docs.css`: documentación y reglas documentales.
 - `hg-inventory.css`: inventario de escritorio, listados de objetos y especializaciones de la ficha de objeto.
+- `hg-powers.css`: portada, categorías, listados, fichas y catálogos estándar de Dones, Rituales, Disciplinas y Tótems.
+- `hg-power-custom.css`: compositor y vistas personalizadas/imprimibles de poderes; es un stylesheet especializado del dominio Powers, no una capa legacy.
 - `hg-events.css`: timeline y eventos.
 - `hg-maps.css`: mapas.
 - `hg-systems.css`: sistemas de juego.
-- ficheros equivalentes para poderes, capítulos, galería y demás dominios cuando termine su extracción.
+- ficheros equivalentes para capítulos, galería y demás dominios cuando termine su extracción.
 
 Los estilos exclusivos de una sola página pueden vivir bajo `assets/css/pages/<dominio>/`. La carpeta `assets/css/pages/legacy/` es transitoria: contiene CSS extraído durante la Fase 1 cuya propiedad definitiva todavía no se ha resuelto.
 
@@ -40,6 +42,16 @@ Las rutas de escritorio de `/inventory` registran `hg-inventory.css`. El dominio
 Inventario puede consumir componentes globales como `power-card`, `hg-tabs`, `hg-tab-panel`, `hg-affiliation-content` y los avatares de personaje, pero no debe volver a depender de primitivas históricas como `renglon2col`, `renglon2colIz`, `grupoBioClan`, `contenidoAfiliacion` o `bioAttCircle`.
 
 `hg-docs.css` sigue siendo propietario del shell de DataTables que también utiliza el inventario (`docs-table-*`, `dt-toolbar`, `ms-*`). Esa dependencia es deliberada mientras ese shell siga siendo compartido con otras páginas documentales; no convierte las clases propias del inventario en clases de documentación.
+
+### Powers
+
+Las rutas estándar de `/powers` registran `hg-powers.css`. El dominio posee la portada de poderes, tarjetas de categoría y grupo, agrupaciones de Tótems por origen, iconos y gemas de las fichas, relaciones de Tótems con grupos/organizaciones y el formato completo compartido por los catálogos de Dones y Rituales.
+
+Las vistas de tabla reutilizan también el shell `pwrs-table-*`, `dt-toolbar` y `ms-*` que vive en `hg-powers.css`. Las vistas personalizadas y sus versiones imprimibles se mantienen en `hg-power-custom.css` porque forman un componente de página autónomo con un ciclo de vida distinto.
+
+Powers consume componentes globales como `power-card`, `hg-tabs`, `hg-tab-panel`, `hg-affiliation-content` y los avatares de personaje. No debe volver a depender para su presentación de `grupoHabilidad`, `grupoBioClan`, `contenidoAfiliacion`, `renglon3col`, `renglon2col`, `renglon2colIz`, `renglon2colDe`, `descripcionGrupo` o `bioAttCircle`. Esos aliases permanecen temporalmente en las capas legacy solo por consumidores de otros dominios todavía pendientes de migración.
+
+El comportamiento de agrupaciones plegables de Powers se enlaza mediante atributos `data-powers-toggle`; las clases visuales no son API de JavaScript.
 
 ## Convención de nombres nueva
 
@@ -94,7 +106,7 @@ La migración correcta es:
 
 Mientras una clase histórica sea usada por varios dominios, debe permanecer en `hg-legacy-components.css` y llevarse como deuda explícita. Un nombre como `bioSeccion` no implica propiedad de biografías si mapas, capítulos o páginas de error también lo consumen.
 
-Cuando un dominio puede migrarse por completo en una sola operación controlada, como inventario en la Fase 4, puede pasar directamente al nombre semántico nuevo siempre que las reglas legacy permanezcan disponibles para los demás dominios que todavía las consumen.
+Cuando un dominio puede migrarse por completo en una sola operación controlada, como inventario o Powers en la Fase 4, puede pasar directamente al nombre semántico nuevo siempre que las reglas legacy permanezcan disponibles para los demás dominios que todavía las consumen.
 
 ## Criterio para `hg-core.css`
 
