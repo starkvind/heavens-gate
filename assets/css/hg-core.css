@@ -58,14 +58,9 @@ table.todou {
 	width: 860px;
 }
 
-img.valign {
-	vertical-align: middle;
-	padding-bottom: 4px;
-}
-
 td.piepagina {
-	text-align:center;
-	padding:5px;
+	text-align: center;
+	padding: 5px;
 	font-size: 9px;
 	background: url("../../img/ui/backgrounds/pie.webp");
 	border: 1px dotted #000088;
@@ -78,40 +73,9 @@ td.fcentro {
 	min-height: 310px;
 }
 
+/* Historical content table shared by news and biography group pages. */
 table.notix {
 	width: 100%;
-}
-
-fieldset.notf {
-	border: 1px solid #000066;
-	text-align: justify;
-	background-color: #000055;
-	box-shadow: 0 0 0 1px #000033 inset, 0 5px 10px rgba(0,0,0,0.35);
-}
-
-legend.notf {
-	border: 1px solid #000066;
-	background-color: #000055;
-	padding: 5px;
-	font-weight: bolder;
-	color: #33FFFF;
-	font-variant: small-caps;
-}
-
-.capitulos {
-	font-family: helvetica, arial;
-	font-size: 11px;
-	list-style-type: decimal;
-	margin-top: 0px;
-}
-
-.capitres {
-	font-family: tahoma;
-	font-size: 12px;
-	color: #CCFF66;
-	font-style: italic;
-	font-weight: bold;
-	letter-spacing: 1px;
 }
 
 td.texti {
@@ -120,59 +84,7 @@ td.texti {
 	padding: 10px;
 }
 
-td.chapter_text {
-	border: 1px solid #009;
-	background-color: #000055;
-	padding: 8px;
-	text-align: left;
-}
-
-.ajustcelda {
-	width: 150px;
-	border: 1px solid #000099;
-	padding: 5px;
-	text-align: center;
-}
-
-.ajustceld {
-	width: 150px;
-	border: 1px solid #000099;
-	padding: 5px;
-	text-align: left;
-}
-
-.lefay {
-	border-bottom: 1px dotted #000099;
-	padding-bottom: 5px;
-}
-
-.navegacion_secciones {
-	font: normal 9px verdana;
-	padding-bottom: 0px;
-}
-
-.doncosa {
-	padding: 5px;
-	border: 1px dotted #fff;
-	text-align: justify;
-}
-
-img.photochapter {
-	width:65px;
-	height:65px;
-	margin:4px;
-	padding:3px;
-	background-color:#005;
-	border: #008 solid 1px;
-	text-align: center;
-}
-
-.photochapter:hover {
-	border: 1px solid #009;
-	background-color:#006;
-}
-
-/* User menu shell */
+/* User menu shell; pending final menu ownership cleanup. */
 div.userRightMenu {
 	position: fixed;
 	top: 4px;
@@ -186,80 +98,6 @@ div.userRightMenu {
 	font-size: 10px;
 }
 
-/* Status shell */
-div.renglonStatusIz {
-	float: left;
-	border: 1px solid #000077;
-	background: #000066;
-	color: cyan;
-	padding: 4px;
-	margin-bottom: 4px;
-	width: 48%;
-	text-align: right;
-}
-
-div.renglonStatusDe {
-	float: right;
-	border: 1px solid #000077;
-	padding: 4px;
-	margin-bottom: 4px;
-	width: 48%;
-	text-align: left;
-}
-
-/* Bibliography legacy shell; pending domain extraction. */
-div.renglonBiblio {
-	float: left;
-	border: 1px solid #000088;
-	padding: 4px;
-	margin: 4px;
-	width: 520px;
-}
-
-div.renglonBiblio:hover {
-	border: 1px solid #0000AA;
-	background: #000066;
-	cursor: pointer;
-}
-
-/* Top section navigation shell; pending menu ownership cleanup. */
-#cuerpoMenuSuperior {
-	width:180px;
-	float:left;
-	padding: 4px 4px 4px 8px;
-	margin-left: 6px;
-}
-
-#iconoSeccion {
-	float:left;
-	margin-right:6px;
-}
-
-/* Archive primitives; pending archive/domain extraction. */
-#archivosLegend {
-	border: 1px solid #009;
-	font-weight: bold;
-	padding: 4px;
-}
-
-#renglonArchivosTop {
-	margin-top: 17px;
-	margin-left: 2px;
-	margin-right: 2px;
-	border: 1px solid #009;
-	padding: 8px;
-	background-color: #005;
-}
-
-#renglonArchivos {
-	margin-top: 10px;
-	margin-left: 2px;
-	margin-right: 2px;
-	border: 1px solid #009;
-	padding: 8px;
-	background-color: #005;
-}
-
 /* Global document header. */
 header {
 	text-align: center;
@@ -270,18 +108,4 @@ header {
 header img {
 	max-width: 100%;
 	height: auto;
-}
-
-/* Soundtrack embed helpers; pending embeds extraction. */
-.bso-card-iframe {
-	clear: both;
-}
-
-.bso-card-caption {
-	text-align: center;
-}
-
-/* Chapter error helper; pending chapters extraction. */
-.chapt-error {
-	color: red;
 }
