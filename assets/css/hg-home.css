@@ -1,0 +1,409 @@
+/* Home archive landing --------------------------------------------------- */
+
+.home-landing {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+    display: grid;
+    gap: 24px;
+    color: var(--hg-text);
+    text-align: left;
+}
+
+.home-landing :is(h1, h2, p) {
+    text-align: left;
+}
+
+.home-hero,
+.home-section {
+    box-sizing: border-box;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 12px;
+    background: var(--hg-field-bg);
+    box-shadow: none;
+}
+
+.home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+        "title title"
+        "lead copy"
+        "search search";
+    column-gap: 28px;
+    row-gap: 18px;
+    align-items: start;
+    padding: 24px;
+}
+
+.home-hero h1 {
+    grid-area: title;
+    align-self: end;
+    margin: 0;
+    max-width: none;
+    width: 100%;
+    color: var(--hg-h2);
+    font-family: var(--hg-font-head);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+}
+
+.home-lead,
+.home-copy {
+    max-width: 65ch;
+    margin: 0;
+    color: var(--hg-text);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.home-hero .home-lead {
+    grid-area: lead;
+}
+
+.home-copy {
+    color: var(--hg-info-link);
+}
+
+.home-hero .home-copy {
+    grid-area: copy;
+}
+
+.home-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    max-width: 760px;
+}
+
+.home-hero .home-search {
+    grid-area: search;
+    align-self: end;
+    width: 100%;
+    margin-top: 0;
+}
+
+.home-search-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.home-search input,
+.home-search button {
+    box-sizing: border-box;
+    min-height: 44px;
+    font: inherit;
+}
+
+.home-search input {
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 6px;
+    background: var(--hg-bg);
+    color: var(--hg-text);
+}
+
+.home-search input::placeholder {
+    color: var(--hg-info-link);
+    opacity: 0.8;
+}
+
+.home-search button {
+    padding: 10px 16px;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 6px;
+    background: var(--hg-field-bg);
+    color: var(--hg-btn-accent);
+    cursor: pointer;
+    font-family: var(--hg-font-ui);
+    font-weight: 700;
+}
+
+.home-search button:hover {
+    color: var(--hg-btn-accent-hover);
+}
+
+.home-section {
+    padding: 20px;
+}
+
+.home-section-head {
+    margin-bottom: 14px;
+}
+
+.home-section-head h2 {
+    margin: 0;
+    color: var(--hg-h3);
+    font-family: var(--hg-font-head);
+    font-size: 1.4rem;
+    line-height: 1.2;
+}
+
+.home-shortcuts-grid,
+.home-reading-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.home-shortcut-card,
+.home-reading-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 168px;
+    padding: 16px;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 8px;
+    background: var(--hg-bg);
+    color: var(--hg-text);
+    text-decoration: none;
+    transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.home-shortcut-card {
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.home-shortcut-card-main {
+    display: grid;
+    gap: 10px;
+}
+
+.home-shortcut-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.home-shortcut-title,
+.home-reading-title {
+    color: var(--hg-h3);
+    font-family: var(--hg-font-head);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.home-shortcut-arrow {
+    flex: 0 0 auto;
+    color: var(--hg-link);
+    font-size: 1.25rem;
+    transition: transform 150ms ease;
+}
+
+.home-shortcut-description,
+.home-reading-description {
+    color: var(--hg-text);
+    line-height: 1.5;
+}
+
+.home-shortcut-count {
+    margin-top: auto;
+    padding-top: 14px;
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.home-shortcut-card:hover,
+.home-reading-card:hover {
+    border-color: var(--hg-link-hover);
+    background: var(--hg-field-bg);
+    transform: translateY(-2px);
+}
+
+.home-shortcut-card:hover {
+    box-shadow: 0 18px 28px rgba(0, 0, 0, 0.24);
+}
+
+.home-shortcut-card:focus {
+    border-color: #8fd0ff;
+    background: linear-gradient(180deg, rgba(16, 37, 121, 0.96) 0%, rgba(7, 18, 68, 0.98) 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 28px rgba(0, 0, 0, 0.24);
+}
+
+.home-shortcut-card:hover .home-shortcut-arrow {
+    transform: translateX(3px);
+}
+
+.home-landing :is(a, input, button):focus-visible {
+    outline: 3px solid var(--hg-btn-accent);
+    outline-offset: 3px;
+}
+
+.home-reading-card {
+    min-height: 150px;
+    gap: 10px;
+}
+
+.home-reading-type,
+.home-reading-date {
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.home-reading-date {
+    margin-top: auto;
+}
+
+/* Latest news ------------------------------------------------------------ */
+
+.home-latest-news-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    min-height: 138px;
+    padding: 20px;
+    border: 1px solid var(--hg-field-border);
+    border-left: 4px solid var(--hg-link);
+    border-radius: 8px;
+    background: var(--hg-bg);
+    color: var(--hg-text);
+    text-decoration: none;
+    transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.home-latest-news-main {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.home-latest-news-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.home-latest-news-date {
+    flex: 0 0 auto;
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.home-latest-news-title {
+    color: var(--hg-h3);
+    font-family: var(--hg-font-head);
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.home-latest-news-description {
+    line-height: 1.55;
+}
+
+.home-latest-news-meta {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 12px;
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.home-latest-news-link {
+    margin-left: auto;
+}
+
+.home-latest-news-card:hover {
+    border-color: var(--hg-link-hover);
+    background: var(--hg-field-bg);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+    .home-shortcuts-grid,
+    .home-reading-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .home-latest-news-card {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .home-latest-news-meta {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 600px) {
+    .home-landing {
+        gap: 16px;
+    }
+
+    .home-hero {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "title"
+            "lead"
+            "copy"
+            "search";
+        gap: 12px;
+    }
+
+    .home-hero,
+    .home-section {
+        padding: 16px;
+    }
+
+    .home-search,
+    .home-shortcuts-grid,
+    .home-reading-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .home-search button {
+        width: 100%;
+    }
+
+    .home-shortcut-card,
+    .home-reading-card {
+        min-height: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-shortcut-card,
+    .home-reading-card,
+    .home-shortcut-arrow {
+        transition: none;
+    }
+
+    .home-shortcut-card:hover,
+    .home-reading-card:hover,
+    .home-shortcut-card:hover .home-shortcut-arrow {
+        transform: none;
+    }
+}
