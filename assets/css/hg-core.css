@@ -171,12 +171,6 @@ td.chapter_text {
 
 }
 
-img.photobio  {
-	margin-top: 4px;
-	padding: 4px;
-
-}
-
 img.photochapter  {
 	width:65px;
 	height:65px;
@@ -249,31 +243,6 @@ div.renglonBiblio:hover {
 
 /* ==================================== */
 
-fieldset.grupoSelBioList {
-	border: 0px solid white;
-	margin-left: 12px;
-}
-
-div.renglonSelBioList {
-	font-size: 9px;
-	float: left;
-	border: 1px solid #000088;
-	padding-top: 2px;
-	margin-right: 4px;
-	margin-bottom: 4px;
-	width: 130px;
-	height: 16px;
-	text-align: center;
-	background: #000066;
-}
-
-div.renglonSelBioList:hover {
-	border: 1px solid #0000AA;
-	background: #000099;
-}
-
-/* ==================================== */
-
 fieldset.grupoHabilidad {
 	border: 0px solid white;
 	padding-left: 30px;
@@ -332,21 +301,6 @@ div.renglon2colDe {
 }
 
 /* NUEVO ASPECTO DE LA BIOGRAFIA */
-
-ul.listaManadas {
-	list-style-type: none;
-	width: 90%;
-	margin-bottom: 10px;
-	overflow: hidden;
-}
-
-li.listaManadas {
-	height: 18px;
-	width: 50%;
-	line-height: 1.5em;
-	float: left;
-	display: inline;
-}
 
 div.bioBody {
 	width: 100%;
@@ -504,27 +458,6 @@ img.fotoBioList {
 	vertical-align: middle;
 	padding-left: 3px;
 	padding-top: 3px;
-}
-
-div.listIDrenglon {
-	width: 40%;
-	float: left;
-	border: 1px solid lime;
-	padding: 10px;
-	height: 50px;
-	margin: 2px;
-	background: navy;
-}
-
-div.listIDrenglon:hover {
-	background: black;
-	border: 1px solid yellow;
-	cursor: pointer;
-}
-
-div.listIDizq {
-	float: left;
-	text-align:center;
 }
 
 /* MENU SUPERIOR */
