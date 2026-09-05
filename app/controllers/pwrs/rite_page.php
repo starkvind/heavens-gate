@@ -1,9 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener y sanitizar el parámetro 'b'
-$ritePageID = isset($_GET['b']) ? $_GET['b'] : ''; 
+$ritePageID = isset($_GET['b']) ? $_GET['b'] : '';
 
-// Consulta segura para obtener los datos del ritual
 $queryRite = "
     SELECT r.*, s.name AS system_name, r.kind AS tipo, r.level AS nivel, r.race AS raza, r.system_name AS sistema
     FROM fact_rites r
@@ -16,16 +14,15 @@ $stmt->execute();
 $result = $stmt->get_result();
 $rowsQueryRite = $result->num_rows;
 
-if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
+if ($rowsQueryRite > 0) {
     $resultQueryRite = $result->fetch_assoc();
 
-    // DATOS BÁSICOS
     $riteId     = htmlspecialchars($resultQueryRite["id"]);
     $riteName   = htmlspecialchars($resultQueryRite["name"]);
     $riteType   = htmlspecialchars($resultQueryRite["tipo"]);
     $riteLevel  = htmlspecialchars($resultQueryRite["nivel"]);
     $riteBreed  = htmlspecialchars($resultQueryRite["raza"]);
-    $riteDesc   = $resultQueryRite["description"] ?? $resultQueryRite["description"] ?? ''; // NO usar htmlspecialchars() para conservar el HTML
+    $riteDesc   = $resultQueryRite["description"] ?? '';
     $riteSystemRules = $resultQueryRite["system_text"];
     $riteSystemName  = htmlspecialchars($resultQueryRite["system_name"] ?? "");
     $riteSistemaLegacy = trim((string)($resultQueryRite["sistema"] ?? ""));
@@ -33,8 +30,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     $riteOrigin = htmlspecialchars($resultQueryRite["bibliography_id"]);
     $riteImgRaw = trim((string)($resultQueryRite["image_url"] ?? ""));
 
-    // Obtener el nombre del origen del ritual
-    $riteOriginName = "-"; // Valor por defecto
+    $riteOriginName = "-";
 
     if (!empty($riteOrigin)) {
         $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
@@ -47,8 +43,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         }
     }
 
-    // Obtener el tipo de ritual
-    $nombreTipo = "Desconocido"; // Valor por defecto
+    $nombreTipo = "Desconocido";
     $queryTipo = "SELECT name FROM dim_rite_types WHERE id = ? LIMIT 1";
     $stmt = $link->prepare($queryTipo);
     $stmt->bind_param('s', $riteType);
@@ -58,12 +53,8 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
-    // =========================
-    // Personajes con este Ritual (respeta exclusiones de crónica)
-    // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
             $csv = (string)$csv;
@@ -91,19 +82,22 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     }
     $hasOwners = count($riteOwners) > 0;
     $useTabs = $hasOwners;
-	
-	$pageSect = "Rituales"; // PARA CAMBIAR EL TITULO A LA PAGINA
-	$pageTitle2 = $riteName; // PARA CAMBIAR EL TITULO A LA PAGINA
-	setMetaFromPage($riteName . " | Rituales | Heaven's Gate", meta_excerpt($riteDesc), null, 'article');
 
-    // Incluir barra de navegación
+    $pageSect = "Rituales";
+    $pageTitle2 = $riteName;
+    setMetaFromPage($riteName . " | Rituales | Heaven's Gate", meta_excerpt($riteDesc), null, 'article');
+
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-powers.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+    }
+
     include("app/partials/main_nav_bar.php");
 
-    // Título de la página
     ob_start();
 
-    // Imagen del Ritual
-    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp";
     if ($riteImgRaw !== "") {
         if (strpos($riteImgRaw, "/") !== false) {
             $itemImg = $riteImgRaw;
@@ -124,7 +118,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($riteLevel > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/attr/gem-attr-0$riteLevel.webp'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='hg-powers-gem' src='img/ui/gems/attr/gem-attr-0$riteLevel.webp'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";
@@ -135,8 +129,8 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     if ($riteOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$riteOriginName</div></div>";
     }
-    echo "    </div>"; // stats
-    echo "  </div>"; // body
+    echo "    </div>";
+    echo "  </div>";
 
     if (!empty($riteDesc)) {
         echo "  <div class='power-card__desc'>";
@@ -152,15 +146,11 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
         echo "  </div>";
     }
 
-    echo "</div>"; // power-card
+    echo "</div>";
 
     $infoHtml = ob_get_clean();
 
-
     if ($useTabs) {
-        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
-        hg_render_owner_tabs_styles(true, 28);
-
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
@@ -170,26 +160,11 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
 
         if ($hasOwners) {
             echo "<section class='hg-tab-panel' data-tab='owners'>";
-            echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+            echo "<div class='hg-affiliation-content hg-powers-owner-content'>";
             foreach ($riteOwners as $o) {
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
-                $estado = (string)($o['status'] ?? '');
-                $label = $alias !== '' ? $alias : $name;
-                $estadoCanon = strtr($estado, [
-                    "A" . "\xC3\x83\xC2\xBAn por aparecer" => "Aún por aparecer",
-                    "Cad" . "\xC3\x83\xC2\xA1ver" => "Cadáver",
-                ]);
-                $mapEstado = [
-                    "Aun por aparecer"     => "(&#64;)",
-                    "Aún por aparecer"     => "(&#64;)",
-                    "Cadaver"              => "(&#8224;)",
-                    "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
-                ];
-                $simboloEstado = $mapEstado[$estadoCanon] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
                 hg_render_character_avatar_tile([
                     'href' => $href,
@@ -204,7 +179,7 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
                     'target_blank' => true,
                 ]);
             }
-            echo "</div></div>";
+            echo "</div>";
             echo "<p align='right'>Personajes: " . count($riteOwners) . "</p>";
             echo "</section>";
         }
@@ -217,7 +192,3 @@ if ($rowsQueryRite > 0) { // Si encontramos el ritual en la base de datos
     echo "<p>Error: Ritual no encontrado.</p>";
 }
 ?>
-
-
-
-
