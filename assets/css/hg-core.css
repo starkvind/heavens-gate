@@ -22,33 +22,6 @@
 	cursor: question;
 }
 
-.boton1 {
-	width: 75px;
-	color: var(--hg-btn-accent);
-	border: 1px solid var(--hg-field-border);
-}
-
-input.boton1:hover {
-	color: var(--hg-btn-accent-hover);
-	cursor: pointer;
-	border: 1px solid #000088;
-}
-
-.boton2 {
-	font-family: var(--hg-font-ui);
-	font-size: 10px;
-	background-color: var(--hg-field-bg);
-	color: var(--hg-text);
-	padding: 0.5em;
-	border: 1px solid var(--hg-field-border);
-}
-
-.boton2:hover {
-	color: var(--hg-btn-accent-hover);
-	cursor: pointer;
-	border: 1px solid #000088;
-}
-
 #mainBody {
 	margin-right: 10px;
 	margin-left: 10px;
