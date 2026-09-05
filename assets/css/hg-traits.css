@@ -1,0 +1,53 @@
+/* Traits domain ----------------------------------------------------------- */
+
+.hg-traits-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hg-traits-levels__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.hg-traits-levels__icon {
+    flex: 0 0 auto;
+    line-height: 1;
+}
+
+.hg-traits-levels__img {
+    display: block;
+}
+
+.hg-traits-levels__text {
+    flex: 1 1 auto;
+}
+
+.hg-traits-levels__text > :first-child {
+    margin-top: 0;
+}
+
+.hg-traits-levels__text > :last-child {
+    margin-bottom: 0;
+}
+
+.hg-traits-gem {
+    vertical-align: middle;
+    padding: 2px;
+}
+
+.hg-traits-owner-level {
+    margin-right: 6px;
+}
+
+.hg-traits-owners {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.hg-traits-owners .hg-affiliation-content {
+    margin-left: 28px;
+    justify-content: flex-start;
+}
