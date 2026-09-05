@@ -1,0 +1,20 @@
+/* Chapter runtime compatibility ----------------------------------------- */
+
+img.photochapter {
+    width: 65px;
+    height: 65px;
+    margin: 4px;
+    padding: 3px;
+    background-color: #005;
+    border: 1px solid #008;
+    text-align: center;
+}
+
+.photochapter:hover {
+    border-color: #009;
+    background-color: #006;
+}
+
+.chapt-error {
+    color: red;
+}
