@@ -8,6 +8,7 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 |---|---|
 | [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) | Arquitectura actual, routing, modelo de datos y criterios de mantenimiento. |
 | [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Referencia del esquema de producción derivada del snapshot del 1 de septiembre de 2026. |
+| [CSS_ARCHITECTURE.md](./CSS_ARCHITECTURE.md) | Capas CSS, propiedad de estilos, convención `hg-*` y estrategia de migración de nombres legacy. |
 | [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md) | Inventario de scripts y herramientas, cómo ejecutarlos y qué riesgos tienen. |
 | [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md) | Convenciones para crear o mantener módulos de `/talim`. |
 | [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md) | Cómo añadir una sección pública y cómo usar `tools/scaffold_section.py`. |
