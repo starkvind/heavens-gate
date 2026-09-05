@@ -105,10 +105,12 @@ seasons = common_pattern.sub('\n.season-home-count {\n' + count_body + '\n}\n', 
 seasons = season_status_pattern.sub(lambda m: m.group('prefix') + '\n', seasons, count=1)
 archive = archive_status_pattern.sub('\n', archive, count=1)
 
-if '.season-home-status' in seasons:
-    raise SystemExit('season status selector survives in hg-seasons.css')
-if '.season-home-status' in archive:
-    raise SystemExit('season status selector survives in hg-archive.css')
+for css_name, css in (('hg-seasons.css', seasons), ('hg-archive.css', archive)):
+    if '.season-home-status {' in css:
+        raise SystemExit(f'standalone season status base survives in {css_name}')
+    for name in modifier_names:
+        if f'.season-home-status--{name}' in css:
+            raise SystemExit(f'season status modifier {name} survives in {css_name}')
 
 status_body = archive_status_match.group(1).strip('\n')
 shared_block = '''
