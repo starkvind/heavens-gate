@@ -9,12 +9,12 @@ setMetaFromPage(
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-main.css');
+    hg_page_register_stylesheet('/assets/css/hg-archive.css');
 } else {
     if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-main.css');
+        hg_page_register_stylesheet('/assets/css/hg-archive.css');
     } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+        echo '<link rel="stylesheet" href="/assets/css/hg-archive.css">';
     }
 }
 

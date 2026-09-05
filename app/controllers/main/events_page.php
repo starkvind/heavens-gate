@@ -103,15 +103,6 @@ $hasTimelineTable = hg_ev_table_exists($link, 'fact_timeline_events');
 if (!$hasTimelineTable) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
     if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-main.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-main.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
-        }
-    }
-    if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
         if (function_exists('hg_page_register_stylesheet')) {
@@ -142,15 +133,6 @@ $rawEvent = (string)($_GET['t'] ?? '');
 $eventId = resolve_pretty_id($link, 'fact_timeline_events', $rawEvent) ?? 0;
 if ($eventId <= 0) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-main.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-main.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
-        }
-    }
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
@@ -216,15 +198,6 @@ if ($st) {
 
 if (!$event) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-main.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-main.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
-        }
-    }
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
@@ -403,15 +376,6 @@ foreach ($chapters as $chapterRow) {
 ksort($chaptersBySeason, SORT_NUMERIC);
 
 if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-main.css');
-} else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-main.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
-    }
-}
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-events.css');
 } else {

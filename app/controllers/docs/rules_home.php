@@ -4,7 +4,7 @@ setMetaFromPage("Reglamento | Heaven's Gate", "Resumen y acceso al reglamento de
 $pageSect = 'Reglamento';
 
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-main.css');
+    hg_page_register_stylesheet('/assets/css/hg-archive.css');
     hg_page_register_stylesheet('/assets/css/hg-docs.css');
 }
 

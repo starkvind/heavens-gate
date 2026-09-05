@@ -8,7 +8,7 @@ if (!$link) {
 }
 
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-main.css');
+    hg_page_register_stylesheet('/assets/css/hg-parties.css');
 }
 
 // Excluir cr?nicas si aplica

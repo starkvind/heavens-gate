@@ -118,15 +118,6 @@ $hasTimelineTable = hg_events_table_exists($link, 'fact_timeline_events');
 if (!$hasTimelineTable) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include("app/partials/main_nav_bar.php"); }
     if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-main.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-main.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
-        }
-    }
-    if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-events.css');
     } else {
         if (function_exists('hg_page_register_stylesheet')) {
@@ -459,7 +450,6 @@ if ($rangeStart !== '' && $rangeEnd !== '') {
 if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include("app/partials/main_nav_bar.php"); }
 ?>
 <script src="/assets/vendor/echarts/echarts.min.5.5.1.js"></script>
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-main.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-main.css"><?php } ?>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-events.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-events.css"><?php } ?>
 <?php if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED): ?>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-mobile-timeline.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css"><?php } ?>
