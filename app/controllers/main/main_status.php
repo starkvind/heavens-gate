@@ -16,6 +16,11 @@ if (method_exists($link, 'set_charset')) {
 }
 
 include("app/partials/main_nav_bar.php");
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-status.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-status.css">';
+}
 
 if (!function_exists('hg_status_h')) {
     function hg_status_h($value): string
@@ -28,13 +33,15 @@ $metrics = hg_public_status_metrics($link);
 
 echo "<h2>Estado</h2>";
 echo "<p>Resumen público del archivo.</p>";
-echo "<fieldset class='renglonPaginaDon'>";
+echo "<fieldset class='hg-status-panel'>";
 echo "<legend>Archivo de Heaven's Gate</legend>";
 foreach ($metrics as $label => $value) {
     if ($value === null) {
         continue;
     }
-    echo "<div class='renglonStatusIz'>" . hg_status_h($label) . ":</div>";
-    echo "<div class='renglonStatusDe'>" . number_format((int)$value, 0, ',', '.') . "</div>";
+    echo "<div class='hg-status-row'>";
+    echo "<div class='hg-status-row__label'>" . hg_status_h($label) . ":</div>";
+    echo "<div class='hg-status-row__value'>" . number_format((int)$value, 0, ',', '.') . "</div>";
+    echo "</div>";
 }
 echo "</fieldset><br/>";
