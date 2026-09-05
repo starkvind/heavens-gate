@@ -39,11 +39,17 @@ jobs:
 
           failures = []
 
+          # hg-main.css was retired in CSS refactor phase 5 and must never return.
+          if Path("assets/css/hg-main.css").exists():
+              failures.append("assets/css/hg-main.css: retired legacy bundle must not be restored")
+
           # Every literal local stylesheet referenced by PHP should exist.
           css_ref = re.compile(r"/assets/css/[A-Za-z0-9_./-]+\.css")
           for root in [Path("app"), Path("api")]:
               for path in root.rglob("*.php"):
                   source = path.read_text(encoding="utf-8", errors="ignore")
+                  if "/assets/css/hg-main.css" in source:
+                      failures.append(f"{path}: forbidden retired stylesheet reference /assets/css/hg-main.css")
                   for ref in sorted(set(css_ref.findall(source))):
                       target = Path(ref.lstrip('/'))
                       if not target.is_file():
