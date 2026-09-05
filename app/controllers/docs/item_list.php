@@ -83,7 +83,15 @@ usort($origins, function($a, $b){
 });
 ?>
 
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
+<?php
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-docs.css');
+    hg_page_register_stylesheet('/assets/css/hg-inventory.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+    echo '<link rel="stylesheet" href="/assets/css/hg-inventory.css">';
+}
+?>
 
 <h2 class="docs-table-title"><?= h($typeName) ?></h2>
 
@@ -92,18 +100,18 @@ usort($origins, function($a, $b){
 <?php else: ?>
     <?php foreach ($origins as $origin): ?>
         <?php $fieldsetId = 'origin_' . md5($origin); ?>
-        <?php echo "<h3 class='docs-toggle-affiliation' data-target='" . h($fieldsetId) . "'>" . h($origin) . "</h3>"; ?>
-        <fieldset class="grupoBioClan docs-fieldset-pad">
-            <?php echo "<div id='" . h($fieldsetId) . "' class='docs-affiliation-content'>"; ?>
+        <?php echo "<h3 class='hg-inventory-group-toggle' data-inventory-toggle data-target='" . h($fieldsetId) . "'>" . h($origin) . "</h3>"; ?>
+        <fieldset class="hg-inventory-group">
+            <?php echo "<div id='" . h($fieldsetId) . "' class='hg-inventory-group-content'>"; ?>
             <?php foreach ($groups[$origin] as $i):
                 $itemSlug = $i['item_pretty_id'] ?: $i['item_id'];
                 $name = (string)$i['item_name'];
                 $img = $i['item_img'] ? $i['item_img'] : '/img/inv/no-photo.webp';
             ?>
                 <a href="/inventory/<?= h($typeSlug) ?>/<?= h($itemSlug) ?>">
-                    <div class="renglon2col">
-                        <div class="renglon2colIz">
-                            <span class="item-cell"><span class="item-icon item-icon-sm"><img src="<?= h($img) ?>" alt="<?= h($name) ?>" class="item-thumb item-thumb-sm"></span><?= h($name) ?></span>
+                    <div class="hg-inventory-list-card">
+                        <div class="hg-inventory-list-card__main">
+                            <span class="hg-inventory-item-cell"><span class="hg-inventory-item-icon hg-inventory-item-icon--small"><img src="<?= h($img) ?>" alt="<?= h($name) ?>" class="hg-inventory-item-thumb hg-inventory-item-thumb--small"></span><?= h($name) ?></span>
                         </div>
                     </div>
                 </a>
@@ -115,16 +123,15 @@ usort($origins, function($a, $b){
     <p align="right"><?= h($typeName) ?> en total: <?= count($items) ?></p>
 <?php endif; ?>
 
-
 <script>
 	document.addEventListener('DOMContentLoaded', function(){
-		var toggles = document.querySelectorAll('.toggleAfiliacion');
+		var toggles = document.querySelectorAll('[data-inventory-toggle]');
 		for (var i = 0; i < toggles.length; i++) {
 			toggles[i].addEventListener('click', function(){
 				var targetId = this.getAttribute('data-target');
 				var el = document.getElementById(targetId);
 				if (!el) return;
-				el.classList.toggle('docs-hidden');
+				el.hidden = !el.hidden;
 			});
 		}
 	});
