@@ -94,8 +94,13 @@ if ($table !== "") {
         $pageSect = "Sistema";
         $pageTitle2 = "Elemento no encontrado";
         if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-systems.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
+        }
         echo "<h2>Elemento no encontrado</h2>";
-        echo "<div class='renglonDatosSistema'>El contenido solicitado no existe.</div>";
+        echo "<div class='hg-system-message'>El contenido solicitado no existe.</div>";
         return;
     }
 
@@ -123,15 +128,11 @@ if ($table !== "") {
         if (function_exists("setMetaFromPage")) setMetaFromPage($nameSyst . " | Sistemas | Heaven's Gate", meta_excerpt($infoDesc), $imageSyst, 'article');
 
         include("app/helpers/system_category_helper.php");
-        if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); // Barra navegacion
+        if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
         if (function_exists('hg_page_register_stylesheet')) {
             hg_page_register_stylesheet('/assets/css/hg-systems.css');
         } else {
-            if (function_exists('hg_page_register_stylesheet')) {
-                hg_page_register_stylesheet('/assets/css/hg-systems.css');
-            } else {
-                echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
-            }
+            echo '<link rel="stylesheet" href="/assets/css/hg-systems.css">';
         }
 
         // Comprobar si los datos tienen energia para mostrarla
@@ -213,7 +214,7 @@ if ($table !== "") {
             $infoDataCheck++;
             echo "<div class=\"syst-box\">";
             echo "<h3>Dones disponibles</h3>";
-            echo "<fieldset class='grupoHabilidad'>";
+            echo "<div class='hg-system-power-list'>";
             while ($resultDonQuery = $resultDon->fetch_assoc()) {
                 echo "
                     <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$resultDonQuery['id'])) . "'
@@ -221,16 +222,16 @@ if ($table !== "") {
                         data-tip='don'
                         data-id='" . (int)$resultDonQuery['id'] . "'
                         target='_blank'>
-                        <div class='renglon2col'>
-                            <div class='renglon2colIz'>
-                                <img class='valign' src='img/ui/icons/icon_claws.webp'> " . htmlspecialchars($resultDonQuery['name']) . "
+                        <div class='hg-system-power-card'>
+                            <div class='hg-system-power-card__main'>
+                                <img class='hg-system-power-icon' src='img/ui/icons/icon_claws.webp' alt=''> " . htmlspecialchars($resultDonQuery['name']) . "
                             </div>
-                            <div class='renglon2colDe'>" . htmlspecialchars($resultDonQuery['rank']) . "</div>
+                            <div class='hg-system-power-card__meta'>" . htmlspecialchars($resultDonQuery['rank']) . "</div>
                         </div>
                     </a>
                 ";
             }
-            echo "</fieldset>";
+            echo "</div>";
             echo "</div>";
         }
 
@@ -325,7 +326,6 @@ if ($table !== "") {
                 echo "<tr><td><a href='" . htmlspecialchars($charHref) . "' target='_blank'>$charName</a></td><td>$charGroup</td><td>$charOrg</td></tr>";
             }
             echo "</tbody></table>";
-            //echo "<p >$nameSyst: $pjCount</p>";
             echo "</div>";
 
             include_once("app/partials/datatable_assets.php");
@@ -358,89 +358,3 @@ if ($table !== "") {
     }
 }
 ?>
-<script>
-(function(){
-	if (window.__hgTooltipBound) return;
-	const nodes = document.querySelectorAll('.hg-tooltip[data-tip="don"]');
-	if (!nodes.length) return;
-
-	let tooltip = document.getElementById('hg-tooltip');
-	if (!tooltip) {
-		tooltip = document.createElement('div');
-		tooltip.id = 'hg-tooltip';
-		document.body.appendChild(tooltip);
-	}
-
-	let lastX = 0, lastY = 0;
-	const cache = new Map();
-	let timer = null;
-	let currentKey = '';
-
-	function moveTip(x, y){
-		const pad = 14;
-		const vw = window.innerWidth;
-		const vh = window.innerHeight;
-		const tw = tooltip.offsetWidth || 320;
-		const th = tooltip.offsetHeight || 120;
-		let left = x + pad;
-		let top = y + pad;
-		if (left + tw > vw - 8) left = x - tw - pad;
-		if (top + th > vh - 8) top = y - th - pad;
-		if (left < 8) left = 8;
-		if (top < 8) top = 8;
-		tooltip.style.left = left + 'px';
-		tooltip.style.top = top + 'px';
-	}
-
-	function hideTip(){
-		tooltip.style.display = 'none';
-		tooltip.innerHTML = '';
-		currentKey = '';
-	}
-
-	nodes.forEach(el => {
-		el.addEventListener('mousemove', (ev) => {
-			lastX = ev.clientX;
-			lastY = ev.clientY;
-			if (tooltip.style.display === 'block') moveTip(lastX, lastY);
-		});
-
-		el.addEventListener('mouseenter', (ev) => {
-			lastX = ev.clientX;
-			lastY = ev.clientY;
-			const type = el.getAttribute('data-tip') || '';
-			const id = el.getAttribute('data-id') || '';
-			if (!type || !id) return;
-			const key = type + ':' + id;
-			currentKey = key;
-			if (timer) clearTimeout(timer);
-
-			timer = setTimeout(async () => {
-				if (currentKey !== key) return;
-				if (cache.has(key)) {
-					tooltip.innerHTML = cache.get(key);
-					tooltip.style.display = 'block';
-					moveTip(lastX, lastY);
-					return;
-				}
-
-				try {
-					const res = await fetch('/ajax/tooltip?type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id));
-					const html = await res.text();
-					if (currentKey !== key) return;
-					cache.set(key, html);
-					tooltip.innerHTML = html;
-					tooltip.style.display = 'block';
-					moveTip(lastX, lastY);
-				} catch (_e) {}
-			}, 2000);
-		});
-
-		el.addEventListener('mouseleave', () => {
-			if (timer) clearTimeout(timer);
-			timer = null;
-			hideTip();
-		});
-	});
-})();
-</script>
