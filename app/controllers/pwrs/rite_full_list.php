@@ -185,7 +185,7 @@ foreach ($rituales as $r) {
 // 2) Render (CSS + HTML)
 // =======================
 ?>
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-rite_full_list.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-pwrs-rite_full_list.css"><?php } ?>
+<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-powers.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-powers.css"><?php } ?>
 
 <div class="hg-rituales<?php echo $printMode ? ' hg-print' : ''; ?>">
   <div class="wrap">
