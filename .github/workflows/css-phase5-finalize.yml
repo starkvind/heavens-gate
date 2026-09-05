@@ -1,4 +1,4 @@
-name: CSS Phase 5 Finalize
+name: CSS Phase 5 Cleanup
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  finalize:
+  cleanup:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -17,131 +17,57 @@ jobs:
         with:
           ref: css-refactor
 
-      - name: Detach remaining hg-main consumers
+      - name: Add permanent hg-main regression guard
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
 
-          replacements = {
-              'app/controllers/main/main_home.php': '/assets/css/hg-home.css',
-              'app/controllers/chapters/seasons_home.php': '/assets/css/hg-seasons.css',
-              'app/controllers/chapters/season_order.php': '/assets/css/hg-seasons.css',
-              'app/controllers/main/main_chronicles.php': '/assets/css/hg-archive.css',
-              'app/controllers/bio/bio_list.php': '/assets/css/hg-archive.css',
-              'app/controllers/bio/bio_group.php': '/assets/css/hg-archive.css',
-              'app/controllers/docs/rules_home.php': '/assets/css/hg-archive.css',
-              'app/controllers/main/main_parties.php': '/assets/css/hg-parties.css',
-          }
+          path = Path('.github/workflows/security-checks.yml')
+          text = path.read_text(encoding='utf-8')
 
-          old_ref = '/assets/css/hg-main.css'
-          for filename, new_ref in replacements.items():
-              path = Path(filename)
-              text = path.read_text(encoding='utf-8')
-              if old_ref not in text:
-                  raise SystemExit(f'{filename}: expected hg-main reference not found')
-              text = text.replace(old_ref, new_ref)
-              path.write_text(text, encoding='utf-8')
+          anchor_failures = """          failures = []
 
-          def remove_main_registration_blocks(filename: str) -> None:
-              path = Path(filename)
-              lines = path.read_text(encoding='utf-8').splitlines(keepends=True)
-              out = []
-              i = 0
-              removed = 0
-              while i < len(lines):
-                  stripped = lines[i].strip()
-                  if stripped == "if (function_exists('hg_page_register_stylesheet')) {":
-                      window = ''.join(lines[i:i + 12])
-                      if old_ref in window:
-                          balance = 0
-                          started = False
-                          j = i
-                          while j < len(lines):
-                              line = lines[j]
-                              balance += line.count('{') - line.count('}')
-                              if '{' in line:
-                                  started = True
-                              j += 1
-                              if started and balance == 0:
-                                  break
-                          removed += 1
-                          i = j
-                          continue
-                  if old_ref in lines[i] and stripped.startswith('<?php') and stripped.endswith('?>'):
-                      removed += 1
-                      i += 1
-                      continue
-                  out.append(lines[i])
-                  i += 1
+          # Every literal local stylesheet referenced by PHP should exist.
+"""
+          replacement_failures = """          failures = []
 
-              text = ''.join(out)
-              if old_ref in text:
-                  raise SystemExit(f'{filename}: hg-main reference survived block removal')
-              if removed == 0:
-                  raise SystemExit(f'{filename}: no hg-main registration removed')
-              path.write_text(text, encoding='utf-8')
+          # hg-main.css was retired in CSS refactor phase 5 and must never return.
+          if Path("assets/css/hg-main.css").exists():
+              failures.append("assets/css/hg-main.css: retired legacy bundle must not be restored")
 
-          remove_main_registration_blocks('app/controllers/main/events_main.php')
-          remove_main_registration_blocks('app/controllers/main/events_page.php')
-          remove_main_registration_blocks('app/controllers/main/main_search_result.php')
+          # Every literal local stylesheet referenced by PHP should exist.
+"""
+          if anchor_failures not in text:
+              raise SystemExit('Could not locate CSS-reference guard anchor')
+          text = text.replace(anchor_failures, replacement_failures, 1)
 
-          search_result = Path('app/controllers/main/main_search_result.php')
-          search_text = search_result.read_text(encoding='utf-8')
-          legacy_search = '/assets/css/pages/legacy/controllers-main-main_search_result.css'
-          current_search = '/assets/css/pages/search-results.css'
-          if legacy_search not in search_text:
-              raise SystemExit('main_search_result.php: expected legacy search stylesheet reference not found')
-          search_result.write_text(search_text.replace(legacy_search, current_search), encoding='utf-8')
-
-          for dead in [
-              Path('assets/css/hg-main.css'),
-              Path('assets/css/pages/legacy/controllers-main-main_search_result.css'),
-          ]:
-              if not dead.is_file():
-                  raise SystemExit(f'{dead}: expected file not found')
-              dead.unlink()
-
-          failures = []
-          for root in [Path('app'), Path('api')]:
-              for path in root.rglob('*.php'):
-                  source = path.read_text(encoding='utf-8', errors='ignore')
-                  if old_ref in source:
-                      failures.append(f'{path}: surviving hg-main reference')
-          if failures:
-              raise SystemExit('\n'.join(failures))
-          PY
-
-      - name: Lint PHP and verify stylesheet references
-        shell: bash
-        run: |
-          set -euo pipefail
-          find app api -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
-          php -l index.php >/dev/null
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          css_ref = re.compile(r'/assets/css/[A-Za-z0-9_./-]+\.css')
-          failures = []
-          for root in [Path('app'), Path('api')]:
-              for path in root.rglob('*.php'):
-                  source = path.read_text(encoding='utf-8', errors='ignore')
+          anchor_source = """                  source = path.read_text(encoding="utf-8", errors="ignore")
                   for ref in sorted(set(css_ref.findall(source))):
-                      if not Path(ref.lstrip('/')).is_file():
-                          failures.append(f'{path}: missing referenced stylesheet {ref}')
-          if failures:
-              raise SystemExit('\n'.join(failures))
+"""
+          replacement_source = """                  source = path.read_text(encoding="utf-8", errors="ignore")
+                  if "/assets/css/hg-main.css" in source:
+                      failures.append(f"{path}: forbidden retired stylesheet reference /assets/css/hg-main.css")
+                  for ref in sorted(set(css_ref.findall(source))):
+"""
+          if anchor_source not in text:
+              raise SystemExit('Could not locate PHP stylesheet scan anchor')
+          text = text.replace(anchor_source, replacement_source, 1)
+          path.write_text(text, encoding='utf-8')
+
+          if Path('assets/css/hg-main.css').exists():
+              raise SystemExit('hg-main.css unexpectedly exists before guard commit')
           PY
 
-      - name: Commit phase 5 retirement
+      - name: Remove temporary phase workflow and commit guard
         shell: bash
         run: |
           set -euo pipefail
+          git rm .github/workflows/css-phase5-finalize.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app assets/css
+          git add .github/workflows/security-checks.yml
           git diff --cached --check
-          git commit -m 'refactor(css): retire hg-main bundle'
+          git commit -m 'chore(css): guard retired hg-main bundle'
           git push origin HEAD:css-refactor
