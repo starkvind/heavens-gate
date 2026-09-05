@@ -1,33 +1,29 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Obtener y sanitizar el parámetro 'b'
-$totemPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
+$totemPageID = isset($_GET['b']) ? $_GET['b'] : '';
 
-// Consulta segura para obtener los datos del tótem
 $queryTotem = "SELECT * FROM dim_totems WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($queryTotem);
 $stmt->bind_param('s', $totemPageID);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
+if ($result->num_rows > 0) {
     $resultQueryTotem = $result->fetch_assoc();
 
-    // DATOS BÁSICOS
     $totemId    = htmlspecialchars($resultQueryTotem["id"]);
     $totemName  = htmlspecialchars($resultQueryTotem["name"]);
     $totemNameRaw = (string)($resultQueryTotem["name"] ?? "");
     $totemPrettyRaw = (string)($resultQueryTotem["pretty_id"] ?? "");
     $totemType  = htmlspecialchars($resultQueryTotem["totem_type_id"] ?? $resultQueryTotem["tipo"] ?? '');
     $totemCost  = htmlspecialchars($resultQueryTotem["cost"]);
-    $totemDesc  = $resultQueryTotem["description"] ?? $resultQueryTotem["description"] ?? ''; // NO usar htmlspecialchars() para mantener el formato HTML
+    $totemDesc  = $resultQueryTotem["description"] ?? '';
     $totemAttr  = $resultQueryTotem["traits"];
     $totemBan   = $resultQueryTotem["prohibited"];
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["image_url"] ?? ""));
 
-    // Obtener el nombre del origen del tótem
-    $totemOriginName = "-"; // Valor por defecto
+    $totemOriginName = "-";
 
     if (!empty($totemOrigin)) {
         $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
@@ -40,8 +36,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         }
     }
 
-    // Obtener el tipo de tótem
-    $nombreTipo = "Desconocido"; // Valor por defecto
+    $nombreTipo = "Desconocido";
     $queryTipo = "SELECT name FROM dim_totem_types WHERE id = ? LIMIT 1";
     $stmt = $link->prepare($queryTipo);
     $stmt->bind_param('s', $totemType);
@@ -51,12 +46,8 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
-    // =========================
-    // Portadores / grupos / organizaciones con este Tótem (respeta exclusiones de crónica)
-    // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
             $csv = (string)$csv;
@@ -105,19 +96,22 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     $hasGroupOwners = count($totemGroups) > 0;
     $hasOrgOwners = count($totemOrgs) > 0;
     $useTabs = ($hasCharOwners || $hasGroupOwners || $hasOrgOwners);
-	
-	$pageSect = "Tótems"; // PARA CAMBIAR EL TITULO A LA PAGINA
-	$pageTitle2 = $totemName; // PARA CAMBIAR EL TITULO A LA PAGINA
-	setMetaFromPage($totemName . " | Tótems | Heaven's Gate", meta_excerpt($totemDesc), null, 'article');
 
-    // Incluir barra de navegación
+    $pageSect = "Tótems";
+    $pageTitle2 = $totemName;
+    setMetaFromPage($totemName . " | Tótems | Heaven's Gate", meta_excerpt($totemDesc), null, 'article');
+
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-powers.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+    }
+
     include("app/partials/main_nav_bar.php");
 
-    // Título de la página
     ob_start();
 
-    // Imagen del Totem
-    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp";
     if ($totemImgRaw !== "") {
         if (strpos($totemImgRaw, "/") !== false) {
             $itemImg = $totemImgRaw;
@@ -138,7 +132,7 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($totemCost > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$totemCost.webp'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'><img class='hg-powers-gem' src='img/ui/gems/pwr/gem-pwr-0$totemCost.webp'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";
@@ -146,8 +140,8 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
     if ($totemOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$totemOriginName</div></div>";
     }
-    echo "    </div>"; // stats
-    echo "  </div>"; // body
+    echo "    </div>";
+    echo "  </div>";
 
     if (!empty($totemDesc)) {
         echo "  <div class='power-card__desc'>";
@@ -170,24 +164,11 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
         echo "  </div>";
     }
 
-    echo "</div>"; // power-card
+    echo "</div>";
 
     $infoHtml = ob_get_clean();
 
-
     if ($useTabs) {
-        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
-        hg_render_owner_tabs_styles(true, 28);
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-totm_page.css');
-        } else {
-            if (function_exists('hg_page_register_stylesheet')) {
-                hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-pwrs-totm_page.css');
-            } else {
-                echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-pwrs-totm_page.css">';
-            }
-        }
-
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
         if ($hasCharOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
@@ -199,26 +180,11 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
 
         if ($hasCharOwners) {
             echo "<section class='hg-tab-panel' data-tab='owners'>";
-            echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+            echo "<div class='hg-affiliation-content hg-powers-owner-content'>";
             foreach ($totemCharOwners as $o) {
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
-                $estado = (string)($o['status'] ?? '');
-                $label = $alias !== '' ? $alias : $name;
-                $estadoCanon = strtr($estado, [
-                    "A" . "\xC3\x83\xC2\xBAn por aparecer" => "Aún por aparecer",
-                    "Cad" . "\xC3\x83\xC2\xA1ver" => "Cadáver",
-                ]);
-                $mapEstado = [
-                    "Aun por aparecer"     => "(&#64;)",
-                    "Aún por aparecer"     => "(&#64;)",
-                    "Cadaver"              => "(&#8224;)",
-                    "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
-                ];
-                $simboloEstado = $mapEstado[$estadoCanon] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
                 hg_render_character_avatar_tile([
                     'href' => $href,
@@ -233,19 +199,19 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
                     'target_blank' => true,
                 ]);
             }
-            echo "</div></div>";
+            echo "</div>";
             echo "<p align='right'>Personajes: " . count($totemCharOwners) . "</p>";
             echo "</section>";
         }
 
         if ($hasGroupOwners) {
             echo "<section class='hg-tab-panel' data-tab='groups'>";
-            echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+            echo "<div class='hg-powers-related'><div class='hg-powers-related-content'>";
             foreach ($totemGroups as $g) {
                 $gid = (int)($g['id'] ?? 0);
                 $gname = (string)($g['name'] ?? '');
                 $href = pretty_url($link, 'dim_groups', '/groups', $gid);
-                echo "<a href='" . htmlspecialchars($href) . "' target='_blank'><div class='renglon2col' style='text-align: center;'>" . htmlspecialchars($gname) . "</div></a>";
+                echo "<a href='" . htmlspecialchars($href) . "' target='_blank'><div class='hg-powers-related-card'>" . htmlspecialchars($gname) . "</div></a>";
             }
             echo "</div></div>";
             echo "<p align='right'>Grupos: " . count($totemGroups) . "</p>";
@@ -254,12 +220,12 @@ if ($result->num_rows > 0) { // Si encontramos el tótem en la base de datos
 
         if ($hasOrgOwners) {
             echo "<section class='hg-tab-panel' data-tab='orgs'>";
-            echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+            echo "<div class='hg-powers-related'><div class='hg-powers-related-content'>";
             foreach ($totemOrgs as $g) {
                 $gid = (int)($g['id'] ?? 0);
                 $gname = (string)($g['name'] ?? '');
                 $href = pretty_url($link, 'dim_organizations', '/organizations', $gid);
-                echo "<a href='" . htmlspecialchars($href) . "' target='_blank'><div class='renglon2col' style='text-align: center;'>" . htmlspecialchars($gname) . "</div></a>";
+                echo "<a href='" . htmlspecialchars($href) . "' target='_blank'><div class='hg-powers-related-card'>" . htmlspecialchars($gname) . "</div></a>";
             }
             echo "</div></div>";
             echo "<p align='right'>Organizaciones: " . count($totemOrgs) . "</p>";
