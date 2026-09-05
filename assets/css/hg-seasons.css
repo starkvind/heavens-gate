@@ -221,8 +221,7 @@
     margin-top: auto;
 }
 
-.season-home-count,
-.season-home-status {
+.season-home-count {
     display: inline-flex;
     align-items: center;
     padding: 3px 9px;
@@ -230,38 +229,11 @@
     font-size: 11px;
     line-height: 1.2;
 }
-
 .season-home-count {
     border: 1px solid #1d477e;
     background: rgba(0, 12, 64, 0.65);
     color: #a8c7ff;
 }
-
-.season-home-status {
-    border: 1px solid #2f6dc7;
-    background: #0b2d70;
-    color: #d9ecff;
-    font-weight: 700;
-}
-
-.season-home-status--done {
-    border-color: #0ea28e;
-    background: #0a5a4f;
-    color: #dcfff8;
-}
-
-.season-home-status--cancelled {
-    border-color: #c95757;
-    background: #7f1f35;
-    color: #ffe1ea;
-}
-
-.season-home-status--active {
-    border-color: #4f88d0;
-    background: #1f4676;
-    color: #e0f1ff;
-}
-
 .season-home-order-promo,
 .season-order-hero,
 .season-order-panel {
