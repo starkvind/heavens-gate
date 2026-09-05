@@ -1,0 +1,152 @@
+/*
+ * Inventory domain styles.
+ *
+ * Owns desktop presentation for /inventory routes. Shared primitives such as
+ * power-card, tabs and character avatars remain in hg-components.css.
+ */
+
+/* Item identity used by inventory tables and grouped lists. */
+.hg-inventory-item-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hg-inventory-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin-right: 6px;
+    position: relative;
+}
+
+.hg-inventory-item-icon::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #001188;
+    opacity: .65;
+    transform: translate(-50%, -50%);
+}
+
+.hg-inventory-item-thumb {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+    z-index: 1;
+}
+
+.hg-inventory-item-icon--small,
+.hg-inventory-item-thumb--small {
+    width: 16px;
+    height: 16px;
+}
+
+/* Grouped inventory list. */
+.hg-inventory-group-toggle {
+    background: #05014e;
+    color: #fff;
+    border: 1px solid #000088;
+    padding: 6px 10px;
+    margin: 8px 0 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    width: 85%;
+    text-align: left;
+}
+
+.hg-inventory-group-toggle:hover {
+    background: #000066;
+    border: 1px solid #0000bb;
+}
+
+.hg-inventory-group {
+    border: 0;
+    padding: 0 1em;
+}
+
+.hg-inventory-group-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 0 12px;
+}
+
+.hg-inventory-list-card {
+    float: left;
+    padding: 4px;
+    margin: 4px;
+    width: 240px;
+    height: 16px;
+    border: 1px solid #000088;
+    background-color: #05014E;
+}
+
+.hg-inventory-list-card:hover {
+    border: 1px solid #000099;
+    background: #000066;
+}
+
+.hg-inventory-list-card__main {
+    float: left;
+}
+
+/* Item detail. */
+.hg-inventory-gem {
+    vertical-align: middle;
+    padding: 2px;
+}
+
+.hg-inventory-owners {
+    display: flex;
+    justify-content: flex-start;
+    padding-left: 46px;
+}
+
+.hg-inventory-owners .hg-affiliation-content {
+    margin-left: 28px;
+    justify-content: flex-start;
+}
+
+/* Forum embed control on an item detail page. */
+.hg-inventory-embed {
+    margin-top: 12px;
+}
+
+.hg-inventory-embed__code {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #365eb8;
+    border-radius: 8px;
+    background: #091b53;
+    padding: 8px 10px;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.hg-inventory-embed__code code {
+    color: #f3f8ff;
+    font-family: Consolas, Monaco, monospace;
+    white-space: nowrap;
+    overflow: auto;
+}
+
+.hg-inventory-embed__copy {
+    border: 1px solid #3f68c4;
+    border-radius: 6px;
+    background: #0f2a73;
+    color: #e8f1ff;
+    cursor: pointer;
+    padding: 3px 8px;
+    line-height: 1.2;
+}
