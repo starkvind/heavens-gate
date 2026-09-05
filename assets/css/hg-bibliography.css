@@ -1,0 +1,30 @@
+/* Bibliography domain ---------------------------------------------------- */
+
+.hg-bibliography-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 0;
+    padding: 0;
+}
+
+.hg-bibliography-entry {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    width: 520px;
+    max-width: 100%;
+    padding: 4px;
+    border: 1px solid #000088;
+    box-sizing: border-box;
+}
+
+.hg-bibliography-entry:hover {
+    border-color: #0000aa;
+    background: #000066;
+}
+
+.hg-bibliography-entry__year {
+    flex: 0 0 auto;
+}
