@@ -30,13 +30,14 @@ for start_marker, end_marker in blocks:
     if block.count(old_label) != 1:
         raise SystemExit(f'expected one leaking label rule in {start_marker}')
     patched = block.replace(old_input, new_input).replace(old_label, new_label)
+    if old_input in patched or old_label in patched:
+        raise SystemExit(f'gallery leak survives inside {start_marker}')
+    if new_input not in patched or new_label not in patched:
+        raise SystemExit(f'scoped gallery rule missing inside {start_marker}')
     css = css[:start] + patched + css[end:]
 
 if css.count(old_input) != 0:
-    raise SystemExit('unscoped gallery input/select rule survives outside expected blocks')
-if css.count(old_label) != 0:
-    # Other modules may legitimately have label rules; only fail on the exact gallery declaration.
-    raise SystemExit('unscoped gallery label declaration survives')
+    raise SystemExit('unscoped gallery input/select rule survives')
 if css.count(new_input) != 2 or css.count(new_label) != 2:
     raise SystemExit('expected both gallery copies to be scoped')
 if css.count('{') != css.count('}'):
