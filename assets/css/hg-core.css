@@ -272,12 +272,6 @@ header img {
 	height: auto;
 }
 
-/* Historical power section wrapper; pending powers extraction. */
-.characterPowerSection {
-	width: 100%;
-	margin: auto;
-}
-
 /* Soundtrack embed helpers; pending embeds extraction. */
 .bso-card-iframe {
 	clear: both;
