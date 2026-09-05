@@ -29,10 +29,10 @@ for start_marker, end_marker in blocks:
         raise SystemExit(f'expected one leaking input/select rule in {start_marker}')
     if block.count(old_label) != 1:
         raise SystemExit(f'expected one leaking label rule in {start_marker}')
-    patched = block.replace(old_input, new_input).replace(old_label, new_label)
-    if old_input in patched or old_label in patched:
-        raise SystemExit(f'gallery leak survives inside {start_marker}')
-    if new_input not in patched or new_label not in patched:
+    patched = block.replace(old_input, new_input, 1).replace(old_label, new_label, 1)
+    if patched == block:
+        raise SystemExit(f'gallery block was not changed: {start_marker}')
+    if patched.count(new_input) != 1 or patched.count(new_label) != 1:
         raise SystemExit(f'scoped gallery rule missing inside {start_marker}')
     css = css[:start] + patched + css[end:]
 
