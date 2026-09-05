@@ -50,15 +50,8 @@
     min-height: 52px;
     margin: 4px;
     padding: 1em;
-    border: 1px solid #000088;
-    background: #05014e;
     text-align: left;
     box-sizing: border-box;
-}
-
-.hg-powers-home-card:hover {
-    border-color: #000099;
-    background: #000066;
 }
 
 .hg-powers-home-card p {
@@ -80,14 +73,7 @@
     height: 16px;
     margin: 4px;
     padding: 4px;
-    border: 1px solid #000088;
-    background: #05014e;
     text-align: center;
-}
-
-.hg-powers-category-card:hover {
-    border-color: #000099;
-    background: #000066;
 }
 
 .hg-powers-description {
@@ -101,13 +87,6 @@
     height: 16px;
     margin: 4px;
     padding: 4px;
-    border: 1px solid #000088;
-    background: #05014e;
-}
-
-.hg-powers-list-card:hover {
-    border-color: #000099;
-    background: #000066;
 }
 
 .hg-powers-list-card__main {
@@ -217,14 +196,7 @@
     width: auto;
     margin: 0;
     padding: 4px;
-    border: 1px solid #000088;
-    background: #05014e;
     text-align: center;
-}
-
-.hg-powers-related-card:hover {
-    border-color: #000099;
-    background: #000066;
 }
 
 /* Full gift/rite catalog. These two pages share one presentation model. */

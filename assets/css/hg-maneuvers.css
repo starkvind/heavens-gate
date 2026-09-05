@@ -20,13 +20,6 @@
     width: 160px;
     min-height: 16px;
     padding: 4px;
-    border: 1px solid #000088;
-    background: #05014e;
     text-align: center;
     box-sizing: border-box;
-}
-
-.hg-maneuvers-card:hover {
-    border-color: #000099;
-    background: #000066;
 }

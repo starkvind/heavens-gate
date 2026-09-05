@@ -87,13 +87,6 @@
     margin: 4px;
     width: 240px;
     height: 16px;
-    border: 1px solid #000088;
-    background-color: #05014E;
-}
-
-.hg-inventory-list-card:hover {
-    border: 1px solid #000099;
-    background: #000066;
 }
 
 .hg-inventory-list-card__main {

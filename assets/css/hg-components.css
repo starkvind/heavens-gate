@@ -127,6 +127,29 @@ img.fotoBioList {
 	padding-top: 3px;
 }
 
+/* Shared linked-card shell ------------------------------------------------ */
+.hg-link-card,
+.hg-powers-home-card,
+.hg-powers-category-card,
+.hg-powers-list-card,
+.hg-powers-related-card,
+.hg-inventory-list-card,
+.hg-maneuvers-card {
+	border: 1px solid #000088;
+	background: #05014e;
+}
+
+.hg-link-card:hover,
+.hg-powers-home-card:hover,
+.hg-powers-category-card:hover,
+.hg-powers-list-card:hover,
+.hg-powers-related-card:hover,
+.hg-inventory-list-card:hover,
+.hg-maneuvers-card:hover {
+	border-color: #000099;
+	background: #000066;
+}
+
 /* Power card -------------------------------------------------------------- */
 .power-card {
 	width: 96%;
