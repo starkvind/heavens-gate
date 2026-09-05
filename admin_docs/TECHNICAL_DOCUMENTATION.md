@@ -1,10 +1,10 @@
 # Technical Documentation — Heaven's Gate
 
-Última revisión: 2026-09-02.
+Última revisión: 2026-09-05.
 
 ## 1. Alcance y fuentes
 
-Este documento describe el **runtime actual** del repositorio `starkvind/heavens-gate`. Se ha contrastado con el código de `master` y con el snapshot de producción del 1 de septiembre de 2026 conservado en `starkvind/heavens-gate-continuity`.
+Este documento describe el **runtime actual** del repositorio `starkvind/heavens-gate`. Se ha contrastado con el código de la rama activa y con el snapshot de producción del 1 de septiembre de 2026 conservado en `starkvind/heavens-gate-continuity`.
 
 Fuentes principales:
 
@@ -125,6 +125,8 @@ Además contiene:
 - `vw_sim_items`;
 - procedimiento `audit_signed_id_columns()`.
 
+Las vistas y tablas relacionadas con el antiguo juego de cartas y el simulador siguen formando parte del snapshot de producción del 1 de septiembre. Su presencia en el esquema no implica que exista runtime web activo para esas herramientas.
+
 Convención general:
 
 - `dim_*`: catálogos y entidades maestras;
@@ -243,7 +245,6 @@ No existe actualmente un flujo canónico de “instalar el esquema desde un dump
 Herramientas existentes:
 
 - `tools/scaffold_section.py`;
-- `tools/seed_game_cards.php`;
 - `app/tools/backfill_content_updates.php`;
 - `sql/audit_gaia0_content.sql`.
 
@@ -261,17 +262,13 @@ No sirve para rutas de entidad o APIs.
 
 Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
-## 11. Archivo de Mnemógeno
+## 11. Herramientas retiradas con compatibilidad de ruta
 
-El juego de cartas utiliza un runtime JS modular, no un único fichero monolítico.
+El Simulador de Combate y el Archivo de Mnemógeno fueron retirados del runtime en septiembre de 2026. Sus motores PHP, parciales, CSS y JavaScript específicos ya no forman parte de la rama activa.
 
-- catálogo: `fact_game_card_collection`;
-- reglas: tablas `dim_game_card_*` y `fact_game_card_*`;
-- APIs: `/api/game_cards.php` y `/api/game_card_rules.php`;
-- progreso de usuario: `localStorage`;
-- runtime modular: `assets/js/card-game/*`.
+Se conservan únicamente controladores mínimos y endpoints históricos que responden **HTTP 410 Gone**. Su función es mantener una retirada explícita y predecible para URLs antiguas, no proporcionar compatibilidad funcional con las herramientas eliminadas.
 
-Véase [CARD_GAME.md](./CARD_GAME.md).
+La implementación completa anterior permanece recuperable desde la rama de archivo `archive/legacy-tools-2026`.
 
 ## 12. Política documental
 
@@ -285,4 +282,3 @@ Cuando cambie código o esquema:
 6. registrar la fecha y la fuente de cualquier recuento de tablas.
 
 La referencia de esquema actual está fechada. Si producción cambia, debe regenerarse [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) desde un snapshot nuevo.
-

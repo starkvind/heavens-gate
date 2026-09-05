@@ -1,6 +1,6 @@
 # Heaven's Gate
 
-Heaven's Gate is the live PHP web application used to publish and maintain the Heaven's Gate RPG setting: characters, chronicles, seasons, chapters, timeline events, organizations, groups, rules, systems, maps, documents, soundtrack, tools and minigames.
+Heaven's Gate is the live PHP web application used to publish and maintain the Heaven's Gate RPG setting: characters, chronicles, seasons, chapters, timeline events, organizations, groups, rules, systems, maps, documents, soundtrack and tools.
 
 The project is intentionally database-driven. Public URLs use readable slugs while the editorial backend under `/talim` maintains the relational data behind them.
 
@@ -22,7 +22,7 @@ The project is intentionally database-driven. Public URLs use readable slugs whi
 | `app/bootstrap/` | Request bootstrapping, routing handoff and page dispatch. |
 | `app/controllers/` | Public, admin and tool controllers. |
 | `app/helpers/` | Shared database, security, routing and domain helpers. |
-| `app/modules/` | Larger domain modules such as the card game. |
+| `app/modules/` | Larger domain-specific modules. |
 | `app/mobile/` | Mobile routing and presentation layer. |
 | `app/partials/` | Shared layout fragments. |
 | `api/` | JSON endpoints. |
@@ -95,8 +95,6 @@ Start here:
 - [Scripts and maintenance](./admin_docs/SCRIPTS_AND_MAINTENANCE.md)
 - [Admin module guide](./admin_docs/ADMIN_MODULE_GUIDE.md)
 - [Public section guide](./admin_docs/PUBLIC_SECTION_GUIDE.md)
-- [Card game](./admin_docs/CARD_GAME.md)
-- [Card game skills](./admin_docs/CARD_GAME_SKILLS.md)
 - [Documentation index](./admin_docs/README.md)
 
 Historical migration manifests under `admin_docs/migration_manifest_*` remain useful as dated records, but they are not runtime documentation.
@@ -110,4 +108,3 @@ The application includes an authenticated editorial backend for maintaining camp
 Personal / non-commercial project codebase and campaign content.
 
 Third-party universe references remain property of their respective owners.
-

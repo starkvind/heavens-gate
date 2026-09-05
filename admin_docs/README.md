@@ -11,8 +11,6 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md) | Inventario de scripts y herramientas, cómo ejecutarlos y qué riesgos tienen. |
 | [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md) | Convenciones para crear o mantener módulos de `/talim`. |
 | [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md) | Cómo añadir una sección pública y cómo usar `tools/scaffold_section.py`. |
-| [CARD_GAME.md](./CARD_GAME.md) | Arquitectura actual del Archivo de Mnemógeno. |
-| [CARD_GAME_SKILLS.md](./CARD_GAME_SKILLS.md) | Cómo añadir o modificar habilidades del juego de cartas. |
 
 ## Registros históricos
 
@@ -20,7 +18,9 @@ Los ficheros `migration_manifest_*` y `migration_manifest_worlds_20260901.csv` d
 
 `bdd_structure.txt` se conserva por compatibilidad documental con esos manifiestos. Su contenido original refleja una instantánea antigua y no debe utilizarse para conocer el esquema actual. La referencia vigente es [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
 
-Los antiguos `ADD_SECTION_GUIDE.html`, `admin_maintenance_guide.txt`, `HOW_TO_CREATE_SKILLS_FOR_CARD_GAME.txt` y `game_cards_technical_documentation.html` se mantienen como puntos de entrada heredados y remiten a sus sustitutos en Markdown.
+Los antiguos `ADD_SECTION_GUIDE.html` y `admin_maintenance_guide.txt` se mantienen como puntos de entrada heredados y remiten a sus sustitutos en Markdown.
+
+La documentación específica del juego de cartas fue retirada junto con su implementación en septiembre de 2026. Su estado anterior sigue recuperable desde la rama de archivo `archive/legacy-tools-2026`.
 
 ## Fuente de verdad
 
@@ -33,4 +33,3 @@ Para la estructura de producción, la referencia utilizada en esta revisión es:
 El snapshot fue completado el **1 de septiembre de 2026 a las 23:36:12** y corresponde a **MariaDB 10.5.29**.
 
 Cuando código, documentación histórica y snapshot discrepen, no se debe mezclar información: hay que comprobar primero qué capa se está documentando.
-

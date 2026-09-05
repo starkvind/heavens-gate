@@ -1,6 +1,6 @@
 # Scripts y mantenimiento
 
-Última revisión: 2026-09-02.
+Última revisión: 2026-09-05.
 
 Este documento describe las herramientas que **existen realmente** en el repositorio en esta fecha. No presupone instaladores o migradores retirados.
 
@@ -48,26 +48,6 @@ php app/tools/backfill_content_updates.php 100 --dry-run
 El límite por defecto es 100 y el script acepta como máximo 1000 filas. `--dry-run` permite inspeccionar sin escribir.
 
 No es una migración de esquema.
-
-### `tools/seed_game_cards.php`
-
-Wrapper CLI del seed del Archivo de Mnemógeno. Delega en `app/tools/seed_game_cards.php`.
-
-Uso normal:
-
-~~~bash
-php tools/seed_game_cards.php
-~~~
-
-Regeneración destructiva del catálogo de cartas:
-
-~~~bash
-php tools/seed_game_cards.php --reset
-~~~
-
-`--reset` elimina las filas del catálogo `fact_game_card_collection` antes de regenerarlo. No borra el progreso local de los navegadores, pero puede cambiar IDs y dejar colecciones locales desalineadas; debe usarse de forma deliberada.
-
-El seed también sincroniza las tablas de reglas del juego de cartas.
 
 ### `tools/scaffold_section.py`
 
@@ -139,7 +119,9 @@ La documentación antigua mencionaba herramientas que ya no existen en el reposi
 - `app/tools/schema_initializer.php`;
 - `app/controllers/admin/admin_schema_initializer.php`;
 - `app/tools/generate_pretty_ids.php`;
-- `app/controllers/admin/admin_map_kmz_import.php`.
+- `app/controllers/admin/admin_map_kmz_import.php`;
+- `app/tools/seed_game_cards.php`;
+- `tools/seed_game_cards.php`.
 
 No deben recrearse ni invocarse siguiendo documentación vieja. Si una tarea futura necesita esa capacidad, debe diseñarse contra el esquema vigente y no resucitar automáticamente el flujo anterior.
 
@@ -155,4 +137,3 @@ Antes de tocar base de datos o scripts:
 - revisar logs y respuesta;
 - verificar rutas públicas a través de `request_router.php`;
 - actualizar esta documentación cuando cambie el comportamiento operativo.
-
