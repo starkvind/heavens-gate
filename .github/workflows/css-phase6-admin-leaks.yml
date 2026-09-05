@@ -1,0 +1,41 @@
+name: CSS Phase 6 Admin Leak Cleanup
+
+on:
+  push:
+    branches:
+      - css-phase6-admin-isolation
+    paths:
+      - '.github/workflows/css-phase6-admin-leaks.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: css-phase6-admin-isolation
+
+      - name: Scope leaking gallery selectors
+        run: python3 .github/ci/css_phase6_admin_leaks.py
+
+      - name: Lint PHP
+        shell: bash
+        run: |
+          find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/tmp/php-lint.log
+          tail -n 20 /tmp/php-lint.log
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name 'Maurick Starkvind'
+          git config user.email 'maverickk@gmail.com'
+          git add assets/css/hg-admin.css
+          if git diff --cached --quiet; then
+            echo 'No admin leak changes to commit.'
+            exit 0
+          fi
+          git commit -m 'fix(css): contain gallery admin selectors'
+          git push origin HEAD:css-phase6-admin-isolation
