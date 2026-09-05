@@ -1,0 +1,440 @@
+/*
+ * Reusable public UI components.
+ *
+ * New shared components should use an hg-* block name and BEM-style elements
+ * and modifiers where useful: .hg-component, .hg-component__part,
+ * .hg-component--variant.
+ */
+
+/* Character avatar tile --------------------------------------------------- */
+.hg-character-avatar,
+a.hg-avatar-link {
+	display: inline-block;
+	text-decoration: none;
+}
+
+.hg-character-avatar__tile,
+div.marcoFotoBio {
+	float: left;
+	position: relative;
+	height: 96px;
+	width: 96px;
+	margin: 2px;
+	margin-bottom: 8px;
+}
+
+.hg-character-avatar__label,
+div.textoDentroFotoBio {
+	position: absolute;
+	top: 81px;
+	right: 0px;
+	overflow: hidden;
+	line-height: 12px;
+	z-index: 4;
+	text-align: right;
+	padding: 2px;
+	padding-top: 1px;
+	font-size: 9px;
+	transition: color 0.15s ease;
+}
+
+.hg-character-avatar__tile--pj,
+div.marcoFotoBio--pj,
+div.marcoFotoBio {
+	border: 1px solid #000099;
+}
+
+.hg-character-avatar__label--pj,
+div.textoDentroFotoBio--pj,
+div.textoDentroFotoBio {
+	background: #000066;
+	color: #8fb2ff;
+}
+
+.hg-character-avatar--pj:hover .hg-character-avatar__tile--pj,
+a.hg-avatar-link--pj:hover div.marcoFotoBio--pj,
+a.hg-avatar-link:hover div.marcoFotoBio {
+	border: 1px solid #0000BB;
+	cursor: pointer;
+}
+
+.hg-character-avatar--pj:hover .hg-character-avatar__label--pj,
+a.hg-avatar-link--pj:hover div.textoDentroFotoBio--pj,
+a.hg-avatar-link:hover div.textoDentroFotoBio {
+	color: #c7d7ff;
+}
+
+.hg-character-avatar__tile--pnj,
+div.marcoFotoBio--pnj {
+	border: 1px solid #990000;
+	background: #660000;
+}
+
+.hg-character-avatar__label--pnj,
+div.textoDentroFotoBio--pnj {
+	background: #660000;
+	color: #ff9898;
+}
+
+.hg-character-avatar--pnj:hover .hg-character-avatar__tile--pnj,
+a.hg-avatar-link--pnj:hover div.marcoFotoBio--pnj {
+	border: 1px solid #BB0000;
+	cursor: pointer;
+}
+
+.hg-character-avatar--pnj:hover .hg-character-avatar__label--pnj,
+a.hg-avatar-link--pnj:hover div.textoDentroFotoBio--pnj {
+	color: #ffcaca;
+}
+
+.hg-character-avatar__tile--mon,
+div.marcoFotoBio--mon {
+	border: 1px solid #D4AF37;
+	background: #5A4A00;
+}
+
+.hg-character-avatar__label--mon,
+div.textoDentroFotoBio--mon {
+	background: #7A6400;
+	color: #e8c55a;
+}
+
+.hg-character-avatar--mon:hover .hg-character-avatar__tile--mon,
+a.hg-avatar-link--mon:hover div.marcoFotoBio--mon {
+	border: 1px solid #FFD54A;
+	cursor: pointer;
+}
+
+.hg-character-avatar--mon:hover .hg-character-avatar__label--mon,
+a.hg-avatar-link--mon:hover div.textoDentroFotoBio--mon {
+	color: #ffe39a;
+}
+
+.hg-character-avatar__media,
+div.dentroFotoBio {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 2;
+}
+
+.hg-character-avatar__image,
+img.fotoBioList {
+	width: 90px;
+	height: 90px;
+	vertical-align: middle;
+	padding-left: 3px;
+	padding-top: 3px;
+}
+
+/* Power card -------------------------------------------------------------- */
+.power-card {
+	width: 96%;
+	max-width: 860px;
+	margin: 6px auto 16px auto;
+	border: 1px solid #000088;
+	background: linear-gradient(180deg, #0a0a4a 0%, #05014e 100%);
+	box-shadow: 0 0 0 1px #000033 inset, 0 10px 30px rgba(0,0,0,0.35);
+	padding: 10px 12px 12px 12px;
+}
+
+.power-card__banner {
+	border: 1px solid #000099;
+	background: linear-gradient(90deg, #001a66, #003a99);
+	padding: 6px 10px;
+	margin-bottom: 10px;
+	text-align: right;
+}
+
+.power-card__title {
+	font-family: verdana, sans-serif;
+	font-size: 16px;
+	font-weight: bold;
+	color: #33CCCC;
+	letter-spacing: 0.4px;
+}
+
+.power-card__body {
+	display: grid;
+	grid-template-columns: 120px 1fr;
+	gap: 12px;
+	align-items: start;
+}
+
+.power-card__media {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 4px;
+}
+
+.power-card__img {
+	width: 110px;
+	height: 110px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.power-card--item .power-card__img {
+	width: 88px;
+	height: 88px;
+	padding: 6px;
+	border-radius: 0;
+}
+
+.power-card__stats {
+	display: flex;
+	text-align: left;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.power-stat {
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	gap: 6px;
+	align-items: center;
+	background: #070760;
+	border: 1px solid #000088;
+	padding: 4px 6px;
+}
+
+.power-stat__label {
+	color: #66CCFF;
+	font-weight: bold;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+}
+
+.power-stat__value {
+	color: #FFFFFF;
+	font-size: 11px;
+}
+
+.power-card__desc {
+	margin-top: 10px;
+	border: 0;
+	background: #04044d;
+	padding: 8px 10px 0px 10px;
+}
+
+.power-card__desc-title {
+	color: #99FFFF;
+	font-weight: bold;
+	margin-bottom: 6px;
+}
+
+.power-card__desc-body {
+	color: #FFFFFF;
+	line-height: 1.4;
+}
+
+.power-card--item .power-card__img-wrap {
+	width: 88px;
+	height: 88px;
+	padding: 6px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5);
+}
+
+.power-card--item .power-card__img {
+	width: 100px;
+	height: 100px;
+	border-radius: 0;
+	object-fit: contain;
+}
+
+/* Breadcrumb -------------------------------------------------------------- */
+.nav-breadcrumb {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	border-radius: 999px;
+	clear: both;
+	margin-top: 12px;
+	margin-bottom: 8px;
+	color: #aef;
+	font-size: 10px;
+	letter-spacing: 0.3px;
+}
+
+.nav-breadcrumb a {
+	color: #66ccff;
+	text-decoration: none;
+	font-weight: bold;
+	padding: 1px 4px;
+	border-radius: 8px;
+}
+
+.nav-breadcrumb a:hover {
+	background: #001a66;
+	color: #cfefff;
+}
+
+.nav-breadcrumb .crumb-sep {
+	color: #66ccff;
+	opacity: 0.7;
+}
+
+/* Affiliations ------------------------------------------------------------ */
+.hg-affiliation-content {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 8px 0 12px 0;
+}
+
+/* Tabs -------------------------------------------------------------------- */
+.hg-tabs {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	width: 100%;
+	margin: 8px 0 12px;
+}
+
+.hg-tabs .hgTabBtn {
+	font-family: var(--hg-font-ui);
+	font-size: 10px;
+	background: linear-gradient(180deg, #00106a 0%, #000c4d 100%);
+	color: #eef6ff;
+	padding: 0.52em 0.9em;
+	border: 1px solid #003399;
+	border-radius: 6px;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hg-tabs .hgTabBtn:hover {
+	border-color: #0066cc;
+	background: linear-gradient(180deg, #00178a 0%, #00105f 100%);
+	color: #7fd4ff;
+}
+
+.hg-tabs .hgTabBtn.active {
+	background: linear-gradient(180deg, #001ea0 0%, #001570 100%);
+	color: #40c6ff;
+	border-color: #00a0ff;
+}
+
+.hg-tabs .hgTabBtn:focus-visible {
+	outline: 1px solid #00a0ff;
+	outline-offset: 1px;
+}
+
+.hg-tabs .hgTabBtn .hgTabEmoji {
+	width: 16px;
+	height: 16px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 13px;
+	line-height: 1;
+}
+
+.hg-tabs .hgTabBtn .hgTabEmoji .hgTabIcon {
+	width: 16px;
+	height: 16px;
+	display: block;
+	object-fit: contain;
+}
+
+.hg-tabs .hgTabBtn .hgTabLabel {
+	max-width: 0;
+	opacity: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	transition: max-width 0.16s ease, opacity 0.12s ease;
+}
+
+.hg-tabs .hgTabBtn:hover .hgTabLabel,
+.hg-tabs .hgTabBtn:focus-visible .hgTabLabel {
+	max-width: 180px;
+	opacity: 1;
+}
+
+.hg-tab-panel {
+	display: none;
+}
+
+.hg-tab-panel.active {
+	display: block;
+}
+
+.hg-tab-panel[data-tab='owners'] .grupoBioClan {
+	display: flex;
+	justify-content: flex-start !important;
+}
+
+.hg-tab-panel[data-tab='owners'] .contenidoAfiliacion {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 8px 0 12px 0 !important;
+	margin-left: 28px !important;
+	justify-content: flex-start !important;
+}
+
+/* Tooltip ----------------------------------------------------------------- */
+.hg-tip-row {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+}
+
+#hg-tooltip {
+	position: fixed;
+	z-index: 9999;
+	max-width: 320px;
+	background: #0b0b2b;
+	border: 1px solid #003399;
+	color: #e6f0ff;
+	padding: 8px 10px;
+	border-radius: 6px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+	font-size: 12px;
+	display: none;
+	pointer-events: none;
+	text-align: left;
+	max-height: 60vh;
+	overflow: auto;
+}
+
+#hg-tooltip .hg-tip-title {
+	font-weight: bold;
+	margin-bottom: 4px;
+	color: #8fd7ff;
+}
+
+#hg-tooltip .hg-tip-meta {
+	font-size: 11px;
+	color: #9fb2d9;
+}
+
+#hg-tooltip .hg-tip-label {
+	font-weight: bold;
+	margin-top: 6px;
+	color: #cfd9ff;
+}
+
+#hg-tooltip .hg-tip-text {
+	font-size: 12px;
+	color: #e6f0ff;
+}
+
+.hg-tip-thumb {
+	width: 48px;
+	height: 48px;
+	object-fit: cover;
+	border-radius: 6px;
+	border: 1px solid #003399;
+}
