@@ -25,12 +25,21 @@ Los estilos que pertenecen a una sección concreta deben vivir en un fichero de 
 
 - `hg-bio.css`: personajes y ficha de personaje.
 - `hg-docs.css`: documentación y reglas documentales.
+- `hg-inventory.css`: inventario de escritorio, listados de objetos y especializaciones de la ficha de objeto.
 - `hg-events.css`: timeline y eventos.
 - `hg-maps.css`: mapas.
 - `hg-systems.css`: sistemas de juego.
-- ficheros equivalentes para inventario, poderes, capítulos, galería y demás dominios cuando termine su extracción.
+- ficheros equivalentes para poderes, capítulos, galería y demás dominios cuando termine su extracción.
 
 Los estilos exclusivos de una sola página pueden vivir bajo `assets/css/pages/<dominio>/`. La carpeta `assets/css/pages/legacy/` es transitoria: contiene CSS extraído durante la Fase 1 cuya propiedad definitiva todavía no se ha resuelto.
+
+### Inventario
+
+Las rutas de escritorio de `/inventory` registran `hg-inventory.css`. El dominio posee sus celdas de objeto, iconos, miniaturas, agrupaciones por origen, tarjetas de listado, gemas de estadísticas, portadores y control de embed.
+
+Inventario puede consumir componentes globales como `power-card`, `hg-tabs`, `hg-tab-panel`, `hg-affiliation-content` y los avatares de personaje, pero no debe volver a depender de primitivas históricas como `renglon2col`, `renglon2colIz`, `grupoBioClan`, `contenidoAfiliacion` o `bioAttCircle`.
+
+`hg-docs.css` sigue siendo propietario del shell de DataTables que también utiliza el inventario (`docs-table-*`, `dt-toolbar`, `ms-*`). Esa dependencia es deliberada mientras ese shell siga siendo compartido con otras páginas documentales; no convierte las clases propias del inventario en clases de documentación.
 
 ## Convención de nombres nueva
 
@@ -84,6 +93,8 @@ La migración correcta es:
 6. retirar entonces el alias legacy.
 
 Mientras una clase histórica sea usada por varios dominios, debe permanecer en `hg-legacy-components.css` y llevarse como deuda explícita. Un nombre como `bioSeccion` no implica propiedad de biografías si mapas, capítulos o páginas de error también lo consumen.
+
+Cuando un dominio puede migrarse por completo en una sola operación controlada, como inventario en la Fase 4, puede pasar directamente al nombre semántico nuevo siempre que las reglas legacy permanezcan disponibles para los demás dominios que todavía las consumen.
 
 ## Criterio para `hg-core.css`
 
