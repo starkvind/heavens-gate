@@ -20,6 +20,14 @@ def rule_match(css: str, selector_pattern: str):
     return pattern, matches[0]
 
 
+def standalone_after_rule(css: str, selector: str):
+    pattern = re.compile(r'(?s)(?P<prefix>})\s*' + re.escape(selector) + r'\s*\{([^{}]*)\}\s*')
+    matches = list(pattern.finditer(css))
+    if len(matches) != 1:
+        raise SystemExit(f'expected one standalone rule for {selector}, found {len(matches)}')
+    return pattern, matches[0]
+
+
 def normalize_body(body: str) -> str:
     return re.sub(r'\s+', ' ', body).strip()
 
@@ -37,8 +45,7 @@ def decl_map(body: str) -> dict[str, str]:
     return out
 
 # 1) Systems tooltip: keep its route-specific root box, but remove the four
-# descendant rules that are byte-for-byte equivalent in meaning to the shared
-# tooltip component.
+# descendant rules that are equivalent to the shared tooltip component.
 for selector in (
     '#hg-tooltip .hg-tip-title',
     '#hg-tooltip .hg-tip-meta',
@@ -71,11 +78,11 @@ common_pattern, common_match = rule_match(
     seasons,
     re.escape('.season-home-count') + r'\s*,\s*' + re.escape('.season-home-status'),
 )
-season_status_pattern, season_status_match = rule_match(seasons, re.escape('.season-home-status'))
+season_status_pattern, season_status_match = standalone_after_rule(seasons, '.season-home-status')
 archive_status_pattern, archive_status_match = rule_match(archive, re.escape('.season-home-status'))
 
 season_effective = decl_map(common_match.group(1))
-season_effective.update(decl_map(season_status_match.group(1)))
+season_effective.update(decl_map(season_status_match.group(2)))
 archive_effective = decl_map(archive_status_match.group(1))
 if season_effective != archive_effective:
     raise SystemExit(f'season/archive status base differs: {season_effective!r} != {archive_effective!r}')
@@ -95,7 +102,7 @@ for name in modifier_names:
 # Preserve the count pill's common geometry in the Seasons domain.
 count_body = common_match.group(1).strip('\n')
 seasons = common_pattern.sub('\n.season-home-count {\n' + count_body + '\n}\n', seasons, count=1)
-seasons = season_status_pattern.sub('\n', seasons, count=1)
+seasons = season_status_pattern.sub(lambda m: m.group('prefix') + '\n', seasons, count=1)
 archive = archive_status_pattern.sub('\n', archive, count=1)
 
 if '.season-home-status' in seasons:
