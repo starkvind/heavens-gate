@@ -27,19 +27,29 @@ if (!function_exists('hg_events_date_label')) {
             return $note !== '' ? $note : '-';
         }
 
-        $ts = strtotime($dateValue);
-        if ($ts === false) {
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dateValue, $dateParts)) {
             return $note !== '' ? $note : $dateValue;
         }
 
+        $year = (int)$dateParts[1];
+        $month = (int)$dateParts[2];
+        $day = (int)$dateParts[3];
+        if (!checkdate($month, $day, $year)) {
+            return $note !== '' ? $note : $dateValue;
+        }
+
+        $yearLabel = $dateParts[1];
+        $monthLabel = $dateParts[2];
+        $dayLabel = $dateParts[3];
+
         if ($precision === 'year') {
-            $base = date('Y', $ts);
+            $base = $yearLabel;
         } elseif ($precision === 'month') {
-            $base = date('m/Y', $ts);
+            $base = $monthLabel . '/' . $yearLabel;
         } elseif ($precision === 'approx') {
-            $base = 'Aprox. ' . date('d/m/Y', $ts);
+            $base = 'Aprox. ' . $dayLabel . '/' . $monthLabel . '/' . $yearLabel;
         } else {
-            $base = date('d/m/Y', $ts);
+            $base = $dayLabel . '/' . $monthLabel . '/' . $yearLabel;
         }
 
         return $note !== '' ? ($base . ' (' . $note . ')') : $base;

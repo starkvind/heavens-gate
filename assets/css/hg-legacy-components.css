@@ -67,3 +67,24 @@ div.renglonDonData {
 	width: 98.3%;
 	text-align: justify;
 }
+
+/* Firefox visited-link paint normalization. */
+/*
+ * Firefox keeps :visited paint state privacy-isolated from computed styles.
+ * These historical linked boxes must keep their normal border colour after
+ * their destination has been visited.  Scope the workaround to the affected
+ * legacy components instead of changing global link colours.
+ */
+table.tmenu a:visited div.renglonMenu:not(.menuSeparator) {
+	border-color: #000088;
+}
+
+a.hg-avatar-link--pj:visited div.marcoFotoBio--pj,
+a.hg-avatar-link:visited div.marcoFotoBio,
+a.hg-character-avatar--pj:visited .hg-character-avatar__tile--pj {
+	border-color: #000099;
+}
+
+.adm-admin-menu-link:visited .adm-admin-tile {
+	border-color: #000099;
+}
