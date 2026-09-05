@@ -1,0 +1,18 @@
+/* Shared archive-style fieldset ----------------------------------------- */
+
+.hg-archive-panel {
+    margin: 10px 2px 0;
+    padding: 8px;
+    border: 1px solid #009;
+    background: #005;
+}
+
+.hg-archive-panel--spaced {
+    margin-top: 17px;
+}
+
+.hg-archive-panel__legend {
+    border: 1px solid #009;
+    font-weight: bold;
+    padding: 4px;
+}
