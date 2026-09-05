@@ -285,41 +285,6 @@ $(document).ready(function () {
         },
         initComplete: function () {
             $('#dt-search-slot').append($('#tabla-capitulos_filter'));
-            const $inp = $('#tabla-capitulos_filter input');
-            if ($inp.length) {
-                const cs = window.getComputedStyle($inp[0]);
-                ['#ms-toggle-kind', '#ms-toggle-chronicle'].forEach(sel => {
-                    const $btn = $(sel);
-                    if (!$btn.length) return;
-                    $btn.css({
-                        'font-family': cs.fontFamily,
-                        'font-size': cs.fontSize,
-                        'font-weight': cs.fontWeight,
-                        'line-height': cs.lineHeight,
-                        'padding': cs.padding,
-                        'border': cs.border,
-                        'border-radius': cs.borderRadius,
-                        'background-color': cs.backgroundColor,
-                        'color': cs.color,
-                        'box-sizing': cs.boxSizing,
-                        'height': cs.height,
-                        'min-height': cs.height
-                    });
-
-                    $btn.on('focus', function(){
-                        $(this).css({
-                            'outline':'none',
-                            'border-color':'#3b82f6',
-                            'box-shadow':'0 0 0 3px rgba(59,130,246,.18)'
-                        });
-                    }).on('blur', function(){
-                        $(this).css({
-                            'border': cs.border,
-                            'box-shadow': 'none'
-                        });
-                    });
-                });
-            }
         }
     });
 
