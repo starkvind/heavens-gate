@@ -27,6 +27,7 @@ jobs:
           replacements = {
               'app/controllers/main/main_home.php': '/assets/css/hg-home.css',
               'app/controllers/chapters/seasons_home.php': '/assets/css/hg-seasons.css',
+              'app/controllers/chapters/season_order.php': '/assets/css/hg-seasons.css',
               'app/controllers/main/main_chronicles.php': '/assets/css/hg-archive.css',
               'app/controllers/bio/bio_list.php': '/assets/css/hg-archive.css',
               'app/controllers/bio/bio_group.php': '/assets/css/hg-archive.css',
