@@ -2,10 +2,8 @@
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
 <?php
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-main.css');
     hg_page_register_stylesheet('/assets/css/hg-news.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
     echo '<link rel="stylesheet" href="/assets/css/hg-news.css">';
 }
 ?>
