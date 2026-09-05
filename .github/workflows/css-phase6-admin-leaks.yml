@@ -6,6 +6,7 @@ on:
       - css-phase6-admin-isolation
     paths:
       - '.github/workflows/css-phase6-admin-leaks.yml'
+      - '.github/ci/css_phase6_admin_leaks.py'
 
 permissions:
   contents: write
