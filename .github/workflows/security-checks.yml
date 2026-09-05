@@ -1,13 +1,11 @@
-name: PHP security checks
+name: Project CI
 
 on:
   push:
-    branches:
-      - master
-      - 'security/**'
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,6 +28,44 @@ jobs:
           set -euo pipefail
           find app api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l index.php
+
+      - name: Verify CSS references and core ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          failures = []
+
+          # Every literal local stylesheet referenced by PHP should exist.
+          css_ref = re.compile(r"/assets/css/[A-Za-z0-9_./-]+\.css")
+          for root in [Path("app"), Path("api")]:
+              for path in root.rglob("*.php"):
+                  source = path.read_text(encoding="utf-8", errors="ignore")
+                  for ref in sorted(set(css_ref.findall(source))):
+                      target = Path(ref.lstrip('/'))
+                      if not target.is_file():
+                          failures.append(f"{path}: missing referenced stylesheet {ref}")
+
+          # hg-core.css is the global shell, not a home for domain/components.
+          core = Path("assets/css/hg-core.css").read_text(encoding="utf-8", errors="ignore")
+          forbidden_core_markers = {
+              ".hg-inventory-": "inventory domain selector",
+              ".hg-powers-": "powers domain selector",
+              ".power-card": "shared power-card component",
+              ".hg-tabs": "shared tabs component",
+              "#hg-tooltip": "shared tooltip component",
+              ".nav-breadcrumb": "shared breadcrumb component",
+          }
+          for marker, label in forbidden_core_markers.items():
+              if marker in core:
+                  failures.append(f"assets/css/hg-core.css: {label} returned to core ({marker})")
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
 
       - name: Security regression guards
         shell: bash
