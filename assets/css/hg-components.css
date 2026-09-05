@@ -375,6 +375,7 @@ img.fotoBioList {
 	justify-content: flex-start !important;
 }
 
+.hg-tab-panel[data-tab='owners'] .hg-affiliation-content,
 .hg-tab-panel[data-tab='owners'] .contenidoAfiliacion {
 	display: flex;
 	flex-wrap: wrap;
