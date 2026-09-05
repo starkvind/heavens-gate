@@ -8,10 +8,11 @@ $GALLERY_BASE_FS  = rtrim($_SERVER['DOCUMENT_ROOT'], "/") . "/public/img/gallery
 $ALLOWED_EXT = ['jpg','jpeg','png','gif','webp'];
 
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-main.css');
+    hg_page_register_stylesheet('/assets/css/hg-gallery.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-gallery.css">';
 }
 
-// Helpers
 function isValidRelPath(string $rel): bool {
     return $rel === '' || (bool)preg_match('#^(?!/)(?!.*\.\.)([A-Za-z0-9 _\.\-]+/)*[A-Za-z0-9 _\.\-]+$#', $rel);
 }
@@ -56,18 +57,15 @@ function formatTitle(string $filename): string {
     return ucfirst($name);
 }
 
-// Contexto de navegación
 $relDir = isset($_GET['dir']) ? urldecode((string)$_GET['dir']) : '';
 $relDir = trim($relDir);
 if (!isValidRelPath($relDir)) $relDir = '';
 $absDir = fsPathJoin($GALLERY_BASE_FS, $relDir);
 
-// Datos
 $breadcrumbs = ($relDir === '') ? [] : explode('/', $relDir);
 $subdirs     = listSubdirs($absDir);
 $images      = listImages($absDir, $ALLOWED_EXT);
 
-// Para portada de carpeta: primera miniatura si existe
 function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $allowed): ?string {
     $imgs = listImages($absDir, $allowed);
     if (!$imgs) return null;
@@ -79,10 +77,10 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
 
 <h2>Galería</h2>
 
-  <div class="gallery-breadcrumbs">
+<div class="gallery-breadcrumbs">
     <?php if ($relDir != ''): ?><a href="/gallery"><?php endif; ?>
-	📁 Inicio
-	<?php if ($relDir != ''): ?></a><?php endif; ?>
+    📁 Inicio
+    <?php if ($relDir != ''): ?></a><?php endif; ?>
     <?php
       $acc = [];
       foreach ($breadcrumbs as $i => $seg) {
@@ -91,7 +89,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
           echo "/ <a href=\"{$link}\">" . htmlspecialchars($seg) . "</a>";
       }
     ?>
-  </div>
+</div>
 
 <div class="gallery-container">
 
@@ -162,9 +160,8 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
       <?php endif; ?>
     </div>
 
-
     <div id="lightbox">
-      <img id="lightbox-img" src="">
+      <img id="lightbox-img" src="" alt="">
       <div id="lightbox-title"></div>
       <div class="lightbox-controls">
         <span id="prev">&#9664;</span>
@@ -174,56 +171,51 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
       <pre class="embedForumSnippet"><code id="embedCode"></code></pre>
     </div>
   <?php endif; ?>
-  
-  	<p class="gallery-ai-note"><i>La totalidad de estas imágenes se han realizado con inteligencia artificial generativa.
-	<br />
-	Su licencia es CC0 1.0 Universal.
-	</i></p>
+
+  <p class="gallery-ai-note"><i>La totalidad de estas imágenes se han realizado con inteligencia artificial generativa.
+  <br />
+  Su licencia es CC0 1.0 Universal.
+  </i></p>
 
 </div>
 
 <?php if ($images): ?>
-	<script>
-		const thumbs = Array.from(document.querySelectorAll('.gallery-img-item .thumb'));
-		const lightbox = document.getElementById('lightbox');
-		const lightboxImg = document.getElementById('lightbox-img');
-		const lightboxTitle = document.getElementById('lightbox-title');
-		const embedCode = document.getElementById('embedCode');
-		let currentIndex = 0;
+<script>
+    const thumbs = Array.from(document.querySelectorAll('.gallery-img-item .thumb'));
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const embedCode = document.getElementById('embedCode');
+    let currentIndex = 0;
+    const baseUrl = window.location.origin;
 
-		// URL base absoluta para snippets (fallback robusto)
-		const baseUrl = window.location.origin;
+    function showImage(index) {
+      if(index < 0) index = thumbs.length - 1;
+      if(index >= thumbs.length) index = 0;
+      currentIndex = index;
+      const img = thumbs[index];
+      const src = img.dataset.full;
+      const title = img.dataset.title;
+      lightboxImg.src = src;
+      lightboxTitle.textContent = title;
+      const fullForEmbed = /^https?:\/\//i.test(src) ? src : `${baseUrl}${src}`;
+      embedCode.textContent = `[img width=700]${fullForEmbed}[/img]`;
+      lightbox.style.display = 'flex';
+    }
 
-		function showImage(index) {
-		  if(index < 0) index = thumbs.length - 1;
-		  if(index >= thumbs.length) index = 0;
-		  currentIndex = index;
-		  const img = thumbs[index];
-		  const src = img.dataset.full;
-		  const title = img.dataset.title;
-		  lightboxImg.src = src;
-		  lightboxTitle.textContent = title;
-		  // BBCode con URL absoluta
-		  const fullForEmbed = /^https?:\/\//i.test(src) ? src : `${baseUrl}${src}`;
-		  embedCode.textContent = `[img width=700]${fullForEmbed}[/img]`;
-		  lightbox.style.display = 'flex';
-		}
+    thumbs.forEach((img, idx) => img.addEventListener('click', () => showImage(idx)));
+    document.getElementById('prev').addEventListener('click', () => showImage(currentIndex - 1));
+    document.getElementById('next').addEventListener('click', () => showImage(currentIndex + 1));
+    document.getElementById('close').addEventListener('click', () => lightbox.style.display = 'none');
+    document.addEventListener('keydown', (e) => {
+      if (lightbox.style.display === 'flex') {
+        if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
+        if (e.key === 'ArrowRight') showImage(currentIndex + 1);
+        if (e.key === 'Escape') lightbox.style.display = 'none';
+      }
+    });
 
-		thumbs.forEach((img, idx) => img.addEventListener('click', () => showImage(idx)));
-		document.getElementById('prev').addEventListener('click', () => showImage(currentIndex - 1));
-		document.getElementById('next').addEventListener('click', () => showImage(currentIndex + 1));
-		document.getElementById('close').addEventListener('click', () => lightbox.style.display = 'none');
-		document.addEventListener('keydown', (e) => {
-		  if (lightbox.style.display === 'flex') {
-			if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
-			if (e.key === 'ArrowRight') showImage(currentIndex + 1);
-			if (e.key === 'Escape') lightbox.style.display = 'none';
-		  }
-		});
-
-		// Precarga
-		const preload = [];
-		thumbs.forEach(img => { const i = new Image(); i.src = img.dataset.full; preload.push(i); });
-	</script>
+    const preload = [];
+    thumbs.forEach(img => { const i = new Image(); i.src = img.dataset.full; preload.push(i); });
+</script>
 <?php endif; ?>
-
