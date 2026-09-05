@@ -1,8 +1,13 @@
 <?php
-//include("app/partials/main_nav_bar.php"); // Barra de Navegacion
 setMetaFromPage("Poderes | Heaven's Gate", "Resumen y acceso a los poderes disponibles.", null, 'website');
 
 $pageSect = "Poderes";
+
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-powers.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+}
 
 if (!function_exists('hg_pw_home_h')) {
     function hg_pw_home_h($value): string
@@ -36,7 +41,7 @@ $powerTypes = [
 ?>
 
 <h2>Poderes</h2>
-<fieldset class="grupoBioClan">
+<fieldset class="hg-powers-home">
     <?php foreach ($powerTypes as $power): ?>
         <?php
             $name = hg_pw_home_h($power['name'] ?? '');
@@ -44,9 +49,9 @@ $powerTypes = [
             $desc = hg_pw_home_h($power['description'] ?? '');
         ?>
         <a href="<?= $href ?>" title="<?= $name ?>">
-            <div class="renglon2col" style="height:52px;text-align:left;padding:1em;">
+            <div class="hg-powers-home-card">
                 <strong><?= $name ?></strong>
-                <p><span style="font-size:12px; opacity:.8;"><?= $desc ?></span></p>
+                <p><?= $desc ?></p>
             </div>
         </a>
     <?php endforeach; ?>
