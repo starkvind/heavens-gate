@@ -73,32 +73,6 @@ td.fcentro {
 	min-height: 310px;
 }
 
-/* Historical content table shared by news and biography group pages. */
-table.notix {
-	width: 100%;
-}
-
-td.texti {
-	border: 1px solid #009;
-	background-color: #000055;
-	padding: 10px;
-}
-
-/* User menu shell; pending final menu ownership cleanup. */
-div.userRightMenu {
-	position: fixed;
-	top: 4px;
-	right: 4px;
-	line-height: 12px;
-	z-index: 4;
-	text-align: right;
-	padding: 2px;
-	padding-top: 1px;
-	background: #000066;
-	font-size: 10px;
-}
-
-/* Global document header. */
 header {
 	text-align: center;
 	margin-bottom: 1em;
