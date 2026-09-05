@@ -1,4 +1,10 @@
-
+/*
+ * Global shell styles only.
+ *
+ * Shared reusable UI belongs in hg-components.css.
+ * Historical cross-domain primitives belong in hg-legacy-components.css.
+ * Route/domain presentation belongs in its dedicated stylesheet.
+ */
 
 .main-wrapper {
 	display: inline-block;
@@ -17,19 +23,15 @@
 }
 
 .boton1 {
-
 	width: 75px;
 	color: var(--hg-btn-accent);
 	border: 1px solid var(--hg-field-border);
-
 }
 
 input.boton1:hover {
-
 	color: var(--hg-btn-accent-hover);
 	cursor: pointer;
 	border: 1px solid #000088;
-
 }
 
 .boton2 {
@@ -53,18 +55,15 @@ input.boton1:hover {
 }
 
 table.todou {
-
 	width: 860px;
-
 }
 
 img.valign {
 	vertical-align: middle;
 	padding-bottom: 4px;
-
 }
 
-td.piepagina { /* Pie de la p?gina web */
+td.piepagina {
 	text-align:center;
 	padding:5px;
 	font-size: 9px;
@@ -88,7 +87,6 @@ fieldset.notf {
 	text-align: justify;
 	background-color: #000055;
 	box-shadow: 0 0 0 1px #000033 inset, 0 5px 10px rgba(0,0,0,0.35);
-
 }
 
 legend.notf {
@@ -105,7 +103,6 @@ legend.notf {
 	font-size: 11px;
 	list-style-type: decimal;
 	margin-top: 0px;
-	
 }
 
 .capitres {
@@ -118,60 +115,49 @@ legend.notf {
 }
 
 td.texti {
-	border: 1px solid #009;/* dotted #bbb;*/
+	border: 1px solid #009;
 	background-color: #000055;
 	padding: 10px;
-
 }
 
 td.chapter_text {
-	border: 1px solid #009;/* dotted #bbb;*/
+	border: 1px solid #009;
 	background-color: #000055;
 	padding: 8px;
 	text-align: left;
 }
 
 .ajustcelda {
-
 	width: 150px;
 	border: 1px solid #000099;
 	padding: 5px;
 	text-align: center;
-
 }
 
 .ajustceld {
-
 	width: 150px;
 	border: 1px solid #000099;
 	padding: 5px;
 	text-align: left;
-
 }
 
 .lefay {
-
 	border-bottom: 1px dotted #000099;
 	padding-bottom: 5px;
-
 }
 
 .navegacion_secciones {
-
 	font: normal 9px verdana;
 	padding-bottom: 0px;
-
 }
 
 .doncosa {
-
 	padding: 5px;
 	border: 1px dotted #fff;
 	text-align: justify;
-
 }
 
-img.photochapter  {
+img.photochapter {
 	width:65px;
 	height:65px;
 	margin:4px;
@@ -184,27 +170,23 @@ img.photochapter  {
 .photochapter:hover {
 	border: 1px solid #009;
 	background-color:#006;
-
-
 }
 
-/* USER MENU */
-
+/* User menu shell */
 div.userRightMenu {
 	position: fixed;
 	top: 4px;
 	right: 4px;
-	line-height: 12px; 
-	z-index: 4; 
+	line-height: 12px;
+	z-index: 4;
 	text-align: right;
 	padding: 2px;
 	padding-top: 1px;
-	/* -- */
-	background: #000066;	
+	background: #000066;
 	font-size: 10px;
 }
 
-/* Estado */
+/* Status shell */
 div.renglonStatusIz {
 	float: left;
 	border: 1px solid #000077;
@@ -225,8 +207,7 @@ div.renglonStatusDe {
 	text-align: left;
 }
 
-/* Bibliografia */
-
+/* Bibliography legacy shell; pending domain extraction. */
 div.renglonBiblio {
 	float: left;
 	border: 1px solid #000088;
@@ -241,227 +222,7 @@ div.renglonBiblio:hover {
 	cursor: pointer;
 }
 
-/* ==================================== */
-
-fieldset.grupoHabilidad {
-	border: 0px solid white;
-	padding-left: 30px;
-}
-
-fieldset.grupoBioClan {
-	border: 0px solid white;
-	padding-left: 46px;
-}
-
-div.renglon3col {
-	float: left;
-	padding: 4px;
-	margin: 4px;
-	width: 160px;
-	height: 16px;
-	text-align: center;
-	border: 1px solid #000088;
-	background-color: #05014E;
-}
-
-div.renglon3col:hover {
-	border: 1px solid #000099;
-	background: #000066;
-	/*border: 1px solid #0000AA;background-image: url("img/bars/barra-sel2.webp"); background-image: url("img/bars/barra-sk.webp"); background-image: url("img/bars/barra-don.webp"); background-image: url("img/bars/barra-sel.webp");*/
-}
-
-fieldset.descripcionGrupo {
-
-	border: 1px solid #000088;
-	margin-bottom: 30px;
-}
-
-div.renglon2col {
-	float: left;
-	padding: 4px;
-	margin: 4px;
-	width: 240px;
-	height: 16px;
-	border: 1px solid #000088;
-	background-color: #05014E;
-}
-
-div.renglon2col:hover {
-	border: 1px solid #000099;
-	background: #000066;
-}
-
-div.renglon2colIz {
-	float: left;
-}
-
-div.renglon2colDe {
-	float: right;
-	font-size: 9px;
-}
-
-/* NUEVO ASPECTO DE LA BIOGRAFIA */
-
-div.bioBody {
-	width: 100%;
-}
-
-fieldset.bioSeccion  {
-	border: 1px solid #009;
-}
-
-fieldset.bioSeccion legend{
-	border: 1px solid #009;
-	font-weight: bold;
-	padding: 2px;
-}
-
-div.bioTextData {
-	float: left;
-	width: 610px;
-	padding: 10px;
-	margin: 2px 0px 0px 0px;
-}
-
-div.bioSheetData {
-	float: left;
-	width: 610px;
-	padding: 10px;
-	margin: 2px 0px 0px 0px;
-}
-
-img.bioAttCircle {
-	vertical-align: middle;
-	padding: 2px;
-}
-
-/* NUEVO ASPECTO DE LOS DONES, HABILIDADES, ETC */
-
-fieldset.renglonPaginaDon {
-	border: 1px solid #000077;
-	padding: 5px;
-}
-
-fieldset.renglonPaginaDon legend {
-	border: 1px solid #000077;
-	padding: 5px;
-	font-weight: bold;
-}
-
-div.renglonDonData {
-	float: left;
-	padding: 4px;
-	width: 98.3%;
-	text-align: justify;
-}
-
-/* -------------------------------- */
-
-a.hg-avatar-link {
-	display: inline-block;
-	text-decoration: none;
-}
-
-div.marcoFotoBio {
-	float: left;
-	position: relative;
-	height: 96px;
-	width: 96px;
-	margin: 2px;
-	margin-bottom: 8px;
-}
-
-div.textoDentroFotoBio {
-	position: absolute;
-	top: 81px;
-	right: 0px;
-	overflow: hidden;
-	line-height: 12px;
-	z-index: 4;
-	text-align: right;
-	padding: 2px;
-	padding-top: 1px;
-	font-size: 9px;
-	transition: color 0.15s ease;
-}
-
-div.marcoFotoBio--pj,
-div.marcoFotoBio {
-	border: 1px solid #000099;
-}
-
-div.textoDentroFotoBio--pj,
-div.textoDentroFotoBio {
-	background: #000066;
-	color: #8fb2ff;
-}
-
-a.hg-avatar-link--pj:hover div.marcoFotoBio--pj,
-a.hg-avatar-link:hover div.marcoFotoBio {
-	border: 1px solid #0000BB;
-	cursor: pointer;
-}
-
-a.hg-avatar-link--pj:hover div.textoDentroFotoBio--pj,
-a.hg-avatar-link:hover div.textoDentroFotoBio {
-	color: #c7d7ff;
-}
-
-div.marcoFotoBio--pnj {
-	border: 1px solid #990000;
-	background: #660000;
-}
-
-div.textoDentroFotoBio--pnj {
-	background: #660000;
-	color: #ff9898;
-}
-
-a.hg-avatar-link--pnj:hover div.marcoFotoBio--pnj {
-	border: 1px solid #BB0000;
-	cursor: pointer;
-}
-
-a.hg-avatar-link--pnj:hover div.textoDentroFotoBio--pnj {
-	color: #ffcaca;
-}
-
-div.marcoFotoBio--mon {
-	border: 1px solid #D4AF37;
-	background: #5A4A00;
-}
-
-div.textoDentroFotoBio--mon {
-	background: #7A6400;
-	color: #e8c55a;
-}
-
-a.hg-avatar-link--mon:hover div.marcoFotoBio--mon {
-	border: 1px solid #FFD54A;
-	cursor: pointer;
-}
-
-a.hg-avatar-link--mon:hover div.textoDentroFotoBio--mon {
-	color: #ffe39a;
-}
-
-div.dentroFotoBio {
-	position: absolute; 
-	top: 0px; 
-	left: 0px; 
-	z-index: 2;
-}
-
-img.fotoBioList {
-	width: 90px;
-	height: 90px;
-	vertical-align: middle;
-	padding-left: 3px;
-	padding-top: 3px;
-}
-
-/* MENU SUPERIOR */
-
+/* Top section navigation shell; pending menu ownership cleanup. */
 #cuerpoMenuSuperior {
 	width:180px;
 	float:left;
@@ -474,8 +235,7 @@ img.fotoBioList {
 	margin-right:6px;
 }
 
-/* Nuevo Archivos */
-
+/* Archive primitives; pending archive/domain extraction. */
 #archivosLegend {
 	border: 1px solid #009;
 	font-weight: bold;
@@ -500,7 +260,7 @@ img.fotoBioList {
 	background-color: #005;
 }
 
-/* Cabecera */
+/* Global document header. */
 header {
 	text-align: center;
 	margin-bottom: 1em;
@@ -512,334 +272,13 @@ header img {
 	height: auto;
 }
 
-/* Separador de poderes */
-
+/* Historical power section wrapper; pending powers extraction. */
 .characterPowerSection {
 	width: 100%;
 	margin: auto;
 }
 
-/* === Power Card (RPG-style) === */
-.power-card{
-	width: 96%;
-	max-width: 860px;
-	margin: 6px auto 16px auto;
-	border: 1px solid #000088;
-	background: linear-gradient(180deg, #0a0a4a 0%, #05014e 100%);
-	box-shadow: 0 0 0 1px #000033 inset, 0 10px 30px rgba(0,0,0,0.35);
-	padding: 10px 12px 12px 12px;
-}
-
-.power-card__banner{
-	border: 1px solid #000099;
-	background: linear-gradient(90deg, #001a66, #003a99);
-	padding: 6px 10px;
-	margin-bottom: 10px;
-	text-align: right;
-}
-
-.power-card__title{
-	font-family: verdana, sans-serif;
-	font-size: 16px;
-	font-weight: bold;
-	color: #33CCCC;
-	letter-spacing: 0.4px;
-}
-
-.power-card__body{
-	display: grid;
-	grid-template-columns: 120px 1fr;
-	gap: 12px;
-	align-items: start;
-}
-
-.power-card__media{
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	padding: 4px;
-}
-
-.power-card__img{
-	width: 110px;
-	height: 110px;
-	border-radius: 50%;
-	/*border: 2px solid #000088;*/
-	/*box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5);*/
-	object-fit: cover;
-}
-
-.power-card--item .power-card__img{
-	width: 88px;
-	height: 88px;
-	padding: 6px;
-	border-radius: 0;
-}
-
-.power-card__stats{
-	display: flex;
-	text-align: left;
-	flex-direction: column;
-	gap: 6px;
-}
-
-.power-stat{
-	display: grid;
-	grid-template-columns: 110px 1fr;
-	gap: 6px;
-	align-items: center;
-	background: #070760;
-	border: 1px solid #000088;
-	padding: 4px 6px;
-}
-
-.power-stat__label{
-	color: #66CCFF;
-	font-weight: bold;
-	font-size: 10px;
-	text-transform: uppercase;
-	letter-spacing: 0.6px;
-}
-
-.power-stat__value{
-	color: #FFFFFF;
-	font-size: 11px;
-}
-
-.power-card__desc{
-	margin-top: 10px;
-	/*border: 1px solid #000088;*/
-	border: 0;
-	background: #04044d;
-	padding: 8px 10px 0px 10px;
-}
-
-.power-card__desc-title{
-	color: #99FFFF;
-	font-weight: bold;
-	margin-bottom: 6px;
-}
-
-.power-card__desc-body{
-	color: #FFFFFF;
-	line-height: 1.4;
-}
-
-
-/* Breadcrumb / Tabs - Pill */
-.nav-breadcrumb{
-	position: relative;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 5px 10px;
-	border-radius: 999px;
-	clear: both;
-	margin-top: 12px;
-	margin-bottom: 8px;
-	/*background: linear-gradient(90deg, #00124d, #002a77);
-	border: 1px solid #0000aa;
-	box-shadow: 0 0 0 1px #000044 inset;*/
-	color: #aef;
-	font-size: 10px;
-	letter-spacing: 0.3px;
-}
-
-.nav-breadcrumb a{
-	color: #66ccff;
-	text-decoration: none;
-	font-weight: bold;
-	padding: 1px 4px;
-	border-radius: 8px;
-}
-
-.nav-breadcrumb a:hover{
-	background: #001a66;
-	color: #cfefff;
-}
-
-.nav-breadcrumb .crumb-sep{
-	color: #66ccff;
-	opacity: 0.7;
-}
-
-.power-card--item .power-card__img-wrap{
-	width: 88px;
-	height: 88px;
-	padding: 6px;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0,0,0,0.5);
-}
-
-.power-card--item .power-card__img{
-	/*width: 100%;
-	height: 100%;*/
-	width: 100px;
-	height: 100px;
-	border-radius: 0;
-	object-fit: contain;
-	/* box-shadow: 0 0 0 1px #111111, 0 0 8px rgba(0,0,0,0.5);*/
-}
-
-.hg-affiliation-content {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	padding: 8px 0 12px 0;
-}
-
-/* Global tabs (bio/docs/powers/details) */
-.hg-tabs {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
-	justify-content: flex-end;
-	width: 100%;
-	margin: 8px 0 12px;
-}
-
-.hg-tabs .hgTabBtn {
-	font-family: var(--hg-font-ui);
-	font-size: 10px;
-	background: linear-gradient(180deg, #00106a 0%, #000c4d 100%);
-	color: #eef6ff;
-	padding: 0.52em 0.9em;
-	border: 1px solid #003399;
-	border-radius: 6px;
-	cursor: pointer;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.hg-tabs .hgTabBtn:hover {
-	border-color: #0066cc;
-	background: linear-gradient(180deg, #00178a 0%, #00105f 100%);
-	color: #7fd4ff;
-}
-
-.hg-tabs .hgTabBtn.active {
-	background: linear-gradient(180deg, #001ea0 0%, #001570 100%);
-	color: #40c6ff;
-	border-color: #00a0ff;
-}
-
-.hg-tabs .hgTabBtn:focus-visible {
-	outline: 1px solid #00a0ff;
-	outline-offset: 1px;
-}
-
-.hg-tabs .hgTabBtn .hgTabEmoji {
-	width: 16px;
-	height: 16px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 13px;
-	line-height: 1;
-}
-
-.hg-tabs .hgTabBtn .hgTabEmoji .hgTabIcon {
-	width: 16px;
-	height: 16px;
-	display: block;
-	object-fit: contain;
-}
-
-.hg-tabs .hgTabBtn .hgTabLabel {
-	max-width: 0;
-	opacity: 0;
-	overflow: hidden;
-	white-space: nowrap;
-	transition: max-width 0.16s ease, opacity 0.12s ease;
-}
-
-.hg-tabs .hgTabBtn:hover .hgTabLabel,
-.hg-tabs .hgTabBtn:focus-visible .hgTabLabel {
-	max-width: 180px;
-	opacity: 1;
-}
-
-/* Generic tab panels (powers/docs/other detail pages) */
-.hg-tab-panel {
-	display: none;
-}
-
-.hg-tab-panel.active {
-	display: block;
-}
-
-.hg-tab-panel[data-tab='owners'] .grupoBioClan {
-	display: flex;
-	justify-content: flex-start !important;
-}
-
-.hg-tab-panel[data-tab='owners'] .contenidoAfiliacion {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	padding: 8px 0 12px 0 !important;
-	margin-left: 28px !important;
-	justify-content: flex-start !important;
-}
-
-.hg-tip-row {
-	display: flex;
-	gap: 8px;
-	align-items: flex-start;
-}
-
-#hg-tooltip {
-	position: fixed;
-	z-index: 9999;
-	max-width: 320px;
-	background: #0b0b2b;
-	border: 1px solid #003399;
-	color: #e6f0ff;
-	padding: 8px 10px;
-	border-radius: 6px;
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-	font-size: 12px;
-	display: none;
-	pointer-events: none;
-	text-align: left;
-	max-height: 60vh;
-	overflow: auto;
-}
-
-#hg-tooltip .hg-tip-title {
-	font-weight: bold;
-	margin-bottom: 4px;
-	color: #8fd7ff;
-}
-
-#hg-tooltip .hg-tip-meta {
-	font-size: 11px;
-	color: #9fb2d9;
-}
-
-#hg-tooltip .hg-tip-label {
-	font-weight: bold;
-	margin-top: 6px;
-	color: #cfd9ff;
-}
-
-#hg-tooltip .hg-tip-text {
-	font-size: 12px;
-	color: #e6f0ff;
-}
-
-.hg-tip-thumb {
-	width: 48px;
-	height: 48px;
-	object-fit: cover;
-	border-radius: 6px;
-	border: 1px solid #003399;
-}
-
+/* Soundtrack embed helpers; pending embeds extraction. */
 .bso-card-iframe {
 	clear: both;
 }
@@ -848,6 +287,7 @@ header img {
 	text-align: center;
 }
 
+/* Chapter error helper; pending chapters extraction. */
 .chapt-error {
 	color: red;
 }
