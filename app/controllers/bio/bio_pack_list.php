@@ -58,13 +58,11 @@ if (!function_exists('hg_bio_pack_org_chart_available')) {
 include("app/partials/main_nav_bar.php");
 echo "<h2>" . htmlspecialchars($nameTypePack, ENT_QUOTES, 'UTF-8') . "</h2>";
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_list.css');
+    hg_page_register_stylesheet('/assets/css/hg-archive-panel.css');
+    hg_page_register_stylesheet('/assets/css/pages/bio/pack-list.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_pack_list.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_pack_list.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-archive-panel.css">';
+    echo '<link rel="stylesheet" href="/assets/css/pages/bio/pack-list.css">';
 }
 
 $consulta = "SELECT id, name FROM dim_organizations ORDER BY sort_order";
@@ -119,8 +117,8 @@ foreach ($clanes as $clan) {
     $hasOrgChart = hg_bio_pack_org_chart_available($link, (int)$clanId);
 
     if ($groupRows > 0 || $hasOrgChart) {
-        print("<fieldset id='renglonArchivos'>");
-        print("<legend id='archivosLegend'>");
+        print("<fieldset class='hg-archive-panel'>");
+        print("<legend class='hg-archive-panel__legend'>");
         $hrefClan = pretty_url($link, 'dim_organizations', '/organizations', (int)$clanId);
         print("<a href='" . htmlspecialchars($hrefClan, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($clanName, ENT_QUOTES, 'UTF-8') . "'>");
         print("&nbsp;" . htmlspecialchars($clanName, ENT_QUOTES, 'UTF-8') . "&nbsp;");
@@ -142,7 +140,7 @@ foreach ($clanes as $clan) {
                 print("<li class='listaManadas'>");
                 $hrefGroup = hg_bio_pack_group_url($link, $clanId, $gid);
                 print("<a href='" . htmlspecialchars($hrefGroup, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "'>");
-                print("<img src='" . htmlspecialchars($iconManada, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' class='valign'/>");
+                print("<img src='" . htmlspecialchars($iconManada, ENT_QUOTES, 'UTF-8') . "' alt='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' title='" . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8') . "' class='bio-pack-group-icon'/>");
                 print(" " . htmlspecialchars($gname, ENT_QUOTES, 'UTF-8'));
                 print("</a></li>");
 
