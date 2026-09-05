@@ -1,11 +1,17 @@
-<?php include("app/partials/main_nav_bar.php"); // Barra de Navegación ?>
-setMetaFromPage("Disciplinas | Heaven's Gate", "Categorias de disciplinas.", null, 'website');
-<h2> Disciplinas </h2>
-<fieldset class="grupoHabilidad">
 <?php
-$pageSect = "Disciplinas"; // PARA CAMBIAR EL TÍTULO DE LA PÁGINA
+include("app/partials/main_nav_bar.php");
+setMetaFromPage("Disciplinas | Heaven's Gate", "Categorias de disciplinas.", null, 'website');
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-powers.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+}
+?>
+<h2>Disciplinas</h2>
+<fieldset class="hg-powers-category-list">
+<?php
+$pageSect = "Disciplinas";
 
-// Consulta segura usando MySQLi
 $consulta = "SELECT id, name FROM dim_discipline_types ORDER BY id";
 $stmt = $link->prepare($consulta);
 $stmt->execute();
@@ -19,7 +25,7 @@ while ($ResultQuery = $result->fetch_assoc()) {
 
     echo "
         <a href='" . htmlspecialchars(pretty_url($link, 'dim_discipline_types', '/powers/discipline/type', $typeId)) . "' title='$typeName'>
-            <div class='renglon3col'>
+            <div class='hg-powers-category-card'>
                 $typeName
             </div>
         </a>
