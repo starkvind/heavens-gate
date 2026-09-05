@@ -1,6 +1,32 @@
 (function (w) {
     'use strict';
 
+    var legacyMultiselectStyleProps = [
+        'font-family',
+        'font-size',
+        'font-weight',
+        'line-height',
+        'padding',
+        'border',
+        'border-color',
+        'border-radius',
+        'background-color',
+        'color',
+        'box-sizing',
+        'height',
+        'min-height',
+        'outline',
+        'box-shadow'
+    ];
+
+    function clearLegacyMultiselectInlineStyles() {
+        w.document.querySelectorAll('.ms-btn').forEach(function (button) {
+            legacyMultiselectStyleProps.forEach(function (property) {
+                button.style.removeProperty(property);
+            });
+        });
+    }
+
     function wireMultiselectAccessibility() {
         var doc = w.document;
 
@@ -73,6 +99,11 @@
             });
             $.fn.dataTable.defaults.__hgDefaultsApplied = true;
         }
+
+        $(w.document).on('init.dt.hgMultiselectStyles', function () {
+            w.setTimeout(clearLegacyMultiselectInlineStyles, 0);
+        });
+        w.setTimeout(clearLegacyMultiselectInlineStyles, 0);
     }
 
     if (w.document.readyState === 'loading') {
