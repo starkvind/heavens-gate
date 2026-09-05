@@ -41,6 +41,8 @@
 		$tokensCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-tokens.css');
 		$baseCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-base.css');
 		$coreCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-core.css');
+		$legacyComponentsCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-legacy-components.css');
+		$componentsCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-components.css');
 		$layoutCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-layout.css');
 		$menuCssVersion = @filemtime(__DIR__ . '/../../assets/css/hg-menu.css');
 		$permutScriptVersion = @filemtime(__DIR__ . '/../../assets/js/permutloading.js');
@@ -50,6 +52,8 @@
 		$tokensCssVersion = ($tokensCssVersion !== false) ? (int)$tokensCssVersion : 1;
 		$baseCssVersion = ($baseCssVersion !== false) ? (int)$baseCssVersion : 1;
 		$coreCssVersion = ($coreCssVersion !== false) ? (int)$coreCssVersion : 1;
+		$legacyComponentsCssVersion = ($legacyComponentsCssVersion !== false) ? (int)$legacyComponentsCssVersion : 1;
+		$componentsCssVersion = ($componentsCssVersion !== false) ? (int)$componentsCssVersion : 1;
 		$layoutCssVersion = ($layoutCssVersion !== false) ? (int)$layoutCssVersion : 1;
 		$menuCssVersion = ($menuCssVersion !== false) ? (int)$menuCssVersion : 1;
 		$permutScriptVersion = ($permutScriptVersion !== false) ? (int)$permutScriptVersion : 1;
@@ -60,6 +64,8 @@
 	<link rel="stylesheet" href="assets/css/hg-tokens.css?v=<?= $tokensCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-base.css?v=<?= $baseCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-core.css?v=<?= $coreCssVersion ?>">
+	<link rel="stylesheet" href="assets/css/hg-legacy-components.css?v=<?= $legacyComponentsCssVersion ?>">
+	<link rel="stylesheet" href="assets/css/hg-components.css?v=<?= $componentsCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-layout.css?v=<?= $layoutCssVersion ?>">
 	<link rel="stylesheet" href="assets/css/hg-menu.css?v=<?= $menuCssVersion ?>">
 
