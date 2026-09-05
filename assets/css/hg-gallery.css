@@ -1,0 +1,165 @@
+/* Public gallery --------------------------------------------------------- */
+
+.gallery-header {
+    padding: 16px 20px;
+    background: #121826;
+    border-bottom: 1px solid #1f2a44;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gallery-header h1 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.gallery-container {
+    padding: 18px 20px;
+}
+
+.gallery-breadcrumbs {
+    width: 100%;
+    display: block;
+    margin-left: 2em;
+}
+
+.gallery-breadcrumbs a,
+.gallery-breadcrumbs span {
+    color: #a7c0ff;
+    text-decoration: none;
+    margin-right: 6px;
+}
+
+.gallery-section-title {
+    margin: 10px 0 2em;
+    font-size: 16px;
+    display: none;
+}
+
+.gallery-section-title-sub {
+    margin-top: 16px;
+}
+
+.gallery-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.gallery-card {
+    background: #000044;
+    border: 1px solid #000088;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.gallery-folder {
+    width: 25%;
+    text-align: center;
+    cursor: pointer;
+}
+
+.gallery-folder .cover {
+    width: 100px;
+    height: 120px;
+    object-fit: cover;
+    border: 2px solid #2a3a62;
+    border-radius: 10px;
+    background: #000;
+    display: block;
+    margin: 0 auto 8px;
+}
+
+.gallery-folder .icon {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.gallery-folder .name {
+    font-weight: 600;
+}
+
+.gallery-img-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.gallery-img-item {
+    width: 125px;
+    text-align: center;
+}
+
+.gallery-img-item .thumb {
+    width: 125px;
+    height: 125px;
+    object-fit: cover;
+    border: 2px solid #2a3a62;
+    border-radius: 10px;
+    background: #000;
+    cursor: pointer;
+}
+
+.gallery-img-title {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #c9d6ff;
+}
+
+.gallery-divider {
+    border: 0;
+    border-top: 1px solid #1f2a44;
+    margin: 16px 0;
+}
+
+#lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 9999;
+}
+
+#lightbox img {
+    max-width: 90%;
+    max-height: 75%;
+    margin-bottom: 10px;
+}
+
+#lightbox-title {
+    color: #ccc;
+    font-size: 1.05em;
+    margin-bottom: 15px;
+}
+
+.lightbox-controls {
+    display: flex;
+    gap: 20px;
+    font-size: 2em;
+}
+
+.lightbox-controls span {
+    cursor: pointer;
+    user-select: none;
+    color: #fff;
+}
+
+.embedForumSnippet {
+    background: #111;
+    border: 1px solid #444;
+    color: #0f0;
+    font-family: monospace;
+    padding: 0.5em;
+    border-radius: 6px;
+    overflow: auto;
+}
+
+.gallery-ai-note {
+    margin-top: 3em;
+    margin-bottom: 0;
+}
