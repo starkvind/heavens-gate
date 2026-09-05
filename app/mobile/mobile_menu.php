@@ -223,8 +223,6 @@ if (!function_exists('hg_mobile_menu_fallback')) {
                 ['label' => 'Galería', 'href' => '/gallery', 'target' => '_self'],
             ]],
             ['label' => 'Juegos y herramientas', 'items' => [
-                ['label' => 'Archivo mnemogeno', 'href' => '/games/card-game', 'target' => '_self'],
-                ['label' => 'Simulador combate', 'href' => '/games/combat-simulator', 'target' => '_self'],
                 ['label' => 'Mensajes foro', 'href' => '/tools/forum-avatar', 'target' => '_self'],
                 ['label' => 'Lector foro', 'href' => '/tools/forum-topic-viewer', 'target' => '_self'],
                 ['label' => 'Generador Garou', 'href' => '/tools/garou-name-generator', 'target' => '_self'],
