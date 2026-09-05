@@ -63,7 +63,7 @@ if (!function_exists('hg_render_trait_levels_with_gems')) {
             return $levelsHtml;
         }
 
-        $rendered = "<div class='trait-levels-gems'>";
+        $rendered = "<div class='hg-traits-levels'>";
         foreach ($items as $index => $item) {
             $level = $index + 1;
             $gemFile = sprintf('img/ui/gems/attr/gem-attr-%02d.webp', $level);
@@ -73,9 +73,9 @@ if (!function_exists('hg_render_trait_levels_with_gems')) {
                 $itemHtml .= $dom->saveHTML($node);
             }
 
-            $rendered .= "<div class='trait-levels-gems__item'>";
-            $rendered .= "<div class='trait-levels-gems__icon'><img class='bioAttCircle trait-levels-gems__img' src='{$gemFile}' alt='Nivel {$level}'/></div>";
-            $rendered .= "<div class='trait-levels-gems__text'>{$itemHtml}</div>";
+            $rendered .= "<div class='hg-traits-levels__item'>";
+            $rendered .= "<div class='hg-traits-levels__icon'><img class='hg-traits-gem hg-traits-levels__img' src='{$gemFile}' alt='Nivel {$level}'/></div>";
+            $rendered .= "<div class='hg-traits-levels__text'>{$itemHtml}</div>";
             $rendered .= "</div>";
         }
         $rendered .= "</div>";
@@ -103,7 +103,7 @@ if ($result->num_rows > 0) {
     $nameSkill = $traitName; // Compatibilidad con breadcrumbs legacy
     $traitKind = htmlspecialchars((string)$trait['kind']);
     $traitClassRaw = (string)$trait['classification'];
-    $traitClass = (strlen($traitClassRaw) >= 5) ? substr($traitClassRaw, 4) : $traitClassRaw; // Igual que SUBSTRING(..., 5) en traits_table.php
+    $traitClass = (strlen($traitClassRaw) >= 5) ? substr($traitClassRaw, 4) : $traitClassRaw;
     $traitClass = htmlspecialchars($traitClass);
     $traitDescription = (string)$trait['description'];
     $traitLevels = (string)$trait['levels'];
@@ -131,12 +131,10 @@ if ($result->num_rows > 0) {
     include("app/partials/main_nav_bar.php");
     if (function_exists('hg_page_register_stylesheet')) {
         hg_page_register_stylesheet('/assets/css/hg-docs.css');
+        hg_page_register_stylesheet('/assets/css/hg-traits.css');
     } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-docs.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
-        }
+        echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+        echo '<link rel="stylesheet" href="/assets/css/hg-traits.css">';
     }
 
     ob_start();
@@ -247,9 +245,6 @@ if ($result->num_rows > 0) {
     $hasOwners = count($traitOwners) > 0;
 
     if ($hasOwners) {
-        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
-        hg_render_owner_tabs_styles(true, 28);
-
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
         echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
@@ -265,9 +260,9 @@ if ($result->num_rows > 0) {
             $puntos = ($value == 1) ? "1 punto" : "{$value} puntos";
 
             echo "<div class='power-card__desc'>";
-            echo "  <div class='power-card__desc-title'><img class='bioAttCircle bio-att-circle-inline' src='{$gemSrc}' alt='{$puntos}'/>&nbsp;</div>"; /* Personajes con {$puntos} */
+            echo "  <div class='power-card__desc-title'><img class='hg-traits-gem hg-traits-owner-level' src='{$gemSrc}' alt='{$puntos}'/>&nbsp;</div>";
             echo "  <div class='power-card__desc-body'>";
-            echo "    <div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+            echo "    <div class='hg-traits-owners'><div class='hg-affiliation-content'>";
 
             foreach ($owners as $o) {
                 $oid = (int)($o['id'] ?? 0);
@@ -304,4 +299,3 @@ if ($result->num_rows > 0) {
 $stmt->close();
 
 ?>
-
