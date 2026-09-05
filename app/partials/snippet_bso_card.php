@@ -4,6 +4,10 @@ include_once(__DIR__ . '/../helpers/runtime_response.php');
 function mostrarTarjetaBSO($link, $tipo, $id) {
 	if (!in_array($tipo, ['personaje', 'temporada', 'episodio'])) return;
 
+	if (function_exists('hg_page_register_stylesheet')) {
+		hg_page_register_stylesheet('/assets/css/hg-bso.css');
+	}
+
 	$queryBso = "
 		SELECT bs.context_title, bs.title AS titulo_real, bs.artist, bs.youtube_url AS enlace 
 		FROM bridge_soundtrack_links br
@@ -25,14 +29,13 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 
 	if ($result->num_rows > 0) {
 		while ($tema = $result->fetch_assoc()) {
-			// Extraer ID del enlace YouTube
 			$youtubeID = '';
 			if (preg_match('%(?:youtu\.be/|youtube\.com/watch\?v=)([^&\n?#]+)%i', $tema['enlace'], $matches)) {
 				$youtubeID = $matches[1];
 			}
 
 			if ($youtubeID) {
-				echo "<div class='bioTextData'>"; 
+				echo "<div class='bioTextData'>";
 					echo "<fieldset class='bso-card bioSeccion'>";
 					echo "<legend>&nbsp;&#127925; {$tema['context_title']}&nbsp;</legend>";
 					echo "<div class='video-wrapper'>";
@@ -46,4 +49,3 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 	}
 }
 ?>
-
