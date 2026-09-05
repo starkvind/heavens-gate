@@ -1,9 +1,15 @@
 <?php setMetaFromPage("Bibliografia | Heaven's Gate", "Bibliografia y referencias de la campana.", null, 'website'); ?>
 <?php include_once(__DIR__ . '/../../helpers/public_response.php'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-main.css'); } ?>
+<?php
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-bibliography.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-bibliography.css">';
+}
+?>
 <h2>Bibliograf&iacute;a</h2>
-<fieldset class="grupoHabilidad">
+<div class="hg-bibliography-list">
     <?php
     // Verificar si la conexion a la base de datos ($link) esta definida y es valida
     if (!$link) {
@@ -33,10 +39,10 @@
         $descBook = htmlspecialchars($ResultQuery["description"]);
         $goodYearBook = $yearBook != 0 ? $yearBook : "";
 
-        echo "<div class='renglonBiblio main-biblio-row' title='$descBook'>$nameBook <div class='main-biblio-year'>$goodYearBook</div></div>";
+        echo "<div class='hg-bibliography-entry' title='$descBook'><span>$nameBook</span><span class='hg-bibliography-entry__year'>$goodYearBook</span></div>";
     }
 
     // Liberar el resultado de la consulta
     mysqli_free_result($IdConsulta);
     ?>
-</fieldset>
+</div>
