@@ -1,0 +1,127 @@
+name: CSS Phase 6 Initial Cleanup
+
+on:
+  push:
+    branches:
+      - css-phase6-work
+    paths:
+      - '.github/workflows/css-phase6-initial.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: css-phase6-work
+
+      - name: Apply phase 6 initial cleanup
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          admin = Path('app/controllers/admin/admin_main.php')
+          source = admin.read_text(encoding='utf-8')
+          old = "\t\techo '<link rel=\"stylesheet\" href=\"/assets/css/hg-admin.css\">';"
+          new = "\t\tif (function_exists('hg_page_register_stylesheet')) {\n\t\t\thg_page_register_stylesheet('/assets/css/hg-admin.css');\n\t\t}"
+          if source.count(old) != 1:
+              raise SystemExit(f'expected exactly one direct hg-admin stylesheet link, found {source.count(old)}')
+          admin.write_text(source.replace(old, new), encoding='utf-8')
+
+          bio = Path('assets/css/hg-bio.css')
+          components = Path('assets/css/hg-components.css')
+          bio_css = bio.read_text(encoding='utf-8')
+          component_css = components.read_text(encoding='utf-8')
+
+          selectors = [
+              '#hg-tooltip',
+              '#hg-tooltip .hg-tip-title',
+              '#hg-tooltip .hg-tip-meta',
+              '#hg-tooltip .hg-tip-label',
+              '#hg-tooltip .hg-tip-text',
+          ]
+
+          def declarations(css, selector):
+              match = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', css, re.S)
+              if not match:
+                  raise SystemExit(f'missing selector {selector!r}')
+              return re.sub(r'\s+', ' ', match.group(1)).strip()
+
+          for selector in selectors:
+              left = declarations(bio_css, selector)
+              right = declarations(component_css, selector)
+              if left != right:
+                  raise SystemExit(f'tooltip declarations differ for {selector}; refusing cleanup')
+
+          start = bio_css.find('#hg-tooltip {')
+          end = bio_css.find('.power-card--bio')
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('could not isolate duplicated bio tooltip block')
+          duplicate_block = bio_css[start:end]
+          for selector in selectors:
+              if selector not in duplicate_block:
+                  raise SystemExit(f'{selector} is not inside isolated duplicate block')
+          bio.write_text(bio_css[:start] + bio_css[end:], encoding='utf-8')
+
+          # Basic structural sanity for CSS touched by this step.
+          for path in (bio, components, Path('assets/css/hg-legacy-components.css')):
+              css = path.read_text(encoding='utf-8')
+              if css.count('{') != css.count('}'):
+                  raise SystemExit(f'unbalanced braces in {path}')
+          PY
+
+      - name: Lint PHP
+        shell: bash
+        run: |
+          find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/tmp/php-lint.log
+          tail -n 20 /tmp/php-lint.log
+
+      - name: Report duplicated CSS selectors
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import collections
+          import re
+
+          owners = collections.defaultdict(set)
+          rule_re = re.compile(r'(^|})\s*([^@{}][^{}]*)\{', re.M)
+          for path in Path('assets/css').rglob('*.css'):
+              if '/vendor/' in path.as_posix():
+                  continue
+              text = re.sub(r'/\*.*?\*/', '', path.read_text(encoding='utf-8', errors='replace'), flags=re.S)
+              for match in rule_re.finditer(text):
+                  selector_group = match.group(2).strip()
+                  if not selector_group:
+                      continue
+                  for selector in selector_group.split(','):
+                      selector = re.sub(r'\s+', ' ', selector.strip())
+                      if selector:
+                          owners[selector].add(path.as_posix())
+
+          duplicates = sorted(
+              ((selector, sorted(paths)) for selector, paths in owners.items() if len(paths) > 1),
+              key=lambda item: (-len(item[1]), item[0])
+          )
+          print(f'cross-file duplicated selectors: {len(duplicates)}')
+          for selector, paths in duplicates[:120]:
+              print(f'{selector} :: {" | ".join(paths)}')
+          PY
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name 'Maurick Starkvind'
+          git config user.email 'maverickk@gmail.com'
+          git add app/controllers/admin/admin_main.php assets/css/hg-bio.css
+          if git diff --cached --quiet; then
+            echo 'No cleanup changes to commit.'
+            exit 0
+          fi
+          git commit -m 'refactor(css): start shared component consolidation'
+          git push origin HEAD:css-phase6-work
