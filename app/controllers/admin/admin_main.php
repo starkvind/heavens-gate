@@ -237,7 +237,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 
 		/* MODERNO NUEVO */
 		include(__DIR__ . "/../../partials/main_nav_bar.php");	// Barra Navegación
-		echo '<link rel="stylesheet" href="/assets/css/hg-admin.css">';
+		if (function_exists('hg_page_register_stylesheet')) {
+			hg_page_register_stylesheet('/assets/css/hg-admin.css');
+		}
 		// Si hay parámetro "s", incluimos la sección correspondiente
 		if (isset($_GET['s'])) {
 			$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
