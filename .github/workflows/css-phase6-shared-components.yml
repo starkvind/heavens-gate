@@ -1,0 +1,42 @@
+name: CSS Phase 6 Shared Components
+
+on:
+  push:
+    branches:
+      - css-phase6-shared-components
+    paths:
+      - '.github/workflows/css-phase6-shared-components.yml'
+      - '.github/ci/css_phase6_shared_components.py'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: css-phase6-shared-components
+
+      - name: Consolidate shared components
+        run: python3 .github/ci/css_phase6_shared_components.py
+
+      - name: Lint PHP
+        shell: bash
+        run: |
+          find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/tmp/php-lint.log
+          tail -n 20 /tmp/php-lint.log
+
+      - name: Commit consolidation
+        shell: bash
+        run: |
+          git config user.name 'Maurick Starkvind'
+          git config user.email 'maverickk@gmail.com'
+          git add assets/css/hg-components.css assets/css/hg-systems.css assets/css/hg-seasons.css assets/css/hg-archive.css
+          if git diff --cached --quiet; then
+            echo 'No shared component changes to commit.'
+            exit 0
+          fi
+          git commit -m 'refactor(css): consolidate shared status and tooltip rules'
+          git push origin HEAD:css-phase6-shared-components
