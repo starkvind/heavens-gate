@@ -1,0 +1,22 @@
+name: CSS Border Debug
+
+on:
+  push:
+    branches:
+      - css-phase6-border-debug
+    paths:
+      - '.github/workflows/css-border-debug.yml'
+      - '.github/ci/css_border_debug.py'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: css-phase6-border-debug
+      - name: Scan CSS border origin
+        run: python3 .github/ci/css_border_debug.py
