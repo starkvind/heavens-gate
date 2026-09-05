@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../assets/css/hg-tokens.css">
+<link rel="stylesheet" href="../../assets/css/hg-base.css">
+<link rel="stylesheet" href="../../assets/css/hg-core.css">
+<link rel="stylesheet" href="../../assets/css/hg-legacy-components.css">
+<link rel="stylesheet" href="../../assets/css/hg-components.css">
+<link rel="stylesheet" href="../../assets/css/hg-layout.css">
+<link rel="stylesheet" href="../../assets/css/hg-menu.css">
+<link rel="stylesheet" href="../../assets/css/hg-admin.css">
+</head><body>
+<table class="tmenu"><tbody><tr><td class="sekzo"><a href="/seasons"><div id="probe-menu" class="renglonMenu">Temporadas</div></a></td></tr></tbody></table>
+<a class="adm-admin-menu-link" href="/talim/test"><div id="probe-admin" class="bioSheetPower adm-admin-tile"><span class="adm-admin-tile-title">Gestionar</span></div></a>
+<a class="hg-avatar-link hg-avatar-link--pj" href="/characters/test"><div id="probe-avatar" class="marcoFotoBio marcoFotoBio--pj"><div class="textoDentroFotoBio textoDentroFotoBio--pj">PJ</div></div></a>
+<pre id="result"></pre>
+<script>
+addEventListener('load', () => {
+  const ids=['probe-menu','probe-admin','probe-avatar'];
+  const out={};
+  for (const id of ids) {
+    const el=document.getElementById(id); const cs=getComputedStyle(el);
+    out[id]={borderTopColor:cs.borderTopColor,borderTopWidth:cs.borderTopWidth,borderTopStyle:cs.borderTopStyle,color:cs.color,outlineColor:cs.outlineColor,boxShadow:cs.boxShadow};
+  }
+  document.getElementById('result').textContent=JSON.stringify(out);
+  document.title='RESULT:'+JSON.stringify(out);
+});
+</script></body></html>
