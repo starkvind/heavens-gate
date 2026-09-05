@@ -420,7 +420,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .folder-icon { font-size:28px; margin-right:6px; }
 .btn { background:#1f2a44; color:#e6e9ef; border:1px solid #2a3a62; padding:6px 10px; border-radius:8px; cursor:pointer; }
 .btn:hover { background:#23304f; }
-.input, select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
+#galleryContainer .input, #galleryContainer select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
 .small { font-size:12px; color:#9fb1d9; }
 .img-grid { display:flex; flex-wrap:wrap; gap:10px; }
 .img-item { width:170px; text-align:center; }
@@ -428,7 +428,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .img-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
 hr.sep { border:0; border-top:1px solid #1f2a44; margin:16px 0; }
 form.inline { display:inline-block; }
-label { display:block; margin-bottom:4px; }
+#galleryContainer label { display:block; margin-bottom:4px; }
 
 /* Progreso */
 #uploadProgress { margin-top:10px; }
@@ -1462,7 +1462,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .folder-icon { font-size:28px; margin-right:6px; }
 .btn { background:#1f2a44; color:#e6e9ef; border:1px solid #2a3a62; padding:6px 10px; border-radius:8px; cursor:pointer; }
 .btn:hover { background:#23304f; }
-.input, select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
+#galleryContainer .input, #galleryContainer select { background:#0b1220; color:#e6e9ef; border:1px solid #1f2a44; padding:6px 8px; border-radius:8px; }
 .small { font-size:12px; color:#9fb1d9; }
 .img-grid { display:flex; flex-wrap:wrap; gap:10px; }
 .img-item { width:170px; text-align:center; }
@@ -1470,7 +1470,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .img-actions { margin-top:6px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
 hr.sep { border:0; border-top:1px solid #1f2a44; margin:16px 0; }
 form.inline { display:inline-block; }
-label { display:block; margin-bottom:4px; }
+#galleryContainer label { display:block; margin-bottom:4px; }
 
 /* Progreso */
 #uploadProgress { margin-top:10px; }
