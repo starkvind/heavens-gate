@@ -127,6 +127,12 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         $itemImg = "img/inv/no-photo.webp";
     }
 
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-inventory.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-inventory.css">';
+    }
+
     // ================================================================== //
     /* MODERNO NUEVO */
     if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); // Barra de navegación
@@ -163,14 +169,14 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
 
     if ($itemLevel != 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemLevel.webp'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='hg-inventory-gem' src='img/ui/gems/pwr/gem-pwr-0$itemLevel.webp'/></div></div>";
         if ($itemGnosis != 0) {
-            echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.webp'/></div></div>";
+            echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='hg-inventory-gem' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.webp'/></div></div>";
         }
     }
 
     if ($itemGnosis != 0 && $itemLevel == 0 && $itemType == 5) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.webp'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Gnosis</div><div class='power-stat__value'><img class='hg-inventory-gem' src='img/ui/gems/pwr/gem-pwr-0$itemGnosis.webp'/></div></div>";
     }
 
     if ($itemSTR != 0) {
@@ -192,20 +198,11 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         echo "    <div class='power-card__desc-body'>$itemInfo</div>";
             $embedCodeRaw = "[hg_item]" . (int)$itemPageID . "[/hg_item]";
             $embedCodeEsc = htmlspecialchars($embedCodeRaw, ENT_QUOTES, 'UTF-8');
-            if (function_exists('hg_page_register_stylesheet')) {
-                hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-docs-item_page.css');
-            } else {
-                if (function_exists('hg_page_register_stylesheet')) {
-                    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-docs-item_page.css');
-                } else {
-                    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-docs-item_page.css">';
-                }
-            }
-            echo "<div class='item-embed-wrap'>";
+            echo "<div class='hg-inventory-embed'>";
             echo "<div class='power-card__desc-title' style='margin-bottom:1.5em;'>Embeber en el foro</div>";
-            echo "<div class='hg-forum-roll-code'>
+            echo "<div class='hg-inventory-embed__code'>
                 <code>{$embedCodeEsc}</code>
-                <button type='button' class='hg-roll-copy-emoji js-copy-roll' data-copy='{$embedCodeEsc}' title='Copiar codigo'>&#128203;</button>
+                <button type='button' class='hg-inventory-embed__copy js-copy-roll' data-copy='{$embedCodeEsc}' title='Copiar codigo'>&#128203;</button>
                 </div>";
             echo "</div>";
         echo "  </div>";
@@ -260,9 +257,6 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $hasOwners = count($itemOwners) > 0;
 
     if ($hasOwners) {
-        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
-        hg_render_owner_tabs_styles(true, 28);
-
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
         echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
@@ -271,7 +265,7 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
         echo "<section class='hg-tab-panel' data-tab='info'>$infoHtml</section>";
 
         echo "<section class='hg-tab-panel' data-tab='owners'>";
-        echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+        echo "<div class='hg-inventory-owners'><div class='hg-affiliation-content'>";
         foreach ($itemOwners as $o) {
             $oid = (int)($o['id'] ?? 0);
             $name = (string)($o['name'] ?? '');
@@ -304,11 +298,6 @@ $stmt->close();
 
 ?>
 
-
-
-
-
-
 <script>
 document.addEventListener('click', async (event) => {
     const btn = event.target.closest('.js-copy-roll');
@@ -334,4 +323,3 @@ document.addEventListener('click', async (event) => {
     setTimeout(() => { btn.innerHTML = old; }, 1400);
 });
 </script>
-
