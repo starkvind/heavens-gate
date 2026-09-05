@@ -20,19 +20,28 @@
         doc.addEventListener('keydown', function (event) {
             if (event.key !== 'Escape') return;
 
-            var target = event.target;
-            var wrap = target && target.closest ? target.closest('.ms-wrap') : null;
-            if (!wrap) return;
+            var openPanels = Array.prototype.slice.call(
+                doc.querySelectorAll('.ms-panel[aria-hidden="false"]')
+            );
+            if (!openPanels.length) return;
 
-            var toggle = wrap.querySelector('.ms-btn[role="button"]');
-            var panel = wrap.querySelector('.ms-panel');
-            if (!toggle || !panel || panel.getAttribute('aria-hidden') !== 'false') return;
+            var target = event.target;
+            var targetWrap = target && target.closest ? target.closest('.ms-wrap') : null;
+            var focusToggle = targetWrap ? targetWrap.querySelector('.ms-btn[role="button"]') : null;
+
+            openPanels.forEach(function (panel) {
+                var wrap = panel.closest('.ms-wrap');
+                var toggle = wrap ? wrap.querySelector('.ms-btn[role="button"]') : null;
+
+                panel.style.display = 'none';
+                panel.setAttribute('aria-hidden', 'true');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+
+                if (!focusToggle && toggle) focusToggle = toggle;
+            });
 
             event.preventDefault();
-            panel.style.display = 'none';
-            panel.setAttribute('aria-hidden', 'true');
-            toggle.setAttribute('aria-expanded', 'false');
-            toggle.focus();
+            if (focusToggle) focusToggle.focus();
         });
     }
 
