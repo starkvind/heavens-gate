@@ -1,7 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar si se recibe el parámetro 'b' y sanitizarlo
-$donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
+$donPageID = isset($_GET['b']) ? $_GET['b'] : '';
 
 if (!function_exists('gift_has_column')) {
     function gift_has_column(mysqli $link, string $table, string $column): bool {
@@ -31,7 +31,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 $rowsQueryDon = $result->num_rows;
 
-if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
+if ($rowsQueryDon > 0) {
     $resultQueryDon = $result->fetch_assoc();
 
     // DATOS BÁSICOS
@@ -43,15 +43,14 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     $donAttr   = htmlspecialchars($resultQueryDon["attribute_name"]);
     $donSkill  = htmlspecialchars($resultQueryDon["ability_name"]);
     $donDesc   = ($resultQueryDon["descripcion"]);
-    $donRules  = ($resultQueryDon["sistema"]); // texto de reglas
+    $donRules  = ($resultQueryDon["sistema"]);
     $donSystemName = htmlspecialchars($resultQueryDon["system_name"] ?? "");
     $donBreedLegacy  = trim((string)($resultQueryDon["ferasistema"] ?? ""));
     $donSystemLabel = $donSystemName;
     $donOrigin = htmlspecialchars($resultQueryDon["bibliography_id"]);
     $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));
 
-    // Obtener el nombre del origen del Don
-    $donOriginName = "-"; // Valor por defecto
+    $donOriginName = "-";
 
     if (!empty($donOrigin)) {
         $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1;";
@@ -64,8 +63,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         }
     }
 
-    // Obtener el tipo de Don
-    $nombreTipo = "Desconocido"; // Valor por defecto
+    $nombreTipo = "Desconocido";
     $queryTipo = "SELECT name FROM dim_gift_types WHERE id = ? LIMIT 1;";
     $stmt = $link->prepare($queryTipo);
     $stmt->bind_param('s', $donType);
@@ -75,12 +73,8 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para los breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
 
-    // =========================
-    // Personajes con este Don (respeta exclusiones de crónica)
-    // =========================
     if (!function_exists('sanitize_int_csv')) {
         function sanitize_int_csv($csv){
             $csv = (string)$csv;
@@ -108,21 +102,22 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     }
     $hasOwners = count($donOwners) > 0;
     $useTabs = $hasOwners;
-	
-	$pageSect = "Dones"; // PARA CAMBIAR EL TITULO A LA PAGINA
-	$pageTitle2 = $donName; // PARA CAMBIAR EL TITULO A LA PAGINA
-	setMetaFromPage($donName . " | Dones | Heaven's Gate", meta_excerpt($donDesc), null, 'article');
 
-    // Incluir barra de navegación
+    $pageSect = "Dones";
+    $pageTitle2 = $donName;
+    setMetaFromPage($donName . " | Dones | Heaven's Gate", meta_excerpt($donDesc), null, 'article');
+
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-powers.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+    }
+
     include("app/partials/main_nav_bar.php");
-
-    // Título de la página
-    //echo "<h2>$donName</h2>";
 
     ob_start();
 
-    // Imagen del Don
-    $itemImg = "img/inv/no-photo.webp"; // Valor por defecto si no hay imagen
+    $itemImg = "img/inv/no-photo.webp";
     if ($donImgRaw !== "") {
         if (strpos($donImgRaw, "/") !== false) {
             $itemImg = $donImgRaw;
@@ -143,7 +138,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($donRank > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Rango</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.webp'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Rango</div><div class='power-stat__value'><img class='hg-powers-gem' src='img/ui/gems/pwr/gem-pwr-0$donRank.webp'/></div></div>";
     }
     if (!empty($donAttr) || !empty($donSkill)) {
         $tiradaDon2 = !empty($donSkill) ? "$donAttr + $donSkill" : $donAttr;
@@ -154,37 +149,32 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     }
     if ($donBreedLegacy !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>" . htmlspecialchars($donBreedLegacy) . "</div></div>";
-    }      
-      if ($donOriginName !== "") {
+    }
+    if ($donOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
-      }
-    echo "    </div>"; // stats
-    echo "  </div>"; // body
+    }
+    echo "    </div>";
+    echo "  </div>";
 
-      if (!empty($donDesc)) {
+    if (!empty($donDesc)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Descripci&oacute;n</div>";
         echo "    <div class='power-card__desc-body'>$donDesc</div>";
         echo "  </div>";
-      }
+    }
 
-      if (!empty($donRules)) {
+    if (!empty($donRules)) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
-        if (!empty($donRules)) {
-          echo "    <div class='power-card__desc-body'>$donRules</div>";
-        }
+        echo "    <div class='power-card__desc-body'>$donRules</div>";
         echo "  </div>";
-      }
+    }
 
-    echo "</div>"; // power-card
+    echo "</div>";
 
     $infoHtml = ob_get_clean();
 
     if ($useTabs) {
-        include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
-        hg_render_owner_tabs_styles(true, 28);
-
         echo "<div class='hg-tabs'>";
         echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
         if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
@@ -194,26 +184,11 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
 
         if ($hasOwners) {
             echo "<section class='hg-tab-panel' data-tab='owners'>";
-            echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+            echo "<div class='hg-affiliation-content hg-powers-owner-content'>";
             foreach ($donOwners as $o) {
                 $oid = (int)($o['id'] ?? 0);
                 $name = (string)($o['nombre'] ?? '');
                 $alias = (string)($o['alias'] ?? '');
-                $img = hg_character_avatar_url((string)($o['image_url'] ?? ''), (string)($o['gender'] ?? ''));
-                $estado = (string)($o['status'] ?? '');
-                $label = $alias !== '' ? $alias : $name;
-                $estadoCanon = strtr($estado, [
-                    "A" . "\xC3\x83\xC2\xBAn por aparecer" => "Aún por aparecer",
-                    "Cad" . "\xC3\x83\xC2\xA1ver" => "Cadáver",
-                ]);
-                $mapEstado = [
-                    "Aun por aparecer"     => "(&#64;)",
-                    "Aún por aparecer"     => "(&#64;)",
-                    "Cadaver"              => "(&#8224;)",
-                    "Paradero desconocido" => "(&#63;)",
-                    "Cadáver"              => "(&#8224;)"
-                ];
-                $simboloEstado = $mapEstado[$estadoCanon] ?? "";
                 $href = pretty_url($link, 'fact_characters', '/characters', $oid);
                 hg_render_character_avatar_tile([
                     'href' => $href,
@@ -228,7 +203,7 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
                     'target_blank' => true,
                 ]);
             }
-            echo "</div></div>";
+            echo "</div>";
             echo "<p align='right'>Personajes: " . count($donOwners) . "</p>";
             echo "</section>";
         }
@@ -241,5 +216,3 @@ if ($rowsQueryDon > 0) { // Si encontramos el Don en la base de datos
     echo "<p>Error: Don no encontrado.</p>";
 }
 ?>
-
-
