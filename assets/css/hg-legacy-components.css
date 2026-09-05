@@ -7,59 +7,9 @@
  * legacy class names in new markup.
  */
 
-fieldset.grupoHabilidad {
-	border: 0px solid white;
-	padding-left: 30px;
-}
-
 fieldset.grupoBioClan {
 	border: 0px solid white;
 	padding-left: 46px;
-}
-
-div.renglon3col {
-	float: left;
-	padding: 4px;
-	margin: 4px;
-	width: 160px;
-	height: 16px;
-	text-align: center;
-	border: 1px solid #000088;
-	background-color: #05014E;
-}
-
-div.renglon3col:hover {
-	border: 1px solid #000099;
-	background: #000066;
-}
-
-fieldset.descripcionGrupo {
-	border: 1px solid #000088;
-	margin-bottom: 30px;
-}
-
-div.renglon2col {
-	float: left;
-	padding: 4px;
-	margin: 4px;
-	width: 240px;
-	height: 16px;
-	border: 1px solid #000088;
-	background-color: #05014E;
-}
-
-div.renglon2col:hover {
-	border: 1px solid #000099;
-	background: #000066;
-}
-
-div.renglon2colIz {
-	float: left;
-}
-
-div.renglon2colDe {
-	float: right;
-	font-size: 9px;
 }
 
 div.bioBody {
