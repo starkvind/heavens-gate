@@ -1,18 +1,15 @@
 <?php
-// Obtener y sanitizar el parámetro 'b'
-$donPageID = isset($_GET['b']) ? $_GET['b'] : ''; 
+$donPageID = isset($_GET['b']) ? $_GET['b'] : '';
 
-// Consulta segura para obtener los datos de la disciplina
 $queryDon = "SELECT * FROM fact_discipline_powers WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($queryDon);
 $stmt->bind_param('s', $donPageID);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
+if ($result->num_rows > 0) {
     $resultQueryDon = $result->fetch_assoc();
 
-    // DATOS BÁSICOS
     $donId      = htmlspecialchars($resultQueryDon["id"]);
     $donName    = htmlspecialchars($resultQueryDon["name"]);
     $donType    = htmlspecialchars($resultQueryDon["disc"]);
@@ -21,14 +18,13 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     $donSkillRaw = (string)($resultQueryDon["skill"] ?? '');
     $donAttr    = htmlspecialchars($donAttrRaw);
     $donSkill   = htmlspecialchars($donSkillRaw);
-    $donDesc    = $resultQueryDon["description"]; // NO usar htmlspecialchars() para mantener el formato HTML
+    $donDesc    = $resultQueryDon["description"];
     $donSystem  = $resultQueryDon["system_name"];
     $donOrigin  = htmlspecialchars($resultQueryDon["bibliography_id"]);
 
     $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));
     $donIcono = isset($resultQueryDon["icono"]) ? htmlspecialchars($resultQueryDon["icono"]) : "";
 
-    // Ruta completa de la imagen de la Disciplina
     $itemImg = "img/inv/no-photo.webp";
     if ($donImgRaw !== "") {
         if (strpos($donImgRaw, "/") !== false) {
@@ -40,41 +36,42 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
         $itemImg = (strpos($donIcono, "/") !== false) ? $donIcono : ("img/" . $donIcono);
     }
 
-    // Obtener el nombre del origen de la disciplina
     $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
     $stmt = $link->prepare($queryOrigen);
     $stmt->bind_param('s', $donOrigin);
     $stmt->execute();
     $result = $stmt->get_result();
-    $donOriginName = "-"; // Valor por defecto
+    $donOriginName = "-";
 
     if ($rowOrigen = $result->fetch_assoc()) {
         $donOriginName = htmlspecialchars($rowOrigen["name"]);
     }
 
-    // Obtener el nombre de la Disciplina
     $queryTipo = "SELECT name FROM dim_discipline_types WHERE id = ? LIMIT 1";
     $stmt = $link->prepare($queryTipo);
     $stmt->bind_param('s', $donType);
     $stmt->execute();
     $result = $stmt->get_result();
-    $nombreTipo = "-"; // Valor por defecto
+    $nombreTipo = "-";
 
     if ($rowTipo = $result->fetch_assoc()) {
         $nombreTipo = htmlspecialchars($rowTipo["name"]);
     }
 
-    // Guardar en sesión para breadcrumbs
     $_SESSION['punk2'] = $nombreTipo;
-	
-	$pageSect = "Disciplinas"; // PARA CAMBIAR EL TITULO A LA PAGINA
-	$pageTitle2 = $donName; // PARA CAMBIAR EL TITULO A LA PAGINA
-	setMetaFromPage($donName . " | Disciplinas | Heaven's Gate", meta_excerpt($donDesc), null, 'article');
 
-    // Incluir barra de navegación
+    $pageSect = "Disciplinas";
+    $pageTitle2 = $donName;
+    setMetaFromPage($donName . " | Disciplinas | Heaven's Gate", meta_excerpt($donDesc), null, 'article');
+
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/hg-powers.css');
+    } else {
+        echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+    }
+
     include("app/partials/main_nav_bar.php");
 
-    // Título de la página
     ob_start();
 
     echo "<div class='power-card power-card--disc'>";
@@ -89,7 +86,7 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
 
     echo "    <div class='power-card__stats'>";
     if ($donRank > 0) {
-        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='bioAttCircle' src='img/ui/gems/pwr/gem-pwr-0$donRank.webp'/></div></div>";
+        echo "<div class='power-stat'><div class='power-stat__label'>Nivel</div><div class='power-stat__value'><img class='hg-powers-gem' src='img/ui/gems/pwr/gem-pwr-0$donRank.webp'/></div></div>";
     }
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Disciplina</div><div class='power-stat__value'>$nombreTipo</div></div>";
@@ -101,8 +98,8 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
     if ($donOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
     }
-    echo "    </div>"; // stats
-    echo "  </div>"; // body
+    echo "    </div>";
+    echo "  </div>";
 
     if (!empty($donDesc)) {
         echo "  <div class='power-card__desc'>";
@@ -118,14 +115,11 @@ if ($result->num_rows > 0) { // Si encontramos la disciplina en la base de datos
         echo "  </div>";
     }
 
-    echo "</div>"; // power-card
+    echo "</div>";
 
     echo ob_get_clean();
-
 
 } else {
     echo "<p>Error: Disciplina no encontrada.</p>";
 }
 ?>
-
-
