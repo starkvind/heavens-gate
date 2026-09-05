@@ -1,10 +1,17 @@
 <?php setMetaFromPage("Noticias | Heaven's Gate", "Últimas novedades de la campaña Heaven's Gate.", null, 'website'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-main.css'); } ?>
+<?php
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-main.css');
+    hg_page_register_stylesheet('/assets/css/hg-news.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-main.css">';
+    echo '<link rel="stylesheet" href="/assets/css/hg-news.css">';
+}
+?>
 <h2> Noticias </h2>
 
-
-<table class="notix">
+<table class="hg-news-table">
 	<?php
 		global $link;
 
@@ -35,7 +42,7 @@
 		$result = mysqli_stmt_get_result($stmt);
 
 		while ($ResultQuery = mysqli_fetch_assoc($result)) {
-			echo "<tr><td><fieldset class='notf'><legend class='notf'>" . htmlspecialchars($ResultQuery["title"]) . "</legend><p>" . (($ResultQuery["message"])) . "</p>\n</fieldset></td></tr>";
+			echo "<tr><td><fieldset class='hg-news-entry'><legend>" . htmlspecialchars($ResultQuery["title"]) . "</legend><p>" . (($ResultQuery["message"])) . "</p>\n</fieldset></td></tr>";
 			echo "<tr><td align='right'>por <b>" . htmlspecialchars($ResultQuery["author"]) . "</b> el " . htmlspecialchars($ResultQuery["posted_at"]) . "</td></tr>";
 		}
 
