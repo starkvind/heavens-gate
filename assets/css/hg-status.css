@@ -1,0 +1,35 @@
+/* Public status page ----------------------------------------------------- */
+
+.hg-status-panel {
+    border: 1px solid #000077;
+    padding: 5px;
+}
+
+.hg-status-panel legend {
+    border: 1px solid #000077;
+    padding: 5px;
+    font-weight: bold;
+}
+
+.hg-status-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.hg-status-row__label,
+.hg-status-row__value {
+    border: 1px solid #000077;
+    padding: 4px;
+}
+
+.hg-status-row__label {
+    background: #000066;
+    color: cyan;
+    text-align: right;
+}
+
+.hg-status-row__value {
+    text-align: left;
+}
