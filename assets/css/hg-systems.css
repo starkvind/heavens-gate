@@ -205,14 +205,60 @@
     color: #cfe;
 }
 
+.hg-system-message {
+    padding: 10px;
+    border: 1px solid #000088;
+    background: #05014e;
+    color: #fff;
+}
+
+.hg-system-power-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.hg-system-power-list > a {
+    text-decoration: none;
+}
+
+.hg-system-power-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 240px;
+    min-height: 16px;
+    padding: 4px;
+    border: 1px solid #000088;
+    background: #05014e;
+    box-sizing: border-box;
+}
+
+.hg-system-power-card:hover {
+    border-color: #000099;
+    background: #000066;
+}
+
+.hg-system-power-card__main {
+    min-width: 0;
+}
+
+.hg-system-power-card__meta {
+    flex: 0 0 auto;
+    font-size: 9px;
+}
+
+.hg-system-power-icon {
+    vertical-align: middle;
+    padding-bottom: 4px;
+}
+
 .syst-detail,
 .syst-box,
 .syst-box h3,
 .syst-box p,
 .syst-box div,
-.renglon2col,
-.renglon2colIz,
-.renglon2colDe,
 .syst-box fieldset,
 .syst-box fieldset *,
 .syst-box a,
