@@ -18,19 +18,6 @@
     width: 100%;
 }
 
-.dt-toolbar {
-    align-items: center;
-    justify-content: space-between;
-}
-
-.dt-toolbar .left {
-    align-items: center;
-}
-
-.dt-toolbar .right {
-    justify-content: flex-end;
-}
-
 .ms-wrap {
     width: 190px;
 }
@@ -193,7 +180,7 @@
     display: none;
     pointer-events: none;
     font-size: 12px;
-    line-height: 1.35;
+    line-height:1.35;
     text-align: left !important;
 }
 
