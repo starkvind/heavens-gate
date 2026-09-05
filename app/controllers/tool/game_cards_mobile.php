@@ -1,44 +1,8 @@
 <?php
-require_once __DIR__ . '/../../helpers/admin_auth.php';
-require_once __DIR__ . '/../../helpers/game_cards_runtime.php';
 
-$isBarePage = true;
-$gameCardsRoute = (string)($routeKey ?? ($_GET['p'] ?? 'game_cards_mobile'));
-$gameCardsLabMode = $gameCardsRoute === 'game_cards_lab_mobile';
-$gameCardsBasePath = $gameCardsLabMode ? '/games/hg-cardgame-dev-lab' : '/games/card-game';
-$gameCardsCatalogUrl = '/api/game_cards.php';
-$gameCardsScriptSrc = hg_gc_runtime_entry_script();
-$gameCardsStorageScope = $gameCardsLabMode ? 'dev-lab' : 'prod';
-$gameCardsBootScripts = hg_gc_runtime_boot_scripts('gacha', true);
-$hgCardsIsAdmin = function_exists('hg_admin_is_authenticated') && hg_admin_is_authenticated();
-
-$allowedThemes = ['classic', 'modern', 'power-save'];
-$activeTheme = isset($_COOKIE['hg_theme']) ? strtolower((string)$_COOKIE['hg_theme']) : 'classic';
-if (!in_array($activeTheme, $allowedThemes, true)) {
-    $activeTheme = 'classic';
-}
-$bodyThemeClass = 'theme-' . $activeTheme;
+http_response_code(410);
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#030713">
-    <meta name="robots" content="noindex,follow">
-    <title><?php echo $gameCardsLabMode ? 'Archivo de mnemógeno [Dev Lab]' : 'Archivo de mnemógeno'; ?> | Heaven's Gate</title>
-    <meta name="description" content="<?php echo $gameCardsLabMode ? 'Modo móvil del Dev Lab del minijuego coleccionable de cartas de Heaven&apos;s Gate con almacenamiento local aislado.' : 'Modo movil del minijuego coleccionable de cartas de Heaven&apos;s Gate.'; ?>">
-    <link rel="stylesheet" href="/assets/css/hg-core.css">
-    <link rel="stylesheet" href="<?php echo htmlspecialchars(hg_gc_runtime_script('/assets/css/game-cards.css', 'css'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
-</head>
-<body class="hg-card-mobile-body <?= htmlspecialchars($bodyThemeClass, ENT_QUOTES, 'UTF-8') ?>">
-    <section class="hg-card-game-shell hg-card-game-shell--standalone">
-        <?php include dirname(__DIR__, 2) . '/modules/game_cards/game_cards_mobile_page.php'; ?>
-    </section>
-    <footer class="hg-mobile-footer">
-        <strong>Heaven's Gate</strong>
-        <span><?php echo $gameCardsLabMode ? 'Archivo de mnemógeno [Dev Lab]' : 'Archivo de mnemógeno'; ?></span>
-        <a href="<?php echo htmlspecialchars($gameCardsBasePath, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">Vista clasica</a>
-    </footer>
-</body>
-</html>
+<section class="hg-mobile-section">
+    <h1>Archivo de Mnemógeno retirado</h1>
+    <p>El juego de cartas ya no forma parte de Heaven&apos;s Gate.</p>
+</section>
