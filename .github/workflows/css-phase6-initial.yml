@@ -1,4 +1,4 @@
-name: CSS Phase 6 Initial Cleanup
+name: CSS Phase 6 Shared DataTable Cleanup
 
 on:
   push:
@@ -18,58 +18,229 @@ jobs:
         with:
           ref: css-phase6-work
 
-      - name: Apply phase 6 initial cleanup
+      - name: Consolidate shared DataTables controls
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          admin = Path('app/controllers/admin/admin_main.php')
-          source = admin.read_text(encoding='utf-8')
-          old = "\t\techo '<link rel=\"stylesheet\" href=\"/assets/css/hg-admin.css\">';"
-          new = "\t\tif (function_exists('hg_page_register_stylesheet')) {\n\t\t\thg_page_register_stylesheet('/assets/css/hg-admin.css');\n\t\t}"
-          if source.count(old) != 1:
-              raise SystemExit(f'expected exactly one direct hg-admin stylesheet link, found {source.count(old)}')
-          admin.write_text(source.replace(old, new), encoding='utf-8')
+          shared = Path('assets/css/hg-datatables.css')
+          docs = Path('assets/css/hg-docs.css')
+          powers = Path('assets/css/hg-powers.css')
+          systems = Path('assets/css/hg-systems.css')
+          bio_table = Path('assets/css/pages/legacy/controllers-bio-bio_table.css')
 
-          bio = Path('assets/css/hg-bio.css')
-          components = Path('assets/css/hg-components.css')
-          bio_css = bio.read_text(encoding='utf-8')
-          component_css = components.read_text(encoding='utf-8')
+          shared_css = shared.read_text(encoding='utf-8')
+          marker = '/* Shared DataTables toolbar and multiselect controls */'
+          if marker in shared_css:
+              raise SystemExit('shared DataTables component already present; refusing second application')
 
-          selectors = [
-              '#hg-tooltip',
-              '#hg-tooltip .hg-tip-title',
-              '#hg-tooltip .hg-tip-meta',
-              '#hg-tooltip .hg-tip-label',
-              '#hg-tooltip .hg-tip-text',
-          ]
+          shared_block = r'''
 
-          def declarations(css, selector):
-              match = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', css, re.S)
-              if not match:
-                  raise SystemExit(f'missing selector {selector!r}')
-              return re.sub(r'\s+', ' ', match.group(1)).strip()
+/* Shared DataTables toolbar and multiselect controls */
+.dt-toolbar {
+    display: flex;
+    gap: 10px;
+    margin: 0 0 10px;
+}
 
-          for selector in selectors:
-              left = declarations(bio_css, selector)
-              right = declarations(component_css, selector)
-              if left != right:
-                  raise SystemExit(f'tooltip declarations differ for {selector}; refusing cleanup')
+.dt-toolbar .left {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+}
 
-          start = bio_css.find('#hg-tooltip {')
-          end = bio_css.find('.power-card--bio')
-          if start < 0 or end < 0 or end <= start:
-              raise SystemExit('could not isolate duplicated bio tooltip block')
-          duplicate_block = bio_css[start:end]
-          for selector in selectors:
-              if selector not in duplicate_block:
-                  raise SystemExit(f'{selector} is not inside isolated duplicate block')
-          bio.write_text(bio_css[:start] + bio_css[end:], encoding='utf-8')
+.dt-toolbar .right {
+    flex: 1 1 auto;
+    display: flex;
+}
 
-          # Basic structural sanity for CSS touched by this step.
-          for path in (bio, components, Path('assets/css/hg-legacy-components.css')):
+.ms-wrap {
+    position: relative;
+}
+
+.ms-btn {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.ms-btn .ms-label {
+    opacity: .9;
+}
+
+.ms-btn .ms-summary {
+    opacity: .8;
+    margin-left: 10px;
+}
+
+.ms-panel {
+    text-align: left;
+    position: absolute;
+    z-index: 9999;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    border: 1px solid rgb(0, 0, 153);
+    background: rgb(0, 0, 102);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: 4px;
+    display: none;
+    max-height: 280px;
+    overflow: auto;
+}
+
+.ms-row {
+    display: flex;
+    align-items: center;
+    background: rgb(0, 0, 102);
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.ms-row:hover {
+    background: rgba(0,0,0,.04);
+}
+
+.ms-row input {
+    width: 16px;
+    height: 16px;
+}
+
+.ms-row span {
+    text-align: left;
+}
+
+.ms-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ms-actions button {
+    font-family: Verdana, sans-serif;
+    font-size: 10px;
+    background-color: #000066;
+    color: #fff;
+    padding: 0.5em;
+    border: 1px solid #000099;
+}
+
+.ms-actions button:hover {
+    border-color: #003399;
+    background: #000099;
+    color: #01b3fa;
+    cursor: pointer;
+}
+'''
+          shared.write_text(shared_css.rstrip() + shared_block + '\n', encoding='utf-8')
+
+          def replace_region(path, start_token, end_token, replacement):
+              css = path.read_text(encoding='utf-8')
+              start = css.find(start_token)
+              end = css.find(end_token, start + 1)
+              if start < 0 or end < 0 or end <= start:
+                  raise SystemExit(f'could not isolate shared block in {path}')
+              path.write_text(css[:start] + replacement.rstrip() + '\n\n' + css[end:], encoding='utf-8')
+
+          docs_variant = r'''.dt-toolbar {
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .left {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .right {
+    justify-content: flex-end;
+}
+
+.ms-wrap {
+    width: 150px;
+}
+
+.ms-wrap--wide {
+    width: 180px;
+}'''
+          replace_region(docs, '.dt-toolbar {', '.docs-left-third {', docs_variant)
+
+          powers_variant = r'''.dt-toolbar {
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .left {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .right {
+    justify-content: flex-end;
+}
+
+.ms-wrap {
+    width: 150px;
+}
+
+.ms-btn .ms-summary {
+    text-align: left !important;
+}'''
+          replace_region(powers, '.dt-toolbar {', '/* Powers landing page. */', powers_variant)
+
+          systems_variant = r'''.dt-toolbar {
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dt-toolbar .left {
+    align-items: center;
+}
+
+.dt-toolbar .right {
+    justify-content: flex-end;
+}
+
+.ms-wrap {
+    width: 190px;
+}'''
+          replace_region(systems, '.dt-toolbar {', '.badge-yes,', systems_variant)
+
+          bio_variant = r'''.dt-toolbar {
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .left {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.dt-toolbar .right {
+    justify-content: flex-end;
+}
+
+.ms-wrap {
+    width: 150px;
+}'''
+          replace_region(bio_table, '.dt-toolbar{', '@media (max-width: 720px){', bio_variant)
+
+          registry = Path('app/partials/datatable_assets.php').read_text(encoding='utf-8')
+          if "hg_page_register_stylesheet('/assets/css/hg-datatables.css')" not in registry:
+              raise SystemExit('datatable asset registry no longer loads hg-datatables.css')
+
+          for path in (shared, docs, powers, systems, bio_table):
               css = path.read_text(encoding='utf-8')
               if css.count('{') != css.count('}'):
                   raise SystemExit(f'unbalanced braces in {path}')
@@ -81,47 +252,43 @@ jobs:
           find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/tmp/php-lint.log
           tail -n 20 /tmp/php-lint.log
 
-      - name: Report duplicated CSS selectors
+      - name: Verify shared selector ownership
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import collections
-          import re
-
-          owners = collections.defaultdict(set)
-          rule_re = re.compile(r'(^|})\s*([^@{}][^{}]*)\{', re.M)
-          for path in Path('assets/css').rglob('*.css'):
-              if '/vendor/' in path.as_posix():
-                  continue
-              text = re.sub(r'/\*.*?\*/', '', path.read_text(encoding='utf-8', errors='replace'), flags=re.S)
-              for match in rule_re.finditer(text):
-                  selector_group = match.group(2).strip()
-                  if not selector_group:
-                      continue
-                  for selector in selector_group.split(','):
-                      selector = re.sub(r'\s+', ' ', selector.strip())
-                      if selector:
-                          owners[selector].add(path.as_posix())
-
-          duplicates = sorted(
-              ((selector, sorted(paths)) for selector, paths in owners.items() if len(paths) > 1),
-              key=lambda item: (-len(item[1]), item[0])
-          )
-          print(f'cross-file duplicated selectors: {len(duplicates)}')
-          for selector, paths in duplicates[:120]:
-              print(f'{selector} :: {" | ".join(paths)}')
+          shared = Path('assets/css/hg-datatables.css').read_text(encoding='utf-8')
+          domains = [
+              Path('assets/css/hg-docs.css'),
+              Path('assets/css/hg-powers.css'),
+              Path('assets/css/hg-systems.css'),
+              Path('assets/css/pages/legacy/controllers-bio-bio_table.css'),
+          ]
+          shared_only = [
+              '.ms-btn {',
+              '.ms-btn .ms-label {',
+              '.ms-panel {',
+              '.ms-row {',
+              '.ms-actions {',
+              '.ms-actions button {',
+          ]
+          for selector in shared_only:
+              if selector not in shared:
+                  raise SystemExit(f'missing shared selector {selector}')
+              for path in domains:
+                  if selector in path.read_text(encoding='utf-8'):
+                      raise SystemExit(f'{selector} still duplicated in {path}')
           PY
 
-      - name: Commit cleanup
+      - name: Commit consolidation
         shell: bash
         run: |
           git config user.name 'Maurick Starkvind'
           git config user.email 'maverickk@gmail.com'
-          git add app/controllers/admin/admin_main.php assets/css/hg-bio.css
+          git add assets/css/hg-datatables.css assets/css/hg-docs.css assets/css/hg-powers.css assets/css/hg-systems.css assets/css/pages/legacy/controllers-bio-bio_table.css
           if git diff --cached --quiet; then
-            echo 'No cleanup changes to commit.'
+            echo 'No consolidation changes to commit.'
             exit 0
           fi
-          git commit -m 'refactor(css): start shared component consolidation'
+          git commit -m 'refactor(css): centralize datatable filter controls'
           git push origin HEAD:css-phase6-work
