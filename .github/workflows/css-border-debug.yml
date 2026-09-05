@@ -21,7 +21,7 @@ jobs:
           ref: css-phase6-border-debug
       - name: Scan CSS border origin
         run: python3 .github/ci/css_border_debug.py
-      - name: Probe browser computed borders
+      - name: Probe Chromium computed borders
         shell: bash
         run: |
           BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
@@ -34,3 +34,22 @@ jobs:
           "$BROWSER" --headless --no-sandbox --disable-gpu --dump-dom "$URL" > /tmp/border-fixture-dom.html
           grep -o 'RESULT:{.*}</title>' /tmp/border-fixture-dom.html || true
           grep -o '{"probe-menu".*}' /tmp/border-fixture-dom.html | head -n 1
+      - name: Check Firefox rendering availability
+        shell: bash
+        run: |
+          FIREFOX="$(command -v firefox || command -v firefox-esr || true)"
+          if [ -z "$FIREFOX" ]; then
+            echo 'No preinstalled Firefox found on runner.'
+            exit 0
+          fi
+          echo "Using $FIREFOX"
+          "$FIREFOX" --version
+          URL="file://${GITHUB_WORKSPACE}/.github/ci/css_border_fixture.html"
+          set +e
+          timeout 25s "$FIREFOX" --headless --dump-dom "$URL" > /tmp/firefox-border-dom.html 2>/tmp/firefox-border.err
+          RC=$?
+          set -e
+          echo "Firefox probe rc=$RC"
+          cat /tmp/firefox-border.err || true
+          grep -o 'RESULT:{.*}</title>' /tmp/firefox-border-dom.html || true
+          grep -o '{"probe-menu".*}' /tmp/firefox-border-dom.html | head -n 1 || true
