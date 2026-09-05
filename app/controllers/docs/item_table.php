@@ -55,7 +55,15 @@ $items = ensure_utf8($items);
 
 $pageSect = "Inventario";
 ?>
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
+<?php
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-docs.css');
+    hg_page_register_stylesheet('/assets/css/hg-inventory.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
+    echo '<link rel="stylesheet" href="/assets/css/hg-inventory.css">';
+}
+?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
 <h2 class="docs-table-title">Inventario</h2>
@@ -116,12 +124,12 @@ $(document).ready(function () {
 		const typeSlug = i.item_type_pretty || i.item_type_id || 'tipo';
 		const nombre = `<a href="/inventory/${escapeHtml(typeSlug)}/${escapeHtml(itemSlug)}">${escapeHtml(i.item_name)}</a>`;
 		const imgSrc = i.item_img ? i.item_img : '/img/inv/no-photo.webp';
-		const img = `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(i.item_name)}" class="item-thumb">`;
+		const img = `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(i.item_name)}" class="hg-inventory-item-thumb">`;
 		const categoria = i.item_category ? escapeHtml(i.item_category) : '-';
 		const origen = i.item_origin ? escapeHtml(i.item_origin) : '-';
 
 		const row = `<tr>
-			<td><span class="item-cell"><span class="item-icon">${img}</span>${nombre}</span></td>
+			<td><span class="hg-inventory-item-cell"><span class="hg-inventory-item-icon">${img}</span>${nombre}</span></td>
 			<td>${categoria}</td>
 			<td>${origen}</td>
 		</tr>`;
@@ -288,4 +296,3 @@ function sortValues(values){
 	});
 }
 </script>
-
