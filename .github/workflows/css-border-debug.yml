@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/css-border-debug.yml'
       - '.github/ci/css_border_debug.py'
+      - '.github/ci/css_border_fixture.html'
 
 permissions:
   contents: read
@@ -20,3 +21,16 @@ jobs:
           ref: css-phase6-border-debug
       - name: Scan CSS border origin
         run: python3 .github/ci/css_border_debug.py
+      - name: Probe browser computed borders
+        shell: bash
+        run: |
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then
+            echo 'No preinstalled Chromium browser found.'
+            exit 2
+          fi
+          echo "Using $BROWSER"
+          URL="file://${GITHUB_WORKSPACE}/.github/ci/css_border_fixture.html"
+          "$BROWSER" --headless --no-sandbox --disable-gpu --dump-dom "$URL" > /tmp/border-fixture-dom.html
+          grep -o 'RESULT:{.*}</title>' /tmp/border-fixture-dom.html || true
+          grep -o '{"probe-menu".*}' /tmp/border-fixture-dom.html | head -n 1
