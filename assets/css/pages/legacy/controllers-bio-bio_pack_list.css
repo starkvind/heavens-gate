@@ -1,3 +1,33 @@
-/* Phase 1 extraction from app/controllers/bio/bio_pack_list.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+/* Phase 4 ownership cleanup for app/controllers/bio/bio_pack_list.php. */
 
-.bio-pack-org-chart-link{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #33cccc;border-radius:999px;background:#071b4a;color:#dff7ff!important;font-size:10px;text-decoration:none}.bio-pack-org-chart-link:hover{background:#003b8f;color:#fff!important}
+.bio-pack-org-chart-link {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border: 1px solid #33cccc;
+    border-radius: 999px;
+    background: #071b4a;
+    color: #dff7ff !important;
+    font-size: 10px;
+    text-decoration: none;
+}
+
+.bio-pack-org-chart-link:hover {
+    background: #003b8f;
+    color: #fff !important;
+}
+
+ul.listaManadas {
+    list-style-type: none;
+    width: 90%;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+li.listaManadas {
+    height: 18px;
+    width: 50%;
+    line-height: 1.5em;
+    float: left;
+    display: inline;
+}
