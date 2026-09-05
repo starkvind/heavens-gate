@@ -1,0 +1,21 @@
+/* News domain ------------------------------------------------------------ */
+
+.hg-news-table {
+    width: 100%;
+}
+
+.hg-news-entry {
+    border: 1px solid #000066;
+    text-align: justify;
+    background-color: #000055;
+    box-shadow: 0 0 0 1px #000033 inset, 0 5px 10px rgba(0,0,0,0.35);
+}
+
+.hg-news-entry legend {
+    border: 1px solid #000066;
+    background-color: #000055;
+    padding: 5px;
+    font-weight: bolder;
+    color: #33FFFF;
+    font-variant: small-caps;
+}
