@@ -35,6 +35,24 @@
 	--hg-border-strong: #000099;
 	--hg-accent: #33ffff;
 	--hg-text-on-surface: #ffffff;
+
+	/* DataTables and multiselect component primitives. */
+	--hg-dt-text: #eeeeee;
+	--hg-dt-row-hover-bg: #111177;
+	--hg-dt-option-bg: #000099;
+	--hg-dt-page-hover-text: #00ccff;
+	--hg-dt-page-current-bg: #000044;
+	--hg-ms-button-bg: #ffffff;
+	--hg-ms-panel-bg: #000066;
+	--hg-ms-panel-border: #000099;
+	--hg-ms-row-bg: #000066;
+	--hg-ms-row-hover-bg: rgba(0, 0, 0, 0.04);
+	--hg-ms-action-bg: #000066;
+	--hg-ms-action-text: #ffffff;
+	--hg-ms-action-border: #000099;
+	--hg-ms-action-hover-border: #003399;
+	--hg-ms-action-hover-bg: #000099;
+	--hg-ms-action-hover-text: #01b3fa;
 }
 
 body.theme-modern {
