@@ -33,13 +33,21 @@ table.dataTable tbody tr:hover {
 }
 
 .dataTables_filter input,
-.dataTables_length select {
+.dataTables_length select,
+.ms-btn {
     font-family: verdana, sans-serif;
     font-size: 10px;
+    font-weight: normal;
+    line-height: normal;
     background-color: var(--hg-surface-raised);
     color: var(--hg-text-on-surface);
     padding: 0.5em;
     border: 1px solid var(--hg-border-strong) !important;
+    border-radius: 3px;
+}
+
+.dataTables_filter input,
+.dataTables_length select {
     margin-bottom: 1em;
 }
 
@@ -122,7 +130,6 @@ table.dataTable tbody tr:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--hg-ms-button-bg);
 }
 
 .ms-btn:focus {
@@ -201,4 +208,3 @@ table.dataTable tbody tr:hover {
     color: var(--hg-ms-action-hover-text);
     cursor: pointer;
 }
-
