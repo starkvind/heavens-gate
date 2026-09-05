@@ -24,18 +24,11 @@
 }
 
 .dt-toolbar {
-    align-items: center;
-    justify-content: space-between;
     flex-wrap: wrap;
 }
 
 .dt-toolbar .left {
-    align-items: center;
     flex-wrap: wrap;
-}
-
-.dt-toolbar .right {
-    justify-content: flex-end;
 }
 
 .ms-wrap {
