@@ -53,6 +53,8 @@
 	--hg-ms-action-hover-border: #003399;
 	--hg-ms-action-hover-bg: #000099;
 	--hg-ms-action-hover-text: #01b3fa;
+	--hg-ms-focus-border: #3b82f6;
+	--hg-ms-focus-ring: rgba(59, 130, 246, 0.18);
 }
 
 body.theme-modern {

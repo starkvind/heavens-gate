@@ -125,6 +125,12 @@ table.dataTable tbody tr:hover {
     background: var(--hg-ms-button-bg);
 }
 
+.ms-btn:focus {
+    outline: none !important;
+    border-color: var(--hg-ms-focus-border) !important;
+    box-shadow: 0 0 0 3px var(--hg-ms-focus-ring) !important;
+}
+
 .ms-btn .ms-label {
     opacity: .9;
 }
