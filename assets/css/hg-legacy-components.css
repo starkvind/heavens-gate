@@ -40,6 +40,22 @@ div.bioSheetData {
 	margin: 2px 0px 0px 0px;
 }
 
+div.bioSheetPower {
+	float: left;
+	border: 1px solid #009;
+	background-color: #000055;
+	font-size: 9px;
+	width: 47.5%;
+	padding: 4px;
+	height: 14px;
+	margin: 2px;
+}
+
+div.bioSheetPower:hover {
+	background-color: #000066;
+	font-weight: bold;
+}
+
 img.bioAttCircle {
 	vertical-align: middle;
 	padding: 2px;
