@@ -98,7 +98,6 @@ table.dataTable tbody tr:hover {
     display: flex;
 }
 
-/* Low-specificity defaults: domain styles and responsive rules stay authoritative. */
 :where(.dt-toolbar) {
     align-items: center;
     justify-content: space-between;
@@ -196,3 +195,4 @@ table.dataTable tbody tr:hover {
     color: #01b3fa;
     cursor: pointer;
 }
+
