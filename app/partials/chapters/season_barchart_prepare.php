@@ -1,4 +1,8 @@
 <?php
+	if (function_exists('hg_page_register_stylesheet')) {
+		hg_page_register_stylesheet('/assets/css/hg-chapters-runtime.css');
+	}
+
 	if (!function_exists('hg_sb_col_exists')) {
 		function hg_sb_col_exists(mysqli $link, string $table, string $column): bool
 		{
@@ -21,7 +25,6 @@
 		}
 	}
 
-	// Obtener ID de temporada ya resuelto por season_archive.php (preferido).
 	$id_temporada = isset($temporadaId) ? (int)$temporadaId : 0;
 	if ($id_temporada <= 0) {
 		$temporadaRaw = (string)($_GET['t'] ?? '');
@@ -35,10 +38,7 @@
 		return;
 	}
 
-	// Paso 1: obtener el numero de temporada real (ej: 2, 3...) desde el ID
-	$query_num_temporada = "
-		SELECT season_number FROM dim_seasons WHERE id = ?
-	";
+	$query_num_temporada = "SELECT season_number FROM dim_seasons WHERE id = ?";
 	$stmt = $link->prepare($query_num_temporada);
 	$stmt->bind_param("i", $id_temporada);
 	$stmt->execute();
@@ -50,13 +50,6 @@
 		return;
 	}
 
-/*
-	if ($numero_temporada > 50) {
-		return;
-	}
-*/
-
-	// 1. Obtener total de capitulos en la temporada (con fecha valida)
 	$query_total = "SELECT COUNT(*) AS total FROM dim_chapters WHERE season_id = ? AND played_date != '0000-00-00'";
 	$stmt = $link->prepare($query_total);
 	$stmt->bind_param("i", $id_temporada);
@@ -64,13 +57,10 @@
 	$result = $stmt->get_result();
 	$total_capitulos = $result->fetch_assoc()['total'] ?? 0;
 
-	// Si no hay capitulos, salir
 	if ($total_capitulos == 0) {
-		//echo "<p>Esta temporada no tiene capitulos registrados.</p>";
 		return;
 	}
 
-	// 2. Obtener participacion por personaje
 	$hasParticipationRole = hg_sb_col_exists($link, 'bridge_chapters_characters', 'participation_role');
 	$participationFilter = $hasParticipationRole
 		? " AND acp.participation_role = 'player'"
