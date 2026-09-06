@@ -78,7 +78,7 @@
     top: 10px;
     left: 12px;
     color: #33ffff;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0, 0, 0, .55);
     border: 1px solid #1b4aa0;
     padding: 6px 10px;
     border-radius: 8px;
@@ -206,11 +206,11 @@
     border: 1px solid #000088;
     border-radius: 12px;
     padding: 10px;
-    background: #05014E;
+    background: #05014e;
 }
 
 .syst-section legend {
-    color: #33FFFF;
+    color: #33ffff;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -236,7 +236,7 @@
 
 .syst-card:hover {
     background: #001b7a;
-    color: #33FFFF;
+    color: #33ffff;
 }
 
 .syst-subhead {
@@ -254,7 +254,7 @@
     border-radius: 8px;
     padding: 2px 6px;
     cursor: pointer;
-    opacity: 0.9;
+    opacity: .9;
 }
 
 .syst-toggle::after {
@@ -343,7 +343,7 @@
     gap: 12px;
 }
 
-.form-banner {
+.form-detail .form-banner {
     position: relative;
     background: #000033;
     border: 1px solid #000088;
@@ -353,13 +353,13 @@
     margin-top: 1em;
 }
 
-.form-banner::before {
+.form-detail .form-banner::before {
     content: "";
     display: block;
     padding-top: 28%;
 }
 
-.form-banner img {
+.form-detail .form-banner img {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -367,37 +367,37 @@
     object-fit: cover;
 }
 
-.form-banner-title {
+.form-detail .form-banner-title {
     position: absolute;
     top: 10px;
     right: 12px;
-    color: #33FFFF;
-    background: rgba(0,0,0,0.55);
+    color: #33ffff;
+    background: rgba(0, 0, 0, .55);
     border: 1px solid #1b4aa0;
     padding: 6px 10px;
     border-radius: 8px;
     font-weight: bold;
 }
 
-.form-box {
-    background: #05014E;
+.form-detail .form-box {
+    background: #05014e;
     border: 1px solid #000088;
     border-radius: 12px;
     padding: 12px;
 }
 
-.form-box h3 {
+.form-detail .form-box h3 {
     margin-top: 0;
-    color: #33FFFF;
+    color: #33ffff;
 }
 
-.mod-grid {
+.form-detail .mod-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
 
-.mod-card {
+.form-detail .mod-card {
     background: #00135a;
     border: 1px solid #1b4aa0;
     border-radius: 8px;
@@ -406,19 +406,19 @@
     color: #cfe;
 }
 
-.mod-card .mod-label {
+.form-detail .mod-card .mod-label {
     font-size: 12px;
     color: #9dd;
     margin-bottom: 4px;
 }
 
-.mod-card .mod-value {
+.form-detail .mod-card .mod-value {
     font-size: 16px;
-    color: #33FFFF;
+    color: #33ffff;
     font-weight: bold;
 }
 
-.cap-grid {
+.form-detail .cap-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
@@ -426,7 +426,7 @@
     justify-items: center;
 }
 
-.cap-item {
+.form-detail .cap-item {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -434,33 +434,33 @@
     color: #cfe;
 }
 
-.cap-icon {
+.form-detail .cap-icon {
     width: 48px;
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid #000088;
     background: #000033;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .45);
 }
 
-.cap-label {
+.form-detail .cap-label {
     margin-top: 6px;
     font-size: 12px;
     color: #9dd;
 }
 
-.cap-value {
+.form-detail .cap-value {
     font-size: 13px;
     color: #fff;
     font-weight: bold;
 }
 
-.form-box-maneuvers {
+.form-detail .form-box-maneuvers {
     padding-bottom: 2.5em;
 }
 
-.maneuvers-grid {
+.form-detail .maneuvers-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
     gap: 12px;
@@ -468,7 +468,7 @@
     padding: 6px 0;
 }
 
-.maneuver-item {
+.form-detail .maneuver-item {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -477,17 +477,17 @@
     min-width: 120px;
 }
 
-.maneuver-icon {
+.form-detail .maneuver-icon {
     width: 48px;
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid #000088;
     background: #000033;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .45);
 }
 
-.maneuver-label {
+.form-detail .maneuver-label {
     margin-top: 6px;
     font-size: 12px;
     line-height: 1.1;
@@ -496,7 +496,7 @@
 }
 
 @media (max-width: 720px) {
-    .mod-grid {
+    .form-detail .mod-grid {
         grid-template-columns: 1fr;
     }
 }
