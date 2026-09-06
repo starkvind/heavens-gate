@@ -8,50 +8,50 @@
     margin-bottom: 1.5em;
     border: 1px solid #004;
     border-radius: 8px;
-    padding: 0.5em;
+    padding: .5em;
     background: #111133;
 }
 
-.plot-title {
+.plot-box .plot-title {
     cursor: pointer;
     margin: 0;
-    padding: 0.5em;
+    padding: .5em;
     background: #222266;
     color: #fff;
     border-radius: 6px;
 }
 
-.characters-grid {
+.plot-box .characters-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 1em;
-    padding: 0.25em;
+    padding: .25em;
 }
 
-.plot-info {
+.plot-box .plot-info {
     color: #ccc;
     padding-left: 1em;
     padding-right: 1em;
     text-align: left;
 }
 
-.char-hud {
+.plot-box .char-hud {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     background: #222244;
     border: 1px solid #004;
     border-radius: 10px;
-    padding: 0.5em;
+    padding: .5em;
     width: 45%;
     box-sizing: border-box;
 }
 
-.char-left {
+.plot-box .char-left {
     margin-right: 1em;
 }
 
-.char-avatar {
+.plot-box .char-avatar {
     width: 80px;
     height: 80px;
     border-radius: 50%;
@@ -59,50 +59,50 @@
     object-fit: cover;
 }
 
-.char-avatar:hover {
-    border: 1px solid #028;
+.plot-box .char-avatar:hover {
+    border-color: #028;
 }
 
-.char-right {
+.plot-box .char-right {
     flex: 1;
 }
 
-.char-name {
+.plot-box .char-name {
     font-weight: bold;
     color: #eee;
-    margin-bottom: 0.5em;
+    margin-bottom: .5em;
 }
 
-.bar {
+.plot-box .bar {
     background: #333;
     border-radius: 5px;
     height: 14px;
-    margin: 0.3em 0;
+    margin: .3em 0;
     position: relative;
     overflow: hidden;
 }
 
-.bar-label {
+.plot-box .bar-label {
     position: absolute;
     left: 5px;
     top: 2px;
-    font-size: 0.7em;
+    font-size: .7em;
     color: #fff;
     z-index: 2;
     text-shadow: 0 0 3px #000;
 }
 
-.bar-value {
+.plot-box .bar-value {
     position: absolute;
     right: 5px;
     top: 2px;
-    font-size: 0.7em;
+    font-size: .7em;
     color: #fff;
     z-index: 2;
     text-shadow: 0 0 3px #000;
 }
 
-.bar-fill {
+.plot-box .bar-fill {
     height: 100%;
     border-radius: 5px;
     transition: width .25s ease;
@@ -110,35 +110,35 @@
     position: relative;
 }
 
-.hp {
+.plot-box .bar-fill.hp {
     background: #cc3333;
 }
 
-.rage {
+.plot-box .bar-fill.rage {
     background: #ff5555;
 }
 
-.gnosis {
+.plot-box .bar-fill.gnosis {
     background: #34b48f;
 }
 
-.blood {
+.plot-box .bar-fill.blood {
     background: #990000;
 }
 
-.glamour {
+.plot-box .bar-fill.glamour {
     background: #cc66ff;
 }
 
-.mana {
+.plot-box .bar-fill.mana {
     background: #44bbff;
 }
 
-.willpower {
-    margin-top: 0.5em;
+.plot-box .willpower {
+    margin-top: .5em;
 }
 
-.wp-dot {
+.plot-box .wp-dot {
     display: inline-block;
     width: 8px;
     height: 8px;
@@ -148,7 +148,7 @@
     border: 1px solid #0066dd;
 }
 
-.wp-dot.empty {
+.plot-box .wp-dot.empty {
     background: #000;
-    border: 1px solid #222;
+    border-color: #222;
 }
