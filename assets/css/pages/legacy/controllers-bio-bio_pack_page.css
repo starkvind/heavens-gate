@@ -1,4 +1,4 @@
-/* Phase 4 ownership cleanup for app/controllers/bio/bio_pack_page.php. */
+/* Biography group and organization detail page. */
 
 .bio-pack-action-link {
     display: inline-block;
@@ -40,7 +40,7 @@
 .bio-pack-copy-btn:hover {
     transform: translateY(-1px);
     border-color: #2bbfd1;
-    box-shadow: 0 0 0 3px rgba(43,191,209,.18);
+    box-shadow: 0 0 0 3px rgba(43, 191, 209, .18);
 }
 
 .bio-pack-copy-status {
@@ -55,13 +55,11 @@
     color: #9e1f1f;
 }
 
-/* The controller still emits these historical table classes. Keep their
- * presentation local to this page instead of hg-core.css. */
 table.notix {
     width: 100%;
 }
 
-td.texti {
+table.notix td.texti {
     border: 1px solid #009;
     background-color: #000055;
     padding: 10px;
