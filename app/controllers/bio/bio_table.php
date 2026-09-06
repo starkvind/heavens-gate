@@ -141,7 +141,7 @@ $pageSect = "Lista de personajes - Biograf&iacute;as";
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_table.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_table.css"><?php } ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <h2 style="text-align:right;">Lista de personajes</h2>
-<div style="display:flex; justify-content:center; width: 100%;">
+<div class="bio-table-wrap" style="display:flex; justify-content:center; width: 100%;">
   <div style="flex: 1; max-width:640px; min-width:640px;">
     <div class="dt-toolbar">
       <div class="left">
