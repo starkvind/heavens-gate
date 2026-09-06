@@ -114,10 +114,10 @@
     margin: 16px 0;
 }
 
-#lightbox {
+.gallery-container #lightbox {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, .9);
     display: none;
     justify-content: center;
     align-items: center;
@@ -125,36 +125,36 @@
     z-index: 9999;
 }
 
-#lightbox img {
+.gallery-container #lightbox img {
     max-width: 90%;
     max-height: 75%;
     margin-bottom: 10px;
 }
 
-#lightbox-title {
+.gallery-container #lightbox-title {
     color: #ccc;
     font-size: 1.05em;
     margin-bottom: 15px;
 }
 
-.lightbox-controls {
+.gallery-container .lightbox-controls {
     display: flex;
     gap: 20px;
     font-size: 2em;
 }
 
-.lightbox-controls span {
+.gallery-container .lightbox-controls span {
     cursor: pointer;
     user-select: none;
     color: #fff;
 }
 
-.embedForumSnippet {
+.gallery-container #lightbox .embedForumSnippet {
     background: #111;
     border: 1px solid #444;
     color: #0f0;
     font-family: monospace;
-    padding: 0.5em;
+    padding: .5em;
     border-radius: 6px;
     overflow: auto;
 }
