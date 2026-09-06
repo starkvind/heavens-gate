@@ -1,8 +1,8 @@
 <?php
 if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-tool-csp_board.css');
+    hg_page_register_stylesheet('/assets/css/tools/csp-board.css');
 } else {
-    echo '<link rel="stylesheet" href="/assets/css/pages/legacy/controllers-tool-csp_board.css">';
+    echo '<link rel="stylesheet" href="/assets/css/tools/csp-board.css">';
 }
 
 if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");	// Barra Navegación
@@ -27,7 +27,7 @@ if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("ap
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
 
-                while ($ResultQuery = mysqli_fetch_assoc($result)) {
+                while ($ResultQuery = mysqli_fetch_assoc($result))) {
                     print("
                     <tr>
                     <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["author"]."</td>
