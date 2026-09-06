@@ -1,4 +1,5 @@
-:root {
+:is(body.hg-embed-message, .hg-inline-message),
+:is(body.hg-embed-roll, .hg-inline-roll) {
     --palette: #222;
 }
 
@@ -6,7 +7,7 @@ body.hg-embed-message {
     margin: 0;
 }
 
-.msg_main_box {
+:is(body.hg-embed-message, .hg-inline-message) .msg_main_box {
     display: flex;
     align-items: start;
     border-radius: 12px;
@@ -17,11 +18,11 @@ body.hg-embed-message {
     gap: 0.2em;
 }
 
-.img_link {
+:is(body.hg-embed-message, .hg-inline-message) .img_link {
     z-index: 12;
 }
 
-.msg_face {
+:is(body.hg-embed-message, .hg-inline-message) .msg_face {
     border-radius: 50%;
     width: 80px;
     height: 80px;
@@ -32,13 +33,13 @@ body.hg-embed-message {
     z-index: 10;
 }
 
-.msg_face:hover {
+:is(body.hg-embed-message, .hg-inline-message) .msg_face:hover {
     border-color: #aaa;
     box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.3);
     transform: scale(1.05);
 }
 
-.msg_body {
+:is(body.hg-embed-message, .hg-inline-message) .msg_body {
     flex: 1;
     background: var(--palette);
     border-radius: 8px;
@@ -49,15 +50,15 @@ body.hg-embed-message {
     color: #000;
 }
 
-.dark-text {
+:is(body.hg-embed-message, .hg-inline-message) .dark-text {
     color: #fff;
 }
 
-.light-text {
+:is(body.hg-embed-message, .hg-inline-message) .light-text {
     color: #000;
 }
 
-.msg_name_box {
+:is(body.hg-embed-message, .hg-inline-message) .msg_name_box {
     position: absolute;
     top: -1em;
     left: 3em;
@@ -69,7 +70,7 @@ body.hg-embed-message {
     border-radius: 4px;
 }
 
-.msg_container {
+:is(body.hg-embed-message, .hg-inline-message) .msg_container {
     margin: 0;
     padding-left: 2.5em;
     padding-top: 0.5em;
@@ -77,11 +78,11 @@ body.hg-embed-message {
     min-height: calc(1.5em * 2.5);
 }
 
-.msg_container--plain {
+:is(body.hg-embed-message, .hg-inline-message) .msg_container--plain {
     padding-top: 0;
 }
 
-.msg_container a {
+:is(body.hg-embed-message, .hg-inline-message) .msg_container a {
     color: #0055cc;
     text-decoration: none;
     font-weight: 600;
@@ -89,7 +90,7 @@ body.hg-embed-message {
     transition: all 0.25s ease-in-out;
 }
 
-.msg_container a:hover {
+:is(body.hg-embed-message, .hg-inline-message) .msg_container a:hover {
     color: #003399;
     background-color: rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid #ccc;
@@ -98,15 +99,15 @@ body.hg-embed-message {
     border-radius: 4px;
 }
 
-.hg-bb-align-left {
+:is(body.hg-embed-message, .hg-inline-message) .hg-bb-align-left {
     text-align: left;
 }
 
-.hg-bb-align-center {
+:is(body.hg-embed-message, .hg-inline-message) .hg-bb-align-center {
     text-align: center;
 }
 
-.hg-bb-align-right {
+:is(body.hg-embed-message, .hg-inline-message) .hg-bb-align-right {
     text-align: right;
 }
 
@@ -118,13 +119,13 @@ body.hg-embed-roll {
     box-sizing: border-box;
 }
 
-.roll-main-box {
+:is(body.hg-embed-roll, .hg-inline-roll) .roll-main-box {
     max-width: 600px;
     margin: 1em 1em 1.4em;
     font-size: 14px;
 }
 
-.roll-box {
+:is(body.hg-embed-roll, .hg-inline-roll) .roll-box {
     background-color: var(--palette);
     padding: 0.75em 1em;
     border: 1px solid #666;
@@ -134,7 +135,7 @@ body.hg-embed-roll {
     box-shadow: 2px 2px 6px rgba(221, 221, 221, 0.35);
 }
 
-.roll-box-name {
+:is(body.hg-embed-roll, .hg-inline-roll) .roll-box-name {
     position: absolute;
     top: -0.9em;
     left: 1.4em;
@@ -146,12 +147,12 @@ body.hg-embed-roll {
     border-radius: 4px;
 }
 
-.roll-head {
+:is(body.hg-embed-roll, .hg-inline-roll) .roll-head {
     margin-top: 1.35em;
     margin-bottom: 0.85em;
 }
 
-.roll-results {
+:is(body.hg-embed-roll, .hg-inline-roll) .roll-results {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -159,7 +160,7 @@ body.hg-embed-roll {
     margin-bottom: 1em;
 }
 
-.dado {
+:is(body.hg-embed-roll, .hg-inline-roll) .dado {
     --die-color: #5ff;
     width: 40px;
     height: 40px;
@@ -174,7 +175,7 @@ body.hg-embed-roll {
     filter: drop-shadow(0 0 3px var(--die-color));
 }
 
-.dado span {
+:is(body.hg-embed-roll, .hg-inline-roll) .dado span {
     position: absolute;
     top: 8px;
     left: 0;
@@ -184,7 +185,7 @@ body.hg-embed-roll {
     color: var(--die-color);
 }
 
-.roll-botch {
+:is(body.hg-embed-roll, .hg-inline-roll) .roll-botch {
     color: #f55;
 }
 
