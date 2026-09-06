@@ -22,14 +22,14 @@
     padding-bottom: 4px;
 }
 
-ul.listaManadas {
+.hg-archive-panel ul.listaManadas {
     list-style-type: none;
     width: 90%;
     margin-bottom: 10px;
     overflow: hidden;
 }
 
-li.listaManadas {
+.hg-archive-panel li.listaManadas {
     height: 18px;
     width: 50%;
     line-height: 1.5em;
