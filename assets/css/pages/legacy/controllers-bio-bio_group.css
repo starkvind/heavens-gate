@@ -1,6 +1,6 @@
 /* Phase 1 extraction from app/controllers/bio/bio_group.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
 
-.toggleAfiliacion {
+.bio-group-page .toggleAfiliacion {
         background: #05014e;
         color: #fff;
         border: 1px solid #000088;
@@ -12,18 +12,18 @@
         text-align: left;
     }
 
-    .toggleAfiliacion:hover {
+    .bio-group-page .toggleAfiliacion:hover {
         background: #000066;
         border: 1px solid #0000bb;
     }
 
-    .contenidoAfiliacion {
+    .bio-group-page .contenidoAfiliacion {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
         padding: 8px 0 12px 0;
     }
 
-    .oculto {
+    .bio-group-page .oculto {
         display: none;
     }
