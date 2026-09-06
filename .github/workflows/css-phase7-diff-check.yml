@@ -1,0 +1,16 @@
+name: Temporary CSS Phase 7 diff check
+
+on:
+  push:
+    branches:
+      - css-refactor
+
+jobs:
+  diff-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Phase 7 diff whitespace
+        run: git diff --check 08b53b43ba3b00a339e380dfd29eff4934dd95e8 HEAD
