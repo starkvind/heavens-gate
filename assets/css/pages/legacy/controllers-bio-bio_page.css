@@ -1,14 +1,90 @@
-/* Phase 1 extraction from app/controllers/bio/bio_page.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+/* Character biography export controls. */
 
-.bio-export-bar{display:flex;justify-content:flex-end;align-items:center;margin:12px 0 16px}
-			.bio-export-btn{border:1px solid rgba(255,255,255,.18);background:#1f2b2f;color:#f5efe2;padding:10px 14px;border-radius:10px;cursor:pointer;font:inherit}
-			.bio-export-btn:hover{background:#29383d}
-			.bio-export-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:1200}
-			.bio-export-modal.is-open{display:flex}
-			.bio-export-modal__panel{width:min(980px,100%);max-height:min(85vh,900px);background:#11181b;border:1px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.45);display:flex;flex-direction:column}
-			.bio-export-modal__head,.bio-export-modal__foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
-			.bio-export-modal__title{font-weight:700;color:#f5efe2}
-			.bio-export-modal__body{padding:0 16px 16px}
-			.bio-export-modal__ta{width:100%;min-height:56vh;resize:vertical;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#0a1012;color:#f3f0e7;padding:14px;font:13px/1.45 Consolas, Monaco, monospace}
-			.bio-export-modal__actions{display:flex;gap:10px;flex-wrap:wrap}
-			.bio-export-copy-state{color:#cfd8d3;font-size:12px;min-height:18px}
+.bio-export-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 12px 0 16px;
+}
+
+.bio-export-btn {
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: #1f2b2f;
+    color: #f5efe2;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.bio-export-btn:hover {
+    background: #29383d;
+}
+
+.bio-export-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1200;
+}
+
+.bio-export-modal.is-open {
+    display: flex;
+}
+
+.bio-export-modal__panel {
+    width: min(980px, 100%);
+    max-height: min(85vh, 900px);
+    background: #11181b;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 14px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, .45);
+    display: flex;
+    flex-direction: column;
+}
+
+.bio-export-modal__head,
+.bio-export-modal__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.bio-export-modal__title {
+    font-weight: 700;
+    color: #f5efe2;
+}
+
+.bio-export-modal__body {
+    padding: 0 16px 16px;
+}
+
+.bio-export-modal__ta {
+    width: 100%;
+    min-height: 56vh;
+    resize: vertical;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 10px;
+    background: #0a1012;
+    color: #f3f0e7;
+    padding: 14px;
+    font: 13px/1.45 Consolas, Monaco, monospace;
+}
+
+.bio-export-modal__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bio-export-copy-state {
+    color: #cfd8d3;
+    font-size: 12px;
+    min-height: 18px;
+}
