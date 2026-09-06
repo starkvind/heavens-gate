@@ -19,9 +19,13 @@
         'box-shadow'
     ];
 
-    /* Explicit three-column defaults for tables whose semantics do not fit the
-     * generic Name + key column + Origin model. Each entry is a list of header
-     * label candidates, in the exact order that should remain visible. */
+    var databaseColumnProfiles = (
+        w.HG_DATATABLE_COLUMNS
+        && typeof w.HG_DATATABLE_COLUMNS === 'object'
+        && !Array.isArray(w.HG_DATATABLE_COLUMNS)
+    ) ? w.HG_DATATABLE_COLUMNS : {};
+
+    /* Fallback only: database configuration is authoritative when installed. */
     var coreColumnProfiles = {
         'tabla-capitulos': [
             ['episodio'],
@@ -30,7 +34,7 @@
         ]
     };
 
-    /* Preferred middle/key column for tables that do fit the generic model. */
+    /* Fallback middle/key column for tables that fit Name + key + Origin. */
     var keyColumnProfiles = {
         'tabla-acciones': ['tirada'],
         'tabla-meritos': ['tipo'],
@@ -92,6 +96,36 @@
         }
 
         return -1;
+    }
+
+    function configuredColumnSets(table, managedIndexes) {
+        var profile = table && table.id ? databaseColumnProfiles[table.id] : null;
+        if (!profile || !Array.isArray(profile.columns)) return null;
+
+        var core = [];
+        var defaults = [];
+
+        profile.columns.forEach(function (column) {
+            if (!column || typeof column !== 'object') return;
+            var index = Number(column.index);
+            if (!Number.isInteger(index) || managedIndexes.indexOf(index) === -1) return;
+
+            if (column.is_core === true && core.indexOf(index) === -1) {
+                core.push(index);
+            }
+            if ((column.visible_default === true || column.is_core === true) && defaults.indexOf(index) === -1) {
+                defaults.push(index);
+            }
+        });
+
+        if (!core.length) return null;
+        core.sort(function (a, b) { return a - b; });
+        defaults.sort(function (a, b) { return a - b; });
+
+        return {
+            core: core,
+            defaults: defaults.length ? defaults : core.slice()
+        };
     }
 
     function inferCoreColumns(table, api, managedIndexes) {
@@ -198,9 +232,11 @@
             var text = header ? header.textContent.trim() : '';
             return text || ('Columna ' + (index + 1));
         });
-        var coreIndexes = inferCoreColumns(table, api, managedIndexes);
+        var configuredSets = configuredColumnSets(table, managedIndexes);
+        var coreIndexes = configuredSets ? configuredSets.core : inferCoreColumns(table, api, managedIndexes);
+        var defaultIndexes = configuredSets ? configuredSets.defaults : coreIndexes.slice();
 
-        setColumnSet(api, managedIndexes, coreIndexes);
+        setColumnSet(api, managedIndexes, defaultIndexes);
         markWideDataTable(table, wrapper, api);
 
         var toolbar = w.document.createElement('div');
@@ -225,7 +261,7 @@
 
             var checkbox = w.document.createElement('input');
             checkbox.type = 'checkbox';
-            checkbox.checked = coreIndexes.indexOf(index) !== -1;
+            checkbox.checked = defaultIndexes.indexOf(index) !== -1;
             checkbox.disabled = coreIndexes.indexOf(index) !== -1;
             checkbox.setAttribute('data-column-index', String(index));
 
