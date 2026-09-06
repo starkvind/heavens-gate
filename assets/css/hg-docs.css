@@ -210,7 +210,7 @@
    THEMES (OG / Claro / Terminal) + UI selector
    ========================================================= */
 
-:root{
+.doc-page{
   --doc-maxw: 600px;
   --doc-radius: 14px;
 
@@ -243,7 +243,7 @@
 }
 
 /* Claro */
-[data-doc-theme="light"]{
+.doc-page[data-doc-theme="light"]{
   --bg: linear-gradient(180deg, #05014E 0%, #0b0d22 100%);
   --card-bg: rgba(255,255,255,0.92);
   --card-border: rgba(0,0,0,0.15);
@@ -268,7 +268,7 @@
 }
 
 /* Terminal */
-[data-doc-theme="terminal"]{
+.doc-page[data-doc-theme="terminal"]{
   --bg: radial-gradient(1200px 700px at 30% 10%, rgba(0,255,128,0.10) 0%, rgba(0,0,0,0) 55%),
         linear-gradient(180deg, #030507 0%, #000 100%);
   --card-bg: rgba(0,0,0,0.72);
@@ -350,7 +350,7 @@
 }
 
 /* Terminal vibe extra: scanline suave */
-[data-doc-theme="terminal"] .doc-card::before{
+.doc-page[data-doc-theme="terminal"] .doc-card::before{
   content:"";
   position:absolute;
   inset:0;
@@ -404,7 +404,7 @@
 }
 
 /* Terminal: tipografia mono y tamano un poco menor */
-[data-doc-theme="terminal"] .doc-body{
+.doc-page[data-doc-theme="terminal"] .doc-body{
   font-family: var(--mono);
   font-size: 12px;
   line-height: 1.62;
@@ -425,9 +425,9 @@
 .doc-body h4,.doc-body h5,.doc-body h6{
   text-align: left !important;
 }
-[data-doc-theme="terminal"] .doc-body h1,
-[data-doc-theme="terminal"] .doc-body h2,
-[data-doc-theme="terminal"] .doc-body h3{
+.doc-page[data-doc-theme="terminal"] .doc-body h1,
+.doc-page[data-doc-theme="terminal"] .doc-body h2,
+.doc-page[data-doc-theme="terminal"] .doc-body h3{
   font-family: var(--mono);
   letter-spacing: 0.02em;
 }
@@ -480,7 +480,7 @@
 .doc-source strong{ color: var(--title); }
 
 /* Prompt pequeno en terminal */
-[data-doc-theme="terminal"] .doc-meta::before{
+.doc-page[data-doc-theme="terminal"] .doc-meta::before{
   content: "heavensgate@db:~$ cat ";
   font-family: var(--mono);
   color: rgba(124,255,174,0.75);
