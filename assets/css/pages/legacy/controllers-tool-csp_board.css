@@ -1,15 +1,15 @@
-/* CSP message board legacy table styling. */
+/* CSP message board table. */
 
-.klax1 {
+.tablax .klax1 {
     padding: 5px;
     text-align: left;
     background-color: #000066;
-    color: #66FF99;
+    color: #66ff99;
     font-weight: bold;
     border: 1px solid #009;
 }
 
-.klax2 {
+.tablax .klax2 {
     padding: 5px;
     text-align: left;
     background-color: #000066;
