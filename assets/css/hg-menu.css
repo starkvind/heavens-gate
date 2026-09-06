@@ -17,66 +17,53 @@ table.tmenu {
     background: url("../../img/ui/backgrounds/menu.webp");
 }
 
-td.upMenu {
+table.tmenu td.upMenu {
     width: 14%;
     border: 1px solid #000066;
     text-align: center;
     height: 24px;
 }
 
-td.upMenu:hover {
+table.tmenu td.upMenu:hover {
     background-color: #000077;
 }
 
-a.enlaceUpMenu:hover {
+table.tmenu a.enlaceUpMenu:hover {
     font-weight: bold;
 }
 
-a.titMenu {
+table.tmenu a.titMenu {
     padding: 5px;
     font-weight: bolder;
     color: #33FFFF;
     text-align: left;
 }
 
-img.menuIcon {
+table.tmenu img.menuIcon {
     border: 1px solid #000088;
 }
 
-td.sekz {
+table.tmenu td.sekz {
     padding: 5px;
     font-weight: bolder;
     color: #33FFFF;
     text-align: left;
 }
 
-td.sekzo {
+table.tmenu td.sekzo {
     padding-left: 5px;
     text-align: left;
 }
 
-td.sepmenu {
+table.tmenu td.sepmenu {
     border-bottom: 1px dotted #006699;
 }
 
-table.menu_sect {
+table.tmenu table.menu_sect {
     width: 165px;
     padding-top: 2px;
     padding-bottom: 2px;
     padding-right: 2px;
-}
-
-/* Open/closed submenu state. */
-.ocultable {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-    padding: 0;
-}
-
-.ocultable.open {
-    max-height: 600px;
-    padding: 4px 0;
 }
 
 /* Standard submenu rows. */
@@ -99,14 +86,14 @@ table.tmenu div.renglonMenu:not(.menuSeparator):hover {
     background: #000066;
 }
 
-.menuSeparator {
+table.tmenu .menuSeparator {
     border: 0;
     background-color: transparent;
     margin-top: -1em;
 }
 
 /* Dynamic season rows. */
-.menu-season-label {
+table.tmenu .menu-season-label {
     float: none;
     margin-left: 0;
     display: -webkit-box;
@@ -120,7 +107,7 @@ table.tmenu div.renglonMenu:not(.menuSeparator):hover {
     min-width: 0;
 }
 
-.menu-season-status {
+table.tmenu .menu-season-status {
     float: none;
     flex: 0 0 16px;
     text-align: right;
@@ -154,10 +141,10 @@ table.tmenu div.renglonMenu.menu-season-row {
     text-align: left;
 }
 
-.menu-season-row--nostatus .menu-season-label {
+table.tmenu .menu-season-row--nostatus .menu-season-label {
     text-align: left;
 }
 
-.menu-season-row--nostatus .menu-season-status {
+table.tmenu .menu-season-row--nostatus .menu-season-status {
     display: none;
 }
