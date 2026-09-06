@@ -1,24 +1,24 @@
-/* Phase 1 extraction from app/controllers/bio/bio_reltree_characters.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+/* Character relationship map presentation. */
 
 #relationInfo {
-        background-color: #ffffff;
-        color: #333;
-        border-color: #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-    }
+    background-color: #ffffff;
+    color: #333;
+    border-color: #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+}
 
-    #network {
-        border: 0;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-        height: 70vh;
-        width: 100%;
-        background-color: #05014e;
-    }
+.bioTextData #network {
+    border: 0;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, .05);
+    height: 70vh;
+    width: 100%;
+    background-color: #05014e;
+}
 
-    #fullscreen-btn {
-        position: relative;
-        z-index: 1000;
-        cursor: pointer;
-        float: right;
-    }
+.bioTextData #fullscreen-btn {
+    position: relative;
+    z-index: 1000;
+    cursor: pointer;
+    float: right;
+}
