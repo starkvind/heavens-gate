@@ -200,13 +200,6 @@ img.fotoBioList {
 	object-fit: cover;
 }
 
-.power-card--item .power-card__img {
-	width: 88px;
-	height: 88px;
-	padding: 6px;
-	border-radius: 0;
-}
-
 .power-card__stats {
 	display: flex;
 	text-align: left;
@@ -269,6 +262,7 @@ img.fotoBioList {
 .power-card--item .power-card__img {
 	width: 100px;
 	height: 100px;
+	padding: 6px;
 	border-radius: 0;
 	object-fit: contain;
 }
