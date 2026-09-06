@@ -2,8 +2,8 @@
     color: var(--hg-dt-text);
 }
 
-/* Tables with five or more columns keep readable column geometry and scroll
- * inside their own DataTables region instead of squeezing the whole table. */
+/* Tables with five or more visible columns keep readable column geometry and
+ * scroll inside their own DataTables region instead of squeezing the table. */
 .dataTables_wrapper.hg-datatable-wide {
     max-width: 100%;
     overflow-x: auto;
@@ -47,7 +47,8 @@ table.dataTable tbody tr:hover {
 
 .dataTables_wrapper .dataTables_filter input,
 .dataTables_wrapper .dataTables_length select,
-.ms-btn {
+.ms-btn,
+.hg-dt-column-picker > summary {
     font-family: verdana, sans-serif;
     font-size: 10px;
     font-weight: normal;
@@ -105,6 +106,105 @@ table.dataTable tbody tr:hover {
 
 .dataTables_wrapper .dataTables_filter input {
     margin-left: 0;
+}
+
+/* Wide-table column selector. The three inferred core columns stay locked;
+ * optional columns can be restored without changing each DataTable layout. */
+.hg-dt-column-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-height: 28px;
+    margin: 0 0 8px;
+    position: relative;
+    z-index: 20;
+}
+
+.hg-dt-column-picker {
+    position: relative;
+}
+
+.hg-dt-column-picker > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.hg-dt-column-picker > summary::-webkit-details-marker {
+    display: none;
+}
+
+.hg-dt-column-picker > summary:hover,
+.hg-dt-column-picker[open] > summary {
+    border-color: var(--hg-ms-focus-border);
+}
+
+.hg-dt-column-picker__summary {
+    opacity: .8;
+}
+
+.hg-dt-column-picker__panel {
+    position: absolute;
+    z-index: 10000;
+    top: calc(100% + 5px);
+    right: 0;
+    min-width: 220px;
+    max-width: min(320px, 80vw);
+    border: 1px solid var(--hg-ms-panel-border);
+    background: var(--hg-ms-panel-bg);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    padding: 5px;
+}
+
+.hg-dt-column-picker__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--hg-ms-row-bg);
+}
+
+.hg-dt-column-picker__option:hover {
+    background: var(--hg-ms-row-hover-bg);
+}
+
+.hg-dt-column-picker__option:has(input:disabled) {
+    cursor: default;
+    opacity: .72;
+}
+
+.hg-dt-column-picker__option input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.hg-dt-column-picker__actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.hg-dt-column-picker__actions button {
+    font-family: Verdana, sans-serif;
+    font-size: 10px;
+    background-color: var(--hg-ms-action-bg);
+    color: var(--hg-ms-action-text);
+    padding: 0.5em;
+    border: 1px solid var(--hg-ms-action-border);
+    cursor: pointer;
+}
+
+.hg-dt-column-picker__actions button:hover {
+    border-color: var(--hg-ms-action-hover-border);
+    background: var(--hg-ms-action-hover-bg);
+    color: var(--hg-ms-action-hover-text);
 }
 
 /* Shared DataTables toolbar and multiselect controls */
