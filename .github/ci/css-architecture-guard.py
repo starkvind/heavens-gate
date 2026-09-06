@@ -30,8 +30,11 @@ for root in [Path('app'), Path('api')]:
                 fail(f'{path}: missing referenced stylesheet {ref}')
 
 
-# 2) Normal public controllers may register styles, but must not emit CSS into page content.
-# Admin and self-contained tools are separately scoped surfaces; mobile is a compatibility renderer.
+# 2) Normal public controllers may register styles, but must not inject new CSS into page content.
+# Existing raw links are defensive standalone fallbacks and are legal only when the exact same
+# stylesheet is also registered through the deterministic page-assets API.
+register_ref = re.compile(r"hg_page_register_stylesheet\(\s*['\"](/assets/css/[A-Za-z0-9_./-]+\.css)['\"]")
+link_ref = re.compile(r'<link\b[^>]*\brel\s*=\s*["\']stylesheet["\'][^>]*\bhref\s*=\s*["\'](/assets/css/[A-Za-z0-9_./-]+\.css)["\']', re.I)
 for path in Path('app/controllers').rglob('*.php'):
     rel = path.as_posix()
     if rel.startswith('app/controllers/admin/') or rel.startswith('app/controllers/tool/'):
@@ -39,8 +42,10 @@ for path in Path('app/controllers').rglob('*.php'):
     source = read(path)
     if re.search(r'<style\b', source, re.I):
         fail(f'{path}: public controller emits a <style> block; register/extract the stylesheet instead')
-    if re.search(r'<link\b[^>]*\brel\s*=\s*["\']stylesheet["\']', source, re.I):
-        fail(f'{path}: public controller emits a stylesheet <link>; use page asset registration instead')
+    registered = set(register_ref.findall(source))
+    for ref in link_ref.findall(source):
+        if ref not in registered:
+            fail(f'{path}: stylesheet fallback {ref} has no matching page-asset registration')
 
 
 # 3) Core stays shell-only.
@@ -57,7 +62,7 @@ for marker, label in {
         fail(f'assets/css/hg-core.css: {label} returned to core ({marker})')
 
 
-# Lightweight selector extraction. This deliberately guards only exact bare/global owners;
+# Lightweight selector extraction. This deliberately guards exact bare/global owners;
 # contextual selectors remain legal for domain-specific composition.
 comment_re = re.compile(r'/\*.*?\*/', re.S)
 rule_re = re.compile(r'(^|})\s*([^@{}][^{}]*)\{', re.M)
@@ -77,6 +82,12 @@ bare_allowed = {
     'assets/css/embeds/item.css',
     'assets/css/hg-tools.css',
     'assets/css/tools/csp-board.css',
+}
+# Reviewed legacy exceptions present at Phase 11 baseline. New bare selector families remain blocked.
+bare_legacy_allowed = {
+    ('assets/css/hg-layout.css', 'select'),
+    ('assets/css/hg-home.css', 'h2'),
+    ('assets/css/hg-home.css', 'input'),
 }
 
 shared_owners = {
@@ -98,28 +109,32 @@ for path in CSS_ROOT.rglob('*.css'):
             selector = ' '.join(selector.split())
             if not selector:
                 continue
-            if selector in bare_elements and rel not in bare_allowed:
-                fail(f'{rel}: bare global selector {selector!r} is outside an approved base/special stylesheet')
+            if (selector in bare_elements and rel not in bare_allowed
+                    and (rel, selector) not in bare_legacy_allowed):
+                fail(f'{rel}: bare global selector {selector!r} is outside the Phase 11 baseline')
             owner = shared_owners.get(selector)
             if owner and rel != owner:
                 fail(f'{rel}: duplicate ownership of {selector}; canonical owner is {owner}')
 
 
-# 4) New !important debt is blocked. Existing exceptions are explicit and capped.
-# Admin/mobile are separate surfaces; print is intentionally forceful; DataTables mirrors vendor importance.
+# 4) New !important debt is blocked. Existing first-party exceptions are explicit and capped.
+# Counts ignore comments, so explanatory references to !important do not consume the budget.
 important_caps = {
-    'assets/css/hg-datatables.css': 3,
+    'assets/css/hg-datatables.css': 3,   # mirrors DataTables vendor colour importance
+    'assets/css/hg-components.css': 1,   # print-only catalog navigation hide
+    'assets/css/hg-power-custom.css': 12,  # print-only custom power sheet
 }
 important_exempt_prefixes = (
     'assets/css/hg-admin.css',
     'assets/css/hg-mobile.css',
     'assets/css/hg-mobile-timeline.css',
     'assets/css/hg-powers-print.css',
-    'assets/vendor/',
+    'assets/css/vendor/',
 )
 for path in CSS_ROOT.rglob('*.css'):
     rel = path.as_posix()
-    count = read(path).count('!important')
+    code = comment_re.sub('', read(path))
+    count = code.count('!important')
     if not count:
         continue
     if rel.startswith(important_exempt_prefixes):
