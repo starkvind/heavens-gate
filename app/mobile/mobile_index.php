@@ -93,6 +93,13 @@
     <title><?= hg_mobile_h($mobileTitle) ?></title>
     <link rel="shortcut icon" href="img/ui/branding/infinidice.ico" type="image/x-icon">
     <link rel="stylesheet" href="assets/css/hg-mobile.css?v=<?= hg_mobile_h($mobileCssVersion) ?>">
+    <?php
+        // Mobile controllers are buffered before <head>, so embedded tools can
+        // register their page-scoped styles without falling back to body links.
+        if (function_exists('hg_page_render_registered_styles')) {
+            hg_page_render_registered_styles();
+        }
+    ?>
     <script src="assets/js/hg-mobile.js?v=<?= hg_mobile_h($mobileJsVersion) ?>" defer></script>
 </head>
 <body class="hg-mobile-body <?= hg_mobile_h($bodyThemeClass) ?>">
