@@ -170,10 +170,10 @@ if ($result->num_rows > 0) {
 
     if ($useTabs) {
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
-        if ($hasCharOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
-        if ($hasGroupOwners) echo "<button class='boton2 hgTabBtn' data-tab='groups'>Grupos</button>";
-        if ($hasOrgOwners) echo "<button class='boton2 hgTabBtn' data-tab='orgs'>Organizaciones</button>";
+        echo "<button class='hgTabBtn' data-tab='info'>Información</button>";
+        if ($hasCharOwners) echo "<button class='hgTabBtn' data-tab='owners'>Portadores</button>";
+        if ($hasGroupOwners) echo "<button class='hgTabBtn' data-tab='groups'>Grupos</button>";
+        if ($hasOrgOwners) echo "<button class='hgTabBtn' data-tab='orgs'>Organizaciones</button>";
         echo "</div>";
 
         echo "<section class='hg-tab-panel' data-tab='info'>$infoHtml</section>";

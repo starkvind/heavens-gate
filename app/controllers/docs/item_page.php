@@ -258,8 +258,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 
     if ($hasOwners) {
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
-        echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
+        echo "<button class='hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
+        echo "<button class='hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
         echo "<section class='hg-tab-panel' data-tab='info'>$infoHtml</section>";

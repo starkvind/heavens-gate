@@ -176,8 +176,8 @@ if ($rowsQueryDon > 0) {
 
     if ($useTabs) {
         echo "<div class='hg-tabs'>";
-        echo "<button class='boton2 hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
-        if ($hasOwners) echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
+        echo "<button class='hgTabBtn' data-tab='info'>Informaci&oacute;n</button>";
+        if ($hasOwners) echo "<button class='hgTabBtn' data-tab='owners'>Portadores</button>";
         echo "</div>";
 
         echo "<section class='hg-tab-panel' data-tab='info'>$infoHtml</section>";

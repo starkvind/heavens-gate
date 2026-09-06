@@ -33,37 +33,9 @@ if (!function_exists('hg_power_catalog_tabs_map')) {
 if (!function_exists('hg_render_power_catalog_tabs')) {
     function hg_render_power_catalog_tabs(string $kind, string $active): void
     {
-        static $stylesPrinted = false;
         $tabs = hg_power_catalog_tabs_map($kind);
         if (!$tabs) {
             return;
-        }
-
-        if (!$stylesPrinted) {
-            $stylesPrinted = true;
-            $tabCss = <<<'CSS'
-.hg-power-catalog-tabs {
-    justify-content: flex-start;
-    margin: 8px 0 14px;
-}
-.hg-power-catalog-tabs .hgTabBtn {
-    text-decoration: none;
-}
-.hg-power-catalog-tabs .hgTabBtn .hgTabLabel {
-    max-width: 180px;
-    opacity: 1;
-}
-@media print {
-    .hg-power-catalog-tabs { display: none !important; }
-}
-CSS;
-
-            if (function_exists('hg_page_register_inline_style')) {
-                hg_page_register_inline_style($tabCss);
-            } else {
-                // Bare/mobile compatibility until their asset pipelines are migrated.
-                echo "<style>\n" . $tabCss . "\n</style>\n";
-            }
         }
 
         $defs = [

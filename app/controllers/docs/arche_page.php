@@ -155,12 +155,9 @@ $hasDemeanor = count($demeanorOwners) > 0;
 $hasOwnersTabs = $hasNature || $hasDemeanor;
 
 if ($hasOwnersTabs) {
-    include_once(__DIR__ . '/../../partials/owners_tabs_styles.php');
-    hg_render_owner_tabs_styles(true, 28);
-
     echo "<div class='hg-tabs'>";
-    echo "<button class='boton2 hgTabBtn' data-tab='info'>Información</button>";
-    echo "<button class='boton2 hgTabBtn' data-tab='owners'>Portadores</button>";
+    echo "<button class='hgTabBtn' data-tab='info'>Información</button>";
+    echo "<button class='hgTabBtn' data-tab='owners'>Portadores</button>";
     echo "</div>";
 
     echo "<section class='hg-tab-panel' data-tab='info'>{$infoHtml}</section>";

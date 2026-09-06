@@ -385,6 +385,27 @@ img.fotoBioList {
 	opacity: 1;
 }
 
+/* Catalog navigation tabs ------------------------------------------------ */
+.hg-power-catalog-tabs {
+	justify-content: flex-start;
+	margin: 8px 0 14px;
+}
+
+.hg-power-catalog-tabs .hgTabBtn {
+	text-decoration: none;
+}
+
+.hg-power-catalog-tabs .hgTabBtn .hgTabLabel {
+	max-width: 180px;
+	opacity: 1;
+}
+
+@media print {
+	.hg-power-catalog-tabs {
+		display: none !important;
+	}
+}
+
 .hg-tab-panel {
 	display: none;
 }
