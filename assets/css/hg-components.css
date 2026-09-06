@@ -134,7 +134,8 @@ img.fotoBioList {
 .hg-powers-list-card,
 .hg-powers-related-card,
 .hg-inventory-list-card,
-.hg-maneuvers-card {
+.hg-maneuvers-card,
+.hg-system-power-card {
 	border: 1px solid #000088;
 	background: #05014e;
 }
@@ -145,7 +146,8 @@ img.fotoBioList {
 .hg-powers-list-card:hover,
 .hg-powers-related-card:hover,
 .hg-inventory-list-card:hover,
-.hg-maneuvers-card:hover {
+.hg-maneuvers-card:hover,
+.hg-system-power-card:hover {
 	border-color: #000099;
 	background: #000066;
 }
