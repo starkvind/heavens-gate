@@ -130,7 +130,7 @@
 					   AND (bog.is_active = 1 OR bog.is_active IS NULL)
 					LEFT JOIN dim_organizations o ON o.id = bog.organization_id
 					WHERE g.id = ?
-					ORDER BY bog.id ASC
+					ORDER BY bog.updated_at DESC, bog.created_at DESC, bog.organization_id DESC
 					LIMIT 1
 				";
 
