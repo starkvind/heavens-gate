@@ -1,0 +1,20 @@
+name: CSS Phase 8 important audit
+
+on:
+  push:
+    branches: [css-refactor]
+    paths:
+      - '.github/workflows/css-phase8-important-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inventory important declarations
+        run: |
+          echo '=== ALL CSS !important declarations ==='
+          grep -RIn --include='*.css' '!important' assets/css || true
