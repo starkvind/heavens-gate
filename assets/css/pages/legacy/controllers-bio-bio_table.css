@@ -1,6 +1,5 @@
-/* Phase 1 extraction from app/controllers/bio/bio_table.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+/* Biography catalogue table geometry. */
 
-/* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
 .bio-table-wrap .dt-toolbar {
     flex-wrap: wrap;
 }
@@ -13,9 +12,18 @@
     width: 150px;
 }
 
-@media (max-width: 720px){
-	.bio-table-wrap .dt-toolbar{ flex-direction:column; align-items:stretch; }
-	.bio-table-wrap .dt-toolbar .left{ justify-content:flex-start; }
-	.bio-table-wrap .dt-toolbar .right{ justify-content:flex-start; }
-	.bio-table-wrap .ms-wrap{ width: 100%; }
+@media (max-width: 720px) {
+    .bio-table-wrap .dt-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .bio-table-wrap .dt-toolbar .left,
+    .bio-table-wrap .dt-toolbar .right {
+        justify-content: flex-start;
+    }
+
+    .bio-table-wrap .ms-wrap {
+        width: 100%;
+    }
 }
