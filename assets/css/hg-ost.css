@@ -39,29 +39,29 @@
     padding: 5px;
 }
 
-.ost-popup-top {
+#popupPlayer .ost-popup-top {
     width: 100%;
     padding-bottom: 2em;
-    padding-top: 0.5em;
+    padding-top: .5em;
     text-align: left !important;
 }
 
-.ost-popup-title-wrap {
+#popupPlayer .ost-popup-title-wrap {
     width: 85%;
     float: left;
 }
 
-#titleSong {
+#popupPlayer #titleSong {
     margin-left: 1em;
 }
 
-.ost-popup-close-wrap {
+#popupPlayer .ost-popup-close-wrap {
     width: 10%;
     float: right;
     text-align: right;
 }
 
-.ost-popup-close {
+#popupPlayer .ost-popup-close {
     color: #66ccff;
-    margin-right: 0.5em;
+    margin-right: .5em;
 }
