@@ -1,24 +1,29 @@
-/* Phase 1 extraction from app/controllers/bio/bio_worlds.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
+/* Biography sections grouped by reality. */
 
-.toggleAfiliacion {
-      background: #05014e;
-      color: #fff;
-      border: 1px solid #000088;
-      padding: 6px 10px;
-      margin: 8px 0 0 0;
-      font-size: 1.1em;
-      cursor: pointer;
-      width: 85%;
-      text-align: left;
-    }
-    .toggleAfiliacion:hover {
-      background: #000066;
-      border: 1px solid #0000BB;
-    }
-    .contenidoAfiliacion {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 0 12px 0;
-    }
-    .oculto { display: none; }
+h3.toggleAfiliacion {
+    background: #05014e;
+    color: #fff;
+    border: 1px solid #000088;
+    padding: 6px 10px;
+    margin: 8px 0 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    width: 85%;
+    text-align: left;
+}
+
+h3.toggleAfiliacion:hover {
+    background: #000066;
+    border-color: #0000bb;
+}
+
+fieldset.grupoBioClan > .contenidoAfiliacion {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 0 12px;
+}
+
+fieldset.grupoBioClan > .contenidoAfiliacion.oculto {
+    display: none;
+}
