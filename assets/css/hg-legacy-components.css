@@ -68,6 +68,19 @@ div.renglonDonData {
 	text-align: justify;
 }
 
+/* Legacy disclosure/accordion state -------------------------------------- */
+.ocultable {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+	padding: 0;
+}
+
+.ocultable.open {
+	max-height: 600px;
+	padding: 4px 0;
+}
+
 /* Legacy action buttons --------------------------------------------------- */
 .boton1 {
 	width: 75px;
