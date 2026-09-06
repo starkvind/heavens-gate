@@ -19,6 +19,18 @@
         'box-shadow'
     ];
 
+    /* Explicit three-column defaults for tables whose semantics do not fit the
+     * generic Name + key column + Origin model. Each entry is a list of header
+     * label candidates, in the exact order that should remain visible. */
+    var coreColumnProfiles = {
+        'tabla-capitulos': [
+            ['episodio'],
+            ['nº', 'numero'],
+            ['temporada']
+        ]
+    };
+
+    /* Preferred middle/key column for tables that do fit the generic model. */
     var keyColumnProfiles = {
         'tabla-acciones': ['tirada'],
         'tabla-meritos': ['tipo'],
@@ -29,7 +41,6 @@
         'tabla-ritos': ['nivel', 'rango', 'tipo'],
         'tabla-disciplinas': ['nivel', 'rango', 'tipo'],
         'tabla-totems': ['nivel', 'rango', 'tipo'],
-        'tabla-capitulos': ['temporada', 'fecha', 'cronica'],
         'tabla-personajes': ['tipo', 'cronica', 'estado']
     };
 
@@ -71,6 +82,7 @@
 
         for (var c = 0; c < candidates.length; c += 1) {
             var candidate = normalizeLabel(candidates[c]);
+            if (!candidate) continue;
             for (var i = 0; i < normalized.length; i += 1) {
                 if (allowedIndexes.indexOf(i) === -1 || excluded.indexOf(i) !== -1) continue;
                 if (normalized[i] === candidate || normalized[i].indexOf(candidate) !== -1) {
@@ -87,10 +99,20 @@
             return header ? header.textContent.trim() : '';
         });
 
+        var explicitProfile = coreColumnProfiles[table.id];
+        if (explicitProfile) {
+            var explicitCore = [];
+            explicitProfile.forEach(function (candidates) {
+                var index = findColumnByLabels(labels, candidates, managedIndexes, explicitCore);
+                if (index !== -1) explicitCore.push(index);
+            });
+            if (explicitCore.length) return explicitCore;
+        }
+
         var nameCandidates = [
             'nombre', 'accion', 'personaje', 'documento', 'objeto', 'don', 'rito',
             'ritual', 'disciplina', 'totem', 'cancion', 'jugador', 'arquetipo',
-            'rasgo', 'merito', 'defecto', 'capitulo'
+            'rasgo', 'merito', 'defecto', 'capitulo', 'episodio'
         ];
         var originCandidates = ['origen', 'fuente', 'bibliografia'];
 
