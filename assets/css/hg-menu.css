@@ -148,3 +148,38 @@ table.tmenu .menu-season-row--nostatus .menu-season-label {
 table.tmenu .menu-season-row--nostatus .menu-season-status {
     display: none;
 }
+
+/* Narrow public shell: keep the classic material and interaction, but let the
+ * menu participate in the same adaptive layout instead of forcing a parallel
+ * mobile renderer. */
+@media (max-width: 900px) {
+    table.tmenu {
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    table.tmenu td.sekzo {
+        padding: 5px;
+    }
+
+    table.tmenu table.menu_sect {
+        width: 100%;
+    }
+
+    table.tmenu div.renglonMenu:not(.menuSeparator) {
+        box-sizing: border-box;
+        float: none;
+        width: 100%;
+        height: auto;
+        min-height: 24px;
+        margin-left: 0;
+        margin-bottom: 4px;
+        padding: 6px 8px;
+    }
+
+    table.tmenu div.renglonMenu.menuGroupTitle,
+    table.tmenu div.renglonMenu.menu-season-row {
+        width: 100%;
+        margin-left: 0;
+    }
+}

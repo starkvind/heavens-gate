@@ -89,27 +89,21 @@
     <body id="mainBody" class="<?= htmlspecialchars($bodyThemeClass, ENT_QUOTES, 'UTF-8') ?>">
         <div class="main-wrapper">
             <!-- CABECERA -->
-            <header><img src="img/ui/branding/hg_header.webp" alt="Heaven's Gate" /></header>
+            <header class="main-header"><img src="img/ui/branding/hg_header.webp" alt="Heaven's Gate" /></header>
             <!-- CONTENIDO -->
-            <table class="todou">
-                <tr>
-                    <td valign="top">
-                        <?php include("app/partials/main_menu.php"); ?>
-                    </td>
-                    <td class="fcentro" valign="top">
-                        <?= $pageContent ?>
-                    </td>
-                </tr>
-            </table>
+            <div class="site-shell">
+                <aside class="site-nav" aria-label="Navegación principal">
+                    <?php include("app/partials/main_menu.php"); ?>
+                </aside>
+                <main class="fcentro" id="mainContent">
+                    <?= $pageContent ?>
+                </main>
+            </div>
             <button id="btnTop" class="layout-btn-top" aria-label="Volver arriba">&#x1F845;</button>
             <!-- PIE DE PAGINA -->
-            <table class="todou layout-footer-table">
-                <tr>
-                    <td class="piepagina">
-                        <?php include("app/partials/main_footer.php"); ?>
-                    </td>
-                </tr>
-            </table>
+            <footer class="piepagina">
+                <?php include("app/partials/main_footer.php"); ?>
+            </footer>
             <!-- TIEMPO DE CARGA -->
             <p class="layout-render-time">
                 Página generada en <?= round(microtime(true) - $T_inicio, 5); ?> segundos.
