@@ -23,19 +23,19 @@
     width: 100%;
 }
 
-.dt-toolbar {
+.docs-table-wrap .dt-toolbar {
     flex-wrap: wrap;
 }
 
-.dt-toolbar .left {
+.docs-table-wrap .dt-toolbar .left {
     flex-wrap: wrap;
 }
 
-.ms-wrap {
+.docs-table-wrap .ms-wrap {
     width: 150px;
 }
 
-.ms-wrap--wide {
+.docs-table-wrap .ms-wrap--wide {
     width: 180px;
 }
 
@@ -190,18 +190,18 @@
         max-width: 100%;
     }
 
-    .dt-toolbar {
+    .docs-table-wrap .dt-toolbar {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .dt-toolbar .left,
-    .dt-toolbar .right {
+    .docs-table-wrap .dt-toolbar .left,
+    .docs-table-wrap .dt-toolbar .right {
         justify-content: flex-start;
     }
 
-    .ms-wrap,
-    .ms-wrap--wide {
+    .docs-table-wrap .ms-wrap,
+    .docs-table-wrap .ms-wrap--wide {
         width: 100%;
     }
 }
