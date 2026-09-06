@@ -27,6 +27,20 @@
         });
     }
 
+    function markWideDataTable(table, wrapper) {
+        if (!table || !wrapper) return;
+
+        var headerRow = table.tHead && table.tHead.rows.length ? table.tHead.rows[0] : null;
+        var columnCount = headerRow ? headerRow.cells.length : 0;
+        wrapper.classList.toggle('hg-datatable-wide', columnCount > 4);
+    }
+
+    function markExistingWideDataTables() {
+        w.document.querySelectorAll('.dataTables_wrapper table.dataTable').forEach(function (table) {
+            markWideDataTable(table, table.closest('.dataTables_wrapper'));
+        });
+    }
+
     function wireMultiselectAccessibility() {
         var doc = w.document;
 
@@ -100,10 +114,16 @@
             $.fn.dataTable.defaults.__hgDefaultsApplied = true;
         }
 
-        $(w.document).on('init.dt.hgMultiselectStyles', function () {
+        $(w.document).on('init.dt.hgMultiselectStyles', function (event, settings) {
+            if (settings) {
+                markWideDataTable(settings.nTable, settings.nTableWrapper);
+            }
             w.setTimeout(clearLegacyMultiselectInlineStyles, 0);
         });
-        w.setTimeout(clearLegacyMultiselectInlineStyles, 0);
+        w.setTimeout(function () {
+            clearLegacyMultiselectInlineStyles();
+            markExistingWideDataTables();
+        }, 0);
     }
 
     if (w.document.readyState === 'loading') {
