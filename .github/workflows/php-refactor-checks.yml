@@ -1,0 +1,28 @@
+name: PHP Refactor Characterization
+
+on:
+  push:
+    branches:
+      - php-refactor
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  characterization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Characterize router contract
+        run: php .github/ci/php-router-characterization.php
