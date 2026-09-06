@@ -21,6 +21,12 @@
     text-decoration: none;
 }
 
+/* Keep the shared linked-card shell. Firefox may paint :visited border
+ * colours separately, so pin visited maneuver cards to the normal border. */
+.hg-maneuvers-group > a:visited .hg-maneuvers-card {
+    border-color: #000088;
+}
+
 .hg-maneuvers-card {
     display: block;
     width: 160px;
@@ -28,5 +34,4 @@
     padding: 4px;
     text-align: center;
     box-sizing: border-box;
-    border: 0;
 }
