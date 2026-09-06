@@ -64,8 +64,13 @@ if ($error === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admi
         }
     }
 }
+
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-admin.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-admin.css">';
+}
 ?>
-<link rel="stylesheet" href="/assets/css/hg-admin.css">
 
 <div class="admin-login">
     <h2>&#128274; Acceso restringido</h2>
