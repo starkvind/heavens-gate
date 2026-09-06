@@ -1,21 +1,21 @@
 /* Phase 1 extraction from app/controllers/bio/bio_table.php. Presentation intentionally unchanged; ownership will be refined in later phases. */
 
 /* Toolbar: Multi-checks (izq) + Buscar DT (dcha) */
-.dt-toolbar {
+.bio-table-wrap .dt-toolbar {
     flex-wrap: wrap;
 }
 
-.dt-toolbar .left {
+.bio-table-wrap .dt-toolbar .left {
     flex-wrap: wrap;
 }
 
-.ms-wrap {
+.bio-table-wrap .ms-wrap {
     width: 150px;
 }
 
 @media (max-width: 720px){
-	.dt-toolbar{ flex-direction:column; align-items:stretch; }
-	.dt-toolbar .left{ justify-content:flex-start; }
-	.dt-toolbar .right{ justify-content:flex-start; }
-	.ms-wrap{ width: 100%; }
+	.bio-table-wrap .dt-toolbar{ flex-direction:column; align-items:stretch; }
+	.bio-table-wrap .dt-toolbar .left{ justify-content:flex-start; }
+	.bio-table-wrap .dt-toolbar .right{ justify-content:flex-start; }
+	.bio-table-wrap .ms-wrap{ width: 100%; }
 }
