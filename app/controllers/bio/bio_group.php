@@ -313,6 +313,7 @@ usort(
 
 include("app/partials/main_nav_bar.php");
 ?>
+<div class="bio-group-page">
 <div class="chron-detail">
     <section class="chron-hero">
         <div class="chron-hero-media">
@@ -381,6 +382,7 @@ foreach ($keys as $key) {
 
 echo "<p align='right'>Personajes: " . hg_bio_group_h($howMuch) . "</p>";
 ?>
+</div>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/pages/legacy/controllers-bio-bio_group.css'); } else { ?><link rel="stylesheet" href="/assets/css/pages/legacy/controllers-bio-bio_group.css"><?php } ?>
 
 <script>
