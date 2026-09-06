@@ -160,27 +160,6 @@
     width: 100%;
 }
 
-#hg-tooltip {
-    position: fixed;
-    z-index: 999999;
-    max-width: 380px;
-    background: #050b36;
-    border: 1px solid #0b3a7a;
-    color: #e6f0ff;
-    border-radius: 8px;
-    padding: 10px 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.45);
-    display: none;
-    pointer-events: none;
-    font-size: 12px;
-    line-height: 1.35;
-    text-align: left !important;
-}
-
-#hg-tooltip * {
-    text-align: left !important;
-}
-
 @media (max-width: 980px) {
     .syst-table-wrap .dt-toolbar {
         flex-direction: column;
