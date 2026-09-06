@@ -409,6 +409,9 @@ if (!function_exists('hg_admin_render_menu_section')) {
 				case 'admin_resources':
 					include("admin_resources.php");
 					break;
+				case 'admin_datatables':
+					include("admin_datatables.php");
+					break;
 				case 'admin_inspect_db':
 					include(__DIR__ . "/../../tools/inspect_db.php");
 					break;
@@ -540,6 +543,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					'summary' => 'Herramientas internas, auditorías y utilidades de administración.',
 					'items' => [
 						['href' => '/talim?s=admin_menu', 'label' => 'Editar Menú', 'keywords' => ['menu']],
+						['href' => '/talim?s=admin_datatables', 'label' => 'Columnas DataTables', 'keywords' => ['datatable', 'columnas', 'frontend', 'visibilidad']],
 						['href' => '/talim?s=admin_inspect_db', 'label' => 'Inspeccionar BDD', 'keywords' => ['db', 'bdd']],
 						['href' => '/talim?s=admin_mentions_help', 'label' => 'Ayuda Mentions', 'keywords' => ['mentions', 'ayuda']],
 						['href' => '/talim?s=admin_season_order_schema', 'label' => 'Schema orden temporadas', 'keywords' => ['schema', 'temporadas']],
