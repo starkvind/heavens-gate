@@ -19,6 +19,35 @@
         'box-shadow'
     ];
 
+    var keyColumnProfiles = {
+        'tabla-acciones': ['tirada'],
+        'tabla-meritos': ['tipo'],
+        'tabla-rasgos': ['tipo'],
+        'tabla-documentos': ['tipo', 'categoria'],
+        'tabla-inventario': ['tipo', 'categoria'],
+        'tabla-dones': ['nivel', 'rango', 'tipo'],
+        'tabla-ritos': ['nivel', 'rango', 'tipo'],
+        'tabla-disciplinas': ['nivel', 'rango', 'tipo'],
+        'tabla-totems': ['nivel', 'rango', 'tipo'],
+        'tabla-capitulos': ['temporada', 'fecha', 'cronica'],
+        'tabla-personajes': ['tipo', 'cronica', 'estado']
+    };
+
+    var genericKeyLabels = [
+        'tirada',
+        'tipo',
+        'categoria',
+        'nivel',
+        'rango',
+        'sistema',
+        'clasificacion',
+        'temporada',
+        'cronica',
+        'personajes',
+        'estado',
+        'coste'
+    ];
+
     function clearLegacyMultiselectInlineStyles() {
         w.document.querySelectorAll('.ms-btn').forEach(function (button) {
             legacyMultiselectStyleProps.forEach(function (property) {
@@ -27,18 +56,222 @@
         });
     }
 
-    function markWideDataTable(table, wrapper) {
-        if (!table || !wrapper) return;
-
-        var headerRow = table.tHead && table.tHead.rows.length ? table.tHead.rows[0] : null;
-        var columnCount = headerRow ? headerRow.cells.length : 0;
-        wrapper.classList.toggle('hg-datatable-wide', columnCount > 4);
+    function normalizeLabel(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
     }
 
-    function markExistingWideDataTables() {
-        w.document.querySelectorAll('.dataTables_wrapper table.dataTable').forEach(function (table) {
-            markWideDataTable(table, table.closest('.dataTables_wrapper'));
+    function findColumnByLabels(labels, candidates, allowedIndexes, excludedIndexes) {
+        var normalized = labels.map(normalizeLabel);
+        var excluded = excludedIndexes || [];
+
+        for (var c = 0; c < candidates.length; c += 1) {
+            var candidate = normalizeLabel(candidates[c]);
+            for (var i = 0; i < normalized.length; i += 1) {
+                if (allowedIndexes.indexOf(i) === -1 || excluded.indexOf(i) !== -1) continue;
+                if (normalized[i] === candidate || normalized[i].indexOf(candidate) !== -1) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    function inferCoreColumns(table, api, managedIndexes) {
+        var labels = api.columns().header().toArray().map(function (header) {
+            return header ? header.textContent.trim() : '';
         });
+
+        var nameCandidates = [
+            'nombre', 'accion', 'personaje', 'documento', 'objeto', 'don', 'rito',
+            'ritual', 'disciplina', 'totem', 'cancion', 'jugador', 'arquetipo',
+            'rasgo', 'merito', 'defecto', 'capitulo'
+        ];
+        var originCandidates = ['origen', 'fuente', 'bibliografia'];
+
+        var nameIndex = findColumnByLabels(labels, nameCandidates, managedIndexes, []);
+        if (nameIndex === -1) nameIndex = managedIndexes[0];
+
+        var originIndex = findColumnByLabels(labels, originCandidates, managedIndexes, [nameIndex]);
+        if (originIndex === -1) {
+            for (var oi = managedIndexes.length - 1; oi >= 0; oi -= 1) {
+                if (managedIndexes[oi] !== nameIndex) {
+                    originIndex = managedIndexes[oi];
+                    break;
+                }
+            }
+        }
+
+        var keyCandidates = keyColumnProfiles[table.id] || genericKeyLabels;
+        var keyIndex = findColumnByLabels(labels, keyCandidates, managedIndexes, [nameIndex, originIndex]);
+        if (keyIndex === -1) {
+            keyIndex = managedIndexes.find(function (index) {
+                return index !== nameIndex && index !== originIndex;
+            });
+        }
+
+        var core = [];
+        [nameIndex, keyIndex, originIndex].forEach(function (index) {
+            if (typeof index !== 'number' || index < 0) return;
+            if (managedIndexes.indexOf(index) === -1 || core.indexOf(index) !== -1) return;
+            core.push(index);
+        });
+
+        return core;
+    }
+
+    function markWideDataTable(table, wrapper, api) {
+        if (!table || !wrapper) return;
+
+        var visibleCount = api
+            ? api.columns(':visible').count()
+            : (table.tHead && table.tHead.rows.length ? table.tHead.rows[0].cells.length : 0);
+
+        wrapper.classList.toggle('hg-datatable-wide', visibleCount > 4);
+    }
+
+    function markExistingWideDataTables($) {
+        w.document.querySelectorAll('.dataTables_wrapper table.dataTable').forEach(function (table) {
+            var wrapper = table.closest('.dataTables_wrapper');
+            var api = $.fn.dataTable.isDataTable(table) ? new $.fn.dataTable.Api(table) : null;
+            markWideDataTable(table, wrapper, api);
+        });
+    }
+
+    function setColumnSet(api, managedIndexes, visibleIndexes) {
+        managedIndexes.forEach(function (index) {
+            api.column(index).visible(visibleIndexes.indexOf(index) !== -1, false);
+        });
+        api.columns.adjust().draw(false);
+    }
+
+    function createColumnPicker($, settings) {
+        var table = settings && settings.nTable;
+        var wrapper = settings && settings.nTableWrapper;
+        if (!table || !wrapper || table.dataset.hgColumnsReady === '1') return;
+        if (table.getAttribute('data-hg-column-picker') === 'off') return;
+
+        /* Special DataTables such as the map browser use a deliberately minimal
+         * DOM (for example "tip") and own their column model themselves. */
+        if (settings.sDom && settings.sDom.indexOf('f') === -1 && settings.sDom.indexOf('l') === -1) return;
+
+        var api = new $.fn.dataTable.Api(settings);
+        var managedIndexes = api.columns().indexes().toArray().filter(function (index) {
+            return api.column(index).visible();
+        });
+
+        if (managedIndexes.length <= 4) {
+            markWideDataTable(table, wrapper, api);
+            return;
+        }
+
+        table.dataset.hgColumnsReady = '1';
+
+        var labels = api.columns().header().toArray().map(function (header, index) {
+            var text = header ? header.textContent.trim() : '';
+            return text || ('Columna ' + (index + 1));
+        });
+        var coreIndexes = inferCoreColumns(table, api, managedIndexes);
+
+        setColumnSet(api, managedIndexes, coreIndexes);
+        markWideDataTable(table, wrapper, api);
+
+        var toolbar = w.document.createElement('div');
+        toolbar.className = 'hg-dt-column-toolbar';
+
+        var picker = w.document.createElement('details');
+        picker.className = 'hg-dt-column-picker';
+
+        var summary = w.document.createElement('summary');
+        summary.appendChild(w.document.createTextNode('Columnas'));
+        var summaryCount = w.document.createElement('span');
+        summaryCount.className = 'hg-dt-column-picker__summary';
+        summary.appendChild(summaryCount);
+        picker.appendChild(summary);
+
+        var panel = w.document.createElement('div');
+        panel.className = 'hg-dt-column-picker__panel';
+
+        managedIndexes.forEach(function (index) {
+            var option = w.document.createElement('label');
+            option.className = 'hg-dt-column-picker__option';
+
+            var checkbox = w.document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = coreIndexes.indexOf(index) !== -1;
+            checkbox.disabled = coreIndexes.indexOf(index) !== -1;
+            checkbox.setAttribute('data-column-index', String(index));
+
+            var text = w.document.createElement('span');
+            text.textContent = labels[index];
+
+            option.appendChild(checkbox);
+            option.appendChild(text);
+            panel.appendChild(option);
+        });
+
+        var actions = w.document.createElement('div');
+        actions.className = 'hg-dt-column-picker__actions';
+
+        var showAllButton = w.document.createElement('button');
+        showAllButton.type = 'button';
+        showAllButton.textContent = 'Todo';
+
+        var basicsButton = w.document.createElement('button');
+        basicsButton.type = 'button';
+        basicsButton.textContent = 'Básicas';
+
+        actions.appendChild(showAllButton);
+        actions.appendChild(basicsButton);
+        panel.appendChild(actions);
+        picker.appendChild(panel);
+        toolbar.appendChild(picker);
+        wrapper.parentNode.insertBefore(toolbar, wrapper);
+
+        function syncPicker() {
+            var visible = api.columns(':visible').indexes().toArray();
+            var visibleManaged = 0;
+
+            panel.querySelectorAll('input[data-column-index]').forEach(function (checkbox) {
+                var index = Number(checkbox.getAttribute('data-column-index'));
+                checkbox.checked = visible.indexOf(index) !== -1;
+                if (checkbox.checked) visibleManaged += 1;
+            });
+
+            summaryCount.textContent = visibleManaged + '/' + managedIndexes.length;
+            markWideDataTable(table, wrapper, api);
+        }
+
+        panel.addEventListener('change', function (event) {
+            var checkbox = event.target;
+            if (!checkbox.matches('input[data-column-index]') || checkbox.disabled) return;
+
+            var index = Number(checkbox.getAttribute('data-column-index'));
+            api.column(index).visible(checkbox.checked, false);
+            api.columns.adjust().draw(false);
+            syncPicker();
+        });
+
+        showAllButton.addEventListener('click', function () {
+            setColumnSet(api, managedIndexes, managedIndexes);
+            syncPicker();
+        });
+
+        basicsButton.addEventListener('click', function () {
+            setColumnSet(api, managedIndexes, coreIndexes);
+            syncPicker();
+        });
+
+        $(table).on('column-visibility.dt.hgColumns', function () {
+            w.setTimeout(syncPicker, 0);
+        });
+
+        syncPicker();
     }
 
     function wireMultiselectAccessibility() {
@@ -114,15 +347,18 @@
             $.fn.dataTable.defaults.__hgDefaultsApplied = true;
         }
 
-        $(w.document).on('init.dt.hgMultiselectStyles', function (event, settings) {
+        $(w.document).on('init.dt.hgDataTables', function (event, settings) {
             if (settings) {
-                markWideDataTable(settings.nTable, settings.nTableWrapper);
+                w.setTimeout(function () {
+                    createColumnPicker($, settings);
+                }, 0);
             }
             w.setTimeout(clearLegacyMultiselectInlineStyles, 0);
         });
+
         w.setTimeout(function () {
             clearLegacyMultiselectInlineStyles();
-            markExistingWideDataTables();
+            markExistingWideDataTables($);
         }, 0);
     }
 
