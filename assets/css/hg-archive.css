@@ -207,38 +207,6 @@
     color: #ee0000;
 }
 
-/* Chronicle detail reuses the season-status badges. */
-.season-home-status {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 9px;
-    border-radius: 999px;
-    border: 1px solid #2f6dc7;
-    background: #0b2d70;
-    color: #d9ecff;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.season-home-status--done {
-    border-color: #0ea28e;
-    background: #0a5a4f;
-    color: #dcfff8;
-}
-
-.season-home-status--cancelled {
-    border-color: #c95757;
-    background: #7f1f35;
-    color: #ffe1ea;
-}
-
-.season-home-status--active {
-    border-color: #4f88d0;
-    background: #1f4676;
-    color: #e0f1ff;
-}
-
 @media (max-width: 860px) {
     .chron-grid {
         grid-template-columns: 1fr;
