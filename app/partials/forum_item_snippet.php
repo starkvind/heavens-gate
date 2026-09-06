@@ -90,7 +90,7 @@ $itemHref = "/inventory/" . rawurlencode($typePretty) . "/" . rawurlencode($item
     <meta charset="UTF-8">
     <title><?= $name ?></title>
     <link href="/assets/vendor/fonts/quicksand/quicksand.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/css/hg-embeds.css">
+    <link rel="stylesheet" href="/assets/css/embeds/item.css">
 </head>
 <body class="hg-embed-item">
     <article class="embed-item-card">
