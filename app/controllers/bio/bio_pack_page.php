@@ -146,7 +146,7 @@ if (!function_exists('hg_bio_pack_page_group_organization')) {
             INNER JOIN dim_organizations c ON c.id = b.organization_id
             WHERE b.group_id = ?
               AND (b.is_active = 1 OR b.is_active IS NULL)
-            ORDER BY b.id ASC
+            ORDER BY b.updated_at DESC, b.created_at DESC, b.organization_id DESC
             LIMIT 1
         ";
 
