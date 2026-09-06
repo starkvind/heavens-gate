@@ -185,7 +185,15 @@ foreach ($rituales as $r) {
 // 2) Render (CSS + HTML)
 // =======================
 ?>
-<?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-powers.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-powers.css"><?php } ?>
+<?php
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/hg-powers.css');
+    hg_page_register_stylesheet('/assets/css/hg-powers-print.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/hg-powers.css">';
+    echo '<link rel="stylesheet" href="/assets/css/hg-powers-print.css">';
+}
+?>
 
 <div class="hg-rituales<?php echo $printMode ? ' hg-print' : ''; ?>">
   <div class="wrap">
