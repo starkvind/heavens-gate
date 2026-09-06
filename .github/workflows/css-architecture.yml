@@ -17,4 +17,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Guard CSS architecture
-        run: python3 .github/ci/css-architecture-guard.py
+        run: python3 .github/ci/css-architecture-guard.py 2>&1 | tee css-architecture-guard.txt
+
+      - name: Upload guard diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: css-architecture-guard
+          path: css-architecture-guard.txt
