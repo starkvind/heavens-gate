@@ -40,8 +40,14 @@
 	--hg-dt-text: #eeeeee;
 	--hg-dt-row-hover-bg: #111177;
 	--hg-dt-option-bg: #000099;
+	--hg-dt-page-text: var(--hg-text-on-surface);
+	--hg-dt-page-bg: var(--hg-surface-raised);
+	--hg-dt-page-border: var(--hg-border-strong);
 	--hg-dt-page-hover-text: #00ccff;
+	--hg-dt-page-hover-border: var(--hg-border);
 	--hg-dt-page-current-bg: #000044;
+	--hg-dt-page-current-text: var(--hg-text-on-surface);
+	--hg-dt-page-current-border: var(--hg-border-strong);
 	--hg-ms-button-bg: #ffffff;
 	--hg-ms-panel-bg: #000066;
 	--hg-ms-panel-border: #000099;

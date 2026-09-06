@@ -153,7 +153,7 @@
 .syst-box fieldset *,
 .syst-box a,
 .syst-box a * {
-    text-align: left !important;
+    text-align: left;
 }
 
 .syst-members-table {

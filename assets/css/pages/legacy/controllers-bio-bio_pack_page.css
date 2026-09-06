@@ -7,13 +7,13 @@
     border: 1px solid #33cccc;
     border-radius: 999px;
     background: #071b4a;
-    color: #dff7ff !important;
+    color: #dff7ff;
     text-decoration: none;
 }
 
 .bio-pack-action-link:hover {
     background: #003b8f;
-    color: #fff !important;
+    color: #fff;
 }
 
 .bio-pack-copy-row {

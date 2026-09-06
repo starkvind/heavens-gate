@@ -32,8 +32,8 @@ table.dataTable tbody tr:hover {
     cursor: pointer;
 }
 
-.dataTables_filter input,
-.dataTables_length select,
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select,
 .ms-btn {
     font-family: verdana, sans-serif;
     font-size: 10px;
@@ -42,7 +42,7 @@ table.dataTable tbody tr:hover {
     background-color: var(--hg-surface-raised);
     color: var(--hg-text-on-surface);
     padding: 0.5em;
-    border: 1px solid var(--hg-border-strong) !important;
+    border: 1px solid var(--hg-border-strong);
     border-radius: 3px;
 }
 
@@ -51,29 +51,35 @@ table.dataTable tbody tr:hover {
     margin-bottom: 1em;
 }
 
-.dataTables_length option {
-    background-color: var(--hg-dt-option-bg) !important;
+.dataTables_wrapper .dataTables_length option {
+    background-color: var(--hg-dt-option-bg);
 }
 
-.dataTables_paginate .paginate_button {
-    color: var(--hg-text-on-surface) !important;
-    background: var(--hg-surface-raised) !important;
-    border: 1px solid var(--hg-border-strong) !important;
+/* DataTables ships button text colours as !important. These three colour
+ * declarations intentionally mirror that importance; geometry and surfaces
+ * are won through adapter specificity instead. */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--hg-dt-page-text) !important;
+    background: var(--hg-dt-page-bg);
+    border: 1px solid var(--hg-dt-page-border);
     margin: 2px;
 }
 
-.dataTables_paginate .paginate_button:hover {
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
     color: var(--hg-dt-page-hover-text) !important;
     cursor: pointer;
-    border: 1px solid var(--hg-border) !important;
+    border: 1px solid var(--hg-dt-page-hover-border);
 }
 
-.dataTables_paginate .paginate_button.current {
-    background: var(--hg-dt-page-current-bg) !important;
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    color: var(--hg-dt-page-current-text) !important;
+    background: var(--hg-dt-page-current-bg);
+    border-color: var(--hg-dt-page-current-border);
 }
 
 .dataTables_wrapper .dataTables_filter {
-    margin: 0 !important;
+    margin: 0;
 }
 
 .dataTables_wrapper .dataTables_filter label {
@@ -85,7 +91,7 @@ table.dataTable tbody tr:hover {
 }
 
 .dataTables_wrapper .dataTables_filter input {
-    margin-left: 0 !important;
+    margin-left: 0;
 }
 
 /* Shared DataTables toolbar and multiselect controls */
@@ -133,9 +139,9 @@ table.dataTable tbody tr:hover {
 }
 
 .ms-btn:focus {
-    outline: none !important;
-    border-color: var(--hg-ms-focus-border) !important;
-    box-shadow: 0 0 0 3px var(--hg-ms-focus-ring) !important;
+    outline: none;
+    border-color: var(--hg-ms-focus-border);
+    box-shadow: 0 0 0 3px var(--hg-ms-focus-ring);
 }
 
 .ms-btn .ms-label {

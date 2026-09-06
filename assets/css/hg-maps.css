@@ -6,6 +6,11 @@
     --map-muted: #b9d6ff;
     --map-accent: #33cccc;
     --map-glow: rgba(51, 204, 204, .16);
+    --hg-dt-page-text: var(--map-ink);
+    --hg-dt-page-hover-text: var(--map-ink);
+    --hg-dt-page-current-text: #ffffff;
+    --hg-dt-page-current-bg: rgba(0, 0, 102, .95);
+    --hg-dt-page-current-border: rgba(51, 204, 204, .28);
     max-width: 1160px;
     display: grid;
     gap: 18px;
@@ -305,17 +310,6 @@
     color: var(--map-muted);
 }
 
-.map-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button {
-    color: var(--map-ink) !important;
-}
-
-.map-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-.map-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-    background: rgba(0, 0, 102, .95) !important;
-    border-color: rgba(51, 204, 204, .28) !important;
-    color: #ffffff !important;
-}
-
 .map-shell-root .leaflet-container a {
     color: #8fd0ff;
 }
@@ -337,12 +331,12 @@
     margin: 12px 14px;
 }
 
-.map-shell-root .leaflet-popup-close-button {
-    color: #b9d6ff !important;
+.map-shell-root .leaflet-container a.leaflet-popup-close-button {
+    color: #b9d6ff;
 }
 
-.map-shell-root .leaflet-popup-close-button:hover {
-    color: #ffffff !important;
+.map-shell-root .leaflet-container a.leaflet-popup-close-button:hover {
+    color: #ffffff;
 }
 
 .map-popup-card {

@@ -444,7 +444,7 @@ img.fotoBioList {
 
 .hg-tab-panel[data-tab='owners'] .grupoBioClan {
 	display: flex;
-	justify-content: flex-start !important;
+	justify-content: flex-start;
 }
 
 .hg-tab-panel[data-tab='owners'] .hg-affiliation-content,
@@ -452,9 +452,9 @@ img.fotoBioList {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
-	padding: 8px 0 12px 0 !important;
-	margin-left: 28px !important;
-	justify-content: flex-start !important;
+	padding: 8px 0 12px 0;
+	margin-left: 28px;
+	justify-content: flex-start;
 }
 
 /* Tooltip ----------------------------------------------------------------- */

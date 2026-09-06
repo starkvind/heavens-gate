@@ -129,20 +129,6 @@
     box-shadow: 0 0 0 2px #001a55, 0 0 14px rgba(0, 0, 0, .5);
 }
 
-.hg-tab-panel[data-tab="owners"] .grupoBioClan {
-    display: flex;
-    justify-content: flex-start !important;
-}
-
-.hg-tab-panel[data-tab="owners"] .contenidoAfiliacion {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 8px 0 12px !important;
-    margin-left: 28px !important;
-    justify-content: flex-start !important;
-}
-
 .hg-tab-panel[data-tab="owners"] .owners-section-title {
     color: #66ccff;
     font-weight: bold;
@@ -407,7 +393,7 @@
 
 .doc-body p {
     margin: 0 0 12px;
-    text-align: left !important;
+    text-align: left;
 }
 
 .doc-body h1,
@@ -417,7 +403,7 @@
     color: var(--title);
     margin: 16px 0 10px;
     line-height: 1.25;
-    text-align: left !important;
+    text-align: left;
 }
 
 .doc-body h1 {
@@ -435,7 +421,7 @@
 .doc-body h4,
 .doc-body h5,
 .doc-body h6 {
-    text-align: left !important;
+    text-align: left;
 }
 
 .doc-page[data-doc-theme="terminal"] .doc-body h1,
