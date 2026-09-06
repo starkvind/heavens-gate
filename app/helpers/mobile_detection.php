@@ -43,51 +43,6 @@ function hg_mobile_is_excluded_route(string $routeKey): bool
     return in_array($routeKey, $excludedRoutes, true);
 }
 
-function hg_mobile_is_smartphone_user_agent(string $userAgent): bool
-{
-    $ua = strtolower($userAgent);
-    if ($ua === '') {
-        return false;
-    }
-
-    $tabletSignals = [
-        'ipad',
-        'tablet',
-        'kindle',
-        'silk/',
-        'playbook',
-    ];
-
-    foreach ($tabletSignals as $signal) {
-        if (strpos($ua, $signal) !== false) {
-            return false;
-        }
-    }
-
-    if (strpos($ua, 'android') !== false && strpos($ua, 'mobile') === false) {
-        return false;
-    }
-
-    $phoneSignals = [
-        'iphone',
-        'ipod',
-        'android',
-        'mobile',
-        'windows phone',
-        'blackberry',
-        'opera mini',
-        'opera mobi',
-    ];
-
-    foreach ($phoneSignals as $signal) {
-        if (strpos($ua, $signal) !== false) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 function hg_should_render_mobile(?string $routeKey = null): bool
 {
     $routeKey = trim((string)($routeKey ?? ($_GET['p'] ?? '')));
@@ -95,14 +50,14 @@ function hg_should_render_mobile(?string $routeKey = null): bool
         return false;
     }
 
-    $override = hg_mobile_view_override();
-    if ($override === 'mobile') {
-        return true;
-    }
-    if ($override === 'desktop') {
-        return false;
-    }
-
-    return hg_mobile_is_smartphone_user_agent((string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    /*
+     * Phase 9 makes the normal public frontend adaptive. Automatic user-agent
+     * splitting is therefore retired: phones and tablets use the same public
+     * shell as desktop by default. The old mobile renderer remains available
+     * only as an explicit compatibility view through ?view=mobile or an
+     * existing hg_view=mobile cookie until its duplicated presentation can be
+     * retired deliberately.
+     */
+    return hg_mobile_view_override() === 'mobile';
 }
 
