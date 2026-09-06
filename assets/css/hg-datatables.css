@@ -2,6 +2,19 @@
     color: var(--hg-dt-text);
 }
 
+/* Tables with five or more columns keep readable column geometry and scroll
+ * inside their own DataTables region instead of squeezing the whole table. */
+.dataTables_wrapper.hg-datatable-wide {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+}
+
+.dataTables_wrapper.hg-datatable-wide table.dataTable {
+    min-width: 720px;
+}
+
 table.dataTable {
     background-color: transparent;
     color: var(--hg-dt-text);
