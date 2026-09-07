@@ -140,7 +140,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$rawEvent = trim((string)($_GET['t'] ?? ''));
+$rawEvent = hg_request_param($hgRequest, 'event');
 $eventId = 0;
 if ($rawEvent !== '') {
     if (preg_match('/^\d+$/', $rawEvent)) $eventId = (int)$rawEvent;
