@@ -28,12 +28,20 @@ hg_request_context_same('maurick', hg_request_param($playerRequest, 'player'), '
 $chapterRequest = hg_request_context_from_query(['p' => 'seechapter', 't' => 'capitulo-uno']);
 hg_request_context_same('capitulo-uno', hg_request_param($chapterRequest, 'chapter'), 'legacy t becomes semantic chapter input');
 
+$giftRequest = hg_request_context_from_query(['p' => 'muestradon', 'b' => 'abrir-heridas']);
+hg_request_context_same('abrir-heridas', hg_request_param($giftRequest, 'gift'), 'gift slug becomes semantic gift input');
+$riteRequest = hg_request_context_from_query(['p' => 'seerite', 'b' => 'canto-de-vuelta-de-los-muertos']);
+hg_request_context_same('canto-de-vuelta-de-los-muertos', hg_request_param($riteRequest, 'rite'), 'rite slug becomes semantic rite input');
+$disciplineRequest = hg_request_context_from_query(['p' => 'muestradisc', 'b' => 'alma-compartida']);
+hg_request_context_same('alma-compartida', hg_request_param($disciplineRequest, 'discipline_power'), 'discipline slug becomes semantic discipline input');
+
 $itemRequest = hg_request_context_from_query(['p' => 'verobj', 't' => 'armas', 'b' => 'klaive']);
 hg_request_context_same('armas', hg_request_param($itemRequest, 'item_type'), 'inventory type is named');
 hg_request_context_same('klaive', hg_request_param($itemRequest, 'item'), 'inventory item is named');
 
 $groupRequest = hg_request_context_from_query(['p' => 'seegroup', 't' => '1', 'org' => 'justicia-metalica', 'b' => 'angeles-de-gaia']);
 hg_request_context_same('1', hg_request_param($groupRequest, 'group_type'), 'group route preserves type discriminator');
+hg_request_context_same('justicia-metallica', 'justicia-metallica', 'placeholder');
 hg_request_context_same('justicia-metalica', hg_request_param($groupRequest, 'organization'), 'group route names organization');
 hg_request_context_same('angeles-de-gaia', hg_request_param($groupRequest, 'group'), 'group route names group');
 
@@ -89,6 +97,17 @@ $buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($_G
 $mobilePos = strpos($indexSource, 'hg_should_render_mobile(hg_request_route($hgRequest))');
 if ($requirePos === false || $buildPos === false || $mobilePos === false || !($requirePos < $buildPos && $buildPos < $mobilePos)) {
     hg_request_context_fail('index.php is not building explicit request context before desktop/mobile dispatch');
+}
+
+$bodySource = file_get_contents(__DIR__ . '/../../app/bootstrap/body_work.php');
+if ($bodySource === false) {
+    hg_request_context_fail('Cannot read body_work.php');
+}
+$normalizePos = strpos($bodySource, 'normalize_pretty_request($link, $routeKey);');
+$refreshPos = strpos($bodySource, '$hgRequest = hg_request_context_from_query($_GET);');
+$dispatchPos = strpos($bodySource, "require __DIR__ . '/../http/dispatcher.php';");
+if ($normalizePos === false || $refreshPos === false || $dispatchPos === false || !($normalizePos < $refreshPos && $refreshPos < $dispatchPos)) {
+    hg_request_context_fail('Desktop request context must refresh after pretty-id normalization and before dispatch');
 }
 
 fwrite(STDOUT, "PHP request context characterization: OK\n");
