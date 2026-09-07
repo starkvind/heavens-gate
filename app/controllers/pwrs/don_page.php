@@ -1,7 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 // Verificar si se recibe el parámetro 'b' y sanitizarlo
-$donPageID = isset($_GET['b']) ? $_GET['b'] : '';
+$donPageID = hg_request_param($hgRequest, 'gift');
 
 if (!function_exists('gift_has_column')) {
     function gift_has_column(mysqli $link, string $table, string $column): bool {
