@@ -130,9 +130,10 @@ if (!isset($link) || !($link instanceof mysqli)) {
 
 mysqli_set_charset($link, 'utf8mb4');
 
-$route = (string)($_GET['p'] ?? 'inv');
-$rawType = trim((string)($_GET['t'] ?? ''));
-$rawItem = trim((string)($_GET['b'] ?? ''));
+$route = hg_request_route($hgRequest);
+if ($route === '') $route = 'inv';
+$rawType = hg_request_param($hgRequest, 'item_type');
+$rawItem = hg_request_param($hgRequest, 'item');
 $isItem = in_array($route, ['seeitem', 'verobj'], true) || $rawItem !== '';
 $isType = !$isItem && in_array($route, ['inv_type'], true) && $rawType !== '';
 
