@@ -45,7 +45,7 @@ if (!function_exists('hg_ch_col_exists')) {
     }
 }
 
-$chapter_numberRaw = $_GET['t'] ?? '';
+$chapter_numberRaw = hg_request_param($hgRequest, 'chapter');
 $chapter_numberId = resolve_pretty_id($link, 'dim_chapters', (string)$chapter_numberRaw) ?? 0;
 
 $Query = "SELECT * FROM dim_chapters WHERE id = ? LIMIT 1";
