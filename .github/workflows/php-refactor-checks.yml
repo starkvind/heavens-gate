@@ -36,5 +36,8 @@ jobs:
       - name: Characterize explicit request context
         run: php .github/ci/php-request-context-characterization.php
 
+      - name: Audit public request globals
+        run: python3 .github/ci/php-public-request-state-audit.py
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
