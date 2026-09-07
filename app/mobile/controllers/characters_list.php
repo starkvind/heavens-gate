@@ -19,16 +19,13 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$queryText = trim((string)($_GET['q'] ?? ''));
-$typeFilter = filter_input(INPUT_GET, 'type', FILTER_VALIDATE_INT) ?: 0;
-$groupFilter = filter_input(INPUT_GET, 'group', FILTER_VALIDATE_INT) ?: 0;
-$organizationFilter = filter_input(INPUT_GET, 'organization', FILTER_VALIDATE_INT) ?: 0;
-$systemFilter = filter_input(INPUT_GET, 'system', FILTER_VALIDATE_INT) ?: 0;
-$statusFilter = filter_input(INPUT_GET, 'status', FILTER_VALIDATE_INT) ?: 0;
-$page = filter_input(INPUT_GET, 'pag', FILTER_VALIDATE_INT) ?: 1;
-if ($page < 1) {
-    $page = 1;
-}
+$queryText = hg_request_query_param($hgRequest, 'q');
+$typeFilter = max(0, (int)hg_request_query_param($hgRequest, 'type'));
+$groupFilter = max(0, (int)hg_request_query_param($hgRequest, 'group'));
+$organizationFilter = max(0, (int)hg_request_query_param($hgRequest, 'organization'));
+$systemFilter = max(0, (int)hg_request_query_param($hgRequest, 'system'));
+$statusFilter = max(0, (int)hg_request_query_param($hgRequest, 'status'));
+$page = max(1, (int)hg_request_query_param($hgRequest, 'pag', '1'));
 
 $pageSize = 24;
 $chronicleConditionP = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('p') : 'p.chronicle_id NOT IN (2,7)';
