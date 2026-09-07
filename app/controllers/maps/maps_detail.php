@@ -4,7 +4,7 @@ include_once(__DIR__ . '/../../helpers/maps.php');
 
 hg_maps_require_connection($link);
 
-$poiId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$poiId = (int)hg_request_param($hgRequest, 'poi');
 if ($poiId <= 0) {
     echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>Id invalido.</fieldset></div>";
     return;
@@ -19,7 +19,7 @@ if (!$poi) {
 }
 
 $maps = hg_maps_fetch_maps($link);
-$fromMapParam = trim((string)($_GET['from_map'] ?? ''));
+$fromMapParam = hg_request_query_param($hgRequest, 'from_map');
 $fromMap = $fromMapParam !== '' ? hg_maps_find_map($maps, $fromMapParam) : null;
 $fromMapIsDifferent = $fromMap && (string)$fromMap['slug'] !== (string)$poi['map_slug'];
 $relatedPois = hg_maps_fetch_related_pois($link, $schema, $poi, 40);
