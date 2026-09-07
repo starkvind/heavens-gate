@@ -127,7 +127,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$raw = trim((string)($_GET['t'] ?? ''));
+$raw = hg_request_param($hgRequest, 'chapter');
 $chapterId = hg_mobile_cd_resolve_chapter_id($link, $raw);
 if ($chapterId <= 0) {
     hg_public_render_not_found('Capitulo no encontrado', 'No se pudo localizar el capitulo solicitado.');
@@ -391,7 +391,6 @@ if (hg_mobile_cd_table_exists($link, 'bridge_timeline_events_chapters') && hg_mo
         </nav>
     <?php endif; ?>
 </article>
-
 
 
 
