@@ -24,8 +24,11 @@ PATTERNS = {
 MIGRATED_ZERO_PREFIXES = (
     'app/controllers/playr/',
     'app/controllers/pwrs/',
+    'app/controllers/docs/',
+    'app/controllers/chapters/',
+    'app/controllers/systems/',
 )
-MAX_DIRECT_READS = 96
+MAX_DIRECT_READS = 74
 
 rows = []
 for target in TARGETS:
