@@ -32,7 +32,7 @@ if (!function_exists('hg_bwr_sanitize_int_csv')) {
 
 $excludeChronicles = isset($excludeChronicles) ? hg_bwr_sanitize_int_csv($excludeChronicles) : '';
 $chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
-$realityFilterId = isset($_GET['t']) ? (int)$_GET['t'] : 0;
+$realityFilterId = (int)hg_request_param($hgRequest, 'world');
 $realityFilterSQL = ($realityFilterId > 0) ? " AND p.reality_id = " . $realityFilterId . " " : "";
 
 include("app/partials/main_nav_bar.php");
