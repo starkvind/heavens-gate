@@ -139,7 +139,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
 }
 
 $excludeChronicles = isset($excludeChronicles) ? preg_replace('/[^0-9,]/', '', (string)$excludeChronicles) : '';
-$raw = trim((string)($_GET['t'] ?? ''));
+$raw = hg_request_param($hgRequest, 'chronicle');
 $chronicleId = $raw !== '' ? hg_mobile_chr_resolve_id($link, $raw) : 0;
 
 $hasPretty = hg_mobile_chr_col_exists($link, 'dim_chronicles', 'pretty_id');
