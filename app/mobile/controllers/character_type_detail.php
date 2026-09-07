@@ -51,7 +51,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$rawType = trim((string)($_GET['t'] ?? ''));
+$rawType = hg_request_param($hgRequest, 'character_type');
 $typeId = 0;
 if ($rawType !== '') {
     $resolved = resolve_pretty_id($link, 'dim_character_types', $rawType);
