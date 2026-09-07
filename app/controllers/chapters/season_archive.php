@@ -35,7 +35,7 @@ if (!function_exists('hg_sa_col_exists')) {
     }
 }
 
-$temporadaRaw = $_GET['t'] ?? '';
+$temporadaRaw = hg_request_param($hgRequest, 'season');
 $temporadaId = resolve_pretty_id($link, 'dim_seasons', (string)$temporadaRaw) ?? 0;
 if (trim((string)$temporadaRaw) === '') {
     include(__DIR__ . '/seasons_home.php');
