@@ -44,8 +44,13 @@ hg_request_context_same('', hg_request_param($organizationRequest, 'group'), 'or
 $orgChartRequest = hg_request_context_from_query(['p' => 'org_chart']);
 hg_request_context_same('justicia-metalica', hg_request_param($orgChartRequest, 'organization'), 'org chart keeps historical default explicitly');
 
-$arrayInput = hg_request_context_from_query(['p' => 'seeplayer', 'b' => ['bad']]);
+$filterRequest = hg_request_context_from_query(['p' => 'temp_order', 'order' => 'chronological', 'page' => 2]);
+hg_request_context_same('chronological', hg_request_query_param($filterRequest, 'order'), 'ordinary query filter is normalized explicitly');
+hg_request_context_same('2', hg_request_query_param($filterRequest, 'page'), 'numeric query values are normalized as strings');
+
+$arrayInput = hg_request_context_from_query(['p' => 'seeplayer', 'b' => ['bad'], 'filter' => ['bad']]);
 hg_request_context_same('', hg_request_param($arrayInput, 'player'), 'non-scalar route input is rejected');
+hg_request_context_same('', hg_request_query_param($arrayInput, 'filter'), 'non-scalar generic query input is rejected');
 
 $requestSource = file_get_contents(__DIR__ . '/../../app/http/request_context.php');
 if ($requestSource === false) {
