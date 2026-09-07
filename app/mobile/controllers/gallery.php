@@ -117,7 +117,7 @@ if (!is_string($galleryBaseFs) || $galleryBaseFs === '' || !is_dir($galleryBaseF
     return;
 }
 
-$relDir = isset($_GET['dir']) ? trim(rawurldecode((string)$_GET['dir'])) : '';
+$relDir = trim(rawurldecode(hg_request_query_param($hgRequest, 'dir')));
 $relDir = trim($relDir, '/');
 if (!hg_mobile_gallery_valid_rel($relDir)) {
     $relDir = '';
