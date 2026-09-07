@@ -21,7 +21,6 @@ if ($routeKey === 'maps_detail') {
     }
 
     $hgRequest['params']['poi'] = (string)$resolvedPoiId;
-    $_GET['id'] = (string)$resolvedPoiId;
     include(__DIR__ . '/../../controllers/maps/maps_detail.php');
     return;
 }
