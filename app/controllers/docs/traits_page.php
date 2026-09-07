@@ -87,7 +87,7 @@ if (!function_exists('hg_render_trait_levels_with_gems')) {
     }
 }
 
-$traitPageID = isset($_GET['b']) ? (int)$_GET['b'] : 0;
+$traitPageID = (int)hg_request_param($hgRequest, 'trait');
 $skillId = $traitPageID; // Compatibilidad con main_nav_bar.php
 
 $queryTrait = "SELECT * FROM dim_traits WHERE id = ? LIMIT 1;";
