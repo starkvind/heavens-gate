@@ -97,7 +97,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$raw = trim((string)($_GET['b'] ?? ''));
+$raw = hg_request_param($hgRequest, 'document');
 $docId = $raw !== '' ? hg_mobile_doc_resolve_id($link, $raw) : 0;
 
 $hasPretty = hg_mobile_doc_col_exists($link, 'fact_docs', 'pretty_id');
