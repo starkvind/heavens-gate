@@ -125,7 +125,7 @@ $mobileEmbeddedAliases = [
     'arms' => 'combat_simulator_weapons',
     'sim_tournament' => 'combat_simulator_tournament',
 ];
-$route = (string)($_GET['p'] ?? '');
+$route = hg_request_route($hgRequest);
 $route = $mobileEmbeddedAliases[$route] ?? $route;
 $config = $mobileEmbeddedRoutes[$route] ?? null;
 if (!$config || !is_file((string)$config['file'])) {
