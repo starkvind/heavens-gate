@@ -12,7 +12,7 @@ if (!$maps) {
     return;
 }
 
-$selectedMap = hg_maps_find_map($maps, (string)($_GET['map'] ?? ''));
+$selectedMap = hg_maps_find_map($maps, hg_request_query_param($hgRequest, 'map'));
 if (!$selectedMap) {
     $selectedMap = $maps[0];
 }
