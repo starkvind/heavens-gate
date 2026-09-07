@@ -7,8 +7,8 @@ setMetaFromPage("Rituales | Heaven's Gate", "Listado completo de rituales en for
 
 $pageSect = "Rituales";
 $_SESSION['punk2'] = $pageSect;
-$printMode = isset($_GET['print']) && $_GET['print'] == '1';
-$markdownMode = isset($_GET['export']) && $_GET['export'] === 'md';
+$printMode = hg_request_query_param($hgRequest, 'print') === '1';
+$markdownMode = hg_request_query_param($hgRequest, 'export') === 'md';
 
 if (!$printMode) {
     include("app/partials/main_nav_bar.php");
