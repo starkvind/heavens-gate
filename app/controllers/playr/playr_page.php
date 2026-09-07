@@ -8,8 +8,14 @@ if (!$link) {
     return;
 }
 
-$pjRaw = $_GET['b'] ?? '';
-$pjId = resolve_pretty_id($link, 'dim_players', (string)$pjRaw) ?? 0;
+if (!isset($hgRequest) || !is_array($hgRequest)) {
+    hg_public_log_error('playr_page', 'missing request context');
+    hg_public_render_error('Jugador no disponible', 'No se pudo interpretar la solicitud del jugador.');
+    return;
+}
+
+$pjRaw = hg_request_param($hgRequest, 'player');
+$pjId = resolve_pretty_id($link, 'dim_players', $pjRaw) ?? 0;
 
 if ($pjId <= 0) {
     hg_public_render_not_found('Jugador no encontrado', 'El jugador solicitado no esta disponible en el catalogo.', true);
