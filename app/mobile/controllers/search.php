@@ -16,13 +16,9 @@ if (!function_exists('hg_mobile_search_h')) {
 }
 
 if (!function_exists('hg_mobile_search_input')) {
-    function hg_mobile_search_input(string $key): string
+    function hg_mobile_search_input(array $request, string $key): string
     {
-        $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
-        if (!is_string($value)) {
-            return '';
-        }
-        return trim(strip_tags($value));
+        return trim(strip_tags(hg_request_query_param($request, $key)));
     }
 }
 
@@ -338,12 +334,12 @@ if (!isset($link) || !($link instanceof mysqli)) {
 }
 
 $catalog = hg_search_catalog($link);
-$routeKey = trim((string)($_GET['p'] ?? ''));
+$routeKey = hg_request_route($hgRequest);
 $isResults = ($routeKey === 'busk');
-$query = hg_mobile_search_input('q');
-$sectionKey = hg_mobile_search_input('section');
-if ($query === '') $query = hg_mobile_search_input('bsq');
-if ($sectionKey === '') $sectionKey = hg_mobile_search_input('skz');
+$query = hg_mobile_search_input($hgRequest, 'q');
+$sectionKey = hg_mobile_search_input($hgRequest, 'section');
+if ($query === '') $query = hg_mobile_search_input($hgRequest, 'bsq');
+if ($sectionKey === '') $sectionKey = hg_mobile_search_input($hgRequest, 'skz');
 if ($sectionKey === '') $sectionKey = 'all';
 if (!isset($catalog[$sectionKey])) $sectionKey = 'all';
 $sectionConfig = $catalog[$sectionKey];
