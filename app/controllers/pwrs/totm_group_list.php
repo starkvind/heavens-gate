@@ -8,7 +8,7 @@ if (!$link) {
     return;
 }
 
-$routeParam = isset($_GET['b']) ? $_GET['b'] : '';
+$routeParam = hg_request_param($hgRequest, 'totem_type');
 $typeId = is_numeric($routeParam) ? (int)$routeParam : 0;
 
 $consulta = "SELECT name, determinant AS determinante FROM dim_totem_types WHERE id = ? LIMIT 1";
