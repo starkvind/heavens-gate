@@ -1,6 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-$archeRaw = $_GET['b'] ?? '';
+$archeRaw = hg_request_param($hgRequest, 'archetype');
 $archeId = resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0;
 
 $queryArche = "SELECT * FROM dim_archetypes WHERE id = ? LIMIT 1";
@@ -65,7 +65,7 @@ echo "  <div class='power-card__banner'>";
 echo "    <span class='power-card__title'>{$archeName}</span>";
 echo "  </div>";
 
-echo "  <div class='power-card__body'>";
+echo "    <div class='power-card__body'>";
 echo "    <div class='power-card__media'>";
 echo "      <div class='power-card__img-wrap'>";
 echo "        <img class='power-card__img' src='" . htmlspecialchars($itemImg) . "' alt='{$archeName}'/>";
