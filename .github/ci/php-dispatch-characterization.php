@@ -3,12 +3,9 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__, 2);
+$routesPath = $root . '/app/routing/routes.php';
+$dispatcherPath = $root . '/app/http/dispatcher.php';
 $bodyPath = $root . '/app/bootstrap/body_work.php';
-$source = file_get_contents($bodyPath);
-if ($source === false) {
-    fwrite(STDERR, "Cannot read body_work.php\n");
-    exit(1);
-}
 
 function hg_dispatch_fail(string $message): never
 {
@@ -16,20 +13,9 @@ function hg_dispatch_fail(string $message): never
     exit(1);
 }
 
-$routes = [];
-preg_match_all(
-    "/^[\\t ]*'([^']+)'[\\t ]*=>[\\t ]*\\['([^']+)'[\\t ]*,[\\t ]*(?:'([^']*)'|null)\\][\\t ]*,/m",
-    $source,
-    $matches,
-    PREG_SET_ORDER
-);
-
-foreach ($matches as $match) {
-    $routes[$match[1]] = $match[2];
-}
-
-if (count($routes) < 70) {
-    hg_dispatch_fail('Dispatch route table unexpectedly small: ' . count($routes));
+$routes = require $routesPath;
+if (!is_array($routes) || count($routes) < 70) {
+    hg_dispatch_fail('Dispatch route table unexpectedly small: ' . (is_array($routes) ? count($routes) : 0));
 }
 
 $expected = [
@@ -63,37 +49,58 @@ $expected = [
 ];
 
 foreach ($expected as $route => $file) {
-    if (($routes[$route] ?? null) !== $file) {
-        hg_dispatch_fail("Dispatch mapping changed for {$route}: expected {$file}, got " . ($routes[$route] ?? '<missing>'));
+    if (($routes[$route][0] ?? null) !== $file) {
+        hg_dispatch_fail("Dispatch mapping changed for {$route}: expected {$file}, got " . ($routes[$route][0] ?? '<missing>'));
     }
 }
 
-foreach ($routes as $route => $file) {
-    if (!is_file($root . '/' . $file)) {
-        hg_dispatch_fail("Dispatch target missing for {$route}: {$file}");
+foreach ($routes as $route => $definition) {
+    $file = $definition[0] ?? null;
+    if (!is_string($file) || !is_file($root . '/' . $file)) {
+        hg_dispatch_fail("Dispatch target missing for {$route}: " . (string)$file);
     }
 }
 
-$bareNeedles = [
-    "'forum_message'",
-    "'forum_diceroll'",
-    "'forum_item'",
-    "'crop'",
-    "'tooltip'",
-    "'mentions'",
-    "'maps_api'",
-    "'dice_api'",
-    "'forum_avatar_api'",
-    "'chronicle_image'",
-];
-foreach ($bareNeedles as $needle) {
-    $bareStart = strpos($source, "in_array(\$routeKey, [");
-    if ($bareStart === false) {
-        hg_dispatch_fail('Bare-page route list not found');
+$dispatcher = file_get_contents($dispatcherPath);
+if ($dispatcher === false) {
+    hg_dispatch_fail('Cannot read dispatcher.php');
+}
+
+foreach ([
+    'forum_message',
+    'forum_diceroll',
+    'forum_item',
+    'crop',
+    'tooltip',
+    'mentions',
+    'maps_api',
+    'dice_api',
+    'forum_avatar_api',
+    'chronicle_image',
+] as $bareRoute) {
+    if (strpos($dispatcher, "'{$bareRoute}'") === false) {
+        hg_dispatch_fail("Bare-page contract changed: missing {$bareRoute}");
     }
-    $bareSlice = substr($source, $bareStart, 500);
-    if (strpos($bareSlice, $needle) === false) {
-        hg_dispatch_fail("Bare-page contract changed: missing {$needle}");
+}
+
+if (strpos($dispatcher, "include('app/controllers/main/main_home.php')") === false) {
+    hg_dispatch_fail('Empty-route home fallback changed');
+}
+if (strpos($dispatcher, "include('app/controllers/main/main_news.php')") === false) {
+    hg_dispatch_fail('Unknown-route news fallback changed');
+}
+
+$body = file_get_contents($bodyPath);
+if ($body === false) {
+    hg_dispatch_fail('Cannot read body_work.php');
+}
+foreach ([
+    "require __DIR__ . '/page_context.php'",
+    "require __DIR__ . '/../routing/routes.php'",
+    "require __DIR__ . '/../http/dispatcher.php'",
+] as $needle) {
+    if (strpos($body, $needle) === false) {
+        hg_dispatch_fail("body_work seam missing: {$needle}");
     }
 }
 
@@ -102,13 +109,6 @@ foreach (['combat_simulator.php', 'game_cards.php'] as $retired) {
     if ($retiredSource === false || strpos($retiredSource, 'http_response_code(410)') === false) {
         hg_dispatch_fail("Retired tool is no longer an explicit HTTP 410 stub: {$retired}");
     }
-}
-
-if (strpos($source, 'include("app/controllers/main/main_home.php")') === false) {
-    hg_dispatch_fail('Empty-route home fallback changed');
-}
-if (strpos($source, 'include("app/controllers/main/main_news.php")') === false) {
-    hg_dispatch_fail('Unknown-route news fallback changed');
 }
 
 fwrite(STDOUT, 'PHP dispatch characterization: OK (' . count($routes) . " mapped routes)\n");
