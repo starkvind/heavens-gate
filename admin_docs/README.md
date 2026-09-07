@@ -7,6 +7,7 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | Documento | Uso |
 |---|---|
 | [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) | Arquitectura actual, routing, modelo de datos y criterios de mantenimiento. |
+| [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md) | Diccionario humano de route keys, URLs canónicas, aliases legacy, controladores, APIs, embeds y compatibilidad móvil. |
 | [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Referencia del esquema de producción derivada del snapshot del 1 de septiembre de 2026. |
 | [CSS_ARCHITECTURE.md](./CSS_ARCHITECTURE.md) | Capas CSS, propiedad de estilos, convención `hg-*` y estrategia de migración de nombres legacy. |
 | [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md) | Inventario de scripts y herramientas, cómo ejecutarlos y qué riesgos tienen. |
@@ -26,6 +27,8 @@ La documentación específica del juego de cartas fue retirada junto con su impl
 ## Fuente de verdad
 
 Para arquitectura y comportamiento, manda el código de la rama activa.
+
+Para routing, `ROUTE_DICTIONARY.md` es el mapa humano, pero las fuentes ejecutables siguen siendo `app/routing/path_matcher.php`, `app/routing/routes.php`, `app/http/dispatcher.php` y la capa legacy que permanezca activa durante el refactor.
 
 Para la estructura de producción, la referencia utilizada en esta revisión es:
 
