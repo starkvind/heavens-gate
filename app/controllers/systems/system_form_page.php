@@ -17,7 +17,7 @@ function sf_has_column(mysqli $link, string $table, string $column): bool {
     return $ok;
 }
 
-$formKey = trim((string)($_GET['b'] ?? ''));
+$formKey = hg_request_param($hgRequest, 'form');
 $formId = 0;
 if ($formKey !== '') {
     if (preg_match('/^\d+$/', $formKey)) {
