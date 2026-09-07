@@ -15,9 +15,9 @@ if (!function_exists('hg_merfla_normalize_text')) {
     }
 }
 
-// Obtener par&aacute;metros 'b' y 'r' de manera segura
-$mafPageID = isset($_GET['b']) ? $_GET['b'] : '';  // ID del M&eacute;rito/Defecto
-$returnID = isset($_GET['r']) ? $_GET['r'] : '';  // ID del Regreso
+// Obtener parámetros de manera explícita desde el contexto normalizado.
+$mafPageID = hg_request_param($hgRequest, 'merit_flaw');
+$returnID = hg_request_query_param($hgRequest, 'r');
 
 $unknownOrigin = "-";
 
