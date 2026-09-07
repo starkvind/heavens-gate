@@ -57,7 +57,7 @@ function formatTitle(string $filename): string {
     return ucfirst($name);
 }
 
-$relDir = isset($_GET['dir']) ? urldecode((string)$_GET['dir']) : '';
+$relDir = urldecode(hg_request_query_param($hgRequest, 'dir'));
 $relDir = trim($relDir);
 if (!isValidRelPath($relDir)) $relDir = '';
 $absDir = fsPathJoin($GALLERY_BASE_FS, $relDir);
