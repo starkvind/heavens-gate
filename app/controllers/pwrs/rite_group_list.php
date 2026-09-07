@@ -1,6 +1,6 @@
 <?php
 setMetaFromPage("Rituales | Heaven's Gate", "Listado de rituales por categoria.", null, 'website');
-$routeParam = isset($_GET['b']) ? $_GET['b'] : '';
+$routeParam = hg_request_param($hgRequest, 'rite_type');
 
 $consulta = "SELECT name, determinant AS determinante, description FROM dim_rite_types WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($consulta);
