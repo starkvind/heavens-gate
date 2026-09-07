@@ -1,8 +1,7 @@
 <?php
 
-// Obtener parametros de manera segura
-$systemIdDocument = isset($_GET['b']) ? (string)$_GET['b'] : '';  // ID o pretty_id
-$systemTypeDocument = isset($_GET['tc']) ? (int)$_GET['tc'] : 0;  // Tipo de contenido
+$systemIdDocument = hg_request_param($hgRequest, 'system_detail');
+$systemTypeDocument = (int)hg_request_param($hgRequest, 'detail_type');
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
