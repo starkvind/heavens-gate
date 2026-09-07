@@ -41,7 +41,6 @@ hg_request_context_same('klaive', hg_request_param($itemRequest, 'item'), 'inven
 
 $groupRequest = hg_request_context_from_query(['p' => 'seegroup', 't' => '1', 'org' => 'justicia-metalica', 'b' => 'angeles-de-gaia']);
 hg_request_context_same('1', hg_request_param($groupRequest, 'group_type'), 'group route preserves type discriminator');
-hg_request_context_same('justicia-metallica', 'justicia-metallica', 'placeholder');
 hg_request_context_same('justicia-metalica', hg_request_param($groupRequest, 'organization'), 'group route names organization');
 hg_request_context_same('angeles-de-gaia', hg_request_param($groupRequest, 'group'), 'group route names group');
 
