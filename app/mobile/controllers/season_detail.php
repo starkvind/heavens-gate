@@ -110,7 +110,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$raw = trim((string)($_GET['t'] ?? ''));
+$raw = hg_request_param($hgRequest, 'season');
 $seasonId = $raw !== '' ? (int)(resolve_pretty_id($link, 'dim_seasons', $raw) ?? 0) : 0;
 if ($seasonId <= 0) {
     hg_public_render_not_found('Temporada no encontrada', 'No se pudo localizar la temporada solicitada.');
@@ -247,7 +247,6 @@ if ($kind === 'temporada' && $number > 0) {
     }
 }
 ?>
-
 <article class="hg-mobile-bio">
     <nav class="hg-mobile-local-nav"><a href="/seasons?view=mobile">Volver a temporadas</a></nav>
 
