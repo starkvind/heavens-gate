@@ -7,6 +7,7 @@
     window.__hgAvatarResizeInstalled = true;
 
     const HG_AVATAR_ORIGIN = 'https://naufragio-heavensgate.duckdns.org';
+    const LEGACY_HEIGHT_PADDING = 16;
     const frameByWindow = new Map();
     const boundFrames = new WeakSet();
 
@@ -26,6 +27,7 @@
         frameByWindow.set(iframe.contentWindow, iframe);
 
         if (!boundFrames.has(iframe)) {
+            iframe.style.height = '1px';
             iframe.addEventListener('load', () => requestFrameHeight(iframe));
             boundFrames.add(iframe);
         }
@@ -50,8 +52,8 @@
             return;
         }
 
-        const height = Number(data.height);
-        if (!Number.isFinite(height) || height <= 0) {
+        const reportedHeight = Number(data.height);
+        if (!Number.isFinite(reportedHeight) || reportedHeight <= LEGACY_HEIGHT_PADDING) {
             return;
         }
 
@@ -68,7 +70,8 @@
             return;
         }
 
-        iframe.style.height = `${Math.ceil(height)}px`;
+        const contentHeight = Math.max(1, Math.ceil(reportedHeight - LEGACY_HEIGHT_PADDING));
+        iframe.style.height = `${contentHeight}px`;
     });
 
     if (document.readyState === 'loading') {
