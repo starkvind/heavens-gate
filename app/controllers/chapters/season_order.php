@@ -89,7 +89,7 @@ include_once(__DIR__ . '/../../partials/main_nav_bar.php');
 
 $schemaReady = hg_so_table_exists($link, 'bridge_season_order_nodes');
 $orders = [];
-$selectedOrder = trim((string)($_GET['order'] ?? ''));
+$selectedOrder = hg_request_query_param($hgRequest, 'order');
 $nodes = [];
 $renderNodes = [];
 
