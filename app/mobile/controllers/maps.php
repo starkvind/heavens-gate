@@ -6,10 +6,10 @@ $metaTitle = "Mapas | Heaven's Gate";
 $metaDescription = 'Mapas interactivos móviles.';
 $pageSect = 'Mapas';
 
-$routeKey = trim((string)($_GET['p'] ?? ''));
+$routeKey = hg_request_route($hgRequest);
 
 if ($routeKey === 'maps_detail') {
-    $rawPoiId = trim((string)($_GET['id'] ?? ''));
+    $rawPoiId = hg_request_param($hgRequest, 'poi');
     $resolvedPoiId = 0;
 
     if ($rawPoiId !== '' && isset($link) && ($link instanceof mysqli)) {
@@ -20,6 +20,7 @@ if ($routeKey === 'maps_detail') {
         }
     }
 
+    $hgRequest['params']['poi'] = (string)$resolvedPoiId;
     $_GET['id'] = (string)$resolvedPoiId;
     include(__DIR__ . '/../../controllers/maps/maps_detail.php');
     return;
