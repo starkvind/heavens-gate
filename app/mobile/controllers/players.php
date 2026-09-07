@@ -55,7 +55,13 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$rawPlayer = trim((string)($_GET['b'] ?? ''));
+if (!isset($hgRequest) || !is_array($hgRequest)) {
+    hg_public_log_error('mobile_players', 'missing request context');
+    hg_public_render_error('Jugadores no disponibles', 'No se pudo interpretar la solicitud de jugadores.');
+    return;
+}
+
+$rawPlayer = hg_request_param($hgRequest, 'player');
 $playerId = $rawPlayer !== '' ? hg_mobile_player_resolve_id($link, $rawPlayer) : 0;
 $chronicleJoin = hg_mobile_chronicle_exclusion_and('c');
 
