@@ -61,7 +61,8 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$route = trim((string)($_GET['p'] ?? 'seasons_home'));
+$route = hg_request_route($hgRequest);
+if ($route === '') $route = 'seasons_home';
 $routeKinds = [
     'seasons_complete' => ['temporada'],
     'seasons_interludes' => ['inciso'],
