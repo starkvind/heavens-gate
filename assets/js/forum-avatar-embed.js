@@ -3,12 +3,31 @@
 
     const HG_AVATAR_ORIGIN = 'https://naufragio-heavensgate.duckdns.org';
     const frameByWindow = new Map();
+    const boundFrames = new WeakSet();
+
+    function requestFrameHeight(iframe) {
+        if (!(iframe instanceof HTMLIFrameElement) || !iframe.contentWindow) {
+            return;
+        }
+
+        iframe.contentWindow.postMessage({ type: 'requestHeight' }, HG_AVATAR_ORIGIN);
+    }
 
     function registerFrame(iframe) {
         if (!(iframe instanceof HTMLIFrameElement) || !iframe.contentWindow) {
             return;
         }
+
         frameByWindow.set(iframe.contentWindow, iframe);
+
+        if (!boundFrames.has(iframe)) {
+            iframe.addEventListener('load', () => requestFrameHeight(iframe));
+            boundFrames.add(iframe);
+        }
+
+        // The shared script can load after an eager iframe has already emitted
+        // its first height. Request it again so no embed remains at 150px.
+        window.setTimeout(() => requestFrameHeight(iframe), 0);
     }
 
     function registerFrames(root = document) {
