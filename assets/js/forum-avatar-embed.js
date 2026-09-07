@@ -1,6 +1,11 @@
 (() => {
     'use strict';
 
+    if (window.__hgAvatarResizeInstalled) {
+        return;
+    }
+    window.__hgAvatarResizeInstalled = true;
+
     const HG_AVATAR_ORIGIN = 'https://naufragio-heavensgate.duckdns.org';
     const frameByWindow = new Map();
     const boundFrames = new WeakSet();
@@ -25,10 +30,11 @@
             boundFrames.add(iframe);
         }
 
-        // The shared script can load after an eager iframe has already emitted
-        // its first height. Request it again so no embed remains at 150px.
         window.setTimeout(() => requestFrameHeight(iframe), 0);
     }
+
+    window.hgAvatarRegisterFrame = registerFrame;
+    window.hgAvatarRequestFrameHeight = requestFrameHeight;
 
     function registerFrames(root = document) {
         root.querySelectorAll('.hgavatar_iframe').forEach(registerFrame);
