@@ -1,6 +1,6 @@
 # Añadir una sección pública
 
-Última revisión: 2026-09-02.
+Última revisión: 2026-09-07.
 
 La web usa un front controller. Una página nueva no debe enlazarse directamente a un PHP bajo `app/`.
 
@@ -8,60 +8,33 @@ La web usa un front controller. Una página nueva no debe enlazarse directamente
 
 Una URL pública atraviesa:
 
-`.htaccess` → `index.php` → `app/bootstrap/request_router.php` → `app/bootstrap/body_work.php` → controlador.
+`.htaccess -> index.php -> request_runtime.php -> path_matcher.php -> routes.php -> dispatcher.php -> controlador`
 
-`request_router.php` resuelve URLs canónicas y redirecciones legacy. `body_work.php` asigna el `route key` al controlador que renderiza la página.
+La traducción humana de los route keys existentes está en [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
-## Opción recomendada para páginas simples
+## Alta manual vigente
 
-Existe `tools/scaffold_section.py`.
+Durante el refactor PHP, una sección pública simple debe darse de alta conscientemente en:
 
-Primero ejecutar un dry-run:
+1. `app/routing/path_matcher.php`: URL canónica -> route key;
+2. `app/routing/routes.php`: route key -> controlador + sección;
+3. controlador bajo el dominio correcto en `app/controllers/`;
+4. menú/activos sólo si corresponde;
+5. `app/mobile/mobile_routes.php` únicamente si necesita implementación móvil específica durante la compatibilidad `?view=mobile`;
+6. `ROUTE_DICTIONARY.md`.
 
-~~~bash
-python tools/scaffold_section.py \
-  --route-key codex_guide \
-  --slug codex-guide \
-  --title "Guía del códice" \
-  --dry-run
-~~~
+Si la sección sustituye un `?p=...` histórico, revisar también la canonicalización legacy en `app/bootstrap/request_router.php`.
 
-Si el plan es correcto:
+## Scaffold temporalmente congelado
 
-~~~bash
-python tools/scaffold_section.py \
-  --route-key codex_guide \
-  --slug codex-guide \
-  --title "Guía del códice"
-~~~
+`tools/scaffold_section.py` fue escrito para la arquitectura anterior y todavía intenta modificar directamente:
 
-El script crea un controlador y añade la ruta al router y al dispatcher.
+- `app/bootstrap/request_router.php`;
+- `app/bootstrap/body_work.php`.
 
-Opciones útiles:
+Tras la separación de routing/dispatch de Phase 1, **no debe usarse para crear secciones hasta que sea adaptado**. Un `--dry-run` tampoco convierte su plan en correcto: sigue describiendo destinos arquitectónicos antiguos.
 
-- `--controller-group`: subdirectorio de `app/controllers`; por defecto `main`;
-- `--controller-file`: nombre del fichero a crear;
-- `--section-label`: etiqueta de sección usada por el layout;
-- `--description`: descripción/meta de la página;
-- `--css-file`: CSS bajo `assets/css`;
-- `--create-css`: crea ese CSS;
-- `--menu-label` + `--menu-block`: añade una entrada al menú fallback;
-- `--dry-run`: no escribe cambios.
-
-Bloques de menú soportados por el scaffold: `startMenu`, `bioMenu`, `archivoMenu`, `loreMenu`, `systemMenu`, `powersMenu` y `toolsMenu`.
-
-## Límites del scaffold
-
-No usarlo para:
-
-- detalles con `pretty_id`;
-- rutas con varios segmentos dinámicos;
-- APIs;
-- módulos administrativos;
-- páginas que necesiten lógica de autorización;
-- nuevas familias completas de entidades.
-
-En esos casos se debe editar el router conscientemente y seguir el patrón de una sección equivalente ya existente.
+Esto es deuda técnica conocida del refactor, no una invitación a devolver rutas a esos ficheros.
 
 ## Rutas con entidades
 
@@ -69,10 +42,17 @@ Para una entidad con slug:
 
 - la URL pública debe usar `pretty_id`;
 - los joins internos deben usar `id`;
-- si se cambia un slug que ya fue público, valorar un alias en `fact_pretty_id_aliases`;
-- la resolución legacy debe pasar por `app/helpers/pretty.php`.
+- si cambia un slug ya público, valorar alias en `fact_pretty_id_aliases`;
+- la compatibilidad legacy que necesite resolver IDs/slugs debe pasar por `app/helpers/pretty.php`;
+- `path_matcher.php` debe seguir siendo independiente de MySQL.
 
-No generar enlaces públicos con IDs numéricos salvo que la ruta esté diseñada expresamente para ello.
+No generar enlaces públicos con IDs numéricos salvo diseño explícito de esa ruta.
+
+## Route keys
+
+Los nombres históricos (`muestrabio`, `busk`, `temp`, `vermyd`, etc.) se conservan durante el refactor para no mezclar una migración nominal con cambios de arquitectura.
+
+Para nuevas rutas, preferir nombres legibles en inglés o vocabulario de dominio claro. No introducir abreviaturas crípticas nuevas.
 
 ## Menú
 
@@ -81,16 +61,22 @@ El menú real puede venir de `dim_menu_items`. La entrada fallback en `app/parti
 Después de crear una sección, comprobar:
 
 - URL canónica;
-- redirección desde el antiguo `?p=...` si existía;
-- menú desktop;
-- menú móvil;
+- redirección desde `?p=...` si procede;
+- desktop;
+- móvil/fallback;
 - título y metadatos;
 - 404 para slugs inexistentes;
-- comportamiento con `view=mobile`.
+- `view=mobile` mientras exista compatibilidad;
+- actualización del diccionario de rutas.
+
+## APIs, embeds y respuestas bare
+
+No copiar el patrón de una página HTML normal para una API o embed. Las respuestas bare se controlan en `app/http/dispatcher.php`.
+
+Si se añade una respuesta bare, documentarla expresamente en `ROUTE_DICTIONARY.md` y añadir caracterización/CI cuando sea razonable.
 
 ## Seguridad
 
 `.htaccess` bloquea `/app` y `/admin_docs`. No se debe desactivar ese bloqueo para “hacer funcionar” un controlador.
 
 Si una herramienta necesita ser accesible desde navegador, debe tener una ruta explícita en el front controller.
-
