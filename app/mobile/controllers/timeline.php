@@ -58,10 +58,10 @@ if (!function_exists('hg_mobile_timeline_event_is_excluded')) {
     }
 }
 
-$routeKey = trim((string)($_GET['p'] ?? ''));
+$routeKey = hg_request_route($hgRequest);
 
 if ($routeKey === 'timeline_event') {
-    $rawEvent = trim((string)($_GET['t'] ?? ''));
+    $rawEvent = hg_request_param($hgRequest, 'event');
     if (isset($link) && ($link instanceof mysqli) && hg_mobile_timeline_event_is_excluded($link, $rawEvent)) {
         echo '<section class="hg-mobile-section"><h1>Evento no encontrado</h1><p>No se puede mostrar este evento.</p></section>';
         return;
