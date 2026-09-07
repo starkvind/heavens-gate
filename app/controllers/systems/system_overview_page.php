@@ -1,7 +1,6 @@
 <?php
 
-// Aseguramos que el parametro GET 'b' este definido de manera segura
-$systemCategory = isset($_GET['b']) ? (string)$_GET['b'] : '';
+$systemCategory = hg_request_param($hgRequest, 'system');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
 $systemCategoryId = 0;
