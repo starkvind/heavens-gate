@@ -1,7 +1,7 @@
 <?php
 include_once __DIR__ . '/../../helpers/public_response.php';
 
-$rawId = trim((string)($_GET['b'] ?? ''));
+$rawId = hg_request_param($hgRequest, 'action');
 $actionId = preg_match('/^\d+$/', $rawId) ? (int)$rawId : (int)(resolve_pretty_id($link, 'fact_actions', $rawId) ?? 0);
 if (!$link || !($link instanceof mysqli) || $actionId <= 0) {
     hg_public_render_error('Acción no encontrada', 'La acción solicitada no existe.', 404, true);
