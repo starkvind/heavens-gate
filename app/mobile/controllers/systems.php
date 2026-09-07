@@ -131,7 +131,8 @@ if (!isset($link) || !($link instanceof mysqli)) {
 }
 mysqli_set_charset($link, 'utf8mb4');
 
-$route = (string)($_GET['p'] ?? 'listasistemas');
+$route = hg_request_route($hgRequest);
+if ($route === '') $route = 'listasistemas';
 
 if ($route === 'listasistemas') {
     $systems = [];
@@ -178,7 +179,7 @@ if ($route === 'listasistemas') {
 }
 
 if ($route === 'sistemas') {
-    $systemId = hg_mobile_sys_resolve($link, 'dim_systems', (string)($_GET['b'] ?? ''));
+    $systemId = hg_mobile_sys_resolve($link, 'dim_systems', hg_request_param($hgRequest, 'system'));
     if ($systemId <= 0) {
         hg_public_render_not_found('Sistema no encontrado', 'El sistema solicitado no existe.');
         return;
@@ -319,14 +320,14 @@ if ($route === 'sistemas') {
 }
 
 if ($route === 'versistdetalle') {
-    $type = (int)($_GET['tc'] ?? 0);
+    $type = (int)hg_request_param($hgRequest, 'detail_type');
     $tableMap = [1 => ['dim_breeds', '/systems/breeds', 'breed_id'], 2 => ['dim_auspices', '/systems/auspices', 'auspice_id'], 3 => ['dim_tribes', '/systems/tribes', 'tribe_id'], 4 => ['fact_misc_systems', '/systems/misc', '']];
     if (!isset($tableMap[$type])) {
         hg_public_render_not_found('Elemento no encontrado', 'El contenido solicitado no existe.');
         return;
     }
     [$table, $base, $charField] = $tableMap[$type];
-    $detailId = hg_mobile_sys_resolve($link, $table, (string)($_GET['b'] ?? ''));
+    $detailId = hg_mobile_sys_resolve($link, $table, hg_request_param($hgRequest, 'system_detail'));
     if ($detailId <= 0) {
         hg_public_render_not_found('Elemento no encontrado', 'El contenido solicitado no existe.');
         return;
@@ -463,7 +464,7 @@ if ($route === 'versistdetalle') {
 }
 
 if ($route === 'verforma') {
-    $formId = hg_mobile_sys_resolve($link, 'dim_forms', (string)($_GET['b'] ?? ''));
+    $formId = hg_mobile_sys_resolve($link, 'dim_forms', hg_request_param($hgRequest, 'form'));
     if ($formId <= 0) {
         hg_public_render_not_found('Forma no encontrada', 'La forma solicitada no existe.');
         return;
