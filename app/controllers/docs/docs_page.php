@@ -40,7 +40,7 @@ if (!$link) {
 }
 
 // Obtener id o pretty-id
-$docRaw = $_GET['b'] ?? '';
+$docRaw = hg_request_param($hgRequest, 'document');
 $docId = resolve_pretty_id($link, 'fact_docs', (string)$docRaw) ?? 0;
 if ($docId <= 0) {
   hg_public_render_not_found('Documento no encontrado', 'El documento solicitado no esta disponible.', true);
@@ -79,7 +79,7 @@ if (!$ResultQuery) {
 } else {
 
 $titleDoc = (string)$ResultQuery["title"];
-$texto    = (string)$ResultQuery["content"];   // HTML (Quill) -> se imprime tal cual
+$texto    = (string)$ResultQuery["content"];
 $source   = (string)($ResultQuery["source"] ?? '');
 $secciDoc = (string)($ResultQuery["section_id"] ?? 'Documento');
 $docCharacters = [];
