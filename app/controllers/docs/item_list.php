@@ -8,7 +8,7 @@ if (!$link) {
 }
 
 // Param tipo (id o pretty_id)
-$routeParam = $_GET['t'] ?? '';
+$routeParam = hg_request_param($hgRequest, 'item_type');
 $typeId = 0;
 if (is_numeric($routeParam)) {
     $typeId = (int)$routeParam;
