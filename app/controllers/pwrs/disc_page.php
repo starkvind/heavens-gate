@@ -1,5 +1,5 @@
 <?php
-$donPageID = isset($_GET['b']) ? $_GET['b'] : '';
+$donPageID = hg_request_param($hgRequest, 'discipline_power');
 
 $queryDon = "SELECT * FROM fact_discipline_powers WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($queryDon);
