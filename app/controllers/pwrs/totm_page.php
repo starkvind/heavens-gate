@@ -1,6 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-$totemPageID = isset($_GET['b']) ? $_GET['b'] : '';
+$totemPageID = hg_request_param($hgRequest, 'totem');
 
 $queryTotem = "SELECT * FROM dim_totems WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($queryTotem);
