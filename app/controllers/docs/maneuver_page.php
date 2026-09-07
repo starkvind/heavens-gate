@@ -1,7 +1,7 @@
 <?php
 
-// Obtener el parámetro 'b' de manera segura
-$maneuverId = isset($_GET['b']) ? $_GET['b'] : '';  // ID de la Maniobra
+// Obtener la maniobra desde el contexto normalizado
+$maneuverId = hg_request_param($hgRequest, 'maneuver');
 // Preparar la consulta para evitar inyecciones SQL
 $queryManeuver = "SELECT * FROM fact_combat_maneuvers WHERE id = ?";
 $stmtManeuver = $link->prepare($queryManeuver);
