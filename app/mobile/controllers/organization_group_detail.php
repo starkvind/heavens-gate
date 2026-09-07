@@ -213,9 +213,14 @@ if (!isset($link) || !($link instanceof mysqli)) {
 $chronicleConditionP = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('p') : 'p.chronicle_id NOT IN (2,7)';
 $chronicleConditionG = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('g') : 'g.chronicle_id NOT IN (2,7)';
 
-$type = (int)($_GET['t'] ?? 0);
-$rawId = trim((string)($_GET['b'] ?? ''));
-$preferredOrgRaw = trim((string)($_GET['org'] ?? ''));
+$type = (int)hg_request_param($hgRequest, 'group_type');
+if ($type === 2) {
+    $rawId = hg_request_param($hgRequest, 'organization');
+    $preferredOrgRaw = '';
+} else {
+    $rawId = hg_request_param($hgRequest, 'group');
+    $preferredOrgRaw = hg_request_param($hgRequest, 'organization');
+}
 
 if ($type === 1) {
     $id = hg_mobile_ogd_resolve($link, 'dim_groups', $rawId);
