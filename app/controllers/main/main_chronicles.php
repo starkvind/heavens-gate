@@ -142,7 +142,7 @@ if (!function_exists('hg_ch_count_label')) {
 }
 
 $excludeChronicles = isset($excludeChronicles) ? hg_ch_sanitize_int_csv($excludeChronicles) : '';
-$chronicleFilterId = isset($_GET['t']) ? (int)$_GET['t'] : 0;
+$chronicleFilterId = (int)hg_request_param($hgRequest, 'chronicle');
 $hasSeasonChronicleId = hg_ch_has_column($link, 'dim_seasons', 'chronicle_id');
 $hasChronicleImage = hg_ch_has_column($link, 'dim_chronicles', 'image_url');
 $statusExpr = "COALESCE(dcs.label, '')";
