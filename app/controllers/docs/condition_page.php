@@ -2,7 +2,7 @@
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/public_response.php');
 
-$conditionRaw = isset($_GET['b']) ? (string)$_GET['b'] : '';
+$conditionRaw = hg_request_param($hgRequest, 'condition');
 $conditionId = 0;
 if ($conditionRaw !== '') {
     if (preg_match('/^\d+$/', $conditionRaw)) {
