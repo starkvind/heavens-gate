@@ -11,6 +11,14 @@ function hg_request_context_from_query(array $query): array
 {
     $route = hg_request_context_scalar($query['p'] ?? '');
     $params = [];
+    $normalizedQuery = [];
+
+    foreach ($query as $key => $value) {
+        if (!is_string($key) && !is_int($key)) {
+            continue;
+        }
+        $normalizedQuery[(string)$key] = hg_request_context_scalar($value);
+    }
 
     $map = [
         'temp' => ['season' => 't'],
@@ -84,6 +92,7 @@ function hg_request_context_from_query(array $query): array
     return [
         'route' => $route,
         'params' => $params,
+        'query' => $normalizedQuery,
     ];
 }
 
@@ -109,5 +118,16 @@ function hg_request_param(array $request, string $name, string $default = ''): s
     }
 
     $value = hg_request_context_scalar($params[$name]);
+    return $value === '' ? $default : $value;
+}
+
+function hg_request_query_param(array $request, string $name, string $default = ''): string
+{
+    $query = $request['query'] ?? [];
+    if (!is_array($query) || !array_key_exists($name, $query)) {
+        return $default;
+    }
+
+    $value = hg_request_context_scalar($query[$name]);
     return $value === '' ? $default : $value;
 }
