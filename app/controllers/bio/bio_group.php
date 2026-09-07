@@ -73,7 +73,7 @@ if (!function_exists('hg_bio_group_sanitize_int_csv')) {
     }
 }
 
-$idTipo = isset($_GET['t']) ? (int)$_GET['t'] : 0;
+$idTipo = (int)hg_request_param($hgRequest, 'character_type');
 if ($idTipo <= 0) {
     hg_public_render_not_found(
         'Tipo no encontrado',
