@@ -35,7 +35,7 @@
     //include("ip.php");
     require_once(__DIR__ . "/app/helpers/db_connection.php");
     require_once(__DIR__ . "/app/bootstrap/error_reporting.php");
-    require_once(__DIR__ . "/app/bootstrap/request_router.php");
+    require_once(__DIR__ . "/app/routing/request_runtime.php");
     require_once(__DIR__ . "/app/helpers/mobile_detection.php");
     require_once(__DIR__ . "/app/helpers/page_assets.php");
 
@@ -49,7 +49,7 @@
     $pageURL = $scheme . '://' . $host . $uri;
     $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
-    hg_request_router_bootstrap($link);
+    hg_request_routing_bootstrap($link);
 
     if (hg_should_render_mobile((string)($_GET['p'] ?? ''))) {
         include(__DIR__ . "/app/mobile/mobile_index.php");
