@@ -1,7 +1,7 @@
 <?php
 setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null, 'website');
 
-$routeParam = isset($_GET['b']) ? $_GET['b'] : '';
+$routeParam = hg_request_param($hgRequest, 'gift_type');
 
 $consulta = "SELECT name, determinant AS determinante, description FROM dim_gift_types WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($consulta);
