@@ -54,8 +54,8 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$q = trim((string)($_GET['q'] ?? ''));
-$seasonFilter = filter_input(INPUT_GET, 'season', FILTER_VALIDATE_INT) ?: 0;
+$q = hg_request_query_param($hgRequest, 'q');
+$seasonFilter = max(0, (int)hg_request_query_param($hgRequest, 'season'));
 
 $hasSeasonId = hg_mobile_chl_col_exists($link, 'dim_chapters', 'season_id');
 $hasSeasonKind = hg_mobile_chl_col_exists($link, 'dim_seasons', 'season_kind');
