@@ -1,8 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
-// Aseguramos que el parámetro GET 'b' esté definido y sea un valor seguro
-$itemPageID = isset($_GET['b']) ? $_GET['b'] : '';
+$itemPageID = hg_request_param($hgRequest, 'item');
 $itemId = (int)$itemPageID;
 
 // Preparamos la consulta para evitar inyecciones SQL
