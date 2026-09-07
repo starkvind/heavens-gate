@@ -36,6 +36,7 @@
     require_once(__DIR__ . "/app/helpers/db_connection.php");
     require_once(__DIR__ . "/app/bootstrap/error_reporting.php");
     require_once(__DIR__ . "/app/routing/request_runtime.php");
+    require_once(__DIR__ . "/app/http/request_context.php");
     require_once(__DIR__ . "/app/helpers/mobile_detection.php");
     require_once(__DIR__ . "/app/helpers/page_assets.php");
 
@@ -50,8 +51,9 @@
     $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
     hg_request_routing_bootstrap($link);
+    $hgRequest = hg_request_context_from_query($_GET);
 
-    if (hg_should_render_mobile((string)($_GET['p'] ?? ''))) {
+    if (hg_should_render_mobile(hg_request_route($hgRequest))) {
         include(__DIR__ . "/app/mobile/mobile_index.php");
         exit;
     }
