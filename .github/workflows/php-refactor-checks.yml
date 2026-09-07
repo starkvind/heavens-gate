@@ -27,5 +27,8 @@ jobs:
       - name: Characterize router contract
         run: php .github/ci/php-router-characterization.php
 
+      - name: Characterize dispatch contract
+        run: php .github/ci/php-dispatch-characterization.php
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
