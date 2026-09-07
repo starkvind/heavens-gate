@@ -124,12 +124,12 @@
 	
 	// Elimina <br> antes de <div>, despues de </div>, y similares
 	$parsed_msg = preg_replace([
-		'/<br\s*\/?>\s*(<div[^>]*>)/i',   // <br> antes de <div>
-		'/(<\/div>)\s*<br\s*\/?>/i',      // <br> despues de </div>
-		'/<br\s*\/?>\s*(<ul[^>]*>)/i',    // <br> antes de <ul>
-		'/(<\/ul>)\s*<br\s*\/?>/i',       // <br> despues de </ul>
-		'/<br\s*\/?>\s*(<li[^>]*>)/i',    // <br> antes de <li>
-		'/(<\/li>)\s*<br\s*\/?>/i',       // <br> despues de </li>
+		'/<br\s*\/?>\s*(<div[^>]*>)/i',
+		'/(<\/div>)\s*<br\s*\/?>/i',
+		'/<br\s*\/?>\s*(<ul[^>]*>)/i',
+		'/(<\/ul>)\s*<br\s*\/?>/i',
+		'/<br\s*\/?>\s*(<li[^>]*>)/i',
+		'/(<\/li>)\s*<br\s*\/?>/i',
 	], [
 		'$1',
 		'$1',
@@ -193,17 +193,60 @@
 				}
 			}
 
+			let lastHeight = 0;
+
 			function sendHeight() {
-				const height = document.body.scrollHeight + 32;
-				window.parent.postMessage({ type: 'setHeight', height }, '*');
+				const mainBox = document.querySelector('.msg_main_box');
+				const mainBottom = mainBox
+					? Math.ceil(mainBox.getBoundingClientRect().bottom + window.scrollY)
+					: 0;
+				const measured = Math.max(
+					document.body.scrollHeight,
+					document.documentElement.scrollHeight,
+					mainBottom
+				) + 16;
+
+				if (measured === lastHeight) {
+					return;
+				}
+				lastHeight = measured;
+				window.parent.postMessage({ type: 'setHeight', height: measured }, '*');
 			}
+
+			window.addEventListener('message', (event) => {
+				if (event.source !== window.parent) {
+					return;
+				}
+				if (event.data && event.data.type === 'requestHeight') {
+					lastHeight = 0;
+					sendHeight();
+				}
+			});
 
 			window.addEventListener('load', () => {
 				detectAndApplyTextColor();
 				sendHeight();
+				requestAnimationFrame(sendHeight);
 			});
 
 			window.addEventListener('resize', sendHeight);
+
+			if (document.fonts && document.fonts.ready) {
+				document.fonts.ready.then(() => {
+					lastHeight = 0;
+					sendHeight();
+				});
+			}
+
+			if ('ResizeObserver' in window) {
+				const observed = document.querySelector('.msg_main_box');
+				if (observed) {
+					new ResizeObserver(() => {
+						lastHeight = 0;
+						sendHeight();
+					}).observe(observed);
+				}
+			}
 		</script>
 	</body>
 </html>
