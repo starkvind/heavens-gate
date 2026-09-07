@@ -33,5 +33,8 @@ jobs:
       - name: Characterize dispatch contract
         run: php .github/ci/php-dispatch-characterization.php
 
+      - name: Characterize explicit request context
+        run: php .github/ci/php-request-context-characterization.php
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
