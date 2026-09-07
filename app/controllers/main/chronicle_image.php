@@ -43,7 +43,7 @@ if (!function_exists('hg_ci_default_image')) {
     }
 }
 
-$rawChronicle = isset($_GET['t']) ? (string)$_GET['t'] : '';
+$rawChronicle = hg_request_param($hgRequest, 'chronicle');
 $chronicleId = 0;
 if ($rawChronicle !== '') {
     if (preg_match('/^\d+$/', $rawChronicle)) {
