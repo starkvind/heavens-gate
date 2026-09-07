@@ -1,6 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-$ritePageID = isset($_GET['b']) ? $_GET['b'] : '';
+$ritePageID = hg_request_param($hgRequest, 'rite');
 
 $queryRite = "
     SELECT r.*, s.name AS system_name, r.kind AS tipo, r.level AS nivel, r.race AS raza, r.system_name AS sistema
