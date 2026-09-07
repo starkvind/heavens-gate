@@ -1,6 +1,6 @@
 <?php
 setMetaFromPage("Disciplinas | Heaven's Gate", "Listado de poderes por disciplina.", null, 'website');
-$routeParam = isset($_GET['b']) ? $_GET['b'] : '';
+$routeParam = hg_request_param($hgRequest, 'discipline_type');
 
 $consulta = "SELECT name, description FROM dim_discipline_types WHERE id = ? LIMIT 1";
 $stmt = $link->prepare($consulta);
