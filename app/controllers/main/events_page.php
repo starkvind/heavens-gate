@@ -129,7 +129,7 @@ $hasTypesTable = hg_ev_table_exists($link, 'dim_timeline_events_types');
 $hasSeasonsTable = hg_ev_table_exists($link, 'dim_seasons');
 $hasSeasonsKind = true;
 
-$rawEvent = (string)($_GET['t'] ?? '');
+$rawEvent = hg_request_param($hgRequest, 'event');
 $eventId = resolve_pretty_id($link, 'fact_timeline_events', $rawEvent) ?? 0;
 if ($eventId <= 0) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
@@ -651,5 +651,4 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
     });
 })();
 </script>
-
 
