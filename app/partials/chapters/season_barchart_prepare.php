@@ -26,12 +26,6 @@
 	}
 
 	$id_temporada = isset($temporadaId) ? (int)$temporadaId : 0;
-	if ($id_temporada <= 0) {
-		$temporadaRaw = (string)($_GET['t'] ?? '');
-		if ($temporadaRaw !== '' && function_exists('resolve_pretty_id')) {
-			$id_temporada = (int)(resolve_pretty_id($link, 'dim_seasons', $temporadaRaw) ?? 0);
-		}
-	}
 
 	if ($id_temporada <= 0) {
 		echo "<p class='chapt-error'>Temporada no valida.</p>";
