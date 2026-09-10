@@ -453,3 +453,83 @@ if (!function_exists('hg_characters_fetch_mobile_page')) {
         ];
     }
 }
+
+if (!function_exists('hg_characters_fetch_table_rows')) {
+    function hg_characters_fetch_table_rows(mysqli $link, $excludedChronicles = '2,7')
+    {
+        $typeColumn = '';
+        foreach (['character_type_id', 'kind', 'tipo'] as $candidate) {
+            if (hg_characters_has_column($link, 'fact_characters', $candidate)) {
+                $typeColumn = $candidate;
+                break;
+            }
+        }
+        if ($typeColumn === '') {
+            return false;
+        }
+
+        $whereChronicle = hg_characters_chronicle_condition('p', $excludedChronicles);
+        $sql = "
+            SELECT
+                p.id,
+                p.pretty_id AS character_pretty_id,
+                p.name AS character_name,
+                p.alias,
+                p.concept,
+                p.image_url,
+                p.gender,
+                nm2.id AS pack_id,
+                nm2.pretty_id AS pack_pretty_id,
+                nm2.name AS pack_name,
+                nc2.id AS organization_id,
+                nc2.pretty_id AS clan_pretty_id,
+                nc2.name AS clan_name,
+                nc_from_pack.id AS clan_from_pack_id,
+                nc_from_pack.pretty_id AS clan_from_pack_pretty_id,
+                nc_from_pack.name AS clan_from_pack_name,
+                a.id AS type_id,
+                a.pretty_id AS type_pretty_id,
+                a.kind AS type_name,
+                s.name AS system_name,
+                COALESCE(dcs.label, '') AS status,
+                p.status_id
+            FROM fact_characters p
+            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
+            LEFT JOIN bridge_characters_groups hcg
+                ON hcg.character_id = p.id
+               AND (hcg.is_active = 1 OR hcg.is_active IS NULL)
+            LEFT JOIN dim_groups nm2 ON nm2.id = hcg.group_id
+            LEFT JOIN bridge_characters_organizations hcc
+                ON hcc.character_id = p.id
+               AND (hcc.is_active = 1 OR hcc.is_active IS NULL)
+            LEFT JOIN dim_organizations nc2 ON nc2.id = hcc.organization_id
+            LEFT JOIN bridge_organizations_groups hcg2
+                ON hcg2.group_id = nm2.id
+               AND (hcg2.is_active = 1 OR hcg2.is_active IS NULL)
+            LEFT JOIN dim_organizations nc_from_pack ON nc_from_pack.id = hcg2.organization_id
+            LEFT JOIN dim_character_types a ON a.id = p.`{$typeColumn}`
+            LEFT JOIN dim_systems s ON s.id = p.system_id
+            WHERE {$whereChronicle}
+            ORDER BY p.name ASC
+        ";
+
+        $result = mysqli_query($link, $sql);
+        if (!$result) {
+            return false;
+        }
+
+        $characters = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            if (empty($row['organization_id']) && !empty($row['clan_from_pack_id'])) {
+                $row['organization_id'] = $row['clan_from_pack_id'];
+                $row['clan_name'] = $row['clan_from_pack_name'];
+                $row['clan_pretty_id'] = $row['clan_from_pack_pretty_id'];
+            }
+            unset($row['clan_from_pack_id'], $row['clan_from_pack_name'], $row['clan_from_pack_pretty_id']);
+            $characters[] = $row;
+        }
+        mysqli_free_result($result);
+
+        return $characters;
+    }
+}
