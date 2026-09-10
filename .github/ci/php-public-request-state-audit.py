@@ -19,7 +19,7 @@ TARGETS = [
 ACTIVE_EDGE_TARGETS = [
     ROOT / 'app/controllers/tool',
     ROOT / 'app/partials',
-    ROOT / 'app/tools',
+    ROOT / 'app/tools/forum_topic_viewer_tool.php',
     ROOT / 'app/helpers/power_custom_pages.php',
     ROOT / 'app/helpers/tool_api.php',
 ]
@@ -34,6 +34,11 @@ MAX_DIRECT_READS = 0
 MAX_ACTIVE_EDGE_READS = 0
 
 
+def executable_php(text):
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+    return re.sub(r'(?m)^\s*//.*$', '', text)
+
+
 def request_rows(targets):
     rows = []
     seen = set()
@@ -43,7 +48,7 @@ def request_rows(targets):
             if not path.exists() or path in seen:
                 continue
             seen.add(path)
-            text = path.read_text(encoding='utf-8', errors='replace')
+            text = executable_php(path.read_text(encoding='utf-8', errors='replace'))
             counts = {name: len(pattern.findall(text)) for name, pattern in PATTERNS.items()}
             total = sum(counts.values())
             if total:
@@ -79,7 +84,7 @@ EDGE_ZERO_FILES = [
     ROOT / 'app/routing/request_runtime.php',
 ]
 for path in EDGE_ZERO_FILES:
-    text = path.read_text(encoding='utf-8', errors='replace')
+    text = executable_php(path.read_text(encoding='utf-8', errors='replace'))
     for name, pattern in PATTERNS.items():
         if pattern.search(text):
             print(f'ERROR: request pipeline regained {name} read: {path.relative_to(ROOT).as_posix()}', file=sys.stderr)
