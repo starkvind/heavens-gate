@@ -53,7 +53,10 @@
     hg_request_routing_bootstrap($link);
     $hgRequest = hg_request_context_from_query($_GET);
 
-    if (hg_should_render_mobile(hg_request_route($hgRequest))) {
+    if (hg_should_render_mobile(
+        hg_request_route($hgRequest),
+        hg_request_query_param($hgRequest, 'view')
+    )) {
         include(__DIR__ . "/app/mobile/mobile_index.php");
         exit;
     }

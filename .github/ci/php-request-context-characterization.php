@@ -93,9 +93,31 @@ if ($indexSource === false) {
 }
 $requirePos = strpos($indexSource, 'app/http/request_context.php');
 $buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($_GET);');
-$mobilePos = strpos($indexSource, 'hg_should_render_mobile(hg_request_route($hgRequest))');
+$mobilePos = strpos($indexSource, "hg_request_query_param($hgRequest, 'view')");
 if ($requirePos === false || $buildPos === false || $mobilePos === false || !($requirePos < $buildPos && $buildPos < $mobilePos)) {
     hg_request_context_fail('index.php is not building explicit request context before desktop/mobile dispatch');
+}
+
+$mobileDetectionSource = file_get_contents(__DIR__ . '/../../app/helpers/mobile_detection.php');
+if ($mobileDetectionSource === false) {
+    hg_request_context_fail('Cannot read mobile detection helper');
+}
+if (strpos($mobileDetectionSource, '$_GET') !== false) {
+    hg_request_context_fail('Mobile detection regained raw GET dependency');
+}
+if (strpos($mobileDetectionSource, 'hg_mobile_view_override($requestedView)') === false) {
+    hg_request_context_fail('Mobile detection is not consuming explicit view input');
+}
+
+$mobileIndexSource = file_get_contents(__DIR__ . '/../../app/mobile/mobile_index.php');
+if ($mobileIndexSource === false) {
+    hg_request_context_fail('Cannot read mobile index');
+}
+if (strpos($mobileIndexSource, '$_GET') !== false) {
+    hg_request_context_fail('Mobile index regained raw GET dependency');
+}
+if (strpos($mobileIndexSource, '$routeKey = hg_request_route($hgRequest);') === false) {
+    hg_request_context_fail('Mobile index is not consuming explicit route input');
 }
 
 $bodySource = file_get_contents(__DIR__ . '/../../app/bootstrap/body_work.php');

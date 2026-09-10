@@ -1,11 +1,11 @@
 <?php
-    $routeKey = trim((string)($_GET['p'] ?? ''));
+    $routeKey = hg_request_route($hgRequest);
     $mobileTitle = "Heaven's Gate";
 
     include_once(__DIR__ . '/helpers/chronicle_scope.php');
     include(__DIR__ . '/mobile_routes.php');
 
-    $mobileRouteKey = trim((string)($_GET['p'] ?? ''));
+    $mobileRouteKey = $routeKey;
     $mobileIsHome = in_array($mobileRouteKey, ['', 'home'], true);
     $mobileController = $hgMobileRoutes[$mobileRouteKey] ?? __DIR__ . '/controllers/fallback.php';
 
