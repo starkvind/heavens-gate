@@ -333,7 +333,7 @@ $catalogs = [
     ],
     'totems' => [
         'key' => 'totems', 'title' => 'Totems', 'singular' => 'Totem', 'table' => 'dim_totems', 'list_base' => '/powers/totems', 'item_base' => '/powers/totem', 'image_dir' => 'img/totems',
-        'list_routes' => ['listatotems','fulltotem','customtotem','totems','tipototm'], 'detail_routes' => ['muestratotem'], 'type_route' => 'tipotm', 'type_col' => 'totem_type_id', 'type_table' => 'dim_totem_types',
+        'list_routes' => ['listatotems','fulltotem','customtotem','totems','tipototm'], 'detail_routes' => ['muestratotem'], 'type_route' => 'tipototm', 'type_col' => 'totem_type_id', 'type_table' => 'dim_totem_types',
         'fields' => [['Tipo', 'totem_type_id', 'dim_totem_types'], ['Coste', 'cost']],
         'body' => [['Descripción', 'description'], ['Rasgos', 'traits'], ['Prohibición', 'prohibited']],
         'order' => 'cost ASC, name ASC',
