@@ -51,7 +51,8 @@
     $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
     $hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);
-    $hgRequest = hg_request_context_from_query($hgQuery);
+    $hgBody = $_POST;
+    $hgRequest = hg_request_context_from_query($hgQuery, $hgBody);
 
     if (hg_should_render_mobile(
         hg_request_route($hgRequest),
