@@ -5,7 +5,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     require_once(__DIR__ . '/../helpers/db_connection.php');
 }
 
-$id_tirada = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$id_tirada = filter_var(hg_request_param($hgRequest, 'id'), FILTER_VALIDATE_INT);
 
 if (!$id_tirada) {
     hg_runtime_embed_error('Tirada no disponible', 'No se ha indicado ninguna tirada.', 400);
@@ -36,7 +36,7 @@ $exitos = (int)$tirada['successes'];
 $pifia = (bool)$tirada['botch'];
 $willpowerSpent = !empty($tirada['willpower_spent']);
 
-$paletteParam = filter_input(INPUT_GET, 'palette', FILTER_UNSAFE_RAW) ?? '';
+$paletteParam = hg_request_param($hgRequest, 'palette');
 $paletteParam = preg_replace('/[^a-zA-Z0-9#(),.\s%-]/', '', (string)$paletteParam);
 
 $palette = $pifia ? '#3A1010' : '#05014E';
