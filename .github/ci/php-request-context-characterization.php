@@ -93,7 +93,7 @@ if ($indexSource === false) {
 }
 $requirePos = strpos($indexSource, 'app/http/request_context.php');
 $buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($_GET);');
-$mobilePos = strpos($indexSource, "hg_request_query_param($hgRequest, 'view')");
+$mobilePos = strpos($indexSource, 'hg_request_query_param($hgRequest, \'view\')');
 if ($requirePos === false || $buildPos === false || $mobilePos === false || !($requirePos < $buildPos && $buildPos < $mobilePos)) {
     hg_request_context_fail('index.php is not building explicit request context before desktop/mobile dispatch');
 }
