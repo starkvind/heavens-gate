@@ -1,5 +1,7 @@
 <?php
 
+require_once(__DIR__ . '/../../domains/news/queries.php');
+
 $metaTitle = "Noticias | Heaven's Gate";
 $metaDescription = "Ultimas novedades de Heaven's Gate.";
 $pageSect = 'Noticias';
@@ -22,25 +24,11 @@ $totalPages = 1;
 $posts = [];
 
 if (isset($link) && ($link instanceof mysqli)) {
-    if ($result = mysqli_query($link, "SELECT COUNT(*) AS total FROM fact_admin_posts")) {
-        $row = mysqli_fetch_assoc($result);
-        $totalRows = (int)($row['total'] ?? 0);
-        mysqli_free_result($result);
-    }
-
+    $totalRows = hg_news_count_posts($link) ?? 0;
     $totalPages = max(1, (int)ceil($totalRows / $pageSize));
     $page = min($page, $totalPages);
     $offset = ($page - 1) * $pageSize;
-
-    if ($stmt = mysqli_prepare($link, "SELECT author, title, message, posted_at FROM fact_admin_posts ORDER BY id DESC LIMIT ?, ?")) {
-        mysqli_stmt_bind_param($stmt, 'ii', $offset, $pageSize);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        while ($row = mysqli_fetch_assoc($result)) {
-            $posts[] = $row;
-        }
-        mysqli_stmt_close($stmt);
-    }
+    $posts = hg_news_fetch_posts($link, $offset, $pageSize) ?? [];
 }
 ?>
 
