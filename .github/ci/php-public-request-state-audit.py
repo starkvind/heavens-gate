@@ -29,6 +29,7 @@ MIGRATED_ZERO_PREFIXES = (
     'app/controllers/docs/',
     'app/controllers/chapters/',
     'app/controllers/systems/',
+    'app/controllers/main/',
 )
 MAX_DIRECT_READS = 13
 
