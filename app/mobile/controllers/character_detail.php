@@ -150,7 +150,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$rawId = trim((string)($_GET['b'] ?? ''));
+$rawId = hg_request_param($hgRequest, 'character');
 $characterId = 0;
 if ($rawId !== '') {
     $resolved = resolve_pretty_id($link, 'fact_characters', $rawId);
