@@ -5,7 +5,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
     require_once(__DIR__ . '/../helpers/db_connection.php');
 }
 
-$itemId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$itemId = filter_var(hg_request_param($hgRequest, 'id'), FILTER_VALIDATE_INT);
 
 if (!$itemId) {
     hg_runtime_embed_error('Objeto no disponible', 'No se ha indicado ningun objeto.', 400);
