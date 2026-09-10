@@ -23,6 +23,7 @@ ACTIVE_EDGE_TARGETS = [
     ROOT / 'app/partials/forum_item_snippet.php',
     ROOT / 'app/partials/main_nav_bar.php',
     ROOT / 'app/helpers/power_custom_pages.php',
+    ROOT / 'app/helpers/tool_api.php',
 ]
 PATTERNS = {
     'GET': re.compile(r'\$_GET\s*\['),
