@@ -92,10 +92,37 @@ if ($indexSource === false) {
     hg_request_context_fail('Cannot read index.php');
 }
 $requirePos = strpos($indexSource, 'app/http/request_context.php');
-$buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($_GET);');
+$routeQueryPos = strpos($indexSource, '$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);');
+$buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($hgQuery);');
 $mobilePos = strpos($indexSource, 'hg_request_query_param($hgRequest, \'view\')');
-if ($requirePos === false || $buildPos === false || $mobilePos === false || !($requirePos < $buildPos && $buildPos < $mobilePos)) {
-    hg_request_context_fail('index.php is not building explicit request context before desktop/mobile dispatch');
+if (
+    $requirePos === false || $routeQueryPos === false || $buildPos === false || $mobilePos === false
+    || !($requirePos < $routeQueryPos && $routeQueryPos < $buildPos && $buildPos < $mobilePos)
+) {
+    hg_request_context_fail('index.php is not converting the raw query into explicit request context before dispatch');
+}
+
+$runtimeSource = file_get_contents(__DIR__ . '/../../app/routing/request_runtime.php');
+if ($runtimeSource === false) {
+    hg_request_context_fail('Cannot read request runtime');
+}
+foreach (['$_GET', '$_POST', '$_REQUEST'] as $forbidden) {
+    if (strpos($runtimeSource, $forbidden) !== false) {
+        hg_request_context_fail("Request runtime regained raw request mutation/dependency: {$forbidden}");
+    }
+}
+if (strpos($runtimeSource, 'return $query;') === false) {
+    hg_request_context_fail('Request runtime is not returning routed query state explicitly');
+}
+
+$prettySource = file_get_contents(__DIR__ . '/../../app/http/pretty_request.php');
+if ($prettySource === false) {
+    hg_request_context_fail('Cannot read explicit pretty request normalizer');
+}
+foreach (['$_GET', '$_POST', '$_REQUEST', '$_SERVER'] as $forbidden) {
+    if (strpos($prettySource, $forbidden) !== false) {
+        hg_request_context_fail("Pretty request normalizer gained implicit request dependency: {$forbidden}");
+    }
 }
 
 $mobileDetectionSource = file_get_contents(__DIR__ . '/../../app/helpers/mobile_detection.php');
@@ -124,11 +151,14 @@ $bodySource = file_get_contents(__DIR__ . '/../../app/bootstrap/body_work.php');
 if ($bodySource === false) {
     hg_request_context_fail('Cannot read body_work.php');
 }
-$normalizePos = strpos($bodySource, 'normalize_pretty_request($link, $routeKey);');
-$refreshPos = strpos($bodySource, '$hgRequest = hg_request_context_from_query($_GET);');
+$normalizePos = strpos($bodySource, '$hgQuery = hg_pretty_request_normalize(');
+$refreshPos = strpos($bodySource, '$hgRequest = hg_request_context_from_query($hgQuery);');
 $dispatchPos = strpos($bodySource, "require __DIR__ . '/../http/dispatcher.php';");
 if ($normalizePos === false || $refreshPos === false || $dispatchPos === false || !($normalizePos < $refreshPos && $refreshPos < $dispatchPos)) {
-    hg_request_context_fail('Desktop request context must refresh after pretty-id normalization and before dispatch');
+    hg_request_context_fail('Desktop request context must refresh after explicit pretty-id normalization and before dispatch');
+}
+if (strpos($bodySource, 'normalize_pretty_request(') !== false) {
+    hg_request_context_fail('Desktop dispatch still calls the legacy superglobal pretty normalizer');
 }
 
 fwrite(STDOUT, "PHP request context characterization: OK\n");
