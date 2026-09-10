@@ -11,8 +11,6 @@ if (function_exists('hg_page_register_stylesheet')) {
 
 <table class="hg-news-table">
 	<?php
-		global $link;
-
 		$tamano_pagina = 5;
 
 		$pagina = filter_var(hg_request_query_param($hgRequest, 'pag'), FILTER_VALIDATE_INT);
