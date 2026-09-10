@@ -9,9 +9,10 @@ if (!isset($link) || !$link) {
 
 include_once(__DIR__ . '/../../helpers/mentions.php');
 
-$type = isset($_GET['type']) ? strtolower(trim((string)$_GET['type'])) : '';
-$q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
-$limit = isset($_GET['limit']) ? max(1, min(30, (int)$_GET['limit'])) : 12;
+$type = strtolower(hg_request_param($hgRequest, 'mention_type'));
+$q = hg_request_query_param($hgRequest, 'q');
+$limitRaw = hg_request_query_param($hgRequest, 'limit');
+$limit = $limitRaw !== '' ? max(1, min(30, (int)$limitRaw)) : 12;
 
 if ($type === '' || !isset(hg_mentions_config()[$type])) {
     echo json_encode(['ok' => false, 'error' => 'Invalid type']);
