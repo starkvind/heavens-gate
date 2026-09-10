@@ -81,6 +81,18 @@ if (!function_exists('hg_api_strlen')) {
     }
 }
 
+if (!function_exists('hg_api_query_first')) {
+    function hg_api_query_first(array $request, array $names, ?string $default = null): ?string
+    {
+        foreach ($names as $name) {
+            if (hg_request_query_has($request, (string)$name)) {
+                return hg_request_query_value($request, (string)$name);
+            }
+        }
+        return $default;
+    }
+}
+
 if (!function_exists('hg_api_fetch_roll_profile')) {
     function hg_api_fetch_roll_profile(mysqli $link, int $characterId): ?array
     {
@@ -239,7 +251,7 @@ if (!hg_tool_api_require_request_token()) {
     return;
 }
 
-$rollId = (int)($_GET['roll_id'] ?? 0);
+$rollId = (int)hg_request_query_value($hgRequest, 'roll_id');
 if ($rollId > 0) {
     $stmtRoll = mysqli_prepare($link, '
         SELECT id, name, roll_name, dice_pool, difficulty, roll_results, successes, botch, willpower_spent, ip, rolled_at
@@ -289,8 +301,8 @@ if ($rollId > 0) {
     return;
 }
 
-$difficultyRaw = $_GET['roll_diff'] ?? ($_GET['roll_dif'] ?? ($_GET['dificultad'] ?? null));
-$extraDiceRaw = $_GET['extra_dice'] ?? null;
+$difficultyRaw = hg_api_query_first($hgRequest, ['roll_diff', 'roll_dif', 'dificultad']);
+$extraDiceRaw = hg_api_query_first($hgRequest, ['extra_dice']);
 if ($difficultyRaw === null || $extraDiceRaw === null) {
     hg_tool_api_error('roll_diff and extra_dice are required.', 400);
     return;
@@ -298,13 +310,15 @@ if ($difficultyRaw === null || $extraDiceRaw === null) {
 
 $difficulty = (int)$difficultyRaw;
 $extraDice = (int)$extraDiceRaw;
-$characterId = (int)($_GET['char_id'] ?? ($_GET['character_id'] ?? 0));
-$attrTraitId = (int)($_GET['attrib_id'] ?? ($_GET['attr_trait_id'] ?? 0));
-$skillTraitId = (int)($_GET['skill_id'] ?? ($_GET['skill_trait_id'] ?? 0));
-$resourceId = (int)($_GET['resource_id'] ?? 0);
-$name = trim((string)($_GET['name'] ?? ($_GET['nombre'] ?? '')));
-$rollName = trim((string)($_GET['roll_name'] ?? ($_GET['tirada_nombre'] ?? '')));
-$willpowerSpent = isset($_GET['willpower_spent']) ? (int)$_GET['willpower_spent'] : 0;
+$characterId = (int)hg_api_query_first($hgRequest, ['char_id', 'character_id'], '0');
+$attrTraitId = (int)hg_api_query_first($hgRequest, ['attrib_id', 'attr_trait_id'], '0');
+$skillTraitId = (int)hg_api_query_first($hgRequest, ['skill_id', 'skill_trait_id'], '0');
+$resourceId = (int)hg_api_query_first($hgRequest, ['resource_id'], '0');
+$name = trim((string)hg_api_query_first($hgRequest, ['name', 'nombre'], ''));
+$rollName = trim((string)hg_api_query_first($hgRequest, ['roll_name', 'tirada_nombre'], ''));
+$willpowerSpent = hg_request_query_has($hgRequest, 'willpower_spent')
+    ? (int)hg_request_query_value($hgRequest, 'willpower_spent')
+    : 0;
 $debugForcedRolls = [];
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
