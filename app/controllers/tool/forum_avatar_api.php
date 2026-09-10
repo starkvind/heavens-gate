@@ -51,13 +51,18 @@ if (!hg_tool_api_require_request_token()) {
     return;
 }
 
-$charRefRaw = isset($_GET['char_id']) ? (string)$_GET['char_id'] : (string)($_GET['id'] ?? '');
+$charRefRaw = hg_request_query_param($hgRequest, 'char_id');
+if ($charRefRaw === '') {
+    $charRefRaw = hg_request_query_param($hgRequest, 'id');
+}
 $charRef = hg_character_avatar_parse_ref($charRefRaw);
 $characterId = (int)($charRef['character_id'] ?? 0);
 $variantCode = (string)($charRef['variant_code'] ?? '');
-$msg = isset($_GET['msg']) ? (string)$_GET['msg'] : '';
-$msg = str_replace(["\r\n", "\r"], "\n", $msg);
-$paletteRaw = isset($_GET['palette']) ? (string)$_GET['palette'] : (string)($_GET['color'] ?? '');
+$msg = str_replace(["\r\n", "\r"], "\n", hg_request_query_param($hgRequest, 'msg'));
+$paletteRaw = hg_request_query_param($hgRequest, 'palette');
+if ($paletteRaw === '') {
+    $paletteRaw = hg_request_query_param($hgRequest, 'color');
+}
 $paletteRaw = trim($paletteRaw);
 
 if ($characterId === 0) {
