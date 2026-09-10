@@ -11,7 +11,7 @@ if (!function_exists('hg_mobile_news_h')) {
     }
 }
 
-$page = filter_input(INPUT_GET, 'pag', FILTER_VALIDATE_INT);
+$page = filter_var(hg_request_query_param($hgRequest, 'pag'), FILTER_VALIDATE_INT);
 if (!$page || $page < 1) {
     $page = 1;
 }

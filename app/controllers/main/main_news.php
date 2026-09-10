@@ -15,7 +15,7 @@ if (function_exists('hg_page_register_stylesheet')) {
 
 		$tamano_pagina = 5;
 
-		$pagina = filter_input(INPUT_GET, 'pag', FILTER_VALIDATE_INT);
+		$pagina = filter_var(hg_request_query_param($hgRequest, 'pag'), FILTER_VALIDATE_INT);
 		if (!$pagina || $pagina < 1) {
 			$pagina = 1;
 		}
