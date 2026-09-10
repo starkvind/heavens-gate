@@ -290,8 +290,10 @@ if (!function_exists('hg_bio_pack_page_markdown_data')) {
     }
 }
 
-$typePack = isset($_GET['t']) ? (int)$_GET['t'] : 0;
-$packId = isset($_GET['b']) ? (int)$_GET['b'] : 0;
+$typePack = (int)hg_request_param($hgRequest, 'group_type');
+$packId = $typePack === 2
+    ? (int)hg_request_param($hgRequest, 'organization')
+    : (int)hg_request_param($hgRequest, 'group');
 
 $nameTypePack = '';
 $nameTypeForTitle = '';
@@ -401,8 +403,9 @@ setMetaFromPage(
 $clanLink = '';
 $clanDataId = 0;
 if ($typePack === 1) {
-    $preferredClanId = isset($_GET['org'])
-        ? hg_bio_pack_page_resolve_organization_id($link, $_GET['org'])
+    $preferredClanRaw = hg_request_param($hgRequest, 'organization');
+    $preferredClanId = $preferredClanRaw !== ''
+        ? hg_bio_pack_page_resolve_organization_id($link, $preferredClanRaw)
         : 0;
     $clanData = hg_bio_pack_page_group_organization($link, $packId, $preferredClanId);
     $clanDataId = (int)($clanData['id'] ?? 0);
