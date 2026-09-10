@@ -24,14 +24,18 @@ PATTERNS = {
     'FILTER_POST': re.compile(r'filter_input\s*\(\s*INPUT_POST\s*,'),
 }
 MIGRATED_ZERO_PREFIXES = (
+    'app/controllers/bio/',
+    'app/controllers/chapters/',
+    'app/controllers/docs/',
+    'app/controllers/main/',
+    'app/controllers/maps/',
+    'app/controllers/ost/',
     'app/controllers/playr/',
     'app/controllers/pwrs/',
-    'app/controllers/docs/',
-    'app/controllers/chapters/',
     'app/controllers/systems/',
-    'app/controllers/main/',
+    'app/mobile/controllers/',
 )
-MAX_DIRECT_READS = 3
+MAX_DIRECT_READS = 0
 
 rows = []
 for target in TARGETS:
@@ -46,7 +50,7 @@ for target in TARGETS:
 
 total_reads = sum(row[2] for row in rows)
 print('# Public request-state audit')
-print(f'Files with direct request globals: {len(rows)}')
+print(f'Files with direct request globals/input reads: {len(rows)}')
 print(f'Direct reads: {total_reads}')
 for path, counts, total in sorted(rows, key=lambda row: (-row[2], row[0])):
     parts = [f'{name}={count}' for name, count in counts.items() if count]
@@ -54,7 +58,7 @@ for path, counts, total in sorted(rows, key=lambda row: (-row[2], row[0])):
 
 violations = [path for path, _counts, _total in rows if path.startswith(MIGRATED_ZERO_PREFIXES)]
 if violations:
-    print('ERROR: migrated domains regained direct request globals:', file=sys.stderr)
+    print('ERROR: migrated domains regained direct request globals/input reads:', file=sys.stderr)
     for path in violations:
         print(f'  - {path}', file=sys.stderr)
     sys.exit(1)
