@@ -601,7 +601,7 @@
 		return $labels;
 	}
 
-	$characterId = isset($_GET['b']) ? (int)$_GET['b'] : 0; // Cogemos datos del GET "b"
+	$characterId = (int)hg_request_param($hgRequest, 'character');
 	if ($characterId <= 0) {
 		echo "<p class='bio-error-msg'>$mensajeDeError</p>"; // Mensaje de error en caso de introducir datos manualmente. Tomado del Cuerpo Trabajar
 		exit;
@@ -694,7 +694,7 @@
 		// ================================================================== //
 		// Datos de raza y alineamientos
 			$bioRace	 = $dataResult["breed_id"]; 	// Raza a la que pertenece el personaje.
-			$bioAuspice	 = $dataResult["auspice_id"]; 	// Auspicio al que pertenece el personaje.
+			$bioAuspice	 = $dataResult["auspice_id"]; 	// Auspicio del personaje.
 			$bioTribe	 = $dataResult["tribe_id"]; 	// Tribu a la que pertenece el personaje.
 			$bioRange	 = $dataResult["rank"]; 		// Rango de importancia del personaje en su organización.
 		// ================================================================== //
