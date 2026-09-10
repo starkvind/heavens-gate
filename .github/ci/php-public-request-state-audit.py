@@ -21,6 +21,8 @@ ACTIVE_EDGE_TARGETS = [
     ROOT / 'app/partials/forum_message_snippet.php',
     ROOT / 'app/partials/forum_diceroll_snippet.php',
     ROOT / 'app/partials/forum_item_snippet.php',
+    ROOT / 'app/partials/main_nav_bar.php',
+    ROOT / 'app/helpers/power_custom_pages.php',
 ]
 PATTERNS = {
     'GET': re.compile(r'\$_GET\s*\['),
@@ -86,7 +88,7 @@ for path in EDGE_ZERO_FILES:
 
 active_rows = request_rows(ACTIVE_EDGE_TARGETS)
 active_reads = sum(row[2] for row in active_rows)
-print('# Active tool/embed request-state audit')
+print('# Active public support request-state audit')
 print(f'Files with direct request globals/input reads: {len(active_rows)}')
 print(f'Direct reads: {active_reads}')
 for path, counts, total in sorted(active_rows, key=lambda row: (-row[2], row[0])):
@@ -95,7 +97,7 @@ for path, counts, total in sorted(active_rows, key=lambda row: (-row[2], row[0])
 
 if active_reads > MAX_ACTIVE_EDGE_READS:
     print(
-        f'ERROR: active tool/embed direct request reads exceed characterization ceiling {MAX_ACTIVE_EDGE_READS}: {active_reads}',
+        f'ERROR: active public support direct request reads exceed ceiling {MAX_ACTIVE_EDGE_READS}: {active_reads}',
         file=sys.stderr,
     )
     sys.exit(1)
