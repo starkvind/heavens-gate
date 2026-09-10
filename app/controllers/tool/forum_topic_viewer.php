@@ -4,7 +4,7 @@
 $metaTitle = "Foro | Heaven's Gate";
 $metaDescription = "Visualizador de temas de foro.";
 
-$topicId = filter_input(INPUT_GET, 'id_topic', FILTER_VALIDATE_INT);
+$topicId = filter_var(hg_request_query_param($hgRequest, 'id_topic'), FILTER_VALIDATE_INT);
 $topicId = $topicId ? (int)$topicId : 0;
 
 if (isset($link) && $link && $topicId > 0) {
