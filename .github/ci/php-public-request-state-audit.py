@@ -30,7 +30,7 @@ MIGRATED_ZERO_PREFIXES = (
     'app/controllers/chapters/',
     'app/controllers/systems/',
 )
-MAX_DIRECT_READS = 14
+MAX_DIRECT_READS = 13
 
 rows = []
 for target in TARGETS:
