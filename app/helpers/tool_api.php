@@ -71,7 +71,7 @@ if (!function_exists('hg_tool_api_expected_token')) {
 }
 
 if (!function_exists('hg_tool_api_request_token')) {
-    function hg_tool_api_request_token(?array $request = null): array
+    function hg_tool_api_request_token(array $request): array
     {
         $authorization = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
         if ($authorization !== '' && preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
@@ -88,9 +88,7 @@ if (!function_exists('hg_tool_api_request_token')) {
 
         // Temporary compatibility path for existing external integrations.
         // Remove after all clients have migrated to Authorization: Bearer.
-        $queryToken = $request !== null
-            ? trim(hg_request_query_value($request, 'token'))
-            : trim((string)($_GET['token'] ?? ''));
+        $queryToken = trim(hg_request_query_value($request, 'token'));
         if ($queryToken !== '') {
             return ['token' => $queryToken, 'source' => 'query'];
         }
@@ -100,7 +98,7 @@ if (!function_exists('hg_tool_api_request_token')) {
 }
 
 if (!function_exists('hg_tool_api_require_request_token')) {
-    function hg_tool_api_require_request_token(?array $request = null): bool
+    function hg_tool_api_require_request_token(array $request): bool
     {
         $provided = hg_tool_api_request_token($request);
         return hg_tool_api_require_token((string)($provided['token'] ?? ''));
