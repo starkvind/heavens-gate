@@ -18,10 +18,8 @@ TARGETS = [
 ]
 ACTIVE_EDGE_TARGETS = [
     ROOT / 'app/controllers/tool',
-    ROOT / 'app/partials/forum_message_snippet.php',
-    ROOT / 'app/partials/forum_diceroll_snippet.php',
-    ROOT / 'app/partials/forum_item_snippet.php',
-    ROOT / 'app/partials/main_nav_bar.php',
+    ROOT / 'app/partials',
+    ROOT / 'app/tools',
     ROOT / 'app/helpers/power_custom_pages.php',
     ROOT / 'app/helpers/tool_api.php',
 ]
