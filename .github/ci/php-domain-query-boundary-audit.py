@@ -17,6 +17,10 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/playr/playr_page.php',
         ROOT / 'app/mobile/controllers/players.php',
     ],
+    'characters': [
+        ROOT / 'app/controllers/bio/bio_list.php',
+        ROOT / 'app/mobile/controllers/characters_list.php',
+    ],
 }
 
 QUERY_CALLS = [
