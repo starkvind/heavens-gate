@@ -72,8 +72,8 @@ function tt_event_date_label(?string $dateValue, string $precision = 'day', ?str
     return ($note !== '') ? ($base . ' (' . $note . ')') : $base;
 }
 
-$type = $_GET['type'] ?? '';
-$id = (int)($_GET['id'] ?? 0);
+$type = hg_request_query_value($hgRequest, 'type');
+$id = (int)hg_request_query_value($hgRequest, 'id');
 if (!$link || $id <= 0) { echo '<div class="hg-tip">No disponible</div>'; exit; }
 
 $outTitle = '';
