@@ -3,9 +3,11 @@
 	<?php
 		// <p class="navegacion_secciones">
 		// include("app/partials/main_nav_bar.php");	// Barra Navegacion
-		$routeKey = isset($routeKey)
-			? (string)$routeKey
-			: (isset($GLOBALS['routeKey']) ? (string)$GLOBALS['routeKey'] : trim((string)($_GET['p'] ?? '')));
+		$navRequest = (isset($hgRequest) && is_array($hgRequest))
+			? $hgRequest
+			: ((isset($GLOBALS['hgRequest']) && is_array($GLOBALS['hgRequest'])) ? $GLOBALS['hgRequest'] : []);
+		$navQuery = is_array($navRequest['query'] ?? null) ? $navRequest['query'] : [];
+		$routeKey = isset($routeKey) ? (string)$routeKey : hg_request_route($navRequest);
 		$pillSeparator = "&raquo;";
 		$systemSeresSobrenaturales = "<a href='/systems'> Seres sobrenaturales</a> $pillSeparator ";
 		$namePJ = isset($namePJ) ? (string)$namePJ : '';
@@ -59,7 +61,7 @@
 		}
 
 		if (!function_exists('hg_main_nav_seegroup_links')) {
-			function hg_main_nav_seegroup_links(mysqli $link, int $typePack, int $packId, string $fallback): string
+			function hg_main_nav_seegroup_links(mysqli $link, int $typePack, int $packId, string $fallback, string $orgRaw = ''): string
 			{
 				if ($packId <= 0) {
 					return $fallback;
@@ -86,8 +88,8 @@
 				}
 
 				$preferredOrganizationId = 0;
-				if (isset($_GET['org'])) {
-					$orgRaw = trim((string)$_GET['org']);
+				$orgRaw = trim($orgRaw);
+				if ($orgRaw !== '') {
 					if (preg_match('/^\d+$/', $orgRaw)) {
 						$preferredOrganizationId = (int)$orgRaw;
 					} elseif (function_exists('resolve_pretty_id')) {
@@ -164,8 +166,8 @@
 			// Administracion
 			// ========================================== //
 			case "talim": // 
-				if (isset($_GET['s'])) {
-					$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
+				if (isset($navQuery['s'])) {
+					$seccion = htmlspecialchars((string)$navQuery['s']); // Sanear entrada
 					echo "<a href='/talim' title='Administraci&oacute;n'>Administraci&oacute;n</a>";
 					switch ($seccion) {
 						case 'admin_pjs':
@@ -355,8 +357,8 @@
 				break;
 			case "chronicles":
 			case "bio_chronicles":
-				if (isset($_GET['t']) && (int)$_GET['t'] > 0) {
-					$chronNavId = (int)$_GET['t'];
+				$chronNavId = (int)($navQuery['t'] ?? 0);
+				if ($chronNavId > 0) {
 					$chronNavName = '';
 					if ($stChronNav = $link->prepare("SELECT name FROM dim_chronicles WHERE id = ? LIMIT 1")) {
 						$stChronNav->bind_param('i', $chronNavId);
@@ -381,9 +383,10 @@
 					<a href='" . htmlspecialchars($typeHref) . "'>$nameTipo</a> $pillSeparator $bioName";
 				break;
 			case "seegroup":	// Ver organizacion o grupo
-				$seegroupTypeNav = isset($_GET['t']) ? (int)$_GET['t'] : 0;
-				$seegroupIdNav = isset($_GET['b']) ? (int)$_GET['b'] : 0;
-				$seegroupLinks = hg_main_nav_seegroup_links($link, $seegroupTypeNav, $seegroupIdNav, $packNavLinks);
+				$seegroupTypeNav = (int)($navQuery['t'] ?? 0);
+				$seegroupIdNav = (int)($navQuery['b'] ?? 0);
+				$seegroupOrgNav = (string)($navQuery['org'] ?? '');
+				$seegroupLinks = hg_main_nav_seegroup_links($link, $seegroupTypeNav, $seegroupIdNav, $packNavLinks, $seegroupOrgNav);
 				echo "<a href='/organizations' title='Grupos y Sociedades'>Grupos y Sociedades</a>";
 				if (trim($seegroupLinks) !== '') {
 					echo " $pillSeparator $seegroupLinks";
@@ -556,7 +559,7 @@
 			// ========================================== //
 			// Tótems
 			// ========================================== //
-			case "tipototm":	// Lista de Tótems
+			case "tipototm":		// Lista de Tótems
 				echo "<a href='/powers/totems' title='Tótems'>Tótems</a> $pillSeparator $totemName";
 				break;
 			case "muestratotem":// Ver Tótem
@@ -574,8 +577,8 @@
 				echo "<a href='/powers/disciplines' title='Disciplinas'>Disciplinas</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $donName";
 				break;
 			case "dados":		// Tiradados
-				if (isset($_GET['see']) && (int)$_GET['see'] > 0) {
-					$rollIdNav = (int)$_GET['see'];
+				$rollIdNav = (int)($navQuery['see'] ?? 0);
+				if ($rollIdNav > 0) {
 					$stmt = mysqli_prepare($link, "SELECT roll_name FROM fact_dice_rolls WHERE id = ? LIMIT 1");
 					if ($stmt) {
 						mysqli_stmt_bind_param($stmt, "i", $rollIdNav);
