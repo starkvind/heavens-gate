@@ -30,7 +30,7 @@ PATTERNS = {
     'FILTER_POST': re.compile(r'filter_input\s*\(\s*INPUT_POST\s*,'),
 }
 MAX_DIRECT_READS = 0
-MAX_ACTIVE_EDGE_READS = 100
+MAX_ACTIVE_EDGE_READS = 49
 
 
 def request_rows(targets):
