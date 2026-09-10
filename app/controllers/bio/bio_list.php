@@ -12,6 +12,7 @@ if (function_exists('hg_page_register_stylesheet')) {
     }
 }
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 
 if (!$link) {
     hg_public_log_error('bio_list', 'missing DB connection');
@@ -26,102 +27,12 @@ if (!function_exists('hg_bio_list_h')) {
     }
 }
 
-if (!function_exists('hg_bio_list_sanitize_int_csv')) {
-    function hg_bio_list_sanitize_int_csv($csv): string
-    {
-        $parts = preg_split('/\s*,\s*/', trim((string)$csv));
-        $ints = [];
-        foreach ($parts as $part) {
-            if (preg_match('/^\d+$/', (string)$part)) $ints[] = (string)(int)$part;
-        }
-        return implode(',', array_values(array_unique($ints)));
-    }
-}
-
-if (!function_exists('hg_bio_list_has_column')) {
-    function hg_bio_list_has_column(mysqli $link, string $table, string $column): bool
-    {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $result = $link->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
-        if (!$result) return false;
-        $exists = $result->num_rows > 0;
-        $result->free();
-        return $exists;
-    }
-}
-if (!function_exists('hg_bio_list_collect_types')) {
-    function hg_bio_list_collect_types(mysqli $link, array $types, string $typeColumn, string $chronicleExclusion): ?array
-    {
-        $sql = "
-            SELECT COUNT(DISTINCT p.id) AS total, MIN(NULLIF(p.image_url, '')) AS representative_image_url
-            FROM fact_characters p
-            WHERE p.`{$typeColumn}` = ? {$chronicleExclusion}
-        ";
-        $stmt = $link->prepare($sql);
-        if (!$stmt) return null;
-
-        $cards = [];
-        foreach ($types as $type) {
-            $typeId = (int)($type['id'] ?? 0);
-            if ($typeId <= 0) continue;
-            $stmt->bind_param('i', $typeId);
-            if (!$stmt->execute()) continue;
-            $result = $stmt->get_result();
-            $row = $result ? $result->fetch_assoc() : null;
-            if ($result) $result->free();
-            $total = (int)($row['total'] ?? 0);
-            if ($total <= 0) continue;
-            $image = trim((string)($type['image_url'] ?? ''));
-            if ($image === '') $image = trim((string)($row['representative_image_url'] ?? ''));
-            if (strpos($image, '/public/') === 0) $image = substr($image, 7);
-            if ($image === '') $image = '/img/og/og_image_bio.webp';
-            $cards[] = [
-                'id' => $typeId,
-                'name' => (string)($type['name'] ?? ''),
-                'total' => $total,
-                'image_url' => $image,
-                'description' => trim((string)($type['description'] ?? '')),
-            ];
-        }
-        $stmt->close();
-        return $cards;
-    }
-}
-
-$excludeChronicles = isset($excludeChronicles) ? hg_bio_list_sanitize_int_csv($excludeChronicles) : '';
-$chronicleExclusion = $excludeChronicles !== '' ? " AND p.chronicle_id NOT IN ({$excludeChronicles})" : '';
-$types = [];
-$hasTypeImage = hg_bio_list_has_column($link, 'dim_character_types', 'image_url');
-$hasTypeDescription = hg_bio_list_has_column($link, 'dim_character_types', 'description');
-$typeImageSelect = $hasTypeImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";
-$typeDescriptionSelect = $hasTypeDescription ? ", COALESCE(description, '') AS description" : ", '' AS description";
-
-if ($result = $link->query("SELECT id, kind {$typeImageSelect} {$typeDescriptionSelect} FROM dim_character_types ORDER BY sort_order, kind")) {
-    while ($row = $result->fetch_assoc()) {
-        $types[] = [
-            'id' => (int)($row['id'] ?? 0),
-            'name' => (string)($row['kind'] ?? ''),
-            'image_url' => (string)($row['image_url'] ?? ''),
-            'description' => (string)($row['description'] ?? ''),
-        ];
-    }
-    $result->free();
-} else {
-    hg_public_log_error('bio_list', 'type query failed: ' . $link->error);
+$chronicleScope = isset($excludeChronicles) ? $excludeChronicles : '';
+$typeCards = hg_characters_fetch_type_cards($link, $chronicleScope);
+if ($typeCards === false) {
+    hg_public_log_error('bio_list', 'type query failed: ' . mysqli_error($link));
     hg_public_render_error('Biografias no disponibles', 'No se pudo cargar el listado de biografias en este momento.');
     return;
-}
-
-$typeCards = [];
-foreach (['character_type_id', 'kind', 'tipo'] as $typeColumn) {
-    $candidateCards = hg_bio_list_collect_types($link, $types, $typeColumn, $chronicleExclusion);
-    if ($candidateCards === null) continue;
-    if (!empty($candidateCards)) {
-        $typeCards = $candidateCards;
-        break;
-    }
 }
 
 include('app/partials/main_nav_bar.php');
