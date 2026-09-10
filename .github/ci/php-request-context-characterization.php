@@ -51,13 +51,22 @@ hg_request_context_same('', hg_request_param($organizationRequest, 'group'), 'or
 $orgChartRequest = hg_request_context_from_query(['p' => 'org_chart']);
 hg_request_context_same('justicia-metalica', hg_request_param($orgChartRequest, 'organization'), 'org chart keeps historical default explicitly');
 
-$filterRequest = hg_request_context_from_query(['p' => 'temp_order', 'order' => 'chronological', 'page' => 2]);
+$filterRequest = hg_request_context_from_query(
+    ['p' => 'temp_order', 'order' => 'chronological', 'page' => 2],
+    ['name' => ' Bruma ', 'dice' => 7]
+);
 hg_request_context_same('chronological', hg_request_query_param($filterRequest, 'order'), 'ordinary query filter is normalized explicitly');
 hg_request_context_same('2', hg_request_query_param($filterRequest, 'page'), 'numeric query values are normalized as strings');
+hg_request_context_same('Bruma', hg_request_body_param($filterRequest, 'name'), 'request body values are normalized explicitly');
+hg_request_context_same('7', hg_request_body_param($filterRequest, 'dice'), 'numeric request body values are normalized as strings');
 
-$arrayInput = hg_request_context_from_query(['p' => 'seeplayer', 'b' => ['bad'], 'filter' => ['bad']]);
+$arrayInput = hg_request_context_from_query(
+    ['p' => 'seeplayer', 'b' => ['bad'], 'filter' => ['bad']],
+    ['bad' => ['array']]
+);
 hg_request_context_same('', hg_request_param($arrayInput, 'player'), 'non-scalar route input is rejected');
 hg_request_context_same('', hg_request_query_param($arrayInput, 'filter'), 'non-scalar generic query input is rejected');
+hg_request_context_same('', hg_request_body_param($arrayInput, 'bad'), 'non-scalar body input is rejected');
 
 $requestSource = file_get_contents(__DIR__ . '/../../app/http/request_context.php');
 if ($requestSource === false) {
@@ -93,13 +102,14 @@ if ($indexSource === false) {
 }
 $requirePos = strpos($indexSource, 'app/http/request_context.php');
 $routeQueryPos = strpos($indexSource, '$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);');
-$buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($hgQuery);');
+$bodyPos = strpos($indexSource, '$hgBody = $_POST;');
+$buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($hgQuery, $hgBody);');
 $mobilePos = strpos($indexSource, 'hg_request_query_param($hgRequest, \'view\')');
 if (
-    $requirePos === false || $routeQueryPos === false || $buildPos === false || $mobilePos === false
-    || !($requirePos < $routeQueryPos && $routeQueryPos < $buildPos && $buildPos < $mobilePos)
+    $requirePos === false || $routeQueryPos === false || $bodyPos === false || $buildPos === false || $mobilePos === false
+    || !($requirePos < $routeQueryPos && $routeQueryPos < $bodyPos && $bodyPos < $buildPos && $buildPos < $mobilePos)
 ) {
-    hg_request_context_fail('index.php is not converting the raw query into explicit request context before dispatch');
+    hg_request_context_fail('index.php is not converting raw query/body transport into explicit request context before dispatch');
 }
 
 $runtimeSource = file_get_contents(__DIR__ . '/../../app/routing/request_runtime.php');
@@ -152,10 +162,10 @@ if ($bodySource === false) {
     hg_request_context_fail('Cannot read body_work.php');
 }
 $normalizePos = strpos($bodySource, '$hgQuery = hg_pretty_request_normalize(');
-$refreshPos = strpos($bodySource, '$hgRequest = hg_request_context_from_query($hgQuery);');
+$refreshPos = strpos($bodySource, '$hgRequest = hg_request_context_from_query($hgQuery, $hgBody);');
 $dispatchPos = strpos($bodySource, "require __DIR__ . '/../http/dispatcher.php';");
 if ($normalizePos === false || $refreshPos === false || $dispatchPos === false || !($normalizePos < $refreshPos && $refreshPos < $dispatchPos)) {
-    hg_request_context_fail('Desktop request context must refresh after explicit pretty-id normalization and before dispatch');
+    hg_request_context_fail('Desktop request context must preserve body while refreshing pretty-normalized query before dispatch');
 }
 if (strpos($bodySource, 'normalize_pretty_request(') !== false) {
     hg_request_context_fail('Desktop dispatch still calls the legacy superglobal pretty normalizer');
