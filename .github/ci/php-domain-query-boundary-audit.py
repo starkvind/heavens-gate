@@ -19,6 +19,7 @@ EXTRACTED_CONTROLLERS = {
     ],
     'characters': [
         ROOT / 'app/controllers/bio/bio_list.php',
+        ROOT / 'app/controllers/bio/bio_table.php',
         ROOT / 'app/mobile/controllers/characters_list.php',
     ],
 }
