@@ -58,7 +58,7 @@ if ($charRefRaw === '') {
 $charRef = hg_character_avatar_parse_ref($charRefRaw);
 $characterId = (int)($charRef['character_id'] ?? 0);
 $variantCode = (string)($charRef['variant_code'] ?? '');
-$msg = str_replace(["\r\n", "\r"], "\n", hg_request_query_param($hgRequest, 'msg'));
+$msg = str_replace(["\r\n", "\r"], "\n", hg_request_query_value($hgRequest, 'msg'));
 $paletteRaw = hg_request_query_param($hgRequest, 'palette');
 if ($paletteRaw === '') {
     $paletteRaw = hg_request_query_param($hgRequest, 'color');
