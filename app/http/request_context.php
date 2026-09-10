@@ -52,7 +52,7 @@ function hg_request_context_from_query(array $query, array $body = []): array
         'vercombat' => ['combat' => 'b'],
         'mentions' => ['mention_type' => 'type'],
         'talim' => ['admin_section' => 's'],
-        'forum_message' => ['id' => 'id', 'palette' => 'palette', 'message' => 'msg'],
+        'forum_message' => ['id' => 'id', 'palette' => 'palette'],
         'forum_diceroll' => ['id' => 'id', 'palette' => 'palette'],
         'forum_item' => ['id' => 'id'],
     ];
@@ -98,18 +98,23 @@ function hg_request_context_normalize_input(array $input): array
         if (!is_string($key) && !is_int($key)) {
             continue;
         }
-        $normalized[(string)$key] = hg_request_context_scalar($value);
+        $normalized[(string)$key] = hg_request_context_string($value);
     }
     return $normalized;
 }
 
-function hg_request_context_scalar(mixed $value): string
+function hg_request_context_string(mixed $value): string
 {
     if ($value === null || (!is_scalar($value) && !($value instanceof Stringable))) {
         return '';
     }
 
-    return trim((string)$value);
+    return (string)$value;
+}
+
+function hg_request_context_scalar(mixed $value): string
+{
+    return trim(hg_request_context_string($value));
 }
 
 function hg_request_route(array $request): string
@@ -130,22 +135,34 @@ function hg_request_param(array $request, string $name, string $default = ''): s
 
 function hg_request_query_param(array $request, string $name, string $default = ''): string
 {
+    $value = hg_request_query_value($request, $name, '');
+    $value = hg_request_context_scalar($value);
+    return $value === '' ? $default : $value;
+}
+
+function hg_request_query_value(array $request, string $name, string $default = ''): string
+{
     $query = $request['query'] ?? [];
     if (!is_array($query) || !array_key_exists($name, $query)) {
         return $default;
     }
 
-    $value = hg_request_context_scalar($query[$name]);
-    return $value === '' ? $default : $value;
+    return hg_request_context_string($query[$name]);
 }
 
 function hg_request_body_param(array $request, string $name, string $default = ''): string
+{
+    $value = hg_request_body_value($request, $name, '');
+    $value = hg_request_context_scalar($value);
+    return $value === '' ? $default : $value;
+}
+
+function hg_request_body_value(array $request, string $name, string $default = ''): string
 {
     $body = $request['body'] ?? [];
     if (!is_array($body) || !array_key_exists($name, $body)) {
         return $default;
     }
 
-    $value = hg_request_context_scalar($body[$name]);
-    return $value === '' ? $default : $value;
+    return hg_request_context_string($body[$name]);
 }
