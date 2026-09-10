@@ -1,6 +1,7 @@
 <?php
 setMetaFromPage("Jugadores | Heaven's Gate", "Listado de jugadores de la campana.", null, 'website');
 include_once(__DIR__ . '/../../helpers/public_response.php');
+include_once(__DIR__ . '/../../domains/players/queries.php');
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 include("app/partials/main_nav_bar.php");
@@ -11,50 +12,13 @@ if (!$link) {
     return;
 }
 
-if (!function_exists('sanitize_int_csv')) {
-    function sanitize_int_csv($csv){
-        $csv = (string)$csv;
-        if (trim($csv) === '') return '';
-        $parts = preg_split('/\s*,\s*/', trim($csv));
-        $ints = [];
-        foreach ($parts as $p) {
-            if ($p === '') continue;
-            if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-        }
-        $ints = array_values(array_unique($ints));
-        return implode(',', $ints);
-    }
-}
-
-$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
-$chronicleNotInJoin = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
-
-$query = "
-    SELECT
-        p.id AS player_id,
-        p.pretty_id AS player_pretty_id,
-        p.name AS player_name,
-        p.surname AS player_surname,
-        COUNT(DISTINCT c.id) AS player_characters
-    FROM dim_players p
-    LEFT JOIN fact_characters c ON c.player_id = p.id $chronicleNotInJoin
-    WHERE p.show_in_catalog = 1
-    GROUP BY p.id, p.pretty_id, p.name, p.surname
-    ORDER BY p.name ASC, p.surname ASC
-";
-
-$result = mysqli_query($link, $query);
-if (!$result) {
+$chronicleScope = isset($excludeChronicles) ? $excludeChronicles : '2,7';
+$players = hg_players_fetch_catalog($link, $chronicleScope);
+if ($players === false) {
     hg_public_log_error('playr_list', 'query failed: ' . mysqli_error($link));
     hg_public_render_error('Jugadores no disponibles', 'No se pudo cargar el listado de jugadores en este momento.');
     return;
 }
-
-$players = [];
-while ($row = mysqli_fetch_assoc($result)) {
-    $players[] = $row;
-}
-mysqli_free_result($result);
 
 $pageSect = "Jugadores";
 ?>

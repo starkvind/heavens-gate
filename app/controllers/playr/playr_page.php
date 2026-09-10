@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/public_response.php');
+include_once(__DIR__ . '/../../domains/players/queries.php');
 
 if (!$link) {
     hg_public_log_error('playr_page', 'missing DB connection');
@@ -22,32 +23,16 @@ if ($pjId <= 0) {
     return;
 }
 
-$queryPlayer = "
-    SELECT id, pretty_id, name, surname, picture, description
-    FROM dim_players
-    WHERE id = ? AND show_in_catalog = 1
-    LIMIT 1
-";
-$stmtPlayer = mysqli_prepare($link, $queryPlayer);
-if (!$stmtPlayer) {
-    hg_public_log_error('playr_page', 'player prepare failed: ' . mysqli_error($link));
+$player = hg_players_fetch_player($link, $pjId);
+if ($player === false) {
+    hg_public_log_error('playr_page', 'player query failed: ' . mysqli_error($link));
     hg_public_render_error('Jugador no disponible', 'No se pudo cargar la ficha del jugador en este momento.');
     return;
 }
-
-mysqli_stmt_bind_param($stmtPlayer, 'i', $pjId);
-mysqli_stmt_execute($stmtPlayer);
-$resultPlayer = mysqli_stmt_get_result($stmtPlayer);
-
-if (!$resultPlayer || mysqli_num_rows($resultPlayer) <= 0) {
-    mysqli_stmt_close($stmtPlayer);
+if ($player === null) {
     hg_public_render_not_found('Jugador no encontrado', 'El jugador solicitado no esta disponible en el catalogo.', true);
     return;
 }
-
-$player = mysqli_fetch_assoc($resultPlayer);
-mysqli_free_result($resultPlayer);
-mysqli_stmt_close($stmtPlayer);
 
 $namePJ = htmlspecialchars((string)($player['name'] ?? ''), ENT_QUOTES, 'UTF-8');
 $surnamePJ = htmlspecialchars((string)($player['surname'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -67,52 +52,17 @@ if (function_exists('hg_page_register_stylesheet')) {
     echo '<link rel="stylesheet" href="/assets/css/hg-playr.css">';
 }
 
-if (!function_exists('sanitize_int_csv')) {
-    function sanitize_int_csv($csv){
-        $csv = (string)$csv;
-        if (trim($csv) === '') return '';
-        $parts = preg_split('/\s*,\s*/', trim($csv));
-        $ints = [];
-        foreach ($parts as $p) {
-            if ($p === '') continue;
-            if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-        }
-        $ints = array_values(array_unique($ints));
-        return implode(',', $ints);
-    }
+$chronicleScope = hg_players_normalize_chronicle_csv($excludeChronicles ?? '');
+if ($chronicleScope === '') {
+    $chronicleScope = '2,7';
 }
 
-$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$excludeChronicles = ($excludeChronicles === '') ? '2,7' : $excludeChronicles;
-$chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
-
-$characterKindSql = hg_character_kind_select($link, 'p');
-$queryCharacters = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind
-    FROM fact_characters p
-    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-    WHERE p.player_id = ? $chronicleNotInSQL
-    ORDER BY p.name ASC
-";
-$stmtCharacters = mysqli_prepare($link, $queryCharacters);
-if (!$stmtCharacters) {
-    hg_public_log_error('playr_page', 'characters prepare failed: ' . mysqli_error($link));
+$characters = hg_players_fetch_characters($link, $pjId, $chronicleScope);
+if ($characters === false) {
+    hg_public_log_error('playr_page', 'characters query failed: ' . mysqli_error($link));
     hg_public_render_error('Jugador no disponible', 'No se pudieron cargar los personajes relacionados en este momento.');
     return;
 }
-
-mysqli_stmt_bind_param($stmtCharacters, 'i', $pjId);
-mysqli_stmt_execute($stmtCharacters);
-$resultCharacters = mysqli_stmt_get_result($stmtCharacters);
-
-$characters = [];
-if ($resultCharacters) {
-    while ($row = mysqli_fetch_assoc($resultCharacters)) {
-        $characters[] = $row;
-    }
-    mysqli_free_result($resultCharacters);
-}
-mysqli_stmt_close($stmtCharacters);
 ?>
 
 <div class="player-layout">

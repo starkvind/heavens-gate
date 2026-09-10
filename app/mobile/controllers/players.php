@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+include_once(__DIR__ . '/../../domains/players/queries.php');
 
 $metaTitle = "Jugadores | Heaven's Gate";
 $metaDescription = 'Catálogo móvil de jugadores.';
@@ -63,29 +64,11 @@ if (!isset($hgRequest) || !is_array($hgRequest)) {
 
 $rawPlayer = hg_request_param($hgRequest, 'player');
 $playerId = $rawPlayer !== '' ? hg_mobile_player_resolve_id($link, $rawPlayer) : 0;
-$chronicleJoin = hg_mobile_chronicle_exclusion_and('c');
+$chronicleScope = hg_mobile_excluded_chronicles_csv();
 
 if ($playerId <= 0) {
-    $players = [];
-    $sql = "
-        SELECT
-            p.id AS player_id,
-            COALESCE(p.pretty_id, '') AS player_pretty_id,
-            COALESCE(p.name, '') AS player_name,
-            COALESCE(p.surname, '') AS player_surname,
-            COALESCE(p.picture, '') AS player_picture,
-            COALESCE(p.description, '') AS player_description,
-            COUNT(DISTINCT c.id) AS player_characters
-        FROM dim_players p
-        LEFT JOIN fact_characters c ON c.player_id = p.id {$chronicleJoin}
-        WHERE p.show_in_catalog = 1
-        GROUP BY p.id, p.pretty_id, p.name, p.surname, p.picture, p.description
-        ORDER BY p.name ASC, p.surname ASC, p.id ASC
-    ";
-    if ($res = $link->query($sql)) {
-        while ($row = $res->fetch_assoc()) $players[] = $row;
-        $res->free();
-    } else {
+    $players = hg_players_fetch_catalog($link, $chronicleScope, true);
+    if ($players === false) {
         hg_public_log_error('mobile_players', 'list query failed: ' . mysqli_error($link));
         hg_public_render_error('Jugadores no disponibles', 'No se pudo cargar el listado de jugadores.');
         return;
@@ -124,13 +107,9 @@ if ($playerId <= 0) {
     return;
 }
 
-$player = null;
-if ($stmt = $link->prepare("SELECT id, pretty_id, name, surname, picture, description FROM dim_players WHERE id = ? AND show_in_catalog = 1 LIMIT 1")) {
-    $stmt->bind_param('i', $playerId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res) $player = $res->fetch_assoc();
-    $stmt->close();
+$player = hg_players_fetch_player($link, $playerId);
+if ($player === false) {
+    $player = null;
 }
 
 if (!$player) {
@@ -147,26 +126,10 @@ $metaTitle = $fullName . " | Jugadores | Heaven's Gate";
 $metaDescription = hg_mobile_player_excerpt($description, 160);
 $pageTitle2 = $fullName;
 
-$characters = [];
-$characterKindSql = function_exists('hg_character_kind_select') ? hg_character_kind_select($link, 'c') : "''";
-$sqlCharacters = "
-    SELECT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, c.status_id,
-           {$characterKindSql} AS character_kind
-    FROM fact_characters c
-    LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id
-    WHERE c.player_id = ? " . hg_mobile_chronicle_exclusion_and('c') . "
-    ORDER BY c.name ASC, c.id ASC
-";
-if ($stmt = $link->prepare($sqlCharacters)) {
-    $stmt->bind_param('i', $playerId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res) {
-        while ($row = $res->fetch_assoc()) $characters[] = $row;
-    }
-    $stmt->close();
-} else {
-    hg_public_log_error('mobile_players', 'characters prepare failed: ' . mysqli_error($link));
+$characters = hg_players_fetch_characters($link, $playerId, $chronicleScope, true);
+if ($characters === false) {
+    hg_public_log_error('mobile_players', 'characters query failed: ' . mysqli_error($link));
+    $characters = [];
 }
 ?>
 
