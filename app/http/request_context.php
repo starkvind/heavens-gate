@@ -3,22 +3,16 @@
 /**
  * Build a small, explicit request contract from the historical route params.
  *
- * This layer is deliberately pure: it receives an array, reads no superglobals
- * and performs no database work. Legacy keys such as b/t/tc remain accepted at
- * the edge, but controllers can consume semantic names instead.
+ * This layer is deliberately pure: it receives arrays, reads no superglobals
+ * and performs no database work. Legacy query keys such as b/t/tc remain
+ * accepted at the edge, but controllers can consume semantic names instead.
  */
-function hg_request_context_from_query(array $query): array
+function hg_request_context_from_query(array $query, array $body = []): array
 {
     $route = hg_request_context_scalar($query['p'] ?? '');
     $params = [];
-    $normalizedQuery = [];
-
-    foreach ($query as $key => $value) {
-        if (!is_string($key) && !is_int($key)) {
-            continue;
-        }
-        $normalizedQuery[(string)$key] = hg_request_context_scalar($value);
-    }
+    $normalizedQuery = hg_request_context_normalize_input($query);
+    $normalizedBody = hg_request_context_normalize_input($body);
 
     $map = [
         'temp' => ['season' => 't'],
@@ -93,7 +87,20 @@ function hg_request_context_from_query(array $query): array
         'route' => $route,
         'params' => $params,
         'query' => $normalizedQuery,
+        'body' => $normalizedBody,
     ];
+}
+
+function hg_request_context_normalize_input(array $input): array
+{
+    $normalized = [];
+    foreach ($input as $key => $value) {
+        if (!is_string($key) && !is_int($key)) {
+            continue;
+        }
+        $normalized[(string)$key] = hg_request_context_scalar($value);
+    }
+    return $normalized;
 }
 
 function hg_request_context_scalar(mixed $value): string
@@ -129,5 +136,16 @@ function hg_request_query_param(array $request, string $name, string $default = 
     }
 
     $value = hg_request_context_scalar($query[$name]);
+    return $value === '' ? $default : $value;
+}
+
+function hg_request_body_param(array $request, string $name, string $default = ''): string
+{
+    $body = $request['body'] ?? [];
+    if (!is_array($body) || !array_key_exists($name, $body)) {
+        return $default;
+    }
+
+    $value = hg_request_context_scalar($body[$name]);
     return $value === '' ? $default : $value;
 }
