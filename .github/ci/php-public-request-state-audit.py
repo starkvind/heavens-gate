@@ -24,16 +24,12 @@ PATTERNS = {
     'FILTER_POST': re.compile(r'filter_input\s*\(\s*INPUT_POST\s*,'),
 }
 MIGRATED_ZERO_PREFIXES = (
-    'app/controllers/bio/',
-    'app/controllers/chapters/',
-    'app/controllers/docs/',
-    'app/controllers/main/',
-    'app/controllers/maps/',
-    'app/controllers/ost/',
     'app/controllers/playr/',
     'app/controllers/pwrs/',
+    'app/controllers/docs/',
+    'app/controllers/chapters/',
     'app/controllers/systems/',
-    'app/mobile/controllers/',
+    'app/controllers/main/',
 )
 MAX_DIRECT_READS = 0
 
@@ -50,7 +46,7 @@ for target in TARGETS:
 
 total_reads = sum(row[2] for row in rows)
 print('# Public request-state audit')
-print(f'Files with direct request globals/input reads: {len(rows)}')
+print(f'Files with direct request globals: {len(rows)}')
 print(f'Direct reads: {total_reads}')
 for path, counts, total in sorted(rows, key=lambda row: (-row[2], row[0])):
     parts = [f'{name}={count}' for name, count in counts.items() if count]
@@ -58,7 +54,7 @@ for path, counts, total in sorted(rows, key=lambda row: (-row[2], row[0])):
 
 violations = [path for path, _counts, _total in rows if path.startswith(MIGRATED_ZERO_PREFIXES)]
 if violations:
-    print('ERROR: migrated domains regained direct request globals/input reads:', file=sys.stderr)
+    print('ERROR: migrated domains regained direct request globals:', file=sys.stderr)
     for path in violations:
         print(f'  - {path}', file=sys.stderr)
     sys.exit(1)
@@ -69,3 +65,17 @@ if total_reads > MAX_DIRECT_READS:
         file=sys.stderr,
     )
     sys.exit(1)
+
+# Phase 2 edge guard. Raw query globals belong at the front-controller boundary,
+# not inside mobile dispatch or request helpers.
+EDGE_ZERO_FILES = [
+    ROOT / 'app/mobile/mobile_index.php',
+    ROOT / 'app/helpers/mobile_detection.php',
+    ROOT / 'app/http/request_context.php',
+]
+for path in EDGE_ZERO_FILES:
+    text = path.read_text(encoding='utf-8', errors='replace')
+    for name, pattern in PATTERNS.items():
+        if pattern.search(text):
+            print(f'ERROR: request edge regained {name} read: {path.relative_to(ROOT).as_posix()}', file=sys.stderr)
+            sys.exit(1)
