@@ -133,6 +133,12 @@ function hg_request_param(array $request, string $name, string $default = ''): s
     return $value === '' ? $default : $value;
 }
 
+function hg_request_query_has(array $request, string $name): bool
+{
+    $query = $request['query'] ?? [];
+    return is_array($query) && array_key_exists($name, $query);
+}
+
 function hg_request_query_param(array $request, string $name, string $default = ''): string
 {
     $value = hg_request_query_value($request, $name, '');
@@ -148,6 +154,12 @@ function hg_request_query_value(array $request, string $name, string $default = 
     }
 
     return hg_request_context_string($query[$name]);
+}
+
+function hg_request_body_has(array $request, string $name): bool
+{
+    $body = $request['body'] ?? [];
+    return is_array($body) && array_key_exists($name, $body);
 }
 
 function hg_request_body_param(array $request, string $name, string $default = ''): string
