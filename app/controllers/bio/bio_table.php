@@ -1,5 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 setMetaFromPage("Personajes | Heaven's Gate", "Listado completo de personajes.", null, 'website');
 if (!$link) {
     hg_public_log_error('bio_table', 'missing DB connection');
@@ -12,109 +13,15 @@ if (method_exists($link, 'set_charset')) {
 } else {
     mysqli_set_charset($link, 'utf8mb4');
 }
-// Sanitiza "1,2, 3" -> "1,2,3" (solo ints). Si queda vacío, devuelve ""
-function sanitize_int_csv($csv){
-    $csv = (string)$csv;
-    if (trim($csv) === '') return '';
-    $parts = preg_split('/\s*,\s*/', trim($csv));
-    $ints = [];
-    foreach ($parts as $p) {
-        if ($p === '') continue;
-        if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-    }
-    $ints = array_values(array_unique($ints));
-    return implode(',', $ints);
+
+$chronicleScope = isset($excludeChronicles) ? $excludeChronicles : '2,7';
+$personajes = hg_characters_fetch_table_rows($link, $chronicleScope);
+if ($personajes === false) {
+    hg_public_log_error('bio_table', 'query failed: ' . mysqli_error($link));
+    hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
+    return;
 }
-// EXCLUSIONES (si existe la variable global, la usamos; si no, mantenemos 2,7)
-$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
-$whereChron = ($excludeChronicles !== '') ? "p.chronicle_id NOT IN ($excludeChronicles)" : "1=1";
-  // Cargar personajes con la query original (AHORA CON BRIDGES)
-  $typeCol = 'character_type_id';
-  $query = "
-      SELECT 
-          p.id, p.pretty_id AS character_pretty_id, p.name AS character_name, p.alias, p.concept, p.image_url, p.gender,
-        -- MANADA del PJ (bridge personaje->grupo)
-        nm2.id   AS pack_id,
-        nm2.pretty_id AS pack_pretty_id,
-        nm2.name AS pack_name,
-        -- CLAN del PJ (bridge personaje->clan)
-        nc2.id   AS organization_id,
-        nc2.pretty_id AS clan_pretty_id,
-        nc2.name AS clan_name,
-        -- (Opcional) clan derivado de la manada (por si el PJ no tiene clan asignado)
-        nc_from_pack.id   AS clan_from_pack_id,
-        nc_from_pack.pretty_id AS clan_from_pack_pretty_id,
-        nc_from_pack.name AS clan_from_pack_name,
-          a.id AS type_id, a.pretty_id AS type_pretty_id, a.kind AS type_name,
-          s.name AS system_name, COALESCE(dcs.label, '') AS status, p.status_id
-      FROM fact_characters p
-        LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-        -- Bridge: personaje -> manada
-        LEFT JOIN bridge_characters_groups hcg
-            ON hcg.character_id = p.id
-           AND (hcg.is_active = 1 OR hcg.is_active IS NULL)
-        LEFT JOIN dim_groups nm2
-            ON nm2.id = hcg.group_id
-        -- Bridge: personaje -> clan
-        LEFT JOIN bridge_characters_organizations hcc
-            ON hcc.character_id = p.id
-           AND (hcc.is_active = 1 OR hcc.is_active IS NULL)
-        LEFT JOIN dim_organizations nc2
-            ON nc2.id = hcc.organization_id
-        -- Bridge: manada -> clan (fallback / coherencia)
-        LEFT JOIN bridge_organizations_groups hcg2
-            ON hcg2.group_id = nm2.id
-           AND (hcg2.is_active = 1 OR hcg2.is_active IS NULL)
-        LEFT JOIN dim_organizations nc_from_pack
-            ON nc_from_pack.id = hcg2.organization_id
-        LEFT JOIN dim_character_types a ON a.id = p.$typeCol
-        LEFT JOIN dim_systems s ON s.id = p.system_id
-    WHERE $whereChron
-    ORDER BY p.name ASC
-";
-  $result = mysqli_query($link, $query);
-  if (!$result) {
-      $err = mysqli_error($link);
-      if (stripos($err, "Unknown column 'p.character_type_id'") !== false || stripos($err, "Unknown column `p`.`character_type_id`") !== false) {
-          $typeCol = 'kind';
-          $query = str_replace('p.character_type_id', 'p.kind', $query);
-          $result = mysqli_query($link, $query);
-          if (!$result) {
-              $err2 = mysqli_error($link);
-              if (stripos($err2, "Unknown column 'p.kind'") !== false || stripos($err2, "Unknown column `p`.`kind`") !== false) {
-                  $typeCol = 'tipo';
-                  $query = str_replace('p.kind', 'p.tipo', $query);
-                  $result = mysqli_query($link, $query);
-                  if (!$result) {
-                      hg_public_log_error('bio_table', 'query failed after tipo fallback: ' . mysqli_error($link));
-                      hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
-                      return;
-                  }
-              } else {
-                  hg_public_log_error('bio_table', 'query failed after kind fallback: ' . $err2);
-                  hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
-                  return;
-              }
-          }
-      } else {
-          hg_public_log_error('bio_table', 'query failed: ' . $err);
-          hg_public_render_error('Listado no disponible', 'No se pudo cargar la lista de personajes en este momento.');
-          return;
-      }
-  }
-$personajes = [];
-while ($row = mysqli_fetch_assoc($result)) {
-    // Si no hay clan directo del PJ, usamos el clan derivado de su manada
-    if (empty($row['organization_id']) && !empty($row['clan_from_pack_id'])) {
-        $row['organization_id']   = $row['clan_from_pack_id'];
-        $row['clan_name'] = $row['clan_from_pack_name'];
-        $row['clan_pretty_id'] = $row['clan_from_pack_pretty_id'];
-    }
-    // Limpieza de columnas auxiliares (no las necesitamos en JS)
-    unset($row['clan_from_pack_id'], $row['clan_from_pack_name'], $row['clan_from_pack_pretty_id']);
-    $personajes[] = $row;
-}
-mysqli_free_result($result);
+
 function ensure_utf8($value) {
     if (is_string($value)) {
         if (function_exists('mb_check_encoding') && !mb_check_encoding($value, 'UTF-8')) {
