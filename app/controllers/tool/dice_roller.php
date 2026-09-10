@@ -13,6 +13,9 @@ if (!hg_runtime_require_db($link, 'dice_roller', 'public', [
     return;
 }
 
+$queryInput = is_array($hgRequest['query'] ?? null) ? $hgRequest['query'] : [];
+$bodyInput = is_array($hgRequest['body'] ?? null) ? $hgRequest['body'] : [];
+
 echo "<h2>Tiradados</h2>";
 
 $pjList = fetch_pj_list($link);
@@ -261,12 +264,12 @@ $prefillName = '';
 $prefillRollName = '';
 $prefillDifficulty = 6;
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['character_id'], $_GET['attr_trait_id'], $_GET['skill_trait_id'])) {
-    $prefillCharacterId = (int)$_GET['character_id'];
-    $prefillAttributeId = (int)$_GET['attr_trait_id'];
-    $prefillSkillId = (int)$_GET['skill_trait_id'];
-    $form_active_form_id = (int)($_GET['form_id'] ?? 0);
-    $prefillDifficulty = (int)($_GET['dificultad'] ?? 6);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($queryInput['character_id'], $queryInput['attr_trait_id'], $queryInput['skill_trait_id'])) {
+    $prefillCharacterId = (int)$queryInput['character_id'];
+    $prefillAttributeId = (int)$queryInput['attr_trait_id'];
+    $prefillSkillId = (int)$queryInput['skill_trait_id'];
+    $form_active_form_id = (int)($queryInput['form_id'] ?? 0);
+    $prefillDifficulty = (int)($queryInput['dificultad'] ?? 6);
     if ($prefillDifficulty < 2 || $prefillDifficulty > 10) $prefillDifficulty = 6;
     if (isset($pjProfiles[$prefillCharacterId])) {
         $roll_mode = 'pj';
@@ -275,29 +278,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['character_id'], $_GET[
         $form_skill_trait_id = $prefillSkillId;
         $prefill_form_modifier = hg_dice_form_attribute_modifier($link, $prefillCharacterId, $form_active_form_id, $prefillAttributeId);
         $prefillName = (string)($pjProfiles[$prefillCharacterId]['name'] ?? '');
-        $actionName = trim((string)($_GET['action_name'] ?? 'Acción'));
+        $actionName = trim((string)($queryInput['action_name'] ?? 'Acción'));
         $prefillRollName = trim($actionName . ' · ' . $prefillName . ' · ' . date('Ymd-His'));
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $roll_mode = ((string)($_POST['roll_mode'] ?? 'free') === 'pj') ? 'pj' : 'free';
-    $nombre_jugador = trim((string)($_POST['nombre'] ?? ''));
-    $tirada_nombre = trim((string)($_POST['tirada_nombre'] ?? ''));
+    $roll_mode = ((string)($bodyInput['roll_mode'] ?? 'free') === 'pj') ? 'pj' : 'free';
+    $nombre_jugador = trim((string)($bodyInput['nombre'] ?? ''));
+    $tirada_nombre = trim((string)($bodyInput['tirada_nombre'] ?? ''));
     $dados = 0;
-    $dificultad = (int)($_POST['dificultad'] ?? 0);
+    $dificultad = (int)($bodyInput['dificultad'] ?? 0);
     $debug_forced_rolls = [];
-    $form_willpower_spent = isset($_POST['willpower_spent']) ? 1 : 0;
+    $form_willpower_spent = isset($bodyInput['willpower_spent']) ? 1 : 0;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     $maxDados = 20;
 
     if ($roll_mode === 'pj') {
-        $form_character_id = (int)($_POST['character_id'] ?? 0);
-        $form_attr_trait_id = (int)($_POST['attr_trait_id'] ?? 0);
-        $form_skill_trait_id = (int)($_POST['skill_trait_id'] ?? 0);
-        $form_resource_id = (int)($_POST['resource_id'] ?? 0);
-        $form_extra_dice = (int)($_POST['extra_dice'] ?? 0);
-        $form_active_form_id = (int)($_POST['form_id'] ?? 0);
+        $form_character_id = (int)($bodyInput['character_id'] ?? 0);
+        $form_attr_trait_id = (int)($bodyInput['attr_trait_id'] ?? 0);
+        $form_skill_trait_id = (int)($bodyInput['skill_trait_id'] ?? 0);
+        $form_resource_id = (int)($bodyInput['resource_id'] ?? 0);
+        $form_extra_dice = (int)($bodyInput['extra_dice'] ?? 0);
+        $form_active_form_id = (int)($bodyInput['form_id'] ?? 0);
 
         if (!isset($pjProfiles[$form_character_id])) {
             $mensaje_error = 'Debes elegir un protagonista valido.';
@@ -330,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $maxDados = 50;
     } else {
-        $dados = (int)($_POST['dados'] ?? 0);
+        $dados = (int)($bodyInput['dados'] ?? 0);
     }
 
     if ($mensaje_error === '' && ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > $maxDados || $dificultad < 2 || $dificultad > 10)) {
@@ -398,8 +401,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 echo "<div class='hg-dice-wrap'><div class='hg-dice-grid'>";
 
-if (isset($_GET['see'])) {
-    $id_ver = (int)$_GET['see'];
+if (isset($queryInput['see'])) {
+    $id_ver = (int)$queryInput['see'];
     $stmt = mysqli_prepare($link, "SELECT * FROM fact_dice_rolls WHERE id = ? LIMIT 1");
     mysqli_stmt_bind_param($stmt, 'i', $id_ver);
     mysqli_stmt_execute($stmt);
@@ -411,17 +414,17 @@ if (isset($_GET['see'])) {
     }
 }
 
-if (!isset($_GET['see'])) {
+if (!isset($queryInput['see'])) {
     echo "<article class='hg-dice-card'>";
     echo "<h3 class='hg-dice-title'>Nueva tirada</h3>";
     if ($mensaje_error !== '') echo "<p class='hg-dice-error'>{$mensaje_error}</p>";
 
     echo "<form method='post' class='hg-dice-form'>";
     $selectedMode = htmlspecialchars($roll_mode, ENT_QUOTES, 'UTF-8');
-    $selectedName = htmlspecialchars((string)($_POST['nombre'] ?? $prefillName), ENT_QUOTES, 'UTF-8');
-    $selectedRollName = htmlspecialchars((string)($_POST['tirada_nombre'] ?? $prefillRollName), ENT_QUOTES, 'UTF-8');
-    $selectedDiff = (int)($_POST['dificultad'] ?? $prefillDifficulty);
-    $selectedDados = (int)($_POST['dados'] ?? 6);
+    $selectedName = htmlspecialchars((string)($bodyInput['nombre'] ?? $prefillName), ENT_QUOTES, 'UTF-8');
+    $selectedRollName = htmlspecialchars((string)($bodyInput['tirada_nombre'] ?? $prefillRollName), ENT_QUOTES, 'UTF-8');
+    $selectedDiff = (int)($bodyInput['dificultad'] ?? $prefillDifficulty);
+    $selectedDados = (int)($bodyInput['dados'] ?? 6);
     if ($selectedDados < 1 || $selectedDados > 20) $selectedDados = 6;
     if ($selectedDiff < 2 || $selectedDiff > 10) $selectedDiff = 6;
 
@@ -494,7 +497,7 @@ if (!isset($_GET['see'])) {
     echo "</article>";
 }
 
-if (!isset($_GET['see'])) {
+if (!isset($queryInput['see'])) {
     $rolls = [];
     $query = "SELECT id, roll_name, name, successes, botch, willpower_spent, rolled_at FROM fact_dice_rolls ORDER BY rolled_at DESC";
     if ($rs = mysqli_query($link, $query)) {
