@@ -36,13 +36,9 @@ function hg_request_routing_resolve(mysqli $link, string $requestUri, array $que
     return hg_request_path_matcher_match($path);
 }
 
-function hg_request_routing_bootstrap(mysqli $link): void
+function hg_request_routing_bootstrap(mysqli $link, string $requestUri, array $query): array
 {
-    $result = hg_request_routing_resolve(
-        $link,
-        (string)($_SERVER['REQUEST_URI'] ?? '/'),
-        $_GET
-    );
+    $result = hg_request_routing_resolve($link, $requestUri, $query);
 
     if (($result['action'] ?? '') === 'redirect') {
         header('Location: ' . (string)$result['location'], true, (int)($result['status'] ?? 301));
@@ -50,10 +46,12 @@ function hg_request_routing_bootstrap(mysqli $link): void
     }
 
     if (($result['action'] ?? '') !== 'route' || empty($result['params']) || !is_array($result['params'])) {
-        return;
+        return $query;
     }
 
     foreach ($result['params'] as $key => $value) {
-        $_GET[$key] = (string)$value;
+        $query[(string)$key] = (string)$value;
     }
+
+    return $query;
 }
