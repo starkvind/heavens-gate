@@ -50,8 +50,8 @@
     $pageURL = $scheme . '://' . $host . $uri;
     $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
-    hg_request_routing_bootstrap($link);
-    $hgRequest = hg_request_context_from_query($_GET);
+    $hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);
+    $hgRequest = hg_request_context_from_query($hgQuery);
 
     if (hg_should_render_mobile(
         hg_request_route($hgRequest),
@@ -72,7 +72,7 @@
     }
 
     $allowedThemes = ['classic', 'modern', 'power-save'];
-    $requestedTheme = isset($_GET['theme']) ? strtolower(trim((string)$_GET['theme'])) : '';
+    $requestedTheme = strtolower(hg_request_query_param($hgRequest, 'theme'));
     if ($requestedTheme !== '' && in_array($requestedTheme, $allowedThemes, true)) {
         setcookie('hg_theme', $requestedTheme, time() + 31536000, '/');
         $_COOKIE['hg_theme'] = $requestedTheme;
