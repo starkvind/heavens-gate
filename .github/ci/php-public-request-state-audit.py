@@ -20,6 +20,8 @@ PATTERNS = {
     'GET': re.compile(r'\$_GET\s*\['),
     'POST': re.compile(r'\$_POST\s*\['),
     'REQUEST': re.compile(r'\$_REQUEST\s*\['),
+    'FILTER_GET': re.compile(r'filter_input\s*\(\s*INPUT_GET\s*,'),
+    'FILTER_POST': re.compile(r'filter_input\s*\(\s*INPUT_POST\s*,'),
 }
 MIGRATED_ZERO_PREFIXES = (
     'app/controllers/playr/',
@@ -28,7 +30,7 @@ MIGRATED_ZERO_PREFIXES = (
     'app/controllers/chapters/',
     'app/controllers/systems/',
 )
-MAX_DIRECT_READS = 74
+MAX_DIRECT_READS = 15
 
 rows = []
 for target in TARGETS:
