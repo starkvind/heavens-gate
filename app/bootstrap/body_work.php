@@ -13,7 +13,7 @@ $hgQuery = hg_pretty_request_normalize(
     $hgQuery,
     (string)($_SERVER['REQUEST_URI'] ?? '/')
 );
-$hgRequest = hg_request_context_from_query($hgQuery);
+$hgRequest = hg_request_context_from_query($hgQuery, $hgBody);
 $routeKey = hg_request_route($hgRequest);
 $routeParam = hg_request_query_param($hgRequest, 't');
 
