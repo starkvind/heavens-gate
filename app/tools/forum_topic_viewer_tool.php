@@ -643,7 +643,7 @@ function hgfv_chapter_href_from_row(array $row)
     return '/chapters/' . rawurlencode($slug !== '' ? $slug : (string)$chapterId);
 }
 
-$topicId = filter_input(INPUT_GET, 'id_topic', FILTER_VALIDATE_INT);
+$topicId = filter_var(hg_request_query_param($hgRequest, 'id_topic'), FILTER_VALIDATE_INT);
 $topicId = $topicId ? (int)$topicId : 0;
 
 $messages = [];
