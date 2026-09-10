@@ -1,9 +1,9 @@
 <?php
 
-function hg_mobile_view_override(): string
+function hg_mobile_view_override(string $requestedView = ''): string
 {
     $allowed = ['mobile', 'desktop', 'auto'];
-    $requested = isset($_GET['view']) ? strtolower(trim((string)$_GET['view'])) : '';
+    $requested = strtolower(trim($requestedView));
 
     if ($requested !== '' && in_array($requested, $allowed, true)) {
         setcookie('hg_view', $requested, time() + 31536000, '/');
@@ -43,9 +43,9 @@ function hg_mobile_is_excluded_route(string $routeKey): bool
     return in_array($routeKey, $excludedRoutes, true);
 }
 
-function hg_should_render_mobile(?string $routeKey = null): bool
+function hg_should_render_mobile(string $routeKey = '', string $requestedView = ''): bool
 {
-    $routeKey = trim((string)($routeKey ?? ($_GET['p'] ?? '')));
+    $routeKey = trim($routeKey);
     if (hg_mobile_is_excluded_route($routeKey)) {
         return false;
     }
@@ -58,6 +58,6 @@ function hg_should_render_mobile(?string $routeKey = null): bool
      * existing hg_view=mobile cookie until its duplicated presentation can be
      * retired deliberately.
      */
-    return hg_mobile_view_override() === 'mobile';
+    return hg_mobile_view_override($requestedView) === 'mobile';
 }
 
