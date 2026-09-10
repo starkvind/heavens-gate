@@ -140,9 +140,7 @@ if ($resultTribe) {
     $tribeLink = htmlspecialchars($idTribe);
 }
 
-if (!isset($characterId)) {
-    $characterId = (int)($_GET['b'] ?? 0);
-}
+$characterId = isset($characterId) ? (int)$characterId : 0;
 
 // MISC SYSTEMS
 $bioMiscLinksByKind = [];
@@ -190,7 +188,7 @@ if (
 /* Cambio septiembre 2025 */
 
 /* $characterId = id del personaje (int) */
-$characterId = isset($characterId) ? (int)$characterId : (int)($_GET['b'] ?? 0);
+$characterId = isset($characterId) ? (int)$characterId : 0;
 
 $bioPack = 0;  // dim_groups.id
 $bioClan = 0;  // dim_organizations.id
