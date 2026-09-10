@@ -108,7 +108,7 @@ foreach (['mysqli', '$_GET', '$_POST', '->prepare(', 'mysqli_query'] as $forbidd
 $indexSource = file_get_contents(__DIR__ . '/../../index.php');
 if ($indexSource === false
     || strpos($indexSource, 'app/routing/request_runtime.php') === false
-    || strpos($indexSource, 'hg_request_routing_bootstrap($link)') === false) {
+    || strpos($indexSource, '$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);') === false) {
     hg_path_matcher_fail('index.php is not using the extracted request runtime');
 }
 
