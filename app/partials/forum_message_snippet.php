@@ -38,7 +38,7 @@
 	$palette_raw = hg_request_param($hgRequest, 'palette', 'SkyBlue');
 	$palette = hg_normalize_palette_value($palette_raw, 'SkyBlue');
 
-	$msg = hg_request_param($hgRequest, 'message');
+	$msg = hg_request_query_value($hgRequest, 'msg');
 
 	if (!$char_id || $msg === '') {
 		hg_runtime_embed_error('Mensaje no disponible', 'Faltan parametros obligatorios para generar el mensaje.', 400);
