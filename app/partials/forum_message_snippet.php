@@ -29,16 +29,18 @@
 		}
 	}
 	
-	$char_ref = isset($_GET['id']) ? (string)$_GET['id'] : '';
+	$char_ref = hg_request_param($hgRequest, 'id');
 	$char_ref_parts = hg_character_avatar_parse_ref($char_ref);
 	$char_id = (int)($char_ref_parts['character_id'] ?? 0);
-	$avatar_variant = hg_character_avatar_variant_code($_GET['avatar_variant'] ?? ($char_ref_parts['variant_code'] ?? ''));
-	$palette_raw = isset($_GET['palette']) ? (string)$_GET['palette'] : 'SkyBlue';
+	$avatar_variant = hg_character_avatar_variant_code(
+		hg_request_query_param($hgRequest, 'avatar_variant', (string)($char_ref_parts['variant_code'] ?? ''))
+	);
+	$palette_raw = hg_request_param($hgRequest, 'palette', 'SkyBlue');
 	$palette = hg_normalize_palette_value($palette_raw, 'SkyBlue');
 
-	$msg = filter_input(INPUT_GET, 'msg');
+	$msg = hg_request_param($hgRequest, 'message');
 
-	if (!$char_id || $msg === null || $msg === '') {
+	if (!$char_id || $msg === '') {
 		hg_runtime_embed_error('Mensaje no disponible', 'Faltan parametros obligatorios para generar el mensaje.', 400);
 		return;
 	}
