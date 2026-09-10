@@ -1,4 +1,5 @@
 <?php setMetaFromPage("Noticias | Heaven's Gate", "Últimas novedades de la campaña Heaven's Gate.", null, 'website'); ?>
+<?php require_once(__DIR__ . '/../../domains/news/queries.php'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
 <?php
 if (function_exists('hg_page_register_stylesheet')) {
@@ -18,10 +19,7 @@ if (function_exists('hg_page_register_stylesheet')) {
 			$pagina = 1;
 		}
 
-		$consulta = "SELECT COUNT(*) as total FROM fact_admin_posts";
-		$result = mysqli_query($link, $consulta);
-		$row = mysqli_fetch_assoc($result);
-		$num_total_registros = (int)($row['total'] ?? 0);
+		$num_total_registros = hg_news_count_posts($link) ?? 0;
 		$total_paginas = (int)ceil($num_total_registros / $tamano_pagina);
 		if ($total_paginas < 1) {
 			$total_paginas = 1;
@@ -31,18 +29,11 @@ if (function_exists('hg_page_register_stylesheet')) {
 		}
 		$inicio = ($pagina - 1) * $tamano_pagina;
 
-		$consulta = "SELECT author, title, message, posted_at FROM fact_admin_posts ORDER BY id DESC LIMIT ?, ?";
-		$stmt = mysqli_prepare($link, $consulta);
-		mysqli_stmt_bind_param($stmt, "ii", $inicio, $tamano_pagina);
-		mysqli_stmt_execute($stmt);
-		$result = mysqli_stmt_get_result($stmt);
-
-		while ($ResultQuery = mysqli_fetch_assoc($result)) {
-			echo "<tr><td><fieldset class='hg-news-entry'><legend>" . htmlspecialchars($ResultQuery["title"]) . "</legend><p>" . (($ResultQuery["message"])) . "</p>\n</fieldset></td></tr>";
-			echo "<tr><td align='right'>por <b>" . htmlspecialchars($ResultQuery["author"]) . "</b> el " . htmlspecialchars($ResultQuery["posted_at"]) . "</td></tr>";
+		$posts = hg_news_fetch_posts($link, $inicio, $tamano_pagina) ?? [];
+		foreach ($posts as $post) {
+			echo "<tr><td><fieldset class='hg-news-entry'><legend>" . htmlspecialchars($post["title"]) . "</legend><p>" . (($post["message"])) . "</p>\n</fieldset></td></tr>";
+			echo "<tr><td align='right'>por <b>" . htmlspecialchars($post["author"]) . "</b> el " . htmlspecialchars($post["posted_at"]) . "</td></tr>";
 		}
-
-		mysqli_stmt_close($stmt);
 	?>
 </table>
 
