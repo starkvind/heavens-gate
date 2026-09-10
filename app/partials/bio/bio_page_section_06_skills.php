@@ -53,7 +53,7 @@ if (!function_exists('hg_bio_skills_bucket')) {
     }
 }
 
-$cid = isset($characterId) ? (int)$characterId : (int)($_GET['b'] ?? 0);
+$cid = isset($characterId) ? (int)$characterId : 0;
 $sid = isset($bioSystemId) ? (int)$bioSystemId : 0;
 
 $skillsByCol = [
