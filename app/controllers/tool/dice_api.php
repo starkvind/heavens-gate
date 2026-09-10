@@ -247,7 +247,7 @@ if (!hg_runtime_require_db($link, 'dice_api', 'plain', [
     return;
 }
 
-if (!hg_tool_api_require_request_token()) {
+if (!hg_tool_api_require_request_token($hgRequest)) {
     return;
 }
 
