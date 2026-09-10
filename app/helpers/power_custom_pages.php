@@ -593,7 +593,7 @@ if (!function_exists('hg_power_custom_catalog_disciplines')) {
 }
 
 if (!function_exists('hg_power_custom_render')) {
-    function hg_power_custom_render(mysqli $link, array $config): void
+    function hg_power_custom_render(mysqli $link, array $config, array $hgRequest): void
     {
         $pageSect = (string)($config['page_section'] ?? ($config['catalog_title'] ?? 'Poderes'));
         $_SESSION['punk2'] = $pageSect;
@@ -604,7 +604,7 @@ if (!function_exists('hg_power_custom_render')) {
             'website'
         );
 
-        $printMode = isset($_GET['print']) && $_GET['print'] === '1';
+        $printMode = hg_request_query_param($hgRequest, 'print') === '1';
         if (!$printMode) {
             include("app/partials/main_nav_bar.php");
         }
@@ -736,7 +736,7 @@ if (!function_exists('hg_power_custom_render')) {
 }
 
 if (!function_exists('hg_power_custom_render_full_catalog')) {
-    function hg_power_custom_render_full_catalog(mysqli $link, array $config): void
+    function hg_power_custom_render_full_catalog(mysqli $link, array $config, array $hgRequest): void
     {
         $pageSect = (string)($config['page_section'] ?? ($config['catalog_title'] ?? 'Poderes'));
         $_SESSION['punk2'] = $pageSect;
@@ -747,13 +747,13 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
             'website'
         );
 
-        $printMode = isset($_GET['print']) && $_GET['print'] === '1';
+        $printMode = hg_request_query_param($hgRequest, 'print') === '1';
         if (!$printMode) {
             include("app/partials/main_nav_bar.php");
         }
 
         $items = hg_power_custom_build_items($link, $config);
-        $markdownMode = isset($_GET['export']) && $_GET['export'] === 'md';
+        $markdownMode = hg_request_query_param($hgRequest, 'export') === 'md';
         if ($markdownMode) {
             hg_power_custom_markdown_download($config, $items);
         }
