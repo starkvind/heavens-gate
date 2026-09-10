@@ -9,14 +9,9 @@ if (!$link) {
     return;
 }
 
-function hg_search_input(string $key): string
+function hg_search_input(array $request, string $key): string
 {
-    $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
-    if (!is_string($value)) {
-        return '';
-    }
-
-    return trim(strip_tags($value));
+    return trim(strip_tags(hg_request_query_param($request, $key)));
 }
 
 function hg_search_h($value): string
@@ -370,13 +365,13 @@ function hg_search_sort_rows(array $rows, array $terms, string $fullQuery = ''):
     return $rows;
 }
 
-$query = hg_search_input('q');
-$sectionKey = hg_search_input('section');
+$query = hg_search_input($hgRequest, 'q');
+$sectionKey = hg_search_input($hgRequest, 'section');
 if ($query === '') {
-    $query = hg_search_input('bsq');
+    $query = hg_search_input($hgRequest, 'bsq');
 }
 if ($sectionKey === '') {
-    $sectionKey = hg_search_input('skz');
+    $sectionKey = hg_search_input($hgRequest, 'skz');
 }
 if ($sectionKey === '') {
     $sectionKey = 'all';
