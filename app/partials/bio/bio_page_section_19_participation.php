@@ -1,7 +1,5 @@
 <?php
-$character_id = isset($characterId)
-    ? (int)$characterId
-    : (isset($_GET['b']) ? (int)$_GET['b'] : 0);
+$character_id = isset($characterId) ? (int)$characterId : 0;
 
 $eventosParticipacion = [];
 
