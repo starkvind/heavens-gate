@@ -161,7 +161,7 @@ jobs:
               source = path.read_text(encoding="utf-8", errors="ignore")
               if "$_GET['token']" in source or '$_GET["token"]' in source:
                   failures.append(f"{path}: API token must not be read directly from the query string")
-              if "hg_tool_api_require_request_token()" not in source:
+              if re.search(r'hg_tool_api_require_request_token\s*\(', source) is None:
                   failures.append(f"{path}: shared request-token authentication is missing")
 
           helper = Path("app/helpers/tool_api.php").read_text(encoding="utf-8", errors="ignore")
