@@ -199,7 +199,7 @@ if (!function_exists('hg_bio_org_chart_role_sort_stamp')) {
     }
 }
 
-$organizationRaw = trim((string)($_GET['org'] ?? $_GET['b'] ?? 'justicia-metalica'));
+$organizationRaw = hg_request_param($hgRequest, 'organization', 'justicia-metalica');
 $organization = hg_bio_org_chart_get_organization($link, $organizationRaw);
 if (!$organization) {
     hg_public_render_not_found(
