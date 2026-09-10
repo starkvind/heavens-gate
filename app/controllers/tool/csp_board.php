@@ -17,8 +17,6 @@ if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("ap
         <?php
             $pageSect = "Tablón de mensajes"; // PARA CAMBIAR EL TITULO A LA PAGINA
 
-            global $link;
-
             // ORDEN GUAY
 
             $consulta ="SELECT author, title, message, posted_at FROM fact_csp_posts ORDER BY id DESC";
