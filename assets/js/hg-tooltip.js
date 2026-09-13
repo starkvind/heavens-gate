@@ -9,6 +9,7 @@
     window.__hgTooltipInitQueued = false;
 
     const cache = new Map();
+    const pending = new Map();
     let tooltip = document.getElementById("hg-tooltip");
     if (!tooltip) {
       tooltip = document.createElement("div");
@@ -47,6 +48,50 @@
       currentKey = "";
     }
 
+    function delay(ms) {
+      return new Promise(resolve => window.setTimeout(resolve, ms));
+    }
+
+    function preloadTooltipImages(html) {
+      const template = document.createElement("template");
+      template.innerHTML = html;
+      const sources = Array.from(template.content.querySelectorAll("img[src]"))
+        .map(img => img.getAttribute("src"))
+        .filter(Boolean);
+
+      if (!sources.length) return Promise.resolve();
+
+      return Promise.allSettled(sources.map(src => new Promise(resolve => {
+        const image = new Image();
+        image.decoding = "async";
+        image.onload = resolve;
+        image.onerror = resolve;
+        image.src = src;
+        if (image.complete) resolve();
+      })));
+    }
+
+    function loadTooltip(type, id) {
+      const key = `${type}:${id}`;
+      if (cache.has(key)) return Promise.resolve(cache.get(key));
+      if (pending.has(key)) return pending.get(key);
+
+      const request = fetch(`/ajax/tooltip?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`)
+        .then(res => res.text())
+        .then(html => {
+          const entry = {
+            html,
+            imagesReady: preloadTooltipImages(html),
+          };
+          cache.set(key, entry);
+          return entry;
+        })
+        .finally(() => pending.delete(key));
+
+      pending.set(key, request);
+      return request;
+    }
+
     async function showTipFor(target) {
       const type = target.getAttribute("data-tip") || "";
       const id = target.getAttribute("data-id") || "";
@@ -54,24 +99,31 @@
 
       const key = `${type}:${id}`;
       currentKey = key;
-      if (cache.has(key)) {
-        tooltip.innerHTML = cache.get(key);
-        tooltip.style.display = "block";
-        moveTip(lastX, lastY);
-        return;
-      }
 
       try {
-        const res = await fetch(`/ajax/tooltip?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`);
-        const html = await res.text();
+        const entry = await loadTooltip(type, id);
         if (currentKey !== key) return;
-        cache.set(key, html);
-        tooltip.innerHTML = html;
+
+        // The request starts as soon as the pointer enters the target, so the
+        // image normally reaches the browser cache before the tooltip appears.
+        // Give a still-decoding image a very short grace period to avoid a
+        // visible empty frame without making the tooltip feel sluggish.
+        await Promise.race([entry.imagesReady, delay(120)]);
+        if (currentKey !== key) return;
+
+        tooltip.innerHTML = entry.html;
         tooltip.style.display = "block";
         moveTip(lastX, lastY);
       } catch (_err) {
         // Silencioso
       }
+    }
+
+    function warmTarget(target) {
+      const type = target.getAttribute("data-tip") || "";
+      const id = target.getAttribute("data-id") || "";
+      if (!type || !id) return;
+      void loadTooltip(type, id);
     }
 
     document.addEventListener("mousemove", (ev) => {
@@ -83,6 +135,9 @@
     document.addEventListener("mouseover", (ev) => {
       const target = getTooltipTarget(ev.target);
       if (!target) return;
+      if (getTooltipTarget(ev.relatedTarget) === target) return;
+
+      warmTarget(target);
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => showTipFor(target), 550);
     });
@@ -100,6 +155,7 @@
     document.addEventListener("focusin", (ev) => {
       const target = getTooltipTarget(ev.target);
       if (!target) return;
+      warmTarget(target);
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => showTipFor(target), 250);
     });
