@@ -39,6 +39,32 @@ if (!function_exists('hg_inventory_has_column')) {
     }
 }
 
+if (!function_exists('hg_inventory_fetch_catalog')) {
+    function hg_inventory_fetch_catalog(mysqli $link): ?array
+    {
+        $result = mysqli_query(
+            $link,
+            "SELECT i.id AS item_id,
+                    i.pretty_id AS item_pretty_id,
+                    i.name AS item_name,
+                    i.image_url AS item_img,
+                    t.name AS item_category,
+                    t.pretty_id AS item_type_pretty,
+                    t.id AS item_type_id,
+                    COALESCE(b.name, '') AS item_origin
+             FROM fact_items i
+             LEFT JOIN dim_item_types t ON i.item_type_id = t.id
+             LEFT JOIN dim_bibliographies b ON i.bibliography_id = b.id
+             ORDER BY t.name ASC, i.name ASC"
+        );
+        if (!$result) return null;
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        return $rows;
+    }
+}
+
 if (!function_exists('hg_inventory_fetch_type')) {
     function hg_inventory_fetch_type(mysqli $link, int $typeId): ?array
     {
