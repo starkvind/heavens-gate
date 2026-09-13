@@ -1,30 +1,15 @@
 <?php
-// Consulta directa al bridge
-$sql = "
-    SELECT
-        nmd.id,
-        nmd.name,
-        nmd.kind,
-        nmd.cost,
-        b.level
-    FROM bridge_characters_merits_flaws b
-    JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
-    WHERE b.character_id = ?
-    ORDER BY nmd.kind DESC, nmd.cost, nmd.name
-";
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 
-$stmt = $link->prepare($sql);
-$stmt->bind_param('i', $characterId);
-$stmt->execute();
-$result = $stmt->get_result();
+$merits = hg_characters_fetch_merits_flaws($link, (int)$characterId);
 
 echo "<div class='bioSheetMeritFlaws'>";
 echo "<fieldset class='bioSeccion'><legend>$titleMerits</legend>";
 
-if ($result->num_rows === 0) {
+if (empty($merits)) {
     echo "<p class='bio-empty-note'>Este personaje no posee Meritos o Defectos</p>";
 } else {
-    while ($row = $result->fetch_assoc()) {
+    foreach ($merits as $row) {
         $meritId = (int)$row['id'];
         $nameMerit = htmlspecialchars((string)$row['name'], ENT_QUOTES, 'UTF-8');
         $typeMeritRaw = (string)($row['kind'] ?? '');
@@ -60,8 +45,6 @@ if ($result->num_rows === 0) {
         ";
     }
 }
-
-$stmt->close();
 
 echo "</fieldset>";
 echo "</div>";
