@@ -21,6 +21,11 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/bio/bio_list.php',
         ROOT / 'app/controllers/bio/bio_table.php',
         ROOT / 'app/mobile/controllers/characters_list.php',
+        ROOT / 'app/partials/bio/bio_page_section_07_resources.php',
+        ROOT / 'app/partials/bio/bio_page_section_08_merits.php',
+        ROOT / 'app/partials/bio/bio_page_section_09_conditions.php',
+        ROOT / 'app/partials/bio/bio_page_section_11_power.php',
+        ROOT / 'app/partials/bio/bio_page_section_13_items.php',
     ],
 }
 
