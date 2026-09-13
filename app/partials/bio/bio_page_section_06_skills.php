@@ -1,4 +1,6 @@
 <?php
+require_once(__DIR__ . '/../../domains/characters/queries.php');
+
 // Skills section ordered by fact_trait_sets.sort_order.
 // Fixed 3 columns: Talentos, Tecnicas, Conocimientos.
 
@@ -38,7 +40,6 @@ if (!function_exists('hg_bio_skills_fix_mojibake')) {
 if (!function_exists('hg_bio_skills_bucket')) {
     function hg_bio_skills_bucket(string $kindRaw): string {
         $raw = hg_bio_skills_fix_mojibake($kindRaw);
-        // Match exact/known variants first.
         if ($raw === 'Talentos') return 'Talentos';
         if ($raw === 'Técnicas' || $raw === 'Tecnicas') return 'Técnicas';
         if ($raw === 'Conocimientos' || $raw === 'Habilidades') return 'Conocimientos';
@@ -47,7 +48,6 @@ if (!function_exists('hg_bio_skills_bucket')) {
         if ($k === 'talentos') return 'Talentos';
         if ($k === 'tecnicas') return 'Técnicas';
         if ($k === 'conocimientos') return 'Conocimientos';
-        // Compat legacy wording
         if ($k === 'habilidades') return 'Conocimientos';
         return '';
     }
@@ -55,6 +55,7 @@ if (!function_exists('hg_bio_skills_bucket')) {
 
 $cid = isset($characterId) ? (int)$characterId : 0;
 $sid = isset($bioSystemId) ? (int)$bioSystemId : 0;
+$sheetSkills = hg_characters_fetch_sheet_skills($link, $cid, $sid);
 
 $skillsByCol = [
     'Talentos' => [],
@@ -66,112 +67,46 @@ $secondaryByCol = [
     'Técnicas' => [],
     'Conocimientos' => [],
 ];
-$debugRows = [];
 
-if ($cid > 0 && $sid > 0) {
-    $sql = "
-        SELECT
-            t.id,
-            t.name,
-            t.kind,
-            t.classification,
-            s.sort_order,
-            COALESCE(b.value, 0) AS value
-        FROM fact_trait_sets s
-        INNER JOIN dim_traits t ON t.id = s.trait_id
-        LEFT JOIN bridge_characters_traits b
-            ON b.trait_id = t.id
-           AND b.character_id = ?
-        WHERE s.system_id = ?
-          AND s.is_active = 1
-        ORDER BY s.sort_order ASC, t.name ASC
-    ";
+foreach (($sheetSkills['primary'] ?? []) as $r) {
+    $tid = (int)($r['id'] ?? 0);
+    if ($tid <= 0) continue;
+    $row = [
+        'id' => $tid,
+        'name' => (string)($r['name'] ?? ''),
+        'value' => (int)($r['value'] ?? 0),
+        'kind' => (string)($r['kind'] ?? ''),
+        'classification' => (string)($r['classification'] ?? ''),
+        'sort_order' => (int)($r['sort_order'] ?? 0),
+    ];
+    $bucket = hg_bio_skills_bucket($row['kind']);
+    if ($bucket !== '') $skillsByCol[$bucket][] = $row;
+}
 
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('ii', $cid, $sid);
-        $st->execute();
-        if ($rs = $st->get_result()) {
-            while ($r = $rs->fetch_assoc()) {
-                $tid = (int)($r['id'] ?? 0);
-                if ($tid <= 0) continue;
-
-                $row = [
-                    'id' => $tid,
-                    'name' => (string)($r['name'] ?? ''),
-                    'value' => (int)($r['value'] ?? 0),
-                    'kind' => (string)($r['kind'] ?? ''),
-                    'classification' => (string)($r['classification'] ?? ''),
-                    'sort_order' => (int)($r['sort_order'] ?? 0),
-                ];
-
-                $bucket = hg_bio_skills_bucket((string)$row['kind']);
-                if ($bucket === '') continue;
-
-                $skillsByCol[$bucket][] = $row;
-                $debugRows[] = $row + ['bucket' => $bucket];
-            }
-            $rs->free();
-        }
-        $st->close();
-    }
+foreach (($sheetSkills['secondary'] ?? []) as $r) {
+    $tid = (int)($r['id'] ?? 0);
+    if ($tid <= 0) continue;
+    $row = [
+        'id' => $tid,
+        'name' => (string)($r['name'] ?? ''),
+        'value' => (int)($r['value'] ?? 0),
+        'kind' => (string)($r['kind'] ?? ''),
+        'classification' => (string)($r['classification'] ?? ''),
+        'sort_order' => 999999,
+    ];
+    $bucket = hg_bio_skills_bucket($row['kind']);
+    if ($bucket !== '') $secondaryByCol[$bucket][] = $row;
 }
 
 $tal = $skillsByCol['Talentos'];
 $tec = $skillsByCol['Técnicas'];
 $con = $skillsByCol['Conocimientos'];
-
-// Secondary skills: traits present in character but outside active set for this system.
-if ($cid > 0 && $sid > 0) {
-    $sqlSecondary = "
-        SELECT
-            t.id,
-            t.name,
-            t.kind,
-            t.classification,
-            COALESCE(b.value, 0) AS value
-        FROM bridge_characters_traits b
-        INNER JOIN dim_traits t ON t.id = b.trait_id
-        WHERE b.character_id = ?
-          AND b.value > 0
-          AND NOT EXISTS (
-              SELECT 1
-              FROM fact_trait_sets s
-              WHERE s.system_id = ?
-                AND s.trait_id = t.id
-                AND s.is_active = 1
-          )
-        ORDER BY t.name ASC
-    ";
-
-    if ($stSec = $link->prepare($sqlSecondary)) {
-        $stSec->bind_param('ii', $cid, $sid);
-        $stSec->execute();
-        if ($rsSec = $stSec->get_result()) {
-            while ($r = $rsSec->fetch_assoc()) {
-                $row = [
-                    'id' => (int)($r['id'] ?? 0),
-                    'name' => (string)($r['name'] ?? ''),
-                    'value' => (int)($r['value'] ?? 0),
-                    'kind' => (string)($r['kind'] ?? ''),
-                    'classification' => (string)($r['classification'] ?? ''),
-                    'sort_order' => 999999,
-                ];
-                $bucket = hg_bio_skills_bucket((string)$row['kind']);
-                if ($bucket === '') continue;
-                $secondaryByCol[$bucket][] = $row;
-            }
-            $rsSec->free();
-        }
-        $stSec->close();
-    }
-}
-
 $talSec = $secondaryByCol['Talentos'];
 $tecSec = $secondaryByCol['Técnicas'];
 $conSec = $secondaryByCol['Conocimientos'];
 
-echo "<div class='bioSheetData'>"; // Habilidades de la Hoja ~~ #SEC06
-    echo "<fieldset class='bioSeccion'><legend>$titleSkill</legend>";
+echo "<div class='bioSheetData'>";
+echo "<fieldset class='bioSeccion'><legend>$titleSkill</legend>";
 
 $talImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $tal), 'gem-attr');
 $tecImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $tec), 'gem-attr');
@@ -208,7 +143,7 @@ for ($i = 0; $i < $maxRows; $i++) {
 }
 
 echo "</fieldset>";
-echo "</div>"; // Cerramos Habilidades ~~
+echo "</div>";
 
 $talSecImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $talSec), 'gem-attr');
 $tecSecImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $tecSec), 'gem-attr');
@@ -216,7 +151,7 @@ $conSecImg = createSkillCircle(array_map(fn($t) => (int)($t['value'] ?? 0), $con
 
 $maxSecRows = max(count($talSec), count($tecSec), count($conSec));
 if ($maxSecRows > 0) {
-    echo "<div class='bioSheetData'>"; // Habilidades secundarias de la Hoja ~~ #SEC06
+    echo "<div class='bioSheetData'>";
     echo "<fieldset class='bioSeccion'><legend>{$titleSkill}secundarias</legend>";
     for ($i = 0; $i < $maxSecRows; $i++) {
         $secCols = [
@@ -246,6 +181,6 @@ if ($maxSecRows > 0) {
         }
     }
     echo "</fieldset>";
-    echo "</div>"; // Cerramos Habilidades ~~
+    echo "</div>";
 }
 ?>
