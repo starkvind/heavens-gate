@@ -28,8 +28,8 @@ if (empty($docsRows) && empty($externalRows)) {
         <a href="<?= h($docHref) ?>" target="_blank" rel="noopener noreferrer">
           <div class="bioSheetPower bio-doc-link-card" title="<?= h($meta) ?>">
             <img class="valign bio-inline-icon" src="img/ui/icons/icon_document.webp" alt="" />
-            <?= h($docTitle !== '' ? $docTitle : ('Documento #'.$docId)) ?>
-            <div class="bio-inline-type"><?= h($docSection !== '' ? $docSection : 'doc') ?></div>
+            <span class="bio-doc-link-title"><?= h($docTitle !== '' ? $docTitle : ('Documento #'.$docId)) ?></span>
+            <span class="bio-inline-type"><?= h($docSection !== '' ? $docSection : 'doc') ?></span>
           </div>
         </a>
       <?php endforeach; ?>
@@ -67,8 +67,8 @@ if (empty($docsRows) && empty($externalRows)) {
         <a href="<?= h($url !== '' ? $url : '#') ?>" target="_blank" rel="noopener noreferrer">
           <div class="bioSheetPower bio-doc-link-card" title="<?= h($meta) ?>">
             <img class="valign bio-inline-icon" src="img/ui/icons/icon_document.webp" alt="" />
-            <?= h($title !== '' ? $title : $url) ?>
-            <div class="bio-inline-type"><?= h($kind !== '' ? $kind : 'ext') ?></div>
+            <span class="bio-doc-link-title"><?= h($title !== '' ? $title : $url) ?></span>
+            <span class="bio-inline-type"><?= h($kind !== '' ? $kind : 'ext') ?></span>
           </div>
         </a>
       <?php endforeach; ?>
