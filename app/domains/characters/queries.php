@@ -533,3 +533,322 @@ if (!function_exists('hg_characters_fetch_table_rows')) {
         return $characters;
     }
 }
+
+if (!function_exists('hg_characters_table_exists')) {
+    function hg_characters_table_exists(mysqli $link, string $table): bool
+    {
+        static $cache = [];
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        if ($table === '') {
+            return false;
+        }
+        if (array_key_exists($table, $cache)) {
+            return $cache[$table];
+        }
+
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
+        );
+        if (!$stmt) {
+            return $cache[$table] = false;
+        }
+        mysqli_stmt_bind_param($stmt, 's', $table);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $count);
+        mysqli_stmt_fetch($stmt);
+        mysqli_stmt_close($stmt);
+
+        return $cache[$table] = ((int)$count > 0);
+    }
+}
+
+if (!function_exists('hg_characters_fetch_resources')) {
+    function hg_characters_fetch_resources(mysqli $link, int $characterId, int $systemId = 0): array
+    {
+        $out = ['renombre' => [], 'estado' => [], 'exp' => []];
+        if ($characterId <= 0 || !hg_characters_table_exists($link, 'dim_systems_resources')) {
+            return $out;
+        }
+
+        $bridgeTable = '';
+        foreach (['bridge_characters_system_resources', 'bridge_characters_resources'] as $candidate) {
+            if (hg_characters_table_exists($link, $candidate)) {
+                $bridgeTable = $candidate;
+                break;
+            }
+        }
+        if ($bridgeTable === '') {
+            return $out;
+        }
+
+        $hasSystemBridge = hg_characters_table_exists($link, 'bridge_systems_resources_to_system');
+        $hasSystemSort = $hasSystemBridge
+            && hg_characters_has_column($link, 'bridge_systems_resources_to_system', 'sort_order');
+        $useSystemSort = $hasSystemSort && $systemId > 0;
+
+        $sortSelect = $useSystemSort
+            ? 'COALESCE(bs.sort_order, r.sort_order, 9999) AS sort_order_eff'
+            : 'COALESCE(r.sort_order, 9999) AS sort_order_eff';
+        $systemJoin = $useSystemSort
+            ? 'LEFT JOIN bridge_systems_resources_to_system bs ON bs.resource_id = r.id AND bs.system_id = ?'
+            : '';
+
+        $sql = "
+            SELECT r.id, r.name, r.kind, r.sort_order, b.value_permanent, b.value_temporary,
+                   {$sortSelect}
+            FROM `{$bridgeTable}` b
+            INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+            {$systemJoin}
+            WHERE b.character_id = ?
+            ORDER BY r.kind, sort_order_eff, r.name
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) {
+            return $out;
+        }
+        if ($useSystemSort) {
+            mysqli_stmt_bind_param($stmt, 'ii', $systemId, $characterId);
+        } else {
+            mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        }
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $kind = strtolower(trim((string)($row['kind'] ?? '')));
+                if (!isset($out[$kind])) {
+                    $out[$kind] = [];
+                }
+                $out[$kind][] = [
+                    'id' => (int)($row['id'] ?? 0),
+                    'name' => (string)($row['name'] ?? ''),
+                    'perm' => (int)($row['value_permanent'] ?? 0),
+                    'temp' => (int)($row['value_temporary'] ?? 0),
+                ];
+            }
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+
+        return $out;
+    }
+}
+
+if (!function_exists('hg_characters_fetch_merits_flaws')) {
+    function hg_characters_fetch_merits_flaws(mysqli $link, int $characterId): array
+    {
+        if ($characterId <= 0) {
+            return [];
+        }
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT nmd.id, nmd.name, nmd.kind, nmd.cost, b.level
+             FROM bridge_characters_merits_flaws b
+             JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
+             WHERE b.character_id = ?
+             ORDER BY nmd.kind DESC, nmd.cost, nmd.name"
+        );
+        if (!$stmt) {
+            return [];
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $rows = [];
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $rows[] = $row;
+            }
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_characters_fetch_conditions')) {
+    function hg_characters_fetch_conditions(mysqli $link, int $characterId): array
+    {
+        if ($characterId <= 0
+            || !hg_characters_table_exists($link, 'bridge_characters_conditions')
+            || !hg_characters_table_exists($link, 'dim_character_conditions')) {
+            return [];
+        }
+
+        $instanceSelect = hg_characters_has_column($link, 'bridge_characters_conditions', 'instance_no')
+            ? 'bcc.instance_no'
+            : '1';
+        $locationSelect = hg_characters_has_column($link, 'bridge_characters_conditions', 'location')
+            ? 'bcc.location'
+            : 'NULL';
+        $activeWhere = hg_characters_has_column($link, 'bridge_characters_conditions', 'is_active')
+            ? 'AND (bcc.is_active = 1 OR bcc.is_active IS NULL)'
+            : '';
+
+        $sql = "
+            SELECT c.id, c.pretty_id, c.name, c.category,
+                   {$instanceSelect} AS instance_no,
+                   {$locationSelect} AS condition_location
+            FROM bridge_characters_conditions bcc
+            JOIN dim_character_conditions c ON c.id = bcc.condition_id
+            WHERE bcc.character_id = ?
+              {$activeWhere}
+            ORDER BY
+                CASE
+                    WHEN c.category = 'Deformidad Metis' THEN 0
+                    WHEN c.category = 'Herida de Guerra' THEN 1
+                    WHEN c.category LIKE '%Cicatrices%' THEN 1
+                    WHEN c.category = 'Trastorno Mental' THEN 2
+                    ELSE 9999
+                END ASC,
+                c.name ASC,
+                instance_no ASC
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) {
+            return [];
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $rows = [];
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $rows[] = $row;
+            }
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_characters_fetch_powers')) {
+    function hg_characters_fetch_powers(mysqli $link, int $characterId): array
+    {
+        $out = [];
+        if ($characterId <= 0) {
+            return $out;
+        }
+
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id = ? ORDER BY power_kind ASC'
+        );
+        if (!$stmt) {
+            return $out;
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $bridgeRows = [];
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $kind = (string)($row['power_kind'] ?? '');
+                $bridgeRows[$kind][] = [
+                    'id' => (int)($row['power_id'] ?? 0),
+                    'bridge_level' => $row['power_level'] !== null ? (int)$row['power_level'] : null,
+                ];
+            }
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+
+        foreach ($bridgeRows as $kind => $rows) {
+            $ids = [];
+            foreach ($rows as $row) {
+                if (($row['id'] ?? 0) > 0) {
+                    $ids[(int)$row['id']] = true;
+                }
+            }
+            if (empty($ids)) {
+                continue;
+            }
+
+            $idList = implode(',', array_keys($ids));
+            if ($kind === 'dones') {
+                $sql = "SELECT id, name, rank AS source_level FROM fact_gifts WHERE id IN ({$idList})";
+            } elseif ($kind === 'disciplinas') {
+                $sql = "SELECT id, name, NULL AS source_level FROM dim_discipline_types WHERE id IN ({$idList})";
+            } elseif ($kind === 'rituales') {
+                $sql = "SELECT id, name, level AS source_level FROM fact_rites WHERE id IN ({$idList})";
+            } else {
+                continue;
+            }
+
+            $meta = [];
+            $metaResult = mysqli_query($link, $sql);
+            if ($metaResult) {
+                while ($row = mysqli_fetch_assoc($metaResult)) {
+                    $meta[(int)$row['id']] = $row;
+                }
+                mysqli_free_result($metaResult);
+            }
+
+            foreach ($rows as $row) {
+                $id = (int)($row['id'] ?? 0);
+                $data = $meta[$id] ?? null;
+                if (!$data) {
+                    continue;
+                }
+                $sourceLevel = $data['source_level'] !== null ? (int)$data['source_level'] : null;
+                $displayLevel = $kind === 'disciplinas' ? $row['bridge_level'] : $sourceLevel;
+                $out[$kind][] = [
+                    'id' => $id,
+                    'name' => (string)($data['name'] ?? ''),
+                    'level' => $displayLevel,
+                    'sort_level' => $sourceLevel ?? 999,
+                ];
+            }
+
+            usort($out[$kind], static function (array $a, array $b): int {
+                $levelCmp = ((int)($a['sort_level'] ?? 999)) <=> ((int)($b['sort_level'] ?? 999));
+                if ($levelCmp !== 0) {
+                    return $levelCmp;
+                }
+                $nameCmp = strcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+                if ($nameCmp !== 0) {
+                    return $nameCmp;
+                }
+                return ((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0));
+            });
+        }
+
+        return $out;
+    }
+}
+
+if (!function_exists('hg_characters_fetch_items')) {
+    function hg_characters_fetch_items(mysqli $link, int $characterId): array
+    {
+        if ($characterId <= 0) {
+            return [];
+        }
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT o.id, o.pretty_id AS item_pretty, o.name, o.item_type_id,
+                    t.pretty_id AS type_pretty, COALESCE(t.name, '') AS item_type_name
+             FROM bridge_characters_items b
+             JOIN fact_items o ON o.id = b.item_id
+             LEFT JOIN dim_item_types t ON t.id = o.item_type_id
+             WHERE b.character_id = ?
+             ORDER BY o.item_type_id, o.name"
+        );
+        if (!$stmt) {
+            return [];
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $rows = [];
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $rows[] = $row;
+            }
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
