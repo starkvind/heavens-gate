@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
+require_once(__DIR__ . '/../../domains/inventory/queries.php');
 
 if (!$link) {
     echo "<h2>Error</h2><p class='texti docs-center'>Error de conexi&oacute;n.</p>";
@@ -23,18 +24,9 @@ if ($typeId <= 0) {
     return;
 }
 
-// Nombre del tipo
-$typeName = 'Objetos';
-$typePretty = '';
-$stType = $link->prepare("SELECT name, pretty_id FROM dim_item_types WHERE id = ? LIMIT 1");
-$stType->bind_param('i', $typeId);
-$stType->execute();
-$rsType = $stType->get_result();
-if ($rsType && ($row = $rsType->fetch_assoc())) {
-    $typeName = (string)$row['name'];
-    $typePretty = (string)($row['pretty_id'] ?? '');
-}
-$stType->close();
+$type = hg_inventory_fetch_type($link, $typeId);
+$typeName = (string)($type['name'] ?? 'Objetos');
+$typePretty = (string)($type['pretty_id'] ?? '');
 $nameTypeBack = $typeName;
 $itemType = $typeId;
 $typeSlug = $typePretty !== '' ? $typePretty : (string)$typeId;
@@ -43,27 +35,7 @@ if (function_exists("setMetaFromPage")) setMetaFromPage($typeName . " | Inventar
 if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 
 $pageSect = "Inventario";
-
-// Cargar items de ese tipo
-$sql = "
-    SELECT
-        i.id AS item_id,
-        i.pretty_id AS item_pretty_id,
-        i.name AS item_name,
-        i.image_url AS item_img,
-        COALESCE(b.name, '') AS item_origin
-    FROM fact_items i
-    LEFT JOIN dim_bibliographies b ON i.bibliography_id = b.id
-    WHERE i.item_type_id = ?
-    ORDER BY b.name ASC, i.name ASC
-";
-$st = $link->prepare($sql);
-$st->bind_param('i', $typeId);
-$st->execute();
-$rs = $st->get_result();
-$items = [];
-while ($row = $rs->fetch_assoc()) { $items[] = $row; }
-$st->close();
+$items = hg_inventory_fetch_items_by_type($link, $typeId);
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
