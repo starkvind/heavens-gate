@@ -852,3 +852,355 @@ if (!function_exists('hg_characters_fetch_items')) {
         return $rows;
     }
 }
+
+if (!function_exists('hg_characters_fetch_lookup')) {
+    function hg_characters_fetch_lookup(mysqli $link, string $table, int $id, array $fields = ['name']): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        if ($table === '') {
+            return null;
+        }
+
+        $safeFields = [];
+        foreach ($fields as $field) {
+            $field = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$field);
+            if ($field !== '') {
+                $safeFields[] = "`{$field}`";
+            }
+        }
+        if (empty($safeFields)) {
+            return null;
+        }
+
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT ' . implode(', ', $safeFields) . " FROM `{$table}` WHERE id = ? LIMIT 1"
+        );
+        if (!$stmt) {
+            return null;
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) {
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+
+        return $row ?: null;
+    }
+}
+
+if (!function_exists('hg_characters_fetch_misc_systems')) {
+    function hg_characters_fetch_misc_systems(mysqli $link, int $characterId): array
+    {
+        if ($characterId <= 0
+            || !hg_characters_table_exists($link, 'bridge_characters_misc_systems')
+            || !hg_characters_table_exists($link, 'fact_misc_systems')) {
+            return [];
+        }
+
+        $activeWhere = hg_characters_has_column($link, 'bridge_characters_misc_systems', 'is_active')
+            ? 'AND (b.is_active = 1 OR b.is_active IS NULL)'
+            : '';
+        $sortOrder = hg_characters_has_column($link, 'bridge_characters_misc_systems', 'sort_order')
+            ? 'b.sort_order ASC, '
+            : '';
+
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT b.misc_system_id, m.name, COALESCE(m.kind, '') AS kind
+             FROM bridge_characters_misc_systems b
+             INNER JOIN fact_misc_systems m ON m.id = b.misc_system_id
+             WHERE b.character_id = ?
+               {$activeWhere}
+             ORDER BY {$sortOrder}m.kind ASC, m.name ASC, b.id ASC"
+        );
+        if (!$stmt) {
+            return [];
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $rows = [];
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $rows[] = $row;
+            }
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_characters_fetch_primary_affiliations')) {
+    function hg_characters_fetch_primary_affiliations(mysqli $link, int $characterId): array
+    {
+        $groupId = 0;
+        $organizationId = 0;
+        if ($characterId <= 0) {
+            return ['group_id' => 0, 'organization_id' => 0];
+        }
+
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT group_id
+             FROM bridge_characters_groups
+             WHERE character_id = ? AND is_active = 1
+             ORDER BY updated_at DESC, created_at DESC, group_id DESC
+             LIMIT 1"
+        );
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 'i', $characterId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_bind_result($stmt, $value);
+            if (mysqli_stmt_fetch($stmt)) {
+                $groupId = (int)$value;
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        if ($groupId > 0) {
+            $stmt = mysqli_prepare(
+                $link,
+                "SELECT organization_id
+                 FROM bridge_organizations_groups
+                 WHERE group_id = ? AND is_active = 1
+                 ORDER BY updated_at DESC, created_at DESC, organization_id DESC
+                 LIMIT 1"
+            );
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $groupId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_bind_result($stmt, $value);
+                if (mysqli_stmt_fetch($stmt)) {
+                    $organizationId = (int)$value;
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        if ($organizationId === 0) {
+            $stmt = mysqli_prepare(
+                $link,
+                "SELECT organization_id
+                 FROM bridge_characters_organizations
+                 WHERE character_id = ? AND is_active = 1
+                 ORDER BY updated_at DESC, created_at DESC, organization_id DESC
+                 LIMIT 1"
+            );
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $characterId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_bind_result($stmt, $value);
+                if (mysqli_stmt_fetch($stmt)) {
+                    $organizationId = (int)$value;
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        if ($organizationId === 0 && $groupId > 0 && hg_characters_has_column($link, 'dim_groups', 'clan')) {
+            $stmt = mysqli_prepare(
+                $link,
+                "SELECT c.id
+                 FROM dim_organizations c
+                 JOIN dim_groups m ON m.clan = c.name
+                 WHERE m.id = ? LIMIT 1"
+            );
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $groupId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_bind_result($stmt, $value);
+                if (mysqli_stmt_fetch($stmt)) {
+                    $organizationId = (int)$value;
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        if ($organizationId === 0 && hg_characters_has_column($link, 'fact_characters', 'clan')) {
+            $stmt = mysqli_prepare($link, 'SELECT clan FROM fact_characters WHERE id = ? LIMIT 1');
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $characterId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_bind_result($stmt, $value);
+                if (mysqli_stmt_fetch($stmt)) {
+                    $organizationId = (int)$value;
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        return ['group_id' => $groupId, 'organization_id' => $organizationId];
+    }
+}
+
+if (!function_exists('hg_characters_fetch_birth_event')) {
+    function hg_characters_fetch_birth_event(mysqli $link, int $characterId): array
+    {
+        $fallback = [
+            'event_date' => '',
+            'date_precision' => 'unknown',
+            'date_note' => '',
+        ];
+        if ($characterId <= 0
+            || !hg_characters_table_exists($link, 'fact_timeline_events')
+            || !hg_characters_table_exists($link, 'bridge_timeline_events_characters')) {
+            return $fallback;
+        }
+
+        $hasTypeTable = hg_characters_table_exists($link, 'dim_timeline_events_types');
+        $hasEventTypeId = hg_characters_has_column($link, 'fact_timeline_events', 'event_type_id');
+        $hasKind = hg_characters_has_column($link, 'fact_timeline_events', 'kind');
+        $hasPretty = hg_characters_has_column($link, 'fact_timeline_events', 'pretty_id');
+        $hasPrecision = hg_characters_has_column($link, 'fact_timeline_events', 'date_precision');
+        $hasNote = hg_characters_has_column($link, 'fact_timeline_events', 'date_note');
+        $hasSortDate = hg_characters_has_column($link, 'fact_timeline_events', 'sort_date');
+        $hasActive = hg_characters_has_column($link, 'fact_timeline_events', 'is_active');
+
+        $precisionExpr = $hasPrecision ? 'e.date_precision' : "'day'";
+        $noteExpr = $hasNote ? 'e.date_note' : 'NULL';
+        $sortDateExpr = $hasSortDate ? 'COALESCE(e.sort_date, e.event_date)' : 'e.event_date';
+        $joinTypes = ($hasTypeTable && $hasEventTypeId)
+            ? 'LEFT JOIN dim_timeline_events_types tet ON tet.id = e.event_type_id'
+            : '';
+        $activeCond = $hasActive ? 'AND e.is_active = 1' : '';
+        $prettyIdSql = "'birthday-char-{$characterId}'";
+
+        $whereParts = [];
+        if ($hasPretty) {
+            $whereParts[] = 'e.pretty_id = ' . $prettyIdSql;
+        }
+        if ($hasTypeTable && $hasEventTypeId) {
+            $whereParts[] = "tet.pretty_id = 'nacimiento'";
+        }
+        if ($hasKind) {
+            $whereParts[] = "e.kind = 'nacimiento'";
+        }
+        if (empty($whereParts)) {
+            return $fallback;
+        }
+
+        $rankExpr = '9';
+        if ($hasPretty && $hasTypeTable && $hasEventTypeId && $hasKind) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 WHEN tet.pretty_id = 'nacimiento' THEN 1 WHEN e.kind = 'nacimiento' THEN 2 ELSE 9 END";
+        } elseif ($hasPretty && $hasTypeTable && $hasEventTypeId) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 WHEN tet.pretty_id = 'nacimiento' THEN 1 ELSE 9 END";
+        } elseif ($hasPretty && $hasKind) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 WHEN e.kind = 'nacimiento' THEN 1 ELSE 9 END";
+        } elseif ($hasPretty) {
+            $rankExpr = "CASE WHEN e.pretty_id = {$prettyIdSql} THEN 0 ELSE 9 END";
+        } elseif ($hasTypeTable && $hasEventTypeId && $hasKind) {
+            $rankExpr = "CASE WHEN tet.pretty_id = 'nacimiento' THEN 0 WHEN e.kind = 'nacimiento' THEN 1 ELSE 9 END";
+        } elseif ($hasTypeTable && $hasEventTypeId) {
+            $rankExpr = "CASE WHEN tet.pretty_id = 'nacimiento' THEN 0 ELSE 9 END";
+        } elseif ($hasKind) {
+            $rankExpr = "CASE WHEN e.kind = 'nacimiento' THEN 0 ELSE 9 END";
+        }
+
+        $sql = "
+            SELECT e.event_date, {$precisionExpr} AS date_precision, {$noteExpr} AS date_note
+            FROM fact_timeline_events e
+            LEFT JOIN bridge_timeline_events_characters bec ON bec.event_id = e.id
+            {$joinTypes}
+            WHERE (bec.character_id = ?" . ($hasPretty ? ' OR e.pretty_id = ' . $prettyIdSql : '') . ")
+              {$activeCond}
+              AND (" . implode(' OR ', $whereParts) . ")
+            ORDER BY {$rankExpr} ASC, {$sortDateExpr} ASC, e.id ASC
+            LIMIT 1
+        ";
+
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) {
+            return $fallback;
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $characterId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) {
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+
+        if (!$row) {
+            return $fallback;
+        }
+        return [
+            'event_date' => (string)($row['event_date'] ?? ''),
+            'date_precision' => (string)($row['date_precision'] ?? 'unknown'),
+            'date_note' => (string)($row['date_note'] ?? ''),
+        ];
+    }
+}
+
+if (!function_exists('hg_characters_fetch_sheet_skills')) {
+    function hg_characters_fetch_sheet_skills(mysqli $link, int $characterId, int $systemId): array
+    {
+        $data = ['primary' => [], 'secondary' => []];
+        if ($characterId <= 0 || $systemId <= 0) {
+            return $data;
+        }
+
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT t.id, t.name, t.kind, t.classification, s.sort_order, COALESCE(b.value, 0) AS value
+             FROM fact_trait_sets s
+             INNER JOIN dim_traits t ON t.id = s.trait_id
+             LEFT JOIN bridge_characters_traits b ON b.trait_id = t.id AND b.character_id = ?
+             WHERE s.system_id = ? AND s.is_active = 1
+             ORDER BY s.sort_order ASC, t.name ASC"
+        );
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 'ii', $characterId, $systemId);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            if ($result) {
+                while ($row = mysqli_fetch_assoc($result)) {
+                    $data['primary'][] = $row;
+                }
+                mysqli_free_result($result);
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT t.id, t.name, t.kind, t.classification, COALESCE(b.value, 0) AS value
+             FROM bridge_characters_traits b
+             INNER JOIN dim_traits t ON t.id = b.trait_id
+             WHERE b.character_id = ?
+               AND b.value > 0
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM fact_trait_sets s
+                   WHERE s.system_id = ?
+                     AND s.trait_id = t.id
+                     AND s.is_active = 1
+               )
+             ORDER BY t.name ASC"
+        );
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 'ii', $characterId, $systemId);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            if ($result) {
+                while ($row = mysqli_fetch_assoc($result)) {
+                    $data['secondary'][] = $row;
+                }
+                mysqli_free_result($result);
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        return $data;
+    }
+}
