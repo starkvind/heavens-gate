@@ -73,7 +73,7 @@ if (!function_exists('hg_documents_fetch_catalog')) {
 }
 
 if (!function_exists('hg_documents_fetch_detail')) {
-    function hg_documents_fetch_detail(mysqli $link, int $documentId): ?array
+    function hg_documents_fetch_detail(mysqli $link, int $documentId)
     {
         if ($documentId <= 0) return null;
 
@@ -84,17 +84,17 @@ if (!function_exists('hg_documents_fetch_detail')) {
              LEFT JOIN dim_doc_categories d ON d.id = dz.section_id
              WHERE dz.id = ? LIMIT 1"
         );
-        if (!$stmt) return null;
+        if (!$stmt) return false;
 
         mysqli_stmt_bind_param($stmt, 'i', $documentId);
         if (!mysqli_stmt_execute($stmt)) {
             mysqli_stmt_close($stmt);
-            return null;
+            return false;
         }
         $result = mysqli_stmt_get_result($stmt);
         if (!$result) {
             mysqli_stmt_close($stmt);
-            return null;
+            return false;
         }
         $row = mysqli_fetch_assoc($result) ?: null;
         mysqli_free_result($result);
