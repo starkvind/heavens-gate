@@ -1,5 +1,6 @@
 <?php
 include_once(__DIR__ . '/../helpers/runtime_response.php');
+require_once(__DIR__ . '/../domains/soundtracks/queries.php');
 
 function mostrarTarjetaBSO($link, $tipo, $id) {
 	if (!in_array($tipo, ['personaje', 'temporada', 'episodio'], true)) return;
@@ -8,27 +9,15 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 		hg_page_register_stylesheet('/assets/css/hg-bso.css');
 	}
 
-	$queryBso = "
-		SELECT bs.context_title, bs.title AS titulo_real, bs.artist, bs.youtube_url AS enlace
-		FROM bridge_soundtrack_links br
-		JOIN dim_soundtracks bs ON bs.id = br.soundtrack_id
-		WHERE br.object_type = ? AND br.object_id = ?
-		ORDER BY bs.added_at DESC
-	";
-
-	$stmt = $link->prepare($queryBso);
-	if (!$stmt) {
-		hg_runtime_log_error('snippet_bso_card.prepare', $link->error);
+	$id = (int)$id;
+	$rows = hg_soundtracks_fetch_for_object($link, $tipo, $id);
+	if ($rows === null) {
+		hg_runtime_log_error('snippet_bso_card.query', mysqli_error($link));
 		return;
 	}
 
-	$id = (int)$id;
-	$stmt->bind_param('si', $tipo, $id);
-	$stmt->execute();
-	$result = $stmt->get_result();
 	$tracks = [];
-
-	while ($result && ($tema = $result->fetch_assoc())) {
+	foreach ($rows as $tema) {
 		$youtubeID = '';
 		$url = (string)($tema['enlace'] ?? '');
 		if (preg_match('%(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?v=|embed/|shorts/))([^&\n?#/]+)%i', $url, $matches)) {
@@ -43,7 +32,6 @@ function mostrarTarjetaBSO($link, $tipo, $id) {
 			'artist' => trim((string)($tema['artist'] ?? '')),
 		];
 	}
-	$stmt->close();
 
 	if (empty($tracks)) return;
 
