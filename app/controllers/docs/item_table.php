@@ -1,34 +1,11 @@
 <?php
 if (function_exists("setMetaFromPage")) setMetaFromPage("Inventario | Heaven's Gate", "Listado de objetos y artefactos.", null, 'website');
+require_once(__DIR__ . '/../../domains/inventory/queries.php');
 if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 
-// Cargar inventario con la query indicada
-$query = "
-	SELECT
-		no2.id as item_id,
-		no2.pretty_id as item_pretty_id,
-		no2.name as item_name,
-		no2.image_url as item_img,
-		nto.name as item_category,
-		nto.pretty_id as item_type_pretty,
-		nto.id as item_type_id,
-		COALESCE(nb.name, '') as item_origin
-	FROM fact_items no2
-		left join dim_item_types nto on no2.item_type_id = nto.id 
-		left join dim_bibliographies nb on no2.bibliography_id = nb.id
-	order by
-		nto.name ASC,
-		no2.name ASC
-";
-$result = mysqli_query($link, $query);
-
-$items = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$items[] = $row;
-}
-mysqli_free_result($result);
+$items = hg_inventory_fetch_catalog($link) ?? [];
 
 function ensure_utf8($value) {
     if (is_string($value)) {
