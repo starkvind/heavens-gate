@@ -28,6 +28,7 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/partials/bio/bio_page_section_09_conditions.php',
         ROOT / 'app/partials/bio/bio_page_section_11_power.php',
         ROOT / 'app/partials/bio/bio_page_section_13_items.php',
+        ROOT / 'app/partials/bio/bio_page_section_19_participation.php',
     ],
 }
 
