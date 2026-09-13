@@ -34,6 +34,10 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/docs/docs_table.php',
         ROOT / 'app/controllers/docs/docs_page.php',
     ],
+    'inventory': [
+        ROOT / 'app/controllers/docs/item_list.php',
+        ROOT / 'app/controllers/docs/item_page.php',
+    ],
     'soundtracks': [
         ROOT / 'app/partials/snippet_bso_card.php',
     ],
