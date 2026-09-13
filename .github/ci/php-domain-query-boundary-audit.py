@@ -30,6 +30,9 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/partials/bio/bio_page_section_13_items.php',
         ROOT / 'app/partials/bio/bio_page_section_19_participation.php',
     ],
+    'soundtracks': [
+        ROOT / 'app/partials/snippet_bso_card.php',
+    ],
 }
 
 QUERY_CALLS = [
