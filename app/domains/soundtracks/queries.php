@@ -1,7 +1,7 @@
 <?php
 
 if (!function_exists('hg_soundtracks_fetch_for_object')) {
-    function hg_soundtracks_fetch_for_object(mysqli $link, string $objectType, int $objectId): array
+    function hg_soundtracks_fetch_for_object(mysqli $link, string $objectType, int $objectId): ?array
     {
         if ($objectId <= 0 || !in_array($objectType, ['personaje', 'temporada', 'episodio'], true)) {
             return [];
@@ -16,23 +16,26 @@ if (!function_exists('hg_soundtracks_fetch_for_object')) {
              ORDER BY bs.added_at DESC"
         );
         if (!$stmt) {
-            return [];
+            return null;
         }
 
         mysqli_stmt_bind_param($stmt, 'si', $objectType, $objectId);
         if (!mysqli_stmt_execute($stmt)) {
             mysqli_stmt_close($stmt);
-            return [];
+            return null;
         }
 
         $result = mysqli_stmt_get_result($stmt);
-        $rows = [];
-        if ($result) {
-            while ($row = mysqli_fetch_assoc($result)) {
-                $rows[] = $row;
-            }
-            mysqli_free_result($result);
+        if (!$result) {
+            mysqli_stmt_close($stmt);
+            return null;
         }
+
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rows[] = $row;
+        }
+        mysqli_free_result($result);
         mysqli_stmt_close($stmt);
 
         return $rows;
