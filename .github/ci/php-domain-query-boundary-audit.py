@@ -35,6 +35,7 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/docs/docs_page.php',
     ],
     'inventory': [
+        ROOT / 'app/controllers/docs/item_table.php',
         ROOT / 'app/controllers/docs/item_list.php',
         ROOT / 'app/controllers/docs/item_page.php',
     ],
