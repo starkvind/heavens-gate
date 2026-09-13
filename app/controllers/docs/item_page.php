@@ -1,20 +1,13 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/inventory/queries.php');
 
 $itemPageID = hg_request_param($hgRequest, 'item');
 $itemId = (int)$itemPageID;
-
-// Preparamos la consulta para evitar inyecciones SQL
-$queryItem = "SELECT * FROM fact_items WHERE id = ? LIMIT 1;";
-$stmt = $link->prepare($queryItem);
-$stmt->bind_param('s', $itemPageID);
-$stmt->execute();
-$result = $stmt->get_result();
-$rowsQueryItem = $result->num_rows;
+$resultQueryItem = hg_inventory_fetch_item($link, $itemId);
 
 // ================================================================== //
-if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
-    $resultQueryItem = $result->fetch_assoc();
+if ($resultQueryItem) { // Si encontramos el Objeto en la BDD...
 
     // ================================================================== //
     // DATOS BÁSICOS
@@ -33,40 +26,13 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     $itemImg    = htmlspecialchars($resultQueryItem["image_url"]);
     $itemInfo   = ($resultQueryItem["description"]);
     $itemOrig   = (int)$resultQueryItem["bibliography_id"];
+    $itemOriginName = htmlspecialchars((string)($resultQueryItem['bibliography_name'] ?? '-'));
+    if ($itemOriginName === '') $itemOriginName = '-';
     
     // ================================================================== //
-    // SELECCIONAR ORIGEN
-    $itemOriginName = "-"; // Valor predeterminado si no se encuentra
-    if ($itemOrig != 0) {
-        $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1;";
-        $stmtOrigin = $link->prepare($queryOrigen);
-        $stmtOrigin->bind_param('i', $itemOrig);
-        $stmtOrigin->execute();
-        $resultOrigin = $stmtOrigin->get_result();
-        if ($resultOrigin->num_rows > 0) {
-            $resultQueryOrigen = $resultOrigin->fetch_assoc();
-            $itemOriginName = htmlspecialchars($resultQueryOrigen["name"]);
-        }
-        $stmtOrigin->close();
-    }
-
-    // ================================================================== //
     // Preparar Tipo (preferir dim_item_types)
-    $nameTypeItem = "";
-    $nameTypeBack = "";
-    if ($itemType > 0) {
-        $stType = $link->prepare("SELECT name FROM dim_item_types WHERE id = ? LIMIT 1");
-        if ($stType) {
-            $stType->bind_param('i', $itemType);
-            $stType->execute();
-            $rsType = $stType->get_result();
-            if ($rsType && ($rowType = $rsType->fetch_assoc())) {
-                $nameTypeItem = (string)$rowType['name'];
-                $nameTypeBack = (string)$rowType['name'];
-            }
-            $stType->close();
-        }
-    }
+    $nameTypeItem = trim((string)($resultQueryItem['item_type_name'] ?? ''));
+    $nameTypeBack = $nameTypeItem;
     if ($nameTypeItem === "") {
         switch ($itemType) {
             case 1:
@@ -213,46 +179,8 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
 
     // ================================================================== //
     // Portadores
-    $itemOwners = [];
-    if (!function_exists('sanitize_int_csv')) {
-        function sanitize_int_csv($csv){
-            $csv = (string)$csv;
-            if (trim($csv) === '') return '';
-            $parts = preg_split('/\s*,\s*/', trim($csv));
-            $ints = [];
-            foreach ($parts as $p) {
-                if ($p === '') continue;
-                if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-            }
-            $ints = array_values(array_unique($ints));
-            return implode(',', $ints);
-        }
-    }
-    $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
-    $characterKindSql = hg_character_kind_select($link, 'p');
-    $queryOwners = "
-        SELECT
-            p.id,
-            p.name,
-            p.alias,
-            p.image_url,
-            p.gender,
-            COALESCE(dcs.label, '') AS status, p.status_id,
-            {$characterKindSql} AS character_kind
-        FROM bridge_characters_items b
-        JOIN fact_characters p ON p.id = b.character_id
-        LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-        WHERE b.item_id = ? $cronicaNotInSQL
-        ORDER BY p.name
-    ";
-    if ($stOwners = $link->prepare($queryOwners)) {
-        $stOwners->bind_param('i', $itemPageID);
-        $stOwners->execute();
-        $rsOwners = $stOwners->get_result();
-        while ($r = $rsOwners->fetch_assoc()) { $itemOwners[] = $r; }
-        $stOwners->close();
-    }
+    $excludeChroniclesValue = isset($excludeChronicles) ? $excludeChronicles : '';
+    $itemOwners = hg_inventory_fetch_owners($link, (int)$itemPageID, $excludeChroniclesValue);
     $hasOwners = count($itemOwners) > 0;
 
     if ($hasOwners) {
@@ -292,8 +220,6 @@ if ($rowsQueryItem > 0) { // Si encontramos el Objeto en la BDD...
     }
     /* =========== */
 } // Fin comprobación
-
-$stmt->close();
 
 ?>
 
