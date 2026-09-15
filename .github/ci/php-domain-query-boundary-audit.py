@@ -75,6 +75,7 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/pwrs/disc_table.php',
         ROOT / 'app/controllers/pwrs/disc_full_list.php',
         ROOT / 'app/controllers/pwrs/disc_custom_list.php',
+        ROOT / 'app/mobile/controllers/powers.php',
     ],
 }
 
