@@ -86,7 +86,24 @@ if (function_exists('hg_page_register_stylesheet')) {
 					<th>Origen</th>
 				</tr>
 			</thead>
-			<tbody></tbody>
+			<tbody>
+			<?php foreach ($items as $i):
+				$itemSlug = $i['item_pretty_id'] ?: $i['item_id'];
+				$typeSlug = $i['item_type_pretty'] ?: ($i['item_type_id'] ?: 'tipo');
+				$itemName = (string)($i['item_name'] ?? '');
+				$imgSrc = !empty($i['item_img']) ? (string)$i['item_img'] : '/img/inv/no-photo.webp';
+				$category = trim((string)($i['item_category'] ?? ''));
+				$origin = trim((string)($i['item_origin'] ?? ''));
+				if ($category === '') $category = '-';
+				if ($origin === '') $origin = '-';
+			?>
+				<tr>
+					<td><span class="hg-inventory-item-cell"><span class="hg-inventory-item-icon"><img src="<?= htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($itemName, ENT_QUOTES, 'UTF-8') ?>" class="hg-inventory-item-thumb"></span><a href="/inventory/<?= htmlspecialchars((string)$typeSlug, ENT_QUOTES, 'UTF-8') ?>/<?= htmlspecialchars((string)$itemSlug, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($itemName, ENT_QUOTES, 'UTF-8') ?></a></span></td>
+					<td><?= htmlspecialchars($category, ENT_QUOTES, 'UTF-8') ?></td>
+					<td><?= htmlspecialchars($origin, ENT_QUOTES, 'UTF-8') ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
 		</table>
 	</div>
 </div>
@@ -94,32 +111,6 @@ if (function_exists('hg_page_register_stylesheet')) {
 <script>
 $(document).ready(function () {
 	const items = <?= json_encode($items, JSON_UNESCAPED_UNICODE) ?>;
-	const tbody = $('#tabla-inventario tbody');
-	const rows = items.map(i => {
-		const itemSlug = i.item_pretty_id || i.item_id;
-		const typeSlug = i.item_type_pretty || i.item_type_id || 'tipo';
-		const nombre = `<a href="/inventory/${escapeHtml(typeSlug)}/${escapeHtml(itemSlug)}">${escapeHtml(i.item_name)}</a>`;
-		const imgSrc = i.item_img ? i.item_img : '/img/inv/no-photo.webp';
-		const img = `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(i.item_name)}" class="hg-inventory-item-thumb">`;
-		const categoria = i.item_category ? escapeHtml(i.item_category) : '-';
-		const origen = i.item_origin ? escapeHtml(i.item_origin) : '-';
-
-		return `<tr>
-			<td><span class="hg-inventory-item-cell"><span class="hg-inventory-item-icon">${img}</span>${nombre}</span></td>
-			<td>${categoria}</td>
-			<td>${origen}</td>
-		</tr>`;
-	}).join('');
-
-	tbody.addClass('hg-inventory-thumbs-pending').html(rows);
-	const thumbnails = tbody.find('.hg-inventory-item-thumb').toArray();
-	Promise.all(thumbnails.map(img => {
-		if (img.complete) return Promise.resolve();
-		return new Promise(resolve => {
-			img.addEventListener('load', resolve, { once: true });
-			img.addEventListener('error', resolve, { once: true });
-		});
-	})).then(() => tbody.removeClass('hg-inventory-thumbs-pending'));
 
 	const dt = $('#tabla-inventario').DataTable({
 		pageLength: 25,
