@@ -35,6 +35,106 @@ function hg_powers_column_exists(mysqli $link, string $table, string $column): b
     return $cache[$key] = $exists;
 }
 
+function hg_powers_gift_rules_column(mysqli $link): string
+{
+    return hg_powers_column_exists($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+}
+
+function hg_powers_fetch_catalog(mysqli $link, string $kind)
+{
+    if ($kind === 'gifts') {
+        $rulesCol = hg_powers_gift_rules_column($link);
+        $sql = "SELECT
+                    d.id AS gift_id,
+                    d.pretty_id AS gift_pretty_id,
+                    d.name AS gift_name,
+                    ntd.name AS gift_type,
+                    d.gift_group AS gift_category,
+                    d.rank AS gift_level,
+                    d.attribute_name AS gift_roll_attribute,
+                    d.ability_name AS gift_roll_skill,
+                    d.description AS gift_description,
+                    d.`$rulesCol` AS gift_roll_description,
+                    s.name AS gift_fera_system,
+                    d.system_id AS gift_system_id,
+                    nb.name AS gift_origin
+                FROM fact_gifts d
+                LEFT JOIN dim_gift_types ntd ON d.kind = ntd.id
+                LEFT JOIN dim_bibliographies nb ON d.bibliography_id = nb.id
+                LEFT JOIN dim_systems s ON d.system_id = s.id
+                ORDER BY d.bibliography_id, d.rank, d.name";
+    } elseif ($kind === 'rites') {
+        $sql = "SELECT
+                    nr.id AS ritual_id,
+                    nr.pretty_id AS ritual_pretty_id,
+                    nr.name AS ritual_name,
+                    CONCAT(
+                        'Rito',
+                        CASE WHEN ntr.determinant <> '' THEN CONCAT(' ', ntr.determinant) ELSE '' END,
+                        ' ', ntr.name
+                    ) AS ritual_type,
+                    nr.level AS ritual_level,
+                    nr.race AS ritual_species,
+                    nr.description AS ritual_description,
+                    nr.system_text AS ritual_roll_description,
+                    s.name AS ritual_fera_system,
+                    nr.system_id AS ritual_system_id,
+                    nb.name AS ritual_origin
+                FROM fact_rites nr
+                LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id
+                LEFT JOIN dim_bibliographies nb ON nr.bibliography_id = nb.id
+                LEFT JOIN dim_systems s ON nr.system_id = s.id
+                ORDER BY nr.bibliography_id, nr.level, nr.name";
+    } elseif ($kind === 'totems') {
+        $sql = "SELECT
+                    t.id AS totem_id,
+                    t.pretty_id AS totem_pretty_id,
+                    t.name AS totem_name,
+                    CONCAT(
+                        'Tótem',
+                        CASE WHEN tt.determinant <> '' THEN CONCAT(' ', tt.determinant) ELSE '' END,
+                        ' ', tt.name
+                    ) AS totem_type,
+                    t.cost AS totem_cost,
+                    t.description AS totem_description,
+                    t.traits AS totem_traits,
+                    t.prohibited AS totem_prohibited,
+                    t.image_url AS totem_image_url,
+                    b.name AS totem_origin
+                FROM dim_totems t
+                LEFT JOIN dim_totem_types tt ON t.totem_type_id = tt.id
+                LEFT JOIN dim_bibliographies b ON t.bibliography_id = b.id
+                ORDER BY t.bibliography_id, t.cost, t.name";
+    } elseif ($kind === 'disciplines') {
+        $sql = "SELECT
+                    d.id AS disc_id,
+                    d.pretty_id AS disc_pretty_id,
+                    d.name AS disc_name,
+                    ddt.name AS disc_type,
+                    d.level AS disc_level,
+                    d.attribute AS disc_roll_attribute,
+                    d.skill AS disc_roll_skill,
+                    d.description AS disc_description,
+                    d.system_name AS disc_system_name,
+                    d.image_url AS disc_image_url,
+                    nb.name AS disc_origin
+                FROM fact_discipline_powers d
+                LEFT JOIN dim_discipline_types ddt ON d.disc = ddt.id
+                LEFT JOIN dim_bibliographies nb ON d.bibliography_id = nb.id
+                ORDER BY d.bibliography_id, d.disc, d.level, d.name";
+    } else {
+        return [];
+    }
+
+    $rs = $link->query($sql);
+    if (!$rs) return false;
+
+    $rows = [];
+    while ($row = $rs->fetch_assoc()) $rows[] = $row;
+    $rs->free();
+    return $rows;
+}
+
 function hg_powers_type_definition(string $kind): ?array
 {
     $map = [
@@ -142,7 +242,7 @@ function hg_powers_fetch_disciplines_for_type(mysqli $link, int $typeId)
 function hg_powers_fetch_gift(mysqli $link, int $giftId)
 {
     if ($giftId <= 0) return null;
-    $rulesCol = hg_powers_column_exists($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+    $rulesCol = hg_powers_gift_rules_column($link);
     $legacySystemCol = hg_powers_column_exists($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
     $sql = "SELECT g.*, s.name AS resolved_system_name, gt.name AS type_name, b.name AS origin_name,
                    g.`$rulesCol` AS mechanics_resolved, g.`$legacySystemCol` AS legacy_system_name
