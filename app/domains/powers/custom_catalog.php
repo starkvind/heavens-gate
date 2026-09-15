@@ -2,22 +2,27 @@
 
 require_once __DIR__ . '/queries.php';
 
-if (!function_exists('hg_power_custom_fetch_rows')) {
-    function hg_power_custom_fetch_rows(mysqli $link, string $query): array
+if (!function_exists('hg_power_custom_build_items')) {
+    function hg_power_custom_build_items(mysqli $link, array $config): array
     {
-        if (strpos($query, 'fact_gifts') !== false) {
-            $rows = hg_powers_fetch_catalog($link, 'gifts');
-        } elseif (strpos($query, 'fact_rites') !== false) {
-            $rows = hg_powers_fetch_catalog($link, 'rites');
-        } elseif (strpos($query, 'dim_totems') !== false) {
-            $rows = hg_powers_fetch_catalog($link, 'totems');
-        } elseif (strpos($query, 'fact_discipline_powers') !== false) {
-            $rows = hg_powers_fetch_catalog($link, 'disciplines');
-        } else {
-            $rows = [];
+        $kind = (string)($config['kind'] ?? '');
+        $rows = hg_powers_fetch_catalog($link, $kind);
+        if (!is_array($rows)) return [];
+
+        $mapper = $config['map_row'] ?? null;
+        $items = [];
+        foreach ($rows as $row) {
+            $item = is_callable($mapper) ? $mapper($row, $link) : $row;
+            if (!is_array($item)) continue;
+
+            $item = hg_power_custom_ensure_utf8($item);
+            $item['fields'] = is_array($item['fields'] ?? null) ? $item['fields'] : [];
+            $item['chips'] = is_array($item['chips'] ?? null) ? $item['chips'] : [];
+            $item['sections'] = is_array($item['sections'] ?? null) ? $item['sections'] : [];
+            $items[] = $item;
         }
 
-        return is_array($rows) ? $rows : [];
+        return $items;
     }
 }
 
