@@ -1,225 +1,52 @@
 <?php
+require_once __DIR__ . '/../../domains/rules/queries.php';
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+
 $archeRaw = hg_request_param($hgRequest, 'archetype');
-$archeId = resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0;
-
-$queryArche = "SELECT * FROM dim_archetypes WHERE id = ? LIMIT 1";
-$stmtArche = $link->prepare($queryArche);
-
-if (!$stmtArche || $archeId <= 0) {
-    echo "No se encontraron resultados para la busqueda.";
+$archeId = (int)(resolve_pretty_id($link, 'dim_archetypes', (string)$archeRaw) ?? 0);
+$archetype = $archeId > 0 ? hg_rules_fetch_archetype($link, $archeId) : null;
+if (!$archetype) {
+    echo 'No se encontraron resultados para la busqueda.';
     return;
 }
 
-$stmtArche->bind_param('i', $archeId);
-$stmtArche->execute();
-$resultArche = $stmtArche->get_result();
-
-if (!$resultArche || $resultArche->num_rows <= 0) {
-    echo "No se encontraron resultados para la busqueda.";
-    $stmtArche->close();
-    return;
-}
-
-$resultQueryArche = $resultArche->fetch_assoc();
-
-$archeName = htmlspecialchars((string)$resultQueryArche['name']);
-$archeDesc = (string)($resultQueryArche['description'] ?? '');
-$archeWill = (string)($resultQueryArche['willpower_text'] ?? '');
-$archeOrig = (int)($resultQueryArche['bibliography_id'] ?? 0);
-
-$archeOrigName = '-';
-if ($archeOrig > 0) {
-    $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
-    if ($stmtOrigen = $link->prepare($queryOrigen)) {
-        $stmtOrigen->bind_param('i', $archeOrig);
-        $stmtOrigen->execute();
-        $resultOrigen = $stmtOrigen->get_result();
-        if ($resultOrigen && ($rowOrigen = $resultOrigen->fetch_assoc())) {
-            $archeOrigName = htmlspecialchars((string)$rowOrigen['name']);
-        }
-        $stmtOrigen->close();
-    }
-}
+$archeName = htmlspecialchars((string)$archetype['name']);
+$archeDesc = (string)($archetype['description'] ?? '');
+$archeWill = (string)($archetype['willpower_text'] ?? '');
+$archeOrigName = htmlspecialchars((string)($archetype['origin_name'] ?? '-'));
+if ($archeOrigName === '') $archeOrigName = '-';
 
 $pageSect = 'Arquetipo';
 $pageTitle2 = $archeName;
 setMetaFromPage($archeName . " | Arquetipos | Heaven's Gate", meta_excerpt($archeDesc), null, 'article');
 include("app/partials/main_nav_bar.php");
-if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-docs.css');
-} else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-docs.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
-    }
-}
+if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-docs.css');
+else echo '<link rel="stylesheet" href="/assets/css/hg-docs.css">';
 
 $itemImg = 'img/inv/no-photo.webp';
-
 ob_start();
-
-echo "<div class='power-card power-card--item'>";
-echo "  <div class='power-card__banner'>";
-echo "    <span class='power-card__title'>{$archeName}</span>";
-echo "  </div>";
-
-echo "    <div class='power-card__body'>";
-echo "    <div class='power-card__media'>";
-echo "      <div class='power-card__img-wrap'>";
-echo "        <img class='power-card__img' src='" . htmlspecialchars($itemImg) . "' alt='{$archeName}'/>";
-echo "      </div>";
-echo "    </div>";
-
-echo "    <div class='power-card__stats'>";
-echo "      <div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$archeOrigName}</div></div>";
-echo "    </div>";
-echo "  </div>";
-
-if ($archeDesc !== '') {
-    echo "  <div class='power-card__desc'>";
-    echo "    <div class='power-card__desc-title'>Descripción</div>";
-    echo "    <div class='power-card__desc-body'>{$archeDesc}</div>";
-    echo "  </div>";
-}
-if ($archeWill !== '') {
-    echo "  <div class='power-card__desc'>";
-    echo "    <div class='power-card__desc-title'>Fuerza de Voluntad</div>";
-    echo "    <div class='power-card__desc-body'>" . ($archeWill) . "</div>";
-    echo "  </div>";
-}
-
-echo "</div>";
-
+echo "<div class='power-card power-card--item'><div class='power-card__banner'><span class='power-card__title'>{$archeName}</span></div><div class='power-card__body'><div class='power-card__media'><div class='power-card__img-wrap'><img class='power-card__img' src='" . htmlspecialchars($itemImg) . "' alt='{$archeName}'/></div></div><div class='power-card__stats'><div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$archeOrigName}</div></div></div></div>";
+if ($archeDesc !== '') echo "<div class='power-card__desc'><div class='power-card__desc-title'>Descripción</div><div class='power-card__desc-body'>{$archeDesc}</div></div>";
+if ($archeWill !== '') echo "<div class='power-card__desc'><div class='power-card__desc-title'>Fuerza de Voluntad</div><div class='power-card__desc-body'>{$archeWill}</div></div>";
+echo '</div>';
 $infoHtml = ob_get_clean();
 
-if (!function_exists('sanitize_int_csv')) {
-    function sanitize_int_csv($csv){
-        $csv = (string)$csv;
-        if (trim($csv) === '') return '';
-        $parts = preg_split('/\s*,\s*/', trim($csv));
-        $ints = [];
-        foreach ($parts as $p) {
-            if ($p === '') continue;
-            if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
+$excludeChronicles = isset($excludeChronicles) ? hg_rules_normalize_int_csv($excludeChronicles) : '';
+$natureOwners = hg_rules_fetch_archetype_owners($link, $archeId, 'nature', $excludeChronicles);
+$demeanorOwners = hg_rules_fetch_archetype_owners($link, $archeId, 'demeanor', $excludeChronicles);
+
+if ($natureOwners || $demeanorOwners) {
+    echo "<div class='hg-tabs'><button class='hgTabBtn' data-tab='info'>Información</button><button class='hgTabBtn' data-tab='owners'>Portadores</button></div>";
+    echo "<section class='hg-tab-panel' data-tab='info'>{$infoHtml}</section><section class='hg-tab-panel' data-tab='owners'>";
+    foreach ([['Naturaleza',$natureOwners],['Conducta',$demeanorOwners]] as [$label,$owners]) {
+        if (!$owners) continue;
+        echo "<div class='owners-section-title'>{$label}</div><div class='grupoBioClan'><div class='contenidoAfiliacion'>";
+        foreach ($owners as $o) {
+            $oid=(int)($o['id']??0);$name=(string)($o['name']??'');$href=pretty_url($link,'fact_characters','/characters',$oid);
+            hg_render_character_avatar_tile(['href'=>$href,'title'=>$name,'name'=>$name,'alias'=>(string)($o['alias']??''),'character_id'=>$oid,'image_url'=>(string)($o['image_url']??''),'gender'=>(string)($o['gender']??''),'status'=>(string)($o['status']??''),'character_kind'=>hg_character_kind_from_row($o),'target_blank'=>true]);
         }
-        $ints = array_values(array_unique($ints));
-        return implode(',', $ints);
+        echo '</div></div><p align="right">Personajes (' . $label . '): ' . count($owners) . '</p>';
     }
-}
-
-$excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-$chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
-
-$natureOwners = [];
-$demeanorOwners = [];
-
-$characterKindSql = hg_character_kind_select($link, 'p');
-$queryOwnersNature = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind
-    FROM fact_characters p
-    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-    WHERE p.nature_id = ? {$chronicleNotInSQL}
-    ORDER BY p.name
-";
-if ($stNature = $link->prepare($queryOwnersNature)) {
-    $stNature->bind_param('i', $archeId);
-    $stNature->execute();
-    $rsNature = $stNature->get_result();
-    while ($row = $rsNature->fetch_assoc()) {
-        $natureOwners[] = $row;
-    }
-    $stNature->close();
-}
-
-$queryOwnersDemeanor = "
-    SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind
-    FROM fact_characters p
-    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-    WHERE p.demeanor_id = ? {$chronicleNotInSQL}
-    ORDER BY p.name
-";
-if ($stDemeanor = $link->prepare($queryOwnersDemeanor)) {
-    $stDemeanor->bind_param('i', $archeId);
-    $stDemeanor->execute();
-    $rsDemeanor = $stDemeanor->get_result();
-    while ($row = $rsDemeanor->fetch_assoc()) {
-        $demeanorOwners[] = $row;
-    }
-    $stDemeanor->close();
-}
-
-$hasNature = count($natureOwners) > 0;
-$hasDemeanor = count($demeanorOwners) > 0;
-$hasOwnersTabs = $hasNature || $hasDemeanor;
-
-if ($hasOwnersTabs) {
-    echo "<div class='hg-tabs'>";
-    echo "<button class='hgTabBtn' data-tab='info'>Información</button>";
-    echo "<button class='hgTabBtn' data-tab='owners'>Portadores</button>";
-    echo "</div>";
-
-    echo "<section class='hg-tab-panel' data-tab='info'>{$infoHtml}</section>";
-
-    echo "<section class='hg-tab-panel' data-tab='owners'>";
-
-    if ($hasNature) {
-        echo "<div class='owners-section-title'>Naturaleza</div>";
-        echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
-        foreach ($natureOwners as $o) {
-            $oid = (int)($o['id'] ?? 0);
-            $name = (string)($o['name'] ?? '');
-            $alias = (string)($o['alias'] ?? '');
-            $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-            hg_render_character_avatar_tile([
-                'href' => $href,
-                'title' => $name,
-                'name' => $name,
-                'alias' => $alias,
-                'character_id' => $oid,
-                'image_url' => (string)($o['image_url'] ?? ''),
-                'gender' => (string)($o['gender'] ?? ''),
-                'status' => (string)($o['status'] ?? ''),
-                'character_kind' => hg_character_kind_from_row($o),
-                'target_blank' => true,
-            ]);
-        }
-        echo "</div></div>";
-        echo "<p align='right'>Personajes (Naturaleza): " . count($natureOwners) . "</p>";
-    }
-
-    if ($hasDemeanor) {
-        echo "<div class='owners-section-title'>Conducta</div>";
-        echo "<div class='grupoBioClan'><div class='contenidoAfiliacion'>";
-        foreach ($demeanorOwners as $o) {
-            $oid = (int)($o['id'] ?? 0);
-            $name = (string)($o['name'] ?? '');
-            $alias = (string)($o['alias'] ?? '');
-            $href = pretty_url($link, 'fact_characters', '/characters', $oid);
-            hg_render_character_avatar_tile([
-                'href' => $href,
-                'title' => $name,
-                'name' => $name,
-                'alias' => $alias,
-                'character_id' => $oid,
-                'image_url' => (string)($o['image_url'] ?? ''),
-                'gender' => (string)($o['gender'] ?? ''),
-                'status' => (string)($o['status'] ?? ''),
-                'character_kind' => hg_character_kind_from_row($o),
-                'target_blank' => true,
-            ]);
-        }
-        echo "</div></div>";
-        echo "<p align='right'>Personajes (Conducta): " . count($demeanorOwners) . "</p>";
-    }
-    echo "</section>";
-
-} else {
-    echo $infoHtml;
-}
-
-$stmtArche->close();
+    echo '</section>';
+} else echo $infoHtml;
 ?>
-
-
