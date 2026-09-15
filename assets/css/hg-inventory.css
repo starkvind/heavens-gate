@@ -45,6 +45,10 @@
     z-index: 1;
 }
 
+.hg-inventory-thumbs-pending .hg-inventory-item-thumb {
+    visibility: hidden;
+}
+
 .hg-inventory-item-icon--small,
 .hg-inventory-item-thumb--small {
     width: 16px;
@@ -79,6 +83,12 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 8px 0 12px;
+}
+
+.hg-inventory-group-content > a,
+.hg-inventory-group-content > a:visited {
+    color: inherit;
+    text-decoration: none;
 }
 
 .hg-inventory-list-card {
