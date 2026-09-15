@@ -1,0 +1,373 @@
+/* Powers export/catalog surfaces -------------------------------------------------
+ * Keep all export-oriented views inside the public Heaven's Gate theme instead
+ * of introducing a separate light application skin.
+ */
+
+.hg-power-export-bar {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0 16px;
+    padding: 8px 10px;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 6px;
+    background: var(--hg-field-bg);
+    color: var(--hg-text);
+    font-family: var(--hg-font-ui);
+}
+
+.hg-power-export-bar__label {
+    margin-right: 2px;
+    color: var(--hg-h3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.hg-power-export-bar__action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 9px;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-bg);
+    color: var(--hg-link);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.hg-power-export-bar__action:visited {
+    color: var(--hg-link);
+    border-color: var(--hg-field-border);
+}
+
+.hg-power-export-bar__action:hover,
+.hg-power-export-bar__action:focus-visible {
+    border-color: var(--hg-btn-accent-hover);
+    color: var(--hg-link-hover);
+    background: var(--hg-surface-raised);
+    text-decoration: none;
+}
+
+.hg-power-export-bar__action--primary,
+.hg-power-export-bar__action--primary:visited {
+    color: var(--hg-btn-accent);
+    border-color: var(--hg-border-strong);
+    background: var(--hg-surface-raised);
+}
+
+.hg-power-export-bar__hint {
+    flex: 1 1 240px;
+    color: var(--hg-info-link);
+    font-size: 10px;
+    opacity: .75;
+}
+
+/* Shared custom/full catalogue skin. */
+.hg-power-custom {
+    --hgpc-bg: var(--hg-bg);
+    --hgpc-surface: var(--hg-surface);
+    --hgpc-surface-soft: var(--hg-field-bg);
+    --hgpc-text: var(--hg-text);
+    --hgpc-muted: var(--hg-info-link);
+    --hgpc-line: var(--hg-field-border);
+    --hgpc-accent: var(--hg-link);
+    --hgpc-accent-strong: var(--hg-h3);
+    --hgpc-accent-soft: var(--hg-surface-raised);
+    --hgpc-danger: #ff9999;
+    --hgpc-shadow: none;
+    --hgpc-radius: 6px;
+    --hgpc-radius-sm: 4px;
+
+    background: transparent;
+    color: var(--hg-text);
+    font-family: var(--hg-font-body);
+    padding: 0 0 24px;
+}
+
+.hg-power-custom .hgpc-wrap {
+    max-width: 1100px;
+}
+
+.hg-power-custom .hgpc-hero,
+.hg-power-custom .hgpc-builder,
+.hg-power-custom .hgpc-render,
+.hg-power-custom .hgpc-panel,
+.hg-power-custom .hgpc-card {
+    border-color: var(--hg-field-border);
+    border-radius: 6px;
+    background: var(--hg-surface);
+    box-shadow: none;
+}
+
+.hg-power-custom .hgpc-hero,
+.hg-power-custom .hgpc-builder,
+.hg-power-custom .hgpc-render {
+    padding: 14px;
+}
+
+.hg-power-custom .hgpc-hero h2,
+.hg-power-custom .hgpc-builder h3,
+.hg-power-custom .hgpc-render h3,
+.hg-power-custom .hgpc-card h3,
+.hg-power-custom .hgpc-card h4 {
+    color: var(--hg-h3);
+    font-family: var(--hg-font-head);
+}
+
+.hg-power-custom .hgpc-hero p,
+.hg-power-custom .hgpc-render__head p,
+.hg-power-custom .hgpc-help,
+.hg-power-custom .hgpc-panel__head span,
+.hg-power-custom .hgpc-selection-drop,
+.hg-power-custom .hgpc-empty,
+.hg-power-custom .hgpc-library-item__meta,
+.hg-power-custom .hgpc-selection-item__meta {
+    color: var(--hg-info-link);
+    opacity: .82;
+}
+
+.hg-power-custom .hgpc-pill,
+.hg-power-custom .hgpc-chip {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-field-bg);
+    color: var(--hg-text);
+}
+
+.hg-power-custom .hgpc-search label,
+.hg-power-custom .hgpc-label,
+.hg-power-custom .hgpc-filter label,
+.hg-power-custom .hgpc-card__section h4 {
+    color: var(--hg-h3);
+}
+
+.hg-power-custom .hgpc-search input,
+.hg-power-custom .hgpc-filter select,
+.hg-power-custom .hgpc-select {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-bg);
+    color: var(--hg-text);
+    font-family: var(--hg-font-ui);
+}
+
+.hg-power-custom .hgpc-search input:focus,
+.hg-power-custom .hgpc-filter select:focus,
+.hg-power-custom .hgpc-select:focus {
+    border-color: var(--hg-btn-accent-hover);
+    outline: 1px solid var(--hg-border-strong);
+}
+
+.hg-power-custom .hgpc-library-item,
+.hg-power-custom .hgpc-selection-item,
+.hg-power-custom .hgpc-card__section {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-field-bg);
+}
+
+.hg-power-custom .hgpc-library-item__name,
+.hg-power-custom .hgpc-selection-item__name,
+.hg-power-custom .hgpc-card__back {
+    color: var(--hg-link);
+}
+
+.hg-power-custom .hgpc-library-item__name:visited,
+.hg-power-custom .hgpc-selection-item__name:visited,
+.hg-power-custom .hgpc-card__back:visited {
+    color: var(--hg-link);
+}
+
+.hg-power-custom .hgpc-btn {
+    min-height: 28px;
+    padding: 5px 9px;
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-bg);
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 11px;
+    box-shadow: none;
+}
+
+.hg-power-custom .hgpc-btn:hover,
+.hg-power-custom .hgpc-btn:focus-visible {
+    transform: none;
+    border-color: var(--hg-btn-accent-hover);
+    background: var(--hg-surface-raised);
+    color: var(--hg-link-hover);
+    box-shadow: none;
+}
+
+.hg-power-custom .hgpc-btn--primary,
+.hg-power-custom .hgpc-btn--primary:visited {
+    border-color: var(--hg-border-strong);
+    background: var(--hg-surface-raised);
+    color: var(--hg-btn-accent);
+}
+
+.hg-power-custom .hgpc-btn--danger {
+    color: #ffaaaa;
+}
+
+.hg-power-custom .hgpc-selection-drop,
+.hg-power-custom .hgpc-empty {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-bg);
+}
+
+.hg-power-custom .hgpc-selection-drop.is-over,
+.hg-power-custom .hgpc-selection-item.is-drop-target {
+    border-color: var(--hg-btn-accent);
+    background: var(--hg-surface-raised);
+}
+
+.hg-power-custom .hgpc-selection-item__order {
+    border-radius: 4px;
+    background: var(--hg-surface-raised);
+    color: var(--hg-btn-accent);
+}
+
+.hg-power-custom .hgpc-card__image {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-bg);
+}
+
+.hg-power-custom .hgpc-card__content {
+    color: var(--hg-text);
+}
+
+/* Legacy full Gifts/Rites renderer: same palette, same geometry. */
+.hg-dones,
+.hg-rituales {
+    --bg: var(--hg-bg);
+    --card: var(--hg-surface);
+    --text: var(--hg-text);
+    --muted: var(--hg-info-link);
+    --line: var(--hg-field-border);
+    --shadow2: none;
+    --radius: 6px;
+    --radius2: 4px;
+    --accent: var(--hg-link);
+    --accent2: var(--hg-h3);
+    --chip: var(--hg-field-bg);
+
+    background: transparent;
+    color: var(--hg-text);
+    font-family: var(--hg-font-body);
+    padding-top: 0;
+}
+
+.hg-dones:not(.hg-print) .hero,
+.hg-rituales:not(.hg-print) .hero,
+.hg-dones:not(.hg-print) .index,
+.hg-rituales:not(.hg-print) .index,
+.hg-dones:not(.hg-print) .card,
+.hg-rituales:not(.hg-print) .card {
+    border-color: var(--hg-field-border);
+    border-radius: 6px;
+    background: var(--hg-surface);
+    box-shadow: none;
+}
+
+.hg-dones:not(.hg-print) .index a.item,
+.hg-rituales:not(.hg-print) .index a.item,
+.hg-dones:not(.hg-print) .card .topline .back,
+.hg-rituales:not(.hg-print) .card .topline .back,
+.hg-dones:not(.hg-print) .box,
+.hg-rituales:not(.hg-print) .box,
+.hg-dones:not(.hg-print) .hg-print-btn,
+.hg-rituales:not(.hg-print) .hg-print-btn {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-field-bg);
+    color: var(--hg-link);
+    box-shadow: none;
+}
+
+.hg-dones:not(.hg-print) .index a.item:visited,
+.hg-rituales:not(.hg-print) .index a.item:visited,
+.hg-dones:not(.hg-print) .card .topline .back:visited,
+.hg-rituales:not(.hg-print) .card .topline .back:visited {
+    color: var(--hg-link);
+    border-color: var(--hg-field-border);
+}
+
+.hg-dones:not(.hg-print) .index a.item:hover,
+.hg-rituales:not(.hg-print) .index a.item:hover {
+    transform: none;
+    border-color: var(--hg-btn-accent-hover);
+    background: var(--hg-surface-raised);
+    box-shadow: none;
+}
+
+.hg-dones:not(.hg-print) .index .name,
+.hg-rituales:not(.hg-print) .index .name,
+.hg-dones:not(.hg-print) .index-origin-title,
+.hg-rituales:not(.hg-print) .index-origin-title,
+.hg-dones:not(.hg-print) .card .topline .name,
+.hg-rituales:not(.hg-print) .card .topline .name,
+.hg-dones:not(.hg-print) h2,
+.hg-dones:not(.hg-print) h3,
+.hg-rituales:not(.hg-print) h2,
+.hg-rituales:not(.hg-print) h3 {
+    color: var(--hg-h3);
+}
+
+.hg-dones:not(.hg-print) .index .meta,
+.hg-rituales:not(.hg-print) .index .meta,
+.hg-dones:not(.hg-print) .hero .count,
+.hg-rituales:not(.hg-print) .hero .count,
+.hg-dones:not(.hg-print) .hero p,
+.hg-rituales:not(.hg-print) .hero p,
+.hg-dones:not(.hg-print) .footer,
+.hg-rituales:not(.hg-print) .footer {
+    color: var(--hg-info-link);
+    opacity: .82;
+}
+
+.hg-dones:not(.hg-print) .chip,
+.hg-rituales:not(.hg-print) .chip,
+.hg-dones:not(.hg-print) .index .badge,
+.hg-rituales:not(.hg-print) .index .badge {
+    border-color: var(--hg-field-border);
+    border-radius: 4px;
+    background: var(--hg-field-bg);
+    color: var(--hg-text);
+}
+
+.hg-dones:not(.hg-print) .box .content,
+.hg-rituales:not(.hg-print) .box .content {
+    color: var(--hg-text);
+}
+
+/* The common export strip supersedes the old duplicated hero controls. */
+.hg-dones:not(.hg-print) .hero .hg-print-btn,
+.hg-rituales:not(.hg-print) .hero .hg-print-btn {
+    display: none;
+}
+
+@media (max-width: 720px) {
+    .hg-power-export-bar {
+        align-items: stretch;
+    }
+
+    .hg-power-export-bar__label,
+    .hg-power-export-bar__hint {
+        flex-basis: 100%;
+    }
+
+    .hg-power-export-bar__action {
+        flex: 1 1 150px;
+        justify-content: center;
+    }
+}
