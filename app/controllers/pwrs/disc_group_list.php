@@ -1,13 +1,9 @@
 <?php
-setMetaFromPage("Disciplinas | Heaven's Gate", "Listado de poderes por disciplina.", null, 'website');
-$routeParam = hg_request_param($hgRequest, 'discipline_type');
+require_once __DIR__ . '/../../domains/powers/queries.php';
 
-$consulta = "SELECT name, description FROM dim_discipline_types WHERE id = ? LIMIT 1";
-$stmt = $link->prepare($consulta);
-$stmt->bind_param('s', $routeParam);
-$stmt->execute();
-$result = $stmt->get_result();
-$ResultQuery = $result->fetch_assoc();
+setMetaFromPage("Disciplinas | Heaven's Gate", "Listado de poderes por disciplina.", null, 'website');
+$routeParam = (int)hg_request_param($hgRequest, 'discipline_type');
+$ResultQuery = hg_powers_fetch_type($link, 'disciplines', $routeParam);
 
 $routeLabel = $ResultQuery ? htmlspecialchars($ResultQuery["name"]) : "-";
 $descDones = $ResultQuery ? ($ResultQuery["description"] ?? '') : "<p>Descripción no disponible</p>";
@@ -27,15 +23,11 @@ echo "<h2>$routeLabel</h2>";
 echo "<fieldset class='hg-powers-description'>$descDones</fieldset>";
 echo "<fieldset class='hg-powers-group-list'>";
 
-$consulta = "SELECT id, pretty_id, name, level FROM fact_discipline_powers WHERE disc = ? ORDER BY level";
-$stmt = $link->prepare($consulta);
-$stmt->bind_param('s', $routeParam);
-$stmt->execute();
-$result = $stmt->get_result();
-
+$rows = hg_powers_fetch_disciplines_for_type($link, $routeParam);
+if ($rows === false) $rows = [];
 $totalDisciplinas = 0;
 
-while ($row = $result->fetch_assoc()) {
+foreach ($rows as $row) {
     echo "
         <a href='" . htmlspecialchars(pretty_url($link, 'fact_discipline_powers', '/powers/discipline', (int)$row["id"])) . "'
            title='" . htmlspecialchars($row["name"]) . ", Nivel " . htmlspecialchars($row["level"]) . " de $routeLabel'>
