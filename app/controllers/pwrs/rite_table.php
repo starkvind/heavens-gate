@@ -1,42 +1,11 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Rituales | Heaven's Gate", "Listado completo de rituales.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
-// Cargar ritos con la query indicada
-$query = "
-	select
-		nr.id as ritual_id,
-		nr.pretty_id as ritual_pretty_id,
-		nr.name as ritual_name,
-		CONCAT(
-			'Rito', 
-			CASE
-				WHEN ntr.determinant <> '' THEN CONCAT(' ', ntr.determinant)
-				ELSE ''
-			END, 
-			' ', 
-			ntr.name
-		) as ritual_type,
-		nr.level as ritual_level,
-		nr.race as ritual_species,
-		nr.description as ritual_description,
-		nr.system_text as ritual_roll_description,
-		s.name as ritual_fera_system,
-        nr.system_id as ritual_system_id,
-		nb.name as ritual_origin
-	from fact_rites nr
-		left join dim_rite_types ntr on nr.kind = ntr.id
-		left join dim_bibliographies nb on nr.bibliography_id = nb.id
-        left join dim_systems s on nr.system_id = s.id
-	order by nr.bibliography_id, nr.level
-";
-$result = mysqli_query($link, $query);
-
-$ritos = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$ritos[] = $row;
-}
-mysqli_free_result($result);
+$ritos = hg_powers_fetch_catalog($link, 'rites');
+if ($ritos === false) $ritos = [];
 
 function ensure_utf8($value) {
     if (is_string($value)) {
@@ -200,7 +169,6 @@ $(document).ready(function () {
 
 	});
 
-	// ========= Generar opciones =========
 	const feraSet = new Set();
 	const typeSet = new Set();
 	const levelSet = new Set();
@@ -303,6 +271,5 @@ function sortValues(values){
 	});
 }
 </script>
-
 
 
