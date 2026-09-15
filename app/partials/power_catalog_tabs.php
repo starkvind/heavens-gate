@@ -44,6 +44,28 @@ if (!function_exists('hg_power_catalog_label')) {
     }
 }
 
+if (!function_exists('hg_power_catalog_export_assets')) {
+    function hg_power_catalog_export_assets(): void
+    {
+        if (function_exists('hg_page_register_stylesheet')) {
+            hg_page_register_stylesheet('/assets/css/hg-power-exports.css');
+        } else {
+            echo '<link rel="stylesheet" href="/assets/css/hg-power-exports.css">';
+        }
+
+        if (defined('HG_POWER_EXPORT_ACTIONS_LOADED')) {
+            return;
+        }
+        define('HG_POWER_EXPORT_ACTIONS_LOADED', true);
+
+        $src = '/assets/js/hg-power-export-actions.js';
+        if (function_exists('hg_page_asset_versioned_href')) {
+            $src = hg_page_asset_versioned_href($src);
+        }
+        echo '<script src="' . htmlspecialchars($src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" defer></script>';
+    }
+}
+
 if (!function_exists('hg_render_power_catalog_exports')) {
     function hg_render_power_catalog_exports(string $kind, string $active): void
     {
@@ -76,11 +98,7 @@ if (!function_exists('hg_render_power_catalog_tabs')) {
             return;
         }
 
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-power-exports.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-power-exports.css">';
-        }
+        hg_power_catalog_export_assets();
 
         $defs = [
             'table' => ['icon' => '▦', 'label' => 'Tabla'],
