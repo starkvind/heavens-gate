@@ -1,105 +1,38 @@
 <?php
-include_once(__DIR__ . '/../../helpers/character_avatar.php');
-// Verificar si se recibe el parámetro 'b' y sanitizarlo
-$donPageID = hg_request_param($hgRequest, 'gift');
+require_once __DIR__ . '/../../domains/powers/queries.php';
 
-if (!function_exists('gift_has_column')) {
-    function gift_has_column(mysqli $link, string $table, string $column): bool {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$column'");
-        if (!$rs) return false;
-        $ok = (mysqli_num_rows($rs) > 0);
-        mysqli_free_result($rs);
-        return $ok;
-    }
-}
-$giftSystemCol = gift_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
-$giftRulesCol = gift_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+$donPageID = (int)hg_request_param($hgRequest, 'gift');
+$resultQueryDon = hg_powers_fetch_gift($link, $donPageID);
 
-// Consulta para obtener información del Don
-$queryDon = "
-    SELECT g.*, s.name AS system_name, g.name AS nombre, g.kind AS tipo, g.rank AS rango, g.description AS descripcion, g.`$giftRulesCol` AS sistema, g.`$giftSystemCol` AS ferasistema
-    FROM fact_gifts g
-    LEFT JOIN dim_systems s ON g.system_id = s.id
-    WHERE g.id = ? LIMIT 1;
-";
-$stmt = $link->prepare($queryDon);
-$stmt->bind_param('s', $donPageID);
-$stmt->execute();
-$result = $stmt->get_result();
-$rowsQueryDon = $result->num_rows;
-
-if ($rowsQueryDon > 0) {
-    $resultQueryDon = $result->fetch_assoc();
-
-    // DATOS BÁSICOS
+if ($resultQueryDon) {
     $donId     = htmlspecialchars($resultQueryDon["id"]);
-    $donName   = htmlspecialchars($resultQueryDon["nombre"]);
-    $donType   = htmlspecialchars($resultQueryDon["tipo"]);
+    $donName   = htmlspecialchars($resultQueryDon["name"]);
+    $donType   = htmlspecialchars($resultQueryDon["kind"]);
     $donGroup  = htmlspecialchars($resultQueryDon["gift_group"]);
-    $donRank   = htmlspecialchars($resultQueryDon["rango"]);
+    $donRank   = htmlspecialchars($resultQueryDon["rank"]);
     $donAttr   = htmlspecialchars($resultQueryDon["attribute_name"]);
     $donSkill  = htmlspecialchars($resultQueryDon["ability_name"]);
-    $donDesc   = ($resultQueryDon["descripcion"]);
-    $donRules  = ($resultQueryDon["sistema"]);
-    $donSystemName = htmlspecialchars($resultQueryDon["system_name"] ?? "");
-    $donBreedLegacy  = trim((string)($resultQueryDon["ferasistema"] ?? ""));
+    $donDesc   = $resultQueryDon["description"];
+    $donRules  = $resultQueryDon["mechanics_resolved"];
+    $donSystemName = htmlspecialchars($resultQueryDon["resolved_system_name"] ?? "");
+    $donBreedLegacy  = trim((string)($resultQueryDon["legacy_system_name"] ?? ""));
     $donSystemLabel = $donSystemName;
     $donOrigin = htmlspecialchars($resultQueryDon["bibliography_id"]);
     $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));
-
-    $donOriginName = "-";
-
-    if (!empty($donOrigin)) {
-        $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1;";
-        $stmt = $link->prepare($queryOrigen);
-        $stmt->bind_param('s', $donOrigin);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($rowOrigen = $result->fetch_assoc()) {
-            $donOriginName = htmlspecialchars($rowOrigen["name"]);
-        }
-    }
-
-    $nombreTipo = "Desconocido";
-    $queryTipo = "SELECT name FROM dim_gift_types WHERE id = ? LIMIT 1;";
-    $stmt = $link->prepare($queryTipo);
-    $stmt->bind_param('s', $donType);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($rowTipo = $result->fetch_assoc()) {
-        $nombreTipo = htmlspecialchars($rowTipo["name"]);
-    }
+    $donOriginName = htmlspecialchars((string)($resultQueryDon['origin_name'] ?? '-'));
+    if ($donOriginName === '') $donOriginName = '-';
+    $nombreTipo = htmlspecialchars((string)($resultQueryDon['type_name'] ?? 'Desconocido'));
+    if ($nombreTipo === '') $nombreTipo = 'Desconocido';
 
     $_SESSION['punk2'] = $nombreTipo;
 
-    if (!function_exists('sanitize_int_csv')) {
-        function sanitize_int_csv($csv){
-            $csv = (string)$csv;
-            if (trim($csv) === '') return '';
-            $parts = preg_split('/\s*,\s*/', trim($csv));
-            $ints = [];
-            foreach ($parts as $p) {
-                if ($p === '') continue;
-                if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-            }
-            $ints = array_values(array_unique($ints));
-            return implode(',', $ints);
-        }
-    }
-    $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
-    $donOwners = [];
-    $characterKindSql = hg_character_kind_select($link, 'c');
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='dones' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
-        $stOwners->bind_param('i', $donPageID);
-        $stOwners->execute();
-        $rsOwners = $stOwners->get_result();
-        while ($r = $rsOwners->fetch_assoc()) { $donOwners[] = $r; }
-        $stOwners->close();
-    }
+    $donOwners = hg_powers_fetch_bridge_owners(
+        $link,
+        'dones',
+        $donPageID,
+        isset($excludeChronicles) ? $excludeChronicles : ''
+    );
+    if ($donOwners === false) $donOwners = [];
     $hasOwners = count($donOwners) > 0;
     $useTabs = $hasOwners;
 
