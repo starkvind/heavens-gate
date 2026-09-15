@@ -217,6 +217,16 @@
     color: #ffaaaa;
 }
 
+.hg-power-custom .hgpc-btn.is-disabled,
+.hg-power-custom .hgpc-btn.is-disabled:hover,
+.hg-power-custom .hgpc-btn.is-disabled:focus-visible {
+    cursor: default;
+    opacity: .45;
+    border-color: var(--hg-field-border);
+    background: var(--hg-bg);
+    color: var(--hg-info-link);
+}
+
 .hg-power-custom .hgpc-selection-drop,
 .hg-power-custom .hgpc-empty {
     border-color: var(--hg-field-border);
@@ -244,6 +254,11 @@
 
 .hg-power-custom .hgpc-card__content {
     color: var(--hg-text);
+}
+
+/* Full generic catalogues use the shared strip; custom builders keep selection actions. */
+.hg-power-custom:not(:has(.hgpc-builder)) .hgpc-hero__actions {
+    display: none;
 }
 
 /* Legacy full Gifts/Rites renderer: same palette, same geometry. */
