@@ -49,6 +49,20 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/systems/system_form_page.php',
         ROOT / 'app/mobile/controllers/systems.php',
     ],
+    'powers': [
+        ROOT / 'app/controllers/pwrs/don_category_list.php',
+        ROOT / 'app/controllers/pwrs/don_group_list.php',
+        ROOT / 'app/controllers/pwrs/don_page.php',
+        ROOT / 'app/controllers/pwrs/rite_category_list.php',
+        ROOT / 'app/controllers/pwrs/rite_group_list.php',
+        ROOT / 'app/controllers/pwrs/rite_page.php',
+        ROOT / 'app/controllers/pwrs/totm_category_list.php',
+        ROOT / 'app/controllers/pwrs/totm_group_list.php',
+        ROOT / 'app/controllers/pwrs/totm_page.php',
+        ROOT / 'app/controllers/pwrs/disc_category_list.php',
+        ROOT / 'app/controllers/pwrs/disc_group_list.php',
+        ROOT / 'app/controllers/pwrs/disc_page.php',
+    ],
 }
 
 QUERY_CALLS = [
