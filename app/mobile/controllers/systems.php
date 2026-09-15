@@ -1,10 +1,9 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
-include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
 include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+require_once __DIR__ . '/../../domains/systems/queries.php';
 
 $metaTitle = "Sistemas | Heaven's Gate";
 $metaDescription = 'Sistemas móviles de Heaven\'s Gate.';
@@ -14,52 +13,6 @@ if (!function_exists('hg_mobile_sys_h')) {
     function hg_mobile_sys_h($value): string
     {
         return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-}
-
-if (!function_exists('hg_mobile_sys_col_exists')) {
-    function hg_mobile_sys_col_exists(mysqli $link, string $table, string $column): bool
-    {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
-}
-
-if (!function_exists('hg_mobile_sys_table_exists')) {
-    function hg_mobile_sys_table_exists(mysqli $link, string $table): bool
-    {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-        if (!$rs) return $cache[$table] = false;
-        $ok = $rs->num_rows > 0;
-        $rs->free();
-        return $cache[$table] = $ok;
-    }
-}
-
-if (!function_exists('hg_mobile_sys_resolve')) {
-    function hg_mobile_sys_resolve(mysqli $link, string $table, string $raw): int
-    {
-        $raw = trim(rawurldecode($raw));
-        if ($raw === '') return 0;
-        if (preg_match('/^\d+$/', $raw)) return (int)$raw;
-        if (function_exists('resolve_pretty_id')) {
-            $resolved = resolve_pretty_id($link, $table, $raw);
-            if ((int)$resolved > 0) return (int)$resolved;
-        }
-        return 0;
     }
 }
 
@@ -135,18 +88,10 @@ $route = hg_request_route($hgRequest);
 if ($route === '') $route = 'listasistemas';
 
 if ($route === 'listasistemas') {
-    $systems = [];
-    $sql = "
-        SELECT s.id, s.pretty_id, s.sort_order, s.name, s.image_url, s.description, s.forms, COALESCE(b.name, '') AS origin
-        FROM dim_systems s
-        LEFT JOIN dim_bibliographies b ON b.id = s.bibliography_id
-        ORDER BY s.sort_order ASC, s.name ASC, s.id ASC
-    ";
-    if ($res = $link->query($sql)) {
-        while ($row = $res->fetch_assoc()) $systems[] = $row;
-        $res->free();
-    } else {
+    $systems = hg_systems_fetch_catalog($link);
+    if ($systems === false) {
         hg_public_log_error('mobile_systems', 'list query failed: ' . mysqli_error($link));
+        $systems = [];
     }
     ?>
     <section class="hg-mobile-section">
@@ -157,17 +102,17 @@ if ($route === 'listasistemas') {
         <div class="hg-mobile-card-list hg-mobile-sys-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar sistema u origen" data-empty-text="No hay sistemas con ese filtro.">
             <?php foreach ($systems as $system): ?>
                 <?php
-                    $id = (int)($system['id'] ?? 0);
-                    $name = trim((string)($system['name'] ?? ''));
-                    $origin = trim((string)($system['origin'] ?? ''));
-                    $desc = hg_mobile_sys_excerpt((string)($system['description'] ?? ''));
+                    $id = (int)($system['system_id'] ?? 0);
+                    $name = trim((string)($system['system_name'] ?? ''));
+                    $origin = trim((string)($system['system_origin'] ?? ''));
+                    $desc = hg_mobile_sys_excerpt((string)($system['system_description'] ?? ''));
                     $search = trim($name . ' ' . $origin . ' ' . $desc);
                 ?>
                 <a class="hg-mobile-card hg-mobile-sys-card" href="<?= hg_mobile_sys_h(hg_mobile_sys_url($link, 'dim_systems', '/systems', $id)) ?>" data-mobile-item data-mobile-search="<?= hg_mobile_sys_h($search) ?>">
-                    <img src="<?= hg_mobile_sys_h(hg_mobile_sys_image($system['image_url'] ?? '')) ?>" alt="">
+                    <img src="<?= hg_mobile_sys_h(hg_mobile_sys_image($system['system_img'] ?? '')) ?>" alt="">
                     <span class="hg-mobile-sys-card-main">
                         <strong><?= hg_mobile_sys_h($name !== '' ? $name : ('#' . $id)) ?></strong>
-                        <span><?= hg_mobile_sys_h(trim($origin . ((int)($system['forms'] ?? 0) === 1 ? ' | Formas' : ''))) ?></span>
+                        <span><?= hg_mobile_sys_h(trim($origin . ((int)($system['system_forms'] ?? 0) === 1 ? ' | Formas' : ''))) ?></span>
                         <?php if ($desc !== ''): ?><small><?= hg_mobile_sys_h($desc) ?></small><?php endif; ?>
                     </span>
                 </a>
@@ -179,20 +124,13 @@ if ($route === 'listasistemas') {
 }
 
 if ($route === 'sistemas') {
-    $systemId = hg_mobile_sys_resolve($link, 'dim_systems', hg_request_param($hgRequest, 'system'));
+    $systemId = hg_systems_resolve_id($link, 'dim_systems', hg_request_param($hgRequest, 'system'));
     if ($systemId <= 0) {
         hg_public_render_not_found('Sistema no encontrado', 'El sistema solicitado no existe.');
         return;
     }
 
-    $system = null;
-    if ($stmt = $link->prepare("SELECT * FROM dim_systems WHERE id = ? LIMIT 1")) {
-        $stmt->bind_param('i', $systemId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) $system = $res->fetch_assoc();
-        $stmt->close();
-    }
+    $system = hg_systems_fetch_system($link, $systemId);
     if (!$system) {
         hg_public_render_not_found('Sistema no encontrado', 'El sistema solicitado no existe.');
         return;
@@ -206,31 +144,14 @@ if ($route === 'sistemas') {
 
     $forms = [];
     if ((int)($system['forms'] ?? 0) === 1) {
-        $hasBreedId = hg_mobile_sys_col_exists($link, 'dim_forms', 'breed_id');
-        $hasRace = hg_mobile_sys_col_exists($link, 'dim_forms', 'race');
-        $selectBreed = "''";
-        $joins = '';
-        if ($hasBreedId) {
-            $selectBreed = $hasRace ? "COALESCE(NULLIF(db.name,''), NULLIF(f.race,''))" : "COALESCE(NULLIF(db.name,''), '')";
-            $joins = " LEFT JOIN dim_breeds db ON db.id = f.breed_id ";
-        } elseif ($hasRace) {
-            $selectBreed = "COALESCE(NULLIF(db.name,''), NULLIF(f.race,''))";
-            $joins = " LEFT JOIN dim_breeds db ON db.system_id = f.system_id AND db.name = f.race ";
-        }
-        $raceOrder = $hasRace ? "f.race ASC," : "";
-        $sql = "SELECT f.id, f.form, {$selectBreed} AS breed_name FROM dim_forms f {$joins} WHERE f.system_id = ? ORDER BY {$raceOrder} f.form ASC";
-        if ($stmt = $link->prepare($sql)) {
-            $stmt->bind_param('i', $systemId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) {
-                $forms[] = [
-                    'label' => (string)($row['form'] ?? ''),
-                    'meta' => (string)($row['breed_name'] ?? ''),
-                    'href' => hg_mobile_sys_url($link, 'dim_forms', '/systems/form', (int)($row['id'] ?? 0)),
-                ];
-            }
-            $stmt->close();
+        $formRows = hg_systems_fetch_forms($link, $systemId);
+        if ($formRows === false) $formRows = [];
+        foreach ($formRows as $row) {
+            $forms[] = [
+                'label' => (string)($row['form'] ?? ''),
+                'meta' => (string)($row['breed_name'] ?? ''),
+                'href' => hg_mobile_sys_url($link, 'dim_forms', '/systems/form', (int)($row['id'] ?? 0)),
+            ];
         }
     }
 
@@ -242,51 +163,31 @@ if ($route === 'sistemas') {
     $sectionRows = [];
     foreach ($sections as $def) {
         [$label, $table, $base] = $def;
-        $rows = [];
-        if ($stmt = $link->prepare("SELECT id, name FROM `$table` WHERE system_id = ? ORDER BY id ASC")) {
-            $stmt->bind_param('i', $systemId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) {
-                $rows[] = ['label' => (string)$row['name'], 'href' => hg_mobile_sys_url($link, $table, $base, (int)$row['id'])];
-            }
-            $stmt->close();
+        $rows = hg_systems_fetch_detail_rows($link, $table, $systemId);
+        if ($rows === false) $rows = [];
+        $items = [];
+        foreach ($rows as $row) {
+            $items[] = [
+                'label' => (string)($row['name'] ?? ''),
+                'href' => hg_mobile_sys_url($link, $table, $base, (int)($row['id'] ?? 0)),
+            ];
         }
-        $sectionRows[$label] = $rows;
+        $sectionRows[$label] = $items;
     }
 
     $misc = [];
-    if ($stmt = $link->prepare("SELECT id, name, kind FROM fact_misc_systems WHERE system_name = ? ORDER BY id ASC")) {
-        $stmt->bind_param('s', $name);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        while ($res && ($row = $res->fetch_assoc())) {
-            $misc[] = ['label' => (string)$row['name'], 'meta' => (string)($row['kind'] ?? ''), 'href' => hg_mobile_sys_url($link, 'fact_misc_systems', '/systems/misc', (int)$row['id'])];
-        }
-        $stmt->close();
+    $miscRows = hg_systems_fetch_misc($link, $name, $name);
+    if ($miscRows === false) $miscRows = [];
+    foreach ($miscRows as $row) {
+        $misc[] = [
+            'label' => (string)($row['name'] ?? ''),
+            'meta' => (string)($row['kind'] ?? ''),
+            'href' => hg_mobile_sys_url($link, 'fact_misc_systems', '/systems/misc', (int)($row['id'] ?? 0)),
+        ];
     }
 
-    $resources = [];
-    if (hg_mobile_sys_table_exists($link, 'bridge_systems_resources_to_system')) {
-        $hasActive = hg_mobile_sys_col_exists($link, 'bridge_systems_resources_to_system', 'is_active');
-        $hasBridgeSort = hg_mobile_sys_col_exists($link, 'bridge_systems_resources_to_system', 'sort_order');
-        $activeSql = $hasActive ? "AND (b.is_active = 1 OR b.is_active IS NULL)" : '';
-        $sortExpr = $hasBridgeSort ? 'COALESCE(b.sort_order, r.sort_order, 9999)' : 'COALESCE(r.sort_order, 9999)';
-        $sql = "
-            SELECT r.name, r.kind, r.description
-            FROM bridge_systems_resources_to_system b
-            INNER JOIN dim_systems_resources r ON r.id = b.resource_id
-            WHERE b.system_id = ? $activeSql
-            ORDER BY r.kind ASC, $sortExpr ASC, r.name ASC
-        ";
-        if ($stmt = $link->prepare($sql)) {
-            $stmt->bind_param('i', $systemId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) $resources[] = $row;
-            $stmt->close();
-        }
-    }
+    $resources = hg_systems_fetch_mobile_resources($link, $systemId);
+    if ($resources === false) $resources = [];
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="/systems">Volver a sistemas</a>
@@ -321,28 +222,20 @@ if ($route === 'sistemas') {
 
 if ($route === 'versistdetalle') {
     $type = (int)hg_request_param($hgRequest, 'detail_type');
-    $tableMap = [1 => ['dim_breeds', '/systems/breeds', 'breed_id'], 2 => ['dim_auspices', '/systems/auspices', 'auspice_id'], 3 => ['dim_tribes', '/systems/tribes', 'tribe_id'], 4 => ['fact_misc_systems', '/systems/misc', '']];
-    if (!isset($tableMap[$type])) {
+    $detailDef = hg_systems_table_for_detail_type($type);
+    if (!$detailDef) {
         hg_public_render_not_found('Elemento no encontrado', 'El contenido solicitado no existe.');
         return;
     }
-    [$table, $base, $charField] = $tableMap[$type];
-    $detailId = hg_mobile_sys_resolve($link, $table, hg_request_param($hgRequest, 'system_detail'));
+
+    $table = $detailDef['table'];
+    $detailId = hg_systems_resolve_id($link, $table, hg_request_param($hgRequest, 'system_detail'));
     if ($detailId <= 0) {
         hg_public_render_not_found('Elemento no encontrado', 'El contenido solicitado no existe.');
         return;
     }
 
-    $energySql = hg_ser_energy_sql_parts($link, $table, 't');
-    $sql = "SELECT t.*{$energySql['select']} FROM `$table` t{$energySql['join']} WHERE t.id = ? LIMIT 1";
-    $detail = null;
-    if ($stmt = $link->prepare($sql)) {
-        $stmt->bind_param('i', $detailId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) $detail = $res->fetch_assoc();
-        $stmt->close();
-    }
+    $detail = hg_systems_fetch_detail($link, $type, $detailId);
     if (!$detail) {
         hg_public_render_not_found('Elemento no encontrado', 'El contenido solicitado no existe.');
         return;
@@ -373,53 +266,19 @@ if ($route === 'versistdetalle') {
     }
 
     $gifts = [];
-    if ($systemId > 0 && $name !== '') {
-        if ($stmt = $link->prepare("SELECT id, name, rank FROM fact_gifts WHERE gift_group = ? AND system_id = ? ORDER BY rank ASC, name ASC")) {
-            $stmt->bind_param('si', $name, $systemId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) {
-                $gifts[] = ['label' => (string)$row['name'], 'meta' => (string)$row['rank'], 'href' => hg_mobile_sys_url($link, 'fact_gifts', '/powers/gift', (int)$row['id'])];
-            }
-            $stmt->close();
-        }
+    $giftRows = hg_systems_fetch_gifts($link, $name, $systemId);
+    if ($giftRows === false) $giftRows = [];
+    foreach ($giftRows as $row) {
+        $gifts[] = [
+            'label' => (string)($row['name'] ?? ''),
+            'meta' => (string)($row['rank'] ?? ''),
+            'href' => hg_mobile_sys_url($link, 'fact_gifts', '/powers/gift', (int)($row['id'] ?? 0)),
+        ];
     }
 
-    $members = [];
-    if ($charField !== '') {
-        $sqlMembers = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status
-            FROM fact_characters p
-            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-            WHERE p.`$charField` = ? " . hg_mobile_chronicle_exclusion_and('p') . "
-            ORDER BY p.name ASC, p.id ASC
-        ";
-        if ($stmt = $link->prepare($sqlMembers)) {
-            $stmt->bind_param('i', $detailId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) $members[] = $row;
-            $stmt->close();
-        }
-    } elseif ($type === 4 && hg_mobile_sys_table_exists($link, 'bridge_characters_misc_systems')) {
-        $hasActive = hg_mobile_sys_col_exists($link, 'bridge_characters_misc_systems', 'is_active');
-        $activeSql = $hasActive ? "AND (bcms.is_active = 1 OR bcms.is_active IS NULL)" : '';
-        $sqlMembers = "
-            SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status
-            FROM bridge_characters_misc_systems bcms
-            INNER JOIN fact_characters p ON p.id = bcms.character_id
-            LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-            WHERE bcms.misc_system_id = ? $activeSql " . hg_mobile_chronicle_exclusion_and('p') . "
-            ORDER BY p.name ASC, p.id ASC
-        ";
-        if ($stmt = $link->prepare($sqlMembers)) {
-            $stmt->bind_param('i', $detailId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) $members[] = $row;
-            $stmt->close();
-        }
-    }
+    $excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7';
+    $members = hg_systems_fetch_members($link, $type, $detailId, $excludedChronicles, true);
+    if ($members === false) $members = [];
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="<?= $systemId > 0 ? hg_mobile_sys_h(hg_mobile_sys_url($link, 'dim_systems', '/systems', $systemId)) : '/systems' ?>">Volver al sistema</a>
@@ -464,55 +323,29 @@ if ($route === 'versistdetalle') {
 }
 
 if ($route === 'verforma') {
-    $formId = hg_mobile_sys_resolve($link, 'dim_forms', hg_request_param($hgRequest, 'form'));
+    $formId = hg_systems_resolve_id($link, 'dim_forms', hg_request_param($hgRequest, 'form'));
     if ($formId <= 0) {
         hg_public_render_not_found('Forma no encontrada', 'La forma solicitada no existe.');
         return;
     }
-    $hasBreedId = hg_mobile_sys_col_exists($link, 'dim_forms', 'breed_id');
-    $hasRace = hg_mobile_sys_col_exists($link, 'dim_forms', 'race');
-    $selectBreed = "'' AS breed_name";
-    $joins = " LEFT JOIN dim_systems ds ON ds.id = f.system_id ";
-    if ($hasBreedId) {
-        $selectBreed = ($hasRace ? "COALESCE(NULLIF(db.name,''), NULLIF(f.race,''))" : "COALESCE(NULLIF(db.name,''), '')") . " AS breed_name";
-        $joins .= " LEFT JOIN dim_breeds db ON db.id = f.breed_id ";
-    } elseif ($hasRace) {
-        $selectBreed = "COALESCE(NULLIF(db.name,''), NULLIF(f.race,'')) AS breed_name";
-        $joins .= " LEFT JOIN dim_breeds db ON db.system_id = f.system_id AND db.name = f.race ";
-    }
-    $form = null;
-    $sql = "SELECT f.*, COALESCE(ds.name, '') AS system_name, {$selectBreed} FROM dim_forms f {$joins} WHERE f.id = ? LIMIT 1";
-    if ($stmt = $link->prepare($sql)) {
-        $stmt->bind_param('i', $formId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) $form = $res->fetch_assoc();
-        $stmt->close();
-    }
+
+    $form = hg_systems_fetch_form($link, $formId);
     if (!$form) {
         hg_public_render_not_found('Forma no encontrada', 'La forma solicitada no existe.');
         return;
     }
+
     $name = trim((string)($form['form'] ?? ''));
-    $systemName = trim((string)($form['system_name'] ?? ''));
-    $breedName = trim((string)($form['breed_name'] ?? ''));
+    $systemName = trim((string)($form['system_name_resolved'] ?? ''));
+    $breedName = trim((string)($form['breed_name_resolved'] ?? ''));
     $display = ($systemName === 'Bastet' && $breedName !== '') ? ($name . ' (' . $breedName . ')') : $name;
     $description = (string)($form['description'] ?? '');
     $metaTitle = $display . " | Formas | Heaven's Gate";
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
     $systemId = (int)($form['system_id'] ?? 0);
 
-    $maneuvers = [];
-    if ($systemId > 0 && $name !== '') {
-        $like = '%' . $name . '%';
-        if ($stmt = $link->prepare("SELECT id, pretty_id, name, image_url FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC")) {
-            $stmt->bind_param('is', $systemId, $like);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($res && ($row = $res->fetch_assoc())) $maneuvers[] = $row;
-            $stmt->close();
-        }
-    }
+    $maneuvers = hg_systems_fetch_form_maneuvers($link, $systemId, $name);
+    if ($maneuvers === false) $maneuvers = [];
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="<?= $systemId > 0 ? hg_mobile_sys_h(hg_mobile_sys_url($link, 'dim_systems', '/systems', $systemId)) : '/systems' ?>">Volver al sistema</a>
