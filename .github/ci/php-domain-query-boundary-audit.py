@@ -42,6 +42,13 @@ EXTRACTED_CONTROLLERS = {
     'soundtracks': [
         ROOT / 'app/partials/snippet_bso_card.php',
     ],
+    'systems': [
+        ROOT / 'app/controllers/systems/systems_table.php',
+        ROOT / 'app/controllers/systems/system_overview_page.php',
+        ROOT / 'app/controllers/systems/system_detail_page.php',
+        ROOT / 'app/controllers/systems/system_form_page.php',
+        ROOT / 'app/mobile/controllers/systems.php',
+    ],
 }
 
 QUERY_CALLS = [
