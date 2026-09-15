@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Tótems | Heaven's Gate", "Listado de tótems por categoría.", null, 'website');
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
@@ -10,16 +12,10 @@ if (!$link) {
 
 $routeParam = hg_request_param($hgRequest, 'totem_type');
 $typeId = is_numeric($routeParam) ? (int)$routeParam : 0;
-
-$consulta = "SELECT name, determinant AS determinante FROM dim_totem_types WHERE id = ? LIMIT 1";
-$stmt = $link->prepare($consulta);
-$stmt->bind_param('i', $typeId);
-$stmt->execute();
-$result = $stmt->get_result();
-$ResultQuery = $result->fetch_assoc();
+$ResultQuery = hg_powers_fetch_type($link, 'totems', $typeId);
 
 $totemName = $ResultQuery ? htmlspecialchars($ResultQuery["name"]) : "Desconocido";
-$totemDett = $ResultQuery ? htmlspecialchars($ResultQuery["determinante"]) : "";
+$totemDett = $ResultQuery ? htmlspecialchars($ResultQuery["determinant"]) : "";
 $pageSect = "Tótems $totemDett $totemName";
 
 if (function_exists('hg_page_register_stylesheet')) {
@@ -32,30 +28,12 @@ include("app/partials/main_nav_bar.php");
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-$consulta = "
-    SELECT
-        t.id,
-        t.pretty_id,
-        t.name,
-        t.cost,
-        t.image_url,
-        COALESCE(b.name, '') AS origen
-    FROM dim_totems t
-    LEFT JOIN dim_bibliographies b ON t.bibliography_id = b.id
-    WHERE t.totem_type_id = ?
-    ORDER BY b.name ASC, t.name ASC
-";
-$stmt = $link->prepare($consulta);
-$stmt->bind_param('i', $typeId);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$items = [];
-while ($row = $result->fetch_assoc()) { $items[] = $row; }
+$items = hg_powers_fetch_totems_for_type($link, $typeId);
+if ($items === false) $items = [];
 
 $groups = [];
 foreach ($items as $it) {
-    $origin = trim((string)($it['origen'] ?? ''));
+    $origin = trim((string)($it['origin'] ?? ''));
     if ($origin === '') $origin = 'Sin origen';
     if (!isset($groups[$origin])) $groups[$origin] = [];
     $groups[$origin][] = $it;
