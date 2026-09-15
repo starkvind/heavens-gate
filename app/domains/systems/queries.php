@@ -220,7 +220,7 @@ function hg_systems_fetch_resources(mysqli $link, int $systemId)
 
     $hasActive = hg_systems_column_exists($link, 'bridge_systems_resources_to_system', 'is_active');
     $hasBridgeSort = hg_systems_column_exists($link, 'bridge_systems_resources_to_system', 'sort_order');
-    $activeSql = $hasActive ? 'AND (b.is_active = 1 OR b.is_active IS NULL)' : '';
+    $activeSql = $hasActive ? 'AND b.is_active = 1' : '';
     $sortExpr = $hasBridgeSort ? 'COALESCE(NULLIF(CAST(b.sort_order AS SIGNED), 0), CAST(r.sort_order AS SIGNED), 9999)' : 'COALESCE(CAST(r.sort_order AS SIGNED), 9999)';
 
     $sql = "
@@ -231,6 +231,35 @@ function hg_systems_fetch_resources(mysqli $link, int $systemId)
           AND r.kind IN ('renombre','estado')
           $activeSql
         ORDER BY r.kind, $sortExpr, CAST(r.sort_order AS SIGNED), r.name
+    ";
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return false;
+
+    $stmt->bind_param('i', $systemId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+    return $rows;
+}
+
+function hg_systems_fetch_mobile_resources(mysqli $link, int $systemId)
+{
+    if ($systemId <= 0 || !hg_systems_table_exists($link, 'bridge_systems_resources_to_system')) return [];
+
+    $hasActive = hg_systems_column_exists($link, 'bridge_systems_resources_to_system', 'is_active');
+    $hasBridgeSort = hg_systems_column_exists($link, 'bridge_systems_resources_to_system', 'sort_order');
+    $activeSql = $hasActive ? 'AND (b.is_active = 1 OR b.is_active IS NULL)' : '';
+    $sortExpr = $hasBridgeSort ? 'COALESCE(b.sort_order, r.sort_order, 9999)' : 'COALESCE(r.sort_order, 9999)';
+
+    $sql = "
+        SELECT r.name, r.kind, r.description
+        FROM bridge_systems_resources_to_system b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+        WHERE b.system_id = ? $activeSql
+        ORDER BY r.kind ASC, $sortExpr ASC, r.name ASC
     ";
 
     $stmt = $link->prepare($sql);
