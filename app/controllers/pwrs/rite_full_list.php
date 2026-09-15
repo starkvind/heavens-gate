@@ -1,9 +1,7 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Rituales | Heaven's Gate", "Listado completo de rituales en formato extendido.", null, 'website');
-// =======================
-// Página: Todos los rituales (corporativo)
-// Estilo mysqli / $link
-// =======================
 
 $pageSect = "Rituales";
 $_SESSION['punk2'] = $pageSect;
@@ -15,9 +13,6 @@ if (!$printMode) {
     include_once("app/partials/power_catalog_tabs.php");
 }
 
-// =======================
-// Helpers
-// =======================
 function h($s) {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
@@ -122,57 +117,15 @@ $pageHref = h(current_page_href());
 $printHref = h(current_page_href(['print' => '1']));
 $markdownHref = h(current_page_href(['export' => 'md', 'print' => null]));
 
-// =======================
-// 1) Query principal (LA TUYA)
-// =======================
-$consulta = "
-select
-    nr.id as ritual_id,
-    nr.name as ritual_name,
-    CONCAT(
-        'Rito',
-        CASE
-            WHEN ntr.determinant <> '' THEN CONCAT(' ', ntr.determinant)
-            ELSE ''
-        END,
-        ' ',
-        ntr.name
-    ) as ritual_type,
-    nr.level as ritual_level,
-    nr.race as ritual_species,
-    nr.description as ritual_description,
-    nr.system_text as ritual_roll_description,
-    s.name as ritual_fera_system,
-    nr.system_id as ritual_system_id,
-    nb.name as ritual_origin
-from fact_rites nr
-    left join dim_rite_types ntr on nr.kind = ntr.id
-    left join dim_bibliographies nb on nr.bibliography_id = nb.id
-    left join dim_systems s on nr.system_id = s.id
-order by
-    nr.bibliography_id,
-    nr.level
-";
-
-$stmt = $link->prepare($consulta);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$rituales = [];
-while ($row = $result->fetch_assoc()) {
-    $rituales[] = $row;
-}
+$rituales = hg_powers_fetch_catalog($link, 'rites');
+if ($rituales === false) $rituales = [];
 $total = count($rituales);
 
 if ($markdownMode) {
     hg_rites_markdown_download($rituales);
 }
 
-// =======================
-// Agrupar rituales por Origen (para el índice)
-// =======================
 $ritualesPorOrigen = [];
-
 foreach ($rituales as $r) {
     $origen = trim($r['ritual_origin'] ?? '');
     if ($origen === '') {
@@ -266,7 +219,6 @@ if (function_exists('hg_page_register_stylesheet')) {
           $sys  = h($r['ritual_fera_system']);
           $orig = h($r['ritual_origin'] ?? '');
 
-          // CAMPOS LARGOS: no usar htmlspecialchars() (permitimos HTML guardado)
           $desc = $r['ritual_description'] ?: "<p>Descripción no disponible</p>";
           $roll = $r['ritual_roll_description'] ?: "<p><i>Sistema no disponible</i></p>";
       ?>
