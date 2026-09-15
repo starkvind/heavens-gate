@@ -8,7 +8,7 @@ $_SESSION['punk2'] = $pageSect;
 $printMode = hg_request_query_param($hgRequest, 'print') === '1';
 $markdownMode = hg_request_query_param($hgRequest, 'export') === 'md';
 
-if (!$printMode) {
+if (!$printMode && !$markdownMode) {
     include("app/partials/main_nav_bar.php");
     include_once("app/partials/power_catalog_tabs.php");
 }
