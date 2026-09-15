@@ -95,8 +95,7 @@ if (function_exists('hg_page_register_stylesheet')) {
 $(document).ready(function () {
 	const items = <?= json_encode($items, JSON_UNESCAPED_UNICODE) ?>;
 	const tbody = $('#tabla-inventario tbody');
-
-	items.forEach(i => {
+	const rows = items.map(i => {
 		const itemSlug = i.item_pretty_id || i.item_id;
 		const typeSlug = i.item_type_pretty || i.item_type_id || 'tipo';
 		const nombre = `<a href="/inventory/${escapeHtml(typeSlug)}/${escapeHtml(itemSlug)}">${escapeHtml(i.item_name)}</a>`;
@@ -105,13 +104,22 @@ $(document).ready(function () {
 		const categoria = i.item_category ? escapeHtml(i.item_category) : '-';
 		const origen = i.item_origin ? escapeHtml(i.item_origin) : '-';
 
-		const row = `<tr>
+		return `<tr>
 			<td><span class="hg-inventory-item-cell"><span class="hg-inventory-item-icon">${img}</span>${nombre}</span></td>
 			<td>${categoria}</td>
 			<td>${origen}</td>
 		</tr>`;
-		tbody.append(row);
-	});
+	}).join('');
+
+	tbody.addClass('hg-inventory-thumbs-pending').html(rows);
+	const thumbnails = tbody.find('.hg-inventory-item-thumb').toArray();
+	Promise.all(thumbnails.map(img => {
+		if (img.complete) return Promise.resolve();
+		return new Promise(resolve => {
+			img.addEventListener('load', resolve, { once: true });
+			img.addEventListener('error', resolve, { once: true });
+		});
+	})).then(() => tbody.removeClass('hg-inventory-thumbs-pending'));
 
 	const dt = $('#tabla-inventario').DataTable({
 		pageLength: 25,
