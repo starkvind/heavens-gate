@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 include("app/partials/main_nav_bar.php");
 setMetaFromPage("Disciplinas | Heaven's Gate", "Categorias de disciplinas.", null, 'website');
 if (function_exists('hg_page_register_stylesheet')) {
@@ -11,15 +13,11 @@ if (function_exists('hg_page_register_stylesheet')) {
 <fieldset class="hg-powers-category-list">
 <?php
 $pageSect = "Disciplinas";
+$types = hg_powers_fetch_types($link, 'disciplines');
+if ($types === false) $types = [];
+$totalCategorias = count($types);
 
-$consulta = "SELECT id, name FROM dim_discipline_types ORDER BY id";
-$stmt = $link->prepare($consulta);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$totalCategorias = $result->num_rows;
-
-while ($ResultQuery = $result->fetch_assoc()) {
+foreach ($types as $ResultQuery) {
     $typeId = (int)$ResultQuery["id"];
     $typeName = htmlspecialchars($ResultQuery["name"]);
 
