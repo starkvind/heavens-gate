@@ -1,18 +1,13 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Dones | Heaven's Gate", "Listado de dones por categoria.", null, 'website');
-
-$routeParam = hg_request_param($hgRequest, 'gift_type');
-
-$consulta = "SELECT name, determinant AS determinante, description FROM dim_gift_types WHERE id = ? LIMIT 1";
-$stmt = $link->prepare($consulta);
-$stmt->bind_param('s', $routeParam);
-$stmt->execute();
-$result = $stmt->get_result();
-$ResultQuery = $result->fetch_assoc();
+$routeParam = (int)hg_request_param($hgRequest, 'gift_type');
+$ResultQuery = hg_powers_fetch_type($link, 'gifts', $routeParam);
 
 if ($ResultQuery) {
     $routeLabel = htmlspecialchars($ResultQuery["name"]);
-    $determinante = htmlspecialchars($ResultQuery["determinante"]);
+    $determinante = htmlspecialchars($ResultQuery["determinant"]);
     $descDones = htmlspecialchars($ResultQuery["description"] ?? '');
     $donTypePhrase = "Dones";
     $pageSect = "$donTypePhrase $determinante $routeLabel";
@@ -28,47 +23,36 @@ if ($ResultQuery) {
     echo "<h2>$donTypePhrase $determinante $routeLabel</h2>";
     echo "<fieldset class='hg-powers-description'>$descDones</fieldset>";
 
-    $consulta = "SELECT DISTINCT gift_group FROM fact_gifts WHERE kind = ? ORDER BY gift_group";
-    $stmt = $link->prepare($consulta);
-    $stmt->bind_param('s', $routeParam);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $domoarigato = [];
-    while ($row = $result->fetch_assoc()) {
-        $domoarigato[] = htmlspecialchars($row["gift_group"]);
+    $rows = hg_powers_fetch_gifts_for_type($link, $routeParam);
+    if ($rows === false) $rows = [];
+    $groups = [];
+    foreach ($rows as $row) {
+        $group = (string)($row['gift_group'] ?? '');
+        $groups[$group][] = $row;
     }
 
-    $misterroboto = count($domoarigato);
+    $misterroboto = count($groups);
+    foreach ($groups as $grupoRaw => $groupRows) {
+        $grupo = htmlspecialchars($grupoRaw);
+        $riteClasificacion = ($routeLabel !== "Menores") ? $grupo : "Sin nivel";
 
-    if ($misterroboto > 0) {
-        foreach ($domoarigato as $grupo) {
-            $consulta = "SELECT id, pretty_id, name, rank FROM fact_gifts WHERE gift_group = ? AND kind = ? ORDER BY rank";
-            $stmt = $link->prepare($consulta);
-            $stmt->bind_param('ss', $grupo, $routeParam);
-            $stmt->execute();
-            $result = $stmt->get_result();
+        echo "<fieldset class='hg-powers-group-list'>";
+        echo "<legend><b><a name='$riteClasificacion'></a> $riteClasificacion</b></legend>";
 
-            $riteClasificacion = ($routeLabel !== "Menores") ? $grupo : "Sin nivel";
-
-            echo "<fieldset class='hg-powers-group-list'>";
-            echo "<legend><b><a name='$riteClasificacion'></a> $riteClasificacion</b></legend>";
-
-            while ($row = $result->fetch_assoc()) {
-                echo "
-                    <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$row["id"])) . "'
-                        title='" . htmlspecialchars($row["name"]) . ", Rango " . htmlspecialchars($row["rank"]) . "'>
-                        <div class='hg-powers-list-card'>
-                            <div class='hg-powers-list-card__main'>
-                                <img class='hg-powers-list-icon' src='img/ui/icons/icon_claws.webp'> " . htmlspecialchars($row["name"]) . "
-                            </div>
-                            <div class='hg-powers-list-card__meta'>" . htmlspecialchars($row["rank"]) . "</div>
+        foreach ($groupRows as $row) {
+            echo "
+                <a href='" . htmlspecialchars(pretty_url($link, 'fact_gifts', '/powers/gift', (int)$row["id"])) . "'
+                    title='" . htmlspecialchars($row["name"]) . ", Rango " . htmlspecialchars($row["rank"]) . "'>
+                    <div class='hg-powers-list-card'>
+                        <div class='hg-powers-list-card__main'>
+                            <img class='hg-powers-list-icon' src='img/ui/icons/icon_claws.webp'> " . htmlspecialchars($row["name"]) . "
                         </div>
-                    </a>
-                ";
-            }
-            echo "</fieldset>";
+                        <div class='hg-powers-list-card__meta'>" . htmlspecialchars($row["rank"]) . "</div>
+                    </div>
+                </a>
+            ";
         }
+        echo "</fieldset>";
     }
 
     echo "<p align='right'>Dones hallados: $misterroboto</p>";
