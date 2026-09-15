@@ -1,15 +1,10 @@
 <?php
-$donPageID = hg_request_param($hgRequest, 'discipline_power');
+require_once __DIR__ . '/../../domains/powers/queries.php';
 
-$queryDon = "SELECT * FROM fact_discipline_powers WHERE id = ? LIMIT 1";
-$stmt = $link->prepare($queryDon);
-$stmt->bind_param('s', $donPageID);
-$stmt->execute();
-$result = $stmt->get_result();
+$donPageID = (int)hg_request_param($hgRequest, 'discipline_power');
+$resultQueryDon = hg_powers_fetch_discipline($link, $donPageID);
 
-if ($result->num_rows > 0) {
-    $resultQueryDon = $result->fetch_assoc();
-
+if ($resultQueryDon) {
     $donId      = htmlspecialchars($resultQueryDon["id"]);
     $donName    = htmlspecialchars($resultQueryDon["name"]);
     $donType    = htmlspecialchars($resultQueryDon["disc"]);
@@ -36,27 +31,10 @@ if ($result->num_rows > 0) {
         $itemImg = (strpos($donIcono, "/") !== false) ? $donIcono : ("img/" . $donIcono);
     }
 
-    $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
-    $stmt = $link->prepare($queryOrigen);
-    $stmt->bind_param('s', $donOrigin);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $donOriginName = "-";
-
-    if ($rowOrigen = $result->fetch_assoc()) {
-        $donOriginName = htmlspecialchars($rowOrigen["name"]);
-    }
-
-    $queryTipo = "SELECT name FROM dim_discipline_types WHERE id = ? LIMIT 1";
-    $stmt = $link->prepare($queryTipo);
-    $stmt->bind_param('s', $donType);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $nombreTipo = "-";
-
-    if ($rowTipo = $result->fetch_assoc()) {
-        $nombreTipo = htmlspecialchars($rowTipo["name"]);
-    }
+    $donOriginName = htmlspecialchars((string)($resultQueryDon['origin_name'] ?? '-'));
+    if ($donOriginName === '') $donOriginName = '-';
+    $nombreTipo = htmlspecialchars((string)($resultQueryDon['type_name'] ?? '-'));
+    if ($nombreTipo === '') $nombreTipo = '-';
 
     $_SESSION['punk2'] = $nombreTipo;
 
