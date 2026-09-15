@@ -221,6 +221,30 @@ if (!function_exists('createSkillCircle')) {
 if (isset($bioArrayAtt)) $bioAttrImg = createSkillCircle($bioArrayAtt, 'gem-attr');
 if (isset($bioArraySki)) $bioSkilImg = createSkillCircle($bioArraySki, 'gem-attr');
 
+if (!function_exists('hg_bio_parse_iso_date')) {
+    function hg_bio_parse_iso_date(?string $dateValue): ?array {
+        $dateValue = trim((string)$dateValue);
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/', $dateValue, $match)) {
+            return null;
+        }
+
+        $year = (int)$match[1];
+        $month = (int)$match[2];
+        $day = (int)$match[3];
+        if ($year < 1 || !checkdate($month, $day, $year)) {
+            return null;
+        }
+
+        return ['year' => $year, 'month' => $month, 'day' => $day];
+    }
+}
+
+if (!function_exists('hg_bio_format_iso_date')) {
+    function hg_bio_format_iso_date(array $date): string {
+        return sprintf('%02d/%02d/%04d', (int)$date['day'], (int)$date['month'], (int)$date['year']);
+    }
+}
+
 if (!function_exists('hg_bio_event_date_label')) {
     function hg_bio_event_date_label(?string $dateValue, ?string $precision, ?string $note): string {
         $precision = trim((string)$precision);
@@ -230,13 +254,13 @@ if (!function_exists('hg_bio_event_date_label')) {
         if ($precision === 'unknown') return ($note !== '') ? $note : 'Desconocido';
         if ($dateValue === '' || $dateValue === '0000-00-00') return ($note !== '') ? $note : '';
 
-        $ts = strtotime($dateValue);
-        if ($ts === false) return ($note !== '') ? $note : $dateValue;
+        $date = hg_bio_parse_iso_date($dateValue);
+        if ($date === null) return ($note !== '') ? $note : $dateValue;
 
-        if ($precision === 'year') $base = date('Y', $ts);
-        elseif ($precision === 'month') $base = date('m/Y', $ts);
-        elseif ($precision === 'approx') $base = 'Aprox. ' . date('d/m/Y', $ts);
-        else $base = date('d/m/Y', $ts);
+        if ($precision === 'year') $base = sprintf('%04d', (int)$date['year']);
+        elseif ($precision === 'month') $base = sprintf('%02d/%04d', (int)$date['month'], (int)$date['year']);
+        elseif ($precision === 'approx') $base = 'Aprox. ' . hg_bio_format_iso_date($date);
+        else $base = hg_bio_format_iso_date($date);
 
         return ($note !== '') ? ($base . ' (' . $note . ')') : $base;
     }
@@ -266,20 +290,25 @@ if (!function_exists('hg_bio_format_death_display')) {
 
         $parts = [ucfirst($deathCause)];
         $hasRealDeathDate = ($deathDateRaw !== '' && $deathDateRaw !== '1000-01-01' && $deathDateRaw !== '0000-00-00');
-        if ($hasRealDeathDate) {
-            $deathTs = strtotime($deathDateRaw);
-            if ($deathTs !== false) {
-                $parts[0] .= ' (' . date('d/m/Y', $deathTs) . ')';
-            }
+        $deathDate = $hasRealDeathDate ? hg_bio_parse_iso_date($deathDateRaw) : null;
+        if ($deathDate !== null) {
+            $parts[0] .= ' (' . hg_bio_format_iso_date($deathDate) . ')';
         }
 
-        $birthDate = trim((string)($birthData['event_date'] ?? ''));
+        $birthDateRaw = trim((string)($birthData['event_date'] ?? ''));
         $birthPrecision = trim((string)($birthData['date_precision'] ?? 'unknown'));
-        if ($hasRealDeathDate && $birthDate !== '' && $birthPrecision === 'day') {
-            $birthTs = strtotime($birthDate);
-            $deathTs = strtotime($deathDateRaw);
-            if ($birthTs !== false && $deathTs !== false && $deathTs >= $birthTs) {
-                $age = date_diff(date_create(date('Y-m-d', $birthTs)), date_create(date('Y-m-d', $deathTs)))->y;
+        $birthDate = ($birthPrecision === 'day') ? hg_bio_parse_iso_date($birthDateRaw) : null;
+        if ($deathDate !== null && $birthDate !== null) {
+            $birthKey = ((int)$birthDate['year'] * 10000) + ((int)$birthDate['month'] * 100) + (int)$birthDate['day'];
+            $deathKey = ((int)$deathDate['year'] * 10000) + ((int)$deathDate['month'] * 100) + (int)$deathDate['day'];
+            if ($deathKey >= $birthKey) {
+                $age = (int)$deathDate['year'] - (int)$birthDate['year'];
+                if (
+                    (int)$deathDate['month'] < (int)$birthDate['month']
+                    || ((int)$deathDate['month'] === (int)$birthDate['month'] && (int)$deathDate['day'] < (int)$birthDate['day'])
+                ) {
+                    $age--;
+                }
                 $parts[] = $age . ' años';
             }
         }
