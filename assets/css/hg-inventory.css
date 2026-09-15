@@ -91,6 +91,11 @@
     color: var(--hg-link-hover);
 }
 
+/* Firefox may paint :visited border colours separately. */
+.hg-inventory-group-content > a:visited .hg-inventory-list-card {
+    border-color: #000088;
+}
+
 .hg-inventory-list-card {
     float: left;
     padding: 4px;
