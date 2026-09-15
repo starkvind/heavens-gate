@@ -45,7 +45,7 @@ if (!function_exists('hg_power_catalog_label')) {
 }
 
 if (!function_exists('hg_power_catalog_export_assets')) {
-    function hg_power_catalog_export_assets(): void
+    function hg_power_catalog_export_assets(bool $selectionActions = false): void
     {
         if (function_exists('hg_page_register_stylesheet')) {
             hg_page_register_stylesheet('/assets/css/hg-power-exports.css');
@@ -53,7 +53,7 @@ if (!function_exists('hg_power_catalog_export_assets')) {
             echo '<link rel="stylesheet" href="/assets/css/hg-power-exports.css">';
         }
 
-        if (defined('HG_POWER_EXPORT_ACTIONS_LOADED')) {
+        if (!$selectionActions || defined('HG_POWER_EXPORT_ACTIONS_LOADED')) {
             return;
         }
         define('HG_POWER_EXPORT_ACTIONS_LOADED', true);
@@ -69,6 +69,10 @@ if (!function_exists('hg_power_catalog_export_assets')) {
 if (!function_exists('hg_render_power_catalog_exports')) {
     function hg_render_power_catalog_exports(string $kind, string $active): void
     {
+        if ($active !== 'full') {
+            return;
+        }
+
         $tabs = hg_power_catalog_tabs_map($kind);
         $fullHref = (string)($tabs['full'] ?? '');
         if ($fullHref === '') {
@@ -83,9 +87,6 @@ if (!function_exists('hg_render_power_catalog_exports')) {
         echo "<span class='hg-power-export-bar__label'>Catálogo completo</span>";
         echo "<a class='hg-power-export-bar__action' href='" . htmlspecialchars($printHref, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "'>Imprimir todo</a>";
         echo "<a class='hg-power-export-bar__action hg-power-export-bar__action--primary' href='" . htmlspecialchars($markdownHref, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "'>Descargar todo (.md)</a>";
-        if ($active === 'custom') {
-            echo "<span class='hg-power-export-bar__hint'>La selección personalizada se exporta desde su propia ficha.</span>";
-        }
         echo "</div>";
     }
 }
@@ -98,7 +99,9 @@ if (!function_exists('hg_render_power_catalog_tabs')) {
             return;
         }
 
-        hg_power_catalog_export_assets();
+        if ($active === 'full' || $active === 'custom') {
+            hg_power_catalog_export_assets($active === 'custom');
+        }
 
         $defs = [
             'table' => ['icon' => '▦', 'label' => 'Tabla'],
