@@ -1,85 +1,36 @@
 <?php
-include_once(__DIR__ . '/../../helpers/character_avatar.php');
-$ritePageID = hg_request_param($hgRequest, 'rite');
+require_once __DIR__ . '/../../domains/powers/queries.php';
 
-$queryRite = "
-    SELECT r.*, s.name AS system_name, r.kind AS tipo, r.level AS nivel, r.race AS raza, r.system_name AS sistema
-    FROM fact_rites r
-    LEFT JOIN dim_systems s ON r.system_id = s.id
-    WHERE r.id = ? LIMIT 1
-";
-$stmt = $link->prepare($queryRite);
-$stmt->bind_param('s', $ritePageID);
-$stmt->execute();
-$result = $stmt->get_result();
-$rowsQueryRite = $result->num_rows;
+$ritePageID = (int)hg_request_param($hgRequest, 'rite');
+$resultQueryRite = hg_powers_fetch_rite($link, $ritePageID);
 
-if ($rowsQueryRite > 0) {
-    $resultQueryRite = $result->fetch_assoc();
-
+if ($resultQueryRite) {
     $riteId     = htmlspecialchars($resultQueryRite["id"]);
     $riteName   = htmlspecialchars($resultQueryRite["name"]);
-    $riteType   = htmlspecialchars($resultQueryRite["tipo"]);
-    $riteLevel  = htmlspecialchars($resultQueryRite["nivel"]);
-    $riteBreed  = htmlspecialchars($resultQueryRite["raza"]);
+    $riteType   = htmlspecialchars($resultQueryRite["kind"]);
+    $riteLevel  = htmlspecialchars($resultQueryRite["level"]);
+    $riteBreed  = htmlspecialchars($resultQueryRite["race"]);
     $riteDesc   = $resultQueryRite["description"] ?? '';
     $riteSystemRules = $resultQueryRite["system_text"];
-    $riteSystemName  = htmlspecialchars($resultQueryRite["system_name"] ?? "");
-    $riteSistemaLegacy = trim((string)($resultQueryRite["sistema"] ?? ""));
+    $riteSystemName  = htmlspecialchars($resultQueryRite["resolved_system_name"] ?? "");
+    $riteSistemaLegacy = trim((string)($resultQueryRite["system_name"] ?? ""));
     if (trim((string)$riteSystemRules) === '' && $riteSistemaLegacy !== '') { $riteSystemRules = $riteSistemaLegacy; }
     $riteOrigin = htmlspecialchars($resultQueryRite["bibliography_id"]);
     $riteImgRaw = trim((string)($resultQueryRite["image_url"] ?? ""));
-
-    $riteOriginName = "-";
-
-    if (!empty($riteOrigin)) {
-        $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
-        $stmt = $link->prepare($queryOrigen);
-        $stmt->bind_param('s', $riteOrigin);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($rowOrigen = $result->fetch_assoc()) {
-            $riteOriginName = htmlspecialchars($rowOrigen["name"]);
-        }
-    }
-
-    $nombreTipo = "Desconocido";
-    $queryTipo = "SELECT name FROM dim_rite_types WHERE id = ? LIMIT 1";
-    $stmt = $link->prepare($queryTipo);
-    $stmt->bind_param('s', $riteType);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($rowTipo = $result->fetch_assoc()) {
-        $nombreTipo = htmlspecialchars($rowTipo["name"]);
-    }
+    $riteOriginName = htmlspecialchars((string)($resultQueryRite['origin_name'] ?? '-'));
+    if ($riteOriginName === '') $riteOriginName = '-';
+    $nombreTipo = htmlspecialchars((string)($resultQueryRite['type_name'] ?? 'Desconocido'));
+    if ($nombreTipo === '') $nombreTipo = 'Desconocido';
 
     $_SESSION['punk2'] = $nombreTipo;
 
-    if (!function_exists('sanitize_int_csv')) {
-        function sanitize_int_csv($csv){
-            $csv = (string)$csv;
-            if (trim($csv) === '') return '';
-            $parts = preg_split('/\s*,\s*/', trim($csv));
-            $ints = [];
-            foreach ($parts as $p) {
-                if ($p === '') continue;
-                if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-            }
-            $ints = array_values(array_unique($ints));
-            return implode(',', $ints);
-        }
-    }
-    $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND c.chronicle_id NOT IN ($excludeChronicles) " : "";
-    $riteOwners = [];
-    $characterKindSql = hg_character_kind_select($link, 'c');
-    if ($stOwners = $link->prepare("SELECT DISTINCT c.id, c.name AS nombre, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, c.status_id, {$characterKindSql} AS character_kind FROM bridge_characters_powers b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.power_kind='rituales' AND b.power_id = ? $cronicaNotInSQL ORDER BY c.name")) {
-        $stOwners->bind_param('i', $ritePageID);
-        $stOwners->execute();
-        $rsOwners = $stOwners->get_result();
-        while ($r = $rsOwners->fetch_assoc()) { $riteOwners[] = $r; }
-        $stOwners->close();
-    }
+    $riteOwners = hg_powers_fetch_bridge_owners(
+        $link,
+        'rituales',
+        $ritePageID,
+        isset($excludeChronicles) ? $excludeChronicles : ''
+    );
+    if ($riteOwners === false) $riteOwners = [];
     $hasOwners = count($riteOwners) > 0;
     $useTabs = $hasOwners;
 
