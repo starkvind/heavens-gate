@@ -1,16 +1,10 @@
 <?php
-include_once(__DIR__ . '/../../helpers/character_avatar.php');
-$totemPageID = hg_request_param($hgRequest, 'totem');
+require_once __DIR__ . '/../../domains/powers/queries.php';
 
-$queryTotem = "SELECT * FROM dim_totems WHERE id = ? LIMIT 1";
-$stmt = $link->prepare($queryTotem);
-$stmt->bind_param('s', $totemPageID);
-$stmt->execute();
-$result = $stmt->get_result();
+$totemPageID = (int)hg_request_param($hgRequest, 'totem');
+$resultQueryTotem = hg_powers_fetch_totem($link, $totemPageID);
 
-if ($result->num_rows > 0) {
-    $resultQueryTotem = $result->fetch_assoc();
-
+if ($resultQueryTotem) {
     $totemId    = htmlspecialchars($resultQueryTotem["id"]);
     $totemName  = htmlspecialchars($resultQueryTotem["name"]);
     $totemNameRaw = (string)($resultQueryTotem["name"] ?? "");
@@ -22,75 +16,25 @@ if ($result->num_rows > 0) {
     $totemBan   = $resultQueryTotem["prohibited"];
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["image_url"] ?? ""));
-
-    $totemOriginName = "-";
-
-    if (!empty($totemOrigin)) {
-        $queryOrigen = "SELECT name FROM dim_bibliographies WHERE id = ? LIMIT 1";
-        $stmt = $link->prepare($queryOrigen);
-        $stmt->bind_param('s', $totemOrigin);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($rowOrigen = $result->fetch_assoc()) {
-            $totemOriginName = htmlspecialchars($rowOrigen["name"]);
-        }
-    }
-
-    $nombreTipo = "Desconocido";
-    $queryTipo = "SELECT name FROM dim_totem_types WHERE id = ? LIMIT 1";
-    $stmt = $link->prepare($queryTipo);
-    $stmt->bind_param('s', $totemType);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($rowTipo = $result->fetch_assoc()) {
-        $nombreTipo = htmlspecialchars($rowTipo["name"]);
-    }
+    $totemOriginName = htmlspecialchars((string)($resultQueryTotem['origin_name'] ?? '-'));
+    if ($totemOriginName === '') $totemOriginName = '-';
+    $nombreTipo = htmlspecialchars((string)($resultQueryTotem['type_name'] ?? 'Desconocido'));
+    if ($nombreTipo === '') $nombreTipo = 'Desconocido';
 
     $_SESSION['punk2'] = $nombreTipo;
 
-    if (!function_exists('sanitize_int_csv')) {
-        function sanitize_int_csv($csv){
-            $csv = (string)$csv;
-            if (trim($csv) === '') return '';
-            $parts = preg_split('/\s*,\s*/', trim($csv));
-            $ints = [];
-            foreach ($parts as $p) {
-                if ($p === '') continue;
-                if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-            }
-            $ints = array_values(array_unique($ints));
-            return implode(',', $ints);
-        }
-    }
-    $excludeChronicles = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '';
-    $cronicaNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
-    $totemCharOwners = [];
-    $characterKindSql = hg_character_kind_select($link, 'p');
-    if ($stOwners = $link->prepare("SELECT p.id, p.name AS nombre, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id, {$characterKindSql} AS character_kind FROM fact_characters p LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id WHERE p.totem_id = ? $cronicaNotInSQL ORDER BY p.name")) {
-        $stOwners->bind_param('i', $totemPageID);
-        $stOwners->execute();
-        $rsOwners = $stOwners->get_result();
-        while ($r = $rsOwners->fetch_assoc()) { $totemCharOwners[] = $r; }
-        $stOwners->close();
-    }
+    $totemCharOwners = hg_powers_fetch_totem_character_owners(
+        $link,
+        $totemPageID,
+        isset($excludeChronicles) ? $excludeChronicles : ''
+    );
+    if ($totemCharOwners === false) $totemCharOwners = [];
 
-    $totemGroups = [];
-    if ($stGroups = $link->prepare("SELECT id, name FROM dim_groups WHERE totem_id = ? ORDER BY name")) {
-        $stGroups->bind_param('i', $totemPageID);
-        $stGroups->execute();
-        $rsGroups = $stGroups->get_result();
-        while ($r = $rsGroups->fetch_assoc()) { $totemGroups[] = $r; }
-        $stGroups->close();
-    }
+    $totemGroups = hg_powers_fetch_totem_links($link, $totemPageID, 'dim_groups');
+    if ($totemGroups === false) $totemGroups = [];
 
-    $totemOrgs = [];
-    if ($stOrgs = $link->prepare("SELECT id, name FROM dim_organizations WHERE totem_id = ? ORDER BY name")) {
-        $stOrgs->bind_param('i', $totemPageID);
-        $stOrgs->execute();
-        $rsOrgs = $stOrgs->get_result();
-        while ($r = $rsOrgs->fetch_assoc()) { $totemOrgs[] = $r; }
-        $stOrgs->close();
-    }
+    $totemOrgs = hg_powers_fetch_totem_links($link, $totemPageID, 'dim_organizations');
+    if ($totemOrgs === false) $totemOrgs = [];
 
     $hasCharOwners = count($totemCharOwners) > 0;
     $hasGroupOwners = count($totemGroups) > 0;
