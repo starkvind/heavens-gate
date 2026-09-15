@@ -45,10 +45,6 @@
     z-index: 1;
 }
 
-.hg-inventory-thumbs-pending .hg-inventory-item-thumb {
-    visibility: hidden;
-}
-
 .hg-inventory-item-icon--small,
 .hg-inventory-item-thumb--small {
     width: 16px;
@@ -87,8 +83,12 @@
 
 .hg-inventory-group-content > a,
 .hg-inventory-group-content > a:visited {
-    color: inherit;
+    color: var(--hg-link);
     text-decoration: none;
+}
+
+.hg-inventory-group-content > a:hover {
+    color: var(--hg-link-hover);
 }
 
 .hg-inventory-list-card {
