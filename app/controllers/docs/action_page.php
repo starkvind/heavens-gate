@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../domains/rules/queries.php';
 include_once __DIR__ . '/../../helpers/public_response.php';
 
 $rawId = hg_request_param($hgRequest, 'action');
@@ -8,22 +9,7 @@ if (!$link || !($link instanceof mysqli) || $actionId <= 0) {
     return;
 }
 
-$sql = "SELECT a.*, attr.name AS attribute_name, skill.name AS skill_name, COALESCE(b.name, '') AS origin_name
-        FROM fact_actions a
-        JOIN dim_traits attr ON attr.id = a.attribute_trait_id
-        JOIN dim_traits skill ON skill.id = a.skill_trait_id
-        LEFT JOIN dim_bibliographies b ON b.id = a.bibliography_id
-        WHERE a.id = ? LIMIT 1";
-$stmt = $link->prepare($sql);
-if (!$stmt) {
-    hg_public_render_error('Acción no disponible', 'No se pudo cargar la acción.', 500, true);
-    return;
-}
-$stmt->bind_param('i', $actionId);
-$stmt->execute();
-$result = $stmt->get_result();
-$action = $result ? $result->fetch_assoc() : null;
-$stmt->close();
+$action = hg_rules_fetch_action($link, $actionId);
 if (!$action) {
     hg_public_render_error('Acción no encontrada', 'La acción solicitada no existe.', 404, true);
     return;
@@ -32,13 +18,15 @@ if (!$action) {
 if (!function_exists('hg_action_page_h')) {
     function hg_action_page_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 }
-function hg_action_page_difficulty(array $action): string
-{
-    if (($action['difficulty_mode'] ?? '') === 'fixed') return 'Fija: ' . (int)$action['fixed_difficulty'];
-    $parts = ['Variable'];
-    if ((int)($action['suggested_difficulty'] ?? 0) > 0) $parts[] = 'sugerida ' . (int)$action['suggested_difficulty'];
-    if ((int)($action['min_difficulty'] ?? 0) > 0 && (int)($action['max_difficulty'] ?? 0) > 0) $parts[] = (int)$action['min_difficulty'] . '–' . (int)$action['max_difficulty'];
-    return implode(' · ', $parts);
+if (!function_exists('hg_action_page_difficulty')) {
+    function hg_action_page_difficulty(array $action): string
+    {
+        if (($action['difficulty_mode'] ?? '') === 'fixed') return 'Fija: ' . (int)$action['fixed_difficulty'];
+        $parts = ['Variable'];
+        if ((int)($action['suggested_difficulty'] ?? 0) > 0) $parts[] = 'sugerida ' . (int)$action['suggested_difficulty'];
+        if ((int)($action['min_difficulty'] ?? 0) > 0 && (int)($action['max_difficulty'] ?? 0) > 0) $parts[] = (int)$action['min_difficulty'] . '–' . (int)$action['max_difficulty'];
+        return implode(' · ', $parts);
+    }
 }
 
 $name = hg_action_page_h($action['name']);
@@ -46,7 +34,6 @@ $pageSect = 'Acciones';
 $pageTitle2 = $name;
 setMetaFromPage($name . " | Acciones | Heaven's Gate", meta_excerpt((string)$action['text']), null, 'article');
 include 'app/partials/main_nav_bar.php';
-
 $image = trim((string)($action['image_url'] ?? ''));
 if ($image === '') $image = 'img/inv/no-photo.webp';
 elseif (!str_contains($image, '/')) $image = 'img/actions/' . $image;
