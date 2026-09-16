@@ -2,6 +2,8 @@
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/chapters/queries.php');
+require_once(__DIR__ . '/../../domains/soundtracks/queries.php');
 
 $metaTitle = "Temporada | Heaven's Gate";
 $metaDescription = "Ficha móvil de temporada.";
@@ -9,32 +11,6 @@ $pageSect = 'Temporadas';
 
 if (!function_exists('hg_mobile_sd_h')) {
     function hg_mobile_sd_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-}
-if (!function_exists('hg_mobile_sd_col_exists')) {
-    function hg_mobile_sd_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
-}
-if (!function_exists('hg_mobile_sd_table_exists')) {
-    function hg_mobile_sd_table_exists(mysqli $link, string $table): bool {
-        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-        if (!$rs) return false;
-        $ok = $rs->num_rows > 0;
-        $rs->free();
-        return $ok;
-    }
 }
 if (!function_exists('hg_mobile_sd_url')) {
     function hg_mobile_sd_url(mysqli $link, string $table, string $base, int $id): string {
@@ -58,27 +34,6 @@ if (!function_exists('hg_mobile_sd_kind_label')) {
             return 'Inciso ' . ($number > 0 ? $number : '?');
         }
         return 'Temporada ' . ($number > 0 ? $number : '?');
-    }
-}
-if (!function_exists('hg_mobile_sd_soundtracks')) {
-    function hg_mobile_sd_soundtracks(mysqli $link, string $type, int $id): array {
-        if ($id <= 0 || !hg_mobile_sd_table_exists($link, 'bridge_soundtrack_links') || !hg_mobile_sd_table_exists($link, 'dim_soundtracks')) return [];
-        $rows = [];
-        $sql = "
-            SELECT bs.context_title, bs.title, bs.artist, bs.youtube_url
-            FROM bridge_soundtrack_links br
-            INNER JOIN dim_soundtracks bs ON bs.id = br.soundtrack_id
-            WHERE br.object_type = ? AND br.object_id = ?
-            ORDER BY bs.added_at DESC, bs.id DESC
-        ";
-        if ($st = $link->prepare($sql)) {
-            $st->bind_param('si', $type, $id);
-            $st->execute();
-            $res = $st->get_result();
-            while ($res && ($row = $res->fetch_assoc())) $rows[] = $row;
-            $st->close();
-        }
-        return $rows;
     }
 }
 if (!function_exists('hg_mobile_sd_youtube_id')) {
@@ -117,36 +72,7 @@ if ($seasonId <= 0) {
     return;
 }
 
-$hasSeasonKind = hg_mobile_sd_col_exists($link, 'dim_seasons', 'season_kind');
-$hasImageUrl = hg_mobile_sd_col_exists($link, 'dim_seasons', 'image_url');
-$hasOpening = hg_mobile_sd_col_exists($link, 'dim_seasons', 'opening');
-$hasMainCast = hg_mobile_sd_col_exists($link, 'dim_seasons', 'main_cast');
-$hasChronicle = hg_mobile_sd_col_exists($link, 'dim_seasons', 'chronicle_id');
-$kindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
-$imageExpr = $hasImageUrl ? "COALESCE(s.image_url, '')" : "''";
-$openingExpr = $hasOpening ? "COALESCE(s.opening, '')" : "''";
-$mainCastExpr = $hasMainCast ? "COALESCE(s.main_cast, '')" : "''";
-$chronSelect = $hasChronicle ? "COALESCE(ch.name, '') AS chronicle_name, ch.id AS chronicle_id" : "'' AS chronicle_name, 0 AS chronicle_id";
-$chronJoin = $hasChronicle ? "LEFT JOIN dim_chronicles ch ON ch.id = s.chronicle_id" : "";
-
-$season = null;
-$sql = "
-    SELECT s.id, s.name, s.pretty_id, s.description, s.season_number,
-           {$kindExpr} AS season_kind, COALESCE(s.finished, 0) AS finished,
-           {$imageExpr} AS image_url, {$openingExpr} AS opening, {$mainCastExpr} AS main_cast,
-           {$chronSelect}
-    FROM dim_seasons s
-    {$chronJoin}
-    WHERE s.id = ?
-    LIMIT 1
-";
-if ($st = $link->prepare($sql)) {
-    $st->bind_param('i', $seasonId);
-    $st->execute();
-    $res = $st->get_result();
-    $season = $res ? $res->fetch_assoc() : null;
-    $st->close();
-}
+$season = hg_chapters_fetch_season_detail($link, $seasonId);
 if (!$season) {
     hg_public_render_not_found('Temporada no encontrada', 'No se pudo localizar la temporada solicitada.');
     return;
@@ -159,91 +85,57 @@ $label = hg_mobile_sd_kind_label($kind, $number);
 $metaTitle = $name . " | Temporadas | Heaven's Gate";
 $metaDescription = trim(strip_tags((string)($season['description'] ?? '')));
 
-$hasChapterSeasonId = hg_mobile_sd_col_exists($link, 'dim_chapters', 'season_id');
-$whereChapter = 'c.season_id = ?';
-$chapters = [];
-$chapterSql = "
-    SELECT c.id, c.name, c.chapter_number, c.played_date, c.synopsis,
-           (SELECT COUNT(DISTINCT bcc.character_id) FROM bridge_chapters_characters bcc WHERE bcc.chapter_id = c.id) AS participant_count
-    FROM dim_chapters c
-    WHERE {$whereChapter}
-    ORDER BY c.chapter_number ASC, c.id ASC
-";
-if ($st = $link->prepare($chapterSql)) {
-    $st->bind_param('i', $seasonId);
-    $st->execute();
-    $res = $st->get_result();
-    while ($res && ($row = $res->fetch_assoc())) $chapters[] = $row;
-    $st->close();
+$chapters = hg_chapters_fetch_season_chapters($link, $seasonId);
+if ($chapters === null) {
+    hg_public_log_error('mobile_season_detail', 'chapters query failed: ' . mysqli_error($link));
+    $chapters = [];
 }
 $totalPlayed = 0;
-$chapterIds = [];
 foreach ($chapters as $chapter) {
-    $chapterIds[] = (int)($chapter['id'] ?? 0);
     if (hg_mobile_sd_date($chapter['played_date'] ?? '') !== '') $totalPlayed++;
 }
 
-$characterChronicleAnd = function_exists('hg_mobile_chronicle_exclusion_and') ? hg_mobile_chronicle_exclusion_and('p') : ' AND p.chronicle_id NOT IN (2,7) ';
+$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
+    ? hg_mobile_excluded_chronicles_csv()
+    : '2,7';
+$seasonCharacters = hg_chapters_fetch_season_players($link, $seasonId, $excludedChronicles);
+if ($seasonCharacters === null) {
+    hg_public_log_error('mobile_season_detail', 'characters query failed: ' . mysqli_error($link));
+    $seasonCharacters = [];
+}
 
-$seasonCharacters = [];
-if (!empty($chapterIds)) {
-    $idsSql = implode(',', array_map('intval', $chapterIds));
-    $hasParticipationRole = hg_mobile_sd_col_exists($link, 'bridge_chapters_characters', 'participation_role');
-    $participationFilter = $hasParticipationRole
-        ? " AND bcc.participation_role = 'player'"
-        : " AND p.character_kind = 'pj' AND p.character_type_id = 1";
-    $charSql = "
-        SELECT p.id, p.name, p.image_url, p.gender, COUNT(DISTINCT bcc.chapter_id) AS played_count
-        FROM bridge_chapters_characters bcc
-        INNER JOIN fact_characters p ON p.id = bcc.character_id
-        INNER JOIN dim_chapters c ON c.id = bcc.chapter_id
-        WHERE bcc.chapter_id IN ({$idsSql})
-          AND c.played_date != '0000-00-00'
-          {$participationFilter}
-          {$characterChronicleAnd}
-        GROUP BY p.id, p.name, p.image_url, p.gender
-        ORDER BY played_count DESC, p.name ASC
-    ";
-    if ($res = $link->query($charSql)) {
-        while ($row = $res->fetch_assoc()) $seasonCharacters[] = $row;
-        $res->free();
-    } else {
-        hg_public_log_error('mobile_season_detail', 'characters query failed: ' . mysqli_error($link));
+$soundtracksRaw = hg_soundtracks_fetch_for_object($link, 'temporada', $seasonId);
+$soundtracks = [];
+if ($soundtracksRaw !== null) {
+    foreach ($soundtracksRaw as $track) {
+        $soundtracks[] = [
+            'context_title' => (string)($track['context_title'] ?? ''),
+            'title' => (string)($track['titulo_real'] ?? ''),
+            'artist' => (string)($track['artist'] ?? ''),
+            'youtube_url' => (string)($track['enlace'] ?? ''),
+        ];
     }
 }
 
-$soundtracks = hg_mobile_sd_soundtracks($link, 'temporada', $seasonId);
 $seasonPrev = null;
 $seasonNext = null;
 if ($kind === 'temporada' && $number > 0) {
-    $seasonKindWhere = $hasSeasonKind ? "season_kind = 'temporada' AND " : '';
-
-    if ($st = $link->prepare("SELECT id, name, season_number FROM dim_seasons WHERE {$seasonKindWhere}season_number < ? ORDER BY season_number DESC LIMIT 1")) {
-        $st->bind_param('i', $number);
-        $st->execute();
-        $res = $st->get_result();
-        if ($res && ($row = $res->fetch_assoc())) {
-            $seasonPrev = [
-                'href' => hg_mobile_sd_url($link, 'dim_seasons', '/seasons', (int)$row['id']),
-                'label' => 'Temporada ' . (int)$row['season_number'],
-                'title' => (string)($row['name'] ?? ''),
-            ];
-        }
-        $st->close();
+    $prevRow = hg_chapters_fetch_neighbor_season($link, $number, 'prev');
+    if ($prevRow) {
+        $seasonPrev = [
+            'href' => hg_mobile_sd_url($link, 'dim_seasons', '/seasons', (int)$prevRow['id']),
+            'label' => 'Temporada ' . (int)$prevRow['season_number'],
+            'title' => (string)($prevRow['name'] ?? ''),
+        ];
     }
 
-    if ($st = $link->prepare("SELECT id, name, season_number FROM dim_seasons WHERE {$seasonKindWhere}season_number > ? ORDER BY season_number ASC LIMIT 1")) {
-        $st->bind_param('i', $number);
-        $st->execute();
-        $res = $st->get_result();
-        if ($res && ($row = $res->fetch_assoc())) {
-            $seasonNext = [
-                'href' => hg_mobile_sd_url($link, 'dim_seasons', '/seasons', (int)$row['id']),
-                'label' => 'Temporada ' . (int)$row['season_number'],
-                'title' => (string)($row['name'] ?? ''),
-            ];
-        }
-        $st->close();
+    $nextRow = hg_chapters_fetch_neighbor_season($link, $number, 'next');
+    if ($nextRow) {
+        $seasonNext = [
+            'href' => hg_mobile_sd_url($link, 'dim_seasons', '/seasons', (int)$nextRow['id']),
+            'label' => 'Temporada ' . (int)$nextRow['season_number'],
+            'title' => (string)($nextRow['name'] ?? ''),
+        ];
     }
 }
 ?>
