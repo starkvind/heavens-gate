@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/runtime_response.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+require_once(__DIR__ . '/../../domains/chapters/queries.php');
 
 if (!function_exists('hg_so_h')) {
     function hg_so_h($value): string
@@ -14,22 +15,6 @@ if (!function_exists('hg_so_plain_text')) {
     {
         $text = trim(strip_tags($text));
         return $text === '' ? '' : $text;
-    }
-}
-
-if (!function_exists('hg_so_table_exists')) {
-    function hg_so_table_exists(mysqli $link, string $table): bool
-    {
-        $stmt = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-        if (!$stmt) {
-            return false;
-        }
-        $stmt->bind_param('s', $table);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return (int)$count > 0;
     }
 }
 
@@ -52,29 +37,17 @@ setMetaFromPage(
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-chapters.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-chapters.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
 }
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-maps.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-maps.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-maps.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-maps.css">';
 }
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-seasons.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-seasons.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-seasons.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-seasons.css">';
 }
 
 if (!hg_runtime_require_db($link, 'season_order', 'public', [
@@ -87,85 +60,50 @@ if (!hg_runtime_require_db($link, 'season_order', 'public', [
 
 include_once(__DIR__ . '/../../partials/main_nav_bar.php');
 
-$schemaReady = hg_so_table_exists($link, 'bridge_season_order_nodes');
+$schemaReady = hg_chapters_table_exists($link, 'bridge_season_order_nodes');
 $orders = [];
 $selectedOrder = hg_request_query_param($hgRequest, 'order');
 $nodes = [];
 $renderNodes = [];
 
 if ($schemaReady) {
-    $sqlOrders = "
-        SELECT order_key, MAX(order_label) AS order_label, COUNT(*) AS node_count, MIN(position) AS first_position
-        FROM bridge_season_order_nodes
-        WHERE is_active = 1
-        GROUP BY order_key
-        ORDER BY first_position ASC, order_key ASC
-    ";
-    if ($rsOrders = $link->query($sqlOrders)) {
-        while ($row = $rsOrders->fetch_assoc()) {
-            $key = trim((string)($row['order_key'] ?? ''));
-            if ($key === '') {
-                continue;
-            }
-            $orders[$key] = [
-                'order_key' => $key,
-                'order_label' => trim((string)($row['order_label'] ?? '')) !== '' ? (string)$row['order_label'] : $key,
-                'node_count' => (int)($row['node_count'] ?? 0),
-            ];
-        }
-        $rsOrders->close();
+    $orderRows = hg_chapters_fetch_season_order_catalog($link) ?? [];
+    foreach ($orderRows as $row) {
+        $key = trim((string)($row['order_key'] ?? ''));
+        if ($key === '') continue;
+        $orders[$key] = [
+            'order_key' => $key,
+            'order_label' => trim((string)($row['order_label'] ?? '')) !== '' ? (string)$row['order_label'] : $key,
+            'node_count' => (int)($row['node_count'] ?? 0),
+        ];
     }
 
     if ($selectedOrder === '' && !empty($orders)) {
         $selectedOrder = (string)array_key_first($orders);
     }
     if ($selectedOrder !== '' && !isset($orders[$selectedOrder])) {
-        $selectedOrder = (string)array_key_first($orders);
+        $selectedOrder = !empty($orders) ? (string)array_key_first($orders) : '';
     }
 
     if ($selectedOrder !== '') {
-        $sqlNodes = "
-            SELECT
-                n.id,
-                n.position,
-                n.branch_type,
-                n.parent_node_id,
-                n.node_kind,
-                n.season_id,
-                n.episode_start,
-                n.episode_end,
-                n.label,
-                n.description,
-                s.name AS season_name
-            FROM bridge_season_order_nodes n
-            LEFT JOIN dim_seasons s ON s.id = n.season_id
-            WHERE n.order_key = ?
-              AND n.is_active = 1
-            ORDER BY n.position ASC, n.id ASC
-        ";
-        if ($stmtNodes = $link->prepare($sqlNodes)) {
-            $stmtNodes->bind_param('s', $selectedOrder);
-            $stmtNodes->execute();
-            $rsNodes = $stmtNodes->get_result();
-            while ($row = $rsNodes->fetch_assoc()) {
-                $nodeId = (int)($row['id'] ?? 0);
-                $seasonId = (int)($row['season_id'] ?? 0);
-                $nodes[$nodeId] = [
-                    'id' => $nodeId,
-                    'position' => (int)($row['position'] ?? 0),
-                    'branch_type' => (string)($row['branch_type'] ?? 'main'),
-                    'parent_node_id' => (int)($row['parent_node_id'] ?? 0),
-                    'node_kind' => (string)($row['node_kind'] ?? 'season'),
-                    'season_id' => $seasonId,
-                    'episode_start' => ($row['episode_start'] !== null) ? (int)$row['episode_start'] : null,
-                    'episode_end' => ($row['episode_end'] !== null) ? (int)$row['episode_end'] : null,
-                    'label' => trim((string)($row['label'] ?? '')) !== '' ? (string)$row['label'] : (string)($row['season_name'] ?? ('Nodo ' . $nodeId)),
-                    'description' => (string)($row['description'] ?? ''),
-                    'season_name' => (string)($row['season_name'] ?? ''),
-                    'href' => $seasonId > 0 ? pretty_url($link, 'dim_seasons', '/seasons', $seasonId) : '',
-                ];
-            }
-            $stmtNodes->close();
+        $nodeRows = hg_chapters_fetch_season_order_nodes($link, $selectedOrder) ?? [];
+        foreach ($nodeRows as $row) {
+            $nodeId = (int)($row['id'] ?? 0);
+            $seasonId = (int)($row['season_id'] ?? 0);
+            $nodes[$nodeId] = [
+                'id' => $nodeId,
+                'position' => (int)($row['position'] ?? 0),
+                'branch_type' => (string)($row['branch_type'] ?? 'main'),
+                'parent_node_id' => (int)($row['parent_node_id'] ?? 0),
+                'node_kind' => (string)($row['node_kind'] ?? 'season'),
+                'season_id' => $seasonId,
+                'episode_start' => ($row['episode_start'] !== null) ? (int)$row['episode_start'] : null,
+                'episode_end' => ($row['episode_end'] !== null) ? (int)$row['episode_end'] : null,
+                'label' => trim((string)($row['label'] ?? '')) !== '' ? (string)$row['label'] : (string)($row['season_name'] ?? ('Nodo ' . $nodeId)),
+                'description' => (string)($row['description'] ?? ''),
+                'season_name' => (string)($row['season_name'] ?? ''),
+                'href' => $seasonId > 0 ? pretty_url($link, 'dim_seasons', '/seasons', $seasonId) : '',
+            ];
         }
     }
 }
@@ -359,7 +297,6 @@ if (!empty($orders) && isset($orders[$selectedOrder])) {
         ].join(';');
         const kickerStyle = 'display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;border:1px solid rgba(102,183,255,.28);background:rgba(4,10,26,.72);color:#dff5ff;font-size:11px;font-weight:700;line-height:1.2';
         const titleStyle = 'font-weight:800;font-size:14px;line-height:1.2;color:#ffffff;overflow-wrap:anywhere;text-align:left;margin-top:8px';
-        const subtitleStyle = 'color:#7be4ff;font-size:12px;line-height:1.35;text-align:left;margin-top:5px';
         const descStyle = 'color:#d5e7ff;font-size:12px;line-height:1.42;text-align:left;margin-top:8px';
         const metaStyle = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:10px';
         const tagStyle = 'display:inline-flex;align-items:center;min-height:21px;padding:2px 7px;border-radius:999px;border:1px solid rgba(102,183,255,.24);background:rgba(4,10,26,.72);color:#dff5ff;font-size:11px;font-weight:700';
@@ -477,7 +414,7 @@ if (!empty($orders) && isset($orders[$selectedOrder])) {
             positions.set(node.id, { x: x, y: y, width: CARD_WIDTH, height: nodeHeight, node: node });
             const children = secondaryByParent.get(node.id) || [];
             let currentChildY = SURFACE_PADDING_Y + mainRowHeight + BRANCH_OFFSET;
-            children.forEach(function (child, childIndex) {
+            children.forEach(function (child) {
                 const childHeight = heightMap.get(child.id) || SECONDARY_MIN_HEIGHT;
                 const childY = currentChildY;
                 positions.set(child.id, { x: x, y: childY, width: CARD_WIDTH, height: childHeight, node: child });
@@ -566,7 +503,7 @@ if (!empty($orders) && isset($orders[$selectedOrder])) {
 
                     lineGroup.append('line')
                         .attr('x1', current.x + (current.width / 2))
-                        .attr('y1', childIndex === 0 ? previousPos.y + previousPos.height : previousPos.y + previousPos.height)
+                        .attr('y1', previousPos.y + previousPos.height)
                         .attr('x2', current.x + (current.width / 2))
                         .attr('y2', childPos.y)
                         .attr('stroke', 'rgba(67, 214, 188, 0.72)')
