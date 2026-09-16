@@ -1,122 +1,13 @@
 <?php
+require_once(__DIR__ . '/../../domains/chapters/queries.php');
+
 setMetaFromPage("Tabla de episodios | Heaven's Gate", "Listado completo de episodios y capítulos de Heaven's Gate.", null, 'website');
 include("app/partials/main_nav_bar.php");
 header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
-if (!function_exists('hg_ct_h')) {
-    function hg_ct_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
-if (!function_exists('hg_ct_table_exists')) {
-    function hg_ct_table_exists(mysqli $link, string $table): bool {
-        static $cache = [];
-        $table = str_replace('`', '', $table);
-        if (isset($cache[$table])) return $cache[$table];
-        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-        if (!$rs) return $cache[$table] = false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $cache[$table] = $ok;
-    }
-}
-if (!function_exists('hg_ct_col_exists')) {
-    function hg_ct_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        $cache[$key] = $ok;
-        return $ok;
-    }
-}
-if (!function_exists('hg_ct_season_label')) {
-    function hg_ct_season_label(string $kind, int $number, string $name): string {
-        $kind = trim($kind);
-        $name = trim($name);
-        if ($kind === 'historia_personal') return $name !== '' ? ('Historia personal - ' . $name) : 'Historia personal';
-        if ($kind === 'especial') return $name !== '' ? ('Especial - ' . $name) : 'Especial';
-        if ($kind === 'inciso') {
-            $incisoNum = $number;
-            if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
-            $prefix = 'Inciso ' . ($incisoNum > 0 ? $incisoNum : '?');
-            return $name !== '' ? ($prefix . ' - ' . $name) : $prefix;
-        }
-        $prefix = 'T' . ($number > 0 ? $number : '?');
-        return $name !== '' ? ($prefix . ' - ' . $name) : $prefix;
-    }
-}
-if (!function_exists('hg_ct_season_kind_label')) {
-    function hg_ct_season_kind_label(string $kind): string {
-        $kind = trim($kind);
-        if ($kind === 'historia_personal') return 'Historia personal';
-        if ($kind === 'especial') return 'Especial';
-        if ($kind === 'inciso') return 'Inciso';
-        return 'Temporada';
-    }
-}
 
-$hasSeasonChronicle = hg_ct_col_exists($link, 'dim_seasons', 'chronicle_id');
-$hasChapterSynopsis = hg_ct_col_exists($link, 'dim_chapters', 'synopsis');
-$hasChapterCharacters = hg_ct_table_exists($link, 'bridge_chapters_characters');
-$rows = [];
-$selectChronicle = $hasSeasonChronicle
-    ? ",
-        ch.id AS chronicle_id,
-        ch.pretty_id AS chronicle_pretty_id,
-        ch.name AS chronicle_name"
-    : ",
-        NULL AS chronicle_id,
-        NULL AS chronicle_pretty_id,
-        NULL AS chronicle_name";
-$joinChronicle = $hasSeasonChronicle ? " LEFT JOIN dim_chronicles ch ON ch.id = s.chronicle_id" : "";
-$selectSynopsis = $hasChapterSynopsis ? "COALESCE(c.synopsis, '') AS chapter_synopsis" : "'' AS chapter_synopsis";
-$selectCharactersCount = $hasChapterCharacters
-    ? "(
-            SELECT COUNT(DISTINCT bcc.character_id)
-            FROM bridge_chapters_characters bcc
-            WHERE bcc.chapter_id = c.id
-        ) AS character_count"
-    : "0 AS character_count";
-$sql = "
-    SELECT
-        c.id AS chapter_id,
-        c.pretty_id AS chapter_pretty_id,
-        c.name AS chapter_name,
-        c.chapter_number,
-        s.id AS season_id,
-        s.pretty_id AS season_pretty_id,
-        s.name AS season_name,
-        s.season_number,
-        COALESCE(s.season_kind, 'temporada') AS season_kind,
-        COALESCE(s.sort_order, 999999) AS season_sort_order,
-        {$selectSynopsis},
-        {$selectCharactersCount}
-        {$selectChronicle}
-    FROM dim_chapters c
-    LEFT JOIN dim_seasons s ON s.id = c.season_id
-    {$joinChronicle}
-    ORDER BY
-        COALESCE(s.sort_order, 999999) ASC,
-        s.season_number ASC,
-        c.chapter_number ASC,
-        c.name ASC
-";
-
-$result = mysqli_query($link, $sql);
-if ($result instanceof mysqli_result) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $rows[] = $row;
-    }
-    mysqli_free_result($result);
-}
-
+$hasSeasonChronicle = hg_chapters_column_exists($link, 'dim_seasons', 'chronicle_id');
+$rows = hg_chapters_fetch_table_rows($link) ?? [];
 $pageSect = "Capítulos";
 ?>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-docs.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-docs.css"><?php } ?>
