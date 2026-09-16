@@ -93,6 +93,12 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/pwrs/disc_custom_list.php',
         ROOT / 'app/mobile/controllers/powers.php',
     ],
+    'chapters': [
+        ROOT / 'app/mobile/controllers/seasons_list.php',
+        ROOT / 'app/mobile/controllers/chapters_list.php',
+        ROOT / 'app/partials/chapters/season_barchart_prepare.php',
+        ROOT / 'app/controllers/chapters/season_attendance_analysis.php',
+    ],
 }
 
 QUERY_CALLS = [
