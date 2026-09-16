@@ -590,3 +590,195 @@ if (!function_exists('hg_chapters_fetch_neighbor_season')) {
         return $row ?: null;
     }
 }
+
+if (!function_exists('hg_chapters_resolve_chapter_id')) {
+    function hg_chapters_resolve_chapter_id(mysqli $link, string $raw): int
+    {
+        $raw = trim(rawurldecode($raw));
+        if ($raw === '') return 0;
+        if (function_exists('resolve_pretty_id')) {
+            $resolved = resolve_pretty_id($link, 'dim_chapters', $raw);
+            if ($resolved !== null && (int)$resolved > 0) return (int)$resolved;
+        }
+        if (preg_match('/^\d+$/', $raw)) return (int)$raw;
+        if (!function_exists('slugify_pretty_id')) return 0;
+
+        $hasPretty = hg_chapters_column_exists($link, 'dim_chapters', 'pretty_id');
+        $prettySelect = $hasPretty ? 'pretty_id' : "'' AS pretty_id";
+        $result = mysqli_query($link, "SELECT id, name, {$prettySelect} FROM dim_chapters");
+        if (!$result) return 0;
+        $resolvedId = 0;
+        while ($row = mysqli_fetch_assoc($result)) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) continue;
+            $pretty = trim((string)($row['pretty_id'] ?? ''));
+            $nameSlug = slugify_pretty_id((string)($row['name'] ?? ''));
+            if ($pretty === $raw || $nameSlug === $raw) {
+                $resolvedId = $id;
+                break;
+            }
+        }
+        mysqli_free_result($result);
+        return $resolvedId;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_chapter_detail')) {
+    function hg_chapters_fetch_chapter_detail(mysqli $link, int $chapterId): ?array
+    {
+        if ($chapterId <= 0) return null;
+        $hasKind = hg_chapters_column_exists($link, 'dim_seasons', 'season_kind');
+        $hasImage = hg_chapters_column_exists($link, 'dim_chapters', 'image_url');
+        $hasInGame = hg_chapters_column_exists($link, 'dim_chapters', 'in_game_date');
+        $kindExpr = $hasKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
+        $imageExpr = $hasImage ? "COALESCE(c.image_url, '')" : "''";
+        $inGameExpr = $hasInGame ? "COALESCE(c.in_game_date, '')" : "''";
+        $sql = "
+            SELECT c.id, c.name, c.chapter_number, c.synopsis, c.played_date,
+                   {$inGameExpr} AS in_game_date, {$imageExpr} AS image_url,
+                   COALESCE(s.id, 0) AS season_id, COALESCE(s.name, '') AS season_name,
+                   COALESCE(s.season_number, 0) AS season_number, {$kindExpr} AS season_kind
+            FROM dim_chapters c
+            LEFT JOIN dim_seasons s ON s.id = c.season_id
+            WHERE c.id = ?
+            LIMIT 1
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $chapterId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $row ?: null;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_chapter_participants')) {
+    function hg_chapters_fetch_chapter_participants(mysqli $link, int $chapterId, string $excludedChroniclesCsv = ''): ?array
+    {
+        if ($chapterId <= 0) return [];
+        $hasRole = hg_chapters_column_exists($link, 'bridge_chapters_characters', 'participation_role');
+        $roleExpr = $hasRole
+            ? "COALESCE(NULLIF(TRIM(bcc.participation_role), ''), 'npc')"
+            : "CASE WHEN p.character_kind = 'pj' THEN 'player' ELSE 'npc' END";
+        $excluded = hg_chapters_normalize_int_csv($excludedChroniclesCsv);
+        $chronicleFilter = ($excluded !== '' && hg_chapters_column_exists($link, 'fact_characters', 'chronicle_id'))
+            ? " AND p.chronicle_id NOT IN ({$excluded})"
+            : '';
+        $sql = "
+            SELECT p.id, p.name, p.image_url, p.gender, {$roleExpr} AS participation_role
+            FROM bridge_chapters_characters bcc
+            INNER JOIN fact_characters p ON p.id = bcc.character_id
+            WHERE bcc.chapter_id = ?{$chronicleFilter}
+            ORDER BY CASE WHEN {$roleExpr} = 'player' THEN 0 ELSE 1 END, p.name ASC
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $chapterId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        if (!$result) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_neighbor_chapters')) {
+    function hg_chapters_fetch_neighbor_chapters(mysqli $link, int $seasonId, int $chapterNumber): ?array
+    {
+        if ($seasonId <= 0 || $chapterNumber <= 0) return [];
+        $prev = $chapterNumber - 1;
+        $next = $chapterNumber + 1;
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT id, name, chapter_number FROM dim_chapters WHERE season_id = ? AND chapter_number IN (?, ?) ORDER BY chapter_number ASC'
+        );
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'iii', $seasonId, $prev, $next);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        if (!$result) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[(int)$row['chapter_number']] = $row;
+        mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_chapter_bounds')) {
+    function hg_chapters_fetch_chapter_bounds(mysqli $link, int $seasonId): ?array
+    {
+        if ($seasonId <= 0) return ['min_ch' => 0, 'max_ch' => 0];
+        $stmt = mysqli_prepare($link, 'SELECT MIN(chapter_number) AS min_ch, MAX(chapter_number) AS max_ch FROM dim_chapters WHERE season_id = ?');
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $seasonId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return [
+            'min_ch' => (int)($row['min_ch'] ?? 0),
+            'max_ch' => (int)($row['max_ch'] ?? 0),
+        ];
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_chapter_events')) {
+    function hg_chapters_fetch_chapter_events(mysqli $link, int $chapterId, int $limit = 20): ?array
+    {
+        if ($chapterId <= 0) return [];
+        if (!hg_chapters_table_exists($link, 'bridge_timeline_events_chapters') || !hg_chapters_table_exists($link, 'fact_timeline_events')) return [];
+        $limit = max(1, min(100, $limit));
+        $prettyExpr = hg_chapters_column_exists($link, 'fact_timeline_events', 'pretty_id') ? 'e.pretty_id' : "''";
+        $sql = "
+            SELECT e.id, {$prettyExpr} AS pretty_id, e.title, e.event_date
+            FROM bridge_timeline_events_chapters b
+            INNER JOIN fact_timeline_events e ON e.id = b.event_id
+            WHERE b.chapter_id = ?
+            ORDER BY e.event_date ASC, e.id ASC
+            LIMIT {$limit}
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $chapterId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        if (!$result) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
