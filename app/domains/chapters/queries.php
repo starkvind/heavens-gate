@@ -397,3 +397,196 @@ if (!function_exists('hg_chapters_fetch_attendance_analysis')) {
         return ['chapters' => $chapters, 'appearances' => $appearances, 'players' => $players];
     }
 }
+
+if (!function_exists('hg_chapters_normalize_int_csv')) {
+    function hg_chapters_normalize_int_csv(string $csv): string
+    {
+        $ids = [];
+        foreach (preg_split('/\s*,\s*/', trim($csv)) ?: [] as $part) {
+            if (preg_match('/^\d+$/', (string)$part)) $ids[] = (string)(int)$part;
+        }
+        return implode(',', array_values(array_unique($ids)));
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_season_detail')) {
+    function hg_chapters_fetch_season_detail(mysqli $link, int $seasonId): ?array
+    {
+        if ($seasonId <= 0) return null;
+
+        $hasKind = hg_chapters_column_exists($link, 'dim_seasons', 'season_kind');
+        $hasImage = hg_chapters_column_exists($link, 'dim_seasons', 'image_url');
+        $hasOpening = hg_chapters_column_exists($link, 'dim_seasons', 'opening');
+        $hasMainCast = hg_chapters_column_exists($link, 'dim_seasons', 'main_cast');
+        $hasChronicle = hg_chapters_column_exists($link, 'dim_seasons', 'chronicle_id');
+
+        $kindExpr = $hasKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
+        $imageExpr = $hasImage ? "COALESCE(s.image_url, '')" : "''";
+        $openingExpr = $hasOpening ? "COALESCE(s.opening, '')" : "''";
+        $mainCastExpr = $hasMainCast ? "COALESCE(s.main_cast, '')" : "''";
+        $chronicleIdExpr = $hasChronicle ? 'COALESCE(s.chronicle_id, 0)' : '0';
+        $chronicleNameExpr = $hasChronicle ? "COALESCE(ch.name, '')" : "''";
+        $chronicleJoin = $hasChronicle ? 'LEFT JOIN dim_chronicles ch ON ch.id = s.chronicle_id' : '';
+
+        $sql = "
+            SELECT
+                s.id,
+                s.name,
+                s.pretty_id,
+                s.description,
+                s.season_number,
+                COALESCE(s.finished, 0) AS finished,
+                {$kindExpr} AS season_kind,
+                {$imageExpr} AS image_url,
+                {$openingExpr} AS opening,
+                {$mainCastExpr} AS main_cast,
+                {$chronicleIdExpr} AS chronicle_id,
+                {$chronicleNameExpr} AS chronicle_name
+            FROM dim_seasons s
+            {$chronicleJoin}
+            WHERE s.id = ?
+            LIMIT 1
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $seasonId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $row ?: null;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_season_chapters')) {
+    function hg_chapters_fetch_season_chapters(mysqli $link, int $seasonId): ?array
+    {
+        if ($seasonId <= 0) return [];
+        $hasSynopsis = hg_chapters_column_exists($link, 'dim_chapters', 'synopsis');
+        $synopsisExpr = $hasSynopsis ? "COALESCE(c.synopsis, '')" : "''";
+        $hasBridge = hg_chapters_table_exists($link, 'bridge_chapters_characters');
+        $participantExpr = $hasBridge
+            ? '(SELECT COUNT(DISTINCT bcc.character_id) FROM bridge_chapters_characters bcc WHERE bcc.chapter_id = c.id)'
+            : '0';
+        $sql = "
+            SELECT c.id, c.name, c.chapter_number, c.played_date,
+                   {$synopsisExpr} AS synopsis,
+                   {$participantExpr} AS participant_count
+            FROM dim_chapters c
+            WHERE c.season_id = ?
+            ORDER BY c.chapter_number ASC, c.id ASC
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $seasonId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        if (!$result) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_characters_by_ids')) {
+    function hg_chapters_fetch_characters_by_ids(mysqli $link, array $characterIds): ?array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $characterIds), static fn($id) => $id > 0)));
+        if (!$ids) return [];
+        $idSql = implode(',', $ids);
+        $result = mysqli_query(
+            $link,
+            "SELECT p.id, p.name, p.image_url, p.gender
+             FROM fact_characters p
+             WHERE p.id IN ({$idSql})
+             ORDER BY p.name ASC, p.id ASC"
+        );
+        if (!$result) return null;
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_season_players')) {
+    function hg_chapters_fetch_season_players(mysqli $link, int $seasonId, string $excludedChroniclesCsv = ''): ?array
+    {
+        if ($seasonId <= 0) return [];
+        $hasRole = hg_chapters_column_exists($link, 'bridge_chapters_characters', 'participation_role');
+        $participationFilter = $hasRole
+            ? " AND bcc.participation_role = 'player'"
+            : " AND p.character_kind = 'pj' AND p.character_type_id = 1";
+        $excluded = hg_chapters_normalize_int_csv($excludedChroniclesCsv);
+        $chronicleFilter = ($excluded !== '' && hg_chapters_column_exists($link, 'fact_characters', 'chronicle_id'))
+            ? " AND p.chronicle_id NOT IN ({$excluded})"
+            : '';
+
+        $sql = "
+            SELECT p.id, p.name, p.image_url, p.gender, COUNT(DISTINCT bcc.chapter_id) AS played_count
+            FROM bridge_chapters_characters bcc
+            INNER JOIN fact_characters p ON p.id = bcc.character_id
+            INNER JOIN dim_chapters c ON c.id = bcc.chapter_id
+            WHERE c.season_id = ?
+              AND c.played_date != '0000-00-00'
+              {$participationFilter}
+              {$chronicleFilter}
+            GROUP BY p.id, p.name, p.image_url, p.gender
+            ORDER BY played_count DESC, p.name ASC
+        ";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $seasonId);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        if (!$result) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_chapters_fetch_neighbor_season')) {
+    function hg_chapters_fetch_neighbor_season(mysqli $link, int $seasonNumber, string $direction): ?array
+    {
+        if ($seasonNumber <= 0 || !in_array($direction, ['prev', 'next'], true)) return null;
+        $operator = $direction === 'prev' ? '<' : '>';
+        $order = $direction === 'prev' ? 'DESC' : 'ASC';
+        $kindFilter = hg_chapters_column_exists($link, 'dim_seasons', 'season_kind')
+            ? "season_kind = 'temporada' AND "
+            : '';
+        $sql = "SELECT id, name, season_number FROM dim_seasons WHERE {$kindFilter}season_number {$operator} ? ORDER BY season_number {$order} LIMIT 1";
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $seasonNumber);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $row ?: null;
+    }
+}
