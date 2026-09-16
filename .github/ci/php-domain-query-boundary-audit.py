@@ -98,6 +98,7 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/chapters/chapter_table.php',
         ROOT / 'app/mobile/controllers/seasons_list.php',
         ROOT / 'app/mobile/controllers/chapters_list.php',
+        ROOT / 'app/mobile/controllers/season_detail.php',
         ROOT / 'app/partials/chapters/season_barchart_prepare.php',
         ROOT / 'app/controllers/chapters/season_attendance_analysis.php',
     ],
