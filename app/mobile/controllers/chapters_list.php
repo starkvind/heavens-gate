@@ -1,6 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+include_once(__DIR__ . '/../../domains/chapters/queries.php');
 
 $metaTitle = "Capítulos | Heaven's Gate";
 $metaDescription = "Listado móvil de capítulos.";
@@ -8,23 +9,6 @@ $pageSect = 'Capítulos';
 
 if (!function_exists('hg_mobile_chl_h')) {
     function hg_mobile_chl_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-}
-if (!function_exists('hg_mobile_chl_col_exists')) {
-    function hg_mobile_chl_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
 }
 if (!function_exists('hg_mobile_chl_url')) {
     function hg_mobile_chl_url(mysqli $link, string $table, string $base, int $id): string {
@@ -57,46 +41,11 @@ if (!isset($link) || !($link instanceof mysqli)) {
 $q = hg_request_query_param($hgRequest, 'q');
 $seasonFilter = max(0, (int)hg_request_query_param($hgRequest, 'season'));
 
-$hasSeasonId = hg_mobile_chl_col_exists($link, 'dim_chapters', 'season_id');
-$hasSeasonKind = hg_mobile_chl_col_exists($link, 'dim_seasons', 'season_kind');
-$kindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
-$seasonJoin = 'LEFT JOIN dim_seasons s ON s.id = c.season_id';
-$seasonWhere = 'c.season_id';
-
-$seasonRows = [];
-if ($res = $link->query("SELECT id, name, season_number FROM dim_seasons ORDER BY COALESCE(sort_order, 999999), season_number, name")) {
-    while ($row = $res->fetch_assoc()) $seasonRows[] = $row;
-    $res->free();
-}
-
-$where = ['1=1'];
-if ($q !== '') {
-    $like = mysqli_real_escape_string($link, '%' . $q . '%');
-    $where[] = "(c.name LIKE '{$like}' OR c.synopsis LIKE '{$like}')";
-}
-if ($seasonFilter > 0) {
-    $where[] = $seasonWhere . ' = ' . (int)$seasonFilter;
-}
-$whereSql = implode(' AND ', $where);
-
-$rows = [];
-$sql = "
-    SELECT c.id, c.name, c.chapter_number, c.played_date, c.synopsis,
-           COALESCE(s.id, 0) AS season_id, COALESCE(s.name, '') AS season_name,
-           COALESCE(s.season_number, 0) AS season_number,
-           {$kindExpr} AS season_kind,
-           COALESCE(s.sort_order, 999999) AS season_sort_order,
-           (SELECT COUNT(DISTINCT bcc.character_id) FROM bridge_chapters_characters bcc WHERE bcc.chapter_id = c.id) AS participant_count
-    FROM dim_chapters c
-    {$seasonJoin}
-    WHERE {$whereSql}
-    ORDER BY COALESCE(s.sort_order, 999999), COALESCE(s.season_number, 0), c.chapter_number, c.id
-";
-if ($res = $link->query($sql)) {
-    while ($row = $res->fetch_assoc()) $rows[] = $row;
-    $res->free();
-} else {
+$seasonRows = hg_chapters_fetch_season_options($link) ?? [];
+$rows = hg_chapters_fetch_mobile_list($link, $q, $seasonFilter);
+if ($rows === null) {
     hg_public_log_error('mobile_chapters_list', 'query failed: ' . mysqli_error($link));
+    $rows = [];
 }
 ?>
 
