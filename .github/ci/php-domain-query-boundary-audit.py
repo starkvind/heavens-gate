@@ -20,7 +20,10 @@ EXTRACTED_CONTROLLERS = {
     'characters': [
         ROOT / 'app/controllers/bio/bio_list.php',
         ROOT / 'app/controllers/bio/bio_table.php',
+        ROOT / 'app/controllers/bio/bio_worlds.php',
         ROOT / 'app/mobile/controllers/characters_list.php',
+        ROOT / 'app/mobile/controllers/character_types.php',
+        ROOT / 'app/mobile/controllers/character_type_detail.php',
         ROOT / 'app/partials/bio/bio_page_section_01_data.php',
         ROOT / 'app/partials/bio/bio_page_section_06_skills.php',
         ROOT / 'app/partials/bio/bio_page_section_07_resources.php',
