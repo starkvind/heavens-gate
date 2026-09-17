@@ -128,6 +128,8 @@ if ($index === false) {
 }
 foreach ([
     "require_once __DIR__ . '/app/http/output.php'",
+    "require_once __DIR__ . '/app/bootstrap/runtime.php'",
+    "require_once __DIR__ . '/app/routing/request_runtime.php'",
     "include __DIR__ . '/app/http/page_dispatch.php'",
     "require_once __DIR__ . '/app/presentation/desktop_context.php'",
     "include __DIR__ . '/app/views/layout/desktop.php'",
@@ -145,11 +147,28 @@ if ($mobileFallback === false || strpos($mobileFallback, "../../http/page_dispat
     hg_dispatch_fail('Mobile fallback no longer shares the page dispatch path');
 }
 
-if (is_file($root . '/app/bootstrap/body_work.php')) {
-    hg_dispatch_fail('Legacy body_work.php coordinator was reintroduced');
+foreach ([
+    'body_work.php',
+    'page_context.php',
+    'request_router.php',
+    'head_work.php',
+    'error_reporting.php',
+] as $retiredBootstrap) {
+    if (is_file($root . '/app/bootstrap/' . $retiredBootstrap)) {
+        hg_dispatch_fail("Retired bootstrap owner was reintroduced: {$retiredBootstrap}");
+    }
 }
-if (is_file($root . '/app/bootstrap/page_context.php')) {
-    hg_dispatch_fail('Page context drifted back into generic bootstrap');
+
+$bootstrapFiles = glob($root . '/app/bootstrap/*.php') ?: [];
+sort($bootstrapFiles);
+$expectedBootstrap = [$root . '/app/bootstrap/runtime.php'];
+if ($bootstrapFiles !== $expectedBootstrap) {
+    hg_dispatch_fail('Bootstrap is no longer startup-only: ' . implode(', ', array_map('basename', $bootstrapFiles)));
+}
+
+$desktopLayout = file_get_contents($root . '/app/views/layout/desktop.php');
+if ($desktopLayout === false || strpos($desktopLayout, "include __DIR__ . '/head.php'") === false) {
+    hg_dispatch_fail('Desktop layout no longer owns its document head');
 }
 
 foreach (['combat_simulator.php', 'game_cards.php'] as $retired) {
