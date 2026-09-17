@@ -1,28 +1,29 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/maps.php');
+require_once(__DIR__ . '/../../domains/maps/queries.php');
 
 hg_maps_require_connection($link);
 
-$poiId = (int)hg_request_param($hgRequest, 'poi');
+$schema = hg_maps_query_schema_info($link);
+$poiId = hg_maps_query_resolve_poi_id($link, hg_request_param($hgRequest, 'poi'), $schema);
 if ($poiId <= 0) {
     echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>Id invalido.</fieldset></div>";
     return;
 }
 
-$schema = hg_maps_schema_info($link);
-$poi = hg_maps_fetch_poi_detail($link, $schema, $poiId);
+$poi = hg_maps_query_fetch_poi_detail($link, $schema, $poiId);
 
 if (!$poi) {
     echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>POI</legend>No existe el punto solicitado.</fieldset></div>";
     return;
 }
 
-$maps = hg_maps_fetch_maps($link);
+$maps = hg_maps_query_fetch_maps($link);
 $fromMapParam = hg_request_query_param($hgRequest, 'from_map');
 $fromMap = $fromMapParam !== '' ? hg_maps_find_map($maps, $fromMapParam) : null;
 $fromMapIsDifferent = $fromMap && (string)$fromMap['slug'] !== (string)$poi['map_slug'];
-$relatedPois = hg_maps_fetch_related_pois($link, $schema, $poi, 40);
+$relatedPois = hg_maps_query_fetch_related_pois($link, $schema, $poi, 40);
 
 if (function_exists('setMetaFromPage')) {
     $poiMetaDescription = function_exists('meta_excerpt')

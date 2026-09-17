@@ -1,6 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/maps.php');
+require_once(__DIR__ . '/../../domains/maps/queries.php');
 
 hg_maps_require_connection($link, true);
 
@@ -21,8 +22,8 @@ if ($action === '') {
     $jsonResponse(['ok' => false, 'error' => 'Accion no indicada.'], 400);
 }
 
-$schema = hg_maps_schema_info($link);
-$maps = hg_maps_fetch_maps($link);
+$schema = hg_maps_query_schema_info($link);
+$maps = hg_maps_query_fetch_maps($link);
 
 if (!$maps) {
     $jsonResponse(['ok' => false, 'error' => 'No hay mapas configurados.'], 404);
@@ -68,7 +69,7 @@ $filters = [
 
 switch ($action) {
     case 'search':
-        $items = hg_maps_fetch_pois($link, $schema, $filters, $mapNamesById);
+        $items = hg_maps_query_fetch_pois($link, $schema, $filters, $mapNamesById);
         $jsonResponse([
             'ok' => true,
             'count' => count($items),
@@ -85,7 +86,7 @@ switch ($action) {
 
     case 'areas':
         $categoryId = (int)hg_request_query_param($hgRequest, 'category_id');
-        $items = hg_maps_fetch_areas($link, (int)$selectedMap['id'], $categoryId);
+        $items = hg_maps_query_fetch_areas($link, (int)$selectedMap['id'], $categoryId);
         $jsonResponse([
             'ok' => true,
             'count' => count($items),

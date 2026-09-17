@@ -106,6 +106,12 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/mobile/controllers/chapter_detail.php',
         ROOT / 'app/partials/chapters/season_barchart_prepare.php',
     ],
+    'maps': [
+        ROOT / 'app/controllers/maps/maps_main.php',
+        ROOT / 'app/controllers/maps/maps_detail.php',
+        ROOT / 'app/controllers/maps/maps_api.php',
+        ROOT / 'app/mobile/controllers/maps.php',
+    ],
 }
 
 QUERY_CALLS = [
