@@ -10,8 +10,11 @@ Fuentes principales:
 
 - `index.php`
 - `.htaccess`
+- `app/bootstrap/runtime.php`
 - `app/routing/request_runtime.php`
+- `app/routing/path_normalization.php`
 - `app/routing/path_matcher.php`
+- `app/routing/legacy_query.php`
 - `app/routing/routes.php`
 - `app/http/page_dispatch.php`
 - `app/http/dispatch_policy.php`
@@ -22,10 +25,11 @@ Fuentes principales:
 - `app/http/output.php`
 - `app/presentation/desktop_context.php`
 - `app/views/layout/desktop.php`
-- `app/bootstrap/request_router.php` — compatibilidad legacy todavía activa
+- `app/views/layout/head.php`
 - `app/mobile/mobile_routes.php`
 - `app/helpers/db_connection.php`
 - `app/helpers/pretty.php`
+- `app/domains/configuration/queries.php`
 - `app/controllers/admin/admin_main.php`
 - `production-2026-09-01.sql`
 
@@ -38,20 +42,22 @@ Flujo público normal:
 1. Apache aplica `.htaccess`.
 2. Los ficheros y directorios existentes se sirven directamente, salvo zonas bloqueadas.
 3. El resto entra en `index.php`.
-4. `index.php` inicializa output/conexión y entra en `app/routing/request_runtime.php`.
-5. `request_runtime.php` normaliza la request y decide entre path canónico y compatibilidad legacy.
-6. Las URLs canónicas pasan a `app/routing/path_matcher.php`, que **no usa MySQL ni request globals**.
-7. `path_matcher.php` produce un `route key` y parámetros internos.
-8. `index.php` construye `hgRequest` y decide si debe usarse la presentación móvil de compatibilidad.
-9. Las páginas normales pasan por `app/http/page_dispatch.php`, compartido también por el fallback móvil.
-10. `page_dispatch.php` aplica normalización pretty explícita, refresca el request context y carga `app/routing/routes.php`.
-11. `app/http/dispatch_policy.php` resuelve controlador, sección, fallback y condición bare.
-12. `app/http/dispatcher.php` aplica esa decisión e incluye el controlador.
-13. Si la respuesta no es bare, `index.php` prepara el contexto de presentación y delega el HTML desktop en `app/views/layout/desktop.php`.
+4. `index.php` inicializa output, conexión y `app/bootstrap/runtime.php`.
+5. El bootstrap carga únicamente la pequeña configuración global previa al dispatch; su SQL vive en `app/domains/configuration/queries.php`.
+6. `index.php` pasa URI, query y método HTTP explícitos a `app/routing/request_runtime.php`.
+7. `request_runtime.php` normaliza el path mediante `path_normalization.php` y decide entre path canónico y compatibilidad legacy.
+8. Las URLs canónicas pasan a `app/routing/path_matcher.php`, que **no usa MySQL ni request globals**.
+9. Las URLs históricas `?p=...` pasan a `app/routing/legacy_query.php`, que conserva sólo canonicalización/compatibilidad y resolución de IDs/aliases necesaria para construir la URL moderna.
+10. `index.php` construye `hgRequest` y decide si debe usarse la presentación móvil de compatibilidad.
+11. Las páginas normales pasan por `app/http/page_dispatch.php`, compartido también por el fallback móvil.
+12. `page_dispatch.php` aplica normalización pretty explícita, refresca el request context y carga `app/routing/routes.php`.
+13. `app/http/dispatch_policy.php` resuelve controlador, sección, fallback y condición bare.
+14. `app/http/dispatcher.php` aplica esa decisión e incluye el controlador.
+15. Si la respuesta no es bare, `index.php` prepara el contexto de presentación y delega el HTML desktop en `app/views/layout/desktop.php`; el `<head>` vive en `app/views/layout/head.php`.
 
 Ruta conceptual:
 
-`URL -> request runtime -> path matcher -> request context -> page dispatch -> route registry -> dispatch policy -> dispatcher -> domain controller -> presentation`
+`URL -> request runtime -> path matcher/legacy compatibility -> request context -> page dispatch -> route registry -> dispatch policy -> dispatcher -> domain controller -> presentation`
 
 Ejemplo:
 
@@ -59,19 +65,23 @@ Ejemplo:
 
 `app/` no es superficie web pública.
 
-`app/bootstrap/body_work.php` fue retirado en Phase 4.1 y no forma parte ya del runtime.
+`app/bootstrap/body_work.php`, `app/bootstrap/request_router.php`, `app/bootstrap/head_work.php` y `app/bootstrap/error_reporting.php` han sido retirados. Bootstrap queda reducido a startup.
 
 ## 3. Compatibilidad legacy del router
 
-`app/bootstrap/request_router.php` ya no es el router normal de paths canónicos. Durante el refactor conserva temporalmente:
+`app/routing/legacy_query.php` es el único propietario de la canonicalización histórica `?p=...`.
 
-- canonicalización de URLs antiguas `?p=...`;
+Conserva:
+
+- conversión de route keys históricos a URLs canónicas;
 - resolución de `pretty_id` necesaria para convertir IDs/aliases antiguos en slugs actuales;
-- compatibilidad de query strings de búsquedas, Admin, embeds y algunos endpoints históricos.
+- query strings permitidas en búsquedas, Admin, embeds y algunos endpoints históricos.
 
-La intención arquitectónica es reducirlo a compatibilidad explícita y retirar funciones muertas sólo después de pruebas de regresión.
+No contiene el matcher de paths canónicos y no lee `$_GET`, `$_POST` ni `$_REQUEST`. El transporte llega como argumentos explícitos desde `index.php` / `request_runtime.php`.
 
 `app/helpers/pretty.php` mantiene la resolución de aliases históricos mediante `fact_pretty_id_aliases`.
+
+La presencia puntual de MySQL en esta capa responde a la necesidad histórica de resolver ID/alias -> slug antes de emitir el redirect. No convierte esta capa en el router canónico.
 
 ## 4. Registro y dispatch
 
@@ -87,18 +97,19 @@ El contrato todavía conserva el token `snippet_forum_a` como bare legacy, aunqu
 
 ## 5. Front controller y presentaciones
 
-`index.php` se mantiene como front controller único y, tras Phase 4.1, ya no contiene el shell HTML desktop ni define helpers de output/UTF-8.
+`index.php` se mantiene como front controller único. Tras Phase 4.1/4.2 ya no contiene el shell HTML desktop, helpers de output/UTF-8, lógica de configuración de aplicación ni lógica interna del router.
 
 Responsabilidades actuales:
 
-- bootstrap mínimo de output, conexión y helpers de borde;
-- obtención de query/body transport;
+- bootstrap mínimo de output y conexión;
+- lectura de los transportes HTTP en el borde (`$_SERVER`, `$_GET`, `$_POST`);
+- entrega explícita de método/URI/query al runtime de routing;
 - construcción del request context explícito;
 - decisión desktop/móvil;
 - captura de la salida del page dispatch;
 - entrega de respuesta bare o delegación a presentación.
 
-El shell desktop vive en `app/views/layout/desktop.php`. El tema y la URL de cambio a vista móvil se preparan en `app/presentation/desktop_context.php`.
+El shell desktop vive en `app/views/layout/desktop.php`; su `<head>` vive en `app/views/layout/head.php`. El tema y la URL de cambio a vista móvil se preparan en `app/presentation/desktop_context.php`.
 
 `?view=mobile` usa la misma resolución de URL y el mismo `route key`, pero `app/mobile/mobile_index.php` selecciona un controlador desde `app/mobile/mobile_routes.php`.
 
@@ -116,6 +127,8 @@ Esta arquitectura móvil permanece sólo por compatibilidad hasta que el menú r
 - `MYSQL_BDD`
 
 Busca `config.env` en el padre de la raíz, raíz del proyecto y ubicación legacy bajo `app/`. La conexión se reutiliza durante la request y fuerza `utf8mb4`.
+
+La configuración global previa al dispatch se carga mediante `app/bootstrap/runtime.php`, que delega las consultas en `app/domains/configuration/queries.php`. Actualmente sólo se cargan aquí los valores necesarios antes de despachar (`error_reporting` y `exclude_chronicles`).
 
 ## 7. Seguridad web
 
@@ -228,19 +241,29 @@ Herramientas internas existentes incluyen:
 - `app/tools/inspect_db.php`;
 - `sql/audit_gaia0_content.sql`.
 
-**Atención:** `tools/scaffold_section.py` todavía intenta modificar el antiguo `request_router.php` + `body_work.php`. `body_work.php` ya no existe tras Phase 4.1, así que el scaffold está explícitamente congelado y **no debe ejecutarse para altas nuevas hasta ser adaptado**.
+`tools/scaffold_section.py` vuelve a estar operativo para **secciones públicas simples**: crea el controlador y cablea `app/routing/path_matcher.php` + `app/routing/routes.php`. Si se solicita CSS, el controlador generado lo registra mediante `hg_page_register_stylesheet()` para mantener la carga en `<head>`.
+
+No sirve para rutas de detalle con `pretty_id`, CRUD complejo ni para decidir automáticamente compatibilidad histórica `?p=...`.
 
 Véase [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md).
 
 ## 13. Añadir secciones
 
-Mientras el scaffold no sea actualizado, una sección pública nueva debe añadirse conscientemente en:
+Para una sección pública simple puede usarse:
+
+~~~bash
+python tools/scaffold_section.py --route-key example --slug example --title "Example" --dry-run
+~~~
+
+El flujo que debe quedar claro desde el árbol es:
 
 1. `app/routing/path_matcher.php` — URL -> route key;
 2. `app/routing/routes.php` — route key -> controlador;
 3. controlador del dominio correcto;
 4. `app/mobile/mobile_routes.php` sólo si necesita implementación móvil específica durante el periodo de compatibilidad;
 5. [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
+
+Si la nueva sección sustituye una URL histórica `?p=...`, la canonicalización correspondiente se añade conscientemente a `app/routing/legacy_query.php`; no es responsabilidad del scaffold por defecto.
 
 No crear accesos directos a PHP bajo `app/`.
 
