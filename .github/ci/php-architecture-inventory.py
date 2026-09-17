@@ -64,6 +64,14 @@ def route_case_count(path: Path) -> tuple[int, list[str]]:
     return len(cases), cases
 
 
+def is_public_controller(path: str) -> bool:
+    if path.startswith("app/mobile/controllers/"):
+        return True
+    if not path.startswith("app/controllers/"):
+        return False
+    return not path.startswith("app/controllers/admin/")
+
+
 def main() -> None:
     files = php_files()
     per_file = []
@@ -123,6 +131,22 @@ def main() -> None:
             f"{area} | {c['files']} | {c['lines']} | {c['sql_calls']} | {c['schema_probe']} | "
             f"{c['get']} | {c['post']} | {c['global']} | {c['include_require']}"
         )
+    print()
+
+    public_sql = sorted(
+        (row for row in per_file if row["sql_calls"] > 0 and is_public_controller(row["path"])),
+        key=lambda row: (-row["sql_calls"], row["path"]),
+    )
+    print("## Remaining public controller SQL owners")
+    print(f"files: {len(public_sql)}")
+    print(f"sql call sites: {sum(row['sql_calls'] for row in public_sql)}")
+    if public_sql:
+        for row in public_sql:
+            print(
+                f"{row['path']}: sql={row['sql_calls']}, schema={row['schema_probe']}, lines={row['lines']}"
+            )
+    else:
+        print("none")
     print()
 
     def top(metric: str, limit: int = 15):
