@@ -41,3 +41,25 @@ if (!function_exists('hg_soundtracks_fetch_for_object')) {
         return $rows;
     }
 }
+
+if (!function_exists('hg_soundtracks_fetch_catalog')) {
+    function hg_soundtracks_fetch_catalog(mysqli $link): ?array
+    {
+        $result = mysqli_query(
+            $link,
+            "SELECT id, context_title, artist, youtube_url, title, added_at
+             FROM dim_soundtracks
+             ORDER BY context_title ASC, title ASC, id ASC"
+        );
+        if (!$result) {
+            return null;
+        }
+
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rows[] = $row;
+        }
+        mysqli_free_result($result);
+        return $rows;
+    }
+}
