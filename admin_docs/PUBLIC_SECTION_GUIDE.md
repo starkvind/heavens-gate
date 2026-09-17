@@ -1,6 +1,6 @@
 # Añadir una sección pública
 
-Última revisión: 2026-09-07.
+Última revisión: 2026-09-17.
 
 La web usa un front controller. Una página nueva no debe enlazarse directamente a un PHP bajo `app/`.
 
@@ -8,7 +8,7 @@ La web usa un front controller. Una página nueva no debe enlazarse directamente
 
 Una URL pública atraviesa:
 
-`.htaccess -> index.php -> request_runtime.php -> path_matcher.php -> routes.php -> dispatcher.php -> controlador`
+`.htaccess -> index.php -> request_runtime.php -> path_matcher.php -> page_dispatch.php -> routes.php -> dispatch_policy.php / dispatcher.php -> controlador`
 
 La traducción humana de los route keys existentes está en [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
@@ -25,14 +25,16 @@ Durante el refactor PHP, una sección pública simple debe darse de alta conscie
 
 Si la sección sustituye un `?p=...` histórico, revisar también la canonicalización legacy en `app/bootstrap/request_router.php`.
 
+Las páginas normales no deben añadir lógica nueva a `app/http/page_dispatch.php`: ese fichero coordina normalización + dispatch compartido. La política de respuestas bare/fallback vive en `app/http/dispatch_policy.php`.
+
 ## Scaffold temporalmente congelado
 
 `tools/scaffold_section.py` fue escrito para la arquitectura anterior y todavía intenta modificar directamente:
 
 - `app/bootstrap/request_router.php`;
-- `app/bootstrap/body_work.php`.
+- el retirado `app/bootstrap/body_work.php`.
 
-Tras la separación de routing/dispatch de Phase 1, **no debe usarse para crear secciones hasta que sea adaptado**. Un `--dry-run` tampoco convierte su plan en correcto: sigue describiendo destinos arquitectónicos antiguos.
+Tras la separación de routing/dispatch y el cierre de Phase 4.1, **no debe usarse para crear secciones hasta que sea adaptado**. Un `--dry-run` tampoco convierte su plan en correcto: sigue describiendo destinos arquitectónicos antiguos.
 
 Esto es deuda técnica conocida del refactor, no una invitación a devolver rutas a esos ficheros.
 
@@ -71,7 +73,7 @@ Después de crear una sección, comprobar:
 
 ## APIs, embeds y respuestas bare
 
-No copiar el patrón de una página HTML normal para una API o embed. Las respuestas bare se controlan en `app/http/dispatcher.php`.
+No copiar el patrón de una página HTML normal para una API o embed. La política de respuestas bare se controla en `app/http/dispatch_policy.php`; `app/http/dispatcher.php` aplica la resolución.
 
 Si se añade una respuesta bare, documentarla expresamente en `ROUTE_DICTIONARY.md` y añadir caracterización/CI cuando sea razonable.
 
