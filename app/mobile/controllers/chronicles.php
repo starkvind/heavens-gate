@@ -2,6 +2,7 @@
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/chronicles/queries.php');
 
 $metaTitle = "Crónicas | Heaven's Gate";
 $metaDescription = 'Archivo móvil de crónicas.';
@@ -9,44 +10,6 @@ $pageSect = 'Crónicas';
 
 if (!function_exists('hg_mobile_chr_h')) {
     function hg_mobile_chr_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-}
-if (!function_exists('hg_mobile_chr_col_exists')) {
-    function hg_mobile_chr_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
-}
-if (!function_exists('hg_mobile_chr_table_exists')) {
-    function hg_mobile_chr_table_exists(mysqli $link, string $table): bool {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-        if (!$rs) return $cache[$table] = false;
-        $ok = $rs->num_rows > 0;
-        $rs->free();
-        return $cache[$table] = $ok;
-    }
-}
-if (!function_exists('hg_mobile_chr_int_csv')) {
-    function hg_mobile_chr_int_csv($csv): string {
-        $parts = preg_split('/\s*,\s*/', trim((string)$csv));
-        $ids = [];
-        foreach ($parts as $part) {
-            if ($part !== '' && preg_match('/^\d+$/', $part)) $ids[] = (string)(int)$part;
-        }
-        return implode(',', array_values(array_unique($ids)));
-    }
 }
 if (!function_exists('hg_mobile_chr_excerpt')) {
     function hg_mobile_chr_excerpt(string $text, int $max = 150): string {
@@ -92,29 +55,6 @@ if (!function_exists('hg_mobile_chr_count_label')) {
         return number_format($count, 0, ',', '.') . ' ' . ($count === 1 ? $singular : $plural);
     }
 }
-if (!function_exists('hg_mobile_chr_resolve_id')) {
-    function hg_mobile_chr_resolve_id(mysqli $link, string $raw): int {
-        $raw = trim(rawurldecode($raw));
-        if ($raw === '') return 0;
-        $resolved = resolve_pretty_id($link, 'dim_chronicles', $raw);
-        if ($resolved !== null && (int)$resolved > 0) return (int)$resolved;
-        if (preg_match('/^\d+$/', $raw)) return (int)$raw;
-        if (!function_exists('slugify_pretty_id')) return 0;
-        $prettyExpr = hg_mobile_chr_col_exists($link, 'dim_chronicles', 'pretty_id') ? 'pretty_id' : "'' AS pretty_id";
-        if ($res = $link->query("SELECT id, name, {$prettyExpr} FROM dim_chronicles")) {
-            while ($row = $res->fetch_assoc()) {
-                $id = (int)($row['id'] ?? 0);
-                if ($id <= 0) continue;
-                if (trim((string)($row['pretty_id'] ?? '')) === $raw || slugify_pretty_id((string)($row['name'] ?? '')) === $raw) {
-                    $res->free();
-                    return $id;
-                }
-            }
-            $res->free();
-        }
-        return 0;
-    }
-}
 if (!function_exists('hg_mobile_chr_character_card')) {
     function hg_mobile_chr_character_card(mysqli $link, array $character): void {
         $id = (int)($character['id'] ?? 0);
@@ -138,40 +78,18 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$excludeChronicles = isset($excludeChronicles) ? preg_replace('/[^0-9,]/', '', (string)$excludeChronicles) : '';
+$schema = hg_chronicles_schema($link);
+$excludedChronicleIds = hg_chronicles_normalize_ids($excludeChronicles ?? '');
 $raw = hg_request_param($hgRequest, 'chronicle');
-$chronicleId = $raw !== '' ? hg_mobile_chr_resolve_id($link, $raw) : 0;
-
-$hasPretty = hg_mobile_chr_col_exists($link, 'dim_chronicles', 'pretty_id');
-$hasDescription = hg_mobile_chr_col_exists($link, 'dim_chronicles', 'description');
-$hasSortOrder = hg_mobile_chr_col_exists($link, 'dim_chronicles', 'sort_order');
-$hasImageUrl = hg_mobile_chr_col_exists($link, 'dim_chronicles', 'image_url');
-$hasSeasonChronicle = hg_mobile_chr_col_exists($link, 'dim_seasons', 'chronicle_id');
-$hasCharacterChronicle = hg_mobile_chr_col_exists($link, 'fact_characters', 'chronicle_id');
-
-$prettyExpr = $hasPretty ? "COALESCE(ch.pretty_id, '')" : "''";
-$descExpr = $hasDescription ? "COALESCE(ch.description, '')" : "''";
-$sortExpr = $hasSortOrder ? "COALESCE(ch.sort_order, 999999)" : "999999";
-$imageExpr = $hasImageUrl ? "COALESCE(ch.image_url, '')" : "''";
-$seasonCountExpr = $hasSeasonChronicle ? '(SELECT COUNT(*) FROM dim_seasons s WHERE s.chronicle_id = ch.id)' : '0';
-$characterCountExpr = $hasCharacterChronicle ? '(SELECT COUNT(*) FROM fact_characters fc WHERE fc.chronicle_id = ch.id)' : '0';
+$chronicleId = $raw !== '' ? hg_chronicles_resolve_id($link, $raw) : 0;
+$hasSeasonChronicle = !empty($schema['season_chronicle']);
+$hasCharacterChronicle = !empty($schema['character_chronicle']);
 
 if ($chronicleId <= 0) {
-    $chronicles = [];
-    $whereExclude = $excludeChronicles !== '' ? "WHERE ch.id NOT IN ({$excludeChronicles})" : '';
-    $sql = "
-        SELECT ch.id, {$prettyExpr} AS pretty_id, ch.name, {$descExpr} AS description,
-               {$imageExpr} AS image_url, {$seasonCountExpr} AS season_count,
-               {$characterCountExpr} AS character_count, {$sortExpr} AS sort_order
-        FROM dim_chronicles ch
-        {$whereExclude}
-        ORDER BY sort_order ASC, ch.name ASC
-    ";
-    if ($res = $link->query($sql)) {
-        while ($row = $res->fetch_assoc()) $chronicles[] = $row;
-        $res->free();
-    } else {
+    $chronicles = hg_chronicles_fetch_catalog($link, $schema, $excludedChronicleIds);
+    if ($chronicles === null) {
         hg_public_log_error('mobile_chronicles', 'list query failed: ' . mysqli_error($link));
+        $chronicles = [];
     }
     ?>
     <section class="hg-mobile-section">
@@ -203,22 +121,7 @@ if ($chronicleId <= 0) {
     return;
 }
 
-$chronicle = null;
-$sql = "
-    SELECT ch.id, {$prettyExpr} AS pretty_id, ch.name, {$descExpr} AS description,
-           {$imageExpr} AS image_url, {$seasonCountExpr} AS season_count,
-           {$characterCountExpr} AS character_count, {$sortExpr} AS sort_order
-    FROM dim_chronicles ch
-    WHERE ch.id = ?
-    LIMIT 1
-";
-if ($st = $link->prepare($sql)) {
-    $st->bind_param('i', $chronicleId);
-    $st->execute();
-    $res = $st->get_result();
-    $chronicle = $res ? $res->fetch_assoc() : null;
-    $st->close();
-}
+$chronicle = hg_chronicles_fetch_one($link, $schema, $chronicleId);
 if (!$chronicle) {
     hg_public_render_not_found('Cronica no encontrada', 'No se pudo localizar la cronica solicitada.');
     return;
@@ -230,73 +133,8 @@ $description = (string)($chronicle['description'] ?? '');
 $metaTitle = $name . " | Crónicas | Heaven's Gate";
 $metaDescription = hg_mobile_chr_excerpt($description, 160);
 
-$seasonRows = [];
-if ($hasSeasonChronicle) {
-    $hasSeasonPretty = hg_mobile_chr_col_exists($link, 'dim_seasons', 'pretty_id');
-    $hasSeasonDesc = hg_mobile_chr_col_exists($link, 'dim_seasons', 'description');
-    $hasSeasonKind = hg_mobile_chr_col_exists($link, 'dim_seasons', 'season_kind');
-    $hasSeasonFinished = hg_mobile_chr_col_exists($link, 'dim_seasons', 'finished');
-    $hasSeasonSort = hg_mobile_chr_col_exists($link, 'dim_seasons', 'sort_order');
-    $hasChapterSeasonId = hg_mobile_chr_col_exists($link, 'dim_chapters', 'season_id');
-    $seasonPrettyExpr = $hasSeasonPretty ? "COALESCE(s.pretty_id, '')" : "''";
-    $seasonDescExpr = $hasSeasonDesc ? "COALESCE(s.description, '')" : "''";
-    $seasonKindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
-    $seasonFinishedExpr = $hasSeasonFinished ? "COALESCE(s.finished, 0)" : "0";
-    $seasonSortExpr = $hasSeasonSort ? "COALESCE(s.sort_order, 999999)" : "999999";
-    $chapterCountExpr = $hasChapterSeasonId ? '(SELECT COUNT(*) FROM dim_chapters c WHERE c.season_id = s.id)' : '0';
-    $seasonSql = "
-        SELECT s.id, {$seasonPrettyExpr} AS pretty_id, s.name, {$seasonDescExpr} AS description,
-               s.season_number, {$seasonKindExpr} AS season_kind, {$seasonFinishedExpr} AS finished,
-               {$seasonSortExpr} AS sort_order, {$chapterCountExpr} AS chapter_count
-        FROM dim_seasons s
-        WHERE s.chronicle_id = ?
-        ORDER BY
-            CASE {$seasonKindExpr}
-                WHEN 'temporada' THEN 1
-                WHEN 'inciso' THEN 2
-                WHEN 'historia_personal' THEN 3
-                WHEN 'especial' THEN 4
-                ELSE 99
-            END ASC,
-            sort_order ASC, s.season_number ASC, s.name ASC
-    ";
-    if ($st = $link->prepare($seasonSql)) {
-        $st->bind_param('i', $chronicleId);
-        $st->execute();
-        $res = $st->get_result();
-        while ($res && ($row = $res->fetch_assoc())) $seasonRows[] = $row;
-        $st->close();
-    }
-}
-
-$members = [];
-if ($hasCharacterChronicle) {
-    $hasCharImage = hg_mobile_chr_col_exists($link, 'fact_characters', 'image_url');
-    $hasCharGender = hg_mobile_chr_col_exists($link, 'fact_characters', 'gender');
-    $hasCharStatus = hg_mobile_chr_col_exists($link, 'fact_characters', 'status_id') && hg_mobile_chr_table_exists($link, 'dim_character_status');
-    $imageSelect = $hasCharImage ? "COALESCE(p.image_url, '')" : "''";
-    $genderSelect = $hasCharGender ? "COALESCE(p.gender, '')" : "''";
-    $statusJoin = $hasCharStatus ? 'LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id' : '';
-    $statusSelect = $hasCharStatus ? "COALESCE(dcs.label, '')" : "''";
-    $memberSql = "
-        SELECT p.id, p.name, {$imageSelect} AS image_url, {$genderSelect} AS gender,
-               {$statusSelect} AS status
-        FROM fact_characters p
-        {$statusJoin}
-        WHERE p.chronicle_id = ?
-        ORDER BY p.name ASC, p.id ASC
-    ";
-    if ($st = $link->prepare($memberSql)) {
-        $st->bind_param('i', $chronicleId);
-        $st->execute();
-        $res = $st->get_result();
-        while ($res && ($row = $res->fetch_assoc())) {
-            $row['meta'] = trim((string)($row['status'] ?? '')) ?: 'Personaje';
-            $members[] = $row;
-        }
-        $st->close();
-    }
-}
+$seasonRows = $hasSeasonChronicle ? hg_chronicles_fetch_seasons($link, $chronicleId) : [];
+$members = $hasCharacterChronicle ? hg_chronicles_fetch_mobile_members($link, $chronicleId) : [];
 ?>
 <article class="hg-mobile-bio">
     <nav class="hg-mobile-local-nav"><a href="/chronicles?view=mobile">Volver a crónicas</a></nav>
