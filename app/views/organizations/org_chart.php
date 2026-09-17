@@ -53,6 +53,8 @@ include("app/partials/main_nav_bar.php");
     let chart = null;
     let selectedData = null;
     let resizeTimer = null;
+    let preFullscreenHeight = 0;
+    let preFullscreenTransform = null;
     const nodeIds = new Set(orgData.map(item => item.id));
     const rootNode = orgData.find(item => !item.parentId) || orgData[0];
     orgData.forEach(item => {
@@ -76,9 +78,13 @@ include("app/partials/main_nav_bar.php");
         if (isChartFullscreen()) return Math.max(420, Math.round(window.innerHeight || document.documentElement.clientHeight || 760));
         return normalChartHeight();
     }
-    function syncChartSize(fitAfter, preservedTransform) {
-        const height = chartHeight();
-        chartContainer.classList.toggle('is-org-fullscreen', isChartFullscreen());
+    function syncChartSize(fitAfter, preservedTransform, forcedHeight) {
+        const fullscreenActive = isChartFullscreen();
+        const restoreHeight = Number(forcedHeight);
+        const height = (!fullscreenActive && Number.isFinite(restoreHeight) && restoreHeight > 0)
+            ? Math.round(restoreHeight)
+            : chartHeight();
+        chartContainer.classList.toggle('is-org-fullscreen', fullscreenActive);
         chartContainer.style.width = '100%';
         chartContainer.style.maxWidth = '100%';
         chartContainer.style.minWidth = '0';
@@ -101,6 +107,12 @@ include("app/partials/main_nav_bar.php");
         const state = chart.getChartState();
         if (!state || !state.lastTransform) return null;
         return { x: state.lastTransform.x, y: state.lastTransform.y, k: state.lastTransform.k };
+    }
+    function restorePreFullscreenSize() {
+        const height = preFullscreenHeight > 0 ? preFullscreenHeight : normalChartHeight();
+        const transform = preFullscreenTransform || currentTransformSnapshot();
+        chartContainer.classList.remove('is-org-fullscreen');
+        syncChartSize(false, transform, height);
     }
     function cardHtml(d) {
         const data = d.data;
@@ -156,19 +168,36 @@ include("app/partials/main_nav_bar.php");
     document.getElementById('orgFullscreen').addEventListener('click', function () {
         if (document.fullscreenElement === chartContainer) { document.exitFullscreen(); return; }
         if (document.webkitFullscreenElement === chartContainer) { document.webkitExitFullscreen(); return; }
+        preFullscreenHeight = chartContainer.clientHeight || normalChartHeight();
+        preFullscreenTransform = currentTransformSnapshot();
         if (chartContainer.requestFullscreen) chartContainer.requestFullscreen(); else if (chartContainer.webkitRequestFullscreen) chartContainer.webkitRequestFullscreen();
     });
     function handleFullscreenChange() {
-        const fullscreenActive = isChartFullscreen(); const preservedTransform = currentTransformSnapshot();
-        setTimeout(function () { syncChartSize(false, preservedTransform); }, fullscreenActive ? 120 : 220);
-        if (!fullscreenActive) {
-            requestAnimationFrame(function () { requestAnimationFrame(function () { syncChartSize(false, preservedTransform); }); });
-            setTimeout(function () { syncChartSize(false, preservedTransform); }, 520);
+        if (isChartFullscreen()) {
+            syncChartSize(false, preFullscreenTransform || currentTransformSnapshot());
+            return;
         }
+        restorePreFullscreenSize();
+        requestAnimationFrame(function () { restorePreFullscreenSize(); });
+        setTimeout(function () { restorePreFullscreenSize(); }, 180);
+        setTimeout(function () {
+            restorePreFullscreenSize();
+            preFullscreenHeight = 0;
+            preFullscreenTransform = null;
+        }, 520);
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { syncChartSize(false, currentTransformSnapshot()); }, 160); });
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+            if (!isChartFullscreen() && preFullscreenHeight > 0) {
+                restorePreFullscreenSize();
+                return;
+            }
+            syncChartSize(false, currentTransformSnapshot());
+        }, 160);
+    });
     document.getElementById('orgExport').addEventListener('click', function () { chart.exportImg({ full: true, scale: 3, save: true, backgroundColor: '#040a19' }); });
     document.getElementById('orgSearch').addEventListener('input', function () { searchNode(this.value); });
     document.getElementById('orgSelector').addEventListener('change', function () { const org = String(this.value || '').trim(); if (org) window.location.href = '/organizations/' + encodeURIComponent(org) + '/org-chart'; });
