@@ -55,6 +55,7 @@ include("app/partials/main_nav_bar.php");
     let resizeTimer = null;
     let preFullscreenHeight = 0;
     let preFullscreenTransform = null;
+    let fullscreenRestoreUntil = 0;
     const nodeIds = new Set(orgData.map(item => item.id));
     const rootNode = orgData.find(item => !item.parentId) || orgData[0];
     orgData.forEach(item => {
@@ -102,6 +103,32 @@ include("app/partials/main_nav_bar.php");
         }
         if (fitAfter) requestAnimationFrame(function () { chart.fit({ animate: false }); });
     }
+    function applyRenderedChartViewport(height, preservedTransform) {
+        const resolvedHeight = Math.max(1, Math.round(Number(height) || normalChartHeight()));
+        const fullscreenActive = isChartFullscreen();
+        chartContainer.classList.toggle('is-org-fullscreen', fullscreenActive);
+        chartContainer.style.width = '100%';
+        chartContainer.style.maxWidth = '100%';
+        chartContainer.style.minWidth = '0';
+        chartContainer.style.height = resolvedHeight + 'px';
+        chartContainer.style.minHeight = resolvedHeight + 'px';
+        if (!chart) return;
+
+        chart.svgHeight(resolvedHeight);
+        const state = chart.getChartState();
+        if (!state) return;
+        if (state.calc) state.calc.chartHeight = resolvedHeight;
+        if (state.svg) state.svg.attr('height', resolvedHeight);
+
+        if (preservedTransform && state.svg && state.zoomBehavior) {
+            requestAnimationFrame(function () {
+                state.svg.call(
+                    state.zoomBehavior.transform,
+                    d3.zoomIdentity.translate(preservedTransform.x, preservedTransform.y).scale(preservedTransform.k)
+                );
+            });
+        }
+    }
     function currentTransformSnapshot() {
         if (!chart) return null;
         const state = chart.getChartState();
@@ -112,7 +139,7 @@ include("app/partials/main_nav_bar.php");
         const height = preFullscreenHeight > 0 ? preFullscreenHeight : normalChartHeight();
         const transform = preFullscreenTransform || currentTransformSnapshot();
         chartContainer.classList.remove('is-org-fullscreen');
-        syncChartSize(false, transform, height);
+        applyRenderedChartViewport(height, transform);
     }
     function cardHtml(d) {
         const data = d.data;
@@ -170,28 +197,36 @@ include("app/partials/main_nav_bar.php");
         if (document.webkitFullscreenElement === chartContainer) { document.webkitExitFullscreen(); return; }
         preFullscreenHeight = chartContainer.clientHeight || normalChartHeight();
         preFullscreenTransform = currentTransformSnapshot();
+        fullscreenRestoreUntil = 0;
         if (chartContainer.requestFullscreen) chartContainer.requestFullscreen(); else if (chartContainer.webkitRequestFullscreen) chartContainer.webkitRequestFullscreen();
     });
     function handleFullscreenChange() {
         if (isChartFullscreen()) {
-            syncChartSize(false, preFullscreenTransform || currentTransformSnapshot());
+            applyRenderedChartViewport(chartHeight(), preFullscreenTransform || currentTransformSnapshot());
             return;
         }
+        fullscreenRestoreUntil = Date.now() + 900;
         restorePreFullscreenSize();
         requestAnimationFrame(function () { restorePreFullscreenSize(); });
         setTimeout(function () { restorePreFullscreenSize(); }, 180);
+        setTimeout(function () { restorePreFullscreenSize(); }, 520);
         setTimeout(function () {
             restorePreFullscreenSize();
             preFullscreenHeight = 0;
             preFullscreenTransform = null;
-        }, 520);
+            fullscreenRestoreUntil = 0;
+        }, 920);
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () {
-            if (!isChartFullscreen() && preFullscreenHeight > 0) {
+            if (isChartFullscreen()) {
+                applyRenderedChartViewport(chartHeight(), currentTransformSnapshot());
+                return;
+            }
+            if (preFullscreenHeight > 0 || Date.now() < fullscreenRestoreUntil) {
                 restorePreFullscreenSize();
                 return;
             }
