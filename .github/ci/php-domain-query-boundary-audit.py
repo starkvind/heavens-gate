@@ -41,6 +41,8 @@ EXTRACTED_CONTROLLERS = {
     ],
     'soundtracks': [
         ROOT / 'app/partials/snippet_bso_card.php',
+        ROOT / 'app/controllers/ost/bso_main.php',
+        ROOT / 'app/mobile/controllers/soundtrack.php',
     ],
     'systems': [
         ROOT / 'app/controllers/systems/systems_table.php',
@@ -116,6 +118,18 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/bio/bio_reltree_clans.php',
         ROOT / 'app/controllers/bio/bio_reltree_characters.php',
         ROOT / 'app/controllers/bio/bio_reltree_groups.php',
+    ],
+    'home': [
+        ROOT / 'app/controllers/main/main_home.php',
+        ROOT / 'app/mobile/controllers/home.php',
+    ],
+    'parties': [
+        ROOT / 'app/controllers/main/main_parties.php',
+    ],
+    'chronicles': [
+        ROOT / 'app/controllers/main/main_chronicles.php',
+        ROOT / 'app/controllers/main/chronicle_image.php',
+        ROOT / 'app/mobile/controllers/chronicles.php',
     ],
 }
 
