@@ -1,13 +1,14 @@
 <?php
 include_once(__DIR__ . '/../../helpers/public_response.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../domains/timeline/queries.php');
+
 if (!$link) {
     hg_public_log_error('events_page', 'missing DB connection');
     hg_public_render_error('Evento no disponible', 'No se pudo cargar el evento solicitado en este momento.');
     return;
 }
-
-include_once(__DIR__ . '/../../helpers/pretty.php');
-include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 if (!function_exists('hg_ev_h')) {
     function hg_ev_h($v): string {
@@ -20,30 +21,13 @@ if (!function_exists('hg_ev_date_label')) {
         $precision = trim((string)$precision);
         $dateValue = trim((string)$dateValue);
         $note = trim((string)$note);
-
-        if ($precision === 'unknown') {
-            return $note !== '' ? $note : 'Desconocida';
-        }
-
-        if ($dateValue === '' || $dateValue === '0000-00-00') {
-            return $note !== '' ? $note : '-';
-        }
-
-        $ts = strtotime($dateValue);
-        if ($ts === false) {
-            return $note !== '' ? $note : $dateValue;
-        }
-
-        if ($precision === 'year') {
-            $base = date('Y', $ts);
-        } elseif ($precision === 'month') {
-            $base = date('m-Y', $ts);
-        } elseif ($precision === 'approx') {
-            $base = 'Aprox. ' . date('d-m-Y', $ts);
-        } else {
-            $base = date('d-m-Y', $ts);
-        }
-
+        if ($precision === 'unknown') return $note !== '' ? $note : 'Desconocida';
+        if ($dateValue === '' || $dateValue === '0000-00-00') return $note !== '' ? $note : '-';
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dateValue, $parts)) return $note !== '' ? $note : $dateValue;
+        $base = $parts[3] . '-' . $parts[2] . '-' . $parts[1];
+        if ($precision === 'year') $base = $parts[1];
+        elseif ($precision === 'month') $base = $parts[2] . '-' . $parts[1];
+        elseif ($precision === 'approx') $base = 'Aprox. ' . $base;
         return $note !== '' ? ($base . ' (' . $note . ')') : $base;
     }
 }
@@ -51,162 +35,34 @@ if (!function_exists('hg_ev_date_label')) {
 if (!function_exists('hg_ev_event_url')) {
     function hg_ev_event_url(array $row): string {
         $slug = trim((string)($row['pretty_id'] ?? ''));
-        if ($slug === '') {
-            $slug = (string)($row['id'] ?? '');
-        }
+        if ($slug === '') $slug = (string)($row['id'] ?? '');
         return '/timeline/event/' . rawurlencode($slug);
     }
 }
 
-if (!function_exists('hg_ev_col_exists')) {
-    function hg_ev_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
-    }
-}
-
-if (!function_exists('hg_ev_table_exists')) {
-    function hg_ev_table_exists(mysqli $link, string $table): bool {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$table] = $ok;
-        return $ok;
-    }
-}
-
-$hasTimelineTable = hg_ev_table_exists($link, 'fact_timeline_events');
-if (!$hasTimelineTable) {
+if (!hg_timeline_table_exists($link, 'fact_timeline_events')) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-events.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-events.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
-        }
-    }
+    if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-events.css');
+    else echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
     echo "<div class='event-page'><div class='events-empty'>No existe la tabla fact_timeline_events en esta base de datos.</div></div>";
     return;
 }
 
-$hasFtePretty = hg_ev_col_exists($link, 'fact_timeline_events', 'pretty_id');
-$hasFteSortDate = hg_ev_col_exists($link, 'fact_timeline_events', 'sort_date');
-$hasFteDatePrecision = hg_ev_col_exists($link, 'fact_timeline_events', 'date_precision');
-$hasFteDateNote = hg_ev_col_exists($link, 'fact_timeline_events', 'date_note');
-$hasFteLocation = hg_ev_col_exists($link, 'fact_timeline_events', 'location');
-$hasFteSource = hg_ev_col_exists($link, 'fact_timeline_events', 'source');
-$hasFteTimeline = hg_ev_col_exists($link, 'fact_timeline_events', 'timeline');
-$hasFteIsActive = hg_ev_col_exists($link, 'fact_timeline_events', 'is_active');
-$hasFteEventTypeId = hg_ev_col_exists($link, 'fact_timeline_events', 'event_type_id');
-
-$hasTypesTable = hg_ev_table_exists($link, 'dim_timeline_events_types');
-$hasSeasonsTable = hg_ev_table_exists($link, 'dim_seasons');
-$hasSeasonsKind = true;
-
 $rawEvent = hg_request_param($hgRequest, 'event');
-$eventId = resolve_pretty_id($link, 'fact_timeline_events', $rawEvent) ?? 0;
+$eventId = hg_timeline_resolve_event_id($link, $rawEvent);
 if ($eventId <= 0) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-events.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-events.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
-        }
-    }
+    if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-events.css');
+    else echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
     echo "<div class='event-page'><div class='events-empty'>Evento no encontrado.</div></div>";
     return;
 }
 
-$event = null;
-$selectPretty = $hasFtePretty ? 'e.pretty_id AS pretty_id' : 'CAST(e.id AS CHAR) AS pretty_id';
-$selectSortDate = $hasFteSortDate ? 'e.sort_date AS sort_date' : 'e.event_date AS sort_date';
-$selectDatePrecision = $hasFteDatePrecision ? 'e.date_precision AS date_precision' : "'day' AS date_precision";
-$selectDateNote = $hasFteDateNote ? 'e.date_note AS date_note' : 'NULL AS date_note';
-$selectLocation = $hasFteLocation ? 'e.location AS location' : 'NULL AS location';
-$selectSource = $hasFteSource ? 'e.source AS source' : 'NULL AS source';
-$selectTimeline = $hasFteTimeline ? 'e.timeline AS timeline' : 'NULL AS timeline';
-$selectIsActive = $hasFteIsActive ? 'e.is_active AS is_active' : '1 AS is_active';
-
-$typeJoin = '';
-if ($hasTypesTable && $hasFteEventTypeId) {
-    $typeJoin = 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id';
-    $typeNameExpr = "COALESCE(t.name, 'Evento')";
-    $typeSlugExpr = "COALESCE(t.pretty_id, 'evento')";
-} else {
-    $typeNameExpr = "'Evento'";
-    $typeSlugExpr = "'evento'";
-}
-
-$eventSql = "
-    SELECT
-        e.id,
-        {$selectPretty},
-        e.title,
-        e.description,
-        e.event_date,
-        {$selectSortDate},
-        {$selectDatePrecision},
-        {$selectDateNote},
-        {$selectLocation},
-        {$selectSource},
-        {$selectTimeline},
-        {$selectIsActive},
-        {$typeNameExpr} AS type_name,
-        {$typeSlugExpr} AS type_slug
-    FROM fact_timeline_events e
-    {$typeJoin}
-    WHERE e.id = ?
-    LIMIT 1
-";
-$st = $link->prepare($eventSql);
-if ($st) {
-    $st->bind_param('i', $eventId);
-    $st->execute();
-    $rs = $st->get_result();
-    $event = $rs ? $rs->fetch_assoc() : null;
-    $st->close();
-}
-
+$event = hg_timeline_fetch_event($link, $eventId);
 if (!$event) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-events.css');
-    } else {
-        if (function_exists('hg_page_register_stylesheet')) {
-            hg_page_register_stylesheet('/assets/css/hg-events.css');
-        } else {
-            echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
-        }
-    }
+    if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-events.css');
+    else echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
     echo "<div class='event-page'><div class='events-empty'>Evento no encontrado.</div></div>";
     return;
 }
@@ -214,140 +70,26 @@ if (!$event) {
 $title = trim((string)($event['title'] ?? 'Evento'));
 $description = trim((string)($event['description'] ?? ''));
 $metaDesc = $description !== '' ? $description : 'Detalle del evento de la linea temporal de Heaven\'s Gate.';
-if (function_exists('meta_excerpt')) {
-    $metaDesc = meta_excerpt($metaDesc);
-}
+if (function_exists('meta_excerpt')) $metaDesc = meta_excerpt($metaDesc);
+if (function_exists('setMetaFromPage')) setMetaFromPage($title . " | Evento | Heaven's Gate", $metaDesc, null, 'article');
 
-if (function_exists('setMetaFromPage')) { setMetaFromPage($title . " | Evento | Heaven's Gate", $metaDesc, null, 'article'); }
-
-$participants = [];
-if (hg_ev_table_exists($link, 'bridge_timeline_events_characters') && hg_ev_table_exists($link, 'fact_characters')) {
-    $characterOrder = [];
-    if (hg_ev_col_exists($link, 'bridge_timeline_events_characters', 'sort_order')) $characterOrder[] = 'b.sort_order ASC';
-    $characterOrder[] = 'c.name ASC';
-    $characterOrder[] = 'c.id ASC';
-    $characterOrderSql = implode(', ', $characterOrder);
-    $roleExpr = hg_ev_col_exists($link, 'bridge_timeline_events_characters', 'role_label') ? 'b.role_label' : 'NULL';
-
-    $kindExpr = function_exists('hg_character_kind_select') ? hg_character_kind_select($link, 'c') : "''";
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, c.alias, c.image_url, c.gender, COALESCE(dcs.label, '') AS status, {$kindExpr} AS character_kind, {$roleExpr} AS role_label FROM bridge_timeline_events_characters b INNER JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id WHERE b.event_id = ? ORDER BY {$characterOrderSql}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $participants[] = $row;
-        }
-        $st->close();
-    }
-}
-
-$chapters = [];
-if (hg_ev_table_exists($link, 'bridge_timeline_events_chapters') && hg_ev_table_exists($link, 'dim_chapters')) {
-    $chapterOrder = [];
-    if (hg_ev_col_exists($link, 'bridge_timeline_events_chapters', 'sort_order')) $chapterOrder[] = 'b.sort_order ASC';
-    $chapterOrder[] = 'COALESCE(s.sort_order, 9999) ASC';
-    $chapterOrder[] = 'c.chapter_number ASC';
-    $chapterOrder[] = 'c.id ASC';
-    $chapterOrderSql = implode(', ', $chapterOrder);
-
-    $seasonJoin = '';
-    if ($hasSeasonsTable) {
-        $seasonJoin = "LEFT JOIN dim_seasons s ON s.id = c.season_id";
-    }
-    $seasonNameExpr = $hasSeasonsTable ? "s.name" : "NULL";
-    $seasonKindExpr = "COALESCE(s.season_kind, 'temporada')";
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, s.season_number AS season_number, c.season_id AS season_id, c.chapter_number, {$seasonNameExpr} AS season_name, {$seasonKindExpr} AS season_kind FROM bridge_timeline_events_chapters b INNER JOIN dim_chapters c ON c.id = b.chapter_id {$seasonJoin} WHERE b.event_id = ? ORDER BY {$chapterOrderSql}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $chapters[] = $row;
-        }
-        $st->close();
-    }
-}
-
-$chronicles = [];
-if (hg_ev_table_exists($link, 'bridge_timeline_events_chronicles') && hg_ev_table_exists($link, 'dim_chronicles')) {
-    $chronOrder = [];
-    if (hg_ev_col_exists($link, 'bridge_timeline_events_chronicles', 'sort_order')) $chronOrder[] = 'b.sort_order ASC';
-    if (hg_ev_col_exists($link, 'dim_chronicles', 'sort_order')) $chronOrder[] = 'c.sort_order ASC';
-    $chronOrder[] = 'c.name ASC';
-    $chronOrderSql = implode(', ', $chronOrder);
-
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id FROM bridge_timeline_events_chronicles b INNER JOIN dim_chronicles c ON c.id = b.chronicle_id WHERE b.event_id = ? ORDER BY {$chronOrderSql}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $chronicles[] = $row;
-        }
-        $st->close();
-    }
-} elseif ($hasFteTimeline) {
+$participants = hg_timeline_fetch_event_participants($link, $eventId) ?? [];
+$chapters = hg_timeline_fetch_event_chapters($link, $eventId) ?? [];
+$chronicles = hg_timeline_fetch_event_chronicles($link, $eventId) ?? [];
+if (!$chronicles) {
     $legacy = trim((string)($event['timeline'] ?? ''));
-    if ($legacy !== '') {
-        $chronicles[] = ['id' => 0, 'name' => $legacy, 'pretty_id' => ''];
-    }
+    if ($legacy !== '') $chronicles[] = ['id' => 0, 'name' => $legacy, 'pretty_id' => ''];
 }
-
-$realities = [];
-if (hg_ev_table_exists($link, 'bridge_timeline_events_realities') && hg_ev_table_exists($link, 'dim_realities')) {
-    $realOrder = [];
-    if (hg_ev_col_exists($link, 'bridge_timeline_events_realities', 'sort_order')) $realOrder[] = 'b.sort_order ASC';
-    if (hg_ev_col_exists($link, 'dim_realities', 'sort_order')) $realOrder[] = 'r.sort_order ASC';
-    $realOrder[] = 'r.name ASC';
-    $realOrderSql = implode(', ', $realOrder);
-
-    if ($st = $link->prepare("SELECT r.id, r.name, r.pretty_id FROM bridge_timeline_events_realities b INNER JOIN dim_realities r ON r.id = b.reality_id WHERE b.event_id = ? ORDER BY {$realOrderSql}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $realities[] = $row;
-        }
-        $st->close();
-    }
-}
-
-$showRealitiesSection = false; // Preparado para activarse cuando no sea spoiler.
+$realities = hg_timeline_fetch_event_realities($link, $eventId) ?? [];
+$showRealitiesSection = false;
 
 $anchorDate = trim((string)($event['sort_date'] ?? ''));
-if ($anchorDate === '' || $anchorDate === '0000-00-00') {
-    $anchorDate = trim((string)($event['event_date'] ?? ''));
-}
-if ($anchorDate === '' || $anchorDate === '0000-00-00') {
-    $anchorDate = '1000-01-01';
-}
+if ($anchorDate === '' || $anchorDate === '0000-00-00') $anchorDate = trim((string)($event['event_date'] ?? ''));
+if ($anchorDate === '' || $anchorDate === '0000-00-00') $anchorDate = '1000-01-01';
+$prevEvent = hg_timeline_fetch_neighbor($link, $eventId, $anchorDate, 'prev');
+$nextEvent = hg_timeline_fetch_neighbor($link, $eventId, $anchorDate, 'next');
 
-$navSortExpr = $hasFteSortDate ? 'COALESCE(sort_date, event_date)' : 'event_date';
-$navPrettyExpr = $hasFtePretty ? 'pretty_id' : "CAST(id AS CHAR)";
-$navActiveCond = $hasFteIsActive ? 'is_active = 1 AND ' : '';
-
-$prevEvent = null;
-if ($st = $link->prepare("SELECT id, {$navPrettyExpr} AS pretty_id, title FROM fact_timeline_events WHERE {$navActiveCond} ({$navSortExpr} < ? OR ({$navSortExpr} = ? AND id < ?)) ORDER BY {$navSortExpr} DESC, id DESC LIMIT 1")) {
-    $st->bind_param('ssi', $anchorDate, $anchorDate, $eventId);
-    $st->execute();
-    $rs = $st->get_result();
-    $prevEvent = $rs ? $rs->fetch_assoc() : null;
-    $st->close();
-}
-
-$nextEvent = null;
-if ($st = $link->prepare("SELECT id, {$navPrettyExpr} AS pretty_id, title FROM fact_timeline_events WHERE {$navActiveCond} ({$navSortExpr} > ? OR ({$navSortExpr} = ? AND id > ?)) ORDER BY {$navSortExpr} ASC, id ASC LIMIT 1")) {
-    $st->bind_param('ssi', $anchorDate, $anchorDate, $eventId);
-    $st->execute();
-    $rs = $st->get_result();
-    $nextEvent = $rs ? $rs->fetch_assoc() : null;
-    $st->close();
-}
-
-$dateLabel = hg_ev_date_label(
-    (string)($event['event_date'] ?? ''),
-    (string)($event['date_precision'] ?? 'day'),
-    (string)($event['date_note'] ?? '')
-);
-
+$dateLabel = hg_ev_date_label((string)($event['event_date'] ?? ''), (string)($event['date_precision'] ?? 'day'), (string)($event['date_note'] ?? ''));
 $typeName = trim((string)($event['type_name'] ?? 'Evento'));
 $typeSlug = trim((string)($event['type_slug'] ?? 'evento'));
 $location = trim((string)($event['location'] ?? ''));
@@ -376,25 +118,11 @@ foreach ($chapters as $chapterRow) {
 ksort($chaptersBySeason, SORT_NUMERIC);
 
 if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include('app/partials/main_nav_bar.php'); }
-if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-events.css');
-} else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-events.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
-    }
-}
-if (function_exists('hg_page_register_stylesheet')) {
-    hg_page_register_stylesheet('/assets/css/hg-chapters.css');
-} else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-chapters.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
-    }
-}
-if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) { echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">'; }
+if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-events.css');
+else echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
+if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-chapters.css');
+else echo '<link rel="stylesheet" href="/assets/css/hg-chapters.css">';
+if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">';
 
 $prevHrefKey = $prevEvent ? hg_ev_event_url($prevEvent) : '';
 $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
@@ -477,7 +205,6 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
                             : '/img/ui/avatar/avatar_nadie_3.webp';
                         $role = trim((string)($row['role_label'] ?? ''));
                         $charName = trim((string)($row['name'] ?? ''));
-                        $charTitle = $role !== '' ? ($charName . ' - ' . $role) : $charName;
                     ?>
                     <a class="event-char-mini hg-tooltip" href="<?= hg_ev_h($href) ?>" target="_blank" data-tip="character" data-id="<?= (int)$row['id'] ?>">
                         <img src="<?= hg_ev_h($avatar) ?>" alt="<?= hg_ev_h($charName) ?>">
@@ -490,7 +217,6 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
 
         <?php if (!empty($chaptersBySeason)): ?>
         <div class="power-card__desc event-rel-block">
-            <?php //<div class="power-card__desc-title">Cap&iacute;tulos (<?= (int)count($chapters) )</div> ?>
             <div class="power-card__desc-body">
                 <div class="event-rel-lista">
                     <?php foreach ($chaptersBySeason as $seasonNum => $seasonChapters): ?>
@@ -622,19 +348,13 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
                 }
             }
 
-            if (best) {
-                link.textContent = best;
-            } else {
-                link.textContent = prefix + '...' + suffix;
-            }
+            if (best) link.textContent = best;
+            else link.textContent = prefix + '...' + suffix;
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', trimNavLabels);
-    } else {
-        trimNavLabels();
-    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trimNavLabels);
+    else trimNavLabels();
     window.addEventListener('resize', trimNavLabels);
     window.setTimeout(trimNavLabels, 0);
     window.setTimeout(trimNavLabels, 120);
@@ -643,12 +363,8 @@ $nextHrefKey = $nextEvent ? hg_ev_event_url($nextEvent) : '';
         if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return;
         var t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-        if (e.key === 'ArrowLeft' && prevHref) {
-            window.location.href = prevHref;
-        } else if (e.key === 'ArrowRight' && nextHref) {
-            window.location.href = nextHref;
-        }
+        if (e.key === 'ArrowLeft' && prevHref) window.location.href = prevHref;
+        else if (e.key === 'ArrowRight' && nextHref) window.location.href = nextHref;
     });
 })();
 </script>
-
