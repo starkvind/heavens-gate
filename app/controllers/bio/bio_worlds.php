@@ -5,84 +5,29 @@ setMetaFromPage("Biografías por realidad | Heaven's Gate", "Listado de personaj
 
 <?php
 include_once(__DIR__ . '/../../helpers/public_response.php');
+include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/characters/world_queries.php');
 if (!$link) {
     hg_public_log_error('bio_worlds', 'missing DB connection');
     hg_public_render_error('Biografías no disponibles', 'No se pudo cargar el listado por realidad en este momento.');
     return;
 }
-include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 if (!function_exists('hg_bwr_h')) {
     function hg_bwr_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
-if (!function_exists('hg_bwr_sanitize_int_csv')) {
-    function hg_bwr_sanitize_int_csv($csv){
-        $csv = (string)$csv;
-        if (trim($csv) === '') return '';
-        $parts = preg_split('/\s*,\s*/', trim($csv));
-        $ints = [];
-        foreach ($parts as $p) {
-            if ($p === '') continue;
-            if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-        }
-        $ints = array_values(array_unique($ints));
-        return implode(',', $ints);
-    }
-}
 
-$excludeChronicles = isset($excludeChronicles) ? hg_bwr_sanitize_int_csv($excludeChronicles) : '';
-$chronicleNotInSQL = ($excludeChronicles !== '') ? " AND p.chronicle_id NOT IN ($excludeChronicles) " : "";
 $realityFilterId = (int)hg_request_param($hgRequest, 'world');
-$realityFilterSQL = ($realityFilterId > 0) ? " AND p.reality_id = " . $realityFilterId . " " : "";
-
 include("app/partials/main_nav_bar.php");
 echo "<h2>Biografías por realidad</h2>";
 
-$hasTable = false;
-$rsChk = mysqli_query($link, "SHOW TABLES LIKE 'dim_realities'");
-if ($rsChk) {
-    $hasTable = (mysqli_num_rows($rsChk) > 0);
-    mysqli_free_result($rsChk);
-}
-
-$hasColumn = false;
-if ($hasTable) {
-    $rsCol = mysqli_query($link, "SHOW COLUMNS FROM fact_characters LIKE 'reality_id'");
-    if ($rsCol) {
-        $hasColumn = (mysqli_num_rows($rsCol) > 0);
-        mysqli_free_result($rsCol);
-    }
-}
-
-if (!$hasTable || !$hasColumn) {
+if (!hg_character_worlds_schema_ready($link)) {
     echo "<p class='texti'>No existe el esquema de realidades en BDD (dim_realities / fact_characters.reality_id).</p>";
     return;
 }
 
-$kindSql = hg_character_kind_select($link, 'p');
-$sql = "
-    SELECT
-        p.id,
-        p.name,
-        p.alias,
-        COALESCE(dcs.label, '') AS status,
-        p.status_id,
-        p.image_url,
-        p.gender,
-        {$kindSql} AS character_kind,
-        p.reality_id,
-        COALESCE(r.name, 'Sin realidad') AS reality_name
-    FROM fact_characters p
-    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-    LEFT JOIN dim_realities r ON r.id = p.reality_id
-    WHERE 1=1
-      $chronicleNotInSQL
-      $realityFilterSQL
-    ORDER BY r.name ASC, p.name ASC
-";
-
-$res = mysqli_query($link, $sql);
-if (!$res) {
+$rows = hg_character_worlds_fetch($link, $realityFilterId, $excludeChronicles ?? '');
+if ($rows === null) {
     hg_public_log_error('bio_worlds', 'query failed: ' . mysqli_error($link));
     echo "<p class='texti'>No se pudo cargar la lista de personajes.</p>";
     return;
@@ -90,7 +35,7 @@ if (!$res) {
 
 $groups = [];
 $countAll = 0;
-while ($row = mysqli_fetch_assoc($res)) {
+foreach ($rows as $row) {
     $realityId = (int)($row['reality_id'] ?? 0);
     $realityName = (string)($row['reality_name'] ?? 'Sin realidad');
     $key = $realityId > 0 ? (string)$realityId : 'none';
@@ -105,7 +50,6 @@ while ($row = mysqli_fetch_assoc($res)) {
     $groups[$key]['items'][] = $row;
     $countAll++;
 }
-mysqli_free_result($res);
 
 $keys = array_keys($groups);
 usort($keys, function($a, $b) use ($groups){
@@ -133,13 +77,6 @@ foreach ($keys as $k) {
         $estadoPJ = hg_bwr_h($rowPJ['status'] ?? '');
 
         if ($aliasPJ === '') $aliasPJ = $nombrePJ;
-
-        $mapEstado = [
-            "Aun por aparecer" => "(&#64;)",
-            "Paradero desconocido" => "(&#63;)",
-            "Cadaver" => "(&#8224;)",
-        ];
-        $simboloEstado = $mapEstado[$estadoPJ] ?? "";
 
         $hrefPJ = pretty_url($link, 'fact_characters', '/characters', $idPJ);
         hg_render_character_avatar_tile([
