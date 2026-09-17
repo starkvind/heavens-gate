@@ -35,7 +35,7 @@ if (hg_should_render_mobile(
 }
 
 ob_start();
-include __DIR__ . '/app/http/desktop_dispatch.php';
+include __DIR__ . '/app/http/page_dispatch.php';
 $pageContent = hg_normalize_utf8_output((string)ob_get_clean());
 
 if (!empty($isBarePage)) {
