@@ -8,14 +8,11 @@ setMetaFromPage(
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/characters/type_queries.php');
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-archive.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-archive.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-archive.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-archive.css">';
 }
 
 if (!$link) {
@@ -34,45 +31,6 @@ if (!function_exists('hg_bio_group_h')) {
     }
 }
 
-if (!function_exists('hg_bio_group_has_column')) {
-    function hg_bio_group_has_column(mysqli $link, string $table, string $column): bool
-    {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $result = $link->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
-        if (!$result) return false;
-        $exists = $result->num_rows > 0;
-        $result->free();
-        return $exists;
-    }
-}
-if (!function_exists('hg_bio_group_sanitize_int_csv')) {
-    function hg_bio_group_sanitize_int_csv($csv): string
-    {
-        $csv = (string)$csv;
-        if (trim($csv) === '') {
-            return '';
-        }
-
-        $parts = preg_split('/\s*,\s*/', trim($csv));
-        $ints = [];
-
-        foreach ($parts as $part) {
-            if ($part === '') {
-                continue;
-            }
-
-            if (preg_match('/^\d+$/', $part)) {
-                $ints[] = (string)(int)$part;
-            }
-        }
-
-        $ints = array_values(array_unique($ints));
-        return implode(',', $ints);
-    }
-}
-
 $idTipo = (int)hg_request_param($hgRequest, 'character_type');
 if ($idTipo <= 0) {
     hg_public_render_not_found(
@@ -83,103 +41,7 @@ if ($idTipo <= 0) {
     return;
 }
 
-$activePackIdExpr = "
-    SELECT cgb.group_id
-    FROM bridge_characters_groups AS cgb
-    WHERE cgb.character_id = p.id
-      AND (cgb.is_active = 1 OR cgb.is_active IS NULL)
-    ORDER BY cgb.updated_at DESC, cgb.created_at DESC, cgb.group_id DESC
-    LIMIT 1
-";
-
-$activePackOrgIdExpr = "
-    SELECT bog.organization_id
-    FROM bridge_organizations_groups AS bog
-    WHERE bog.group_id = (($activePackIdExpr))
-      AND (bog.is_active = 1 OR bog.is_active IS NULL)
-    ORDER BY bog.updated_at DESC, bog.created_at DESC, bog.organization_id DESC
-    LIMIT 1
-";
-
-$activeDirectOrgIdExpr = "
-    SELECT bco.organization_id
-    FROM bridge_characters_organizations AS bco
-    WHERE bco.character_id = p.id
-      AND (bco.is_active = 1 OR bco.is_active IS NULL)
-    ORDER BY bco.updated_at DESC, bco.created_at DESC, bco.organization_id DESC
-    LIMIT 1
-";
-
-$valuePJ = "p.id, p.name, p.alias, COALESCE(dcs.label, '') AS status, p.status_id, p.image_url, p.gender, p.character_kind, p.character_type_id,
-                    COALESCE(({$activePackOrgIdExpr}), ({$activeDirectOrgIdExpr}), 0) AS organization_id,
-                    COALESCE(
-                        (SELECT o.pretty_id FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-                        (SELECT o.pretty_id FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
-                    ) AS clan_pretty_id,
-                    COALESCE(
-                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
-                        'Sin clan'
-                    ) AS clan_name,
-                    IFNULL(COALESCE(
-                        (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-                        (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
-                    ), 999999) AS organization_sort_order";
-
-$excludeChronicles = isset($excludeChronicles)
-    ? hg_bio_group_sanitize_int_csv($excludeChronicles)
-    : '';
-$cronicaNotInSQL = ($excludeChronicles !== '')
-    ? " AND p.chronicle_id NOT IN ($excludeChronicles) "
-    : '';
-
-$hasTypeImage = hg_bio_group_has_column($link, 'dim_character_types', 'image_url');
-$hasTypeDescription = hg_bio_group_has_column($link, 'dim_character_types', 'description');
-$typeImageSelect = $hasTypeImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";
-$typeDescriptionSelect = $hasTypeDescription ? ", COALESCE(description, '') AS description" : ", '' AS description";
-$typeQuery = "SELECT kind {$typeImageSelect} {$typeDescriptionSelect} FROM dim_character_types WHERE id = ? LIMIT 1";
-$stmtType = mysqli_prepare($link, $typeQuery);
-if (!$stmtType) {
-    hg_public_log_error('bio_group', 'type prepare failed: ' . mysqli_error($link));
-    hg_public_render_error(
-        'Biografías no disponibles',
-        'No se pudo cargar el listado de biografias por grupo en este momento.',
-        500,
-        true
-    );
-    return;
-}
-
-mysqli_stmt_bind_param($stmtType, 'i', $idTipo);
-if (!mysqli_stmt_execute($stmtType)) {
-    hg_public_log_error('bio_group', 'type query execute failed: ' . mysqli_error($link));
-    mysqli_stmt_close($stmtType);
-    hg_public_render_error(
-        'Biografías no disponibles',
-        'No se pudo cargar el listado de biografias por grupo en este momento.',
-        500,
-        true
-    );
-    return;
-}
-
-$resultTypeQuery = mysqli_stmt_get_result($stmtType);
-if (!$resultTypeQuery) {
-    hg_public_log_error('bio_group', 'type query result failed: ' . mysqli_error($link));
-    mysqli_stmt_close($stmtType);
-    hg_public_render_error(
-        'Biografías no disponibles',
-        'No se pudo cargar el listado de biografias por grupo en este momento.',
-        500,
-        true
-    );
-    return;
-}
-
-$rowType = mysqli_fetch_assoc($resultTypeQuery);
-mysqli_free_result($resultTypeQuery);
-mysqli_stmt_close($stmtType);
-
+$rowType = hg_character_types_fetch_one($link, $idTipo);
 if (!$rowType) {
     hg_public_render_not_found(
         'Tipo no encontrado',
@@ -190,7 +52,6 @@ if (!$rowType) {
 }
 
 $nombreTipoRaw = (string)($rowType['kind'] ?? '');
-$nombreTipo = hg_bio_group_h($nombreTipoRaw);
 $typeImageUrl = trim((string)($rowType['image_url'] ?? ''));
 if (strpos($typeImageUrl, '/public/') === 0) $typeImageUrl = substr($typeImageUrl, 7);
 if ($typeImageUrl === '') $typeImageUrl = '/img/og/og_image_bio.webp';
@@ -205,51 +66,10 @@ setMetaFromPage(
     $typeImageUrl,
     'website'
 );
-$queryPJBase = "
-    SELECT $valuePJ
-    FROM fact_characters p
-        LEFT JOIN dim_character_status dcs
-            ON dcs.id = p.status_id
-    WHERE p.__TYPE_COL__ = ?
-      $cronicaNotInSQL
-    ORDER BY organization_id ASC, p.name ASC
-";
 
-$runQuery = static function (string $typeCol) use ($link, $queryPJBase, $idTipo): array {
-    $queryPJ = str_replace('__TYPE_COL__', $typeCol, $queryPJBase);
-    $stmtPJ = mysqli_prepare($link, $queryPJ);
-    if (!$stmtPJ) {
-        return [null, null];
-    }
-
-    mysqli_stmt_bind_param($stmtPJ, 'i', $idTipo);
-    if (!mysqli_stmt_execute($stmtPJ)) {
-        mysqli_stmt_close($stmtPJ);
-        return [null, null];
-    }
-
-    $resultPJ = mysqli_stmt_get_result($stmtPJ);
-    if (!$resultPJ) {
-        mysqli_stmt_close($stmtPJ);
-        return [null, null];
-    }
-
-    return [$stmtPJ, $resultPJ];
-};
-
-$attemptedColumns = ['character_type_id', 'kind', 'tipo'];
-$stmtPJ = null;
-$resultPJ = null;
-
-foreach ($attemptedColumns as $typeCol) {
-    [$stmtPJ, $resultPJ] = $runQuery($typeCol);
-    if ($stmtPJ !== null) {
-        break;
-    }
-}
-
-if ($stmtPJ === null) {
-    hg_public_log_error('bio_group', 'character query prepare/execute failed for all known type columns');
+$rows = hg_character_types_fetch_characters($link, $idTipo, $excludeChronicles ?? '');
+if ($rows === null) {
+    hg_public_log_error('bio_group', 'character type query failed');
     hg_public_render_error(
         'Biografías no disponibles',
         'No se pudo cargar el listado de biografias por grupo en este momento.',
@@ -259,54 +79,35 @@ if ($stmtPJ === null) {
     return;
 }
 
-$howMuch = 0;
+$howMuch = count($rows);
 $grupos = [];
+foreach ($rows as $rowPJ) {
+    $clanId = (int)($rowPJ['organization_id'] ?? 0);
+    $clanName = (string)($rowPJ['clan_name'] ?? 'Sin clan');
+    $clanPretty = (string)($rowPJ['clan_pretty_id'] ?? '');
+    $key = $clanId > 0 ? (string)$clanId : 'none';
 
-if (mysqli_num_rows($resultPJ) > 0) {
-    $howMuch = mysqli_num_rows($resultPJ);
-
-    while ($rowPJ = mysqli_fetch_assoc($resultPJ)) {
-        $clanId = (int)($rowPJ['organization_id'] ?? 0);
-        $clanName = (string)($rowPJ['clan_name'] ?? 'Sin clan');
-        $clanPretty = (string)($rowPJ['clan_pretty_id'] ?? '');
-        $key = $clanId > 0 ? (string)$clanId : 'none';
-
-        if (!isset($grupos[$key])) {
-            $grupos[$key] = [
-                'id' => $clanId,
-                'name' => $clanName,
-                'pretty_id' => $clanPretty,
-                'sort_order' => (int)($rowPJ['organization_sort_order'] ?? 999999),
-                'items' => [],
-            ];
-        }
-
-        $grupos[$key]['items'][] = $rowPJ;
+    if (!isset($grupos[$key])) {
+        $grupos[$key] = [
+            'id' => $clanId,
+            'name' => $clanName,
+            'pretty_id' => $clanPretty,
+            'sort_order' => (int)($rowPJ['organization_sort_order'] ?? 999999),
+            'items' => [],
+        ];
     }
+    $grupos[$key]['items'][] = $rowPJ;
 }
-
-mysqli_free_result($resultPJ);
-mysqli_stmt_close($stmtPJ);
 
 $keys = array_keys($grupos);
 usort(
     $keys,
     static function (string $a, string $b) use ($grupos): int {
-        if ($a === 'none') {
-            return 1;
-        }
-
-        if ($b === 'none') {
-            return -1;
-        }
-
+        if ($a === 'none') return 1;
+        if ($b === 'none') return -1;
         $sortA = (int)($grupos[$a]['sort_order'] ?? 999999);
         $sortB = (int)($grupos[$b]['sort_order'] ?? 999999);
-
-        if ($sortA !== $sortB) {
-            return $sortA <=> $sortB;
-        }
-
+        if ($sortA !== $sortB) return $sortA <=> $sortB;
         return (int)$a <=> (int)$b;
     }
 );
@@ -359,9 +160,7 @@ foreach ($keys as $key) {
         $claseRaw = (string)($rowPJ['character_kind'] ?? $rowPJ['kind'] ?? '');
         $estadoPJ = (string)($rowPJ['status'] ?? '');
 
-        if ($aliasPJ === '') {
-            $aliasPJ = $nombrePJ;
-        }
+        if ($aliasPJ === '') $aliasPJ = $nombrePJ;
 
         $hrefPJ = pretty_url($link, 'fact_characters', '/characters', $idPJ);
         hg_render_character_avatar_tile([
@@ -394,10 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var targetId = this.getAttribute('data-target');
             var el = document.getElementById(targetId);
 
-            if (!el) {
-                return;
-            }
-
+            if (!el) return;
             el.classList.toggle('oculto');
         });
     }
