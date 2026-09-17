@@ -1,21 +1,11 @@
 <?php
+require_once(__DIR__ . '/../../domains/chronicles/queries.php');
+
 if (!$link) {
     http_response_code(500);
     exit;
 }
 
-if (!function_exists('hg_ci_has_column')) {
-    function hg_ci_has_column(mysqli $link, string $table, string $column): bool {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$column'");
-        if (!$rs) return false;
-        $ok = (mysqli_num_rows($rs) > 0);
-        mysqli_free_result($rs);
-        return $ok;
-    }
-}
 if (!function_exists('hg_ci_normalize_public_path')) {
     function hg_ci_normalize_public_path(string $path): string {
         $path = trim($path);
@@ -44,29 +34,15 @@ if (!function_exists('hg_ci_default_image')) {
 }
 
 $rawChronicle = hg_request_param($hgRequest, 'chronicle');
-$chronicleId = 0;
-if ($rawChronicle !== '') {
-    if (preg_match('/^\d+$/', $rawChronicle)) {
-        $chronicleId = (int)$rawChronicle;
-    } else {
-        $chronicleId = (int)resolve_pretty_id($link, 'dim_chronicles', $rawChronicle);
-    }
-}
+$chronicleId = $rawChronicle !== '' ? hg_chronicles_resolve_id($link, $rawChronicle) : 0;
 
 $target = '/img/og/og_image_bio.webp';
 if ($chronicleId > 0) {
-    $hasChronicleImage = hg_ci_has_column($link, 'dim_chronicles', 'image_url');
-    $selectImage = $hasChronicleImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";
-    if ($stmt = $link->prepare("SELECT pretty_id $selectImage FROM dim_chronicles WHERE id = ? LIMIT 1")) {
-        $stmt->bind_param('i', $chronicleId);
-        $stmt->execute();
-        $rs = $stmt->get_result();
-        if ($rs && ($row = $rs->fetch_assoc())) {
-            $prettyId = (string)($row['pretty_id'] ?? '');
-            $imageUrl = hg_ci_normalize_public_path((string)($row['image_url'] ?? ''));
-            $target = $imageUrl !== '' ? $imageUrl : hg_ci_default_image($prettyId);
-        }
-        $stmt->close();
+    $row = hg_chronicles_fetch_image_row($link, $chronicleId);
+    if ($row) {
+        $prettyId = (string)($row['pretty_id'] ?? '');
+        $imageUrl = hg_ci_normalize_public_path((string)($row['image_url'] ?? ''));
+        $target = $imageUrl !== '' ? $imageUrl : hg_ci_default_image($prettyId);
     }
 }
 
