@@ -2,32 +2,11 @@
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/rules_powers/queries.php');
 
 function hg_mrp_h($v): string { return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-function hg_mrp_table(mysqli $db, string $table): bool {
-    static $cache = [];
-    if (isset($cache[$table])) return $cache[$table];
-    $rs = $db->query("SHOW TABLES LIKE '" . $db->real_escape_string($table) . "'");
-    if (!$rs) return $cache[$table] = false;
-    $ok = $rs->num_rows > 0;
-    $rs->free();
-    return $cache[$table] = $ok;
-}
-function hg_mrp_col(mysqli $db, string $table, string $col): bool {
-    static $cache = [];
-    $key = $table . ':' . $col;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $col);
-        $st->execute();
-        $st->bind_result($n);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$n > 0);
-    }
-    return $cache[$key] = $ok;
-}
+function hg_mrp_table(mysqli $db, string $table): bool { return hg_rules_powers_table_exists($db, $table); }
+function hg_mrp_col(mysqli $db, string $table, string $col): bool { return hg_rules_powers_column_exists($db, $table, $col); }
 function hg_mrp_url(mysqli $db, string $table, string $base, int $id): string {
     return $id > 0 && function_exists('pretty_url') ? pretty_url($db, $table, $base, $id) : rtrim($base, '/') . '/' . $id;
 }
@@ -38,18 +17,7 @@ function hg_mrp_excerpt(string $html, int $max = 135): string {
     return strlen($text) > $max ? substr($text, 0, $max) . '...' : $text;
 }
 function hg_mrp_lookup(mysqli $db, string $table, $id, string $col = 'name'): string {
-    static $cache = [];
-    $id = (int)$id;
-    $key = $table . ':' . $col . ':' . $id;
-    if (isset($cache[$key])) return $cache[$key];
-    if ($id <= 0 || !hg_mrp_table($db, $table) || !hg_mrp_col($db, $table, $col)) return $cache[$key] = '';
-    if (!$st = $db->prepare("SELECT `{$col}` FROM `{$table}` WHERE id = ? LIMIT 1")) return $cache[$key] = '';
-    $st->bind_param('i', $id);
-    $st->execute();
-    $rs = $st->get_result();
-    $row = $rs ? $rs->fetch_assoc() : null;
-    $st->close();
-    return $cache[$key] = trim((string)($row[$col] ?? ''));
+    return hg_rules_powers_lookup($db, $table, (int)$id, $col);
 }
 function hg_mrp_resolve(mysqli $db, string $table, string $raw): int {
     $raw = trim(rawurldecode($raw));
@@ -59,19 +27,7 @@ function hg_mrp_resolve(mysqli $db, string $table, string $raw): int {
         if ((int)$id > 0) return (int)$id;
     }
     if (preg_match('/^\d+$/', $raw)) return (int)$raw;
-    if (!function_exists('slugify_pretty_id')) return 0;
-    $pretty = hg_mrp_col($db, $table, 'pretty_id') ? 'pretty_id' : "'' AS pretty_id";
-    if ($rs = $db->query("SELECT id, name, {$pretty} FROM `{$table}`")) {
-        while ($r = $rs->fetch_assoc()) {
-            if ((string)($r['pretty_id'] ?? '') === $raw || slugify_pretty_id((string)($r['name'] ?? '')) === $raw) {
-                $id = (int)$r['id'];
-                $rs->free();
-                return $id;
-            }
-        }
-        $rs->free();
-    }
-    return 0;
+    return hg_rules_powers_resolve_fallback($db, $table, $raw);
 }
 function hg_mrp_img(string $raw, string $dir): string {
     $raw = trim($raw);
@@ -112,19 +68,8 @@ function hg_mrp_character_card(mysqli $db, array $c): void {
     <?php
 }
 function hg_mrp_owner_rows(mysqli $db, array $owner, int $id): array {
-    if (empty($owner['table']) || empty($owner['where']) || !hg_mrp_table($db, $owner['table']) || !hg_mrp_table($db, 'fact_characters')) return [];
-    $kindSql = function_exists('hg_character_kind_select') ? hg_character_kind_select($db, 'c') : "''";
-    $chronicleAnd = function_exists('hg_mobile_chronicle_exclusion_and') ? hg_mobile_chronicle_exclusion_and('c') : ' AND c.chronicle_id NOT IN (2,7) ';
-    $sql = "SELECT DISTINCT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(s.label, '') AS status, c.status_id, {$kindSql} AS character_kind FROM `{$owner['table']}` b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status s ON s.id = c.status_id WHERE {$owner['where']} {$chronicleAnd} ORDER BY c.name";
-    $rows = [];
-    if ($st = $db->prepare($sql)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($r = $rs->fetch_assoc())) $rows[] = $r;
-        $st->close();
-    }
-    return $rows;
+    $excluded = function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7';
+    return hg_rules_powers_fetch_owner_rows($db, $owner, $id, $excluded) ?? [];
 }
 function hg_mrp_render_hub(string $title, array $items): void { ?>
     <section class="hg-mobile-section"><h1><?= hg_mrp_h($title) ?></h1></section>
@@ -209,40 +154,22 @@ function hg_mrp_render_detail(mysqli $db, array $cfg, array $row, int $id): void
     </article>
 <?php }
 function hg_mrp_special_owners(mysqli $db, string $key, int $id): array {
-    if (!hg_mrp_table($db, 'fact_characters')) return [];
-    $chronicleAnd = function_exists('hg_mobile_chronicle_exclusion_and') ? hg_mobile_chronicle_exclusion_and('c') : ' AND c.chronicle_id NOT IN (2,7) ';
-    $sql = '';
-    if ($key === 'traits' && hg_mrp_table($db, 'bridge_characters_traits')) {
-        $sql = "SELECT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(s.label, '') AS status, b.value AS trait_value FROM bridge_characters_traits b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status s ON s.id = c.status_id WHERE b.trait_id = ? AND b.value >= 1 {$chronicleAnd} ORDER BY b.value ASC, c.name ASC";
-    } elseif ($key === 'archetypes' && hg_mrp_col($db, 'fact_characters', 'nature_id') && hg_mrp_col($db, 'fact_characters', 'demeanor_id')) {
-        $sql = "SELECT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(s.label, '') AS status FROM fact_characters c LEFT JOIN dim_character_status s ON s.id = c.status_id WHERE (c.nature_id = ? OR c.demeanor_id = ?) {$chronicleAnd} ORDER BY c.name";
-    } elseif ($key === 'totems' && hg_mrp_col($db, 'fact_characters', 'totem_id')) {
-        $sql = "SELECT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(s.label, '') AS status FROM fact_characters c LEFT JOIN dim_character_status s ON s.id = c.status_id WHERE c.totem_id = ? {$chronicleAnd} ORDER BY c.name";
-    }
-    if ($sql === '') return [];
-    $rows = [];
-    if ($st = $db->prepare($sql)) {
-        if ($key === 'archetypes') $st->bind_param('ii', $id, $id); else $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($r = $rs->fetch_assoc())) $rows[] = $r;
-        $st->close();
-    }
-    return $rows;
+    $excluded = function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7';
+    return hg_rules_powers_fetch_special_owners($db, $key, $id, $excluded) ?? [];
 }
 function hg_mrp_render_totem_links(mysqli $db, int $id): void {
-    $links = [];
-    if (hg_mrp_table($db, 'dim_groups') && hg_mrp_col($db, 'dim_groups', 'totem_id') && ($st = $db->prepare('SELECT id, name FROM dim_groups WHERE totem_id = ? ORDER BY name'))) {
-        $st->bind_param('i', $id); $st->execute(); $rs = $st->get_result(); while ($rs && ($r = $rs->fetch_assoc())) $links[] = ['Grupo', $r['name'], hg_mrp_url($db, 'dim_groups', '/groups', (int)$r['id'])]; $st->close();
-    }
-    if (hg_mrp_table($db, 'dim_organizations') && hg_mrp_col($db, 'dim_organizations', 'totem_id') && ($st = $db->prepare('SELECT id, name FROM dim_organizations WHERE totem_id = ? ORDER BY name'))) {
-        $st->bind_param('i', $id); $st->execute(); $rs = $st->get_result(); while ($rs && ($r = $rs->fetch_assoc())) $links[] = ['Organizacion', $r['name'], hg_mrp_url($db, 'dim_organizations', '/organizations', (int)$r['id'])]; $st->close();
-    }
+    $links = hg_rules_powers_fetch_totem_links($db, $id) ?? [];
     if (!$links) return;
     echo '<section class="hg-mobile-section"><h2>Vinculos</h2><div class="hg-mobile-card-list">';
-    foreach ($links as $l) echo '<a class="hg-mobile-card" href="' . hg_mrp_h($l[2]) . '"><strong>' . hg_mrp_h($l[1]) . '</strong><span>' . hg_mrp_h($l[0]) . '</span></a>';
+    foreach ($links as $link) {
+        $table = (string)($link['table'] ?? '');
+        $base = $table === 'dim_groups' ? '/groups' : '/organizations';
+        $href = hg_mrp_url($db, $table, $base, (int)($link['id'] ?? 0));
+        echo '<a class="hg-mobile-card" href="' . hg_mrp_h($href) . '"><strong>' . hg_mrp_h($link['name'] ?? '') . '</strong><span>' . hg_mrp_h($link['kind'] ?? '') . '</span></a>';
+    }
     echo '</div></section>';
 }
+
 if (!isset($link) || !($link instanceof mysqli)) {
     hg_public_log_error('mobile_rules_powers', 'missing DB connection');
     hg_public_render_error('Contenido no disponible', 'No se pudo cargar esta sección.');
@@ -258,7 +185,7 @@ $rulesHub = [
     ['Rasgos', '/rules/traits', 'Atributos, habilidades, trasfondos y otros rasgos numericos.'],
     ['Méritos y Defectos', '/rules/merits-flaws', 'Ventajas, desventajas y rasgos especiales.'],
     ['Condiciones', '/rules/conditions', 'Estados, heridas, trastornos y efectos persistentes.'],
-        ['Acciones', '/rules/actions', 'Tiradas básicas de Atributo + Habilidad.'],
+    ['Acciones', '/rules/actions', 'Tiradas básicas de Atributo + Habilidad.'],
     ['Personalidades', '/rules/archetypes', 'Naturaleza, conducta y arquetipos de interpretacion.'],
     ['Maniobras de pelea', '/rules/maneuvers', 'Tecnicas de combate y acciones especiales.'],
 ];
@@ -286,7 +213,7 @@ $catalogs = [
         'owners' => ['table' => 'bridge_characters_conditions', 'where' => hg_mrp_col($link, 'bridge_characters_conditions', 'is_active') ? 'b.condition_id = ? AND (b.is_active = 1 OR b.is_active IS NULL)' : 'b.condition_id = ?'],
         'order' => 'name ASC',
     ],
-        'actions' => [
+    'actions' => [
         'key' => 'actions', 'title' => 'Acciones', 'singular' => 'Acción', 'table' => 'fact_actions', 'list_base' => '/rules/actions', 'item_base' => '/rules/actions',
         'list_routes' => ['actions'], 'detail_routes' => ['veraction'],
         'fields' => [['Categoría', 'category'], ['Atributo', 'attribute_trait_id', 'dim_traits'], ['Habilidad', 'skill_trait_id', 'dim_traits'], ['Dificultad', 'difficulty_mode']],
@@ -346,6 +273,7 @@ $catalogs = [
         'order' => 'disc ASC, level ASC, name ASC',
     ],
 ];
+
 if ($p === 'rules') {
     $metaTitle = "Reglas | Heaven's Gate";
     $pageSect = 'Reglas';
@@ -374,23 +302,23 @@ $metaTitle = $active['title'] . " | Heaven's Gate";
 $pageSect = $active['title'];
 
 if ($mode === 'list') {
-    $where = '';
+    $typeId = 0;
     if (($active['type_route'] ?? '') === $p && $raw !== '') {
         $typeId = hg_mrp_resolve($link, (string)$active['type_table'], $raw);
-        if ($typeId > 0 && hg_mrp_col($link, $active['table'], (string)$active['type_col'])) $where = ' WHERE `' . $active['type_col'] . '` = ' . (int)$typeId;
     }
-    $order = (string)($active['order'] ?? 'name ASC');
     if (!hg_mrp_table($link, $active['table'])) {
         hg_public_render_error('Listado no disponible', 'Falta la tabla requerida.');
         return;
     }
-    $sql = 'SELECT * FROM `' . $active['table'] . '`' . $where . ' ORDER BY ' . $order;
-    $rows = [];
-    if ($rs = $link->query($sql)) {
-        while ($r = $rs->fetch_assoc()) $rows[] = $r;
-        $rs->free();
-    } else {
-        hg_public_log_error('mobile_rules_powers', 'list query failed: ' . $link->error . ' sql=' . $sql);
+    $rows = hg_rules_powers_fetch_list(
+        $link,
+        (string)$active['table'],
+        (string)($active['order'] ?? 'name ASC'),
+        $typeId > 0 ? (string)($active['type_col'] ?? '') : '',
+        $typeId
+    );
+    if ($rows === null) {
+        hg_public_log_error('mobile_rules_powers', 'list query failed for ' . $active['table']);
         hg_public_render_error('Listado no disponible', 'No se pudo cargar esta lista.');
         return;
     }
@@ -399,15 +327,7 @@ if ($mode === 'list') {
 }
 
 $id = hg_mrp_resolve($link, $active['table'], $raw);
-if ($id <= 0 || !$st = $link->prepare('SELECT * FROM `' . $active['table'] . '` WHERE id = ? LIMIT 1')) {
-    hg_public_render_not_found($active['singular'] . ' no encontrado', 'No se pudo localizar el elemento solicitado.');
-    return;
-}
-$st->bind_param('i', $id);
-$st->execute();
-$rs = $st->get_result();
-$row = $rs ? $rs->fetch_assoc() : null;
-$st->close();
+$row = $id > 0 ? hg_rules_powers_fetch_one($link, (string)$active['table'], $id) : null;
 if (!$row) {
     hg_public_render_not_found($active['singular'] . ' no encontrado', 'No se pudo localizar el elemento solicitado.');
     return;
