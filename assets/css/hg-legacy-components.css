@@ -126,6 +126,10 @@ a.hg-character-avatar--pj:visited .hg-character-avatar__tile--pj {
 	border-color: #000099;
 }
 
+.bioSheetPowers a:visited div.bioSheetPower {
+	border-color: #000099;
+}
+
 .adm-admin-menu-link:visited .adm-admin-tile {
 	border-color: #000099;
 }
