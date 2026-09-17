@@ -113,7 +113,7 @@ if ($pageDispatch === false) {
     hg_dispatch_fail('Cannot read page_dispatch.php');
 }
 foreach ([
-    "require __DIR__ . '/../bootstrap/page_context.php'",
+    "require __DIR__ . '/page_context.php'",
     "require __DIR__ . '/../routing/routes.php'",
     "require __DIR__ . '/dispatcher.php'",
 ] as $needle) {
@@ -147,6 +147,9 @@ if ($mobileFallback === false || strpos($mobileFallback, "../../http/page_dispat
 
 if (is_file($root . '/app/bootstrap/body_work.php')) {
     hg_dispatch_fail('Legacy body_work.php coordinator was reintroduced');
+}
+if (is_file($root . '/app/bootstrap/page_context.php')) {
+    hg_dispatch_fail('Page context drifted back into generic bootstrap');
 }
 
 foreach (['combat_simulator.php', 'game_cards.php'] as $retired) {
