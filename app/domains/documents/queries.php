@@ -150,3 +150,166 @@ if (!function_exists('hg_documents_fetch_characters')) {
         return $rows;
     }
 }
+
+if (!function_exists('hg_documents_resolve_id')) {
+    function hg_documents_resolve_id(mysqli $link, string $raw): int
+    {
+        $raw = trim(rawurldecode($raw));
+        if ($raw === '') return 0;
+        if (preg_match('/^\d+$/', $raw)) return (int)$raw;
+        if (function_exists('resolve_pretty_id')) {
+            $resolved = resolve_pretty_id($link, 'fact_docs', $raw);
+            if ((int)$resolved > 0) return (int)$resolved;
+        }
+        if (!function_exists('slugify_pretty_id')) return 0;
+
+        $prettyExpr = hg_documents_has_column($link, 'fact_docs', 'pretty_id')
+            ? "COALESCE(pretty_id, '')"
+            : "''";
+        $result = mysqli_query($link, "SELECT id, title, {$prettyExpr} AS pretty_id FROM fact_docs");
+        if (!$result) return 0;
+
+        $resolvedId = 0;
+        while ($row = mysqli_fetch_assoc($result)) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) continue;
+            if (trim((string)($row['pretty_id'] ?? '')) === $raw || slugify_pretty_id((string)($row['title'] ?? '')) === $raw) {
+                $resolvedId = $id;
+                break;
+            }
+        }
+        mysqli_free_result($result);
+        return $resolvedId;
+    }
+}
+
+if (!function_exists('hg_documents_fetch_mobile_catalog')) {
+    function hg_documents_fetch_mobile_catalog(mysqli $link): ?array
+    {
+        $hasPretty = hg_documents_has_column($link, 'fact_docs', 'pretty_id');
+        $hasBibliography = hg_documents_has_column($link, 'fact_docs', 'bibliography_id')
+            && hg_documents_has_table($link, 'dim_bibliographies');
+        $hasCategories = hg_documents_has_table($link, 'dim_doc_categories')
+            && hg_documents_has_column($link, 'fact_docs', 'section_id');
+        $prettyExpr = $hasPretty ? "COALESCE(d.pretty_id, '')" : "''";
+        $categoryJoin = $hasCategories ? 'LEFT JOIN dim_doc_categories cat ON cat.id = d.section_id' : '';
+        $categoryExpr = $hasCategories ? "COALESCE(cat.kind, '')" : "''";
+        $categoryOrder = $hasCategories && hg_documents_has_column($link, 'dim_doc_categories', 'sort_order')
+            ? 'COALESCE(cat.sort_order, 999999),'
+            : '';
+        $biblioJoin = $hasBibliography ? 'LEFT JOIN dim_bibliographies bib ON bib.id = d.bibliography_id' : '';
+        $biblioExpr = $hasBibliography ? "COALESCE(bib.name, '')" : "''";
+
+        $result = mysqli_query(
+            $link,
+            "SELECT d.id, {$prettyExpr} AS pretty_id, d.title, {$categoryExpr} AS category,
+                    {$biblioExpr} AS origin, d.content
+             FROM fact_docs d
+             {$categoryJoin}
+             {$biblioJoin}
+             ORDER BY {$categoryOrder} d.title ASC, d.id ASC"
+        );
+        if (!$result) return null;
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+        mysqli_free_result($result);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_documents_fetch_mobile_detail')) {
+    function hg_documents_fetch_mobile_detail(mysqli $link, int $documentId): ?array
+    {
+        if ($documentId <= 0) return null;
+        $hasPretty = hg_documents_has_column($link, 'fact_docs', 'pretty_id');
+        $hasSource = hg_documents_has_column($link, 'fact_docs', 'source');
+        $hasBibliography = hg_documents_has_column($link, 'fact_docs', 'bibliography_id')
+            && hg_documents_has_table($link, 'dim_bibliographies');
+        $hasCategories = hg_documents_has_table($link, 'dim_doc_categories')
+            && hg_documents_has_column($link, 'fact_docs', 'section_id');
+        $prettyExpr = $hasPretty ? "COALESCE(d.pretty_id, '')" : "''";
+        $sourceExpr = $hasSource ? "COALESCE(d.source, '')" : "''";
+        $categoryJoin = $hasCategories ? 'LEFT JOIN dim_doc_categories cat ON cat.id = d.section_id' : '';
+        $categoryExpr = $hasCategories ? "COALESCE(cat.kind, '')" : "''";
+        $biblioJoin = $hasBibliography ? 'LEFT JOIN dim_bibliographies bib ON bib.id = d.bibliography_id' : '';
+        $biblioExpr = $hasBibliography ? "COALESCE(bib.name, '')" : "''";
+
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT d.id, {$prettyExpr} AS pretty_id, d.title, d.content, {$sourceExpr} AS source,
+                    {$categoryExpr} AS category, {$biblioExpr} AS origin
+             FROM fact_docs d
+             {$categoryJoin}
+             {$biblioJoin}
+             WHERE d.id = ? LIMIT 1"
+        );
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $documentId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? (mysqli_fetch_assoc($result) ?: null) : null;
+        if ($result) mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $row;
+    }
+}
+
+if (!function_exists('hg_documents_fetch_mobile_characters')) {
+    function hg_documents_fetch_mobile_characters(mysqli $link, int $documentId, $excludedChronicles = '2,7'): array
+    {
+        if ($documentId <= 0
+            || !hg_documents_has_table($link, 'bridge_characters_docs')
+            || !hg_documents_has_table($link, 'fact_characters')) {
+            return [];
+        }
+
+        $hasAlias = hg_documents_has_column($link, 'fact_characters', 'alias');
+        $hasImage = hg_documents_has_column($link, 'fact_characters', 'image_url');
+        $hasGender = hg_documents_has_column($link, 'fact_characters', 'gender');
+        $hasStatus = hg_documents_has_column($link, 'fact_characters', 'status_id')
+            && hg_documents_has_table($link, 'dim_character_status');
+        $hasSort = hg_documents_has_column($link, 'bridge_characters_docs', 'sort_order');
+        $aliasExpr = $hasAlias ? "COALESCE(c.alias, '')" : "''";
+        $imageExpr = $hasImage ? "COALESCE(c.image_url, '')" : "''";
+        $genderExpr = $hasGender ? "COALESCE(c.gender, '')" : "''";
+        $statusJoin = $hasStatus ? 'LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id' : '';
+        $statusExpr = $hasStatus ? "COALESCE(dcs.label, '')" : "''";
+        $order = $hasSort ? 'b.sort_order ASC, c.name ASC' : 'c.name ASC';
+
+        $ids = [];
+        foreach (preg_split('/\s*,\s*/', trim((string)$excludedChronicles)) as $part) {
+            if ($part !== '' && preg_match('/^\d+$/', (string)$part)) {
+                $id = (int)$part;
+                if ($id > 0) $ids[$id] = $id;
+            }
+        }
+        $ids = array_values($ids);
+        $sql = "SELECT c.id, c.name, {$aliasExpr} AS alias, {$imageExpr} AS image_url,
+                       {$genderExpr} AS gender, {$statusExpr} AS status
+                FROM bridge_characters_docs b
+                INNER JOIN fact_characters c ON c.id = b.character_id
+                {$statusJoin}
+                WHERE b.doc_id = ?";
+        $types = 'i';
+        $params = [$documentId];
+        if ($ids) {
+            $sql .= ' AND c.chronicle_id NOT IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
+            $types .= str_repeat('i', count($ids));
+            foreach ($ids as $id) $params[] = $id;
+        }
+        $sql .= " ORDER BY {$order}";
+
+        $stmt = mysqli_prepare($link, $sql);
+        if (!$stmt) return [];
+        mysqli_stmt_bind_param($stmt, $types, ...$params);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $rows = [];
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+        return $rows;
+    }
+}
