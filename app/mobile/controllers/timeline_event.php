@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+include_once(__DIR__ . '/../../domains/timeline/queries.php');
 
 $metaTitle = "Evento | Heaven's Gate";
 $metaDescription = 'Ficha móvil de evento de línea temporal.';
@@ -16,43 +17,6 @@ if (!function_exists('hg_mobile_event_h')) {
     }
 }
 
-if (!function_exists('hg_mobile_event_table_exists')) {
-    function hg_mobile_event_table_exists(mysqli $link, string $table): bool
-    {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$table] = $ok;
-    }
-}
-
-if (!function_exists('hg_mobile_event_col_exists')) {
-    function hg_mobile_event_col_exists(mysqli $link, string $table, string $column): bool
-    {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
-}
-
 if (!function_exists('hg_mobile_event_date_label')) {
     function hg_mobile_event_date_label(?string $dateValue, string $precision, ?string $note): string
     {
@@ -61,12 +25,11 @@ if (!function_exists('hg_mobile_event_date_label')) {
         $note = trim((string)$note);
         if ($precision === 'unknown') return $note !== '' ? $note : 'Desconocida';
         if ($dateValue === '' || $dateValue === '0000-00-00') return $note !== '' ? $note : '';
-        $ts = strtotime($dateValue);
-        if ($ts === false) return $note !== '' ? $note : $dateValue;
-        if ($precision === 'year') $base = date('Y', $ts);
-        elseif ($precision === 'month') $base = date('m-Y', $ts);
-        elseif ($precision === 'approx') $base = 'Aprox. ' . date('d-m-Y', $ts);
-        else $base = date('d-m-Y', $ts);
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dateValue, $parts)) return $note !== '' ? $note : $dateValue;
+        $base = $parts[3] . '-' . $parts[2] . '-' . $parts[1];
+        if ($precision === 'year') $base = $parts[1];
+        elseif ($precision === 'month') $base = $parts[2] . '-' . $parts[1];
+        elseif ($precision === 'approx') $base = 'Aprox. ' . $base;
         return $note !== '' ? ($base . ' (' . $note . ')') : $base;
     }
 }
@@ -87,107 +50,23 @@ if (!function_exists('hg_mobile_event_pretty_href')) {
     }
 }
 
-if (!function_exists('hg_mobile_event_is_excluded')) {
-    function hg_mobile_event_is_excluded(mysqli $link, int $eventId): bool
-    {
-        $csv = hg_mobile_excluded_chronicles_csv();
-        if ($eventId <= 0 || $csv === '' || !hg_mobile_event_table_exists($link, 'bridge_timeline_events_chronicles')) return false;
-        $sql = "SELECT 1 FROM bridge_timeline_events_chronicles WHERE event_id = ? AND chronicle_id IN ({$csv}) LIMIT 1";
-        if (!$st = $link->prepare($sql)) return false;
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        $excluded = $rs && $rs->num_rows > 0;
-        $st->close();
-        return $excluded;
-    }
-}
-
-if (!function_exists('hg_mobile_event_nav')) {
-    function hg_mobile_event_nav(mysqli $link, int $eventId, string $anchorDate, string $direction, bool $hasPretty, bool $hasSortDate, bool $hasActive): ?array
-    {
-        $sortExpr = $hasSortDate ? 'COALESCE(e.sort_date, e.event_date)' : 'e.event_date';
-        $prettyExpr = $hasPretty ? 'e.pretty_id' : 'CAST(e.id AS CHAR)';
-        $active = $hasActive ? 'e.is_active = 1 AND ' : '';
-        $csv = hg_mobile_excluded_chronicles_csv();
-        $excludeJoin = '';
-        $excludeWhere = '';
-        if ($csv !== '' && hg_mobile_event_table_exists($link, 'bridge_timeline_events_chronicles')) {
-            $excludeWhere = " AND NOT EXISTS (SELECT 1 FROM bridge_timeline_events_chronicles bx WHERE bx.event_id = e.id AND bx.chronicle_id IN ({$csv}))";
-        }
-        if ($direction === 'prev') {
-            $op = '<';
-            $idOp = '<';
-            $order = 'DESC';
-        } else {
-            $op = '>';
-            $idOp = '>';
-            $order = 'ASC';
-        }
-        $sql = "SELECT e.id, {$prettyExpr} AS pretty_id, e.title FROM fact_timeline_events e {$excludeJoin} WHERE {$active} ({$sortExpr} {$op} ? OR ({$sortExpr} = ? AND e.id {$idOp} ?)) {$excludeWhere} ORDER BY {$sortExpr} {$order}, e.id {$order} LIMIT 1";
-        if (!$st = $link->prepare($sql)) return null;
-        $st->bind_param('ssi', $anchorDate, $anchorDate, $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        $row = $rs ? $rs->fetch_assoc() : null;
-        $st->close();
-        return $row ?: null;
-    }
-}
-
 if (!isset($link) || !($link instanceof mysqli)) {
     echo '<section class="hg-mobile-section"><h1>Evento no disponible</h1><p>No se pudo conectar con la base de datos.</p></section>';
     return;
 }
 
+$excludedIds = function_exists('hg_mobile_excluded_chronicles_csv')
+    ? hg_timeline_normalize_ids(hg_mobile_excluded_chronicles_csv())
+    : [];
 $rawEvent = hg_request_param($hgRequest, 'event');
-$eventId = 0;
-if ($rawEvent !== '') {
-    if (preg_match('/^\d+$/', $rawEvent)) $eventId = (int)$rawEvent;
-    if ($eventId <= 0 && function_exists('resolve_pretty_id')) $eventId = (int)(resolve_pretty_id($link, 'fact_timeline_events', $rawEvent) ?? 0);
-}
+$eventId = hg_timeline_resolve_event_id($link, $rawEvent);
 
-if ($eventId <= 0 || !hg_mobile_event_table_exists($link, 'fact_timeline_events') || hg_mobile_event_is_excluded($link, $eventId)) {
+if ($eventId <= 0 || hg_timeline_event_is_excluded($link, $eventId, $excludedIds)) {
     echo '<section class="hg-mobile-section"><h1>Evento no encontrado</h1><p>No se puede mostrar este evento.</p><p><a href="/timeline">Volver a línea temporal</a></p></section>';
     return;
 }
 
-$hasPretty = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'pretty_id');
-$hasSortDate = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'sort_date');
-$hasDatePrecision = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'date_precision');
-$hasDateNote = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'date_note');
-$hasLocation = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'location');
-$hasSource = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'source');
-$hasTimeline = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'timeline');
-$hasActive = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'is_active');
-$hasTypeId = hg_mobile_event_col_exists($link, 'fact_timeline_events', 'event_type_id');
-$hasTypes = hg_mobile_event_table_exists($link, 'dim_timeline_events_types');
-
-$selectPretty = $hasPretty ? 'e.pretty_id AS pretty_id' : 'CAST(e.id AS CHAR) AS pretty_id';
-$selectSortDate = $hasSortDate ? 'e.sort_date AS sort_date' : 'e.event_date AS sort_date';
-$selectDatePrecision = $hasDatePrecision ? 'e.date_precision AS date_precision' : "'day' AS date_precision";
-$selectDateNote = $hasDateNote ? 'e.date_note AS date_note' : 'NULL AS date_note';
-$selectLocation = $hasLocation ? 'e.location AS location' : 'NULL AS location';
-$selectSource = $hasSource ? 'e.source AS source' : 'NULL AS source';
-$selectTimeline = $hasTimeline ? 'e.timeline AS timeline' : 'NULL AS timeline';
-$typeJoin = '';
-if ($hasTypes && $hasTypeId) {
-    $typeJoin = 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id';
-    $typeNameExpr = "COALESCE(t.name, 'Evento')";
-} else {
-    $typeNameExpr = "'Evento'";
-}
-
-$event = null;
-$sql = "SELECT e.id, {$selectPretty}, e.title, e.description, e.event_date, {$selectSortDate}, {$selectDatePrecision}, {$selectDateNote}, {$selectLocation}, {$selectSource}, {$selectTimeline}, {$typeNameExpr} AS type_name FROM fact_timeline_events e {$typeJoin} WHERE e.id = ? LIMIT 1";
-if ($st = $link->prepare($sql)) {
-    $st->bind_param('i', $eventId);
-    $st->execute();
-    $rs = $st->get_result();
-    $event = $rs ? $rs->fetch_assoc() : null;
-    $st->close();
-}
-
+$event = hg_timeline_fetch_event($link, $eventId);
 if (!$event) {
     echo '<section class="hg-mobile-section"><h1>Evento no encontrado</h1><p>No se puede mostrar este evento.</p><p><a href="/timeline">Volver a línea temporal</a></p></section>';
     return;
@@ -205,53 +84,14 @@ $anchorDate = trim((string)($event['sort_date'] ?? '')) ?: trim((string)($event[
 $metaTitle = $title . " | Evento | Heaven's Gate";
 $metaDescription = $description !== '' ? trim(strip_tags($description)) : 'Detalle de evento de línea temporal.';
 
-$chronicles = [];
-if (hg_mobile_event_table_exists($link, 'bridge_timeline_events_chronicles') && hg_mobile_event_table_exists($link, 'dim_chronicles')) {
-    $csv = hg_mobile_excluded_chronicles_csv();
-    $chronWhere = $csv !== '' ? " AND c.id NOT IN ({$csv})" : '';
-    $order = hg_mobile_event_col_exists($link, 'bridge_timeline_events_chronicles', 'sort_order') ? 'b.sort_order ASC, c.name ASC' : 'c.name ASC';
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id FROM bridge_timeline_events_chronicles b INNER JOIN dim_chronicles c ON c.id = b.chronicle_id WHERE b.event_id = ? {$chronWhere} ORDER BY {$order}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) $chronicles[] = $row;
-        $st->close();
-    }
-} elseif ($timeline !== '') {
+$chronicles = hg_timeline_fetch_event_chronicles($link, $eventId, $excludedIds) ?? [];
+if (!$chronicles && $timeline !== '') {
     $chronicles[] = ['id' => 0, 'name' => $timeline, 'pretty_id' => ''];
 }
-
-$participants = [];
-if (hg_mobile_event_table_exists($link, 'bridge_timeline_events_characters') && hg_mobile_event_table_exists($link, 'fact_characters')) {
-    $roleExpr = hg_mobile_event_col_exists($link, 'bridge_timeline_events_characters', 'role_label') ? 'b.role_label' : 'NULL';
-    $chronAnd = hg_mobile_chronicle_exclusion_and('c');
-    $order = hg_mobile_event_col_exists($link, 'bridge_timeline_events_characters', 'sort_order') ? 'b.sort_order ASC, c.name ASC' : 'c.name ASC';
-    if ($st = $link->prepare("SELECT c.id, c.name, c.alias, c.image_url, c.gender, COALESCE(s.label, '') AS status, {$roleExpr} AS role_label FROM bridge_timeline_events_characters b INNER JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_character_status s ON s.id = c.status_id WHERE b.event_id = ? {$chronAnd} ORDER BY {$order}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) $participants[] = $row;
-        $st->close();
-    }
-}
-
-$chapters = [];
-if (hg_mobile_event_table_exists($link, 'bridge_timeline_events_chapters') && hg_mobile_event_table_exists($link, 'dim_chapters')) {
-    $seasonJoin = hg_mobile_event_table_exists($link, 'dim_seasons') ? 'LEFT JOIN dim_seasons s ON s.id = c.season_id' : '';
-    $seasonSelect = $seasonJoin !== '' ? 's.name AS season_name, s.season_number, COALESCE(s.season_kind, \'temporada\') AS season_kind' : 'NULL AS season_name, NULL AS season_number, \'temporada\' AS season_kind';
-    $chapterChron = ($seasonJoin !== '' && hg_mobile_event_col_exists($link, 'dim_seasons', 'chronicle_id')) ? ' AND (s.id IS NULL OR ' . hg_mobile_chronicle_exclusion_condition('s') . ')' : '';
-    $order = hg_mobile_event_col_exists($link, 'bridge_timeline_events_chapters', 'sort_order') ? 'b.sort_order ASC, COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC' : 'COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC';
-    if ($st = $link->prepare("SELECT c.id, c.name, c.pretty_id, c.chapter_number, c.season_id, {$seasonSelect} FROM bridge_timeline_events_chapters b INNER JOIN dim_chapters c ON c.id = b.chapter_id {$seasonJoin} WHERE b.event_id = ? {$chapterChron} ORDER BY {$order}")) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) $chapters[] = $row;
-        $st->close();
-    }
-}
-
-$prevEvent = hg_mobile_event_nav($link, $eventId, $anchorDate, 'prev', $hasPretty, $hasSortDate, $hasActive);
-$nextEvent = hg_mobile_event_nav($link, $eventId, $anchorDate, 'next', $hasPretty, $hasSortDate, $hasActive);
+$participants = hg_timeline_fetch_event_participants($link, $eventId, $excludedIds) ?? [];
+$chapters = hg_timeline_fetch_event_chapters($link, $eventId, $excludedIds) ?? [];
+$prevEvent = hg_timeline_fetch_neighbor($link, $eventId, $anchorDate, 'prev', $excludedIds);
+$nextEvent = hg_timeline_fetch_neighbor($link, $eventId, $anchorDate, 'next', $excludedIds);
 ?>
 
 <section class="hg-mobile-section hg-mobile-event-head">
