@@ -5,7 +5,9 @@ declare(strict_types=1);
 $root = dirname(__DIR__, 2);
 $routesPath = $root . '/app/routing/routes.php';
 $dispatcherPath = $root . '/app/http/dispatcher.php';
-$bodyPath = $root . '/app/bootstrap/body_work.php';
+$dispatchPolicyPath = $root . '/app/http/dispatch_policy.php';
+$desktopDispatchPath = $root . '/app/http/desktop_dispatch.php';
+$indexPath = $root . '/index.php';
 
 function hg_dispatch_fail(string $message): never
 {
@@ -61,10 +63,7 @@ foreach ($routes as $route => $definition) {
     }
 }
 
-$dispatcher = file_get_contents($dispatcherPath);
-if ($dispatcher === false) {
-    hg_dispatch_fail('Cannot read dispatcher.php');
-}
+require_once $dispatchPolicyPath;
 
 foreach ([
     'forum_message',
@@ -78,30 +77,66 @@ foreach ([
     'forum_avatar_api',
     'chronicle_image',
 ] as $bareRoute) {
-    if (strpos($dispatcher, "'{$bareRoute}'") === false) {
+    $resolved = hg_dispatch_resolve($routes, $bareRoute);
+    if (empty($resolved['bare'])) {
         hg_dispatch_fail("Bare-page contract changed: missing {$bareRoute}");
     }
 }
 
-if (strpos($dispatcher, "include('app/controllers/main/main_home.php')") === false) {
+$homeFallback = hg_dispatch_resolve($routes, '');
+if (($homeFallback['file'] ?? null) !== 'app/controllers/main/main_home.php' || ($homeFallback['section'] ?? null) !== 'Inicio') {
     hg_dispatch_fail('Empty-route home fallback changed');
 }
-if (strpos($dispatcher, "include('app/controllers/main/main_news.php')") === false) {
+
+$newsFallback = hg_dispatch_resolve($routes, '__unknown_route__');
+if (($newsFallback['file'] ?? null) !== 'app/controllers/main/main_news.php' || ($newsFallback['section'] ?? null) !== 'Noticias') {
     hg_dispatch_fail('Unknown-route news fallback changed');
 }
 
-$body = file_get_contents($bodyPath);
-if ($body === false) {
-    hg_dispatch_fail('Cannot read body_work.php');
+$dispatcher = file_get_contents($dispatcherPath);
+if ($dispatcher === false) {
+    hg_dispatch_fail('Cannot read dispatcher.php');
 }
 foreach ([
-    "require __DIR__ . '/page_context.php'",
-    "require __DIR__ . '/../routing/routes.php'",
-    "require __DIR__ . '/../http/dispatcher.php'",
+    "require_once __DIR__ . '/dispatch_policy.php'",
+    'hg_dispatch_resolve($routes, $routeKey)',
+    'include $file',
 ] as $needle) {
-    if (strpos($body, $needle) === false) {
-        hg_dispatch_fail("body_work seam missing: {$needle}");
+    if (strpos($dispatcher, $needle) === false) {
+        hg_dispatch_fail("Dispatcher orchestration seam missing: {$needle}");
     }
+}
+
+$desktopDispatch = file_get_contents($desktopDispatchPath);
+if ($desktopDispatch === false) {
+    hg_dispatch_fail('Cannot read desktop_dispatch.php');
+}
+foreach ([
+    "require __DIR__ . '/../bootstrap/page_context.php'",
+    "require __DIR__ . '/../routing/routes.php'",
+    "require __DIR__ . '/dispatcher.php'",
+] as $needle) {
+    if (strpos($desktopDispatch, $needle) === false) {
+        hg_dispatch_fail("Desktop dispatch seam missing: {$needle}");
+    }
+}
+
+$index = file_get_contents($indexPath);
+if ($index === false) {
+    hg_dispatch_fail('Cannot read index.php');
+}
+foreach ([
+    "require_once __DIR__ . '/app/http/output.php'",
+    "include __DIR__ . '/app/http/desktop_dispatch.php'",
+    "require_once __DIR__ . '/app/presentation/desktop_context.php'",
+    "include __DIR__ . '/app/views/layout/desktop.php'",
+] as $needle) {
+    if (strpos($index, $needle) === false) {
+        hg_dispatch_fail("Front-controller seam missing: {$needle}");
+    }
+}
+if (strpos($index, '<!DOCTYPE html>') !== false) {
+    hg_dispatch_fail('index.php regained desktop layout markup');
 }
 
 foreach (['combat_simulator.php', 'game_cards.php'] as $retired) {
