@@ -2,6 +2,7 @@
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/characters/type_queries.php');
 
 $metaTitle = "Biografías | Heaven's Gate";
 $metaDescription = "Listado móvil de personajes por tipo.";
@@ -11,28 +12,6 @@ if (!function_exists('hg_mobile_type_h')) {
     function hg_mobile_type_h($value): string
     {
         return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-}
-
-if (!function_exists('hg_mobile_type_table_exists')) {
-    function hg_mobile_type_table_exists(mysqli $link, string $table): bool
-    {
-        static $cache = [];
-        if (isset($cache[$table])) {
-            return $cache[$table];
-        }
-
-        $exists = false;
-        if ($stmt = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $stmt->bind_param('s', $table);
-            $stmt->execute();
-            $stmt->bind_result($count);
-            $stmt->fetch();
-            $stmt->close();
-            $exists = ((int)$count > 0);
-        }
-        $cache[$table] = $exists;
-        return $exists;
     }
 }
 
@@ -63,15 +42,7 @@ if ($typeId <= 0) {
     return;
 }
 
-$type = null;
-if ($stmt = $link->prepare('SELECT id, kind FROM dim_character_types WHERE id = ? LIMIT 1')) {
-    $stmt->bind_param('i', $typeId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $type = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-}
-
+$type = hg_character_types_fetch_one($link, $typeId);
 if (!$type) {
     hg_public_render_not_found('Tipo no encontrado', 'No se pudo localizar el tipo de personaje solicitado.');
     return;
@@ -82,88 +53,13 @@ $metaTitle = $typeName . " | Biografías | Heaven's Gate";
 $metaDescription = "Personajes del tipo " . $typeName . " en version móvil.";
 $pageSect = $typeName;
 
-$activePackIdExpr = "
-    SELECT bcg.group_id
-    FROM bridge_characters_groups bcg
-    WHERE bcg.character_id = p.id
-      AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
-    ORDER BY bcg.updated_at DESC, bcg.created_at DESC, bcg.group_id DESC
-    LIMIT 1
-";
-
-$activePackOrgIdExpr = "
-    SELECT bog.organization_id
-    FROM bridge_organizations_groups bog
-    WHERE bog.group_id = (($activePackIdExpr))
-      AND (bog.is_active = 1 OR bog.is_active IS NULL)
-    ORDER BY bog.updated_at DESC, bog.created_at DESC, bog.organization_id DESC
-    LIMIT 1
-";
-
-$activeDirectOrgIdExpr = "
-    SELECT bco.organization_id
-    FROM bridge_characters_organizations bco
-    WHERE bco.character_id = p.id
-      AND (bco.is_active = 1 OR bco.is_active IS NULL)
-    ORDER BY bco.updated_at DESC, bco.created_at DESC, bco.organization_id DESC
-    LIMIT 1
-";
-
-$activePackNameExpr = "
-    SELECT g.name
-    FROM bridge_characters_groups bcg
-    INNER JOIN dim_groups g ON g.id = bcg.group_id
-    WHERE bcg.character_id = p.id
-      AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
-    ORDER BY bcg.updated_at DESC, bcg.created_at DESC, bcg.group_id DESC
-    LIMIT 1
-";
-
-$chronicleConditionP = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('p') : 'p.chronicle_id NOT IN (2,7)';
-
-$characters = [];
-$sql = "
-    SELECT
-        p.id,
-        p.pretty_id,
-        p.name,
-        p.alias,
-        p.concept,
-        p.image_url,
-        p.gender,
-        p.character_kind,
-        COALESCE(dcs.label, '') AS status_label,
-        COALESCE(({$activePackNameExpr}), '') AS pack_name,
-        COALESCE(({$activePackOrgIdExpr}), ({$activeDirectOrgIdExpr}), 0) AS organization_id,
-        COALESCE(
-            (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-            (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
-            'Sin clan'
-        ) AS organization_name,
-        IFNULL(COALESCE(
-            (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-            (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
-        ), 999999) AS organization_sort_order
-    FROM fact_characters p
-    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-    WHERE p.character_type_id = ?
-      AND {$chronicleConditionP}
-    ORDER BY organization_sort_order ASC, organization_name ASC, p.name ASC
-";
-
-if ($stmt = $link->prepare($sql)) {
-    $stmt->bind_param('i', $typeId);
-    if ($stmt->execute()) {
-        $res = $stmt->get_result();
-        while ($res && ($row = $res->fetch_assoc())) {
-            $characters[] = $row;
-        }
-    } else {
-        hg_public_log_error('mobile_character_type_detail', 'list execute failed: ' . mysqli_error($link));
-    }
-    $stmt->close();
-} else {
-    hg_public_log_error('mobile_character_type_detail', 'list prepare failed: ' . mysqli_error($link));
+$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
+    ? hg_mobile_excluded_chronicles_csv()
+    : '2,7';
+$characters = hg_character_types_fetch_characters($link, $typeId, $excludedChronicles);
+if ($characters === null) {
+    hg_public_log_error('mobile_character_type_detail', 'list query failed: ' . mysqli_error($link));
+    $characters = [];
 }
 
 $groups = [];
@@ -183,17 +79,11 @@ foreach ($characters as $character) {
 
 $groupKeys = array_keys($groups);
 usort($groupKeys, static function (string $a, string $b) use ($groups): int {
-    if ($a === 'none') {
-        return 1;
-    }
-    if ($b === 'none') {
-        return -1;
-    }
+    if ($a === 'none') return 1;
+    if ($b === 'none') return -1;
     $sortA = (int)($groups[$a]['sort_order'] ?? 999999);
     $sortB = (int)($groups[$b]['sort_order'] ?? 999999);
-    if ($sortA !== $sortB) {
-        return $sortA <=> $sortB;
-    }
+    if ($sortA !== $sortB) return $sortA <=> $sortB;
     return strcasecmp((string)($groups[$a]['name'] ?? ''), (string)($groups[$b]['name'] ?? ''));
 });
 ?>
