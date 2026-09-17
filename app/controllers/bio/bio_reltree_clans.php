@@ -7,6 +7,7 @@ setMetaFromPage(
 );
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/relationships/queries.php');
 
 if (!$link) {
     hg_public_log_error('bio_reltree_clans', 'missing DB connection');
@@ -48,36 +49,12 @@ $pageTitle2 = "Clanes y Manadas";
 $excludeChronicles = isset($excludeChronicles)
     ? hg_bio_reltree_clans_sanitize_int_csv($excludeChronicles)
     : '';
-$chronicleIdNotInSQL = ($excludeChronicles !== '')
-    ? " WHERE p.chronicle_id NOT IN ($excludeChronicles) "
-    : '';
+$excludedChronicleIds = $excludeChronicles !== ''
+    ? array_map('intval', explode(',', $excludeChronicles))
+    : [];
 
-$personajes = [];
-$sqlPjs = "
-    SELECT
-        p.id,
-        p.name,
-        p.image_url,
-        cbc.organization_id,
-        gbc.group_id AS manada_id
-    FROM fact_characters p
-        LEFT JOIN (
-            SELECT character_id, MIN(organization_id) AS organization_id
-            FROM bridge_characters_organizations
-            WHERE (is_active = 1 OR is_active IS NULL)
-            GROUP BY character_id
-        ) cbc ON cbc.character_id = p.id
-        LEFT JOIN (
-            SELECT character_id, MIN(group_id) AS group_id
-            FROM bridge_characters_groups
-            WHERE (is_active = 1 OR is_active IS NULL)
-            GROUP BY character_id
-        ) gbc ON gbc.character_id = p.id
-    $chronicleIdNotInSQL
-";
-
-$charactersResult = $link->query($sqlPjs);
-if (!$charactersResult) {
+$personajes = hg_relationships_fetch_clan_map_characters($link, $excludedChronicleIds);
+if ($personajes === null) {
     hg_public_log_error('bio_reltree_clans', 'characters query failed: ' . mysqli_error($link));
     hg_public_render_error(
         'Mapa no disponible',
@@ -85,13 +62,6 @@ if (!$charactersResult) {
     );
     return;
 }
-
-while ($row = $charactersResult->fetch_assoc()) {
-    $row['organization_id'] = isset($row['organization_id']) ? (int)$row['organization_id'] : 0;
-    $row['manada_id'] = isset($row['manada_id']) ? (int)$row['manada_id'] : 0;
-    $personajes[] = $row;
-}
-$charactersResult->free();
 
 $manadasUsadas = [];
 $clanesUsados = [];
@@ -104,74 +74,38 @@ foreach ($personajes as $personaje) {
     }
 }
 
-$clanes = [];
-if ($clanesUsados) {
-    $in = implode(',', array_map('intval', array_keys($clanesUsados)));
-    $clanesResult = $link->query("SELECT id, name FROM dim_organizations WHERE id IN ($in)");
-    if (!$clanesResult) {
-        hg_public_log_error('bio_reltree_clans', 'organizations query failed: ' . mysqli_error($link));
-        hg_public_render_error(
-            'Mapa no disponible',
-            'No se pudo cargar el mapa de relaciones entre clanes y manadas en este momento.'
-        );
-        return;
-    }
-
-    while ($row = $clanesResult->fetch_assoc()) {
-        $clanes[(int)$row['id']] = $row['name'];
-    }
-    $clanesResult->free();
+$clanes = hg_relationships_fetch_names_by_ids($link, 'dim_organizations', array_keys($clanesUsados));
+if ($clanes === null) {
+    hg_public_log_error('bio_reltree_clans', 'organizations query failed: ' . mysqli_error($link));
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre clanes y manadas en este momento.'
+    );
+    return;
 }
 
-$manadas = [];
-if ($manadasUsadas) {
-    $in = implode(',', array_map('intval', array_keys($manadasUsadas)));
-    $manadasResult = $link->query("SELECT id, name FROM dim_groups WHERE id IN ($in)");
-    if (!$manadasResult) {
-        hg_public_log_error('bio_reltree_clans', 'groups query failed: ' . mysqli_error($link));
-        hg_public_render_error(
-            'Mapa no disponible',
-            'No se pudo cargar el mapa de relaciones entre clanes y manadas en este momento.'
-        );
-        return;
-    }
-
-    while ($row = $manadasResult->fetch_assoc()) {
-        $manadas[(int)$row['id']] = $row['name'];
-    }
-    $manadasResult->free();
+$manadas = hg_relationships_fetch_names_by_ids($link, 'dim_groups', array_keys($manadasUsadas));
+if ($manadas === null) {
+    hg_public_log_error('bio_reltree_clans', 'groups query failed: ' . mysqli_error($link));
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre clanes y manadas en este momento.'
+    );
+    return;
 }
 
-$clanManada = [];
-if ($clanesUsados && $manadasUsadas) {
-    $inClanes = implode(',', array_map('intval', array_keys($clanesUsados)));
-    $inManadas = implode(',', array_map('intval', array_keys($manadasUsadas)));
-
-    $sqlCM = "
-        SELECT organization_id, group_id
-        FROM bridge_organizations_groups
-        WHERE organization_id IN ($inClanes)
-          AND group_id IN ($inManadas)
-          AND (is_active = 1 OR is_active IS NULL)
-    ";
-    $resCM = $link->query($sqlCM);
-
-    if (!$resCM) {
-        hg_public_log_error('bio_reltree_clans', 'organization-group relations query failed: ' . mysqli_error($link));
-        hg_public_render_error(
-            'Mapa no disponible',
-            'No se pudo cargar el mapa de relaciones entre clanes y manadas en este momento.'
-        );
-        return;
-    }
-
-    while ($row = $resCM->fetch_assoc()) {
-        $clanId = (int)$row['organization_id'];
-        $manadaId = (int)$row['group_id'];
-        $key = $clanId . '-' . $manadaId;
-        $clanManada[$key] = ['clan' => $clanId, 'manada' => $manadaId];
-    }
-    $resCM->free();
+$clanManada = hg_relationships_fetch_org_group_relations(
+    $link,
+    array_keys($clanesUsados),
+    array_keys($manadasUsadas)
+);
+if ($clanManada === null) {
+    hg_public_log_error('bio_reltree_clans', 'organization-group relations query failed: ' . mysqli_error($link));
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre clanes y manadas en este momento.'
+    );
+    return;
 }
 ?>
 <script type="text/javascript" src="assets/vendor/vis/vis-network.min.10.0.2.js"></script>

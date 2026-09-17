@@ -112,6 +112,11 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/maps/maps_api.php',
         ROOT / 'app/mobile/controllers/maps.php',
     ],
+    'relationships': [
+        ROOT / 'app/controllers/bio/bio_reltree_clans.php',
+        ROOT / 'app/controllers/bio/bio_reltree_characters.php',
+        ROOT / 'app/controllers/bio/bio_reltree_groups.php',
+    ],
 }
 
 QUERY_CALLS = [

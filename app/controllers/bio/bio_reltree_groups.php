@@ -7,6 +7,7 @@ setMetaFromPage(
 );
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/relationships/queries.php');
 
 if (!$link) {
     hg_public_log_error('bio_reltree_groups', 'missing DB connection');
@@ -46,30 +47,12 @@ if (!function_exists('hg_bio_reltree_groups_sanitize_int_csv')) {
 $excludeChronicles = isset($excludeChronicles)
     ? hg_bio_reltree_groups_sanitize_int_csv($excludeChronicles)
     : '';
-$chronicleIdNotInSQL = ($excludeChronicles !== '')
-    ? " AND p.chronicle_id NOT IN ($excludeChronicles) "
-    : "";
+$excludedChronicleIds = $excludeChronicles !== ''
+    ? array_map('intval', explode(',', $excludeChronicles))
+    : [];
 
-$charsSql = "
-    SELECT
-        p.id,
-        p.name,
-        p.image_url,
-        COALESCE(dcs.label, '') AS status,
-        p.status_id,
-        gbc.group_id
-    FROM fact_characters p
-        LEFT JOIN dim_character_status dcs
-            ON dcs.id = p.status_id
-        LEFT JOIN bridge_characters_groups gbc
-            ON gbc.character_id = p.id
-           AND (gbc.is_active = 1 OR gbc.is_active IS NULL)
-    WHERE 1=1
-        $chronicleIdNotInSQL
-";
-
-$charactersResult = $link->query($charsSql);
-if (!$charactersResult) {
+$characters = hg_relationships_fetch_group_map_characters($link, $excludedChronicleIds);
+if ($characters === null) {
     hg_public_log_error('bio_reltree_groups', 'characters query failed: ' . mysqli_error($link));
     hg_public_render_error(
         'Mapa no disponible',
@@ -77,9 +60,6 @@ if (!$charactersResult) {
     );
     return;
 }
-
-$characters = $charactersResult->fetch_all(MYSQLI_ASSOC);
-$charactersResult->free();
 
 $charGroup = [];
 $groupSizes = [];
@@ -91,28 +71,9 @@ foreach ($characters as $character) {
     }
 }
 
-$groups = [];
-if (!empty($groupSizes)) {
-    $in = implode(',', array_map('intval', array_keys($groupSizes)));
-    $groupsResult = $link->query("SELECT id, name FROM dim_groups WHERE id IN ($in) ORDER BY name ASC");
-    if (!$groupsResult) {
-        hg_public_log_error('bio_reltree_groups', 'groups query failed: ' . mysqli_error($link));
-        hg_public_render_error(
-            'Mapa no disponible',
-            'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
-        );
-        return;
-    }
-
-    while ($row = $groupsResult->fetch_assoc()) {
-        $groups[(int)$row['id']] = $row['name'];
-    }
-    $groupsResult->free();
-}
-
-$relationsResult = $link->query("SELECT * FROM bridge_characters_relations");
-if (!$relationsResult) {
-    hg_public_log_error('bio_reltree_groups', 'relations query failed: ' . mysqli_error($link));
+$groups = hg_relationships_fetch_names_by_ids($link, 'dim_groups', array_keys($groupSizes));
+if ($groups === null) {
+    hg_public_log_error('bio_reltree_groups', 'groups query failed: ' . mysqli_error($link));
     hg_public_render_error(
         'Mapa no disponible',
         'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
@@ -120,8 +81,15 @@ if (!$relationsResult) {
     return;
 }
 
-$relations = $relationsResult->fetch_all(MYSQLI_ASSOC);
-$relationsResult->free();
+$relations = hg_relationships_fetch_character_relations($link);
+if ($relations === null) {
+    hg_public_log_error('bio_reltree_groups', 'relations query failed: ' . mysqli_error($link));
+    hg_public_render_error(
+        'Mapa no disponible',
+        'No se pudo cargar el mapa de relaciones entre manadas en este momento.'
+    );
+    return;
+}
 
 $edges = [];
 foreach ($relations as $relation) {

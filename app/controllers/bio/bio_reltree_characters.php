@@ -7,6 +7,7 @@ setMetaFromPage(
 );
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/relationships/queries.php');
 
 if (!$link) {
     hg_public_log_error('bio_reltree_characters', 'missing DB connection');
@@ -46,33 +47,12 @@ if (!function_exists('hg_bio_reltree_sanitize_int_csv')) {
 $excludeChronicles = isset($excludeChronicles)
     ? hg_bio_reltree_sanitize_int_csv($excludeChronicles)
     : '';
-$chronicleIdNotInSQL = ($excludeChronicles !== '')
-    ? " AND p.chronicle_id NOT IN ($excludeChronicles) "
-    : "";
+$excludedChronicleIds = $excludeChronicles !== ''
+    ? array_map('intval', explode(',', $excludeChronicles))
+    : [];
 
-$charactersSql = "
-    SELECT
-        p.id,
-        p.name,
-        p.image_url,
-        COALESCE(dcs.label, '') AS status,
-        p.status_id,
-        COALESCE(nc.name, '') AS clan_name
-    FROM fact_characters p
-        LEFT JOIN dim_character_status dcs
-            ON dcs.id = p.status_id
-        LEFT JOIN bridge_characters_organizations hccb
-            ON hccb.character_id = p.id
-           AND (hccb.is_active = 1 OR hccb.is_active IS NULL)
-        LEFT JOIN dim_organizations nc
-            ON nc.id = hccb.organization_id
-    WHERE 1=1
-        $chronicleIdNotInSQL
-    ORDER BY p.name ASC
-";
-
-$charactersResult = $link->query($charactersSql);
-if (!$charactersResult) {
+$characters = hg_relationships_fetch_character_nodes($link, $excludedChronicleIds);
+if ($characters === null) {
     hg_public_log_error('bio_reltree_characters', 'characters query failed: ' . mysqli_error($link));
     hg_public_render_error(
         'Mapa no disponible',
@@ -81,11 +61,8 @@ if (!$charactersResult) {
     return;
 }
 
-$characters = $charactersResult->fetch_all(MYSQLI_ASSOC);
-$charactersResult->free();
-
-$relationsResult = $link->query("SELECT * FROM bridge_characters_relations");
-if (!$relationsResult) {
+$relations = hg_relationships_fetch_character_relations($link);
+if ($relations === null) {
     hg_public_log_error('bio_reltree_characters', 'relations query failed: ' . mysqli_error($link));
     hg_public_render_error(
         'Mapa no disponible',
@@ -93,9 +70,6 @@ if (!$relationsResult) {
     );
     return;
 }
-
-$relations = $relationsResult->fetch_all(MYSQLI_ASSOC);
-$relationsResult->free();
 
 $pageTitle2 = "Personajes";
 ?>
