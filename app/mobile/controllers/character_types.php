@@ -1,6 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 
 $metaTitle = "Biografías | Heaven's Gate";
 $metaDescription = "Tipos de biografia en version móvil.";
@@ -19,25 +20,11 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$chronicleConditionP = function_exists('hg_mobile_chronicle_exclusion_condition') ? hg_mobile_chronicle_exclusion_condition('p') : 'p.chronicle_id NOT IN (2,7)';
-
-$rows = [];
-$sql = "
-    SELECT ct.id, ct.kind, COUNT(DISTINCT p.id) AS total
-    FROM dim_character_types ct
-    LEFT JOIN fact_characters p
-        ON p.character_type_id = ct.id
-       AND {$chronicleConditionP}
-    GROUP BY ct.id, ct.kind, ct.sort_order
-    HAVING total > 0
-    ORDER BY ct.sort_order, ct.kind
-";
-if ($res = $link->query($sql)) {
-    while ($row = $res->fetch_assoc()) {
-        $rows[] = $row;
-    }
-    $res->free();
-}
+$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
+    ? hg_mobile_excluded_chronicles_csv()
+    : '2,7';
+$cards = hg_characters_fetch_type_cards($link, $excludedChronicles);
+$rows = is_array($cards) ? $cards : [];
 ?>
 
 <section class="hg-mobile-section">
@@ -49,10 +36,9 @@ if ($res = $link->query($sql)) {
                 $href = $id > 0 ? pretty_url($link, 'dim_character_types', '/characters/type', $id) : '/characters/types';
             ?>
             <a class="hg-mobile-card hg-mobile-card--split" href="<?= hg_mobile_types_h($href) ?>">
-                <strong><?= hg_mobile_types_h($row['kind'] ?? '') ?></strong>
+                <strong><?= hg_mobile_types_h($row['name'] ?? $row['kind'] ?? '') ?></strong>
                 <span><?= number_format((int)($row['total'] ?? 0), 0, ',', '.') ?> personajes</span>
             </a>
         <?php endforeach; ?>
     </div>
 </section>
-
