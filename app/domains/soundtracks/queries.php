@@ -43,13 +43,16 @@ if (!function_exists('hg_soundtracks_fetch_for_object')) {
 }
 
 if (!function_exists('hg_soundtracks_fetch_catalog')) {
-    function hg_soundtracks_fetch_catalog(mysqli $link): ?array
+    function hg_soundtracks_fetch_catalog(mysqli $link, bool $stableSecondaryOrder = false): ?array
     {
+        $order = $stableSecondaryOrder
+            ? 'context_title ASC, title ASC, id ASC'
+            : 'context_title ASC';
         $result = mysqli_query(
             $link,
             "SELECT id, context_title, artist, youtube_url, title, added_at
              FROM dim_soundtracks
-             ORDER BY context_title ASC, title ASC, id ASC"
+             ORDER BY {$order}"
         );
         if (!$result) {
             return null;
