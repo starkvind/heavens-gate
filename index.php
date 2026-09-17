@@ -6,11 +6,15 @@ $T_inicio = microtime(true);
 
 //include("ip.php");
 require_once __DIR__ . '/app/helpers/db_connection.php';
-require_once __DIR__ . '/app/bootstrap/error_reporting.php';
+require_once __DIR__ . '/app/bootstrap/runtime.php';
 require_once __DIR__ . '/app/routing/request_runtime.php';
 require_once __DIR__ . '/app/http/request_context.php';
 require_once __DIR__ . '/app/helpers/mobile_detection.php';
 require_once __DIR__ . '/app/helpers/page_assets.php';
+
+$hgRuntimeConfig = hg_bootstrap_runtime_config($link);
+hg_bootstrap_apply_error_reporting($hgRuntimeConfig);
+$excludeChronicles = (string)($hgRuntimeConfig['exclude_chronicles'] ?? 'FALSE');
 
 $pageTitle = "Heaven's Gate";
 $unknownOrigin = '-';
@@ -18,11 +22,12 @@ $unknownOrigin = '-';
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'];
 $uri = $_SERVER['REQUEST_URI'];
+$method = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 $pageURL = $scheme . '://' . $host . $uri;
 $baseURL = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
-$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);
+$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET, $method);
 $hgBody = $_POST;
 $hgRequest = hg_request_context_from_query($hgQuery, $hgBody);
 
