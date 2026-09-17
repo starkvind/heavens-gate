@@ -72,8 +72,10 @@ include("app/partials/main_nav_bar.php");
     }
     function normalChartHeight() {
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 760;
-        if (window.matchMedia && window.matchMedia('(max-width: 980px)').matches) return Math.max(560, Math.round(viewportHeight * 0.68));
-        return Math.max(420, Math.round(viewportHeight * 0.78));
+        if (window.matchMedia && window.matchMedia('(max-width: 980px)').matches) {
+            return Math.max(560, Math.min(720, Math.round(viewportHeight * 0.68)));
+        }
+        return Math.max(420, Math.min(820, Math.round(viewportHeight * 0.78)));
     }
     function chartHeight() {
         if (isChartFullscreen()) return Math.max(420, Math.round(window.innerHeight || document.documentElement.clientHeight || 760));
@@ -195,7 +197,7 @@ include("app/partials/main_nav_bar.php");
     document.getElementById('orgFullscreen').addEventListener('click', function () {
         if (document.fullscreenElement === chartContainer) { document.exitFullscreen(); return; }
         if (document.webkitFullscreenElement === chartContainer) { document.webkitExitFullscreen(); return; }
-        preFullscreenHeight = chartContainer.clientHeight || normalChartHeight();
+        preFullscreenHeight = normalChartHeight();
         preFullscreenTransform = currentTransformSnapshot();
         fullscreenRestoreUntil = 0;
         if (chartContainer.requestFullscreen) chartContainer.requestFullscreen(); else if (chartContainer.webkitRequestFullscreen) chartContainer.webkitRequestFullscreen();
