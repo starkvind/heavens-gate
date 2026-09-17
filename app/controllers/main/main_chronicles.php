@@ -2,13 +2,10 @@
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-archive.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-archive.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-archive.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-archive.css">';
 }
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/chronicles/queries.php');
 
 if (!$link) {
     hg_public_log_error('main_chronicles', 'missing DB connection');
@@ -18,32 +15,6 @@ if (!$link) {
 
 if (!function_exists('hg_ch_h')) {
     function hg_ch_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
-if (!function_exists('hg_ch_sanitize_int_csv')) {
-    function hg_ch_sanitize_int_csv($csv){
-        $csv = (string)$csv;
-        if (trim($csv) === '') return '';
-        $parts = preg_split('/\s*,\s*/', trim($csv));
-        $ints = [];
-        foreach ($parts as $p) {
-            if ($p === '') continue;
-            if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-        }
-        $ints = array_values(array_unique($ints));
-        return implode(',', $ints);
-    }
-}
-if (!function_exists('hg_ch_has_column')) {
-    function hg_ch_has_column(mysqli $link, string $table, string $column): bool {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$column'");
-        if (!$rs) return false;
-        $ok = (mysqli_num_rows($rs) > 0);
-        mysqli_free_result($rs);
-        return $ok;
-    }
 }
 if (!function_exists('hg_ch_excerpt')) {
     function hg_ch_excerpt(string $txt, int $max = 180): string {
@@ -61,32 +32,6 @@ if (!function_exists('hg_ch_render_text')) {
         if ($txt === '') return '';
         if (preg_match('/<[^>]+>/', $txt)) return $txt;
         return nl2br(hg_ch_h($txt));
-    }
-}
-if (!function_exists('hg_ch_normalize_public_path')) {
-    function hg_ch_normalize_public_path(string $path): string {
-        $path = trim($path);
-        if ($path === '') return '';
-        if (preg_match('#^https?://#i', $path)) return $path;
-        $path = str_replace('\\', '/', $path);
-        $path = preg_replace('#^/?public/#i', '', $path);
-        $path = preg_replace('#/+#', '/', $path);
-        return '/' . ltrim($path, '/');
-    }
-}
-if (!function_exists('hg_ch_default_image')) {
-    function hg_ch_default_image(string $prettyId = ''): string {
-        static $map = [
-            'heavens-gate' => '/img/og/og_image_bio.webp',
-            'javi' => '/img/og/og_image.webp',
-            'werewolf-gt' => '/img/og/og_image_temp.webp',
-            'hg-tercer-ojo' => '/img/og/og_image_power.webp',
-            'hg-babylon' => '/img/og/og_image_monster.webp',
-            'hg-london' => '/img/og/og_image_temp.webp',
-            'cenizas' => '/img/og/og_image_power.webp',
-        ];
-        if ($prettyId !== '' && isset($map[$prettyId])) return $map[$prettyId];
-        return '/img/og/og_image_bio.webp';
     }
 }
 if (!function_exists('hg_ch_image_route')) {
@@ -141,43 +86,16 @@ if (!function_exists('hg_ch_count_label')) {
     }
 }
 
-$excludeChronicles = isset($excludeChronicles) ? hg_ch_sanitize_int_csv($excludeChronicles) : '';
+$schema = hg_chronicles_schema($link);
+$excludedChronicleIds = hg_chronicles_normalize_ids($excludeChronicles ?? '');
 $chronicleFilterId = (int)hg_request_param($hgRequest, 'chronicle');
-$hasSeasonChronicleId = hg_ch_has_column($link, 'dim_seasons', 'chronicle_id');
-$hasChronicleImage = hg_ch_has_column($link, 'dim_chronicles', 'image_url');
-$statusExpr = "COALESCE(dcs.label, '')";
+$hasSeasonChronicleId = !empty($schema['season_chronicle']);
 
 if ($chronicleFilterId <= 0) {
     setMetaFromPage("Crónicas | Heaven's Gate", "Crónicas del universo Heaven's Gate.", '/img/og/og_image_bio.webp', 'website');
     include("app/partials/main_nav_bar.php");
 
-    $selectImage = $hasChronicleImage ? "COALESCE(ch.image_url, '') AS image_url," : "'' AS image_url,";
-    $joinSeasons = $hasSeasonChronicleId ? "LEFT JOIN dim_seasons s ON s.chronicle_id = ch.id" : "";
-    $seasonCountSql = $hasSeasonChronicleId ? "COUNT(DISTINCT s.id) AS season_count," : "0 AS season_count,";
-
-    $chronicles = [];
-    $sqlChron = "
-        SELECT
-            ch.id,
-            ch.pretty_id,
-            ch.name,
-            ch.description,
-            IFNULL(ch.sort_order, 999999) AS sort_order,
-            $selectImage
-            $seasonCountSql
-            COUNT(DISTINCT fc.id) AS character_count
-        FROM dim_chronicles ch
-        LEFT JOIN fact_characters fc ON fc.chronicle_id = ch.id
-        $joinSeasons
-        WHERE 1=1
-        " . (($excludeChronicles !== '') ? " AND ch.id NOT IN ($excludeChronicles) " : "") . "
-        GROUP BY ch.id, ch.pretty_id, ch.name, ch.description, ch.sort_order" . ($hasChronicleImage ? ", ch.image_url" : "") . "
-        ORDER BY sort_order ASC, ch.name ASC
-    ";
-    if ($rsChron = mysqli_query($link, $sqlChron)) {
-        while ($r = mysqli_fetch_assoc($rsChron)) { $chronicles[] = $r; }
-        mysqli_free_result($rsChron);
-    }
+    $chronicles = hg_chronicles_fetch_catalog($link, $schema, $excludedChronicleIds) ?? [];
 
     echo "<div class='chron-detail'>";
     echo "  <section class='chron-box'>";
@@ -227,16 +145,7 @@ if ($chronicleFilterId <= 0) {
     return;
 }
 
-$chronicleSelectImage = $hasChronicleImage ? ", COALESCE(image_url, '') AS image_url" : ", '' AS image_url";
-$chronicle = null;
-if ($stmtChron = $link->prepare("SELECT id, pretty_id, name, description $chronicleSelectImage FROM dim_chronicles WHERE id = ? LIMIT 1")) {
-    $stmtChron->bind_param('i', $chronicleFilterId);
-    $stmtChron->execute();
-    $rsChron = $stmtChron->get_result();
-    if ($rsChron) $chronicle = $rsChron->fetch_assoc();
-    $stmtChron->close();
-}
-
+$chronicle = hg_chronicles_fetch_one($link, $schema, $chronicleFilterId);
 if (!$chronicle) {
     setMetaFromPage("Crónica no encontrada | Heaven's Gate", "La crónica solicitada no existe.", '/img/og/og_image_bio.webp', 'article');
     include("app/partials/main_nav_bar.php");
@@ -254,75 +163,8 @@ setMetaFromPage($chronicleName . " | Crónicas | Heaven's Gate", meta_excerpt($c
 
 include("app/partials/main_nav_bar.php");
 
-$seasonRows = [];
-if ($hasSeasonChronicleId && ($stmtSeason = $link->prepare("
-    SELECT
-        s.id,
-        s.name,
-        s.pretty_id,
-        s.description,
-        s.season_number,
-        COALESCE(s.season_kind, 'temporada') AS season_kind,
-        COALESCE(s.finished, 0) AS finished,
-        COALESCE(s.sort_order, 999999) AS sort_order,
-        COUNT(c.id) AS chapter_count
-    FROM dim_seasons s
-    LEFT JOIN dim_chapters c ON c.season_id = s.id
-    WHERE s.chronicle_id = ?
-    GROUP BY
-        s.id, s.name, s.pretty_id, s.description, s.season_number,
-        s.season_kind, s.finished, s.sort_order
-    ORDER BY
-        CASE
-            WHEN COALESCE(s.season_kind, 'temporada') = 'temporada' THEN 1
-            WHEN COALESCE(s.season_kind, 'temporada') = 'inciso' THEN 2
-            WHEN COALESCE(s.season_kind, 'temporada') = 'historia_personal' THEN 3
-            WHEN COALESCE(s.season_kind, 'temporada') = 'especial' THEN 4
-            ELSE 99
-        END ASC,
-        COALESCE(s.sort_order, 999999) ASC,
-        s.season_number ASC,
-        s.name ASC
-"))) {
-    $stmtSeason->bind_param('i', $chronicleId);
-    $stmtSeason->execute();
-    $rsSeason = $stmtSeason->get_result();
-    while ($rsSeason && ($rowSeason = $rsSeason->fetch_assoc())) {
-        $seasonRows[] = $rowSeason;
-    }
-    $stmtSeason->close();
-}
-
-$members = [];
-if ($stmtChars = $link->prepare("
-    SELECT
-        p.id,
-        p.name,
-        {$statusExpr} AS status,
-        GROUP_CONCAT(DISTINCT o.name ORDER BY o.name SEPARATOR ', ') AS organizations,
-        GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS groups
-    FROM fact_characters p
-    LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-    LEFT JOIN bridge_characters_organizations bco
-        ON bco.character_id = p.id
-       AND (bco.is_active = 1 OR bco.is_active IS NULL)
-    LEFT JOIN dim_organizations o ON o.id = bco.organization_id
-    LEFT JOIN bridge_characters_groups bcg
-        ON bcg.character_id = p.id
-       AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
-    LEFT JOIN dim_groups g ON g.id = bcg.group_id
-    WHERE p.chronicle_id = ?
-    GROUP BY p.id, p.name, {$statusExpr}
-    ORDER BY p.name ASC
-")) {
-    $stmtChars->bind_param('i', $chronicleId);
-    $stmtChars->execute();
-    $rsChars = $stmtChars->get_result();
-    while ($rsChars && ($rowChar = $rsChars->fetch_assoc())) {
-        $members[] = $rowChar;
-    }
-    $stmtChars->close();
-}
+$seasonRows = $hasSeasonChronicleId ? hg_chronicles_fetch_seasons($link, $chronicleId) : [];
+$members = hg_chronicles_fetch_members($link, $chronicleId);
 
 $seasonCount = count($seasonRows);
 $characterCount = count($members);
