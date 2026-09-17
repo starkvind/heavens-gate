@@ -44,8 +44,8 @@ hg_request_context_same('1', hg_request_param($groupRequest, 'group_type'), 'gro
 hg_request_context_same('justicia-metalica', hg_request_param($groupRequest, 'organization'), 'group route names organization');
 hg_request_context_same('angeles-de-gaia', hg_request_param($groupRequest, 'group'), 'group route names group');
 
-$organizationRequest = hg_request_context_from_query(['p' => 'seegroup', 't' => '2', 'b' => 'justicia-metalica']);
-hg_request_context_same('justicia-metalica', hg_request_param($organizationRequest, 'organization'), 'organization route names organization entity');
+$organizationRequest = hg_request_context_from_query(['p' => 'seegroup', 't' => '2', 'b' => 'justicia-metallica']);
+hg_request_context_same('justicia-metallica', hg_request_param($organizationRequest, 'organization'), 'organization route names organization entity');
 hg_request_context_same('', hg_request_param($organizationRequest, 'group'), 'organization route does not invent group input');
 
 $orgChartRequest = hg_request_context_from_query(['p' => 'org_chart']);
@@ -157,18 +157,18 @@ if (strpos($mobileIndexSource, '$routeKey = hg_request_route($hgRequest);') === 
     hg_request_context_fail('Mobile index is not consuming explicit route input');
 }
 
-$bodySource = file_get_contents(__DIR__ . '/../../app/bootstrap/body_work.php');
-if ($bodySource === false) {
-    hg_request_context_fail('Cannot read body_work.php');
+$pageDispatchSource = file_get_contents(__DIR__ . '/../../app/http/page_dispatch.php');
+if ($pageDispatchSource === false) {
+    hg_request_context_fail('Cannot read page_dispatch.php');
 }
-$normalizePos = strpos($bodySource, '$hgQuery = hg_pretty_request_normalize(');
-$refreshPos = strpos($bodySource, '$hgRequest = hg_request_context_from_query($hgQuery, $hgBody);');
-$dispatchPos = strpos($bodySource, "require __DIR__ . '/../http/dispatcher.php';");
+$normalizePos = strpos($pageDispatchSource, '$hgQuery = hg_pretty_request_normalize(');
+$refreshPos = strpos($pageDispatchSource, '$hgRequest = hg_request_context_from_query($hgQuery, $hgBody);');
+$dispatchPos = strpos($pageDispatchSource, "require __DIR__ . '/dispatcher.php';");
 if ($normalizePos === false || $refreshPos === false || $dispatchPos === false || !($normalizePos < $refreshPos && $refreshPos < $dispatchPos)) {
-    hg_request_context_fail('Desktop request context must preserve body while refreshing pretty-normalized query before dispatch');
+    hg_request_context_fail('Page dispatch must preserve body while refreshing pretty-normalized query before dispatch');
 }
-if (strpos($bodySource, 'normalize_pretty_request(') !== false) {
-    hg_request_context_fail('Desktop dispatch still calls the legacy superglobal pretty normalizer');
+if (strpos($pageDispatchSource, 'normalize_pretty_request(') !== false) {
+    hg_request_context_fail('Page dispatch still calls the legacy superglobal pretty normalizer');
 }
 
 fwrite(STDOUT, "PHP request context characterization: OK\n");
