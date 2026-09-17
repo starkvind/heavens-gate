@@ -7,8 +7,9 @@ The project is intentionally database-driven. Public URLs use readable slugs whi
 ## Runtime at a glance
 
 - PHP application with a single public front controller: `index.php`.
-- Canonical routing under `app/routing/`; legacy query compatibility remains isolated in `app/bootstrap/request_router.php`.
+- Canonical routing under `app/routing/`; historical `?p=...` compatibility is isolated in `app/routing/legacy_query.php`.
 - Shared page dispatch under `app/http/page_dispatch.php`, with pure dispatch policy in `app/http/dispatch_policy.php` and controller inclusion in `app/http/dispatcher.php`.
+- Bootstrap is startup-only: `app/bootstrap/runtime.php` loads the small set of global runtime configuration values.
 - MySQL/MariaDB through `mysqli`.
 - Production snapshot reviewed on 2026-09-02: MariaDB 10.5.29.
 - 119 production tables, 4 views and 1 stored procedure in the 2026-09-01 snapshot.
@@ -19,11 +20,11 @@ The project is intentionally database-driven. Public URLs use readable slugs whi
 
 | Path | Purpose |
 |---|---|
-| `app/bootstrap/` | Startup/error/head concerns plus legacy router compatibility still pending cleanup. |
-| `app/routing/` | Canonical path matching, request routing runtime and route registry. |
+| `app/bootstrap/` | Minimal application startup/runtime configuration. |
+| `app/routing/` | Canonical path matching, legacy URL compatibility, request routing runtime and route registry. |
 | `app/http/` | Request context, pretty normalization, page dispatch, dispatch policy and output helpers. |
 | `app/presentation/` | Presentation context that should not live in the front controller. |
-| `app/views/` | Extracted presentation/layout views. |
+| `app/views/` | Presentation/layout views, including the desktop document head. |
 | `app/controllers/` | Public, admin and tool controllers. |
 | `app/domains/` | Domain-local query/data helpers extracted from controllers. |
 | `app/helpers/` | Shared database, security and reusable helpers. |
@@ -62,11 +63,13 @@ A normal canonical request flows conceptually through:
 
 `.htaccess` → `index.php` → `request_runtime.php` → `path_matcher.php` → `page_dispatch.php` → `routes.php` → `dispatch_policy.php` / `dispatcher.php` → controller → presentation.
 
-`app/http/page_dispatch.php` is shared by desktop requests and the mobile fallback path. The retired `app/bootstrap/body_work.php` coordinator must not be reintroduced.
+Historical `?p=...` requests pass through `app/routing/legacy_query.php` only long enough to resolve their canonical destination. Canonical path matching remains database-free.
+
+`app/http/page_dispatch.php` is shared by desktop requests and the mobile fallback path. The retired `app/bootstrap/body_work.php` and `app/bootstrap/request_router.php` coordinators must not be reintroduced.
 
 Do not expose PHP files under `app/` directly. `.htaccess` deliberately blocks `/app` and `/admin_docs`.
 
-`tools/scaffold_section.py` still describes the pre-refactor routing architecture and is intentionally frozen until adapted. Add new public sections manually using the maintained guide.
+For a new simple public section, `tools/scaffold_section.py` wires the canonical path matcher and route registry and creates the controller. Entity-detail routes and historical `?p=...` compatibility still require deliberate manual work.
 
 See [PUBLIC_SECTION_GUIDE.md](./admin_docs/PUBLIC_SECTION_GUIDE.md).
 
