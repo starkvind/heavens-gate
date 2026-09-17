@@ -6,7 +6,8 @@ $root = dirname(__DIR__, 2);
 $routesPath = $root . '/app/routing/routes.php';
 $dispatcherPath = $root . '/app/http/dispatcher.php';
 $dispatchPolicyPath = $root . '/app/http/dispatch_policy.php';
-$desktopDispatchPath = $root . '/app/http/desktop_dispatch.php';
+$pageDispatchPath = $root . '/app/http/page_dispatch.php';
+$mobileFallbackPath = $root . '/app/mobile/controllers/fallback.php';
 $indexPath = $root . '/index.php';
 
 function hg_dispatch_fail(string $message): never
@@ -107,17 +108,17 @@ foreach ([
     }
 }
 
-$desktopDispatch = file_get_contents($desktopDispatchPath);
-if ($desktopDispatch === false) {
-    hg_dispatch_fail('Cannot read desktop_dispatch.php');
+$pageDispatch = file_get_contents($pageDispatchPath);
+if ($pageDispatch === false) {
+    hg_dispatch_fail('Cannot read page_dispatch.php');
 }
 foreach ([
     "require __DIR__ . '/../bootstrap/page_context.php'",
     "require __DIR__ . '/../routing/routes.php'",
     "require __DIR__ . '/dispatcher.php'",
 ] as $needle) {
-    if (strpos($desktopDispatch, $needle) === false) {
-        hg_dispatch_fail("Desktop dispatch seam missing: {$needle}");
+    if (strpos($pageDispatch, $needle) === false) {
+        hg_dispatch_fail("Page dispatch seam missing: {$needle}");
     }
 }
 
@@ -127,7 +128,7 @@ if ($index === false) {
 }
 foreach ([
     "require_once __DIR__ . '/app/http/output.php'",
-    "include __DIR__ . '/app/http/desktop_dispatch.php'",
+    "include __DIR__ . '/app/http/page_dispatch.php'",
     "require_once __DIR__ . '/app/presentation/desktop_context.php'",
     "include __DIR__ . '/app/views/layout/desktop.php'",
 ] as $needle) {
@@ -137,6 +138,15 @@ foreach ([
 }
 if (strpos($index, '<!DOCTYPE html>') !== false) {
     hg_dispatch_fail('index.php regained desktop layout markup');
+}
+
+$mobileFallback = file_get_contents($mobileFallbackPath);
+if ($mobileFallback === false || strpos($mobileFallback, "../../http/page_dispatch.php") === false) {
+    hg_dispatch_fail('Mobile fallback no longer shares the page dispatch path');
+}
+
+if (is_file($root . '/app/bootstrap/body_work.php')) {
+    hg_dispatch_fail('Legacy body_work.php coordinator was reintroduced');
 }
 
 foreach (['combat_simulator.php', 'game_cards.php'] as $retired) {
