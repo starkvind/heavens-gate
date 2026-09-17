@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-    <?php include("app/bootstrap/head_work.php"); ?>
+    <?php include __DIR__ . '/head.php'; ?>
     <body id="mainBody" class="<?= htmlspecialchars($bodyThemeClass, ENT_QUOTES, 'UTF-8') ?>">
         <div class="main-wrapper">
             <!-- CABECERA -->
