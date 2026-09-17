@@ -72,15 +72,18 @@ if total_reads > MAX_DIRECT_READS:
     )
     sys.exit(1)
 
-# Phase 2 edge guard. Raw query globals belong only at index.php, where the
-# transport input is converted into explicit routed query/request state.
+# Raw query/body transport belongs only at index.php. Routing, bootstrap,
+# HTTP dispatch and mobile presentation consume explicit values/state.
 EDGE_ZERO_FILES = [
+    ROOT / 'app/bootstrap/runtime.php',
     ROOT / 'app/http/page_dispatch.php',
     ROOT / 'app/http/page_context.php',
     ROOT / 'app/mobile/mobile_index.php',
     ROOT / 'app/helpers/mobile_detection.php',
     ROOT / 'app/http/request_context.php',
     ROOT / 'app/http/pretty_request.php',
+    ROOT / 'app/routing/path_normalization.php',
+    ROOT / 'app/routing/legacy_query.php',
     ROOT / 'app/routing/request_runtime.php',
 ]
 for path in EDGE_ZERO_FILES:
