@@ -2,6 +2,7 @@
 setMetaFromPage('Resultados de busqueda | Heaven\'s Gate', 'Resultados de la busqueda en el repositorio.', null, 'website');
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/search_catalog.php');
+require_once(__DIR__ . '/../../domains/search/queries.php');
 
 if (!$link) {
     hg_public_log_error('main_search_result', 'missing DB connection');
@@ -32,14 +33,10 @@ function hg_search_text_label(array $config): string
 function hg_search_excerpt(string $text, int $max = 180): string
 {
     $text = trim(strip_tags(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
-    if ($text === '') {
-        return '';
-    }
-
+    if ($text === '') return '';
     if (function_exists('mb_strlen') && function_exists('mb_substr')) {
         return mb_strlen($text, 'UTF-8') > $max ? mb_substr($text, 0, $max, 'UTF-8') . '...' : $text;
     }
-
     return strlen($text) > $max ? substr($text, 0, $max) . '...' : $text;
 }
 
@@ -53,222 +50,92 @@ function hg_search_normalize_whitespace(string $text): string
 function hg_search_slugify_text(string $text): string
 {
     $text = hg_search_normalize_whitespace($text);
-    if ($text === '') {
-        return '';
-    }
-
+    if ($text === '') return '';
     if (class_exists('Normalizer')) {
         $normalized = \Normalizer::normalize($text, \Normalizer::FORM_D);
-        if (is_string($normalized) && $normalized !== '') {
-            $text = preg_replace('/\p{Mn}+/u', '', $normalized);
-        }
+        if (is_string($normalized) && $normalized !== '') $text = preg_replace('/\p{Mn}+/u', '', $normalized);
     }
-
-    if (function_exists('mb_strtolower')) {
-        $text = mb_strtolower($text, 'UTF-8');
-    } else {
-        $text = strtolower($text);
-    }
-
-    return $text;
+    return function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
 }
 
 function hg_search_starts_with(string $haystack, string $needle): bool
 {
-    if ($needle === '') {
-        return true;
-    }
-
-    if (function_exists('str_starts_with')) {
-        return str_starts_with($haystack, $needle);
-    }
-
-    return substr($haystack, 0, strlen($needle)) === $needle;
+    if ($needle === '') return true;
+    return function_exists('str_starts_with') ? str_starts_with($haystack, $needle) : substr($haystack, 0, strlen($needle)) === $needle;
 }
 
 function hg_search_contains(string $haystack, string $needle): bool
 {
-    if ($needle === '') {
-        return true;
-    }
-
-    if (function_exists('str_contains')) {
-        return str_contains($haystack, $needle);
-    }
-
-    return strpos($haystack, $needle) !== false;
+    if ($needle === '') return true;
+    return function_exists('str_contains') ? str_contains($haystack, $needle) : strpos($haystack, $needle) !== false;
 }
 
 function hg_search_highlight(string $text, array $terms): string
 {
     $text = hg_search_normalize_whitespace($text);
-    if ($text === '') {
-        return '';
-    }
-
+    if ($text === '') return '';
     $needles = [];
     foreach ($terms as $term) {
         $term = trim((string)$term);
-        if ($term === '') {
-            continue;
-        }
-        $needles[] = preg_quote($term, '/');
+        if ($term !== '') $needles[] = preg_quote($term, '/');
     }
     $needles = array_values(array_unique($needles));
-    if (empty($needles)) {
-        return hg_search_h($text);
-    }
+    if (empty($needles)) return hg_search_h($text);
 
     $pattern = '/(' . implode('|', $needles) . ')/iu';
     $parts = preg_split($pattern, $text, -1, PREG_SPLIT_DELIM_CAPTURE);
-    if (!is_array($parts)) {
-        return hg_search_h($text);
-    }
-
+    if (!is_array($parts)) return hg_search_h($text);
     $html = '';
     foreach ($parts as $part) {
-        if ($part === '') {
-            continue;
-        }
-        if (preg_match($pattern, $part)) {
-            $html .= '<mark class="search-hit">' . hg_search_h($part) . '</mark>';
-        } else {
-            $html .= hg_search_h($part);
-        }
+        if ($part === '') continue;
+        $html .= preg_match($pattern, $part)
+            ? '<mark class="search-hit">' . hg_search_h($part) . '</mark>'
+            : hg_search_h($part);
     }
-
     return $html;
 }
 
 function hg_search_item_url(mysqli $link, int $itemId): string
 {
-    $typeSlug = '';
-    $itemSlug = '';
-    if ($stmt = $link->prepare("
-        SELECT i.pretty_id AS item_pretty, t.pretty_id AS type_pretty, t.id AS type_id
-        FROM fact_items i
-        LEFT JOIN dim_item_types t ON t.id = i.item_type_id
-        WHERE i.id = ?
-        LIMIT 1
-    ")) {
-        $stmt->bind_param('i', $itemId);
-        $stmt->execute();
-        $rs = $stmt->get_result();
-        if ($rs && ($row = $rs->fetch_assoc())) {
-            $itemSlug = (string)($row['item_pretty'] ?? '');
-            $typeSlug = (string)($row['type_pretty'] ?? '');
-            if ($typeSlug === '' && isset($row['type_id'])) {
-                $typeSlug = (string)$row['type_id'];
-            }
-        }
-        $stmt->close();
-    }
-
-    if ($itemSlug === '') {
-        $itemSlug = (string)$itemId;
-    }
-    if ($typeSlug === '') {
-        $typeSlug = 'tipo';
-    }
-
+    $row = hg_search_query_item_slug_row($link, $itemId) ?? [];
+    $itemSlug = (string)($row['item_pretty'] ?? '');
+    $typeSlug = (string)($row['type_pretty'] ?? '');
+    if ($typeSlug === '' && isset($row['type_id'])) $typeSlug = (string)$row['type_id'];
+    if ($itemSlug === '') $itemSlug = (string)$itemId;
+    if ($typeSlug === '') $typeSlug = 'tipo';
     return '/inventory/' . rawurlencode($typeSlug) . '/' . rawurlencode($itemSlug);
 }
 
 function hg_search_result_url(mysqli $link, string $routeKey, int $id): string
 {
     switch ($routeKey) {
-        case 'muestrabio':
-            return pretty_url($link, 'fact_characters', '/characters', $id);
-        case 'chronicles':
-            return pretty_url($link, 'dim_chronicles', '/chronicles', $id);
-        case 'temp':
-            return pretty_url($link, 'dim_seasons', '/seasons', $id);
-        case 'seechapter':
-            return pretty_url($link, 'dim_chapters', '/chapters', $id);
-        case 'verdoc':
-            return pretty_url($link, 'fact_docs', '/documents', $id);
-        case 'seeitem':
-            return hg_search_item_url($link, $id);
-        case 'muestradon':
-            return pretty_url($link, 'fact_gifts', '/powers/gift', $id);
-        case 'verrasgo':
-            return pretty_url($link, 'dim_traits', '/rules/traits', $id);
-        case 'sistemas':
-            return pretty_url($link, 'dim_systems', '/systems', $id);
-        case 'versistdetalle_breed':
-            return pretty_url($link, 'dim_breeds', '/systems/breeds', $id);
-        case 'versistdetalle_auspice':
-            return pretty_url($link, 'dim_auspices', '/systems/auspices', $id);
-        case 'versistdetalle_tribe':
-            return pretty_url($link, 'dim_tribes', '/systems/tribes', $id);
-        case 'versistdetalle_misc':
-            return pretty_url($link, 'fact_misc_systems', '/systems/misc', $id);
-        case 'vermyd':
-            return pretty_url($link, 'dim_merits_flaws', '/rules/merits-flaws', $id);
-        default:
-            return '?p=' . rawurlencode($routeKey) . '&b=' . $id;
+        case 'muestrabio': return pretty_url($link, 'fact_characters', '/characters', $id);
+        case 'chronicles': return pretty_url($link, 'dim_chronicles', '/chronicles', $id);
+        case 'temp': return pretty_url($link, 'dim_seasons', '/seasons', $id);
+        case 'seechapter': return pretty_url($link, 'dim_chapters', '/chapters', $id);
+        case 'verdoc': return pretty_url($link, 'fact_docs', '/documents', $id);
+        case 'seeitem': return hg_search_item_url($link, $id);
+        case 'muestradon': return pretty_url($link, 'fact_gifts', '/powers/gift', $id);
+        case 'verrasgo': return pretty_url($link, 'dim_traits', '/rules/traits', $id);
+        case 'sistemas': return pretty_url($link, 'dim_systems', '/systems', $id);
+        case 'versistdetalle_breed': return pretty_url($link, 'dim_breeds', '/systems/breeds', $id);
+        case 'versistdetalle_auspice': return pretty_url($link, 'dim_auspices', '/systems/auspices', $id);
+        case 'versistdetalle_tribe': return pretty_url($link, 'dim_tribes', '/systems/tribes', $id);
+        case 'versistdetalle_misc': return pretty_url($link, 'fact_misc_systems', '/systems/misc', $id);
+        case 'vermyd': return pretty_url($link, 'dim_merits_flaws', '/rules/merits-flaws', $id);
+        default: return '?p=' . rawurlencode($routeKey) . '&b=' . $id;
     }
-}
-
-function hg_search_build_where(array $fields, array $terms, array &$params, string &$types): string
-{
-    $whereParts = [];
-    foreach ($terms as $term) {
-        $like = '%' . $term . '%';
-        $sub = [];
-        foreach ($fields as $field) {
-            $sub[] = $field . ' LIKE ?';
-            $params[] = $like;
-            $types .= 's';
-        }
-        if (!empty($sub)) {
-            $whereParts[] = '(' . implode(' OR ', $sub) . ')';
-        }
-    }
-
-    return implode(' AND ', $whereParts);
 }
 
 function hg_search_fetch_section_results(mysqli $link, string $sectionKey, array $config, array $terms, int $limit): array
 {
-    $params = [];
-    $types = '';
-    $whereSql = hg_search_build_where($config['search_fields'], $terms, $params, $types);
-    if ($whereSql === '') {
+    $rawRows = hg_search_query_fetch_section($link, $config, $terms, $limit);
+    if ($rawRows === null) {
+        hg_public_log_error('main_search_result', 'query failed for section ' . $sectionKey);
         return [];
     }
-
-    $sql = "
-        SELECT
-            {$config['id_expr']} AS result_id,
-            {$config['title_expr']} AS result_title,
-            {$config['excerpt_expr']} AS result_excerpt,
-            {$config['secondary_expr']} AS result_secondary
-        FROM {$config['from_sql']}
-        WHERE {$whereSql}
-    ";
-    if (!empty($config['group_sql'])) {
-        $sql .= " GROUP BY {$config['group_sql']}";
-    }
-    $sql .= " ORDER BY {$config['order_sql']} LIMIT " . (int)$limit;
-
-    $stmt = mysqli_prepare($link, $sql);
-    if (!$stmt) {
-        hg_public_log_error('main_search_result', 'prepare failed for section ' . $sectionKey . ': ' . mysqli_error($link));
-        return [];
-    }
-
-    mysqli_stmt_bind_param($stmt, $types, ...$params);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    if (!$result) {
-        hg_public_log_error('main_search_result', 'query failed for section ' . $sectionKey . ': ' . mysqli_error($link));
-        mysqli_stmt_close($stmt);
-        return [];
-    }
-
     $rows = [];
-    while ($row = mysqli_fetch_assoc($result)) {
+    foreach ($rawRows as $row) {
         $rows[] = [
             'section_key' => $sectionKey,
             'section_label_html' => hg_search_html_label($config),
@@ -281,9 +148,6 @@ function hg_search_fetch_section_results(mysqli $link, string $sectionKey, array
             'secondary' => hg_search_normalize_whitespace((string)($row['result_secondary'] ?? '')),
         ];
     }
-
-    mysqli_free_result($result);
-    mysqli_stmt_close($stmt);
     return $rows;
 }
 
@@ -296,86 +160,45 @@ function hg_search_score_result(array $row, array $terms, string $fullQuery = ''
     $fullNeedle = hg_search_slugify_text($fullQuery);
 
     if ($fullNeedle !== '') {
-        if ($title === $fullNeedle) {
-            $score += 240;
-        } elseif (hg_search_starts_with($title, $fullNeedle)) {
-            $score += 170;
-        } elseif (hg_search_contains($title, $fullNeedle)) {
-            $score += 110;
-        }
-
-        if ($secondary !== '' && hg_search_contains($secondary, $fullNeedle)) {
-            $score += 40;
-        }
-
-        if ($excerpt !== '' && hg_search_contains($excerpt, $fullNeedle)) {
-            $score += 22;
-        }
+        if ($title === $fullNeedle) $score += 240;
+        elseif (hg_search_starts_with($title, $fullNeedle)) $score += 170;
+        elseif (hg_search_contains($title, $fullNeedle)) $score += 110;
+        if ($secondary !== '' && hg_search_contains($secondary, $fullNeedle)) $score += 40;
+        if ($excerpt !== '' && hg_search_contains($excerpt, $fullNeedle)) $score += 22;
     }
 
     foreach ($terms as $term) {
         $needle = hg_search_slugify_text($term);
-        if ($needle === '') {
-            continue;
-        }
-        if ($title === $needle) {
-            $score += 140;
-        } elseif (hg_search_starts_with($title, $needle)) {
-            $score += 90;
-        } elseif (hg_search_contains($title, $needle)) {
-            $score += 55;
-        }
-
-        if ($secondary !== '' && hg_search_contains($secondary, $needle)) {
-            $score += 25;
-        }
-
-        if ($excerpt !== '' && hg_search_contains($excerpt, $needle)) {
-            $score += 12;
-        }
+        if ($needle === '') continue;
+        if ($title === $needle) $score += 140;
+        elseif (hg_search_starts_with($title, $needle)) $score += 90;
+        elseif (hg_search_contains($title, $needle)) $score += 55;
+        if ($secondary !== '' && hg_search_contains($secondary, $needle)) $score += 25;
+        if ($excerpt !== '' && hg_search_contains($excerpt, $needle)) $score += 12;
     }
 
-    if ($secondary !== '') {
-        $score += 3;
-    }
-
-    $score += (int)($row['section_weight'] ?? 0);
-
-    return $score;
+    if ($secondary !== '') $score += 3;
+    return $score + (int)($row['section_weight'] ?? 0);
 }
 
 function hg_search_sort_rows(array $rows, array $terms, string $fullQuery = ''): array
 {
-    foreach ($rows as $idx => $row) {
-        $rows[$idx]['score'] = hg_search_score_result($row, $terms, $fullQuery);
-    }
-
+    foreach ($rows as $idx => $row) $rows[$idx]['score'] = hg_search_score_result($row, $terms, $fullQuery);
     usort($rows, static function (array $a, array $b): int {
         $scoreCompare = (($b['score'] ?? 0) <=> ($a['score'] ?? 0));
-        if ($scoreCompare !== 0) {
-            return $scoreCompare;
-        }
+        if ($scoreCompare !== 0) return $scoreCompare;
         $sectionCompare = strcmp((string)($a['section_label_text'] ?? ''), (string)($b['section_label_text'] ?? ''));
-        if ($sectionCompare !== 0) {
-            return $sectionCompare;
-        }
+        if ($sectionCompare !== 0) return $sectionCompare;
         return strcmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
     });
-
     return $rows;
 }
 
 $query = hg_search_input($hgRequest, 'q');
 $sectionKey = hg_search_input($hgRequest, 'section');
-if ($query === '') {
-    $query = hg_search_input($hgRequest, 'bsq');
-}
-if ($sectionKey === '') {
-    $sectionKey = hg_search_input($hgRequest, 'skz');
-}
-if ($sectionKey === '') {
-    $sectionKey = 'all';
-}
+if ($query === '') $query = hg_search_input($hgRequest, 'bsq');
+if ($sectionKey === '') $sectionKey = hg_search_input($hgRequest, 'skz');
+if ($sectionKey === '') $sectionKey = 'all';
 
 $queryLength = function_exists('mb_strlen') ? mb_strlen($query, 'UTF-8') : strlen($query);
 $catalog = hg_search_catalog($link);
@@ -387,13 +210,12 @@ $sectionConfig = $catalog[$sectionKey];
 
 $rows = [];
 $sectionBreakdown = [];
+$terms = [];
 if ($query !== '' && $queryLength > 2) {
     $terms = preg_split('/\s+/', $query, -1, PREG_SPLIT_NO_EMPTY);
     if ($sectionKey === 'all') {
         foreach ($catalog as $key => $config) {
-            if (!empty($config['virtual'])) {
-                continue;
-            }
+            if (!empty($config['virtual'])) continue;
             $sectionRows = hg_search_fetch_section_results($link, $key, $config, $terms, (int)($config['all_limit'] ?? 6));
             if (!empty($sectionRows)) {
                 $sectionBreakdown[$key] = [
@@ -406,17 +228,12 @@ if ($query !== '' && $queryLength > 2) {
         }
         uasort($sectionBreakdown, static function (array $a, array $b): int {
             $countCompare = (($b['count'] ?? 0) <=> ($a['count'] ?? 0));
-            if ($countCompare !== 0) {
-                return $countCompare;
-            }
+            if ($countCompare !== 0) return $countCompare;
             return strcmp((string)($a['label_text'] ?? ''), (string)($b['label_text'] ?? ''));
         });
-        $rows = hg_search_sort_rows($rows, $terms, $query);
-        $rows = array_slice($rows, 0, 50);
+        $rows = array_slice(hg_search_sort_rows($rows, $terms, $query), 0, 50);
     } else {
-        $rows = hg_search_fetch_section_results($link, $sectionKey, $sectionConfig, $terms, 100);
-        $rows = hg_search_sort_rows($rows, $terms, $query);
-        $rows = array_slice($rows, 0, 50);
+        $rows = array_slice(hg_search_sort_rows(hg_search_fetch_section_results($link, $sectionKey, $sectionConfig, $terms, 100), $terms, $query), 0, 50);
     }
 }
 
@@ -443,9 +260,7 @@ include('app/partials/main_nav_bar.php');
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div>
-                <input type="submit" value="Buscar" class="boton1" />
-            </div>
+            <div><input type="submit" value="Buscar" class="boton1" /></div>
         </form>
     </section>
     <section class="search-results-panel">
@@ -458,12 +273,8 @@ include('app/partials/main_nav_bar.php');
             <span class="search-results-count"><?= count($rows) ?> resultados</span>
         </div>
         <div class="search-results-tools">
-            <?php if ($sectionKey !== 'all'): ?>
-                <a class="search-results-tool" href="/search/results?q=<?= rawurlencode($query) ?>&section=all">Ver mezcla global</a>
-            <?php endif; ?>
-            <?php if (!empty($rows)): ?>
-                <span class="search-results-tool">Ordenado por relevancia</span>
-            <?php endif; ?>
+            <?php if ($sectionKey !== 'all'): ?><a class="search-results-tool" href="/search/results?q=<?= rawurlencode($query) ?>&section=all">Ver mezcla global</a><?php endif; ?>
+            <?php if (!empty($rows)): ?><span class="search-results-tool">Ordenado por relevancia</span><?php endif; ?>
         </div>
         <div class="search-recent" id="search-recent">
             <span class="search-recent-label">Recientes</span>
@@ -473,8 +284,7 @@ include('app/partials/main_nav_bar.php');
             <div class="search-section-bar">
                 <?php foreach ($sectionBreakdown as $breakKey => $breakMeta): ?>
                     <a class="search-section-link" href="/search/results?q=<?= rawurlencode($query) ?>&section=<?= rawurlencode($breakKey) ?>">
-                        <strong><?= $breakMeta['label_html'] ?></strong>
-                        <span><?= (int)$breakMeta['count'] ?></span>
+                        <strong><?= $breakMeta['label_html'] ?></strong><span><?= (int)$breakMeta['count'] ?></span>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -488,34 +298,21 @@ include('app/partials/main_nav_bar.php');
                         <h3><?= hg_search_highlight($row['title'] !== '' ? $row['title'] : ('Elemento #' . $row['id']), $terms) ?></h3>
                         <p><?= hg_search_highlight($row['excerpt'] !== '' ? $row['excerpt'] : 'Sin descripcion breve disponible.', $terms) ?></p>
                         <div class="search-result-foot">
-                            <?php if (($row['secondary'] ?? '') !== ''): ?>
-                                <?= hg_search_highlight($row['secondary'], $terms) ?> &nbsp;|&nbsp;
-                            <?php endif; ?>
+                            <?php if (($row['secondary'] ?? '') !== ''): ?><?= hg_search_highlight($row['secondary'], $terms) ?> &nbsp;|&nbsp;<?php endif; ?>
                             ID <?= (int)$row['id'] ?>
                         </div>
                     </a>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="search-empty">
-                <h3>Sin coincidencias</h3>
-                <p>No se ha encontrado nada que concuerde con '<?= hg_search_h($query) ?>' en <?= hg_search_html_label($sectionConfig) ?>. Prueba con otro t&eacute;rmino o cambia de secci&oacute;n.</p>
-            </div>
+            <div class="search-empty"><h3>Sin coincidencias</h3><p>No se ha encontrado nada que concuerde con '<?= hg_search_h($query) ?>' en <?= hg_search_html_label($sectionConfig) ?>. Prueba con otro t&eacute;rmino o cambia de secci&oacute;n.</p></div>
         <?php endif; ?>
 <?php elseif (empty($query)): ?>
-        <div class="search-empty">
-            <h3>Sin criterio</h3>
-            <p>No has introducido ning&uacute;n criterio de b&uacute;squeda todav&iacute;a.</p>
-        </div>
+        <div class="search-empty"><h3>Sin criterio</h3><p>No has introducido ning&uacute;n criterio de b&uacute;squeda todav&iacute;a.</p></div>
 <?php else: ?>
-        <div class="search-empty">
-            <h3>Criterio demasiado corto</h3>
-            <p>La b&uacute;squeda debe realizarse con al menos 3 letras.</p>
-        </div>
+        <div class="search-empty"><h3>Criterio demasiado corto</h3><p>La b&uacute;squeda debe realizarse con al menos 3 letras.</p></div>
 <?php endif; ?>
-        <div class="search-results-actions">
-            <a class="search-results-back" href="/search">Volver</a>
-        </div>
+        <div class="search-results-actions"><a class="search-results-back" href="/search">Volver</a></div>
     </section>
 </div>
 <script>
@@ -528,17 +325,11 @@ include('app/partials/main_nav_bar.php');
     };
 
     let recent = [];
-    try {
-        recent = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    } catch (err) {
-        recent = [];
-    }
+    try { recent = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (err) { recent = []; }
     if (!Array.isArray(recent)) recent = [];
 
     if (current.q && current.section) {
-        recent = recent.filter(function (entry) {
-            return !(entry && entry.q === current.q && entry.section === current.section);
-        });
+        recent = recent.filter(function (entry) { return !(entry && entry.q === current.q && entry.section === current.section); });
         recent.unshift(current);
         recent = recent.slice(0, 6);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(recent));
@@ -557,8 +348,6 @@ include('app/partials/main_nav_bar.php');
         items.appendChild(a);
     });
 
-    if (items.children.length > 0) {
-        root.classList.add('is-ready');
-    }
+    if (items.children.length > 0) root.classList.add('is-ready');
 })();
 </script>
