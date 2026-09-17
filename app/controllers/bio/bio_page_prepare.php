@@ -219,9 +219,15 @@
 					foreach ($legacyModifierColumns as $traitId => $legacyColumn) {
 						if (!array_key_exists($traitId, $modifiers)) $modifiers[$traitId] = (int)($formRow[$legacyColumn] ?? 0);
 					}
-					$formManeuvers = $formManeuversByForm[$formId] ?? array_column([], 'x');
-					if (empty($formManeuversByForm[$formId])) $formManeuvers = [];
-					if (!array_key_exists($formId, $formManeuversByForm)) $formManeuvers = array_combine(array_column($bioBaseManeuvers, 'id'), $bioBaseManeuvers) ?: [];
+					if (array_key_exists($formId, $formManeuversByForm)) {
+						$formManeuvers = $formManeuversByForm[$formId];
+					} else {
+						$formManeuvers = [];
+						foreach ($bioBaseManeuvers as $maneuver) {
+							$maneuverId = (int)($maneuver['id'] ?? 0);
+							if ($maneuverId > 0) $formManeuvers[$maneuverId] = $maneuver;
+						}
+					}
 					$bioForms[] = ['id' => $formId, 'name' => $formName, 'modifiers' => $modifiers, 'maneuvers' => array_values($formManeuvers)];
 				}
 			}

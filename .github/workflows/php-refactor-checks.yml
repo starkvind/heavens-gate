@@ -42,5 +42,8 @@ jobs:
       - name: Audit extracted domain query boundaries
         run: python3 .github/ci/php-domain-query-boundary-audit.py
 
+      - name: Characterize public monolith seams
+        run: php .github/ci/php-public-monolith-characterization.php
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py

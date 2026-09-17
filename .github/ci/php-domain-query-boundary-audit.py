@@ -22,6 +22,9 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/bio/bio_table.php',
         ROOT / 'app/controllers/bio/bio_worlds.php',
         ROOT / 'app/controllers/bio/bio_group.php',
+        ROOT / 'app/controllers/bio/bio_page.php',
+        ROOT / 'app/controllers/bio/bio_page_prepare.php',
+        ROOT / 'app/mobile/controllers/character_detail.php',
         ROOT / 'app/mobile/controllers/characters_list.php',
         ROOT / 'app/mobile/controllers/character_types.php',
         ROOT / 'app/mobile/controllers/character_type_detail.php',
@@ -133,6 +136,7 @@ EXTRACTED_CONTROLLERS = {
     ],
     'organizations': [
         ROOT / 'app/controllers/bio/bio_org_chart.php',
+        ROOT / 'app/controllers/bio/bio_pack_page.php',
     ],
     'timeline': [
         ROOT / 'app/controllers/main/events_main.php',
