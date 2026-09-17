@@ -1,5 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/recent_content.php');
+require_once(__DIR__ . '/../../domains/home/queries.php');
 
 $metaTitle = "Heaven's Gate | Móvil";
 $metaDescription = "Archivo móvil de Heaven's Gate.";
@@ -12,49 +13,11 @@ if (!function_exists('hg_mobile_home_h')) {
     }
 }
 
-if (!function_exists('hg_mobile_home_count_table')) {
-    function hg_mobile_home_count_table(mysqli $link, string $table): ?int
-    {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') {
-            return null;
-        }
-
-        $result = mysqli_query($link, "SELECT COUNT(*) AS total FROM `{$table}`");
-        if (!$result) {
-            return null;
-        }
-
-        $row = mysqli_fetch_assoc($result);
-        mysqli_free_result($result);
-
-        return isset($row['total']) ? (int)$row['total'] : 0;
-    }
-}
-
-
-
 $counts = [];
 $rulesCount = null;
 if (isset($link) && ($link instanceof mysqli)) {
-    $counts = [
-        'characters' => hg_mobile_home_count_table($link, 'fact_characters'),
-        'chapters' => hg_mobile_home_count_table($link, 'dim_chapters'),
-        'events' => hg_mobile_home_count_table($link, 'fact_timeline_events'),
-        'documents' => hg_mobile_home_count_table($link, 'fact_docs'),
-        'chronicles' => hg_mobile_home_count_table($link, 'dim_chronicles'),
-        'seasons' => hg_mobile_home_count_table($link, 'dim_seasons'),
-        'powers' => hg_mobile_home_count_table($link, 'fact_gifts'),
-        'organizations' => hg_mobile_home_count_table($link, 'dim_organizations'),
-    ];
-    $ruleCounts = [
-        hg_mobile_home_count_table($link, 'dim_traits'),
-        hg_mobile_home_count_table($link, 'dim_merits_flaws'),
-        hg_mobile_home_count_table($link, 'dim_character_conditions'),
-        hg_mobile_home_count_table($link, 'dim_archetypes'),
-        hg_mobile_home_count_table($link, 'fact_combat_maneuvers'),
-    ];
-    $rulesCount = in_array(null, $ruleCounts, true) ? null : array_sum($ruleCounts);
+    $counts = hg_home_query_counts($link);
+    $rulesCount = $counts['rules'] ?? null;
 }
 
 $sections = [
@@ -72,16 +35,7 @@ $stats = [
     ['label' => 'Eventos', 'value' => $counts['events'] ?? null],
     ['label' => 'Documentos', 'value' => $counts['documents'] ?? null],
 ];
-$latestNews = null;
-if (isset($link) && ($link instanceof mysqli)) {
-    if ($stmt = $link->prepare('SELECT title, message, author, posted_at FROM fact_admin_posts ORDER BY posted_at DESC, id DESC LIMIT 1')) {
-        if ($stmt->execute() && ($result = $stmt->get_result())) {
-            $latestNews = $result->fetch_assoc() ?: null;
-            $result->free();
-        }
-        $stmt->close();
-    }
-}
+$latestNews = isset($link) && ($link instanceof mysqli) ? hg_home_query_latest_news($link) : null;
 $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_feed($link) : [];
 ?>
 
