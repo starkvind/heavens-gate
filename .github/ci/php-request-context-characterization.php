@@ -101,22 +101,23 @@ if ($indexSource === false) {
     hg_request_context_fail('Cannot read index.php');
 }
 $requirePos = strpos($indexSource, 'app/http/request_context.php');
-$routeQueryPos = strpos($indexSource, '$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET);');
+$methodPos = strpos($indexSource, '$method = (string)($_SERVER[\'REQUEST_METHOD\'] ?? \'GET\');');
+$routeQueryPos = strpos($indexSource, '$hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET, $method);');
 $bodyPos = strpos($indexSource, '$hgBody = $_POST;');
 $buildPos = strpos($indexSource, '$hgRequest = hg_request_context_from_query($hgQuery, $hgBody);');
 $mobilePos = strpos($indexSource, 'hg_request_query_param($hgRequest, \'view\')');
 if (
-    $requirePos === false || $routeQueryPos === false || $bodyPos === false || $buildPos === false || $mobilePos === false
-    || !($requirePos < $routeQueryPos && $routeQueryPos < $bodyPos && $bodyPos < $buildPos && $buildPos < $mobilePos)
+    $requirePos === false || $methodPos === false || $routeQueryPos === false || $bodyPos === false || $buildPos === false || $mobilePos === false
+    || !($requirePos < $methodPos && $methodPos < $routeQueryPos && $routeQueryPos < $bodyPos && $bodyPos < $buildPos && $buildPos < $mobilePos)
 ) {
-    hg_request_context_fail('index.php is not converting raw query/body transport into explicit request context before dispatch');
+    hg_request_context_fail('index.php is not converting raw method/query/body transport into explicit request state before dispatch');
 }
 
 $runtimeSource = file_get_contents(__DIR__ . '/../../app/routing/request_runtime.php');
 if ($runtimeSource === false) {
     hg_request_context_fail('Cannot read request runtime');
 }
-foreach (['$_GET', '$_POST', '$_REQUEST'] as $forbidden) {
+foreach (['$_GET', '$_POST', '$_REQUEST', '$_SERVER'] as $forbidden) {
     if (strpos($runtimeSource, $forbidden) !== false) {
         hg_request_context_fail("Request runtime regained raw request mutation/dependency: {$forbidden}");
     }
