@@ -7,8 +7,8 @@ The project is intentionally database-driven. Public URLs use readable slugs whi
 ## Runtime at a glance
 
 - PHP application with a single public front controller: `index.php`.
-- Friendly routing in `app/bootstrap/request_router.php`.
-- Controller dispatch in `app/bootstrap/body_work.php`.
+- Canonical routing under `app/routing/`; legacy query compatibility remains isolated in `app/bootstrap/request_router.php`.
+- Shared page dispatch under `app/http/page_dispatch.php`, with pure dispatch policy in `app/http/dispatch_policy.php` and controller inclusion in `app/http/dispatcher.php`.
 - MySQL/MariaDB through `mysqli`.
 - Production snapshot reviewed on 2026-09-02: MariaDB 10.5.29.
 - 119 production tables, 4 views and 1 stored procedure in the 2026-09-01 snapshot.
@@ -19,11 +19,16 @@ The project is intentionally database-driven. Public URLs use readable slugs whi
 
 | Path | Purpose |
 |---|---|
-| `app/bootstrap/` | Request bootstrapping, routing handoff and page dispatch. |
+| `app/bootstrap/` | Startup/error/head concerns plus legacy router compatibility still pending cleanup. |
+| `app/routing/` | Canonical path matching, request routing runtime and route registry. |
+| `app/http/` | Request context, pretty normalization, page dispatch, dispatch policy and output helpers. |
+| `app/presentation/` | Presentation context that should not live in the front controller. |
+| `app/views/` | Extracted presentation/layout views. |
 | `app/controllers/` | Public, admin and tool controllers. |
-| `app/helpers/` | Shared database, security, routing and domain helpers. |
+| `app/domains/` | Domain-local query/data helpers extracted from controllers. |
+| `app/helpers/` | Shared database, security and reusable helpers. |
 | `app/modules/` | Larger domain-specific modules. |
-| `app/mobile/` | Mobile routing and presentation layer. |
+| `app/mobile/` | Mobile compatibility presentation layer. |
 | `app/partials/` | Shared layout fragments. |
 | `api/` | JSON endpoints. |
 | `assets/` | CSS, JavaScript and vendored frontend assets. |
@@ -53,17 +58,15 @@ There is **no current full-schema installer in this repository**. Old documentat
 
 ## Routing
 
-A normal request flows through:
+A normal canonical request flows conceptually through:
 
-`.htaccess` → `index.php` → `request_router.php` → `body_work.php` → controller.
+`.htaccess` → `index.php` → `request_runtime.php` → `path_matcher.php` → `page_dispatch.php` → `routes.php` → `dispatch_policy.php` / `dispatcher.php` → controller → presentation.
+
+`app/http/page_dispatch.php` is shared by desktop requests and the mobile fallback path. The retired `app/bootstrap/body_work.php` coordinator must not be reintroduced.
 
 Do not expose PHP files under `app/` directly. `.htaccess` deliberately blocks `/app` and `/admin_docs`.
 
-For a new simple public section, use:
-
-~~~bash
-python tools/scaffold_section.py --route-key example --slug example --title "Example" --dry-run
-~~~
+`tools/scaffold_section.py` still describes the pre-refactor routing architecture and is intentionally frozen until adapted. Add new public sections manually using the maintained guide.
 
 See [PUBLIC_SECTION_GUIDE.md](./admin_docs/PUBLIC_SECTION_GUIDE.md).
 
