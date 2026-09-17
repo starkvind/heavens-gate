@@ -1,13 +1,66 @@
 <?php
 
+if (!function_exists('hg_character_types_column_exists')) {
+    function hg_character_types_column_exists(mysqli $link, string $table, string $column): bool
+    {
+        static $cache = [];
+        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($table === '' || $column === '') return false;
+        $key = $table . ':' . $column;
+        if (array_key_exists($key, $cache)) return $cache[$key];
+
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+        );
+        if (!$stmt) return $cache[$key] = false;
+        mysqli_stmt_bind_param($stmt, 'ss', $table, $column);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $count);
+        mysqli_stmt_fetch($stmt);
+        mysqli_stmt_close($stmt);
+        return $cache[$key] = ((int)$count > 0);
+    }
+}
+
+if (!function_exists('hg_character_types_normalize_excluded_ids')) {
+    function hg_character_types_normalize_excluded_ids($excludedChronicles): array
+    {
+        $ids = [];
+        foreach (preg_split('/\s*,\s*/', trim((string)$excludedChronicles)) as $part) {
+            if ($part !== '' && preg_match('/^\d+$/', (string)$part)) {
+                $id = (int)$part;
+                if ($id > 0) $ids[$id] = $id;
+            }
+        }
+        return array_values($ids);
+    }
+}
+
 if (!function_exists('hg_character_types_fetch_one')) {
     function hg_character_types_fetch_one(mysqli $link, int $typeId): ?array
     {
         if ($typeId <= 0) return null;
-        $stmt = mysqli_prepare($link, 'SELECT id, kind FROM dim_character_types WHERE id = ? LIMIT 1');
+        $imageExpr = hg_character_types_column_exists($link, 'dim_character_types', 'image_url')
+            ? "COALESCE(image_url, '')"
+            : "''";
+        $descriptionExpr = hg_character_types_column_exists($link, 'dim_character_types', 'description')
+            ? "COALESCE(description, '')"
+            : "''";
+        $stmt = mysqli_prepare(
+            $link,
+            "SELECT id, kind, {$imageExpr} AS image_url, {$descriptionExpr} AS description
+             FROM dim_character_types
+             WHERE id = ?
+             LIMIT 1"
+        );
         if (!$stmt) return null;
         mysqli_stmt_bind_param($stmt, 'i', $typeId);
-        mysqli_stmt_execute($stmt);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return null;
+        }
         $result = mysqli_stmt_get_result($stmt);
         $row = $result ? (mysqli_fetch_assoc($result) ?: null) : null;
         if ($result) mysqli_free_result($result);
@@ -16,10 +69,16 @@ if (!function_exists('hg_character_types_fetch_one')) {
     }
 }
 
-if (!function_exists('hg_character_types_fetch_characters')) {
-    function hg_character_types_fetch_characters(mysqli $link, int $typeId, $excludedChronicles = '2,7'): ?array
-    {
-        if ($typeId <= 0) return [];
+if (!function_exists('hg_character_types_fetch_characters_for_column')) {
+    function hg_character_types_fetch_characters_for_column(
+        mysqli $link,
+        int $typeId,
+        string $typeColumn,
+        array $excludedIds
+    ): ?array {
+        $typeColumn = preg_replace('/[^a-zA-Z0-9_]/', '', $typeColumn);
+        if ($typeId <= 0 || $typeColumn === '') return [];
+
         $activePackIdExpr = "
             SELECT bcg.group_id
             FROM bridge_characters_groups bcg
@@ -54,36 +113,49 @@ if (!function_exists('hg_character_types_fetch_characters')) {
             LIMIT 1
         ";
 
-        $sql = "SELECT p.id, p.pretty_id, p.name, p.alias, p.concept, p.image_url, p.gender,
-                       p.character_kind, COALESCE(dcs.label, '') AS status_label,
-                       COALESCE(({$activePackNameExpr}), '') AS pack_name,
-                       COALESCE(({$activePackOrgIdExpr}), ({$activeDirectOrgIdExpr}), 0) AS organization_id,
-                       COALESCE(
-                           (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-                           (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
-                           'Sin clan'
-                       ) AS organization_name,
-                       IFNULL(COALESCE(
-                           (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
-                           (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
-                       ), 999999) AS organization_sort_order
+        $sql = "SELECT
+                    p.id,
+                    p.pretty_id,
+                    p.name,
+                    p.alias,
+                    p.concept,
+                    p.image_url,
+                    p.gender,
+                    p.character_kind,
+                    p.character_type_id,
+                    p.status_id,
+                    COALESCE(dcs.label, '') AS status,
+                    COALESCE(dcs.label, '') AS status_label,
+                    COALESCE(({$activePackNameExpr}), '') AS pack_name,
+                    COALESCE(({$activePackOrgIdExpr}), ({$activeDirectOrgIdExpr}), 0) AS organization_id,
+                    COALESCE(
+                        (SELECT o.pretty_id FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.pretty_id FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
+                        ''
+                    ) AS clan_pretty_id,
+                    COALESCE(
+                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
+                        'Sin clan'
+                    ) AS clan_name,
+                    COALESCE(
+                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.name FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1),
+                        'Sin clan'
+                    ) AS organization_name,
+                    IFNULL(COALESCE(
+                        (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activePackOrgIdExpr}) LIMIT 1),
+                        (SELECT o.sort_order FROM dim_organizations o WHERE o.id = ({$activeDirectOrgIdExpr}) LIMIT 1)
+                    ), 999999) AS organization_sort_order
                 FROM fact_characters p
                 LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-                WHERE p.character_type_id = ?";
+                WHERE p.`{$typeColumn}` = ?";
         $types = 'i';
         $params = [$typeId];
-        $ids = [];
-        foreach (preg_split('/\s*,\s*/', trim((string)$excludedChronicles)) as $part) {
-            if ($part !== '' && preg_match('/^\d+$/', (string)$part)) {
-                $id = (int)$part;
-                if ($id > 0) $ids[$id] = $id;
-            }
-        }
-        $ids = array_values($ids);
-        if ($ids) {
-            $sql .= ' AND p.chronicle_id NOT IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
-            $types .= str_repeat('i', count($ids));
-            foreach ($ids as $id) $params[] = $id;
+        if ($excludedIds) {
+            $sql .= ' AND p.chronicle_id NOT IN (' . implode(',', array_fill(0, count($excludedIds), '?')) . ')';
+            $types .= str_repeat('i', count($excludedIds));
+            foreach ($excludedIds as $id) $params[] = $id;
         }
         $sql .= ' ORDER BY organization_sort_order ASC, organization_name ASC, p.name ASC';
 
@@ -104,5 +176,19 @@ if (!function_exists('hg_character_types_fetch_characters')) {
         mysqli_free_result($result);
         mysqli_stmt_close($stmt);
         return $rows;
+    }
+}
+
+if (!function_exists('hg_character_types_fetch_characters')) {
+    function hg_character_types_fetch_characters(mysqli $link, int $typeId, $excludedChronicles = '2,7'): ?array
+    {
+        if ($typeId <= 0) return [];
+        $excludedIds = hg_character_types_normalize_excluded_ids($excludedChronicles);
+        foreach (['character_type_id', 'kind', 'tipo'] as $typeColumn) {
+            if (!hg_character_types_column_exists($link, 'fact_characters', $typeColumn)) continue;
+            $rows = hg_character_types_fetch_characters_for_column($link, $typeId, $typeColumn, $excludedIds);
+            if ($rows !== null) return $rows;
+        }
+        return null;
     }
 }
