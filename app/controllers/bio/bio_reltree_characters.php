@@ -174,6 +174,7 @@ const edges = new vis.DataSet([
 const container = document.getElementById('network');
 const data = { nodes: nodes, edges: edges };
 const options = {
+    // Dense character graphs can fail vis-network's improved pre-layout; Barnes-Hut handles placement here.
     layout: { improvedLayout: false },
     physics: {
         solver: "barnesHut",
