@@ -1,6 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/soundtracks/queries.php');
 
 $metaTitle = "Banda sonora | Heaven's Gate";
 $metaDescription = 'Banda sonora móvil de Heaven\'s Gate.';
@@ -46,23 +47,18 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$songs = [];
-$sql = "SELECT id, context_title, artist, youtube_url, title, added_at
-        FROM dim_soundtracks
-        ORDER BY context_title ASC, title ASC, id ASC";
-if ($res = $link->query($sql)) {
-    while ($row = $res->fetch_assoc()) {
-        $youtubeId = hg_mobile_ost_youtube_id((string)($row['youtube_url'] ?? ''));
-        $row['youtube_id'] = $youtubeId;
-        $row['youtube_watch_url'] = hg_mobile_ost_watch_url($youtubeId);
-        $songs[] = $row;
-    }
-    $res->free();
-} else {
+$songs = hg_soundtracks_fetch_catalog($link, true);
+if ($songs === null) {
     hg_public_log_error('mobile_soundtrack', 'list query failed: ' . mysqli_error($link));
     hg_public_render_error('Banda sonora no disponible', 'No se pudo cargar el listado musical.');
     return;
 }
+foreach ($songs as &$row) {
+    $youtubeId = hg_mobile_ost_youtube_id((string)($row['youtube_url'] ?? ''));
+    $row['youtube_id'] = $youtubeId;
+    $row['youtube_watch_url'] = hg_mobile_ost_watch_url($youtubeId);
+}
+unset($row);
 ?>
 
 <section class="hg-mobile-section hg-mobile-ost-head">
