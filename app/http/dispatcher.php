@@ -1,34 +1,17 @@
 <?php
 
-if (isset($routes[$routeKey])) {
-    [$file, $sect] = $routes[$routeKey];
-    if ($sect) {
-        $pageSect = $sect;
-    }
+require_once __DIR__ . '/dispatch_policy.php';
 
-    if (in_array($routeKey, [
-        'snippet_forum_a',
-        'forum_message',
-        'forum_diceroll',
-        'forum_item',
-        'crop',
-        'tooltip',
-        'mentions',
-        'maps_api',
-        'dice_api',
-        'forum_avatar_api',
-        'chronicle_image',
-    ], true)) {
-        $isBarePage = true;
-    }
+$dispatch = hg_dispatch_resolve($routes, $routeKey);
+$file = $dispatch['file'];
+$sect = $dispatch['section'];
 
-    include($file);
-} else {
-    if ($routeKey === '') {
-        $pageSect = 'Inicio';
-        include('app/controllers/main/main_home.php');
-    } else {
-        $pageSect = 'Noticias';
-        include('app/controllers/main/main_news.php');
-    }
+if ($sect) {
+    $pageSect = $sect;
 }
+
+if (!empty($dispatch['bare'])) {
+    $isBarePage = true;
+}
+
+include $file;
