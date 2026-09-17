@@ -16,38 +16,46 @@ function hg_maps_query_schema_info(mysqli $link): array
 
     $columnExists = static function (string $table, string $column) use ($link): bool {
         $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($safeTable === '') {
+        $safeColumn = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if ($safeTable === '' || $safeColumn === '') {
             return false;
         }
 
-        $stmt = $link->prepare("SHOW COLUMNS FROM `{$safeTable}` LIKE ?");
+        $stmt = $link->prepare(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS '
+            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+        );
         if (!($stmt instanceof mysqli_stmt)) {
             return false;
         }
-        $stmt->bind_param('s', $column);
+        $stmt->bind_param('ss', $safeTable, $safeColumn);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $exists = $result instanceof mysqli_result && $result->num_rows > 0;
+        $stmt->bind_result($count);
+        $stmt->fetch();
         $stmt->close();
-        return $exists;
+        return (int)$count > 0;
     };
 
     $indexExists = static function (string $table, string $indexName) use ($link): bool {
         $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($safeTable === '') {
+        $safeIndex = preg_replace('/[^a-zA-Z0-9_]/', '', $indexName);
+        if ($safeTable === '' || $safeIndex === '') {
             return false;
         }
 
-        $stmt = $link->prepare("SHOW INDEX FROM `{$safeTable}` WHERE Key_name = ?");
+        $stmt = $link->prepare(
+            'SELECT COUNT(*) FROM information_schema.STATISTICS '
+            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?'
+        );
         if (!($stmt instanceof mysqli_stmt)) {
             return false;
         }
-        $stmt->bind_param('s', $indexName);
+        $stmt->bind_param('ss', $safeTable, $safeIndex);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $exists = $result instanceof mysqli_result && $result->num_rows > 0;
+        $stmt->bind_result($count);
+        $stmt->fetch();
         $stmt->close();
-        return $exists;
+        return (int)$count > 0;
     };
 
     $cache[$cacheKey] = [
