@@ -44,8 +44,8 @@ hg_request_context_same('1', hg_request_param($groupRequest, 'group_type'), 'gro
 hg_request_context_same('justicia-metalica', hg_request_param($groupRequest, 'organization'), 'group route names organization');
 hg_request_context_same('angeles-de-gaia', hg_request_param($groupRequest, 'group'), 'group route names group');
 
-$organizationRequest = hg_request_context_from_query(['p' => 'seegroup', 't' => '2', 'b' => 'justicia-metallica']);
-hg_request_context_same('justicia-metallica', hg_request_param($organizationRequest, 'organization'), 'organization route names organization entity');
+$organizationRequest = hg_request_context_from_query(['p' => 'seegroup', 't' => '2', 'b' => 'justicia-metalica']);
+hg_request_context_same('justicia-metalica', hg_request_param($organizationRequest, 'organization'), 'organization route names organization entity');
 hg_request_context_same('', hg_request_param($organizationRequest, 'group'), 'organization route does not invent group input');
 
 $orgChartRequest = hg_request_context_from_query(['p' => 'org_chart']);
