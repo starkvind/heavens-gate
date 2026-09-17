@@ -174,7 +174,7 @@ const edges = new vis.DataSet([
 const container = document.getElementById('network');
 const data = { nodes: nodes, edges: edges };
 const options = {
-    layout: { improvedLayout: true },
+    layout: { improvedLayout: false },
     physics: {
         solver: "barnesHut",
         stabilization: {
