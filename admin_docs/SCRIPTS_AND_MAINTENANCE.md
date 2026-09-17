@@ -1,6 +1,6 @@
 # Scripts y mantenimiento
 
-Última revisión: 2026-09-05.
+Última revisión: 2026-09-17.
 
 Este documento describe las herramientas que **existen realmente** en el repositorio en esta fecha. No presupone instaladores o migradores retirados.
 
@@ -31,6 +31,8 @@ Claves obligatorias para conexión:
 - `MYSQL_PWD`
 - `MYSQL_BDD`
 
+La configuración global necesaria antes del dispatch se carga desde `app/bootstrap/runtime.php`, mientras que su acceso a datos vive en `app/domains/configuration/queries.php`.
+
 ## Herramientas CLI
 
 ### `app/tools/backfill_content_updates.php`
@@ -53,8 +55,8 @@ No es una migración de esquema.
 
 Genera el esqueleto de una sección pública sencilla y cablea:
 
-- `app/bootstrap/request_router.php`;
-- `app/bootstrap/body_work.php`;
+- `app/routing/path_matcher.php`;
+- `app/routing/routes.php`;
 - opcionalmente un CSS en `assets/css`;
 - opcionalmente una entrada del menú fallback.
 
@@ -70,7 +72,11 @@ python tools/scaffold_section.py \
 
 Después del dry-run, repetir sin `--dry-run` si el plan es correcto.
 
-No sirve para rutas de detalle con `pretty_id` ni para CRUD complejos. Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
+Si se solicita CSS, el controlador generado lo registra mediante `hg_page_register_stylesheet()`; no inyecta un `<link>` en el cuerpo.
+
+No sirve para rutas de detalle con `pretty_id`, CRUD complejos ni para decidir automáticamente compatibilidad histórica `?p=...`. Si una sección sustituye una URL legacy, la canonicalización debe añadirse conscientemente a `app/routing/legacy_query.php`.
+
+Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
 ## Herramientas administrativas
 
@@ -135,5 +141,5 @@ Antes de tocar base de datos o scripts:
 - comprobar que la tabla y columnas existen en [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md);
 - ejecutar dry-run cuando exista;
 - revisar logs y respuesta;
-- verificar rutas públicas a través de `request_router.php`;
+- verificar rutas públicas a través de `app/routing/request_runtime.php` y del propietario correspondiente (`path_matcher.php` o `legacy_query.php`);
 - actualizar esta documentación cuando cambie el comportamiento operativo.
