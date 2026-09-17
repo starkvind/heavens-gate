@@ -1,27 +1,37 @@
 <?php
 
-require_once __DIR__ . '/../bootstrap/request_router.php';
+require_once __DIR__ . '/path_normalization.php';
+require_once __DIR__ . '/legacy_query.php';
 require_once __DIR__ . '/path_matcher.php';
 
 /**
  * Runtime request orchestration.
  *
- * Canonical pretty-path routing is intentionally database-free here. Legacy
- * query-string canonicalization still delegates to request_router.php until
- * that compatibility layer is extracted in a later cut.
+ * Canonical pretty-path routing is database-free. Legacy query-string
+ * canonicalization remains a separate compatibility seam in legacy_query.php.
  */
-function hg_request_routing_resolve(mysqli $link, string $requestUri, array $query): array
+function hg_request_method_is_safe(string $method): bool
 {
-    $path = hg_request_router_normalize_path((string)(parse_url($requestUri, PHP_URL_PATH) ?? '/'));
+    return in_array(strtoupper(trim($method)), ['GET', 'HEAD'], true);
+}
 
-    if ($path === '/sep/snippet_forum_hg.php' && hg_request_router_is_safe_method()) {
+function hg_request_routing_resolve(
+    mysqli $link,
+    string $requestUri,
+    array $query,
+    string $method = 'GET'
+): array {
+    $path = hg_request_path_normalize((string)(parse_url($requestUri, PHP_URL_PATH) ?? '/'));
+    $safeMethod = hg_request_method_is_safe($method);
+
+    if ($path === '/sep/snippet_forum_hg.php' && $safeMethod) {
         return hg_request_router_redirect(
             '/forum/message' . hg_request_router_forum_embed_query('forum_message', $query),
             301
         );
     }
 
-    if (!empty($query['p']) && hg_request_router_is_safe_method()) {
+    if (!empty($query['p']) && $safeMethod) {
         return hg_request_router_legacy_query_result($link, $path, $query);
     }
 
@@ -36,9 +46,13 @@ function hg_request_routing_resolve(mysqli $link, string $requestUri, array $que
     return hg_request_path_matcher_match($path);
 }
 
-function hg_request_routing_bootstrap(mysqli $link, string $requestUri, array $query): array
-{
-    $result = hg_request_routing_resolve($link, $requestUri, $query);
+function hg_request_routing_bootstrap(
+    mysqli $link,
+    string $requestUri,
+    array $query,
+    string $method = 'GET'
+): array {
+    $result = hg_request_routing_resolve($link, $requestUri, $query, $method);
 
     if (($result['action'] ?? '') === 'redirect') {
         header('Location: ' . (string)$result['location'], true, (int)($result['status'] ?? 301));
