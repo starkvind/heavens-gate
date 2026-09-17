@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../app/bootstrap/request_router.php';
+require_once __DIR__ . '/../../app/routing/path_normalization.php';
+require_once __DIR__ . '/../../app/routing/legacy_query.php';
 
 function hg_characterization_fail(string $message): never
 {
@@ -21,9 +22,9 @@ function hg_characterization_same(mixed $expected, mixed $actual, string $label)
     }
 }
 
-hg_characterization_same('/', hg_request_router_normalize_path(''), 'empty path normalizes to root');
-hg_characterization_same('/news', hg_request_router_normalize_path('//news///'), 'duplicate/trailing slashes normalize');
-hg_characterization_same('/characters/Jane Doe', hg_request_router_normalize_path('/characters/Jane%20Doe/'), 'encoded path is decoded before normalization');
+hg_characterization_same('/', hg_request_path_normalize(''), 'empty path normalizes to root');
+hg_characterization_same('/news', hg_request_path_normalize('//news///'), 'duplicate/trailing slashes normalize');
+hg_characterization_same('/characters/Jane Doe', hg_request_path_normalize('/characters/Jane%20Doe/'), 'encoded path is decoded before normalization');
 
 hg_characterization_same('?q=bruma&page=2', hg_request_router_query(['q' => 'bruma', 'page' => 2]), 'query builder preserves values');
 hg_characterization_same('?q=bruma', hg_request_router_query(['p' => 'busk', 'q' => 'bruma'], ['p']), 'query builder excludes legacy route key');
@@ -79,5 +80,34 @@ hg_characterization_same('/search/results', hg_request_router_path_from_query($l
 hg_characterization_same('/talim', hg_request_router_path_from_query($link, ['p' => 'talim']), 'talim legacy route target');
 hg_characterization_same(null, hg_request_router_path_from_query($link, ['p' => '__unknown__']), 'unknown legacy route remains unresolved');
 hg_characterization_same(null, hg_request_router_path_from_query($link, []), 'missing legacy route remains unresolved');
+
+$legacySource = file_get_contents(__DIR__ . '/../../app/routing/legacy_query.php');
+if ($legacySource === false) {
+    hg_characterization_fail('Cannot read legacy_query.php');
+}
+foreach (['$_GET', '$_POST', '$_REQUEST', 'hg_request_router_match_path'] as $forbidden) {
+    if (strpos($legacySource, $forbidden) !== false) {
+        hg_characterization_fail("Legacy query compatibility regained forbidden routing/global dependency: {$forbidden}");
+    }
+}
+
+if (is_file(__DIR__ . '/../../app/bootstrap/request_router.php')) {
+    hg_characterization_fail('Retired bootstrap/request_router.php returned');
+}
+
+$scaffold = file_get_contents(__DIR__ . '/../../tools/scaffold_section.py');
+if ($scaffold === false) {
+    hg_characterization_fail('Cannot read public section scaffold');
+}
+foreach (['app/routing/path_matcher.php', 'app/routing/routes.php'] as $required) {
+    if (strpos($scaffold, $required) === false) {
+        hg_characterization_fail("Public section scaffold missing current owner: {$required}");
+    }
+}
+foreach (['app/bootstrap/request_router.php', 'app/bootstrap/body_work.php'] as $forbidden) {
+    if (strpos($scaffold, $forbidden) !== false) {
+        hg_characterization_fail("Public section scaffold still targets retired owner: {$forbidden}");
+    }
+}
 
 fwrite(STDOUT, "PHP router characterization: OK\n");
