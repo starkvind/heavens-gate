@@ -3,6 +3,12 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../domains/timeline/queries.php');
 
+if (function_exists('hg_page_register_stylesheet')) {
+    hg_page_register_stylesheet('/assets/css/pages/timeline-index.css');
+} else {
+    echo '<link rel="stylesheet" href="/assets/css/pages/timeline-index.css">';
+}
+
 if (!$link) {
     hg_public_log_error('events_main', 'missing DB connection');
     hg_public_render_error('Linea temporal no disponible', 'No se pudo cargar la linea temporal en este momento.');
