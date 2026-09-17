@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/../bootstrap/page_context.php';
+require __DIR__ . '/page_context.php';
 require_once __DIR__ . '/pretty_request.php';
 
 $routeKey = hg_request_route($hgRequest);
