@@ -21,6 +21,7 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/bio/bio_list.php',
         ROOT / 'app/controllers/bio/bio_table.php',
         ROOT / 'app/controllers/bio/bio_worlds.php',
+        ROOT / 'app/controllers/bio/bio_group.php',
         ROOT / 'app/mobile/controllers/characters_list.php',
         ROOT / 'app/mobile/controllers/character_types.php',
         ROOT / 'app/mobile/controllers/character_type_detail.php',
@@ -100,6 +101,9 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/pwrs/disc_custom_list.php',
         ROOT / 'app/mobile/controllers/powers.php',
     ],
+    'rules_powers': [
+        ROOT / 'app/mobile/controllers/rules_powers.php',
+    ],
     'chapters': [
         ROOT / 'app/controllers/chapters/seasons_home.php',
         ROOT / 'app/controllers/chapters/season_archive.php',
@@ -123,6 +127,9 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/bio/bio_reltree_clans.php',
         ROOT / 'app/controllers/bio/bio_reltree_characters.php',
         ROOT / 'app/controllers/bio/bio_reltree_groups.php',
+        ROOT / 'app/controllers/bio/bio_pack_list.php',
+        ROOT / 'app/mobile/controllers/organization_group_list.php',
+        ROOT / 'app/mobile/controllers/organization_group_detail.php',
     ],
     'home': [
         ROOT / 'app/controllers/main/main_home.php',
@@ -135,6 +142,10 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/main/main_chronicles.php',
         ROOT / 'app/controllers/main/chronicle_image.php',
         ROOT / 'app/mobile/controllers/chronicles.php',
+    ],
+    'search': [
+        ROOT / 'app/controllers/main/main_search_result.php',
+        ROOT / 'app/mobile/controllers/search.php',
     ],
 }
 
