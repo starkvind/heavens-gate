@@ -114,7 +114,7 @@ jobs:
           from pathlib import Path
 
           head = Path("app/bootstrap/head_work.php").read_text(encoding="utf-8", errors="ignore")
-          index = Path("index.php").read_text(encoding="utf-8", errors="ignore")
+          output = Path("app/http/output.php").read_text(encoding="utf-8", errors="ignore")
 
           required_head = [
               "assets/css/hg-core.css?v=<?= $coreCssVersion ?>",
@@ -138,9 +138,9 @@ jobs:
               raise SystemExit("Do not use time() as the global asset-version fallback; it defeats browser caching.")
 
           cache_header = "Cache-Control: no-cache, max-age=0, must-revalidate"
-          if cache_header not in index:
+          if cache_header not in output:
               raise SystemExit("Dynamic HTML must remain cacheable only with mandatory revalidation.")
-          if "Cache-Control: no-store" in index:
+          if "Cache-Control: no-store" in output:
               raise SystemExit("Do not disable dynamic HTML storage globally; revalidate it instead.")
           PY
 
