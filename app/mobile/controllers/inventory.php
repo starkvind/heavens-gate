@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+require_once(__DIR__ . '/../../domains/inventory/queries.php');
 
 $metaTitle = "Inventario | Heaven's Gate";
 $metaDescription = 'Inventario móvil de objetos y artefactos.';
@@ -33,20 +34,6 @@ if (!function_exists('hg_mobile_inv_type_url')) {
         $slug = trim((string)($type['pretty_id'] ?? ''));
         if ($slug === '') $slug = (string)($type['id'] ?? '');
         return '/inventory/type/' . rawurlencode($slug);
-    }
-}
-
-if (!function_exists('hg_mobile_inv_resolve_id')) {
-    function hg_mobile_inv_resolve_id(mysqli $link, string $table, string $raw): int
-    {
-        $raw = trim(rawurldecode($raw));
-        if ($raw === '') return 0;
-        if (preg_match('/^\d+$/', $raw)) return (int)$raw;
-        if (function_exists('resolve_pretty_id')) {
-            $resolved = resolve_pretty_id($link, $table, $raw);
-            if ((int)$resolved > 0) return (int)$resolved;
-        }
-        return 0;
     }
 }
 
@@ -138,28 +125,13 @@ $isItem = in_array($route, ['seeitem', 'verobj'], true) || $rawItem !== '';
 $isType = !$isItem && in_array($route, ['inv_type'], true) && $rawType !== '';
 
 if ($isItem) {
-    $itemId = hg_mobile_inv_resolve_id($link, 'fact_items', $rawItem);
+    $itemId = hg_inventory_resolve_id($link, 'fact_items', $rawItem);
     if ($itemId <= 0) {
         hg_public_render_not_found('Objeto no encontrado', 'El objeto solicitado no esta disponible.');
         return;
     }
 
-    $sql = "
-        SELECT i.*, t.name AS type_name, t.pretty_id AS type_pretty, COALESCE(b.name, '') AS origin
-        FROM fact_items i
-        LEFT JOIN dim_item_types t ON t.id = i.item_type_id
-        LEFT JOIN dim_bibliographies b ON b.id = i.bibliography_id
-        WHERE i.id = ?
-        LIMIT 1
-    ";
-    $item = null;
-    if ($stmt = $link->prepare($sql)) {
-        $stmt->bind_param('i', $itemId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) $item = $res->fetch_assoc();
-        $stmt->close();
-    }
+    $item = hg_inventory_fetch_mobile_item($link, $itemId);
     if (!$item) {
         hg_public_render_not_found('Objeto no encontrado', 'El objeto solicitado no esta disponible.');
         return;
@@ -178,24 +150,11 @@ if ($isItem) {
     $damageText = hg_mobile_inv_damage_text($item);
     $embedCode = '[hg_item]' . $itemId . '[/hg_item]';
 
-    $owners = [];
-    $characterKindSql = function_exists('hg_character_kind_select') ? hg_character_kind_select($link, 'p') : "''";
-    $sqlOwners = "
-        SELECT p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status, p.status_id,
-               {$characterKindSql} AS character_kind
-        FROM bridge_characters_items b
-        JOIN fact_characters p ON p.id = b.character_id
-        LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id
-        WHERE b.item_id = ? " . hg_mobile_chronicle_exclusion_and('p') . "
-        ORDER BY p.name ASC, p.id ASC
-    ";
-    if ($stmt = $link->prepare($sqlOwners)) {
-        $stmt->bind_param('i', $itemId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) while ($row = $res->fetch_assoc()) $owners[] = $row;
-        $stmt->close();
-    }
+    $owners = hg_inventory_fetch_mobile_owners(
+        $link,
+        $itemId,
+        function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7'
+    );
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="<?= hg_mobile_inv_h($typeHref) ?>">Volver a <?= hg_mobile_inv_h($typeName) ?></a>
@@ -279,20 +238,13 @@ if ($isItem) {
 }
 
 if ($isType) {
-    $typeId = hg_mobile_inv_resolve_id($link, 'dim_item_types', $rawType);
+    $typeId = hg_inventory_resolve_id($link, 'dim_item_types', $rawType);
     if ($typeId <= 0) {
         hg_public_render_not_found('Tipo no encontrado', 'La categoría de inventario solicitada no esta disponible.');
         return;
     }
 
-    $type = null;
-    if ($stmt = $link->prepare("SELECT id, name, pretty_id FROM dim_item_types WHERE id = ? LIMIT 1")) {
-        $stmt->bind_param('i', $typeId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) $type = $res->fetch_assoc();
-        $stmt->close();
-    }
+    $type = hg_inventory_fetch_type($link, $typeId);
     if (!$type) {
         hg_public_render_not_found('Tipo no encontrado', 'La categoría de inventario solicitada no esta disponible.');
         return;
@@ -302,24 +254,7 @@ if ($isType) {
     $metaTitle = $typeName . " | Inventario | Heaven's Gate";
     $metaDescription = 'Listado móvil de objetos por tipo.';
 
-    $items = [];
-    $sql = "
-        SELECT i.id AS item_id, i.pretty_id AS item_pretty_id, i.name AS item_name, i.image_url AS item_img,
-               i.description, i.item_type_id, t.name AS item_category, t.pretty_id AS item_type_pretty,
-               COALESCE(b.name, '') AS item_origin
-        FROM fact_items i
-        LEFT JOIN dim_item_types t ON t.id = i.item_type_id
-        LEFT JOIN dim_bibliographies b ON b.id = i.bibliography_id
-        WHERE i.item_type_id = ?
-        ORDER BY b.name ASC, i.name ASC, i.id ASC
-    ";
-    if ($stmt = $link->prepare($sql)) {
-        $stmt->bind_param('i', $typeId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) while ($row = $res->fetch_assoc()) $items[] = $row;
-        $stmt->close();
-    }
+    $items = hg_inventory_fetch_mobile_items_by_type($link, $typeId);
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="/inventory">Volver a inventario</a>
@@ -338,35 +273,11 @@ if ($isType) {
     return;
 }
 
-$types = [];
-$sqlTypes = "
-    SELECT t.id, t.name, t.pretty_id, COUNT(i.id) AS item_count,
-           MIN(NULLIF(i.image_url, '')) AS cover_image
-    FROM dim_item_types t
-    LEFT JOIN fact_items i ON i.item_type_id = t.id
-    GROUP BY t.id, t.name, t.pretty_id
-    ORDER BY t.name ASC, t.id ASC
-";
-if ($res = $link->query($sqlTypes)) {
-    while ($row = $res->fetch_assoc()) $types[] = $row;
-    $res->free();
-}
-
-$items = [];
-$sqlItems = "
-    SELECT i.id AS item_id, i.pretty_id AS item_pretty_id, i.name AS item_name, i.image_url AS item_img,
-           i.description, i.item_type_id, t.name AS item_category, t.pretty_id AS item_type_pretty,
-           COALESCE(b.name, '') AS item_origin
-    FROM fact_items i
-    LEFT JOIN dim_item_types t ON t.id = i.item_type_id
-    LEFT JOIN dim_bibliographies b ON b.id = i.bibliography_id
-    ORDER BY t.name ASC, i.name ASC, i.id ASC
-";
-if ($res = $link->query($sqlItems)) {
-    while ($row = $res->fetch_assoc()) $items[] = $row;
-    $res->free();
-} else {
+$types = hg_inventory_fetch_mobile_types($link);
+$items = hg_inventory_fetch_mobile_catalog($link);
+if ($items === null) {
     hg_public_log_error('mobile_inventory', 'list query failed: ' . mysqli_error($link));
+    $items = [];
 }
 ?>
 <section class="hg-mobile-section">
