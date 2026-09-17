@@ -10,7 +10,7 @@
 
     <meta property="og:site_name" content="Heaven's Gate">
 
-	<?php setMetaTags($routeKey ?? ($_GET['p'] ?? ''), $pageURL); ?>
+	<?php setMetaTags($routeKey ?? '', $pageURL); ?>
 
     <?php
         if (!empty($metaTitle)) {
@@ -70,7 +70,7 @@
 	<link rel="stylesheet" href="assets/css/hg-menu.css?v=<?= $menuCssVersion ?>">
 
 	<?php
-		// Route/domain styles are registered while body_work.php is buffered and
+		// Route/domain styles are registered while the controller is buffered and
 		// emitted here once, after the global shell styles and before scripts.
 		if (function_exists('hg_page_render_registered_styles')) {
 			hg_page_render_registered_styles();
