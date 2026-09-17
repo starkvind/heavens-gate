@@ -131,6 +131,15 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/mobile/controllers/organization_group_list.php',
         ROOT / 'app/mobile/controllers/organization_group_detail.php',
     ],
+    'organizations': [
+        ROOT / 'app/controllers/bio/bio_org_chart.php',
+    ],
+    'timeline': [
+        ROOT / 'app/controllers/main/events_main.php',
+        ROOT / 'app/controllers/main/events_page.php',
+        ROOT / 'app/mobile/controllers/timeline.php',
+        ROOT / 'app/mobile/controllers/timeline_event.php',
+    ],
     'home': [
         ROOT / 'app/controllers/main/main_home.php',
         ROOT / 'app/mobile/controllers/home.php',
