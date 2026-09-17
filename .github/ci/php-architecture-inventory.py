@@ -16,7 +16,7 @@ PATTERNS = {
     "cookie": re.compile(r"\$_COOKIE\s*\["),
     "request": re.compile(r"\$_REQUEST\s*\["),
     "include_require": re.compile(r"\b(?:include|include_once|require|require_once)\b"),
-    "global": re.compile(r"\bglobal\s+\$[A-Za-z_]") ,
+    "global": re.compile(r"\bglobal\s+\$[A-Za-z_]"),
     "header": re.compile(r"\bheader\s*\("),
 }
 
@@ -41,6 +41,16 @@ def area_for(path: Path) -> str:
         return "mobile"
     if parts[:2] == ("app", "bootstrap"):
         return "bootstrap"
+    if parts[:2] == ("app", "routing"):
+        return "routing"
+    if parts[:2] == ("app", "http"):
+        return "http"
+    if parts[:2] == ("app", "presentation"):
+        return "presentation"
+    if parts[:2] == ("app", "views"):
+        return "views"
+    if parts[:2] == ("app", "domains") and len(parts) >= 3:
+        return f"domains/{parts[2]}"
     if parts[:2] == ("app", "helpers"):
         return "helpers"
     if parts[:2] == ("app", "partials"):
@@ -97,9 +107,7 @@ def main() -> None:
         for key in PATTERNS:
             totals[key] += row[key]
 
-    body_count, body_cases = route_case_count(ROOT / "app/bootstrap/body_work.php")
-    router_count, router_cases = route_case_count(ROOT / "app/bootstrap/request_router.php")
-    overlap = sorted(set(body_cases) & set(router_cases))
+    legacy_count, legacy_cases = route_case_count(ROOT / "app/routing/legacy_query.php")
 
     print("# PHP architecture inventory")
     print()
@@ -115,12 +123,10 @@ def main() -> None:
     print(f"global declarations: {totals['global']}")
     print()
 
-    print("## Route concentration")
-    print(f"body_work.php case labels: {body_count}")
-    print(f"request_router.php case labels: {router_count}")
-    print(f"case labels present in both: {len(overlap)}")
-    if overlap:
-        print("overlap: " + ", ".join(overlap[:40]) + (" ..." if len(overlap) > 40 else ""))
+    print("## Routing compatibility concentration")
+    print(f"legacy_query.php case labels: {legacy_count}")
+    if legacy_cases:
+        print("legacy cases: " + ", ".join(legacy_cases[:40]) + (" ..." if len(legacy_cases) > 40 else ""))
     print()
 
     print("## Areas")
