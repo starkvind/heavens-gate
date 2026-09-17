@@ -2,6 +2,8 @@
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+require_once(__DIR__ . '/../../domains/documents/queries.php');
 
 $metaTitle = "Documentos | Heaven's Gate";
 $metaDescription = 'Archivo móvil de documentos.';
@@ -9,34 +11,6 @@ $pageSect = 'Documentos';
 
 if (!function_exists('hg_mobile_doc_h')) {
     function hg_mobile_doc_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-}
-if (!function_exists('hg_mobile_doc_col_exists')) {
-    function hg_mobile_doc_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
-}
-if (!function_exists('hg_mobile_doc_table_exists')) {
-    function hg_mobile_doc_table_exists(mysqli $link, string $table): bool {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-        $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-        if (!$rs) return $cache[$table] = false;
-        $ok = $rs->num_rows > 0;
-        $rs->free();
-        return $cache[$table] = $ok;
-    }
 }
 if (!function_exists('hg_mobile_doc_url')) {
     function hg_mobile_doc_url(mysqli $link, string $table, string $base, int $id): string {
@@ -49,29 +23,6 @@ if (!function_exists('hg_mobile_doc_excerpt')) {
         if ($text === '') return '';
         if (function_exists('mb_strlen') && function_exists('mb_substr')) return mb_strlen($text, 'UTF-8') > $max ? mb_substr($text, 0, $max, 'UTF-8') . '...' : $text;
         return strlen($text) > $max ? substr($text, 0, $max) . '...' : $text;
-    }
-}
-if (!function_exists('hg_mobile_doc_resolve_id')) {
-    function hg_mobile_doc_resolve_id(mysqli $link, string $raw): int {
-        $raw = trim(rawurldecode($raw));
-        if ($raw === '') return 0;
-        $resolved = resolve_pretty_id($link, 'fact_docs', $raw);
-        if ($resolved !== null && (int)$resolved > 0) return (int)$resolved;
-        if (preg_match('/^\d+$/', $raw)) return (int)$raw;
-        if (!function_exists('slugify_pretty_id')) return 0;
-        $prettyExpr = hg_mobile_doc_col_exists($link, 'fact_docs', 'pretty_id') ? 'pretty_id' : "'' AS pretty_id";
-        if ($res = $link->query("SELECT id, title, {$prettyExpr} FROM fact_docs")) {
-            while ($row = $res->fetch_assoc()) {
-                $id = (int)($row['id'] ?? 0);
-                if ($id <= 0) continue;
-                if (trim((string)($row['pretty_id'] ?? '')) === $raw || slugify_pretty_id((string)($row['title'] ?? '')) === $raw) {
-                    $res->free();
-                    return $id;
-                }
-            }
-            $res->free();
-        }
-        return 0;
     }
 }
 if (!function_exists('hg_mobile_doc_character_card')) {
@@ -98,35 +49,13 @@ if (!isset($link) || !($link instanceof mysqli)) {
 }
 
 $raw = hg_request_param($hgRequest, 'document');
-$docId = $raw !== '' ? hg_mobile_doc_resolve_id($link, $raw) : 0;
-
-$hasPretty = hg_mobile_doc_col_exists($link, 'fact_docs', 'pretty_id');
-$hasSource = hg_mobile_doc_col_exists($link, 'fact_docs', 'source');
-$hasBibliography = hg_mobile_doc_col_exists($link, 'fact_docs', 'bibliography_id') && hg_mobile_doc_table_exists($link, 'dim_bibliographies');
-$hasCategories = hg_mobile_doc_table_exists($link, 'dim_doc_categories') && hg_mobile_doc_col_exists($link, 'fact_docs', 'section_id');
-$prettyExpr = $hasPretty ? "COALESCE(d.pretty_id, '')" : "''";
-$sourceExpr = $hasSource ? "COALESCE(d.source, '')" : "''";
-$categoryJoin = $hasCategories ? 'LEFT JOIN dim_doc_categories cat ON cat.id = d.section_id' : '';
-$categoryExpr = $hasCategories ? "COALESCE(cat.kind, '')" : "''";
-$categoryOrder = $hasCategories && hg_mobile_doc_col_exists($link, 'dim_doc_categories', 'sort_order') ? 'COALESCE(cat.sort_order, 999999),' : '';
-$biblioJoin = $hasBibliography ? 'LEFT JOIN dim_bibliographies bib ON bib.id = d.bibliography_id' : '';
-$biblioExpr = $hasBibliography ? "COALESCE(bib.name, '')" : "''";
+$docId = $raw !== '' ? hg_documents_resolve_id($link, $raw) : 0;
 
 if ($docId <= 0) {
-    $docs = [];
-    $sql = "
-        SELECT d.id, {$prettyExpr} AS pretty_id, d.title, {$categoryExpr} AS category,
-               {$biblioExpr} AS origin, d.content
-        FROM fact_docs d
-        {$categoryJoin}
-        {$biblioJoin}
-        ORDER BY {$categoryOrder} d.title ASC, d.id ASC
-    ";
-    if ($res = $link->query($sql)) {
-        while ($row = $res->fetch_assoc()) $docs[] = $row;
-        $res->free();
-    } else {
+    $docs = hg_documents_fetch_mobile_catalog($link);
+    if ($docs === null) {
         hg_public_log_error('mobile_documents', 'list query failed: ' . mysqli_error($link));
+        $docs = [];
     }
     ?>
     <section class="hg-mobile-section">
@@ -157,23 +86,7 @@ if ($docId <= 0) {
     return;
 }
 
-$doc = null;
-$sql = "
-    SELECT d.id, {$prettyExpr} AS pretty_id, d.title, d.content, {$sourceExpr} AS source,
-           {$categoryExpr} AS category, {$biblioExpr} AS origin
-    FROM fact_docs d
-    {$categoryJoin}
-    {$biblioJoin}
-    WHERE d.id = ?
-    LIMIT 1
-";
-if ($st = $link->prepare($sql)) {
-    $st->bind_param('i', $docId);
-    $st->execute();
-    $res = $st->get_result();
-    $doc = $res ? $res->fetch_assoc() : null;
-    $st->close();
-}
+$doc = hg_documents_fetch_mobile_detail($link, $docId);
 if (!$doc) {
     hg_public_render_not_found('Documento no encontrado', 'No se pudo localizar el documento solicitado.');
     return;
@@ -187,38 +100,11 @@ $origin = trim((string)($doc['origin'] ?? ''));
 $metaTitle = $title . " | Documentos | Heaven's Gate";
 $metaDescription = hg_mobile_doc_excerpt($content, 160);
 
-$charChronicleAnd = function_exists('hg_mobile_chronicle_exclusion_and') ? hg_mobile_chronicle_exclusion_and('c') : ' AND c.chronicle_id NOT IN (2,7) ';
-
-$characters = [];
-if (hg_mobile_doc_table_exists($link, 'bridge_characters_docs') && hg_mobile_doc_table_exists($link, 'fact_characters')) {
-    $hasCharAlias = hg_mobile_doc_col_exists($link, 'fact_characters', 'alias');
-    $hasCharImage = hg_mobile_doc_col_exists($link, 'fact_characters', 'image_url');
-    $hasCharGender = hg_mobile_doc_col_exists($link, 'fact_characters', 'gender');
-    $hasCharStatus = hg_mobile_doc_col_exists($link, 'fact_characters', 'status_id') && hg_mobile_doc_table_exists($link, 'dim_character_status');
-    $hasBridgeSort = hg_mobile_doc_col_exists($link, 'bridge_characters_docs', 'sort_order');
-    $aliasExpr = $hasCharAlias ? "COALESCE(c.alias, '')" : "''";
-    $imageExpr = $hasCharImage ? "COALESCE(c.image_url, '')" : "''";
-    $genderExpr = $hasCharGender ? "COALESCE(c.gender, '')" : "''";
-    $statusJoin = $hasCharStatus ? 'LEFT JOIN dim_character_status dcs ON dcs.id = c.status_id' : '';
-    $statusExpr = $hasCharStatus ? "COALESCE(dcs.label, '')" : "''";
-    $order = $hasBridgeSort ? 'b.sort_order ASC, c.name ASC' : 'c.name ASC';
-    $charSql = "
-        SELECT c.id, c.name, {$aliasExpr} AS alias, {$imageExpr} AS image_url,
-               {$genderExpr} AS gender, {$statusExpr} AS status
-        FROM bridge_characters_docs b
-        INNER JOIN fact_characters c ON c.id = b.character_id
-        {$statusJoin}
-        WHERE b.doc_id = ? {$charChronicleAnd}
-        ORDER BY {$order}
-    ";
-    if ($st = $link->prepare($charSql)) {
-        $st->bind_param('i', $docId);
-        $st->execute();
-        $res = $st->get_result();
-        while ($res && ($row = $res->fetch_assoc())) $characters[] = $row;
-        $st->close();
-    }
-}
+$characters = hg_documents_fetch_mobile_characters(
+    $link,
+    $docId,
+    function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7'
+);
 ?>
 <article class="hg-mobile-bio">
     <nav class="hg-mobile-local-nav"><a href="/documents?view=mobile">Volver a documentos</a></nav>
