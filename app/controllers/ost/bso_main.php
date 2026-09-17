@@ -1,6 +1,7 @@
 <?php setMetaFromPage("Banda sonora | Heaven's Gate", "Temas musicales usados en la campana.", null, 'website'); ?>
 <?php
 include_once(__DIR__ . '/../../helpers/runtime_response.php');
+require_once(__DIR__ . '/../../domains/soundtracks/queries.php');
 
 if (!hg_runtime_require_db($link, 'bso_main', 'public', [
     'title' => 'Banda sonora no disponible',
@@ -14,9 +15,9 @@ if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-ost.css');
 }
 
-$result = $link->query("SELECT id, context_title, artist, youtube_url, title, added_at FROM dim_soundtracks ORDER BY context_title ASC");
-if (!$result) {
-    hg_runtime_log_error('bso_main.query', $link->error);
+$canciones = hg_soundtracks_fetch_catalog($link);
+if ($canciones === null) {
+    hg_runtime_log_error('bso_main.query', mysqli_error($link));
     hg_runtime_public_error(
         'Banda sonora no disponible',
         'No se pudo cargar el listado musical.',
@@ -25,10 +26,6 @@ if (!$result) {
     );
     return;
 }
-
-$canciones = [];
-while ($row = $result->fetch_assoc()) $canciones[] = $row;
-mysqli_free_result($result);
 ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 
@@ -175,9 +172,3 @@ function withReferrer(url) {
 	}
 }
 </script>
-
-
-
-
-
-
