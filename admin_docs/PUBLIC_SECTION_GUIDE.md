@@ -10,11 +10,34 @@ Una URL pública atraviesa:
 
 `.htaccess -> index.php -> request_runtime.php -> path_matcher.php -> page_dispatch.php -> routes.php -> dispatch_policy.php / dispatcher.php -> controlador`
 
+Las URLs históricas `?p=...` pasan por `app/routing/legacy_query.php` sólo para canonicalizarse hacia la URL moderna.
+
 La traducción humana de los route keys existentes está en [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
+
+## Alta simple con scaffold
+
+Para una sección pública simple puede usarse:
+
+~~~bash
+python tools/scaffold_section.py \
+  --route-key codex_guide \
+  --slug codex-guide \
+  --title "Guía del códice" \
+  --dry-run
+~~~
+
+El scaffold crea el controlador y cablea:
+
+- `app/routing/path_matcher.php`: URL canónica -> route key;
+- `app/routing/routes.php`: route key -> controlador + sección.
+
+Opcionalmente puede crear CSS y añadir una entrada al menú fallback. Si se genera CSS, el controlador lo registra mediante `hg_page_register_stylesheet()` para mantener la carga dentro de `<head>`.
+
+El scaffold **no** crea rutas de detalle con `pretty_id`, CRUD complejos ni compatibilidad histórica `?p=...`.
 
 ## Alta manual vigente
 
-Durante el refactor PHP, una sección pública simple debe darse de alta conscientemente en:
+Una sección pública debe tener propietarios claros:
 
 1. `app/routing/path_matcher.php`: URL canónica -> route key;
 2. `app/routing/routes.php`: route key -> controlador + sección;
@@ -23,20 +46,9 @@ Durante el refactor PHP, una sección pública simple debe darse de alta conscie
 5. `app/mobile/mobile_routes.php` únicamente si necesita implementación móvil específica durante la compatibilidad `?view=mobile`;
 6. `ROUTE_DICTIONARY.md`.
 
-Si la sección sustituye un `?p=...` histórico, revisar también la canonicalización legacy en `app/bootstrap/request_router.php`.
+Si la sección sustituye un `?p=...` histórico, añadir conscientemente la canonicalización correspondiente en `app/routing/legacy_query.php`.
 
 Las páginas normales no deben añadir lógica nueva a `app/http/page_dispatch.php`: ese fichero coordina normalización + dispatch compartido. La política de respuestas bare/fallback vive en `app/http/dispatch_policy.php`.
-
-## Scaffold temporalmente congelado
-
-`tools/scaffold_section.py` fue escrito para la arquitectura anterior y todavía intenta modificar directamente:
-
-- `app/bootstrap/request_router.php`;
-- el retirado `app/bootstrap/body_work.php`.
-
-Tras la separación de routing/dispatch y el cierre de Phase 4.1, **no debe usarse para crear secciones hasta que sea adaptado**. Un `--dry-run` tampoco convierte su plan en correcto: sigue describiendo destinos arquitectónicos antiguos.
-
-Esto es deuda técnica conocida del refactor, no una invitación a devolver rutas a esos ficheros.
 
 ## Rutas con entidades
 
@@ -45,7 +57,7 @@ Para una entidad con slug:
 - la URL pública debe usar `pretty_id`;
 - los joins internos deben usar `id`;
 - si cambia un slug ya público, valorar alias en `fact_pretty_id_aliases`;
-- la compatibilidad legacy que necesite resolver IDs/slugs debe pasar por `app/helpers/pretty.php`;
+- la compatibilidad legacy que necesite resolver IDs/slugs debe pasar por `app/routing/legacy_query.php` y los helpers de `app/helpers/pretty.php`;
 - `path_matcher.php` debe seguir siendo independiente de MySQL.
 
 No generar enlaces públicos con IDs numéricos salvo diseño explícito de esa ruta.
