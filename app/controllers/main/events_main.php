@@ -48,7 +48,10 @@ if ($rows === null) {
     if (!defined('HG_MOBILE_TIMELINE_EMBED') || !HG_MOBILE_TIMELINE_EMBED) { include("app/partials/main_nav_bar.php"); }
     if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-events.css');
     else echo '<link rel="stylesheet" href="/assets/css/hg-events.css">';
-    if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">';
+    if (defined('HG_MOBILE_TIMELINE_EMBED') && HG_MOBILE_TIMELINE_EMBED) {
+        if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet('/assets/css/hg-mobile-timeline.css');
+        else echo '<link rel="stylesheet" href="/assets/css/hg-mobile-timeline.css">';
+    }
     echo "<div class='events-wrap'><div class='events-empty'>No existe la tabla fact_timeline_events en esta base de datos.</div></div>";
     return;
 }
