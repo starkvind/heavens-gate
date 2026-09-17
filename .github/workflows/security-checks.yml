@@ -113,7 +113,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          head = Path("app/bootstrap/head_work.php").read_text(encoding="utf-8", errors="ignore")
+          head = Path("app/views/layout/head.php").read_text(encoding="utf-8", errors="ignore")
           output = Path("app/http/output.php").read_text(encoding="utf-8", errors="ignore")
 
           required_head = [
@@ -123,12 +123,12 @@ jobs:
               "assets/js/permutloading.js?v=<?= $permutScriptVersion ?>",
               "assets/js/hg-tabs.js?v=<?= $tabsScriptVersion ?>",
               "assets/js/hg-tooltip.js?v=<?= $tooltipScriptVersion ?>",
-              "@filemtime(__DIR__ . '/../../assets/css/hg-core.css')",
-              "@filemtime(__DIR__ . '/../../assets/css/hg-layout.css')",
-              "@filemtime(__DIR__ . '/../../assets/css/hg-menu.css')",
-              "@filemtime(__DIR__ . '/../../assets/js/permutloading.js')",
-              "@filemtime(__DIR__ . '/../../assets/js/hg-tabs.js')",
-              "@filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js')",
+              "$hgAssetRoot . '/css/hg-core.css'",
+              "$hgAssetRoot . '/css/hg-layout.css'",
+              "$hgAssetRoot . '/css/hg-menu.css'",
+              "$hgAssetRoot . '/js/permutloading.js'",
+              "$hgAssetRoot . '/js/hg-tabs.js'",
+              "$hgAssetRoot . '/js/hg-tooltip.js'",
           ]
           missing = [item for item in required_head if item not in head]
           if missing:
