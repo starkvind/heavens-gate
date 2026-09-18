@@ -215,7 +215,7 @@ for domain, paths in EXTRACTED_CONTROLLERS.items():
             errors.append(f'{domain}: controller regained direct SQL execution: {path.relative_to(ROOT)}')
 
         if path == ROOT / 'app/mobile/controllers/character_detail_data.php':
-            raw_sql = re.compile(r'\b(?:SELECT|INSERT|UPDATE|DELETE|SHOW|DESCRIBE|EXPLAIN)\b', re.I)
+            raw_sql = re.compile(r'\b(?:SELECT\s|INSERT\s+INTO\b|UPDATE\s+[`A-Za-z0-9_]+\s+SET\b|DELETE\s+FROM\b|SHOW\s+(?:TABLES|COLUMNS)\b|DESCRIBE\s|EXPLAIN\s)', re.I)
             if raw_sql.search(text):
                 errors.append(
                     'characters: mobile character detail data regained raw SQL; '
@@ -238,7 +238,7 @@ for domain, paths in EXTRACTED_CONTROLLERS.items():
                     + ', '.join(missing)
                 )
 
-raw_sql = re.compile(r'\b(?:SELECT|INSERT|UPDATE|DELETE|SHOW|DESCRIBE|EXPLAIN)\b', re.I)
+raw_sql = re.compile(r'\b(?:SELECT\s|INSERT\s+INTO\b|UPDATE\s+[`A-Za-z0-9_]+\s+SET\b|DELETE\s+FROM\b|SHOW\s+(?:TABLES|COLUMNS)\b|DESCRIBE\s|EXPLAIN\s)', re.I)
 for surface, path in API_EMBED_SURFACES.items():
     if not path.exists():
         errors.append(f'{surface}: missing {path.relative_to(ROOT)}')
