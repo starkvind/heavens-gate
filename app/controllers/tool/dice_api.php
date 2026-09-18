@@ -1,6 +1,7 @@
 <?php
 require_once(__DIR__ . '/../../helpers/runtime_response.php');
 require_once(__DIR__ . '/../../helpers/tool_api.php');
+require_once(__DIR__ . '/../../domains/dice/queries.php');
 
 if (!isset($link) || !($link instanceof mysqli)) {
     require_once(__DIR__ . '/../../helpers/db_connection.php');
@@ -29,50 +30,9 @@ if (!function_exists('hg_api_parse_debug_rolls')) {
     }
 }
 
-if (!function_exists('hg_api_roll_d10_pool')) {
-    function hg_api_roll_d10_pool(int $dicePool, int $difficulty, array $forced = []): array
-    {
-        $results = [];
-        $rawSuccesses = 0;
-        $oneDetected = false;
 
-        for ($i = 0; $i < $dicePool; $i++) {
-            $die = !empty($forced) ? (int)$forced[$i] : rand(1, 10);
-            $results[] = $die;
-            if ($die >= $difficulty) {
-                $rawSuccesses++;
-            }
-            if ($die === 1) {
-                $oneDetected = true;
-            }
-        }
 
-        $successes = $rawSuccesses;
-        if ($oneDetected) {
-            $successes--;
-            if ($successes < 0) {
-                $successes = 0;
-            }
-        }
 
-        $botch = ($oneDetected && $rawSuccesses === 0);
-        return [$results, $successes, $botch];
-    }
-}
-
-if (!function_exists('hg_api_normalize_kind_key')) {
-    function hg_api_normalize_kind_key(string $kind): string
-    {
-        $normalized = function_exists('mb_strtolower') ? mb_strtolower(trim($kind), 'UTF-8') : strtolower(trim($kind));
-        if (function_exists('iconv')) {
-            $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
-            if ($converted !== false) {
-                $normalized = $converted;
-            }
-        }
-        return strtolower($normalized);
-    }
-}
 
 if (!function_exists('hg_api_strlen')) {
     function hg_api_strlen(string $value): int
@@ -93,114 +53,7 @@ if (!function_exists('hg_api_query_first')) {
     }
 }
 
-if (!function_exists('hg_api_fetch_roll_profile')) {
-    function hg_api_fetch_roll_profile(mysqli $link, int $characterId): ?array
-    {
-        if ($characterId <= 0) {
-            return null;
-        }
 
-        $profile = null;
-        $sqlCharacter = "
-            SELECT c.id, c.name, ch.name AS chronicle_name
-            FROM fact_characters c
-            LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id
-            WHERE c.id = ?
-              AND LOWER(c.character_kind) = 'pj'
-            LIMIT 1
-        ";
-        $stmt = mysqli_prepare($link, $sqlCharacter);
-        if (!$stmt) {
-            return null;
-        }
-        mysqli_stmt_bind_param($stmt, 'i', $characterId);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        if ($row = mysqli_fetch_assoc($result)) {
-            $profile = [
-                'id' => (int)$row['id'],
-                'name' => (string)$row['name'],
-                'chronicle' => (string)($row['chronicle_name'] ?? ''),
-                'attribute_map' => [],
-                'attribute_labels' => [],
-                'skill_map' => [],
-                'skill_labels' => [],
-                'skill_kind_map' => [],
-                'resource_map' => [],
-                'resource_labels' => [],
-            ];
-        }
-        mysqli_stmt_close($stmt);
-
-        if ($profile === null) {
-            return null;
-        }
-
-        $sqlTraits = "
-            SELECT t.id AS trait_id, t.name, t.kind, b.value
-            FROM bridge_characters_traits b
-            JOIN dim_traits t ON t.id = b.trait_id
-            WHERE b.character_id = ?
-              AND t.kind IN ('Atributos','Talentos','Técnicas','Tecnicas','Conocimientos','Trasfondos')
-            ORDER BY t.name
-        ";
-        $stmtTraits = mysqli_prepare($link, $sqlTraits);
-        if ($stmtTraits) {
-            mysqli_stmt_bind_param($stmtTraits, 'i', $characterId);
-            mysqli_stmt_execute($stmtTraits);
-            $resultTraits = mysqli_stmt_get_result($stmtTraits);
-            while ($row = mysqli_fetch_assoc($resultTraits)) {
-                $traitId = (int)$row['trait_id'];
-                $value = (int)$row['value'];
-                if ($traitId <= 0 || $value <= 0) {
-                    continue;
-                }
-                $kindKey = hg_api_normalize_kind_key((string)$row['kind']);
-                if ($kindKey === 'atributos') {
-                    $profile['attribute_map'][$traitId] = $value;
-                    $profile['attribute_labels'][$traitId] = (string)$row['name'];
-                    continue;
-                }
-                if (in_array($kindKey, ['talentos', 'tecnicas', 'conocimientos', 'trasfondos'], true)) {
-                    $skillKind = ($kindKey === 'trasfondos') ? 'trasfondo' : 'habilidad';
-                    $profile['skill_map'][$traitId] = $value;
-                    $profile['skill_labels'][$traitId] = (string)$row['name'];
-                    $profile['skill_kind_map'][$traitId] = $skillKind;
-                }
-            }
-            mysqli_stmt_close($stmtTraits);
-        }
-
-        $sqlResources = "
-            SELECT d.id AS resource_id, d.name, r.value_permanent, r.value_temporary
-            FROM bridge_characters_system_resources r
-            JOIN dim_systems_resources d ON d.id = r.resource_id
-            WHERE r.character_id = ?
-              AND LOWER(d.kind) = 'estado'
-            ORDER BY d.sort_order, d.name
-        ";
-        $stmtResources = mysqli_prepare($link, $sqlResources);
-        if ($stmtResources) {
-            mysqli_stmt_bind_param($stmtResources, 'i', $characterId);
-            mysqli_stmt_execute($stmtResources);
-            $resultResources = mysqli_stmt_get_result($stmtResources);
-            while ($row = mysqli_fetch_assoc($resultResources)) {
-                $resourceId = (int)$row['resource_id'];
-                $valuePerm = (int)$row['value_permanent'];
-                $valueTemp = (int)$row['value_temporary'];
-                $value = ($valueTemp > 0) ? $valueTemp : $valuePerm;
-                if ($resourceId <= 0 || $value <= 0) {
-                    continue;
-                }
-                $profile['resource_map'][$resourceId] = $value;
-                $profile['resource_labels'][$resourceId] = (string)$row['name'];
-            }
-            mysqli_stmt_close($stmtResources);
-        }
-
-        return $profile;
-    }
-}
 
 if (!function_exists('hg_api_roll_title_from_context')) {
     function hg_api_roll_title_from_context(array $context, int $difficulty): string
@@ -253,24 +106,7 @@ if (!hg_tool_api_require_request_token($hgRequest)) {
 
 $rollId = (int)hg_request_query_value($hgRequest, 'roll_id');
 if ($rollId > 0) {
-    $stmtRoll = mysqli_prepare($link, '
-        SELECT id, name, roll_name, dice_pool, difficulty, roll_results, successes, botch, willpower_spent, ip, rolled_at
-        FROM fact_dice_rolls
-        WHERE id = ?
-        LIMIT 1
-    ');
-    if (!$stmtRoll) {
-        hg_runtime_log_error('dice_api.prepare_select', mysqli_error($link));
-        hg_tool_api_error('Could not prepare roll query.', 500);
-        return;
-    }
-
-    mysqli_stmt_bind_param($stmtRoll, 'i', $rollId);
-    mysqli_stmt_execute($stmtRoll);
-    $resultRoll = mysqli_stmt_get_result($stmtRoll);
-    $row = mysqli_fetch_assoc($resultRoll);
-    mysqli_stmt_close($stmtRoll);
-
+    $row = hg_dice_fetch_roll($link, $rollId);
     if (!$row) {
         hg_tool_api_error('Roll not found.', 404);
         return;
@@ -341,7 +177,7 @@ if ($difficulty < 2 || $difficulty > 10) {
 }
 
 if ($characterId > 0) {
-    $profile = hg_api_fetch_roll_profile($link, $characterId);
+    $profile = hg_dice_fetch_roll_profile($link, $characterId);
     if ($profile === null) {
         hg_tool_api_error('Character not found or is not a protagonist.', 404);
         return;
@@ -419,62 +255,43 @@ if (hg_api_strlen($rollName) > 150) {
     return;
 }
 
-$stmtLast = mysqli_prepare($link, 'SELECT rolled_at FROM fact_dice_rolls WHERE ip = ? ORDER BY rolled_at DESC LIMIT 1');
-if ($stmtLast) {
-    mysqli_stmt_bind_param($stmtLast, 's', $ip);
-    mysqli_stmt_execute($stmtLast);
-    $resLast = mysqli_stmt_get_result($stmtLast);
-    if ($row = mysqli_fetch_assoc($resLast)) {
-        if (strtotime((string)$row['rolled_at']) > time() - 10) {
-            mysqli_stmt_close($stmtLast);
-            hg_tool_api_error('Has tirado hace menos de 10 segundos.', 429);
-            return;
-        }
-    }
-    mysqli_stmt_close($stmtLast);
+$lastRollAt = hg_dice_last_roll_at_for_ip($link, $ip);
+if ($lastRollAt !== null && $lastRollAt !== '' && strtotime($lastRollAt) > time() - 10) {
+    hg_tool_api_error('Has tirado hace menos de 10 segundos.', 429);
+    return;
 }
 
-$stmtCount = mysqli_prepare($link, 'SELECT COUNT(*) AS total FROM fact_dice_rolls WHERE roll_name = ?');
-if ($stmtCount) {
-    mysqli_stmt_bind_param($stmtCount, 's', $rollName);
-    mysqli_stmt_execute($stmtCount);
-    $resCount = mysqli_stmt_get_result($stmtCount);
-    $rowCount = mysqli_fetch_assoc($resCount);
-    mysqli_stmt_close($stmtCount);
-    if ((int)($rowCount['total'] ?? 0) > 0) {
-        hg_tool_api_error('Generated roll_name collision. Retry the request.', 409);
-        return;
-    }
+if (hg_dice_roll_name_exists($link, $rollName)) {
+    hg_tool_api_error('Generated roll_name collision. Retry the request.', 409);
+    return;
 }
 
-[$results, $successes, $botch] = hg_api_roll_d10_pool($dicePool, $difficulty, $debugForcedRolls);
+[$results, $successes, $botch] = hg_dice_roll_d10_pool($dicePool, $difficulty, $debugForcedRolls);
 if ($willpowerSpent === 1) {
     $successes++;
     $botch = false;
 }
 
 $rollResults = implode(',', $results);
-$botchValue = $botch ? 1 : 0;
-$stmtInsert = mysqli_prepare($link, 'INSERT INTO fact_dice_rolls (name, roll_name, dice_pool, difficulty, roll_results, successes, botch, willpower_spent, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-if (!$stmtInsert) {
-    hg_runtime_log_error('dice_api.prepare_insert', mysqli_error($link));
-    hg_tool_api_error('Could not prepare roll insert.', 500);
-    return;
-}
-
-mysqli_stmt_bind_param($stmtInsert, 'ssiisiiis', $name, $rollName, $dicePool, $difficulty, $rollResults, $successes, $botchValue, $willpowerSpent, $ip);
-if (!mysqli_stmt_execute($stmtInsert)) {
-    $error = mysqli_stmt_error($stmtInsert);
-    mysqli_stmt_close($stmtInsert);
-    hg_runtime_log_error('dice_api.insert', $error);
-    hg_tool_api_error('Could not save roll.', 500);
-    return;
-}
-
-$lastId = mysqli_insert_id($link);
-mysqli_stmt_close($stmtInsert);
+$insertError = null;
+$lastId = hg_dice_insert_roll(
+    $link,
+    $name,
+    $rollName,
+    $dicePool,
+    $difficulty,
+    $rollResults,
+    $successes,
+    $botch,
+    $willpowerSpent,
+    $ip,
+    $insertError
+);
 if ($lastId <= 0) {
-    hg_tool_api_error('Roll saved without a valid id.', 500);
+    if ($insertError !== null && $insertError !== '') {
+        hg_runtime_log_error('dice_api.insert', $insertError);
+    }
+    hg_tool_api_error('Could not save roll.', 500);
     return;
 }
 

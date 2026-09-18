@@ -1,5 +1,6 @@
 <?php
 require_once(__DIR__ . '/../helpers/runtime_response.php');
+require_once(__DIR__ . '/../domains/dice/queries.php');
 
 if (!isset($link) || !($link instanceof mysqli)) {
     require_once(__DIR__ . '/../helpers/db_connection.php');
@@ -12,18 +13,8 @@ if (!$id_tirada) {
     return;
 }
 
-$query = "SELECT * FROM fact_dice_rolls WHERE id = ? LIMIT 1";
-$stmt = mysqli_prepare($link, $query);
-if (!$stmt) {
-    hg_runtime_log_error('forum_diceroll_snippet.prepare', mysqli_error($link));
-    hg_runtime_embed_error('Tirada no disponible', 'No se pudo preparar la consulta de la tirada.', 500);
-    return;
-}
-mysqli_stmt_bind_param($stmt, "i", $id_tirada);
-mysqli_stmt_execute($stmt);
-$res = mysqli_stmt_get_result($stmt);
-
-if (!$tirada = mysqli_fetch_assoc($res)) {
+$tirada = hg_dice_fetch_roll($link, (int)$id_tirada);
+if (!$tirada) {
     hg_runtime_embed_error('Tirada no encontrada', 'No existe ninguna tirada con ese identificador.', 404);
     return;
 }
