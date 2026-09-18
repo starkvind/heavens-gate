@@ -163,6 +163,37 @@ EXTRACTED_CONTROLLERS = {
     ],
 }
 
+
+API_EMBED_SURFACES = {
+    'dice_api': ROOT / 'app/controllers/tool/dice_api.php',
+    'forum_avatar_api': ROOT / 'app/controllers/tool/forum_avatar_api.php',
+    'maps_api': ROOT / 'app/controllers/maps/maps_api.php',
+    'mentions_api': ROOT / 'app/controllers/tool/mentions.php',
+    'tooltip_api': ROOT / 'app/controllers/tool/tooltip.php',
+    'forum_message_embed': ROOT / 'app/partials/forum_message_snippet.php',
+    'forum_diceroll_embed': ROOT / 'app/partials/forum_diceroll_snippet.php',
+    'forum_item_embed': ROOT / 'app/partials/forum_item_snippet.php',
+}
+
+API_EMBED_REQUIRED_MARKERS = {
+    'dice_api': ['hg_dice_fetch_roll(', 'hg_dice_fetch_roll_profile(', 'hg_dice_insert_roll('],
+    'forum_avatar_api': ['hg_characters_fetch_lookup('],
+    'maps_api': ['hg_maps_query_fetch_maps(', 'hg_maps_query_fetch_pois('],
+    'mentions_api': ['hg_mentions_search('],
+    'tooltip_api': [
+        'hg_powers_fetch_gift(',
+        'hg_rules_fetch_action(',
+        'hg_inventory_fetch_item(',
+        'hg_systems_fetch_detail(',
+        'hg_chapters_fetch_chapter_detail(',
+        'hg_timeline_fetch_event(',
+        'hg_characters_fetch_detail_context_row(',
+    ],
+    'forum_message_embed': ['hg_characters_fetch_lookup('],
+    'forum_diceroll_embed': ['hg_dice_fetch_roll('],
+    'forum_item_embed': ['hg_inventory_fetch_item(', 'hg_inventory_fetch_type('],
+}
+
 QUERY_CALLS = [
     re.compile(r'\bmysqli_(?:query|prepare)\s*\('),
     re.compile(r'->\s*(?:query|prepare)\s*\('),
@@ -207,9 +238,29 @@ for domain, paths in EXTRACTED_CONTROLLERS.items():
                     + ', '.join(missing)
                 )
 
+raw_sql = re.compile(r'\b(?:SELECT|INSERT|UPDATE|DELETE|SHOW|DESCRIBE|EXPLAIN)\b', re.I)
+for surface, path in API_EMBED_SURFACES.items():
+    if not path.exists():
+        errors.append(f'{surface}: missing {path.relative_to(ROOT)}')
+        continue
+
+    text = path.read_text(encoding='utf-8', errors='replace')
+    if any(pattern.search(text) for pattern in QUERY_CALLS):
+        errors.append(f'{surface}: API/embed surface regained direct SQL execution: {path.relative_to(ROOT)}')
+    if raw_sql.search(text):
+        errors.append(f'{surface}: API/embed surface regained raw SQL: {path.relative_to(ROOT)}')
+
+    missing = [marker for marker in API_EMBED_REQUIRED_MARKERS.get(surface, []) if marker not in text]
+    if missing:
+        errors.append(
+            f'{surface}: API/embed surface lost shared-domain convergence markers: '
+            + ', '.join(missing)
+        )
+
 if errors:
     for error in errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
 print('Extracted domain query boundaries: PASS')
+print('API/embed convergence boundaries: PASS')
