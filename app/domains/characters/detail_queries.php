@@ -14,8 +14,8 @@ if (!function_exists('hg_characters_detect_death_table')) {
     }
 }
 
-if (!function_exists('hg_characters_fetch_detail_row')) {
-    function hg_characters_fetch_detail_row(mysqli $link, int $characterId): array
+if (!function_exists('hg_characters_fetch_detail_context_row')) {
+    function hg_characters_fetch_detail_context_row(mysqli $link, int $characterId, $excludedChronicles = ''): array
     {
         $deathTable = hg_characters_detect_death_table($link);
         if ($characterId <= 0) {
@@ -29,13 +29,41 @@ if (!function_exists('hg_characters_fetch_detail_row')) {
             $deathSelect = "COALESCE(fd.death_description, '') AS death_description, COALESCE(fd.death_date, '') AS death_date";
         }
 
+        $chronicleCondition = hg_characters_chronicle_condition('p', $excludedChronicles);
+        $chronicleSql = $chronicleCondition === '1=1' ? '' : " AND {$chronicleCondition}";
+
         $stmt = mysqli_prepare(
             $link,
-            "SELECT p.*, s.name AS system_label, {$deathSelect}
+            "SELECT
+                p.*,
+                sys.name AS system_label,
+                COALESCE(sys.name, '') AS system_name,
+                COALESCE(ct.kind, '') AS type_name,
+                COALESCE(ch.name, '') AS chronicle_name,
+                COALESCE(pl.name, '') AS player_name,
+                COALESCE(pl.show_in_catalog, 0) AS player_show_in_catalog,
+                COALESCE(br.name, '') AS breed_name,
+                COALESCE(au.name, '') AS auspice_name,
+                COALESCE(tr.name, '') AS tribe_name,
+                COALESCE(tox.name, '') AS totem_name,
+                COALESCE(na.name, '') AS nature_name,
+                COALESCE(de.name, '') AS demeanor_name,
+                COALESCE(st.label, '') AS status_label,
+                {$deathSelect}
              FROM fact_characters p
-             LEFT JOIN dim_systems s ON p.system_id = s.id
+             LEFT JOIN dim_systems sys ON sys.id = p.system_id
+             LEFT JOIN dim_character_types ct ON ct.id = p.character_type_id
+             LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id
+             LEFT JOIN dim_players pl ON pl.id = p.player_id
+             LEFT JOIN dim_breeds br ON br.id = p.breed_id
+             LEFT JOIN dim_auspices au ON au.id = p.auspice_id
+             LEFT JOIN dim_tribes tr ON tr.id = p.tribe_id
+             LEFT JOIN dim_totems tox ON tox.id = p.totem_id
+             LEFT JOIN dim_archetypes na ON na.id = p.nature_id
+             LEFT JOIN dim_archetypes de ON de.id = p.demeanor_id
+             LEFT JOIN dim_character_status st ON st.id = p.status_id
              {$deathJoin}
-             WHERE p.id = ?
+             WHERE p.id = ?{$chronicleSql}
              LIMIT 1"
         );
         if (!$stmt) {
@@ -52,6 +80,13 @@ if (!function_exists('hg_characters_fetch_detail_row')) {
         mysqli_stmt_close($stmt);
 
         return ['row' => $row ?: null, 'death_table' => $deathTable];
+    }
+}
+
+if (!function_exists('hg_characters_fetch_detail_row')) {
+    function hg_characters_fetch_detail_row(mysqli $link, int $characterId): array
+    {
+        return hg_characters_fetch_detail_context_row($link, $characterId);
     }
 }
 
@@ -341,17 +376,29 @@ if (!function_exists('hg_characters_fetch_system_detail_labels')) {
 if (!function_exists('hg_characters_fetch_participation_events')) {
     function hg_characters_fetch_participation_events(mysqli $link, int $characterId, int $limit = 24): array
     {
-        if ($characterId <= 0) {
+        if ($characterId <= 0
+            || !hg_characters_table_exists($link, 'bridge_timeline_events_characters')
+            || !hg_characters_table_exists($link, 'fact_timeline_events')) {
             return [];
         }
 
         $limit = max(1, min(100, $limit));
+        $hasPretty = hg_characters_has_column($link, 'fact_timeline_events', 'pretty_id');
+        $hasTypeId = hg_characters_has_column($link, 'fact_timeline_events', 'event_type_id');
+        $hasKind = hg_characters_has_column($link, 'fact_timeline_events', 'kind');
+        $hasTypes = $hasTypeId && hg_characters_table_exists($link, 'dim_timeline_events_types');
+        $prettyExpr = $hasPretty ? 'e.pretty_id' : "''";
+        $typeJoin = $hasTypes ? 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id' : '';
+        $typeExpr = $hasTypes
+            ? "COALESCE(t.name, 'Evento')"
+            : ($hasKind ? "COALESCE(e.kind, 'Evento')" : "'Evento'");
+
         $stmt = mysqli_prepare(
             $link,
-            "SELECT e.id, e.pretty_id, e.title, e.event_date, COALESCE(t.name, 'Evento') AS type_name
+            "SELECT e.id, {$prettyExpr} AS pretty_id, e.title, e.event_date, {$typeExpr} AS type_name
              FROM bridge_timeline_events_characters bec
              INNER JOIN fact_timeline_events e ON e.id = bec.event_id
-             LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id
+             {$typeJoin}
              WHERE bec.character_id = ?
              ORDER BY
                  CASE WHEN e.event_date = '0000-00-00' OR e.event_date IS NULL THEN 1 ELSE 0 END ASC,
@@ -380,23 +427,29 @@ if (!function_exists('hg_characters_fetch_participation_events')) {
 }
 
 if (!function_exists('hg_characters_fetch_relations')) {
-    function hg_characters_fetch_relations(mysqli $link, int $characterId): array
+    function hg_characters_fetch_relations(mysqli $link, int $characterId, $excludedChronicles = ''): array
     {
         if ($characterId <= 0) {
             return [];
         }
 
+        $chronicleCondition = hg_characters_chronicle_condition('p2', $excludedChronicles);
+        $chronicleSql = $chronicleCondition === '1=1' ? '' : " AND {$chronicleCondition}";
         $queries = [
-            "SELECT cr.*, p2.name, p2.alias, p2.image_url, p2.gender, 'outgoing' AS direction
+            "SELECT cr.*, p2.id AS other_id, p2.name, p2.name AS other_name,
+                    p2.alias, p2.alias AS other_alias, p2.image_url, p2.gender,
+                    'outgoing' AS direction
              FROM bridge_characters_relations cr
              LEFT JOIN fact_characters p2 ON cr.target_id = p2.id
-             WHERE cr.source_id = ?
-             ORDER BY cr.relation_type",
-            "SELECT cr.*, p2.name, p2.alias, p2.image_url, p2.gender, 'incoming' AS direction
+             WHERE cr.source_id = ?{$chronicleSql}
+             ORDER BY cr.relation_type, p2.name",
+            "SELECT cr.*, p2.id AS other_id, p2.name, p2.name AS other_name,
+                    p2.alias, p2.alias AS other_alias, p2.image_url, p2.gender,
+                    'incoming' AS direction
              FROM bridge_characters_relations cr
              LEFT JOIN fact_characters p2 ON cr.source_id = p2.id
-             WHERE cr.target_id = ?
-             ORDER BY cr.relation_type",
+             WHERE cr.target_id = ?{$chronicleSql}
+             ORDER BY cr.relation_type, p2.name",
         ];
 
         $rows = [];
@@ -418,7 +471,11 @@ if (!function_exists('hg_characters_fetch_relations')) {
         }
 
         usort($rows, static function (array $left, array $right): int {
-            return strcasecmp((string)($left['relation_type'] ?? ''), (string)($right['relation_type'] ?? ''));
+            $typeCmp = strcasecmp((string)($left['relation_type'] ?? ''), (string)($right['relation_type'] ?? ''));
+            if ($typeCmp !== 0) {
+                return $typeCmp;
+            }
+            return strcasecmp((string)($left['other_name'] ?? $left['name'] ?? ''), (string)($right['other_name'] ?? $right['name'] ?? ''));
         });
 
         return $rows;
@@ -480,24 +537,53 @@ if (!function_exists('hg_characters_fetch_kills')) {
 }
 
 if (!function_exists('hg_characters_fetch_chapter_participation')) {
-    function hg_characters_fetch_chapter_participation(mysqli $link, int $characterId): array
+    function hg_characters_fetch_chapter_participation(mysqli $link, int $characterId, string $orderMode = 'played'): array
     {
-        if ($characterId <= 0) {
+        if ($characterId <= 0
+            || !hg_characters_table_exists($link, 'bridge_chapters_characters')
+            || !hg_characters_table_exists($link, 'dim_chapters')) {
             return [];
         }
 
-        $seasonKindExpr = hg_characters_has_column($link, 'dim_seasons', 'season_kind')
-            ? "COALESCE(at2.season_kind, 'temporada')"
-            : "'temporada'";
+        $hasSeasonId = hg_characters_has_column($link, 'dim_chapters', 'season_id');
+        $hasChapterSeasonNumber = hg_characters_has_column($link, 'dim_chapters', 'season_number');
+        $hasSeasons = hg_characters_table_exists($link, 'dim_seasons');
+        $hasSeasonKind = $hasSeasons && hg_characters_has_column($link, 'dim_seasons', 'season_kind');
+        $seasonKindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
+        $seasonJoin = '';
+        $chapterSeasonExpr = $hasChapterSeasonNumber ? 'ac.season_number' : '0';
+        $seasonSelect = "'' AS temporada_name, {$chapterSeasonExpr} AS season_number, 'temporada' AS season_kind";
+        $seasonOrder = $hasChapterSeasonNumber ? 'ac.season_number' : 'ac.chapter_number';
+
+        if ($hasSeasons) {
+            if ($hasSeasonId) {
+                $seasonJoin = 'LEFT JOIN dim_seasons s ON s.id = ac.season_id';
+            } elseif ($hasChapterSeasonNumber) {
+                $seasonJoin = 'LEFT JOIN dim_seasons s ON s.season_number = ac.season_number';
+            }
+            if ($seasonJoin !== '') {
+                $seasonNumberExpr = $hasChapterSeasonNumber
+                    ? 'COALESCE(s.season_number, ac.season_number)'
+                    : 'COALESCE(s.season_number, 0)';
+                $seasonSelect = "COALESCE(s.name, '') AS temporada_name, {$seasonNumberExpr} AS season_number, {$seasonKindExpr} AS season_kind";
+                $seasonOrder = $hasChapterSeasonNumber
+                    ? 'COALESCE(s.sort_order, s.season_number, ac.season_number)'
+                    : 'COALESCE(s.sort_order, s.season_number)';
+            }
+        }
+
+        $orderBy = $orderMode === 'season'
+            ? "{$seasonOrder}, ac.played_date, ac.chapter_number, ac.id"
+            : 'ac.played_date, ac.chapter_number, ac.id';
+
         $stmt = mysqli_prepare(
             $link,
-            "SELECT ac.id, ac.name, ac.chapter_number, at2.name AS temporada_name,
-                    at2.season_number, {$seasonKindExpr} AS season_kind, ac.played_date
+            "SELECT ac.id, ac.name, ac.chapter_number, ac.played_date, {$seasonSelect}
              FROM dim_chapters ac
-             INNER JOIN bridge_chapters_characters acp ON ac.id = acp.chapter_id
-             INNER JOIN dim_seasons at2 ON at2.id = ac.season_id
-             WHERE acp.character_id = ?
-             ORDER BY ac.played_date, ac.chapter_number"
+             INNER JOIN bridge_chapters_characters bcc ON bcc.chapter_id = ac.id
+             {$seasonJoin}
+             WHERE bcc.character_id = ?
+             ORDER BY {$orderBy}"
         );
         if (!$stmt) {
             return [];
@@ -557,9 +643,12 @@ if (!function_exists('hg_characters_fetch_docs')) {
 
         $hasRelationLabel = hg_characters_has_column($link, 'bridge_characters_docs', 'relation_label');
         $hasSortOrder = hg_characters_has_column($link, 'bridge_characters_docs', 'sort_order');
+        $hasCategories = hg_characters_table_exists($link, 'dim_doc_categories');
         $relationExpr = $hasRelationLabel ? 'COALESCE(b.relation_label, "")' : '""';
         $sortExpr = $hasSortOrder ? 'COALESCE(b.sort_order, 0)' : '0';
         $order = $hasSortOrder ? 'b.sort_order ASC, d.title ASC' : 'd.title ASC';
+        $categoryJoin = $hasCategories ? 'LEFT JOIN dim_doc_categories c ON c.id = d.section_id' : '';
+        $categoryExpr = $hasCategories ? "COALESCE(c.kind, '')" : "''";
 
         $stmt = mysqli_prepare(
             $link,
@@ -569,10 +658,10 @@ if (!function_exists('hg_characters_fetch_docs')) {
                     {$sortExpr} AS sort_order,
                     d.title,
                     d.pretty_id,
-                    COALESCE(c.kind, '') AS section_name
+                    {$categoryExpr} AS section_name
              FROM bridge_characters_docs b
              INNER JOIN fact_docs d ON d.id = b.doc_id
-             LEFT JOIN dim_doc_categories c ON c.id = d.section_id
+             {$categoryJoin}
              WHERE b.character_id = ?
              ORDER BY {$order}"
         );
@@ -608,10 +697,16 @@ if (!function_exists('hg_characters_fetch_external_links')) {
         $hasRelationLabel = hg_characters_has_column($link, 'bridge_characters_external_links', 'relation_label');
         $hasSortOrder = hg_characters_has_column($link, 'bridge_characters_external_links', 'sort_order');
         $hasExternalActive = hg_characters_has_column($link, 'fact_external_links', 'is_active');
+        $hasKind = hg_characters_has_column($link, 'fact_external_links', 'kind');
+        $hasSource = hg_characters_has_column($link, 'fact_external_links', 'source_label');
+        $hasDescription = hg_characters_has_column($link, 'fact_external_links', 'description');
         $relationExpr = $hasRelationLabel ? 'COALESCE(b.relation_label, "")' : '""';
         $sortExpr = $hasSortOrder ? 'COALESCE(b.sort_order, 0)' : '0';
         $order = $hasSortOrder ? 'b.sort_order ASC, l.title ASC' : 'l.title ASC';
         $activeExpr = $hasExternalActive ? 'COALESCE(l.is_active, 1)' : '1';
+        $kindExpr = $hasKind ? 'COALESCE(l.kind, "")' : '""';
+        $sourceExpr = $hasSource ? 'COALESCE(l.source_label, "")' : '""';
+        $descriptionExpr = $hasDescription ? 'COALESCE(l.description, "")' : '""';
 
         $stmt = mysqli_prepare(
             $link,
@@ -621,9 +716,9 @@ if (!function_exists('hg_characters_fetch_external_links')) {
                     {$sortExpr} AS sort_order,
                     l.title,
                     l.url,
-                    l.kind,
-                    l.source_label,
-                    COALESCE(l.description, '') AS description,
+                    {$kindExpr} AS kind,
+                    {$sourceExpr} AS source_label,
+                    {$descriptionExpr} AS description,
                     {$activeExpr} AS is_active
              FROM bridge_characters_external_links b
              INNER JOIN fact_external_links l ON l.id = b.external_link_id

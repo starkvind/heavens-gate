@@ -940,6 +940,98 @@ if (!function_exists('hg_characters_fetch_misc_systems')) {
     }
 }
 
+
+if (!function_exists('hg_characters_fetch_active_affiliations')) {
+    function hg_characters_fetch_active_affiliations(mysqli $link, int $characterId): array
+    {
+        $out = ['groups' => [], 'organizations' => []];
+        if ($characterId <= 0) {
+            return $out;
+        }
+
+        if (hg_characters_table_exists($link, 'bridge_characters_groups')
+            && hg_characters_table_exists($link, 'dim_groups')) {
+            $stmt = mysqli_prepare(
+                $link,
+                "SELECT g.id, g.name
+                 FROM bridge_characters_groups bcg
+                 INNER JOIN dim_groups g ON g.id = bcg.group_id
+                 WHERE bcg.character_id = ?
+                   AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
+                 ORDER BY bcg.updated_at DESC, bcg.created_at DESC, bcg.group_id DESC"
+            );
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $characterId);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                if ($result) {
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        $out['groups'][] = $row;
+                    }
+                    mysqli_free_result($result);
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        if (hg_characters_table_exists($link, 'bridge_characters_organizations')
+            && hg_characters_table_exists($link, 'dim_organizations')) {
+            $stmt = mysqli_prepare(
+                $link,
+                "SELECT o.id, o.name
+                 FROM bridge_characters_organizations bco
+                 INNER JOIN dim_organizations o ON o.id = bco.organization_id
+                 WHERE bco.character_id = ?
+                   AND (bco.is_active = 1 OR bco.is_active IS NULL)
+                 ORDER BY bco.updated_at DESC, bco.created_at DESC, bco.organization_id DESC"
+            );
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $characterId);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                if ($result) {
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        $out['organizations'][] = $row;
+                    }
+                    mysqli_free_result($result);
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        if (empty($out['organizations'])
+            && !empty($out['groups'])
+            && hg_characters_table_exists($link, 'bridge_organizations_groups')
+            && hg_characters_table_exists($link, 'dim_organizations')) {
+            $stmt = mysqli_prepare(
+                $link,
+                "SELECT DISTINCT o.id, o.name
+                 FROM bridge_characters_groups bcg
+                 INNER JOIN bridge_organizations_groups bog ON bog.group_id = bcg.group_id
+                 INNER JOIN dim_organizations o ON o.id = bog.organization_id
+                 WHERE bcg.character_id = ?
+                   AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
+                   AND (bog.is_active = 1 OR bog.is_active IS NULL)
+                 ORDER BY bog.updated_at DESC, bog.created_at DESC, bog.organization_id DESC"
+            );
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'i', $characterId);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                if ($result) {
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        $out['organizations'][] = $row;
+                    }
+                    mysqli_free_result($result);
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+
+        return $out;
+    }
+}
+
 if (!function_exists('hg_characters_fetch_primary_affiliations')) {
     function hg_characters_fetch_primary_affiliations(mysqli $link, int $characterId): array
     {
