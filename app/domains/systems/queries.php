@@ -214,6 +214,32 @@ function hg_systems_fetch_misc(mysqli $link, string $systemName, ?string $altern
     return $rows;
 }
 
+
+if (!function_exists('hg_systems_fetch_resource')) {
+    function hg_systems_fetch_resource(mysqli $link, int $resourceId): ?array
+    {
+        if ($resourceId <= 0) {
+            return null;
+        }
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT id, name, kind, description FROM dim_systems_resources WHERE id = ? LIMIT 1'
+        );
+        if (!$stmt) {
+            return null;
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $resourceId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) {
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+        return $row ?: null;
+    }
+}
+
 function hg_systems_fetch_resources(mysqli $link, int $systemId)
 {
     if ($systemId <= 0 || !hg_systems_table_exists($link, 'bridge_systems_resources_to_system')) return [];

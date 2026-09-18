@@ -2,17 +2,24 @@
 // Tooltip endpoint (HTML fragment)
 header('Content-Type: text/html; charset=UTF-8');
 
-include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
+require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../domains/rules/queries.php';
+require_once __DIR__ . '/../../domains/inventory/queries.php';
+require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../domains/organizations/queries.php';
+require_once __DIR__ . '/../../domains/chronicles/queries.php';
+require_once __DIR__ . '/../../domains/chapters/queries.php';
+require_once __DIR__ . '/../../domains/timeline/queries.php';
+require_once __DIR__ . '/../../domains/characters/detail_queries.php';
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+
 function short_text($html, $limit=520){
     $raw = (string)$html;
-    // Quill suele guardar bloques HTML; convertimos saltos útiles antes de limpiar.
     $raw = preg_replace('/<\s*br\s*\/?>/i', "\n", $raw);
     $raw = preg_replace('/<\s*\/p\s*>/i', "\n", $raw);
     $raw = preg_replace('/<\s*li\s*>/i', " - ", $raw);
     $txt = trim(strip_tags($raw));
-    // Evita mostrar entidades tipo &aacute; en bruto en el tooltip.
     $txt = html_entity_decode($txt, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $txt = preg_replace('/[ \t]+/', ' ', $txt);
     $txt = preg_replace('/\n{3,}/', "\n\n", $txt);
@@ -25,16 +32,6 @@ function short_text($html, $limit=520){
     return $txt;
 }
 
-function tt_has_column(mysqli $link, string $table, string $column): bool {
-    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-    $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-    if ($table === '' || $column === '') return false;
-    $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$column'");
-    if (!$rs) return false;
-    $ok = (mysqli_num_rows($rs) > 0);
-    mysqli_free_result($rs);
-    return $ok;
-}
 function tt_join_meta(array $parts): string {
     $safe = [];
     foreach ($parts as $p) {
@@ -43,6 +40,7 @@ function tt_join_meta(array $parts): string {
     }
     return implode(' - ', $safe);
 }
+
 function tt_event_date_label(?string $dateValue, string $precision = 'day', ?string $note = null): string {
     $precision = trim((string)$precision);
     $dateValue = trim((string)$dateValue);
@@ -72,9 +70,28 @@ function tt_event_date_label(?string $dateValue, string $precision = 'day', ?str
     return ($note !== '') ? ($base . ' (' . $note . ')') : $base;
 }
 
+function tt_system_detail_meta(mysqli $link, string $table, int $id, array $row): array {
+    $parts = [];
+    $system = trim((string)($row['system_name'] ?? ''));
+    if ($system !== '') {
+        $parts[] = $system;
+    }
+    foreach (hg_ser_energy_entries_for_row($link, $table, $id, $row, $system) as $entry) {
+        $label = trim((string)($entry['resource_name'] ?? ''));
+        $value = (int)($entry['energy_value'] ?? 0);
+        if ($label !== '' && $value > 0) {
+            $parts[] = $label . ' ' . $value;
+        }
+    }
+    return $parts;
+}
+
 $type = hg_request_query_value($hgRequest, 'type');
 $id = (int)hg_request_query_value($hgRequest, 'id');
-if (!$link || $id <= 0) { echo '<div class="hg-tip">No disponible</div>'; exit; }
+if (!$link || $id <= 0) {
+    echo '<div class="hg-tip">No disponible</div>';
+    exit;
+}
 
 $outTitle = '';
 $outMeta = '';
@@ -88,628 +105,320 @@ $outPreDescLabel = '';
 $outPreDesc = '';
 
 if ($type === 'don') {
-    $giftSystemCol = tt_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
-    $giftRulesCol = tt_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
-    $sqlDon = "SELECT name, rank, `{$giftSystemCol}` AS gift_system_name, `{$giftRulesCol}` AS gift_rules, description, image_url FROM fact_gifts WHERE id=? LIMIT 1";
-    if ($st = $link->prepare($sqlDon)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $rango = $r['rank'] ?? '';
-            $fera = $r['gift_system_name'] ?? '';
-            $outMeta = "Rango " . h($rango);
-            if ($fera !== '') $outMeta .= " - " . h($fera);
-            $outSystem = short_text($r['gift_rules'] ?? '');
-            $outDesc = short_text($r['description'] ?? '', 360);
-            $outImg = trim((string)($r['image_url'] ?? ''));
-            $outImgAlt = $outTitle;
-        }
-        $st->close();
+    $r = hg_powers_fetch_gift($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = 'Rango ' . h($r['rank'] ?? '');
+        $fera = trim((string)($r['legacy_system_name'] ?? ''));
+        if ($fera !== '') $outMeta .= ' - ' . h($fera);
+        $outSystem = short_text($r['mechanics_resolved'] ?? '');
+        $outDesc = short_text($r['description'] ?? '', 360);
+        $outImg = trim((string)($r['image_url'] ?? ''));
+        $outImgAlt = $outTitle;
     }
 } elseif ($type === 'rite') {
-    if ($st = $link->prepare("
-        SELECT
-            r.name,
-            r.kind,
-            r.level,
-            r.race,
-            r.system_text,
-            r.description AS descr,
-            rt.name AS rite_type_name
-        FROM fact_rites r
-        LEFT JOIN dim_rite_types rt
-            ON rt.id = CASE
-                WHEN r.kind REGEXP '^[0-9]+$' THEN CAST(r.kind AS UNSIGNED)
-                ELSE NULL
-            END
-        WHERE r.id = ?
-        LIMIT 1
-    ")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $tipo = trim((string)($r['rite_type_name'] ?? ''));
-            if ($tipo === '') {
-                $tipo = trim((string)($r['kind'] ?? ''));
-            }
-            $nivel = $r['level'] ?? '';
-            $raza = $r['race'] ?? '';
-            $meta = [];
-            if ($tipo !== '') $meta[] = $tipo;
-            $meta[] = "Nivel " . $nivel;
-            if ($raza !== '') $meta[] = $raza;
-            $outMeta = tt_join_meta($meta);
-            $outSystem = short_text($r['system_text'] ?? '');
-            $outDesc = short_text($r['descr'] ?? '', 360);
-        }
-        $st->close();
+    $r = hg_powers_fetch_rite($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $tipo = trim((string)($r['type_name'] ?? ''));
+        if ($tipo === '') $tipo = trim((string)($r['kind'] ?? ''));
+        $meta = [];
+        if ($tipo !== '') $meta[] = $tipo;
+        $meta[] = 'Nivel ' . ($r['level'] ?? '');
+        $raza = trim((string)($r['race'] ?? ''));
+        if ($raza !== '') $meta[] = $raza;
+        $outMeta = tt_join_meta($meta);
+        $outSystem = short_text($r['system_text'] ?? '');
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
 } elseif ($type === 'merit') {
-    if ($st = $link->prepare("SELECT name, kind, cost, affiliation, description FROM dim_merits_flaws WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $tipo = $r['kind'] ?? '';
-            $coste = $r['cost'] ?? '';
-            $afil = $r['affiliation'] ?? '';
-            $outMeta = h($tipo);
-            if ($coste !== '') $outMeta .= " - Coste " . h($coste);
-            if ($afil !== '') $outMeta .= " - " . h($afil);
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
+    $r = hg_rules_fetch_merit($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = h($r['kind'] ?? $r['tipo'] ?? '');
+        $coste = $r['cost'] ?? $r['coste'] ?? '';
+        $afil = $r['affiliation'] ?? $r['afiliacion'] ?? '';
+        if ($coste !== '') $outMeta .= ' - Coste ' . h($coste);
+        if ($afil !== '') $outMeta .= ' - ' . h($afil);
+        $outDesc = short_text($r['description'] ?? $r['descripcion'] ?? '', 360);
     }
 } elseif ($type === 'condition' || $type === 'character_condition' || $type === 'dim_character_condition') {
-    if ($st = $link->prepare("SELECT name, category, description FROM dim_character_conditions WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $category = trim((string)($r['category'] ?? ''));
-            $outMeta = 'Condici&oacute;n';
-            if ($category !== '') $outMeta .= ' - ' . h($category);
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
+    $r = hg_rules_fetch_condition($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $category = trim((string)($r['category'] ?? ''));
+        $outMeta = 'Condici&oacute;n';
+        if ($category !== '') $outMeta .= ' - ' . h($category);
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
 } elseif ($type === 'item' || $type === 'items' || $type === 'fact_items') {
-    if ($st = $link->prepare("SELECT name, item_type_id, level, gnosis, description, image_url, skill_name, damage_type, bonus, metal FROM fact_items WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $tipo = (int)($r['item_type_id'] ?? 0);
-            $nivel = $r['level'] ?? '';
-            $gnosis = $r['gnosis'] ?? '';
-            $habilidad = (string)($r['skill_name'] ?? '');
-            $dano = (string)($r['damage_type'] ?? '');
-            $bonus = (int)($r['bonus'] ?? 0);
-            $metal = (int)($r['metal'] ?? 0);
-            $mapTipo = [
-                1=>'Arma', 2=>'Protector', 3=>'Objeto m&aacute;gico', 4=>'Objeto', 5=>'Amuleto'
-            ];
-            $outMeta = $mapTipo[$tipo] ?? 'Objeto';
-            if ($nivel !== '' && (int)$nivel > 0) $outMeta .= " - Nivel " . h($nivel);
-            if ($gnosis !== '' && (int)$gnosis > 0) $outMeta .= " - Gnosis " . h($gnosis);
+    $r = hg_inventory_fetch_item($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $tipo = (int)($r['item_type_id'] ?? 0);
+        $nivel = $r['level'] ?? '';
+        $gnosis = $r['gnosis'] ?? '';
+        $habilidad = (string)($r['skill_name'] ?? '');
+        $dano = (string)($r['damage_type'] ?? '');
+        $bonus = (int)($r['bonus'] ?? 0);
+        $metal = (int)($r['metal'] ?? 0);
+        $mapTipo = [1=>'Arma', 2=>'Protector', 3=>'Objeto m&aacute;gico', 4=>'Objeto', 5=>'Amuleto'];
+        $outMeta = $mapTipo[$tipo] ?? 'Objeto';
+        if ($nivel !== '' && (int)$nivel > 0) $outMeta .= ' - Nivel ' . h($nivel);
+        if ($gnosis !== '' && (int)$gnosis > 0) $outMeta .= ' - Gnosis ' . h($gnosis);
 
-            $extraMeta = '';
-            if ($tipo === 1 && $dano !== '') {
-                $metalText = '';
-                if ($metal === 1) $metalText = " y de plata";
-                if ($metal === 2) $metalText = " y de oro";
-                switch ($habilidad) {
-                    case "Cuerpo a Cuerpo":
-                    case "Pelea":
-                    case "Arrojar":
-                        $damageText = "Fuerza + " . $bonus;
-                        break;
-                    default:
-                        $damageText = $bonus . " dados";
-                        break;
-                }
-                $extraMeta = "Da&ntilde;o " . h($damageText) . ", " . h($dano) . $metalText;
-            } elseif ($tipo === 2 && $bonus !== 0) {
-                $extraMeta = "Protecci&oacute;n +" . h($bonus);
+        $extraMeta = '';
+        if ($tipo === 1 && $dano !== '') {
+            $metalText = '';
+            if ($metal === 1) $metalText = ' y de plata';
+            if ($metal === 2) $metalText = ' y de oro';
+            switch ($habilidad) {
+                case 'Cuerpo a Cuerpo':
+                case 'Pelea':
+                case 'Arrojar':
+                    $damageText = 'Fuerza + ' . $bonus;
+                    break;
+                default:
+                    $damageText = $bonus . ' dados';
+                    break;
             }
-            if ($extraMeta !== '') $outMeta .= " - " . $extraMeta;
-
-            $outDesc = short_text($r['description'] ?? '', 360);
-            $outImg = (string)($r['image_url'] ?? '');
-            $outImgAlt = $outTitle;
+            $extraMeta = 'Da&ntilde;o ' . h($damageText) . ', ' . h($dano) . $metalText;
+        } elseif ($tipo === 2 && $bonus !== 0) {
+            $extraMeta = 'Protecci&oacute;n +' . h($bonus);
         }
-        $st->close();
+        if ($extraMeta !== '') $outMeta .= ' - ' . $extraMeta;
+
+        $outDesc = short_text($r['description'] ?? '', 360);
+        $outImg = trim((string)($r['image_url'] ?? ''));
+        $outImgAlt = $outTitle;
     }
 } elseif ($type === 'maneuver' || $type === 'combat_maneuver' || $type === 'fact_combat_maneuvers') {
-    if ($st = $link->prepare('SELECT name, text, roll, difficulty, damage, actions, system_name, image_url FROM fact_combat_maneuvers WHERE id = ? LIMIT 1')) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = (string)($r['name'] ?? '');
-            $actions = trim((string)($r['actions'] ?? ''));
-            $outMeta = tt_join_meta([
-                trim((string)($r['system_name'] ?? '')),
-                $actions !== '' ? $actions . ' acci' . ((int)$actions === 1 ? 'on' : 'ones') : '',
-            ]);
-            $outPreDescLabel = 'Tirada';
-            $outPreDesc = tt_join_meta([
-                trim((string)($r['roll'] ?? '')),
-                trim((string)($r['difficulty'] ?? '')) !== '' ? 'Dificultad ' . trim((string)($r['difficulty'] ?? '')) : '',
-                trim((string)($r['damage'] ?? '')) !== '' ? 'Daño ' . trim((string)($r['damage'] ?? '')) : '',
-            ]);
-            $outDesc = short_text((string)($r['text'] ?? ''), 360);
-            $outImg = trim((string)($r['image_url'] ?? ''));
-            if ($outImg !== '' && strpos($outImg, '/') === false) $outImg = '/img/maneuvers/' . $outImg;
-            $outImgAlt = $outTitle;
-        }
-        $st->close();
+    $r = hg_rules_fetch_maneuver($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $actions = trim((string)($r['actions'] ?? ''));
+        $outMeta = tt_join_meta([
+            trim((string)($r['system_name'] ?? '')),
+            $actions !== '' ? $actions . ' acci' . ((int)$actions === 1 ? 'on' : 'ones') : '',
+        ]);
+        $outPreDescLabel = 'Tirada';
+        $outPreDesc = tt_join_meta([
+            trim((string)($r['roll'] ?? '')),
+            trim((string)($r['difficulty'] ?? '')) !== '' ? 'Dificultad ' . trim((string)$r['difficulty']) : '',
+            trim((string)($r['damage'] ?? '')) !== '' ? 'Daño ' . trim((string)$r['damage']) : '',
+        ]);
+        $outDesc = short_text((string)($r['text'] ?? ''), 360);
+        $outImg = trim((string)($r['image_url'] ?? ''));
+        if ($outImg !== '' && strpos($outImg, '/') === false) $outImg = '/img/maneuvers/' . $outImg;
+        $outImgAlt = $outTitle;
     }
 } elseif ($type === 'action' || $type === 'fact_action' || $type === 'fact_actions') {
-    if ($st = $link->prepare('SELECT a.name, a.category, a.text, a.difficulty_mode, a.fixed_difficulty, a.suggested_difficulty, a.min_difficulty, a.max_difficulty, attr.name AS attribute_name, skill.name AS skill_name FROM fact_actions a JOIN dim_traits attr ON attr.id = a.attribute_trait_id JOIN dim_traits skill ON skill.id = a.skill_trait_id WHERE a.id = ? LIMIT 1')) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = (string)($r['name'] ?? '');
-            $outMeta = h(trim((string)($r['category'] ?? '')));
-            $outPreDescLabel = 'Tirada';
-            $outPreDesc = tt_join_meta([(string)($r['attribute_name'] ?? ''), (string)($r['skill_name'] ?? '')]);
-            if (($r['difficulty_mode'] ?? '') === 'fixed') {
-                $outExtra = 'Fija: ' . (int)($r['fixed_difficulty'] ?? 0);
-            } else {
-                $difficultyParts = [];
-                if ((int)($r['suggested_difficulty'] ?? 0) > 0) $difficultyParts[] = 'Sugerida ' . (int)$r['suggested_difficulty'];
-                if ((int)($r['min_difficulty'] ?? 0) > 0 && (int)($r['max_difficulty'] ?? 0) > 0) $difficultyParts[] = (int)$r['min_difficulty'] . ' - ' . (int)$r['max_difficulty'];
-                $outExtra = implode(' / ', $difficultyParts);
+    $r = hg_rules_fetch_action($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = h(trim((string)($r['category'] ?? '')));
+        $outPreDescLabel = 'Tirada';
+        $outPreDesc = tt_join_meta([(string)($r['attribute_name'] ?? ''), (string)($r['skill_name'] ?? '')]);
+        if (($r['difficulty_mode'] ?? '') === 'fixed') {
+            $outExtra = 'Fija: ' . (int)($r['fixed_difficulty'] ?? 0);
+        } else {
+            $difficultyParts = [];
+            if ((int)($r['suggested_difficulty'] ?? 0) > 0) $difficultyParts[] = 'Sugerida ' . (int)$r['suggested_difficulty'];
+            if ((int)($r['min_difficulty'] ?? 0) > 0 && (int)($r['max_difficulty'] ?? 0) > 0) {
+                $difficultyParts[] = (int)$r['min_difficulty'] . ' - ' . (int)$r['max_difficulty'];
             }
-            $outExtraLabel = 'Dificultad';
-            $outDesc = short_text((string)($r['text'] ?? ''), 360);
+            $outExtra = implode(' / ', $difficultyParts);
         }
-        $st->close();
+        $outExtraLabel = 'Dificultad';
+        $outDesc = short_text((string)($r['text'] ?? ''), 360);
     }
 } elseif ($type === 'trait') {
-    if ($st = $link->prepare("SELECT name, kind, description FROM dim_traits WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $kind = (string)($r['kind'] ?? '');
-            if ($kind !== '') $outMeta = h($kind);
-            $outDesc = short_text($r['description'] ?? '', 320);
-        }
-        $st->close();
+    $r = hg_rules_fetch_trait($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $kind = (string)($r['kind'] ?? $r['rule_kind'] ?? '');
+        if ($kind !== '') $outMeta = h($kind);
+        $outDesc = short_text($r['description'] ?? '', 320);
     }
-} elseif ($type === 'breed') {
-    $energySql = hg_ser_energy_sql_parts($link, 'dim_breeds', 'b');
-    $energyExpr = hg_ser_energy_value_sql_expr($link, 'dim_breeds', 'b');
-    $sql = "
-        SELECT
-            b.name,
-            b.system_name,
-            b.forms,
-            {$energyExpr} AS energy,
-            b.description
-            {$energySql['select']}
-        FROM dim_breeds b
-        {$energySql['join']}
-        WHERE b.id = ?
-        LIMIT 1
-    ";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $parts = [];
-            $system = trim((string)($r['system_name'] ?? ''));
-            $entries = hg_ser_energy_entries_for_row($link, 'dim_breeds', $id, $r, $system);
-            if ($system !== '') $parts[] = $system;
-            foreach ($entries as $entry) {
-                $label = trim((string)($entry['resource_name'] ?? ''));
-                $value = (int)($entry['energy_value'] ?? 0);
-                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
-            }
-            $outMeta = tt_join_meta($parts);
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
-    }
-} elseif ($type === 'auspice') {
-    $energySql = hg_ser_energy_sql_parts($link, 'dim_auspices', 'a');
-    $energyExpr = hg_ser_energy_value_sql_expr($link, 'dim_auspices', 'a');
-    $sql = "
-        SELECT
-            a.name,
-            a.system_name,
-            {$energyExpr} AS energy,
-            a.description
-            {$energySql['select']}
-        FROM dim_auspices a
-        {$energySql['join']}
-        WHERE a.id = ?
-        LIMIT 1
-    ";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $parts = [];
-            $system = trim((string)($r['system_name'] ?? ''));
-            $entries = hg_ser_energy_entries_for_row($link, 'dim_auspices', $id, $r, $system);
-            if ($system !== '') $parts[] = $system;
-            foreach ($entries as $entry) {
-                $label = trim((string)($entry['resource_name'] ?? ''));
-                $value = (int)($entry['energy_value'] ?? 0);
-                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
-            }
-            $outMeta = tt_join_meta($parts);
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
-    }
-} elseif ($type === 'tribe') {
-    $energySql = hg_ser_energy_sql_parts($link, 'dim_tribes', 't');
-    $energyExpr = hg_ser_energy_value_sql_expr($link, 'dim_tribes', 't');
-    $sql = "
-        SELECT
-            t.name,
-            t.system_name,
-            t.affiliation,
-            {$energyExpr} AS energy,
-            t.description
-            {$energySql['select']}
-        FROM dim_tribes t
-        {$energySql['join']}
-        WHERE t.id = ?
-        LIMIT 1
-    ";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $parts = [];
-            $system = trim((string)($r['system_name'] ?? ''));
-            $entries = hg_ser_energy_entries_for_row($link, 'dim_tribes', $id, $r, $system);
-            if ($system !== '') $parts[] = $system;
-            foreach ($entries as $entry) {
-                $label = trim((string)($entry['resource_name'] ?? ''));
-                $value = (int)($entry['energy_value'] ?? 0);
-                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
-            }
-            $outMeta = tt_join_meta($parts);
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
+} elseif ($type === 'breed' || $type === 'auspice' || $type === 'tribe') {
+    $detailType = $type === 'breed' ? 1 : ($type === 'auspice' ? 2 : 3);
+    $table = $type === 'breed' ? 'dim_breeds' : ($type === 'auspice' ? 'dim_auspices' : 'dim_tribes');
+    $r = hg_systems_fetch_detail($link, $detailType, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = tt_join_meta(tt_system_detail_meta($link, $table, $id, $r));
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
 } elseif ($type === 'archetype') {
-    if ($st = $link->prepare("SELECT name, description, willpower_text FROM dim_archetypes WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $outMeta = 'Arquetipo de personalidad';
-            $outDesc = short_text($r['description'] ?? '', 280);
-            $wp = short_text($r['willpower_text'] ?? '', 220);
-            if ($wp !== '') {
-                $outExtraLabel = 'Recuperacion de voluntad';
-                $outExtra = $wp;
-            }
+    $r = hg_rules_fetch_archetype($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = 'Arquetipo de personalidad';
+        $outDesc = short_text($r['description'] ?? '', 280);
+        $wp = short_text($r['willpower_text'] ?? '', 220);
+        if ($wp !== '') {
+            $outExtraLabel = 'Recuperacion de voluntad';
+            $outExtra = $wp;
         }
-        $st->close();
     }
 } elseif ($type === 'totem') {
-    if ($st = $link->prepare("SELECT t.name, t.cost, t.description, tt.name AS type_name FROM dim_totems t LEFT JOIN dim_totem_types tt ON tt.id=t.totem_type_id WHERE t.id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $parts = [];
-            $typeName = trim((string)($r['type_name'] ?? ''));
-            $cost = (int)($r['cost'] ?? 0);
-            if ($typeName !== '') $parts[] = $typeName;
-            if ($cost > 0) $parts[] = 'Coste ' . $cost;
-            $outMeta = tt_join_meta($parts);
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
+    $r = hg_powers_fetch_totem($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $parts = [];
+        $typeName = trim((string)($r['type_name'] ?? ''));
+        $cost = (int)($r['cost'] ?? 0);
+        if ($typeName !== '') $parts[] = $typeName;
+        if ($cost > 0) $parts[] = 'Coste ' . $cost;
+        $outMeta = tt_join_meta($parts);
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
-} elseif ($type === 'group') {
-    if ($st = $link->prepare("SELECT name, description FROM dim_groups WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $outMeta = 'Grupo';
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
-    }
-} elseif ($type === 'organization') {
-    if ($st = $link->prepare("SELECT name, description FROM dim_organizations WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $outMeta = 'Organización';
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
+} elseif ($type === 'group' || $type === 'organization') {
+    $r = hg_organizations_fetch_entity($link, $type === 'group' ? 1 : 2, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = $type === 'group' ? 'Grupo' : 'Organización';
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
 } elseif ($type === 'chronicle' || $type === 'dim_chronicle' || $type === 'dim_chronicles') {
-    if ($st = $link->prepare("SELECT name, description FROM dim_chronicles WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $outMeta = 'Crónica';
-            $outDesc = short_text($r['description'] ?? '', 360);
-        }
-        $st->close();
+    $r = hg_chronicles_fetch_one($link, hg_chronicles_schema($link), $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $outMeta = 'Crónica';
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
 } elseif ($type === 'resource') {
-    if ($st = $link->prepare("SELECT name, kind, description FROM dim_systems_resources WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $kindRaw = strtolower(trim((string)($r['kind'] ?? '')));
-            if (in_array($kindRaw, ['renombre', 'estado'], true)) {
-                $outTitle = $r['name'] ?? '';
-                $kindNorm = $kindRaw !== '' ? ucfirst($kindRaw) : '';
-                if ($kindNorm !== '') $outMeta = h($kindNorm);
-                $outDesc = short_text($r['description'] ?? '', 320);
-            }
+    $r = hg_systems_fetch_resource($link, $id);
+    if ($r) {
+        $kindRaw = strtolower(trim((string)($r['kind'] ?? '')));
+        if (in_array($kindRaw, ['renombre', 'estado'], true)) {
+            $outTitle = (string)($r['name'] ?? '');
+            if ($kindRaw !== '') $outMeta = h(ucfirst($kindRaw));
+            $outDesc = short_text($r['description'] ?? '', 320);
         }
-        $st->close();
     }
 } elseif ($type === 'misc_system' || $type === 'misc' || $type === 'fact_misc_systems') {
-    $energySql = hg_ser_energy_sql_parts($link, 'fact_misc_systems', 'm');
-    $energyExpr = hg_ser_energy_value_sql_expr($link, 'fact_misc_systems', 'm');
-    $energyNameExpr = hg_ser_has_legacy_energy_name_column($link, 'fact_misc_systems') ? "m.energy_name" : "''";
-    $sql = "
-        SELECT
-            m.name,
-            m.kind,
-            m.system_name,
-            {$energyExpr} AS energy_value,
-            {$energyNameExpr} AS energy_name,
-            m.description
-            {$energySql['select']}
-        FROM fact_misc_systems m
-        {$energySql['join']}
-        WHERE m.id=?
-        LIMIT 1
-    ";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = $r['name'] ?? '';
-            $parts = [];
-            $kind = trim((string)($r['kind'] ?? ''));
-            $systemName = trim((string)($r['system_name'] ?? ''));
-            if ($kind !== '') $parts[] = $kind;
-            if ($systemName !== '') $parts[] = $systemName;
-            $entries = hg_ser_energy_entries_for_row($link, 'fact_misc_systems', $id, $r, $systemName);
-            foreach ($entries as $entry) {
-                $label = trim((string)($entry['resource_name'] ?? ''));
-                $value = (int)($entry['energy_value'] ?? 0);
-                if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
-            }
-            $outMeta = tt_join_meta($parts);
-            $outDesc = short_text($r['description'] ?? '', 360);
+    $r = hg_systems_fetch_detail($link, 4, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $parts = [];
+        $kind = trim((string)($r['kind'] ?? ''));
+        $systemName = trim((string)($r['system_name'] ?? ''));
+        if ($kind !== '') $parts[] = $kind;
+        if ($systemName !== '') $parts[] = $systemName;
+        foreach (hg_ser_energy_entries_for_row($link, 'fact_misc_systems', $id, $r, $systemName) as $entry) {
+            $label = trim((string)($entry['resource_name'] ?? ''));
+            $value = (int)($entry['energy_value'] ?? 0);
+            if ($label !== '' && $value > 0) $parts[] = $label . ' ' . $value;
         }
-        $st->close();
+        $outMeta = tt_join_meta($parts);
+        $outDesc = short_text($r['description'] ?? '', 360);
     }
 } elseif ($type === 'chapter' || $type === 'dim_chapter' || $type === 'dim_chapters') {
-    $hasSeasonKind = tt_has_column($link, 'dim_seasons', 'season_kind');
-    $seasonKindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
-    if ($st = $link->prepare("
-        SELECT
-            c.name,
-            c.chapter_number,
-            s.season_number,
-            c.synopsis,
-            c.played_date,
-            {$seasonKindExpr} AS season_kind
-        FROM dim_chapters c
-        LEFT JOIN dim_seasons s ON s.id = c.season_id
-        WHERE c.id = ?
-        LIMIT 1
-    ")) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = (string)($r['name'] ?? '');
-            $chapterNum = (int)($r['chapter_number'] ?? 0);
-            $seasonNum = (int)($r['season_number'] ?? 0);
-            $seasonKind = trim((string)($r['season_kind'] ?? 'temporada'));
-            if ($seasonKind === '') $seasonKind = 'temporada';
+    $r = hg_chapters_fetch_chapter_detail($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['name'] ?? '');
+        $chapterNum = (int)($r['chapter_number'] ?? 0);
+        $seasonNum = (int)($r['season_number'] ?? 0);
+        $seasonKind = trim((string)($r['season_kind'] ?? 'temporada'));
+        if ($seasonKind === '') $seasonKind = 'temporada';
 
-            $chapterLabel = 'Capitulo ' . ($chapterNum > 0 ? $chapterNum : '?');
-            if ($seasonKind === 'historia_personal') {
-                $seasonLabel = 'Historia personal';
-            } elseif ($seasonKind === 'inciso') {
-                $incisoNum = $seasonNum;
-                if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
-                $seasonLabel = 'Inciso ' . ($incisoNum > 0 ? $incisoNum : '?');
-            } elseif ($seasonKind === 'especial') {
-                $seasonLabel = 'Especial';
-            } else {
-                $seasonLabel = 'Temporada ' . ($seasonNum > 0 ? $seasonNum : '?');
-            }
-            $outMeta = tt_join_meta([$chapterLabel, $seasonLabel]);
-
-            $playedDate = trim((string)($r['played_date'] ?? ''));
-            if ($playedDate !== '' && $playedDate !== '0000-00-00') {
-                $ts = strtotime($playedDate);
-                if ($ts !== false) {
-                    $outPreDescLabel = 'Fecha de juego';
-                    $outPreDesc = date('d/m/Y', $ts);
-                }
-            }
-
-            $outDesc = short_text((string)($r['synopsis'] ?? ''), 360);
+        $chapterLabel = 'Capitulo ' . ($chapterNum > 0 ? $chapterNum : '?');
+        if ($seasonKind === 'historia_personal') {
+            $seasonLabel = 'Historia personal';
+        } elseif ($seasonKind === 'inciso') {
+            $incisoNum = $seasonNum;
+            if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
+            $seasonLabel = 'Inciso ' . ($incisoNum > 0 ? $incisoNum : '?');
+        } elseif ($seasonKind === 'especial') {
+            $seasonLabel = 'Especial';
+        } else {
+            $seasonLabel = 'Temporada ' . ($seasonNum > 0 ? $seasonNum : '?');
         }
-        $st->close();
+        $outMeta = tt_join_meta([$chapterLabel, $seasonLabel]);
+
+        $playedDate = trim((string)($r['played_date'] ?? ''));
+        if ($playedDate !== '' && $playedDate !== '0000-00-00') {
+            $ts = strtotime($playedDate);
+            if ($ts !== false) {
+                $outPreDescLabel = 'Fecha de juego';
+                $outPreDesc = date('d/m/Y', $ts);
+            }
+        }
+        $outDesc = short_text((string)($r['synopsis'] ?? ''), 360);
     }
 } elseif ($type === 'event' || $type === 'timeline_event' || $type === 'fact_timeline_events') {
-    $hasEventDatePrecision = tt_has_column($link, 'fact_timeline_events', 'date_precision');
-    $hasEventDateNote = tt_has_column($link, 'fact_timeline_events', 'date_note');
-    $hasEventTimeline = tt_has_column($link, 'fact_timeline_events', 'timeline');
-    $hasChronBridge = tt_has_column($link, 'bridge_timeline_events_chronicles', 'event_id')
-        && tt_has_column($link, 'bridge_timeline_events_chronicles', 'chronicle_id');
-
-    $datePrecisionExpr = $hasEventDatePrecision ? "e.date_precision" : "'day'";
-    $dateNoteExpr = $hasEventDateNote ? "e.date_note" : "NULL";
-    $timelineExpr = $hasEventTimeline ? "NULLIF(TRIM(e.timeline), '')" : "NULL";
-    $chronJoin = '';
-    $chronicleExpr = $timelineExpr;
-    if ($hasChronBridge) {
-        $chronJoin = "
-        LEFT JOIN (
-            SELECT
-                bec.event_id,
-                GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ' | ') AS chronicle_line
-            FROM bridge_timeline_events_chronicles bec
-            INNER JOIN dim_chronicles c ON c.id = bec.chronicle_id
-            GROUP BY bec.event_id
-        ) chr ON chr.event_id = e.id";
-        $chronicleExpr = "NULLIF(chr.chronicle_line, '')";
-    }
-
-    $sqlEvent = "
-        SELECT
-            e.title,
-            e.event_date,
-            {$datePrecisionExpr} AS date_precision,
-            {$dateNoteExpr} AS date_note,
-            COALESCE(t.name, 'Evento') AS type_name,
-            COALESCE(
-                {$chronicleExpr},
-                {$timelineExpr},
-                '-'
-            ) AS chronicle_line,
-            e.description
-        FROM fact_timeline_events e
-        LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id
-        {$chronJoin}
-        WHERE e.id = ?
-        LIMIT 1
-    ";
-    if ($st = $link->prepare($sqlEvent)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $outTitle = (string)($r['title'] ?? '');
-            $dateLabel = tt_event_date_label(
-                (string)($r['event_date'] ?? ''),
-                (string)($r['date_precision'] ?? 'day'),
-                (string)($r['date_note'] ?? '')
-            );
-            $typeName = trim((string)($r['type_name'] ?? 'Evento'));
-            $chronicleLine = trim((string)($r['chronicle_line'] ?? '-'));
-            if ($chronicleLine === '') $chronicleLine = '-';
-            $outMeta = tt_join_meta([$dateLabel, $typeName, $chronicleLine]);
-            $outDesc = short_text((string)($r['description'] ?? ''), 360);
+    $r = hg_timeline_fetch_event($link, $id);
+    if ($r) {
+        $outTitle = (string)($r['title'] ?? '');
+        $dateLabel = tt_event_date_label(
+            (string)($r['event_date'] ?? ''),
+            (string)($r['date_precision'] ?? 'day'),
+            (string)($r['date_note'] ?? '')
+        );
+        $chronicles = hg_timeline_fetch_event_chronicles($link, $id);
+        $chronicleNames = [];
+        if (is_array($chronicles)) {
+            foreach ($chronicles as $chronicle) {
+                $name = trim((string)($chronicle['name'] ?? ''));
+                if ($name !== '') $chronicleNames[] = $name;
+            }
         }
-        $st->close();
+        $chronicleLine = !empty($chronicleNames)
+            ? implode(' | ', $chronicleNames)
+            : trim((string)($r['timeline'] ?? ''));
+        if ($chronicleLine === '') $chronicleLine = '-';
+        $outMeta = tt_join_meta([$dateLabel, trim((string)($r['type_name'] ?? 'Evento')), $chronicleLine]);
+        $outDesc = short_text((string)($r['description'] ?? ''), 360);
     }
 } elseif ($type === 'character' || $type === 'bio' || $type === 'pj') {
-    $kindCol = tt_has_column($link, 'fact_characters', 'character_kind') ? 'character_kind' : (tt_has_column($link, 'fact_characters', 'kind') ? 'kind' : '');
-    $descExpr = "COALESCE(NULLIF(c.info_text,''), NULLIF(c.notes,''), '')";
-    if (tt_has_column($link, 'fact_characters', 'description')) {
-        $descExpr = "COALESCE(NULLIF(c.description,''), NULLIF(c.info_text,''), NULLIF(c.notes,''), '')";
-    }
-    $kindSelect = ($kindCol !== '') ? "c.`$kindCol` AS character_kind," : "";
-    $sql = "
-        SELECT
-            c.name,
-            c.alias,
-            {$kindSelect}
-            {$descExpr} AS char_desc,
-            b.name AS breed_name,
-            a.name AS auspice_name,
-            t.name AS tribe_name
-        FROM fact_characters c
-        LEFT JOIN dim_breeds b   ON b.id = c.breed_id
-        LEFT JOIN dim_auspices a ON a.id = c.auspice_id
-        LEFT JOIN dim_tribes t   ON t.id = c.tribe_id
-        WHERE c.id = ?
-        LIMIT 1
-    ";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $id);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($r = $rs->fetch_assoc()) {
-            $name = (string)($r['name'] ?? '');
-            $alias = trim((string)($r['alias'] ?? ''));
-            $outTitle = ($alias !== '' ? $alias . ' (' . $name . ')' : $name);
-
-            $meta = [];
-            $breed = trim((string)($r['breed_name'] ?? ''));
-            $auspice = trim((string)($r['auspice_name'] ?? ''));
-            $tribe = trim((string)($r['tribe_name'] ?? ''));
-            if ($breed !== '') $meta[] = h($breed);
-            if ($auspice !== '') $meta[] = h($auspice);
-            if ($tribe !== '') $meta[] = h($tribe);
-            if (!empty($meta)) $outMeta = implode(' - ', $meta);
-
-            $outDesc = short_text((string)($r['char_desc'] ?? ''), 440);
-        }
-        $st->close();
+    $detail = hg_characters_fetch_detail_context_row($link, $id);
+    $r = $detail['row'] ?? null;
+    if (is_array($r)) {
+        $name = (string)($r['name'] ?? '');
+        $alias = trim((string)($r['alias'] ?? ''));
+        $outTitle = $alias !== '' ? $alias . ' (' . $name . ')' : $name;
+        $outMeta = tt_join_meta([
+            trim((string)($r['breed_name'] ?? '')),
+            trim((string)($r['auspice_name'] ?? '')),
+            trim((string)($r['tribe_name'] ?? '')),
+        ]);
+        $description = trim((string)($r['description'] ?? ''));
+        if ($description === '') $description = trim((string)($r['info_text'] ?? ''));
+        if ($description === '') $description = trim((string)($r['notes'] ?? ''));
+        $outDesc = short_text($description, 440);
     }
 }
 
-if ($outTitle === '') { echo '<div class="hg-tip">No disponible</div>'; exit; }
+if ($outTitle === '') {
+    echo '<div class="hg-tip">No disponible</div>';
+    exit;
+}
 
 echo "<div class='hg-tip hg-tip-row'>";
-	if ($outImg !== '') {
-		$imgSrc = h($outImg);
-		echo "<div class='hg-tip-media'><img src=\"{$imgSrc}\" alt=\"" . h($outImgAlt) . "\" class=\"hg-tip-thumb\"></div>";
-	}
-	echo "<div class='hg-tip-body'>";
-	echo "<div class='hg-tip-title'>" . h($outTitle) . "</div>";
-	if ($outMeta !== '') echo "<div class='hg-tip-meta'>" . $outMeta . "</div>";
-	if ($outPreDesc !== '') {
-		echo "<div class='hg-tip-label'>" . h($outPreDescLabel) . "</div>";
-		echo "<div class='hg-tip-text'>" . h($outPreDesc) . "</div>";
-	}
-	if ($outDesc !== '') {
-		echo "<div class='hg-tip-label'>Descripci&oacute;n</div>";
-		echo "<div class='hg-tip-text'>" . h($outDesc) . "</div>";
-	}
-	if ($outExtra !== '') {
-		echo "<div class='hg-tip-label'>" . h($outExtraLabel) . "</div>";
-		echo "<div class='hg-tip-text'>" . h($outExtra) . "</div>";
-	}
-	if ($outSystem !== '') {
-		echo "<div class='hg-tip-label'>Sistema</div>";
-		echo "<div class='hg-tip-text'>" . h($outSystem) . "</div>";
-	}
-	echo "</div>";
+if ($outImg !== '') {
+    $imgSrc = h($outImg);
+    echo "<div class='hg-tip-media'><img src=\"{$imgSrc}\" alt=\"" . h($outImgAlt) . "\" class=\"hg-tip-thumb\"></div>";
+}
+echo "<div class='hg-tip-body'>";
+echo "<div class='hg-tip-title'>" . h($outTitle) . "</div>";
+if ($outMeta !== '') echo "<div class='hg-tip-meta'>" . $outMeta . "</div>";
+if ($outPreDesc !== '') {
+    echo "<div class='hg-tip-label'>" . h($outPreDescLabel) . "</div>";
+    echo "<div class='hg-tip-text'>" . h($outPreDesc) . "</div>";
+}
+if ($outDesc !== '') {
+    echo "<div class='hg-tip-label'>Descripci&oacute;n</div>";
+    echo "<div class='hg-tip-text'>" . h($outDesc) . "</div>";
+}
+if ($outExtra !== '') {
+    echo "<div class='hg-tip-label'>" . h($outExtraLabel) . "</div>";
+    echo "<div class='hg-tip-text'>" . h($outExtra) . "</div>";
+}
+if ($outSystem !== '') {
+    echo "<div class='hg-tip-label'>Sistema</div>";
+    echo "<div class='hg-tip-text'>" . h($outSystem) . "</div>";
+}
+echo "</div>";
 echo "</div>";
 ?>
