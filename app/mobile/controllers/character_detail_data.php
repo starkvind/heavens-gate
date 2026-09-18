@@ -1,78 +1,16 @@
 <?php
 
 $mobileCharacterDetailReady = false;
-include_once(__DIR__ . '/../../helpers/public_response.php');
-include_once(__DIR__ . '/../../helpers/character_avatar.php');
+
+include_once __DIR__ . '/../../helpers/public_response.php';
+include_once __DIR__ . '/../../helpers/character_avatar.php';
+require_once __DIR__ . '/../../domains/characters/detail_queries.php';
+require_once __DIR__ . '/../../domains/characters/sheet_queries.php';
 
 if (!function_exists('hg_mobile_bio_h')) {
     function hg_mobile_bio_h($value): string
     {
         return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-}
-
-if (!function_exists('hg_mobile_bio_table_exists')) {
-    function hg_mobile_bio_table_exists(mysqli $link, string $table): bool
-    {
-        $table = mysqli_real_escape_string($link, $table);
-        if ($res = $link->query("SHOW TABLES LIKE '{$table}'")) {
-            $exists = $res->num_rows > 0;
-            $res->free();
-            return $exists;
-        }
-        return false;
-    }
-}
-
-if (!function_exists('hg_mobile_bio_column_exists')) {
-    function hg_mobile_bio_column_exists(mysqli $link, string $table, string $column): bool
-    {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) {
-            return $cache[$key];
-        }
-
-        $exists = false;
-        if ($stmt = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $stmt->bind_param('ss', $table, $column);
-            $stmt->execute();
-            $stmt->bind_result($count);
-            $stmt->fetch();
-            $stmt->close();
-            $exists = ((int)$count > 0);
-        }
-        $cache[$key] = $exists;
-        return $exists;
-    }
-}
-
-if (!function_exists('hg_mobile_bio_system_detail_labels')) {
-    function hg_mobile_bio_system_detail_labels(mysqli $link, int $systemId): array
-    {
-        if ($systemId <= 0 || !hg_mobile_bio_table_exists($link, 'bridge_systems_detail_labels')) return [];
-        $labels = [];
-        if ($stmt = $link->prepare('SELECT * FROM bridge_systems_detail_labels WHERE system_id = ? LIMIT 1')) {
-            $stmt->bind_param('i', $systemId); $stmt->execute(); $result = $stmt->get_result();
-            $labels = $result ? ($result->fetch_assoc() ?: []) : []; $stmt->close();
-        }
-        return $labels;
-    }
-}
-
-if (!function_exists('hg_mobile_bio_rows')) {
-    function hg_mobile_bio_rows(mysqli $link, string $sql): array
-    {
-        $rows = [];
-        if ($res = $link->query($sql)) {
-            while ($row = $res->fetch_assoc()) {
-                $rows[] = $row;
-            }
-            $res->free();
-        } else {
-            hg_public_log_error('mobile_character_detail', 'query failed: ' . mysqli_error($link));
-        }
-        return $rows;
     }
 }
 
@@ -129,22 +67,6 @@ if (!function_exists('hg_mobile_bio_date')) {
     }
 }
 
-if (!function_exists('hg_mobile_bio_first_lookup')) {
-    function hg_mobile_bio_first_lookup(mysqli $link, string $table, int $id, string $base): array
-    {
-        if ($id <= 0 || !hg_mobile_bio_table_exists($link, $table)) {
-            return [];
-        }
-        $idSql = (int)$id;
-        $rows = hg_mobile_bio_rows($link, "SELECT id, name FROM `{$table}` WHERE id = {$idSql} LIMIT 1");
-        if (empty($rows)) {
-            return [];
-        }
-        $rows[0]['href'] = hg_mobile_bio_pretty_href($link, $table, $base, $id);
-        return $rows[0];
-    }
-}
-
 if (!isset($link) || !($link instanceof mysqli)) {
     hg_public_log_error('mobile_character_detail', 'missing DB connection');
     hg_public_render_error('Personaje no disponible', 'No se pudo cargar el personaje.');
@@ -163,81 +85,9 @@ if ($characterId <= 0) {
     return;
 }
 
-$deathTable = null;
-if ($rs = $link->query("SHOW TABLES LIKE 'fact_characters_deaths'")) {
-    if ($rs->num_rows > 0) $deathTable = 'fact_characters_deaths';
-    $rs->free();
-}
-if ($deathTable === null && ($rs = $link->query("SHOW TABLES LIKE 'fact_characters_death'"))) {
-    if ($rs->num_rows > 0) $deathTable = 'fact_characters_death';
-    $rs->free();
-}
-$deathJoin = $deathTable ? "LEFT JOIN `{$deathTable}` fd ON fd.character_id = p.id" : "";
-$deathSelect = $deathTable ? "COALESCE(fd.death_description, '') AS death_description, COALESCE(fd.death_date, '') AS death_date," : "'' AS death_description, '' AS death_date,";
-
-$characterChronicleAnd = function_exists('hg_mobile_chronicle_exclusion_and') ? hg_mobile_chronicle_exclusion_and('p') : ' AND p.chronicle_id NOT IN (2,7) ';
-
-$sql = "
-    SELECT
-        p.id,
-        p.name,
-        p.system_id,
-        p.chronicle_id,
-        p.player_id,
-        p.breed_id,
-        p.auspice_id,
-        p.tribe_id,
-        p.totem_id,
-        p.nature_id,
-        p.demeanor_id,
-        p.alias,
-        p.garou_name,
-        p.gender,
-        p.concept,
-        p.image_url,
-        p.info_text,
-        p.rank,
-        p.birthdate_text,
-        p.character_kind,
-        {$deathSelect}
-        COALESCE(sys.name, '') AS system_name,
-        COALESCE(ct.kind, '') AS type_name,
-        COALESCE(ch.name, '') AS chronicle_name,
-        COALESCE(pl.name, '') AS player_name,
-        COALESCE(pl.show_in_catalog, 0) AS player_show_in_catalog,
-        COALESCE(br.name, '') AS breed_name,
-        COALESCE(au.name, '') AS auspice_name,
-        COALESCE(tr.name, '') AS tribe_name,
-        COALESCE(tox.name, '') AS totem_name,
-        COALESCE(na.name, '') AS nature_name,
-        COALESCE(de.name, '') AS demeanor_name,
-        COALESCE(st.label, '') AS status_label
-    FROM fact_characters p
-    LEFT JOIN dim_systems sys ON sys.id = p.system_id
-    LEFT JOIN dim_character_types ct ON ct.id = p.character_type_id
-    LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id
-    LEFT JOIN dim_players pl ON pl.id = p.player_id
-    LEFT JOIN dim_breeds br ON br.id = p.breed_id
-    LEFT JOIN dim_auspices au ON au.id = p.auspice_id
-    LEFT JOIN dim_tribes tr ON tr.id = p.tribe_id
-    LEFT JOIN dim_totems tox ON tox.id = p.totem_id
-    LEFT JOIN dim_archetypes na ON na.id = p.nature_id
-    LEFT JOIN dim_archetypes de ON de.id = p.demeanor_id
-    LEFT JOIN dim_character_status st ON st.id = p.status_id
-    {$deathJoin}
-    WHERE p.id = ? {$characterChronicleAnd}
-    LIMIT 1
-";
-$character = null;
-if ($stmt = $link->prepare($sql)) {
-    $stmt->bind_param('i', $characterId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $character = $result ? $result->fetch_assoc() : null;
-    $stmt->close();
-}
-
-if (!$character) {
+$detail = hg_characters_fetch_detail_context_row($link, $characterId, '2,7');
+$character = $detail['row'] ?? null;
+if (!is_array($character)) {
     hg_public_render_not_found('Personaje no encontrado', 'No se pudo localizar el personaje solicitado.');
     return;
 }
@@ -259,14 +109,8 @@ $hasCharacterSheet = strtolower(trim((string)($character['character_kind'] ?? ''
 
 $cid = (int)$characterId;
 $systemId = (int)($character['system_id'] ?? 0);
-$systemDetailLabels = hg_mobile_bio_system_detail_labels($link, $systemId);
-$detailLabel = static function (string $key, string $fallback) use ($systemDetailLabels): string {
-    $label = trim((string)($systemDetailLabels[$key] ?? ''));
-    return $label !== '' ? $label : $fallback;
-};
 $chronicleId = (int)($character['chronicle_id'] ?? 0);
 $playerId = (int)($character['player_id'] ?? 0);
-$hidePlayer = $playerId === 48 || strcasecmp(trim((string)($character['player_name'] ?? '')), 'PNJ') === 0;
 $breedId = (int)($character['breed_id'] ?? 0);
 $auspiceId = (int)($character['auspice_id'] ?? 0);
 $tribeId = (int)($character['tribe_id'] ?? 0);
@@ -274,34 +118,16 @@ $totemId = (int)($character['totem_id'] ?? 0);
 $natureId = (int)($character['nature_id'] ?? 0);
 $demeanorId = (int)($character['demeanor_id'] ?? 0);
 
-$groups = hg_mobile_bio_rows($link, "
-    SELECT g.id, g.name
-    FROM bridge_characters_groups bcg
-    INNER JOIN dim_groups g ON g.id = bcg.group_id
-    WHERE bcg.character_id = {$cid}
-      AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
-    ORDER BY bcg.updated_at DESC, bcg.created_at DESC, bcg.group_id DESC
-");
-$organizations = hg_mobile_bio_rows($link, "
-    SELECT o.id, o.name
-    FROM bridge_characters_organizations bco
-    INNER JOIN dim_organizations o ON o.id = bco.organization_id
-    WHERE bco.character_id = {$cid}
-      AND (bco.is_active = 1 OR bco.is_active IS NULL)
-    ORDER BY bco.updated_at DESC, bco.created_at DESC, bco.organization_id DESC
-");
-if (empty($organizations)) {
-    $organizations = hg_mobile_bio_rows($link, "
-        SELECT DISTINCT o.id, o.name
-        FROM bridge_characters_groups bcg
-        INNER JOIN bridge_organizations_groups bog ON bog.group_id = bcg.group_id
-        INNER JOIN dim_organizations o ON o.id = bog.organization_id
-        WHERE bcg.character_id = {$cid}
-          AND (bcg.is_active = 1 OR bcg.is_active IS NULL)
-          AND (bog.is_active = 1 OR bog.is_active IS NULL)
-        ORDER BY bog.updated_at DESC, bog.created_at DESC, bog.organization_id DESC
-    ");
-}
+$systemDetailLabels = hg_characters_fetch_system_detail_labels($link, $systemId);
+$detailLabel = static function (string $key, string $fallback) use ($systemDetailLabels): string {
+    $label = trim((string)($systemDetailLabels[$key] ?? ''));
+    return $label !== '' ? $label : $fallback;
+};
+
+$affiliations = hg_characters_fetch_active_affiliations($link, $cid);
+$groups = $affiliations['groups'] ?? [];
+$organizations = $affiliations['organizations'] ?? [];
+$hidePlayer = $playerId === 48 || strcasecmp(trim((string)($character['player_name'] ?? '')), 'PNJ') === 0;
 
 $detailLinks = [];
 if (!$hidePlayer && $playerId > 0 && trim((string)($character['player_name'] ?? '')) !== '' && (int)($character['player_show_in_catalog'] ?? 0) === 1) {
@@ -358,7 +184,10 @@ if (!empty($groups)) {
     $links = [];
     foreach ($groups as $group) {
         $gid = (int)($group['id'] ?? 0);
-        $links[] = hg_mobile_bio_link(hg_mobile_bio_pretty_href($link, 'dim_groups', '/groups', $gid), (string)($group['name'] ?? ''));
+        $links[] = hg_mobile_bio_link(
+            hg_mobile_bio_pretty_href($link, 'dim_groups', '/groups', $gid),
+            (string)($group['name'] ?? '')
+        );
     }
     $detailLinks[$detailLabel('label_pack', 'Manada')] = implode(', ', array_filter($links));
 }
@@ -366,383 +195,151 @@ if (!empty($organizations)) {
     $links = [];
     foreach ($organizations as $organization) {
         $oid = (int)($organization['id'] ?? 0);
-        $links[] = hg_mobile_bio_link(hg_mobile_bio_pretty_href($link, 'dim_organizations', '/organizations', $oid), (string)($organization['name'] ?? ''));
+        $links[] = hg_mobile_bio_link(
+            hg_mobile_bio_pretty_href($link, 'dim_organizations', '/organizations', $oid),
+            (string)($organization['name'] ?? '')
+        );
     }
     $detailLinks[$detailLabel('label_clan', 'Clan')] = implode(', ', array_filter($links));
 }
 
 $traitsByKind = [];
-$traitRows = [];
-$traitKinds = ['Atributos', 'Talentos', 'Técnicas', 'Conocimientos', 'Trasfondos'];
-if ($systemId > 0 && hg_mobile_bio_table_exists($link, 'fact_trait_sets')) {
-    foreach ($traitKinds as $kindName) {
-        $kindSql = mysqli_real_escape_string($link, $kindName);
-        $traitRows = array_merge($traitRows, hg_mobile_bio_rows($link, "
-            SELECT t.id, t.kind, t.classification, t.name, COALESCE(b.value, 0) AS value, s.sort_order
-            FROM fact_trait_sets s
-            INNER JOIN dim_traits t ON t.id = s.trait_id AND t.kind = '{$kindSql}'
-            LEFT JOIN bridge_characters_traits b ON b.trait_id = t.id AND b.character_id = {$cid}
-            WHERE s.system_id = {$systemId}
-              AND s.is_active = 1
-            ORDER BY
-                COALESCE(NULLIF(CAST(SUBSTRING_INDEX(TRIM(t.classification), ' ', 1) AS UNSIGNED), 0), 9999),
-                s.sort_order,
-                t.name
-        "));
-        $traitRows = array_merge($traitRows, hg_mobile_bio_rows($link, "
-            SELECT t.id, t.kind, t.classification, t.name, b.value, 999999 AS sort_order
-            FROM bridge_characters_traits b
-            INNER JOIN dim_traits t ON t.id = b.trait_id AND t.kind = '{$kindSql}'
-            WHERE b.character_id = {$cid}
-              AND b.value > 0
-              AND t.id NOT IN (
-                  SELECT trait_id FROM fact_trait_sets WHERE system_id = {$systemId} AND is_active = 1
-              )
-            ORDER BY b.value DESC, t.name
-        "));
+if ($hasCharacterSheet) {
+    foreach (['Atributos', 'Talentos', 'Técnicas', 'Conocimientos', 'Trasfondos'] as $kindName) {
+        $rows = hg_characters_fetch_traits_for_system_type($link, $cid, $systemId, $kindName);
+        foreach ($rows as $row) {
+            if ($kindName === 'Trasfondos' && (int)($row['value'] ?? 0) <= 0) {
+                continue;
+            }
+            $row['kind'] = $kindName;
+            $traitsByKind[$kindName][] = $row;
+        }
     }
-} else {
-    $traitRows = hg_mobile_bio_rows($link, "
-        SELECT t.id, t.kind, t.classification, t.name, b.value, 999999 AS sort_order
-        FROM bridge_characters_traits b
-        INNER JOIN dim_traits t ON t.id = b.trait_id
-        WHERE b.character_id = {$cid}
-          AND b.value > 0
-        ORDER BY t.kind, t.classification, t.name
-    ");
-}
-foreach ($traitRows as $row) {
-    $kind = trim((string)($row['kind'] ?? 'Otros')) ?: 'Otros';
-    if ($kind === 'Trasfondos' && (int)($row['value'] ?? 0) <= 0) {
-        continue;
-    }
-    if (!isset($traitsByKind[$kind])) {
-        $traitsByKind[$kind] = [];
-    }
-    $traitsByKind[$kind][] = $row;
 }
 
-$mobileActions = [];
-if ($hasCharacterSheet && hg_mobile_bio_table_exists($link, 'fact_actions')) {
-    $mobileActions = hg_mobile_bio_rows($link, "
-        SELECT a.id, a.name, a.category, a.text, a.attribute_trait_id, a.skill_trait_id,
-               a.difficulty_mode, a.fixed_difficulty, a.suggested_difficulty,
-               attr.name AS attribute_name, skill.name AS skill_name,
-               attribute_value.value AS attribute_value, skill_value.value AS skill_value
-        FROM fact_actions a
-        INNER JOIN bridge_characters_traits attribute_value
-            ON attribute_value.character_id = {$cid} AND attribute_value.trait_id = a.attribute_trait_id
-        INNER JOIN bridge_characters_traits skill_value
-            ON skill_value.character_id = {$cid} AND skill_value.trait_id = a.skill_trait_id
-        INNER JOIN dim_traits attr ON attr.id = a.attribute_trait_id
-        INNER JOIN dim_traits skill ON skill.id = a.skill_trait_id
-        WHERE attribute_value.value > 0 AND skill_value.value > 0
-        ORDER BY a.category, a.name
-    ");
-    foreach ($mobileActions as &$action) {
-        $action['href'] = hg_mobile_bio_pretty_href($link, 'fact_actions', '/rules/actions', (int)($action['id'] ?? 0));
-        $difficulty = (int)(($action['difficulty_mode'] ?? '') === 'fixed'
-            ? ($action['fixed_difficulty'] ?? 6)
-            : ($action['suggested_difficulty'] ?? 6));
-        $action['roll_href'] = '/tools/dice?' . http_build_query([
-            'character_id' => $cid,
-            'attr_trait_id' => (int)($action['attribute_trait_id'] ?? 0),
-            'skill_trait_id' => (int)($action['skill_trait_id'] ?? 0),
-            'dificultad' => $difficulty,
-            'action_name' => (string)($action['name'] ?? 'Acción'),
-        ], '', '&', PHP_QUERY_RFC3986);
-    }
-    unset($action);
+$mobileActions = $hasCharacterSheet ? hg_characters_fetch_actions_for_sheet($link, $cid) : [];
+foreach ($mobileActions as &$action) {
+    $action['href'] = hg_mobile_bio_pretty_href($link, 'fact_actions', '/rules/actions', (int)($action['id'] ?? 0));
+    $difficulty = (int)(($action['difficulty_mode'] ?? '') === 'fixed'
+        ? ($action['fixed_difficulty'] ?? 6)
+        : ($action['suggested_difficulty'] ?? 6));
+    $action['roll_href'] = '/tools/dice?' . http_build_query([
+        'character_id' => $cid,
+        'attr_trait_id' => (int)($action['attribute_trait_id'] ?? 0),
+        'skill_trait_id' => (int)($action['skill_trait_id'] ?? 0),
+        'dificultad' => $difficulty,
+        'action_name' => (string)($action['name'] ?? 'Acción'),
+    ], '', '&', PHP_QUERY_RFC3986);
 }
+unset($action);
+
 $mobileActionsByCategory = [];
 foreach ($mobileActions as $action) {
     $category = trim((string)($action['category'] ?? '')) ?: 'Sin categoría';
     $mobileActionsByCategory[$category][] = $action;
 }
-$mobileResourcesByKind = [
-    'renombre' => [],
-    'estado' => [],
-    'exp' => [],
-];
-$mobileResourceBridge = null;
-foreach (['bridge_characters_system_resources', 'bridge_characters_resources'] as $candidate) {
-    if (hg_mobile_bio_table_exists($link, $candidate)) {
-        $mobileResourceBridge = $candidate;
-        break;
-    }
-}
-if ($hasCharacterSheet && $mobileResourceBridge !== null && hg_mobile_bio_table_exists($link, 'dim_systems_resources')) {
-    $mobileResourceRows = hg_mobile_bio_rows($link, "
-        SELECT r.id, r.name, r.kind, b.value_permanent, b.value_temporary
-        FROM `{$mobileResourceBridge}` b
-        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
-        WHERE b.character_id = {$cid}
-        ORDER BY r.kind, COALESCE(r.sort_order, 9999), r.name
-    ");
-    foreach ($mobileResourceRows as $resource) {
-        $kind = strtolower(trim((string)($resource['kind'] ?? '')));
-        if (!array_key_exists($kind, $mobileResourcesByKind)) {
-            continue;
-        }
-        $mobileResourcesByKind[$kind][] = [
-            'id' => (int)($resource['id'] ?? 0),
-            'name' => (string)($resource['name'] ?? ''),
-            'perm' => (int)($resource['value_permanent'] ?? 0),
-            'temp' => (int)($resource['value_temporary'] ?? 0),
-        ];
-    }
-}
+
+$mobileResourcesByKind = $hasCharacterSheet
+    ? hg_characters_fetch_resources($link, $cid, $systemId)
+    : ['renombre' => [], 'estado' => [], 'exp' => []];
 
 $mobileForms = [];
 $mobileBaseManeuvers = [];
-if (
-    $hasCharacterSheet
-    && $systemId > 0
-    && hg_mobile_bio_table_exists($link, 'dim_forms')
-    && hg_mobile_bio_table_exists($link, 'bridge_maneuvers_systems')
-    && hg_mobile_bio_table_exists($link, 'bridge_maneuvers_forms')
-) {
-    $sortSelect = hg_mobile_bio_column_exists($link, 'dim_forms', 'sort_order')
-        ? 'COALESCE(sort_order, 999) AS sort_order'
-        : '999 AS sort_order';
-    $forms = hg_mobile_bio_rows($link, "SELECT id, form, race, {$sortSelect} FROM dim_forms WHERE system_id = {$systemId} AND TRIM(COALESCE(form, '')) <> '' ORDER BY sort_order, form");
+if ($hasCharacterSheet && $systemId > 0) {
+    $forms = hg_characters_fetch_forms_for_system($link, $systemId);
     $races = [];
     foreach ($forms as $form) {
         $race = trim((string)($form['race'] ?? ''));
-        if ($race !== '') $races[$race] = true;
+        if ($race !== '') {
+            $races[$race] = true;
+        }
     }
 
     $formIds = [];
     foreach ($forms as $form) {
-        if (count($races) > 1 && trim((string)($form['race'] ?? '')) !== trim((string)($character['tribe_name'] ?? ''))) continue;
-        $formIds[] = (int)$form['id'];
-    }
-
-    $modifiersByForm = [];
-    if (!empty($formIds) && hg_mobile_bio_table_exists($link, 'bridge_forms_traits')) {
-        $formIdSql = implode(',', array_map('intval', $formIds));
-        foreach (hg_mobile_bio_rows($link, "SELECT form_id, trait_id, modifier FROM bridge_forms_traits WHERE form_id IN ({$formIdSql})") as $modifier) {
-            $modifiersByForm[(int)$modifier['form_id']][(int)$modifier['trait_id']] = (int)$modifier['modifier'];
+        if (count($races) > 1 && trim((string)($form['race'] ?? '')) !== trim((string)($character['tribe_name'] ?? ''))) {
+            continue;
         }
+        $formIds[] = (int)($form['id'] ?? 0);
     }
 
-    foreach (hg_mobile_bio_rows($link, "SELECT m.id, m.name, m.image_url FROM bridge_maneuvers_systems b JOIN fact_combat_maneuvers m ON m.id=b.maneuver_id WHERE b.system_id={$systemId} ORDER BY m.name") as $maneuver) {
-        $maneuver['href'] = hg_mobile_bio_pretty_href($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuver['id']);
-        $mobileBaseManeuvers[(int)$maneuver['id']] = $maneuver;
+    $modifiersByForm = hg_characters_fetch_form_modifiers($link, $formIds);
+    foreach (hg_characters_fetch_system_maneuvers($link, $systemId) as $maneuver) {
+        $maneuver['href'] = hg_mobile_bio_pretty_href(
+            $link,
+            'fact_combat_maneuvers',
+            '/rules/maneuvers',
+            (int)($maneuver['id'] ?? 0)
+        );
+        $mobileBaseManeuvers[(int)($maneuver['id'] ?? 0)] = $maneuver;
     }
 
     $formManeuvers = [];
-    if (!empty($formIds)) {
-        $formIdSql = implode(',', array_map('intval', $formIds));
-        foreach (hg_mobile_bio_rows($link, "SELECT b.form_id, m.id, m.name, m.image_url FROM bridge_maneuvers_forms b JOIN fact_combat_maneuvers m ON m.id=b.maneuver_id WHERE b.form_id IN ({$formIdSql}) ORDER BY m.name") as $maneuver) {
-            $maneuver['href'] = hg_mobile_bio_pretty_href($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuver['id']);
-            $formManeuvers[(int)$maneuver['form_id']][(int)$maneuver['id']] = $maneuver;
+    foreach (hg_characters_fetch_form_maneuvers($link, $formIds) as $formId => $maneuvers) {
+        foreach ($maneuvers as $maneuver) {
+            $maneuver['href'] = hg_mobile_bio_pretty_href(
+                $link,
+                'fact_combat_maneuvers',
+                '/rules/maneuvers',
+                (int)($maneuver['id'] ?? 0)
+            );
+            $formManeuvers[(int)$formId][(int)($maneuver['id'] ?? 0)] = $maneuver;
         }
     }
 
     foreach ($forms as $form) {
-        $formId = (int)$form['id'];
-        if (!in_array($formId, $formIds, true)) continue;
+        $formId = (int)($form['id'] ?? 0);
+        if (!in_array($formId, $formIds, true)) {
+            continue;
+        }
         $maneuvers = $mobileBaseManeuvers;
-        foreach (($formManeuvers[$formId] ?? []) as $maneuverId => $maneuver) $maneuvers[(int)$maneuverId] = $maneuver;
+        foreach (($formManeuvers[$formId] ?? []) as $maneuverId => $maneuver) {
+            $maneuvers[(int)$maneuverId] = $maneuver;
+        }
         $mobileForms[] = [
             'id' => $formId,
-            'name' => trim((string)$form['form']),
+            'name' => trim((string)($form['form'] ?? '')),
             'modifiers' => $modifiersByForm[$formId] ?? [],
             'maneuvers' => array_values($maneuvers),
         ];
     }
 }
 $mobileBaseManeuvers = array_values($mobileBaseManeuvers);
-$merits = hg_mobile_bio_rows($link, "
-    SELECT mf.id, mf.name, mf.kind, mf.cost, b.level
-    FROM bridge_characters_merits_flaws b
-    INNER JOIN dim_merits_flaws mf ON mf.id = b.merit_flaw_id
-    WHERE b.character_id = {$cid}
-    ORDER BY mf.kind DESC, mf.name
-");
 
-$conditions = [];
-if (hg_mobile_bio_table_exists($link, 'bridge_characters_conditions') && hg_mobile_bio_table_exists($link, 'dim_character_conditions')) {
-    $conditions = hg_mobile_bio_rows($link, "
-        SELECT c.id, c.name, c.category
-        FROM bridge_characters_conditions b
-        INNER JOIN dim_character_conditions c ON c.id = b.condition_id
-        WHERE b.character_id = {$cid}
-        ORDER BY c.category, c.name
-    ");
-}
+$merits = $hasCharacterSheet ? hg_characters_fetch_merits_flaws($link, $cid) : [];
+usort($merits, static function (array $left, array $right): int {
+    $kindCmp = strcasecmp((string)($right['kind'] ?? ''), (string)($left['kind'] ?? ''));
+    return $kindCmp !== 0 ? $kindCmp : strcasecmp((string)($left['name'] ?? ''), (string)($right['name'] ?? ''));
+});
 
+$conditions = $hasCharacterSheet ? hg_characters_fetch_conditions($link, $cid) : [];
+usort($conditions, static function (array $left, array $right): int {
+    $categoryCmp = strcasecmp((string)($left['category'] ?? ''), (string)($right['category'] ?? ''));
+    return $categoryCmp !== 0 ? $categoryCmp : strcasecmp((string)($left['name'] ?? ''), (string)($right['name'] ?? ''));
+});
+
+$powerRows = $hasCharacterSheet ? hg_characters_fetch_powers($link, $cid) : [];
 $powers = [
-    'Dones' => hg_mobile_bio_rows($link, "
-        SELECT g.id, g.name, g.rank AS level
-        FROM bridge_characters_powers b
-        INNER JOIN fact_gifts g ON g.id = b.power_id
-        WHERE b.character_id = {$cid}
-          AND b.power_kind = 'dones'
-        ORDER BY g.rank, g.name
-    "),
-    'Disciplinas' => hg_mobile_bio_rows($link, "
-        SELECT d.id, d.name, b.power_level AS level
-        FROM bridge_characters_powers b
-        INNER JOIN dim_discipline_types d ON d.id = b.power_id
-        WHERE b.character_id = {$cid}
-          AND b.power_kind = 'disciplinas'
-        ORDER BY d.name
-    "),
-    'Rituales' => hg_mobile_bio_rows($link, "
-        SELECT r.id, r.name, r.level
-        FROM bridge_characters_powers b
-        INNER JOIN fact_rites r ON r.id = b.power_id
-        WHERE b.character_id = {$cid}
-          AND b.power_kind = 'rituales'
-        ORDER BY r.level, r.name
-    "),
+    'Dones' => $powerRows['dones'] ?? [],
+    'Disciplinas' => $powerRows['disciplinas'] ?? [],
+    'Rituales' => $powerRows['rituales'] ?? [],
 ];
 
-$items = hg_mobile_bio_rows($link, "
-    SELECT i.id, i.item_type_id, t.pretty_id AS type_pretty, i.name, COALESCE(t.name, '') AS type_name
-    FROM bridge_characters_items b
-    INNER JOIN fact_items i ON i.id = b.item_id
-    LEFT JOIN dim_item_types t ON t.id = i.item_type_id
-    WHERE b.character_id = {$cid}
-    ORDER BY t.name, i.name
-");
-
-$comments = hg_mobile_bio_rows($link, "
-    SELECT nick, commented_at, message
-    FROM fact_characters_comments
-    WHERE character_id = {$cid}
-    ORDER BY commented_at DESC, comment_time DESC
-    LIMIT 20
-");
-
-$relationChronicleAnd = function_exists('hg_mobile_chronicle_exclusion_and') ? hg_mobile_chronicle_exclusion_and('p2') : ' AND p2.chronicle_id NOT IN (2,7) ';
-
-$relations = [];
-if (hg_mobile_bio_table_exists($link, 'bridge_characters_relations')) {
-    $relations = array_merge($relations, hg_mobile_bio_rows($link, "
-        SELECT cr.id, cr.relation_type, cr.tag, cr.importance, cr.description, cr.arrows,
-               p2.id AS other_id, p2.name AS other_name, p2.alias AS other_alias,
-               'outgoing' AS direction
-        FROM bridge_characters_relations cr
-        LEFT JOIN fact_characters p2 ON p2.id = cr.target_id
-        WHERE cr.source_id = {$cid} {$relationChronicleAnd}
-        ORDER BY cr.relation_type, p2.name
-    "));
-    $relations = array_merge($relations, hg_mobile_bio_rows($link, "
-        SELECT cr.id, cr.relation_type, cr.tag, cr.importance, cr.description, cr.arrows,
-               p2.id AS other_id, p2.name AS other_name, p2.alias AS other_alias,
-               'incoming' AS direction
-        FROM bridge_characters_relations cr
-        LEFT JOIN fact_characters p2 ON p2.id = cr.source_id
-        WHERE cr.target_id = {$cid} {$relationChronicleAnd}
-        ORDER BY cr.relation_type, p2.name
-    "));
-    usort($relations, static function (array $a, array $b): int {
-        return strcasecmp((string)($a['relation_type'] ?? ''), (string)($b['relation_type'] ?? ''));
-    });
+$items = $hasCharacterSheet ? hg_characters_fetch_items($link, $cid) : [];
+foreach ($items as &$item) {
+    $item['type_name'] = (string)($item['item_type_name'] ?? '');
 }
+unset($item);
+usort($items, static function (array $left, array $right): int {
+    $typeCmp = strcasecmp((string)($left['type_name'] ?? ''), (string)($right['type_name'] ?? ''));
+    return $typeCmp !== 0 ? $typeCmp : strcasecmp((string)($left['name'] ?? ''), (string)($right['name'] ?? ''));
+});
 
-$chapterParticipation = [];
-if (hg_mobile_bio_table_exists($link, 'bridge_chapters_characters') && hg_mobile_bio_table_exists($link, 'dim_chapters')) {
-    $hasSeasonId = hg_mobile_bio_column_exists($link, 'dim_chapters', 'season_id');
-    $hasChapterSeasonNumber = hg_mobile_bio_column_exists($link, 'dim_chapters', 'season_number');
-    $hasSeasonKind = hg_mobile_bio_column_exists($link, 'dim_seasons', 'season_kind');
-    $seasonKindExpr = $hasSeasonKind ? "COALESCE(s.season_kind, 'temporada')" : "'temporada'";
-    $seasonJoin = '';
-    $chapterSeasonExpr = $hasChapterSeasonNumber ? 'ac.season_number' : '0';
-    $seasonSelect = "'' AS temporada_name, {$chapterSeasonExpr} AS season_number, 'temporada' AS season_kind";
-    $seasonOrder = $hasChapterSeasonNumber ? 'ac.season_number' : 'ac.chapter_number';
-    if (hg_mobile_bio_table_exists($link, 'dim_seasons')) {
-        if ($hasSeasonId) {
-            $seasonJoin = "LEFT JOIN dim_seasons s ON s.id = ac.season_id";
-        } elseif ($hasChapterSeasonNumber) {
-            $seasonJoin = "LEFT JOIN dim_seasons s ON s.season_number = ac.season_number";
-        }
-        if ($seasonJoin !== '') {
-            $seasonNumberExpr = $hasChapterSeasonNumber ? 'COALESCE(s.season_number, ac.season_number)' : 'COALESCE(s.season_number, 0)';
-            $seasonSelect = "COALESCE(s.name, '') AS temporada_name, {$seasonNumberExpr} AS season_number, {$seasonKindExpr} AS season_kind";
-            $seasonOrder = $hasChapterSeasonNumber ? "COALESCE(s.sort_order, s.season_number, ac.season_number)" : "COALESCE(s.sort_order, s.season_number)";
-        }
-    }
-    $chapterParticipation = hg_mobile_bio_rows($link, "
-        SELECT ac.id, ac.name, ac.chapter_number, ac.played_date, {$seasonSelect}
-        FROM dim_chapters ac
-        INNER JOIN bridge_chapters_characters bcc ON bcc.chapter_id = ac.id
-        {$seasonJoin}
-        WHERE bcc.character_id = {$cid}
-        ORDER BY {$seasonOrder}, ac.played_date, ac.chapter_number, ac.id
-    ");
-}
-
-$timelineEvents = [];
-if (hg_mobile_bio_table_exists($link, 'bridge_timeline_events_characters') && hg_mobile_bio_table_exists($link, 'fact_timeline_events')) {
-    $hasEventPretty = hg_mobile_bio_column_exists($link, 'fact_timeline_events', 'pretty_id');
-    $hasEventTypeId = hg_mobile_bio_column_exists($link, 'fact_timeline_events', 'event_type_id');
-    $hasEventTypes = $hasEventTypeId && hg_mobile_bio_table_exists($link, 'dim_timeline_events_types');
-    $eventPrettyExpr = $hasEventPretty ? 'e.pretty_id' : "''";
-    $eventTypeJoin = $hasEventTypes ? 'LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id' : '';
-    $eventTypeExpr = $hasEventTypes ? "COALESCE(t.name, 'Evento')" : "COALESCE(e.kind, 'Evento')";
-    $timelineEvents = hg_mobile_bio_rows($link, "
-        SELECT e.id, {$eventPrettyExpr} AS pretty_id, e.title, e.event_date, {$eventTypeExpr} AS type_name
-        FROM bridge_timeline_events_characters bec
-        INNER JOIN fact_timeline_events e ON e.id = bec.event_id
-        {$eventTypeJoin}
-        WHERE bec.character_id = {$cid}
-        ORDER BY
-            CASE WHEN e.event_date = '0000-00-00' OR e.event_date IS NULL THEN 1 ELSE 0 END ASC,
-            e.event_date ASC,
-            e.id ASC
-        LIMIT 24
-    ");
-}
-
-$characterDocs = [];
-if (hg_mobile_bio_table_exists($link, 'bridge_characters_docs') && hg_mobile_bio_table_exists($link, 'fact_docs')) {
-    $hasDocRelLabel = hg_mobile_bio_column_exists($link, 'bridge_characters_docs', 'relation_label');
-    $hasDocSortOrder = hg_mobile_bio_column_exists($link, 'bridge_characters_docs', 'sort_order');
-    $hasDocCategories = hg_mobile_bio_table_exists($link, 'dim_doc_categories');
-    $docRelExpr = $hasDocRelLabel ? 'COALESCE(b.relation_label, "")' : '""';
-    $docSortExpr = $hasDocSortOrder ? 'COALESCE(b.sort_order, 0)' : '0';
-    $docOrder = $hasDocSortOrder ? 'b.sort_order ASC, d.title ASC' : 'd.title ASC';
-    $docJoin = $hasDocCategories ? 'LEFT JOIN dim_doc_categories c ON c.id = d.section_id' : '';
-    $docSectionExpr = $hasDocCategories ? "COALESCE(c.kind, '')" : "''";
-    $characterDocs = hg_mobile_bio_rows($link, "
-        SELECT b.doc_id, {$docRelExpr} AS relation_label, {$docSortExpr} AS sort_order,
-               d.title, d.pretty_id, {$docSectionExpr} AS section_name
-        FROM bridge_characters_docs b
-        INNER JOIN fact_docs d ON d.id = b.doc_id
-        {$docJoin}
-        WHERE b.character_id = {$cid}
-        ORDER BY {$docOrder}
-    ");
-}
-
-$characterExternalLinks = [];
-if (hg_mobile_bio_table_exists($link, 'bridge_characters_external_links') && hg_mobile_bio_table_exists($link, 'fact_external_links')) {
-    $hasExtRelLabel = hg_mobile_bio_column_exists($link, 'bridge_characters_external_links', 'relation_label');
-    $hasExtSortOrder = hg_mobile_bio_column_exists($link, 'bridge_characters_external_links', 'sort_order');
-    $hasExternalActive = hg_mobile_bio_column_exists($link, 'fact_external_links', 'is_active');
-    $hasExternalKind = hg_mobile_bio_column_exists($link, 'fact_external_links', 'kind');
-    $hasExternalSource = hg_mobile_bio_column_exists($link, 'fact_external_links', 'source_label');
-    $hasExternalDescription = hg_mobile_bio_column_exists($link, 'fact_external_links', 'description');
-    $extRelExpr = $hasExtRelLabel ? 'COALESCE(b.relation_label, "")' : '""';
-    $extSortExpr = $hasExtSortOrder ? 'COALESCE(b.sort_order, 0)' : '0';
-    $extOrder = $hasExtSortOrder ? 'b.sort_order ASC, l.title ASC' : 'l.title ASC';
-    $extActiveExpr = $hasExternalActive ? 'COALESCE(l.is_active, 1)' : '1';
-    $extKindExpr = $hasExternalKind ? 'COALESCE(l.kind, "")' : '""';
-    $extSourceExpr = $hasExternalSource ? 'COALESCE(l.source_label, "")' : '""';
-    $extDescriptionExpr = $hasExternalDescription ? 'COALESCE(l.description, "")' : '""';
-    $characterExternalLinks = hg_mobile_bio_rows($link, "
-        SELECT b.external_link_id, {$extRelExpr} AS relation_label, {$extSortExpr} AS sort_order,
-               l.title, l.url, {$extKindExpr} AS kind, {$extSourceExpr} AS source_label, {$extDescriptionExpr} AS description,
-               {$extActiveExpr} AS is_active
-        FROM bridge_characters_external_links b
-        INNER JOIN fact_external_links l ON l.id = b.external_link_id
-        WHERE b.character_id = {$cid}
-        ORDER BY {$extOrder}
-    ");
-}
+$comments = array_slice(hg_characters_fetch_comments($link, $cid), 0, 20);
+$relations = hg_characters_fetch_relations($link, $cid, '2,7');
+$chapterParticipation = hg_characters_fetch_chapter_participation($link, $cid, 'season');
+$timelineEvents = hg_characters_fetch_participation_events($link, $cid, 24);
+$characterDocs = hg_characters_fetch_docs($link, $cid);
+$characterExternalLinks = hg_characters_fetch_external_links($link, $cid);
 
 $mobileCharacterDetailReady = true;
