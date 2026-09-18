@@ -25,6 +25,7 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/bio/bio_page.php',
         ROOT / 'app/controllers/bio/bio_page_prepare.php',
         ROOT / 'app/mobile/controllers/character_detail.php',
+        ROOT / 'app/mobile/controllers/character_detail_data.php',
         ROOT / 'app/mobile/controllers/characters_list.php',
         ROOT / 'app/mobile/controllers/character_types.php',
         ROOT / 'app/mobile/controllers/character_type_detail.php',
@@ -181,6 +182,30 @@ for domain, paths in EXTRACTED_CONTROLLERS.items():
         text = path.read_text(encoding='utf-8', errors='replace')
         if any(pattern.search(text) for pattern in QUERY_CALLS):
             errors.append(f'{domain}: controller regained direct SQL execution: {path.relative_to(ROOT)}')
+
+        if path == ROOT / 'app/mobile/controllers/character_detail_data.php':
+            raw_sql = re.compile(r'\b(?:SELECT|INSERT|UPDATE|DELETE|SHOW|DESCRIBE|EXPLAIN)\b', re.I)
+            if raw_sql.search(text):
+                errors.append(
+                    'characters: mobile character detail data regained raw SQL; '
+                    'shared data access belongs in app/domains/characters/*'
+                )
+            required_markers = [
+                'hg_characters_fetch_detail_context_row(',
+                'hg_characters_fetch_active_affiliations(',
+                'hg_characters_fetch_traits_for_system_type(',
+                'hg_characters_fetch_resources(',
+                'hg_characters_fetch_powers(',
+                'hg_characters_fetch_relations(',
+                'hg_characters_fetch_chapter_participation(',
+                'hg_characters_fetch_participation_events(',
+            ]
+            missing = [item for item in required_markers if item not in text]
+            if missing:
+                errors.append(
+                    'characters: mobile character detail lost shared-domain convergence markers: '
+                    + ', '.join(missing)
+                )
 
 if errors:
     for error in errors:
