@@ -1,6 +1,7 @@
 <?php
 	require_once(__DIR__ . '/../helpers/runtime_response.php');
 	require_once(__DIR__ . '/../helpers/character_avatar.php');
+	require_once(__DIR__ . '/../domains/characters/queries.php');
 
 	if (!isset($link) || !($link instanceof mysqli)) {
 		require_once(__DIR__ . '/../helpers/db_connection.php');
@@ -59,18 +60,13 @@
 		$colortexto = '';
 		$char_pretty = (string)$char_id;
 	} else {
-		$query = "SELECT name, alias, image_url, gender, text_color, pretty_id FROM fact_characters WHERE id = ? LIMIT 1";
-		$stmt = mysqli_prepare($link, $query);
-		if (!$stmt) {
-			hg_runtime_log_error('forum_message_snippet.prepare', mysqli_error($link));
-			hg_runtime_embed_error('Mensaje no disponible', 'No se pudo preparar la consulta del personaje.', 500);
-			return;
-		}
-		mysqli_stmt_bind_param($stmt, "i", $char_id);
-		mysqli_stmt_execute($stmt);
-		$result = mysqli_stmt_get_result($stmt);
-
-		if (!$row = mysqli_fetch_assoc($result)) {
+		$row = hg_characters_fetch_lookup(
+			$link,
+			'fact_characters',
+			$char_id,
+			['name', 'alias', 'image_url', 'gender', 'text_color', 'pretty_id']
+		);
+		if (!$row) {
 			hg_runtime_embed_error('Personaje no encontrado', 'No existe ningun personaje con ese identificador.', 404);
 			return;
 		}

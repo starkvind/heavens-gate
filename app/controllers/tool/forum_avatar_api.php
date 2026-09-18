@@ -2,6 +2,7 @@
 require_once(__DIR__ . '/../../helpers/runtime_response.php');
 require_once(__DIR__ . '/../../helpers/tool_api.php');
 require_once(__DIR__ . '/../../helpers/character_avatar.php');
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 
 if (!isset($link) || !($link instanceof mysqli)) {
     require_once(__DIR__ . '/../../helpers/db_connection.php');
@@ -81,18 +82,8 @@ if (trim($msg) === '') {
 }
 
 if ($characterId > 0) {
-    $stmt = mysqli_prepare($link, 'SELECT id FROM fact_characters WHERE id = ? LIMIT 1');
-    if (!$stmt) {
-        hg_runtime_log_error('forum_avatar_api.prepare_character', mysqli_error($link));
-        hg_tool_api_error('Could not validate character.', 500);
-        return;
-    }
-    mysqli_stmt_bind_param($stmt, 'i', $characterId);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $exists = (bool)mysqli_fetch_assoc($result);
-    mysqli_stmt_close($stmt);
-    if (!$exists) {
+    $character = hg_characters_fetch_lookup($link, 'fact_characters', $characterId, ['id']);
+    if (!$character) {
         hg_tool_api_error('Character not found.', 404);
         return;
     }
