@@ -794,9 +794,6 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
                             <article class="hgpc-card">
                                 <div class="hgpc-card__top">
                                     <h3><?= hg_power_custom_h($item['name'] ?? ''); ?></h3>
-                                    <?php if (!$printMode): ?>
-                                        <a class="hgpc-card__back" href="#hgpc-root">Volver arriba</a>
-                                    <?php endif; ?>
                                 </div>
 
                                 <?php if (!empty($item['image']['src'])): ?>

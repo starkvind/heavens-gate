@@ -152,8 +152,6 @@ if (function_exists('hg_page_register_stylesheet')) {
   <div class="wrap">
     <?php if (!$printMode) { hg_render_power_catalog_tabs('rites', 'full'); } ?>
 
-    <a id="top"></a>
-
     <div class="hero">
       <div class="title">
         <h2>Rituales</h2>
@@ -225,7 +223,6 @@ if (function_exists('hg_page_register_stylesheet')) {
         <article class="card" id="<?php echo h($anchor); ?>">
           <div class="topline">
             <h3 class="name"><?php echo $name; ?></h3>
-            <a class="back" href="<?php echo $pageHref; ?>#top">&uarr; Arriba</a>
           </div>
 
           <div class="chips">

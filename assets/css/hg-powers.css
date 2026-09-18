@@ -128,6 +128,21 @@
     padding: 8px 0 12px;
 }
 
+.hg-powers-origin-content > a,
+.hg-powers-origin-content > a:visited {
+    color: var(--hg-link);
+    text-decoration: none;
+}
+
+.hg-powers-origin-content > a:hover {
+    color: var(--hg-link-hover);
+}
+
+/* Firefox may paint :visited border colours separately. */
+.hg-powers-origin-content > a:visited .hg-powers-list-card {
+    border-color: #000088;
+}
+
 .hg-powers-item-cell {
     display: inline-flex;
     align-items: center;
