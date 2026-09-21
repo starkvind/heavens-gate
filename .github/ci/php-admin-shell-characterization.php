@@ -106,8 +106,8 @@ $authMarkers = [
     '$absoluteTimeout = 12 * 60 * 60',
     '$idleTimeout = 2 * 60 * 60',
     'session_regenerate_id(true)',
-    "if ($path !== '/talim'",
-    "isset($params['ajax'])",
+    "if (\$path !== '/talim'",
+    "isset(\$params['ajax'])",
 ];
 foreach ($authMarkers as $marker) {
     if (strpos($auth, $marker) === false) {
