@@ -45,5 +45,11 @@ jobs:
       - name: Characterize public monolith seams
         run: php .github/ci/php-public-monolith-characterization.php
 
+      - name: Characterize Admin shell and security
+        run: php .github/ci/php-admin-shell-characterization.php
+
+      - name: Audit Admin procedural debt baseline
+        run: python3 .github/ci/php-admin-debt-audit.py
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
