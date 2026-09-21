@@ -1,4 +1,6 @@
 <?php
+require_once(__DIR__ . '/../../domains/csp/queries.php');
+
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/tools/csp-board.css');
 } else {
@@ -17,38 +19,32 @@ if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("ap
         <?php
             $pageSect = "Tablón de mensajes"; // PARA CAMBIAR EL TITULO A LA PAGINA
 
-            // ORDEN GUAY
+            $posts = hg_csp_fetch_posts($link) ?? [];
 
-            $consulta ="SELECT author, title, message, posted_at FROM fact_csp_posts ORDER BY id DESC";
+            foreach ($posts as $ResultQuery) {
+                print("
+                <tr>
+                <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["author"]."</td>
+                <td class='klax1'>Fecha:</td><td class='klax2'>".$ResultQuery["posted_at"]."</td>
+                </tr><tr><td class='klax1'>T&iacute;tulo:</td>
+                <td colspan='3' class='klax2'>".$ResultQuery["title"]."</td>
+                </tr>
+                ");
 
-            $stmt = mysqli_prepare($link, $consulta);
-            mysqli_stmt_execute($stmt);
-            $result = mysqli_stmt_get_result($stmt);
+                print("
+                <tr>
+                <td colspan='6' class='klax2'>
+                <p>".nl2br($ResultQuery["message"])."</p>\n
+                </td>
+                </tr>
+                ");
 
-                while ($ResultQuery = mysqli_fetch_assoc($result)) {
-                    print("
-                    <tr>
-                    <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["author"]."</td>
-                    <td class='klax1'>Fecha:</td><td class='klax2'>".$ResultQuery["posted_at"]."</td>
-                    </tr><tr><td class='klax1'>T&iacute;tulo:</td>
-                    <td colspan='3' class='klax2'>".$ResultQuery["title"]."</td>
-                    </tr>
-                    ");
-
-                    print("
-                    <tr>
-                    <td colspan='6' class='klax2'>
-                    <p>".nl2br($ResultQuery["message"])."</p>\n
-                    </td>
-                    </tr>
-                    ");
-
-                    print("
-                    <tr>
-                    <td colspan='6'>&nbsp;</td>
-                    </tr>
-                    ");
-                }
+                print("
+                <tr>
+                <td colspan='6'>&nbsp;</td>
+                </tr>
+                ");
+            }
         ?>
     </table>
 </center>
