@@ -12,6 +12,10 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/main/main_news.php',
         ROOT / 'app/mobile/controllers/news.php',
     ],
+    'csp': [
+        ROOT / 'app/controllers/tool/csp_board.php',
+        ROOT / 'app/mobile/controllers/csp.php',
+    ],
     'players': [
         ROOT / 'app/controllers/playr/playr_list.php',
         ROOT / 'app/controllers/playr/playr_page.php',
@@ -199,6 +203,10 @@ QUERY_CALLS = [
     re.compile(r'->\s*(?:query|prepare)\s*\('),
 ]
 
+DOMAIN_REQUIRED_MARKERS = {
+    'csp': ['hg_csp_fetch_posts('],
+}
+
 errors = []
 for domain, paths in EXTRACTED_CONTROLLERS.items():
     helper = ROOT / f'app/domains/{domain}/queries.php'
@@ -213,6 +221,15 @@ for domain, paths in EXTRACTED_CONTROLLERS.items():
         text = path.read_text(encoding='utf-8', errors='replace')
         if any(pattern.search(text) for pattern in QUERY_CALLS):
             errors.append(f'{domain}: controller regained direct SQL execution: {path.relative_to(ROOT)}')
+
+        missing_domain_markers = [
+            marker for marker in DOMAIN_REQUIRED_MARKERS.get(domain, []) if marker not in text
+        ]
+        if missing_domain_markers:
+            errors.append(
+                f'{domain}: controller lost shared-domain convergence markers in '
+                f'{path.relative_to(ROOT)}: ' + ', '.join(missing_domain_markers)
+            )
 
         if path == ROOT / 'app/mobile/controllers/character_detail_data.php':
             raw_sql = re.compile(r'\b(?:SELECT\s|INSERT\s+INTO\b|UPDATE\s+[`A-Za-z0-9_]+\s+SET\b|DELETE\s+FROM\b|SHOW\s+(?:TABLES|COLUMNS)\b|DESCRIBE\s|EXPLAIN\s)', re.I)
