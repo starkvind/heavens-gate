@@ -11,6 +11,7 @@ include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
+include_once(__DIR__ . '/../../domains/systems/admin_details.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -24,20 +25,6 @@ function sanitize_utf8_text(string $s): string {
     }
     return $s ?? '';
 }
-if (!function_exists('has_column')) {
-    function has_column(mysqli $link, string $table, string $column): bool {
-        $table = trim($table);
-        $column = trim($column);
-        if ($table === '' || $column === '') return false;
-        $sql = "SHOW COLUMNS FROM `".$link->real_escape_string($table)."` LIKE '".$link->real_escape_string($column)."'";
-        $rs = $link->query($sql);
-        if (!$rs) return false;
-        $ok = $rs->num_rows > 0;
-        $rs->close();
-        return $ok;
-    }
-}
-
 // CSRF simple + helper compartido
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_system_details';
 if (function_exists('hg_admin_ensure_csrf_token')) {
@@ -66,17 +53,8 @@ $offset  = ($page-1)*$perPage;
 
 $flash = [];
 
-$opts_origins = [];
-if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $opts_origins[] = $r; }
-    $rs->close();
-}
-
-$opts_systems = [];
-if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
-    $rs->close();
-}
+$opts_origins = hg_system_details_admin_fetch_origins($link);
+$opts_systems = hg_system_details_admin_fetch_systems($link);
 $systemsById = [];
 foreach ($opts_systems as $sysRow) {
     $systemsById[(int)$sysRow['id']] = (string)$sysRow['name'];
@@ -275,16 +253,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     } elseif (!csrf_ok()) {
         $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga.'];
     } else {
-        $opts_origins = [];
-        if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name ASC")) {
-            while ($r = $rs->fetch_assoc()) { $opts_origins[] = $r; }
-            $rs->close();
-        }
-        $opts_systems = [];
-        if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
-            while ($r = $rs->fetch_assoc()) { $opts_systems[] = ['id'=>(int)$r['id'], 'name'=>(string)$r['name']]; }
-            $rs->close();
-        }
+        $opts_origins = hg_system_details_admin_fetch_origins($link);
+        $opts_systems = hg_system_details_admin_fetch_systems($link);
         $systemsById = [];
         foreach ($opts_systems as $sysRow) {
             $systemsById[(int)$sysRow['id']] = (string)$sysRow['name'];
@@ -354,7 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $pk = $M['pk'];
             $fieldKeys = array_map(fn($f)=>(string)$f['k'], array_values(array_filter($M['fields'], fn($f)=>(($f['db'] ?? 's') !== 'x'))));
             $extraWrite = [];
-            if (has_column($link, $table, 'system_name') && !in_array('system_name', $fieldKeys, true)) {
+            if (hg_system_details_admin_has_column($link, $table, 'system_name') && !in_array('system_name', $fieldKeys, true)) {
                 $sid = (int)($vals['system_id'] ?? 0);
                 $extraWrite['system_name'] = (string)($systemsById[$sid] ?? '');
             }
@@ -389,104 +359,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 if ($id <= 0) {
                     $flash[] = ['type'=>'error','msg'=>'Falta ID para borrar.'];
                 } else {
-                    $sql = "DELETE FROM `$table` WHERE `$pk`=?";
-                    $st = $link->prepare($sql);
-                    if ($st) {
-                        $st->bind_param('i', $id);
-                        if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Eliminado correctamente.'];
-                        else $flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-                        $st->close();
-                    } else {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
-                    }
+                    $result = hg_system_details_admin_delete($link, $table, $pk, $id);
+                    $flash[] = [
+                        'type' => !empty($result['ok']) ? 'ok' : 'error',
+                        'msg' => (string)($result['message'] ?? 'Error al borrar.'),
+                    ];
                 }
             }
 
             if ($action === 'create') {
-                $cols = []; $ph = []; $types = ''; $bind = [];
-                foreach ($M['fields'] as $f) {
-                    if (($f['db'] ?? 's') === 'x') continue;
-                    $isNullableSelectInt = (($f['ui'] ?? '') === 'select_int') && empty($f['req']) && (($f['db'] ?? 's') === 'i');
-                    $cols[] = $f['k'];
-                    $ph[] = $isNullableSelectInt ? 'NULLIF(?, 0)' : '?';
-                    $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
-                    $bind[] = $vals[$f['k']];
-                }
-                foreach ($extraWrite as $k => $v) {
-                    $cols[] = $k;
-                    $ph[] = '?';
-                    $types .= 's';
-                    $bind[] = (string)$v;
-                }
-                $sql = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`", $cols)).") VALUES (".implode(',', $ph).")";
-                if (!empty($M['has_timestamps'])) {
-                    $sql = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`", $cols)).", created_at, updated_at) VALUES (".implode(',', $ph).", NOW(), NOW())";
-                }
-                $st = $link->prepare($sql);
-                if ($st) {
-                    $st->bind_param($types, ...$bind);
-                    if ($st->execute()) {
-                        $newId = (int)$st->insert_id;
-                        $src = (string)($vals['name'] ?? '');
-                        hg_update_pretty_id_if_exists($link, $table, $newId, $src);
-                        if (!empty($energyBridgeSupport[$table])) {
-                            $energySave = hg_ser_save_energy_assignments($link, $table, $newId, $energyAssignments);
-                            if (empty($energySave['ok'])) {
-                                $flash[] = ['type'=>'error','msg'=>(string)($energySave['message'] ?? 'No se pudieron guardar los recursos de energia.')];
-                            }
+                $result = hg_system_details_admin_create($link, $M, $vals, $extraWrite);
+                if (!empty($result['ok'])) {
+                    $newId = (int)($result['id'] ?? 0);
+                    if (!empty($energyBridgeSupport[$table])) {
+                        $energySave = hg_ser_save_energy_assignments($link, $table, $newId, $energyAssignments);
+                        if (empty($energySave['ok'])) {
+                            $flash[] = ['type'=>'error','msg'=>(string)($energySave['message'] ?? 'No se pudieron guardar los recursos de energia.')];
                         }
-                        $flash[] = ['type'=>'ok','msg'=>'Creado correctamente.'];
-                    } else {
-                        $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
                     }
-                    $st->close();
-                } else {
-                    $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
                 }
+                $flash[] = [
+                    'type' => !empty($result['ok']) ? 'ok' : 'error',
+                    'msg' => (string)($result['message'] ?? 'Error al crear.'),
+                ];
             }
 
             if ($action === 'update') {
                 if ($id <= 0) {
                     $flash[] = ['type'=>'error','msg'=>'Falta ID para actualizar.'];
                 } else {
-                    $sets = []; $types = ''; $bind = [];
-                    foreach ($M['fields'] as $f) {
-                        if (($f['db'] ?? 's') === 'x') continue;
-                        $isNullableSelectInt = (($f['ui'] ?? '') === 'select_int') && empty($f['req']) && (($f['db'] ?? 's') === 'i');
-                        $sets[] = "`".$f['k']."`=" . ($isNullableSelectInt ? 'NULLIF(?, 0)' : '?');
-                        $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
-                        $bind[] = $vals[$f['k']];
-                    }
-                    foreach ($extraWrite as $k => $v) {
-                        $sets[] = "`".$k."`=?";
-                        $types .= 's';
-                        $bind[] = (string)$v;
-                    }
-                    $sql = "UPDATE `$table` SET ".implode(', ', $sets);
-                    if (!empty($M['has_timestamps'])) $sql .= ", updated_at=NOW()";
-                    $sql .= " WHERE `$pk`=?";
-                    $types .= 'i';
-                    $bind[] = $id;
-                    $st = $link->prepare($sql);
-                    if ($st) {
-                        $st->bind_param($types, ...$bind);
-                        if ($st->execute()) {
-                            $src = (string)($vals['name'] ?? '');
-                            hg_update_pretty_id_if_exists($link, $table, $id, $src);
-                            if (!empty($energyBridgeSupport[$table])) {
-                                $energySave = hg_ser_save_energy_assignments($link, $table, $id, $energyAssignments);
-                                if (empty($energySave['ok'])) {
-                                    $flash[] = ['type'=>'error','msg'=>(string)($energySave['message'] ?? 'No se pudieron guardar los recursos de energia.')];
-                                }
-                            }
-                            $flash[] = ['type'=>'ok','msg'=>'Actualizado.'];
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
+                    $result = hg_system_details_admin_update($link, $M, $vals, $extraWrite, $id);
+                    if (!empty($result['ok']) && !empty($energyBridgeSupport[$table])) {
+                        $energySave = hg_ser_save_energy_assignments($link, $table, $id, $energyAssignments);
+                        if (empty($energySave['ok'])) {
+                            $flash[] = ['type'=>'error','msg'=>(string)($energySave['message'] ?? 'No se pudieron guardar los recursos de energia.')];
                         }
-                        $st->close();
-                    } else {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
                     }
+                    $flash[] = [
+                        'type' => !empty($result['ok']) ? 'ok' : 'error',
+                        'msg' => (string)($result['message'] ?? 'Error al actualizar.'),
+                    ];
                 }
             }
 
@@ -548,60 +460,18 @@ if (($_GET['ajax'] ?? '') === 'list') {
 
     $tableAjax = $MAjax['table'];
     $pkAjax = $MAjax['pk'];
-    $nameColAjax = $MAjax['name_col'];
 
-    $whereAjax = "WHERE 1=1";
-    $paramsAjax = [];
-    $typesAjax = '';
-    if ($qAjax !== '') {
-        $whereAjax .= " AND t.`$nameColAjax` LIKE ?";
-        $typesAjax .= 's';
-        $paramsAjax[] = "%".$qAjax."%";
-    }
-    if ($sysAjax > 0) {
-        $whereAjax .= " AND t.`system_id` = ?";
-        $typesAjax .= 'i';
-        $paramsAjax[] = $sysAjax;
-    }
-
-    $sqlFieldsAjax = array_values(array_filter($MAjax['fields'], fn($f)=>(($f['db'] ?? 's') !== 'x')));
-    $energyAjaxSql = hg_ser_energy_sql_parts($link, $tableAjax, 't', 'er_ajax');
-    $fromAjax = "`$tableAjax` t LEFT JOIN dim_systems s ON s.id = t.system_id{$energyAjaxSql['join']}";
-    $colsAjax = array_map(fn($f)=>"t.`".$f['k']."`", $sqlFieldsAjax);
-    $colsAjax[] = "t.`$pkAjax`";
-    $colsAjax[] = "s.name AS system_name";
-    if ($energyAjaxSql['select'] !== '') {
-        $colsAjax[] = "COALESCE(er_ajax.name, '') AS energy_resource_name";
-    }
-    $colsAjax = array_values(array_unique($colsAjax));
-    $sqlAjax = "SELECT ".implode(',', $colsAjax)." FROM $fromAjax $whereAjax ORDER BY ".$MAjax['order_by'];
-
-    $stAjax = $link->prepare($sqlAjax);
-    if (!$stAjax) {
-        if (function_exists('hg_admin_json_error')) {
-            hg_admin_json_error('Error al preparar listado: '.$link->error, 500);
-        }
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok'=>false,'error'=>'Error al preparar listado: '.$link->error], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
-        exit;
-    }
-    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
-    if (!$stAjax->execute()) {
-        $errMsg = 'Error al ejecutar listado: '.$stAjax->error;
-        $stAjax->close();
+    $listResult = hg_system_details_admin_fetch_rows($link, $MAjax, $qAjax, $sysAjax);
+    if (empty($listResult['ok'])) {
+        $errMsg = 'Error al preparar listado: ' . (string)($listResult['error'] ?? $link->error);
         if (function_exists('hg_admin_json_error')) hg_admin_json_error($errMsg, 500);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['ok'=>false,'error'=>$errMsg], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
         exit;
     }
-    $rsAjax = $stAjax->get_result();
-    $rowsAjax = [];
+
+    $rowsAjax = $listResult['rows'];
     $rowMapAjax = [];
-    while ($r = $rsAjax->fetch_assoc()) {
-        $rowsAjax[] = $r;
-    }
-    $stAjax->close();
-    $rowsAjax = hg_ser_attach_energy_summary($link, $tableAjax, $rowsAjax);
     foreach ($rowsAjax as $r) {
         $idv = (int)($r[$pkAjax] ?? 0);
         $rowMapAjax[$idv] = $r;
@@ -629,58 +499,25 @@ if (($_GET['ajax'] ?? '') === 'list') {
 // Listado
 $table = $META['table'];
 $pk = $META['pk'];
-$nameCol = $META['name_col'];
-$where = "WHERE 1=1";
-$params = []; $types = '';
-if ($q !== '') {
-    $where .= " AND `$nameCol` LIKE ?";
-    $types .= 's';
-    $params[] = "%".$q."%";
-}
-$energyListSql = hg_ser_energy_sql_parts($link, $table, 't', 'er_list');
-$from = "`$table` t LEFT JOIN dim_systems s ON s.id = t.system_id{$energyListSql['join']}";
-if ($sys > 0) {
-    $where .= " AND t.`system_id` = ?";
-    $types .= 'i';
-    $params[] = $sys;
-}
 
-$sqlCnt = "SELECT COUNT(*) AS c FROM $from $where";
-$stC = $link->prepare($sqlCnt);
-if ($types) $stC->bind_param($types, ...$params);
-$stC->execute();
-$rsC = $stC->get_result();
-$total = ($rsC && ($rowC=$rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
-$stC->close();
+$countResult = hg_system_details_admin_count($link, $META, $q, $sys);
+$total = !empty($countResult['ok']) ? (int)$countResult['count'] : 0;
+if (empty($countResult['ok'])) {
+    $flash[] = ['type'=>'error','msg'=>'Error al preparar el conteo: '.(string)($countResult['error'] ?? $link->error)];
+}
 
 $pages = max(1, (int)ceil($total / $perPage));
 $page = min($page, $pages);
 $offset = ($page-1)*$perPage;
 
-$sqlFields = array_values(array_filter($META['fields'], fn($f)=>(($f['db'] ?? 's') !== 'x')));
-$colsAll = array_map(fn($f)=>"t.`".$f['k']."`", $sqlFields);
-$colsAll[] = "t.`$pk`";
-$colsAll[] = "s.name AS system_name";
-if ($energyListSql['select'] !== '') {
-    $colsAll[] = "COALESCE(er_list.name, '') AS energy_resource_name";
+$listResult = hg_system_details_admin_fetch_rows($link, $META, $q, $sys, $offset, $perPage);
+$rows = !empty($listResult['ok']) ? $listResult['rows'] : [];
+if (empty($listResult['ok'])) {
+    $flash[] = ['type'=>'error','msg'=>'Error al cargar el listado: '.(string)($listResult['error'] ?? $link->error)];
 }
-$colsAll = array_values(array_unique($colsAll));
-
-$sqlList = "SELECT ".implode(',', $colsAll)." FROM $from $where ORDER BY ".$META['order_by']." LIMIT ?, ?";
-$types2 = $types.'ii';
-$params2 = $params; $params2[] = $offset; $params2[] = $perPage;
-$stL = $link->prepare($sqlList);
-$stL->bind_param($types2, ...$params2);
-$stL->execute();
-$rsL = $stL->get_result();
-$rows = []; $rowMap = [];
-while ($r = $rsL->fetch_assoc()) {
-    $rows[] = $r;
-}
-$stL->close();
-$rows = hg_ser_attach_energy_summary($link, $table, $rows);
+$rowMap = [];
 foreach ($rows as $r) {
-    $idv = (int)$r[$pk];
+    $idv = (int)($r[$pk] ?? 0);
     $rowMap[$idv] = $r;
 }
 
