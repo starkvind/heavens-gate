@@ -169,6 +169,6 @@ characters_service_wrapper = (ROOT / 'app/controllers/admin/admin_characters_ser
 if SQL.search(characters_service_wrapper):
     print('ERROR: Admin character service wrapper regained direct SQL', file=sys.stderr)
     sys.exit(1)
-if 'app/domains/characters/admin_service.php' not in characters_service_wrapper:
+if '../../domains/characters/admin_service.php' not in characters_service_wrapper:
     print('ERROR: Admin character service wrapper lost domain delegation', file=sys.stderr)
     sys.exit(1)
