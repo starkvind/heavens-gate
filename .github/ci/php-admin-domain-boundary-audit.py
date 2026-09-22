@@ -60,6 +60,49 @@ PILOTS = {
             'hg_relationships_admin_fetch_rows(',
         ],
     },
+    'system_details': {
+        'controller': ROOT / 'app/controllers/admin/admin_system_details.php',
+        'domain': ROOT / 'app/domains/systems/admin_details.php',
+        'markers': [
+            'hg_system_details_admin_fetch_origins(',
+            'hg_system_details_admin_fetch_systems(',
+            'hg_system_details_admin_delete(',
+            'hg_system_details_admin_create(',
+            'hg_system_details_admin_update(',
+            'hg_system_details_admin_count(',
+            'hg_system_details_admin_fetch_rows(',
+        ],
+    },
+    'powers': {
+        'controller': ROOT / 'app/controllers/admin/admin_powers.php',
+        'domain': ROOT / 'app/domains/powers/admin.php',
+        'markers': [
+            'hg_powers_admin_fetch_pairs(',
+            'hg_powers_admin_has_column(',
+            'hg_powers_admin_create(',
+            'hg_powers_admin_update(',
+            'hg_powers_admin_fetch_image(',
+            'hg_powers_admin_delete(',
+            'hg_powers_admin_count(',
+            'hg_powers_admin_fetch_rows(',
+        ],
+    },
+    'maps_pois': {
+        'controller': ROOT / 'app/controllers/admin/admin_pois.php',
+        'domain': ROOT / 'app/domains/maps/admin.php',
+        'markers': [
+            'hg_maps_admin_fetch_all(',
+            'hg_maps_admin_save_map(',
+            'hg_maps_admin_delete_map(',
+            'hg_maps_admin_save_category(',
+            'hg_maps_admin_category_usage_count(',
+            'hg_maps_admin_delete_category(',
+            'hg_maps_admin_save_poi(',
+            'hg_maps_admin_delete_poi(',
+            'hg_maps_admin_save_area(',
+            'hg_maps_admin_delete_area(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
