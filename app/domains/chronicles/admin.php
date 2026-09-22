@@ -63,6 +63,22 @@ if (!function_exists('hg_chronicles_admin_create')) {
         $vals = [$name, $description];
         $types = 'ss';
 
+        if (!empty($schema['pretty_id'])) {
+            $basePretty = hg_pretty_expected_slug('dim_chronicles', $name, 0);
+            if ($basePretty === '') {
+                $basePretty = 'chronicle';
+            }
+            $insertPretty = $basePretty;
+            $suffix = 2;
+            while (hg_admin_catalog_pretty_exists($link, 'dim_chronicles', $insertPretty, 0)) {
+                $insertPretty = $basePretty . '-' . $suffix;
+                $suffix++;
+            }
+            $cols[] = 'pretty_id';
+            $vals[] = $insertPretty;
+            $types .= 's';
+        }
+
         if (!empty($schema['sort_order'])) {
             $cols[] = 'sort_order';
             $vals[] = $sortOrder;
