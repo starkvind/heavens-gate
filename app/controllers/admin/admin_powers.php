@@ -462,9 +462,7 @@ if ($ajaxMode === 'search') {
     $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'dones';
     $qAjax   = trim((string)($_GET['q'] ?? ''));
     $MAjax   = meta_for($tabAjax, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
-
-    $tableAjax   = $MAjax['table'];
-    $pkAjax      = $MAjax['pk'];
+    $pkAjax  = $MAjax['pk'];
 
     $searchResult = hg_powers_admin_fetch_rows($link, $MAjax, $qAjax);
     if (empty($searchResult['ok'])) {
@@ -484,12 +482,10 @@ if ($ajaxMode === 'search') {
     $rowMapAjax = [];
     foreach ($searchResult['rows'] as $r) {
         $idv = (int)$r[$pkAjax];
-
         $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
         if (isset($r['system_id'])) {
             $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
         }
-
         if ($tabAjax === 'dones') {
             $t = (int)($r['kind'] ?? 0);
             $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
@@ -503,79 +499,9 @@ if ($ajaxMode === 'search') {
             $t = (int)($r['disc'] ?? 0);
             $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
         }
-
         $rowsAjax[] = $r;
         $rowMapAjax[$idv] = $r;
     }
-
-    header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'ok' => false,
-            'tab' => $tabAjax,
-            'rows' => [],
-            'rowMap' => [],
-            'total' => 0,
-            'error' => 'Error al preparar búsqueda: '.$link->error,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        exit;
-    }
-    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
-    if (!$stAjax->execute()) {
-        $stAjax->close();
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'ok' => false,
-            'tab' => $tabAjax,
-            'rows' => [],
-            'rowMap' => [],
-            'total' => 0,
-            'error' => 'Error al ejecutar búsqueda: '.$link->error,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        exit;
-    }
-    $rsAjax = $stAjax->get_result();
-    if (!$rsAjax) {
-        $stAjax->close();
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'ok' => false,
-            'tab' => $tabAjax,
-            'rows' => [],
-            'rowMap' => [],
-            'total' => 0,
-            'error' => 'No se pudo leer el resultado de búsqueda: '.$link->error,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        exit;
-    }
-
-    $rowsAjax = [];
-    $rowMapAjax = [];
-    while ($r = $rsAjax->fetch_assoc()) {
-        $idv = (int)$r[$pkAjax];
-
-        $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
-        if (isset($r['system_id'])) {
-            $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
-        }
-
-        if ($tabAjax === 'dones') {
-            $t = (int)($r['kind'] ?? 0);
-            $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
-        } elseif ($tabAjax === 'rituales') {
-            $t = (int)($r['kind'] ?? 0);
-            $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
-        } elseif ($tabAjax === 'totems') {
-            $t = (int)($r['totem_type_id'] ?? 0);
-            $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
-        } else {
-            $t = (int)($r['disc'] ?? 0);
-            $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
-        }
-
-        $rowsAjax[] = $r;
-        $rowMapAjax[$idv] = $r;
-    }
-    $stAjax->close();
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
