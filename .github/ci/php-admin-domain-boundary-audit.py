@@ -131,6 +131,57 @@ PILOTS = {
             'hg_characters_admin_fetch_ajax_details(',
         ],
     },
+    'avatar_mass': {
+        'controller': ROOT / 'app/controllers/admin/admin_avatar_mass.php',
+        'domain': ROOT / 'app/domains/characters/admin_avatars.php',
+        'markers': [
+            'hg_avatar_admin_get_character(',
+            'hg_avatar_admin_update_base(',
+            'hg_avatar_admin_upsert_variant(',
+            'hg_avatar_admin_load_state(',
+        ],
+    },
+    'birthdays_quick': {
+        'controller': ROOT / 'app/controllers/admin/admin_birthdays_quick.php',
+        'domain': ROOT / 'app/domains/characters/admin_birthdays.php',
+        'markers': [
+            'hg_abq_fetch_rows(',
+            'hg_abq_save_row(',
+        ],
+    },
+    'character_deaths': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_deaths.php',
+        'domain': ROOT / 'app/domains/characters/admin_deaths.php',
+        'markers': [
+            'hg_acd_save_death(',
+            'hg_acd_delete_death(',
+            'hg_acd_load_state(',
+            'hg_acd_fetch_deaths_rows(',
+        ],
+    },
+    'characters_clone': {
+        'controller': ROOT / 'app/controllers/admin/admin_characters_clone.php',
+        'domain': ROOT / 'app/domains/characters/admin_clone.php',
+        'markers': [
+            'hg_acc_clone_character(',
+            'hg_acc_load_listing(',
+        ],
+    },
+    'characters_worlds': {
+        'controller': ROOT / 'app/controllers/admin/admin_characters_worlds.php',
+        'domain': ROOT / 'app/domains/characters/admin_worlds.php',
+        'markers': [
+            'hg_acw_save_character_world(',
+            'hg_acw_load_state(',
+        ],
+    },
+    'character_collision_audit': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_collision_audit.php',
+        'domain': ROOT / 'app/domains/characters/admin_collision_audit.php',
+        'markers': [
+            'hg_cca_load_state(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
