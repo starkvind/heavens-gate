@@ -1,10 +1,30 @@
 <?php
 
+if (!function_exists('hg_resources_admin_slugify')) {
+    function hg_resources_admin_slugify(string $text): string
+    {
+        $text = trim($text);
+        if ($text === '') return '';
+        if (function_exists('iconv')) {
+            $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text;
+        }
+        $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
+        $text = trim($text, '-');
+        $text = strtolower($text);
+        return preg_replace('~[^-a-z0-9]+~', '', $text);
+    }
+}
+
 if (!function_exists('hg_resources_admin_persist_pretty_id')) {
-    function hg_resources_admin_persist_pretty_id(mysqli $link, int $id, string $slug): bool
+    function hg_resources_admin_persist_pretty_id(mysqli $link, int $id, string $source): bool
     {
         if ($id <= 0) {
             return false;
+        }
+
+        $slug = hg_resources_admin_slugify($source);
+        if ($slug === '') {
+            $slug = (string)$id;
         }
 
         $stmt = $link->prepare("UPDATE dim_systems_resources SET pretty_id=? WHERE id=?");
@@ -48,7 +68,7 @@ if (!function_exists('hg_resources_admin_create')) {
         string $kind,
         int $sortOrder,
         string $description,
-        string $prettyId
+        string $prettySource
     ): array {
         $stmt = $link->prepare(
             "INSERT INTO dim_systems_resources (name, kind, sort_order, description, created_at, updated_at)
@@ -66,7 +86,7 @@ if (!function_exists('hg_resources_admin_create')) {
         }
 
         $newId = (int)$link->insert_id;
-        $prettyOk = hg_resources_admin_persist_pretty_id($link, $newId, $prettyId);
+        $prettyOk = hg_resources_admin_persist_pretty_id($link, $newId, $prettySource);
         $stmt->close();
 
         return [
@@ -84,7 +104,7 @@ if (!function_exists('hg_resources_admin_update')) {
         string $kind,
         int $sortOrder,
         string $description,
-        string $prettyId
+        string $prettySource
     ): array {
         if ($id <= 0) {
             return ['ok' => false, 'message' => 'ID inválido para actualizar.'];
@@ -106,7 +126,7 @@ if (!function_exists('hg_resources_admin_update')) {
             return ['ok' => false, 'message' => $message];
         }
 
-        $prettyOk = hg_resources_admin_persist_pretty_id($link, $id, $prettyId);
+        $prettyOk = hg_resources_admin_persist_pretty_id($link, $id, $prettySource);
         $stmt->close();
 
         return [
