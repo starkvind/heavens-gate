@@ -81,3 +81,14 @@ for name, spec in PILOTS.items():
             sys.exit(1)
 
 print('Admin domain boundaries: PASS')
+
+
+chronicles_domain = (ROOT / 'app/domains/chronicles/admin.php').read_text(encoding='utf-8', errors='replace')
+if "$cols[] = 'pretty_id';" not in chronicles_domain:
+    print('ERROR: Admin Chronicles create no longer seeds required pretty_id before INSERT', file=sys.stderr)
+    sys.exit(1)
+
+relations_controller = (ROOT / 'app/controllers/admin/admin_relations.php').read_text(encoding='utf-8', errors='replace')
+if '<th>Tipo</th>' in relations_controller or '<th>Flechas</th>' in relations_controller:
+    print('ERROR: Admin Relations compact table regained Type/Flechas columns', file=sys.stderr)
+    sys.exit(1)
