@@ -172,3 +172,9 @@ if SQL.search(characters_service_wrapper):
 if '../../domains/characters/admin_service.php' not in characters_service_wrapper:
     print('ERROR: Admin character service wrapper lost domain delegation', file=sys.stderr)
     sys.exit(1)
+
+
+characters_controller = (ROOT / 'app/controllers/admin/admin_characters.php').read_text(encoding='utf-8', errors='replace')
+if "if ($action === 'create' || $action === 'update')" not in characters_controller:
+    print('ERROR: Character form validation is no longer scoped away from delete payloads', file=sys.stderr)
+    sys.exit(1)
