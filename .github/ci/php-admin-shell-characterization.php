@@ -20,11 +20,15 @@ function hg_admin_contract_source(string $root, string $relative): string
 }
 
 $main = hg_admin_contract_source($root, 'app/controllers/admin/admin_main.php');
+$sections = hg_admin_contract_source($root, 'app/helpers/admin_sections.php');
 $auth = hg_admin_contract_source($root, 'app/helpers/admin_auth.php');
 $ajax = hg_admin_contract_source($root, 'app/helpers/admin_ajax.php');
 
+require_once $root . '/app/helpers/admin_sections.php';
+
 $mainMarkers = [
     "admin_auth.php",
+    "admin_sections.php",
     'hg_admin_session_start()',
     'hg_admin_send_security_headers()',
     'hg_admin_require_db($link)',
@@ -77,8 +81,8 @@ $requiredSections = [
     'logout',
 ];
 foreach ($requiredSections as $section) {
-    if (strpos($main, $section) === false) {
-        hg_admin_contract_fail('Admin shell lost active section: ' . $section);
+    if (strpos($sections, $section) === false) {
+        hg_admin_contract_fail('Admin registry lost active section: ' . $section);
     }
 }
 
@@ -90,8 +94,55 @@ $legacyAliases = [
     'admin_characters_conditions_brige',
 ];
 foreach ($legacyAliases as $alias) {
-    if (strpos($main, $alias) === false) {
-        hg_admin_contract_fail('Admin shell lost legacy alias: ' . $alias);
+    if (strpos($sections, $alias) === false) {
+        hg_admin_contract_fail('Admin registry lost legacy alias: ' . $alias);
+    }
+}
+
+$registryContracts = [
+    ['admin_characters', 'normal', 'admin_characters.php'],
+    ['admin_characters', 'ajax', 'admin_characters.php'],
+    ['admin_pjs', 'normal', 'admin_characters.php'],
+    ['admin_epis', 'ajax', 'admin_chapters.php'],
+    ['admin_temp', 'normal', 'admin_seasons.php'],
+    ['admin_plots', 'ajax', 'admin_parties.php'],
+    ['admin_characters_conditions_brige', 'normal', 'admin_character_conditions_bridge.php'],
+    ['admin_character_collision_audit', 'normal', 'admin_character_collision_audit.php'],
+    ['admin_relations', 'normal', 'admin_relations.php'],
+    ['admin_datatables', 'normal', 'admin_datatables.php'],
+    ['admin_inspect_db', 'normal', '../../tools/inspect_db.php'],
+    ['admin_mentions_help', 'normal', 'mentions_help.html'],
+    ['logout', 'normal', 'admin_logout.php'],
+];
+foreach ($registryContracts as [$section, $mode, $target]) {
+    $resolved = hg_admin_section_resolve($section, $mode);
+    if (!is_array($resolved) || ($resolved['target'] ?? null) !== $target) {
+        hg_admin_contract_fail("Admin registry contract mismatch: {$section} / {$mode}");
+    }
+}
+
+$ajaxForbidden = [
+    'admin_character_collision_audit',
+    'admin_relations',
+    'admin_datatables',
+    'admin_inspect_db',
+    'admin_mentions_help',
+    'admin_org_chart_schema',
+    'logout',
+];
+foreach ($ajaxForbidden as $section) {
+    if (hg_admin_section_resolve($section, 'ajax') !== null) {
+        hg_admin_contract_fail('Admin registry widened AJAX surface: ' . $section);
+    }
+}
+
+if (substr_count($main, 'switch (') > 0 || substr_count($main, 'switch(') > 0) {
+    hg_admin_contract_fail('admin_main.php regained switch-owned section dispatch');
+}
+
+foreach (['hg_admin_section_resolve($seccionAjax, \'ajax\')', 'hg_admin_section_resolve($seccion, \'normal\')'] as $marker) {
+    if (strpos($main, $marker) === false) {
+        hg_admin_contract_fail('Admin shell lost shared registry dispatch marker: ' . $marker);
     }
 }
 
