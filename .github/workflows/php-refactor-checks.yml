@@ -51,5 +51,8 @@ jobs:
       - name: Audit Admin procedural debt baseline
         run: python3 .github/ci/php-admin-debt-audit.py
 
+      - name: Audit Admin domain boundaries
+        run: python3 .github/ci/php-admin-domain-boundary-audit.py
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
