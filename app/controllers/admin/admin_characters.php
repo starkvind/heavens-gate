@@ -410,26 +410,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if ($action === 'create') {
         if ($nombre === '') $flash[] = ['type'=>'error','msg'=>'[WARN] El campo \"nombre\" es obligatorio.'];
         if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
-            $sql = "INSERT INTO fact_characters
-                (name, alias, garou_name, gender, concept, chronicle_id, player_id, character_type_id, image_url, notes, text_color, `$character_kind_column`, system_id,
-                 totem_id, status_id, rank, info_text, breed_id, auspice_id, tribe_id, nature_id, demeanor_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            if ($stmt = $link->prepare($sql)) {
-                $img='';
-                $stmt->bind_param(
-                    "sssssiiissssiiissiiiii",
-                    $nombre, $alias, $nombregarou, $gender, $concept,
-                    $cronica, $jugador, $afili,
-                    $img, $notas, $text_color, $kind, $system_id,
-                    $totem_id,
-                    $status_id, $rango, $infotext,
-                    $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id
-                );
-                if ($stmt->execute()) {
-                    $newId = $stmt->insert_id;
+            $coreResult = hg_characters_admin_create($link, $character_kind_column, [
+                'name'=>$nombre, 'alias'=>$alias, 'garou_name'=>$nombregarou, 'gender'=>$gender, 'concept'=>$concept,
+                'chronicle_id'=>$cronica, 'player_id'=>$jugador, 'character_type_id'=>$afili, 'notes'=>$notas,
+                'text_color'=>$text_color, 'kind'=>$kind, 'system_id'=>$system_id, 'totem_id'=>$totem_id,
+                'status_id'=>$status_id, 'rank'=>$rango, 'info_text'=>$infotext, 'breed_id'=>$raza,
+                'auspice_id'=>$auspice_id, 'tribe_id'=>$tribe_id, 'nature_id'=>$nature_id, 'demeanor_id'=>$demeanor_id,
+            ]);
+            if (!empty($coreResult['ok'])) {
+                    $newId = (int)$coreResult['id'];
                     $saved_character_id = (int)$newId;
-                    hg_update_pretty_id_if_exists($link, 'fact_characters', (int)$newId, $nombre);
-
                     // Bridges manada/clan
                     sync_character_bridges($link, (int)$newId, (int)$manada, (int)$clan);
 
@@ -498,12 +488,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     }
                     }
 $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
-                } else {
-                    $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al crear: '.$stmt->error];
-                }
-                $stmt->close();
             } else {
-                $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al preparar INSERT: '.$link->error];
+                $prefix = (($coreResult['error'] ?? '') === 'prepare') ? '[ERROR] Error al preparar INSERT: ' : '[ERROR] Error al crear: ';
+                $flash[] = ['type'=>'error','msg'=>$prefix.(string)($coreResult['message'] ?? $link->error)];
             }
         }
     }
@@ -515,31 +502,16 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
     if (!array_filter($flash, fn($f)=>$f['type']==='error')) {
 
           // ? OJO: ya NO actualizamos p.manada ni p.clan aquí (bridges mandan)
-          $sql = "UPDATE fact_characters SET
-                  name=?, alias=?, garou_name=?, gender=?, concept=?,
-                  chronicle_id=?, player_id=?, character_type_id=?, system_id=?, text_color=?, `$character_kind_column`=?,
-                  breed_id=?, auspice_id=?, tribe_id=?, nature_id=?, demeanor_id=?,
-                  totem_id=?,
-                  status_id=?, rank=?, info_text=?, notes=?
-                  WHERE id=?";
+          $coreResult = hg_characters_admin_update($link, $character_kind_column, (int)$id, [
+              'name'=>$nombre, 'alias'=>$alias, 'garou_name'=>$nombregarou, 'gender'=>$gender, 'concept'=>$concept,
+              'chronicle_id'=>$cronica, 'player_id'=>$jugador, 'character_type_id'=>$afili, 'system_id'=>$system_id,
+              'text_color'=>$text_color, 'kind'=>$kind, 'breed_id'=>$raza, 'auspice_id'=>$auspice_id, 'tribe_id'=>$tribe_id,
+              'nature_id'=>$nature_id, 'demeanor_id'=>$demeanor_id, 'totem_id'=>$totem_id, 'status_id'=>$status_id,
+              'rank'=>$rango, 'info_text'=>$infotext, 'notes'=>$notas,
+          ]);
 
-          if ($stmt = $link->prepare($sql)) {
-
-              // 13 strings/ints + 5 strings + id (int)
-              $stmt->bind_param(
-                  "sssssiiiissiiiiiiisssi",
-                  $nombre, $alias, $nombregarou, $gender, $concept,
-                  $cronica, $jugador, $afili, $system_id, $text_color,
-                  $kind,
-                  $raza, $auspice_id, $tribe_id, $nature_id, $demeanor_id,
-                  $totem_id,
-                  $status_id, $rango, $infotext, $notas,
-                  $id
-              );
-
-              if ($stmt->execute()) {
+          if (!empty($coreResult['ok'])) {
                   $saved_character_id = (int)$id;
-                  hg_update_pretty_id_if_exists($link, 'fact_characters', $id, $nombre);
                   // Avatar: el anterior solo se elimina despues de guardar correctamente el nuevo.
                   $hasAvatarUpload = !empty($_FILES['avatar'])
                       && ($_FILES['avatar']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
@@ -623,14 +595,9 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   }
 $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
 
-              } else {
-                  $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al actualizar: '.$stmt->error];
-              }
-
-              $stmt->close();
-
           } else {
-              $flash[] = ['type'=>'error','msg'=>'[ERROR] Error al preparar UPDATE: '.$link->error];
+              $prefix = (($coreResult['error'] ?? '') === 'prepare') ? '[ERROR] Error al preparar UPDATE: ' : '[ERROR] Error al actualizar: ';
+              $flash[] = ['type'=>'error','msg'=>$prefix.(string)($coreResult['message'] ?? $link->error)];
           }
       }
   }
