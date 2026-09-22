@@ -9,6 +9,7 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/news/admin.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 $isAjaxRequest = (
 	((string)($_GET['ajax'] ?? '') === '1')
@@ -56,20 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
 	if (!news_csrf_ok()) {
 		$flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
 	} else {
-		$id = (int)($_POST['id'] ?? 0);
-		if ($id <= 0) {
-			$flash[] = ['type'=>'error','msg'=>'ID invalido para borrar.'];
-		} elseif ($st = $link->prepare("DELETE FROM fact_admin_posts WHERE id = ?")) {
-			$st->bind_param("i", $id);
-			if ($st->execute()) {
-				$flash[] = ['type'=>'ok','msg'=>'Noticia eliminada.'];
-			} else {
-				$flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-			}
-			$st->close();
-		} else {
-			$flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
-		}
+		$result = hg_news_admin_delete($link, (int)($_POST['id'] ?? 0));
+		$flash[] = [
+			'type' => !empty($result['ok']) ? 'ok' : 'error',
+			'msg' => (string)($result['message'] ?? 'Error al borrar.'),
+		];
 	}
 }
 
@@ -81,49 +73,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 	if (!news_csrf_ok()) {
 		$flash[] = ['type'=>'error','msg'=>'CSRF invalido. Recarga la pagina.'];
 	} else {
-	$id = (int)($_POST['id'] ?? 0);
-	$autor = trim((string)($_POST['author'] ?? ''));
-	$titulo = trim((string)($_POST['titulo'] ?? ''));
-	$mensaje = (string)($_POST['message'] ?? '');
-	$mensaje = hg_mentions_convert($link, $mensaje);
+		$id = (int)($_POST['id'] ?? 0);
+		$autor = trim((string)($_POST['author'] ?? ''));
+		$titulo = trim((string)($_POST['titulo'] ?? ''));
+		$mensaje = hg_mentions_convert($link, (string)($_POST['message'] ?? ''));
 
-	if ($autor === '' || $titulo === '' || $mensaje === '') {
-		$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
-	} else {
-		if ($id > 0) {
-			$st = $link->prepare("UPDATE fact_admin_posts SET author=?, title=?, message=?, posted_at=NOW() WHERE id=?");
-			if ($st) {
-				$st->bind_param("sssi", $autor, $titulo, $mensaje, $id);
-				$st->execute();
-			hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $id, $titulo);
-				$st->close();
-				$flash[] = ['type'=>'ok','msg'=>'Noticia actualizada.'];
-			}
+		if ($autor === '' || $titulo === '' || $mensaje === '') {
+			$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
 		} else {
-			$st = $link->prepare("INSERT INTO fact_admin_posts (author, title, message, posted_at) VALUES (?,?,?,NOW())");
-			if ($st) {
-				$st->bind_param("sss", $autor, $titulo, $mensaje);
-				$st->execute();
-			$newId = (int)$link->insert_id;
-			hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $newId, $titulo);
-				$st->close();
-				$flash[] = ['type'=>'ok','msg'=>'Noticia creada.'];
-			}
+			$result = hg_news_admin_save($link, $id, $autor, $titulo, $mensaje);
+			$flash[] = [
+				'type' => !empty($result['ok']) ? 'ok' : 'error',
+				'msg' => (string)($result['message'] ?? 'Error al guardar.'),
+			];
 		}
 	}
 }
-}
 
-// Prefill edición
-// Listado
-$rows = [];
-$rs = $link->query("SELECT id, author, title, posted_at FROM fact_admin_posts ORDER BY id DESC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $rows[] = $r; } $rs->close(); }
-
-// Datos completos para edición en modal
-$rowsFull = [];
-$rs = $link->query("SELECT id, author, title, message FROM fact_admin_posts ORDER BY id DESC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
+// Listado + datos completos para edición en modal.
+$rows = hg_news_admin_fetch_rows($link) ?? [];
+$rowsFull = hg_news_admin_fetch_rows_full($link) ?? [];
 
 if ($isAjaxRequest && (string)($_GET['ajax_mode'] ?? '') === 'list') {
 	if (function_exists('hg_admin_require_session')) {
