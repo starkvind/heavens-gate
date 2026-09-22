@@ -5,6 +5,7 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/characters/admin_worlds.php');
 
 $isAjaxRequest = (
     (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
@@ -18,25 +19,6 @@ $ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
 
 if (!function_exists('hg_acw_h')) {
     function hg_acw_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
-
-function hg_acw_has_table(mysqli $db, string $table): bool {
-    $table = str_replace('`', '', $table);
-    $rs = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
-
-function hg_acw_has_column(mysqli $db, string $table, string $column): bool {
-    $table = str_replace('`', '', $table);
-    $column = str_replace('`', '', $column);
-    $rs = $db->query("SHOW COLUMNS FROM `".$db->real_escape_string($table)."` LIKE '".$db->real_escape_string($column)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'save_character_world')) {
@@ -64,110 +46,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'save_c
         $jsonExit(['ok' => false, 'msg' => 'CSRF inválido']);
     }
 
-    if (!hg_acw_has_table($link, 'dim_realities') || !hg_acw_has_column($link, 'fact_characters', 'reality_id')) {
-        $jsonExit(['ok' => false, 'msg' => 'Falta esquema: dim_realities / fact_characters.reality_id']);
-    }
+    $result = hg_acw_save_character_world(
+        $link,
+        (int)($_POST['character_id'] ?? 0),
+        (int)($_POST['chronicle_id'] ?? 0),
+        (int)($_POST['reality_id'] ?? 0)
+    );
+    $jsonExit($result);
 
-    $characterId = isset($_POST['character_id']) ? (int)$_POST['character_id'] : 0;
-    $chronicleId = isset($_POST['chronicle_id']) ? (int)$_POST['chronicle_id'] : 0;
-    $realityId = isset($_POST['reality_id']) ? (int)$_POST['reality_id'] : 0;
-    if ($characterId <= 0 || $chronicleId <= 0 || $realityId <= 0) {
-        $jsonExit(['ok' => false, 'msg' => 'IDs inválidos']);
-    }
-
-    $exists = 0;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM fact_characters WHERE id = ?")) {
-        $st->bind_param('i', $characterId);
-        $st->execute();
-        $st->bind_result($exists);
-        $st->fetch();
-        $st->close();
-    }
-    if ($exists <= 0) { $jsonExit(['ok' => false, 'msg' => 'Personaje no encontrado']); }
-
-    $existsChron = 0;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM dim_chronicles WHERE id = ?")) {
-        $st->bind_param('i', $chronicleId);
-        $st->execute();
-        $st->bind_result($existsChron);
-        $st->fetch();
-        $st->close();
-    }
-    if ($existsChron <= 0) { $jsonExit(['ok' => false, 'msg' => 'Crónica no encontrada']); }
-
-    $existsReality = 0;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM dim_realities WHERE id = ?")) {
-        $st->bind_param('i', $realityId);
-        $st->execute();
-        $st->bind_result($existsReality);
-        $st->fetch();
-        $st->close();
-    }
-    if ($existsReality <= 0) { $jsonExit(['ok' => false, 'msg' => 'Realidad no encontrada']); }
-
-    if ($st = $link->prepare("UPDATE fact_characters SET chronicle_id = ?, reality_id = ? WHERE id = ? LIMIT 1")) {
-        $st->bind_param('iii', $chronicleId, $realityId, $characterId);
-        if (!$st->execute()) {
-            $st->close();
-            $jsonExit(['ok' => false, 'msg' => 'Error al actualizar en BDD']);
-        }
-        $st->close();
-        $jsonExit(['ok' => true, 'msg' => 'Guardado']);
-    }
-
-    $jsonExit(['ok' => false, 'msg' => 'Error al preparar consulta']);
 }
 
-$hasRealitySchema = hg_acw_has_table($link, 'dim_realities') && hg_acw_has_column($link, 'fact_characters', 'reality_id');
-
-$chronicles = [];
-if ($rs = $link->query("SELECT id, name FROM dim_chronicles ORDER BY name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $chronicles[] = $r; }
-    $rs->close();
-}
-
-$realities = [];
-if ($hasRealitySchema && ($rs = $link->query("SELECT id, name FROM dim_realities ORDER BY name ASC"))) {
-    while ($r = $rs->fetch_assoc()) { $realities[] = $r; }
-    $rs->close();
-}
-
-$organizations = [];
-if ($rs = $link->query("SELECT id, name FROM dim_organizations ORDER BY name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $organizations[] = $r; }
-    $rs->close();
-}
-
-$characters = [];
-if ($hasRealitySchema) {
-    $sql = "
-    SELECT
-        p.id,
-        p.pretty_id,
-        p.name,
-        p.chronicle_id,
-        p.reality_id,
-        COALESCE(bo.organization_id, 0) AS organization_id,
-        COALESCE(ch.name, '') AS chronicle_name,
-        COALESCE(r.name, '') AS reality_name,
-        COALESCE(o.name, '') AS organization_name
-    FROM fact_characters p
-    LEFT JOIN (
-        SELECT character_id, MIN(organization_id) AS organization_id
-        FROM bridge_characters_organizations
-        WHERE (is_active = 1 OR is_active IS NULL)
-        GROUP BY character_id
-    ) bo ON bo.character_id = p.id
-    LEFT JOIN dim_organizations o ON o.id = bo.organization_id
-    LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id
-    LEFT JOIN dim_realities r ON r.id = p.reality_id
-    ORDER BY p.name ASC, p.id ASC
-    ";
-    if ($rs = $link->query($sql)) {
-        while ($r = $rs->fetch_assoc()) { $characters[] = $r; }
-        $rs->close();
-    }
-}
+$state = hg_acw_load_state($link);
+$hasRealitySchema = !empty($state['hasRealitySchema']);
+$chronicles = $state['chronicles'];
+$realities = $state['realities'];
+$organizations = $state['organizations'];
+$characters = $state['characters'];
 ?>
 
 <div class="worlds-wrap">
