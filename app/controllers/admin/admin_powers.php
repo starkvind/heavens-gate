@@ -26,6 +26,7 @@ header('Content-Type: text/html; charset=utf-8');
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
+include_once(__DIR__ . '/../../domains/powers/admin.php');
 $quillToolbarInner = admin_quill_toolbar_inner();
 // Subidas de imagen (Dones)
 $DOCROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
@@ -76,49 +77,6 @@ function safe_unlink_power_image(string $relUrl, string $uploadDir): void {
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function str_has($hay, $needle){ return $needle !== '' && mb_stripos((string)$hay, (string)$needle) !== false; }
-function slugify_pretty(string $text): string {
-    $text = trim((string)$text);
-    if ($text === '') return '';
-    if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
-    $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-    $text = trim($text, '-');
-    $text = strtolower($text);
-    $text = preg_replace('~[^-a-z0-9]+~', '', $text);
-    return $text;
-}
-function update_pretty_id(mysqli $link, string $table, int $id, string $source): void {
-    if ($id <= 0) return;
-    $slug = slugify_pretty($source);
-    if ($slug === '') $slug = (string)$id;
-    if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
-        $st->bind_param("si", $slug, $id);
-        $st->execute();
-        $st->close();
-    }
-}
-
-function fetchPairs(mysqli $link, string $sql): array {
-    $out = [];
-    $q = @$link->query($sql);
-    if (!$q) return $out;
-    while ($r = $q->fetch_assoc()) {
-        $id = isset($r['id']) ? (int)$r['id'] : (int)($r['value'] ?? 0);
-        $nm = (string)($r['name'] ?? '');
-        $out[$id] = $nm;
-    }
-    $q->close();
-    return $out;
-}
-function ap_has_column(mysqli $link, string $table, string $column): bool {
-    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-    $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-    if ($table === '' || $column === '') return false;
-    $rs = @$link->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
 
 /* -----------------------------
    CSRF (simple)
@@ -157,18 +115,18 @@ $flash = [];
 /* -----------------------------
    Opciones de referencia
 ------------------------------ */
-$opts_origen = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name");
-$opts_systems = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
+$opts_origen = hg_powers_admin_fetch_pairs($link, 'origins');
+$opts_systems = hg_powers_admin_fetch_pairs($link, 'systems');
 
-$opts_tipo_dones = fetchPairs($link, "SELECT id, name FROM dim_gift_types ORDER BY id");
-$opts_tipo_rit   = fetchPairs($link, "SELECT id, CONCAT(name, IFNULL(CONCAT(' ', determinant),'')) AS name FROM dim_rite_types ORDER BY id");
+$opts_tipo_dones = hg_powers_admin_fetch_pairs($link, 'gift_types');
+$opts_tipo_rit   = hg_powers_admin_fetch_pairs($link, 'rite_types_full');
 if (!$opts_tipo_rit) { // por si no existe determinant
-    $opts_tipo_rit = fetchPairs($link, "SELECT id, name FROM dim_rite_types ORDER BY id");
+    $opts_tipo_rit = hg_powers_admin_fetch_pairs($link, 'rite_types');
 }
-$opts_tipo_tot   = fetchPairs($link, "SELECT id, name FROM dim_totem_types ORDER BY id");
-$opts_tipo_disc  = fetchPairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY id");
-$giftMechanicsCol = ap_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
-$giftSystemLabelCol = ap_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
+$opts_tipo_tot   = hg_powers_admin_fetch_pairs($link, 'totem_types');
+$opts_tipo_disc  = hg_powers_admin_fetch_pairs($link, 'discipline_types');
+$giftMechanicsCol = hg_powers_admin_has_column($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
+$giftSystemLabelCol = hg_powers_admin_has_column($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
 
 /* -----------------------------
    Metadatos CRUD
@@ -399,78 +357,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             $pk    = $M['pk'];
 
             if ($action === 'create') {
-                $cols = [];
-                $ph   = [];
-                $types= '';
-                $bind = [];
-
-                foreach ($M['fields'] as $f) {
-                    $cols[] = $f['k'];
-                    $ph[]   = '?';
-                    $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
-                    $bind[] = $vals[$f['k']];
-                }
-
-                $sql = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`",$cols)).") VALUES (".implode(',',$ph).")";
-                if (!empty($M['has_timestamps'])) {
-                    $sqlTry = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`",$cols)).", `created_at`, `updated_at`) VALUES (".implode(',',$ph).", NOW(), NOW())";
-                    $st = @$link->prepare($sqlTry);
-                    if ($st) { $st->close(); $sql = $sqlTry; }
-                }
-
-                $st = $link->prepare($sql);
-                if (!$st) {
-                    $flash[] = ['type'=>'error','msg'=>'? Error al preparar INSERT: '.$link->error];
+                $result = hg_powers_admin_create($link, $M, $vals);
+                if (!empty($result['ok'])) {
+                    $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' creado correctamente.'];
                 } else {
-                    $st->bind_param($types, ...$bind);
-                    if ($st->execute()) {
-                        $newId = (int)$link->insert_id;
-                        $src = (string)($vals[$M['name_col']] ?? '');
-                        update_pretty_id($link, $table, $newId, $src);
-                        hg_content_touch_table($link, $table, $newId);
-                        $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' creado correctamente.'];
-                    } else {
-                        $flash[] = ['type'=>'error','msg'=>'? Error al crear: '.$st->error];
-                    }
-                    $st->close();
+                    $prefix = (($result['error'] ?? '') === 'prepare') ? '? Error al preparar INSERT: ' : '? Error al crear: ';
+                    $flash[] = ['type'=>'error','msg'=>$prefix.(string)($result['message'] ?? $link->error)];
                 }
             } elseif ($action === 'update') {
                 if ($id <= 0) {
                     $flash[] = ['type'=>'error','msg'=>'? Falta ID para actualizar.'];
                 } else {
-                    $sets = [];
-                    $types= '';
-                    $bind = [];
-
-                    foreach ($M['fields'] as $f) {
-                        $sets[] = "`".$f['k']."`=?";
-                        $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
-                        $bind[] = $vals[$f['k']];
-                    }
-
-                    $sql = "UPDATE `$table` SET ".implode(', ', $sets);
-                    if (!empty($M['has_timestamps'])) {
-                        $sql .= ", `updated_at`=NOW()";
-                    }
-                    $sql .= " WHERE `$pk`=?";
-
-                    $types .= "i";
-                    $bind[] = $id;
-
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'? Error al preparar UPDATE: '.$link->error];
+                    $result = hg_powers_admin_update($link, $M, $vals, $id);
+                    if (!empty($result['ok'])) {
+                        $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' actualizado.'];
                     } else {
-                        $st->bind_param($types, ...$bind);
-                        if ($st->execute()) {
-                            $src = (string)($vals[$M['name_col']] ?? '');
-                            update_pretty_id($link, $table, $id, $src);
-                            hg_content_touch_table($link, $table, $id);
-                            $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' actualizado.'];
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'? Error al actualizar: '.$st->error];
-                        }
-                        $st->close();
+                        $prefix = (($result['error'] ?? '') === 'prepare') ? '? Error al preparar UPDATE: ' : '? Error al actualizar: ';
+                        $flash[] = ['type'=>'error','msg'=>$prefix.(string)($result['message'] ?? $link->error)];
                     }
                 }
             } elseif ($action === 'delete') {
@@ -482,37 +385,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
 
                     if ($postTab === 'dones' || $postTab === 'totems') {
                         $uploadDirForDelete = ($postTab === 'dones') ? $DON_IMG_UPLOAD_DIR : $TOTEM_IMG_UPLOAD_DIR;
-                        $stImg = $link->prepare("SELECT `image_url` FROM `$table` WHERE `$pk`=? LIMIT 1");
-                        if ($stImg) {
-                            $stImg->bind_param('i', $id);
-                            if ($stImg->execute()) {
-                                $rsImg = $stImg->get_result();
-                                if ($rsImg && ($rwImg = $rsImg->fetch_assoc())) {
-                                    $imgToDelete = (string)($rwImg['image_url'] ?? '');
-                                }
-                            }
-                            $stImg->close();
-                        }
+                        $imgToDelete = hg_powers_admin_fetch_image($link, $table, $pk, $id);
                     }
 
-                    $st = $link->prepare("DELETE FROM `$table` WHERE `$pk`=?");
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'? Error al preparar DELETE: '.$link->error];
-                    } else {
-                        $st->bind_param('i', $id);
-                        if ($st->execute()) {
-                            if ($st->affected_rows > 0) {
-                                if ($imgToDelete !== '' && $uploadDirForDelete !== '') {
-                                    safe_unlink_power_image($imgToDelete, $uploadDirForDelete);
-                                }
-                                $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' eliminado.'];
-                            } else {
-                                $flash[] = ['type'=>'error','msg'=>'? No existe el registro a borrar.'];
-                            }
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'? Error al borrar: '.$st->error];
+                    $result = hg_powers_admin_delete($link, $table, $pk, $id);
+                    if (!empty($result['ok'])) {
+                        if ($imgToDelete !== '' && $uploadDirForDelete !== '') {
+                            safe_unlink_power_image($imgToDelete, $uploadDirForDelete);
                         }
-                        $st->close();
+                        $flash[] = ['type'=>'ok','msg'=>'? '.$M['title'].' eliminado.'];
+                    } elseif (($result['error'] ?? '') === 'prepare') {
+                        $flash[] = ['type'=>'error','msg'=>'? Error al preparar DELETE: '.(string)($result['message'] ?? $link->error)];
+                    } elseif (($result['error'] ?? '') === 'execute') {
+                        $flash[] = ['type'=>'error','msg'=>'? Error al borrar: '.(string)($result['message'] ?? $link->error)];
+                    } else {
+                        $flash[] = ['type'=>'error','msg'=>'? No existe el registro a borrar.'];
                     }
                 }
             } else {
@@ -578,25 +465,50 @@ if ($ajaxMode === 'search') {
 
     $tableAjax   = $MAjax['table'];
     $pkAjax      = $MAjax['pk'];
-    $nameColAjax = $MAjax['name_col'];
 
-    $whereAjax = "WHERE 1=1";
-    $paramsAjax = [];
-    $typesAjax  = "";
-    if ($qAjax !== '') {
-        $whereAjax .= " AND `$nameColAjax` LIKE ?";
-        $typesAjax .= "s";
-        $paramsAjax[] = "%".$qAjax."%";
+    $searchResult = hg_powers_admin_fetch_rows($link, $MAjax, $qAjax);
+    if (empty($searchResult['ok'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'tab' => $tabAjax,
+            'rows' => [],
+            'rowMap' => [],
+            'total' => 0,
+            'error' => 'Error al preparar búsqueda: '.(string)($searchResult['error'] ?? $link->error),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
     }
 
-    $colsAllAjax = array_map(fn($f)=>"`".$f['k']."`", $MAjax['fields']);
-    $colsAllAjax[] = "`$pkAjax`";
-    $colsAllAjax = array_values(array_unique($colsAllAjax));
+    $rowsAjax = [];
+    $rowMapAjax = [];
+    foreach ($searchResult['rows'] as $r) {
+        $idv = (int)$r[$pkAjax];
 
-    $sqlAjax = "SELECT ".implode(',', $colsAllAjax)." FROM `$tableAjax` $whereAjax ORDER BY ".$MAjax['order_by'];
-    $stAjax = $link->prepare($sqlAjax);
-    if (!$stAjax) {
-        header('Content-Type: application/json; charset=utf-8');
+        $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
+        if (isset($r['system_id'])) {
+            $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
+        }
+
+        if ($tabAjax === 'dones') {
+            $t = (int)($r['kind'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
+        } elseif ($tabAjax === 'rituales') {
+            $t = (int)($r['kind'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
+        } elseif ($tabAjax === 'totems') {
+            $t = (int)($r['totem_type_id'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
+        } else {
+            $t = (int)($r['disc'] ?? 0);
+            $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
+        }
+
+        $rowsAjax[] = $r;
+        $rowMapAjax[$idv] = $r;
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'ok' => false,
             'tab' => $tabAjax,
@@ -678,92 +590,48 @@ if ($ajaxMode === 'search') {
 
 $table   = $META['table'];
 $pk      = $META['pk'];
-$nameCol = $META['name_col'];
 
-$where = "WHERE 1=1";
-$params = [];
-$types  = "";
-
-if ($q !== '') {
-    $where .= " AND `$nameCol` LIKE ?";
-    $types .= "s";
-    $params[] = "%".$q."%";
-}
-
-// COUNT
-$total = 0;
-$sqlCnt = "SELECT COUNT(*) AS c FROM `$table` $where";
-$stC = $link->prepare($sqlCnt);
-if (!$stC) {
-    $flash[] = ['type'=>'error','msg'=>'Error al preparar el conteo: '.$link->error];
-} else {
-    if ($types) $stC->bind_param($types, ...$params);
-    if (!$stC->execute()) {
-        $flash[] = ['type'=>'error','msg'=>'Error al ejecutar el conteo: '.$link->error];
-    } else {
-        $rsC = $stC->get_result();
-        $total = ($rsC && ($rowC=$rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
-    }
-    $stC->close();
+$countResult = hg_powers_admin_count($link, $META, $q);
+$total = !empty($countResult['ok']) ? (int)$countResult['count'] : 0;
+if (empty($countResult['ok'])) {
+    $flash[] = ['type'=>'error','msg'=>'Error al preparar el conteo: '.(string)($countResult['error'] ?? $link->error)];
 }
 
 $pages = max(1, (int)ceil($total / $perPage));
 $page  = min($page, $pages);
 $offset= ($page-1)*$perPage;
 
-// SELECT rows completos
-$colsAll = array_map(fn($f)=>"`".$f['k']."`", $META['fields']);
-$colsAll[] = "`$pk`";
-$colsAll = array_values(array_unique($colsAll));
-
-$sqlList = "SELECT ".implode(',', $colsAll)." FROM `$table` $where ORDER BY ".$META['order_by']." LIMIT ?, ?";
-$types2 = $types."ii";
-$params2 = $params;
-$params2[] = $offset;
-$params2[] = $perPage;
-
-$stL = $link->prepare($sqlList);
+$listResult = hg_powers_admin_fetch_rows($link, $META, $q, $offset, $perPage);
 $rows = [];
 $rowMap = [];
-if (!$stL) {
-    $flash[] = ['type'=>'error','msg'=>'Error al preparar el listado: '.$link->error];
+if (empty($listResult['ok'])) {
+    $flash[] = ['type'=>'error','msg'=>'Error al preparar el listado: '.(string)($listResult['error'] ?? $link->error)];
 } else {
-    $stL->bind_param($types2, ...$params2);
-    if (!$stL->execute()) {
-        $flash[] = ['type'=>'error','msg'=>'Error al cargar el listado: '.$link->error];
-    } else {
-        $rsL = $stL->get_result();
-        if (!$rsL) {
-            $flash[] = ['type'=>'error','msg'=>'No se pudo leer el listado: '.$link->error];
-        } else {
-            while ($r = $rsL->fetch_assoc()) {
-                $idv = (int)$r[$pk];
+    foreach ($listResult['rows'] as $r) {
+        $idv = (int)$r[$pk];
 
-                $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
-                if (isset($r['system_id'])) {
-                    $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
-                }
-
-                if ($tab === 'dones') {
-                    $t = (int)($r['kind'] ?? 0);
-                    $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
-                } elseif ($tab === 'rituales') {
-                    $t = (int)($r['kind'] ?? 0);
-                    $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
-                } elseif ($tab === 'totems') {
-                    $t = (int)($r['totem_type_id'] ?? 0);
-                    $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
-                } else {
-                    $t = (int)($r['disc'] ?? 0);
-                    $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
-                }
-
-                $rows[] = $r;
-                $rowMap[$idv] = $r;
-            }
+        $r['origen_name'] = ($opts_origen[(int)($r['bibliography_id'] ?? 0)] ?? '');
+        if (isset($r['system_id'])) {
+            $r['system_label'] = ($opts_systems[(int)($r['system_id'] ?? 0)] ?? '');
         }
+
+        if ($tab === 'dones') {
+            $t = (int)($r['kind'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_dones[$t] ?? '';
+        } elseif ($tab === 'rituales') {
+            $t = (int)($r['kind'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_rit[$t] ?? '';
+        } elseif ($tab === 'totems') {
+            $t = (int)($r['totem_type_id'] ?? 0);
+            $r['tipo_name'] = $opts_tipo_tot[$t] ?? '';
+        } else {
+            $t = (int)($r['disc'] ?? 0);
+            $r['disc_name'] = $opts_tipo_disc[$t] ?? '';
+        }
+
+        $rows[] = $r;
+        $rowMap[$idv] = $r;
     }
-    $stL->close();
 }
 
 /* -----------------------------
