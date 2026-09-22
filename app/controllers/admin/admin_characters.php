@@ -364,24 +364,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if ($text_color === '') $text_color = 'SkyBlue';
     if ($status_id <= 0) $status_id = (int)$default_status_id;
 
-    // Validaciones
-    if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
-    if ($status_id <= 0) $flash[] = ['type'=>'error','msg'=>'El estado no es válido.'];
-    if ($manada > 0) {
-        $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
-        if ($clan_of_manada !== $clan) {
-            $flash[] = ['type'=>'error','msg'=>'[WARN] La Manada seleccionada no pertenece al Clan elegido.'];
+    // Validaciones de formulario: solo aplican a create/update.
+    // El POST de delete solo envia ajax/crud_action/id/csrf y no debe exigir campos del modal.
+    if ($action === 'create' || $action === 'update') {
+        if ($clan <= 0) $flash[] = ['type'=>'error','msg'=>'[WARN] Debes seleccionar un Clan.'];
+        if ($status_id <= 0) $flash[] = ['type'=>'error','msg'=>'El estado no es válido.'];
+        if ($manada > 0) {
+            $clan_of_manada = $manadas_map_id_to_clan[$manada] ?? 0;
+            if ($clan_of_manada !== $clan) {
+                $flash[] = ['type'=>'error','msg'=>'[WARN] La Manada seleccionada no pertenece al Clan elegido.'];
+            }
         }
-    }
-    if ($system_id > 0) {
-        if ($raza > 0 && isset($raza_id_to_allowed_sys[$raza]) && !isset($raza_id_to_allowed_sys[$raza][(int)$system_id])) {
-            $flash[]=['type'=>'error','msg'=>'[WARN] La Raza no pertenece al Sistema elegido.'];
-        }
-        if ($auspice_id > 0 && isset($ausp_id_to_allowed_sys[$auspice_id]) && !isset($ausp_id_to_allowed_sys[$auspice_id][(int)$system_id])) {
-            $flash[]=['type'=>'error','msg'=>'[WARN] El Auspicio no pertenece al Sistema elegido.'];
-        }
-        if ($tribe_id > 0 && isset($tribu_id_to_allowed_sys[$tribe_id]) && !isset($tribu_id_to_allowed_sys[$tribe_id][(int)$system_id])) {
-            $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
+        if ($system_id > 0) {
+            if ($raza > 0 && isset($raza_id_to_allowed_sys[$raza]) && !isset($raza_id_to_allowed_sys[$raza][(int)$system_id])) {
+                $flash[]=['type'=>'error','msg'=>'[WARN] La Raza no pertenece al Sistema elegido.'];
+            }
+            if ($auspice_id > 0 && isset($ausp_id_to_allowed_sys[$auspice_id]) && !isset($ausp_id_to_allowed_sys[$auspice_id][(int)$system_id])) {
+                $flash[]=['type'=>'error','msg'=>'[WARN] El Auspicio no pertenece al Sistema elegido.'];
+            }
+            if ($tribe_id > 0 && isset($tribu_id_to_allowed_sys[$tribe_id]) && !isset($tribu_id_to_allowed_sys[$tribe_id][(int)$system_id])) {
+                $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
+            }
         }
     }
 
