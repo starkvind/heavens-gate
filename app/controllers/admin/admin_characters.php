@@ -392,25 +392,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if ($totem_choice === -1) {
         $totem_id = null;
     } elseif ($totem_id <= 0) {
-        $totem_from_group = 0;
-        if ($manada > 0) {
-            if ($st = $link->prepare("SELECT totem_id FROM dim_groups WHERE id=? LIMIT 1")) {
-                $st->bind_param("i", $manada);
-                $st->execute();
-                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_group = (int)($row['totem_id'] ?? 0); } }
-                $st->close();
-            }
-        }
-        $totem_from_clan = 0;
-        if ($totem_from_group <= 0 && $clan > 0) {
-            if ($st = $link->prepare("SELECT totem_id FROM dim_organizations WHERE id=? LIMIT 1")) {
-                $st->bind_param("i", $clan);
-                $st->execute();
-                if ($rs = $st->get_result()) { if ($row = $rs->fetch_assoc()) { $totem_from_clan = (int)($row['totem_id'] ?? 0); } }
-                $st->close();
-            }
-        }
-        $totem_id = $totem_from_group > 0 ? $totem_from_group : $totem_from_clan;
+        $totem_id = hg_characters_admin_inherited_totem($link, (int)$manada, (int)$clan);
     }
     if (!($totem_id > 0 && isset($opts_totems[$totem_id]))) {
         $totem_id = null; // NULL para evitar FK con 0
@@ -420,15 +402,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     $current_img = '';
     $character_exists = false;
     if (($action === 'update' || $action === 'delete') && $id > 0) {
-        if ($st = $link->prepare("SELECT image_url FROM fact_characters WHERE id=?")) {
-            $st->bind_param("i",$id); $st->execute();
-            $rs = $st->get_result();
-            if ($row = $rs->fetch_assoc()) {
-                $character_exists = true;
-                $current_img = (string)($row['image_url'] ?? '');
-            }
-            $st->close();
-        }
+        $current = hg_characters_admin_current_image($link, $id);
+        $character_exists = !empty($current['exists']);
+        $current_img = (string)($current['image_url'] ?? '');
     }
 
     if ($action === 'create') {
@@ -461,12 +437,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     if (!empty($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
                         $res = save_avatar_file($_FILES['avatar'], $newId, $nombre, $AV_UPLOADDIR, $AV_URLBASE);
                         if ($res['ok']) {
-                            $avatarStored = false;
-                            if ($st2 = $link->prepare("UPDATE fact_characters SET image_url=? WHERE id=?")) {
-                                $st2->bind_param("si", $res['url'], $newId);
-                                $avatarStored = (bool)$st2->execute();
-                                $st2->close();
-                            }
+                            $avatarStored = hg_characters_admin_set_image($link, (int)$newId, (string)$res['url']);
                             if ($avatarStored) {
                                 $flash[] = ['type'=>'ok','msg'=>'Avatar convertido y guardado como WebP.'];
                             } else {
@@ -575,12 +546,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                   if ($hasAvatarUpload) {
                       $res = save_avatar_file($_FILES['avatar'], $id, $nombre, $AV_UPLOADDIR, $AV_URLBASE);
                       if ($res['ok']) {
-                          $avatarStored = false;
-                          if ($st3 = $link->prepare("UPDATE fact_characters SET image_url=? WHERE id=?")) {
-                              $st3->bind_param("si", $res['url'], $id);
-                              $avatarStored = (bool)$st3->execute();
-                              $st3->close();
-                          }
+                          $avatarStored = hg_characters_admin_set_image($link, (int)$id, (string)$res['url']);
                           if ($avatarStored) {
                               if ($current_img) safe_unlink_avatar($current_img, $AV_UPLOADDIR);
                               $current_img = (string)$res['url'];
@@ -593,12 +559,7 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                           $flash[] = ['type'=>'error','msg'=>'[WARN] Avatar no guardado: '.$res['msg']];
                       }
                   } elseif ($rm_avatar && $current_img) {
-                      $avatarRemoved = false;
-                      if ($st2 = $link->prepare("UPDATE fact_characters SET image_url='' WHERE id=?")) {
-                          $st2->bind_param("i", $id);
-                          $avatarRemoved = (bool)$st2->execute();
-                          $st2->close();
-                      }
+                      $avatarRemoved = hg_characters_admin_clear_image($link, (int)$id);
                       if ($avatarRemoved) {
                           safe_unlink_avatar($current_img, $AV_UPLOADDIR);
                           $current_img = '';
@@ -684,12 +645,7 @@ $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
 
           if ($has_status_id_col) {
               if ($inactive_status_id > 0) {
-                  if ($stmt = $link->prepare("UPDATE fact_characters SET status_id=? WHERE id=?")) {
-                      $status_id_to_set = (int)$inactive_status_id;
-                      $stmt->bind_param("ii", $status_id_to_set, $id);
-                      $okDelete = (bool)$stmt->execute();
-                      $stmt->close();
-                  }
+                  $okDelete = hg_characters_admin_soft_delete($link, (int)$id, (int)$inactive_status_id);
               }
           }
 
