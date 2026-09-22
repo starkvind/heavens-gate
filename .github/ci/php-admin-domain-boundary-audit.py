@@ -103,6 +103,34 @@ PILOTS = {
             'hg_maps_admin_delete_area(',
         ],
     },
+    'characters': {
+        'controller': ROOT / 'app/controllers/admin/admin_characters.php',
+        'domain': ROOT / 'app/domains/characters/admin_queries.php',
+        'markers': [
+            'hg_characters_admin_status_state(',
+            'hg_characters_admin_reference_catalogs(',
+            'hg_characters_admin_complex_catalogs(',
+            'hg_characters_admin_system_dimensions(',
+            'hg_characters_admin_group_maps(',
+            'hg_characters_admin_inherited_totem(',
+            'hg_characters_admin_current_image(',
+            'hg_characters_admin_create(',
+            'hg_characters_admin_update(',
+            'hg_characters_admin_set_image(',
+            'hg_characters_admin_clear_image(',
+            'hg_characters_admin_soft_delete(',
+            'hg_characters_admin_count(',
+            'hg_characters_admin_fetch_page(',
+            'hg_characters_admin_preload(',
+        ],
+    },
+    'characters_ajax': {
+        'controller': ROOT / 'app/controllers/admin/admin_characters_ajax.php',
+        'domain': ROOT / 'app/domains/characters/admin_queries.php',
+        'markers': [
+            'hg_characters_admin_fetch_ajax_details(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
@@ -134,4 +162,13 @@ if "$cols[] = 'pretty_id';" not in chronicles_domain:
 relations_controller = (ROOT / 'app/controllers/admin/admin_relations.php').read_text(encoding='utf-8', errors='replace')
 if '<th>Tipo</th>' in relations_controller or '<th>Flechas</th>' in relations_controller:
     print('ERROR: Admin Relations compact table regained Type/Flechas columns', file=sys.stderr)
+    sys.exit(1)
+
+
+characters_service_wrapper = (ROOT / 'app/controllers/admin/admin_characters_service.php').read_text(encoding='utf-8', errors='replace')
+if SQL.search(characters_service_wrapper):
+    print('ERROR: Admin character service wrapper regained direct SQL', file=sys.stderr)
+    sys.exit(1)
+if 'app/domains/characters/admin_service.php' not in characters_service_wrapper:
+    print('ERROR: Admin character service wrapper lost domain delegation', file=sys.stderr)
     sys.exit(1)
