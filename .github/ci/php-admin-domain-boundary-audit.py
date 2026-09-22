@@ -16,6 +16,27 @@ PILOTS = {
             'hg_news_admin_fetch_rows_full(',
         ],
     },
+    'external_links': {
+        'controller': ROOT / 'app/controllers/admin/admin_external_links.php',
+        'domain': ROOT / 'app/domains/documents/admin_external_links.php',
+        'markers': [
+            'hg_external_links_admin_table_exists(',
+            'hg_external_links_admin_create(',
+            'hg_external_links_admin_update(',
+            'hg_external_links_admin_delete(',
+            'hg_external_links_admin_fetch_rows(',
+        ],
+    },
+    'resources': {
+        'controller': ROOT / 'app/controllers/admin/admin_resources.php',
+        'domain': ROOT / 'app/domains/systems/admin_resources.php',
+        'markers': [
+            'hg_resources_admin_delete(',
+            'hg_resources_admin_create(',
+            'hg_resources_admin_update(',
+            'hg_resources_admin_fetch_rows(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
