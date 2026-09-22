@@ -38,41 +38,31 @@ if (!function_exists('hg_news_admin_save')) {
                 "UPDATE fact_admin_posts SET author=?, title=?, message=?, posted_at=NOW() WHERE id=?"
             );
             if (!$stmt) {
-                return ['ok' => false, 'message' => 'Error al preparar UPDATE: ' . $link->error];
+                return ['handled' => false];
             }
 
             $stmt->bind_param('sssi', $author, $title, $message, $id);
-            $ok = $stmt->execute();
-            $error = $stmt->error;
+            $stmt->execute();
+            hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $id, $title);
             $stmt->close();
 
-            if (!$ok) {
-                return ['ok' => false, 'message' => 'Error al actualizar: ' . $error];
-            }
-
-            hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $id, $title);
-            return ['ok' => true, 'message' => 'Noticia actualizada.'];
+            return ['handled' => true, 'ok' => true, 'message' => 'Noticia actualizada.'];
         }
 
         $stmt = $link->prepare(
             "INSERT INTO fact_admin_posts (author, title, message, posted_at) VALUES (?,?,?,NOW())"
         );
         if (!$stmt) {
-            return ['ok' => false, 'message' => 'Error al preparar INSERT: ' . $link->error];
+            return ['handled' => false];
         }
 
         $stmt->bind_param('sss', $author, $title, $message);
-        $ok = $stmt->execute();
-        $error = $stmt->error;
+        $stmt->execute();
         $newId = (int)$link->insert_id;
+        hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $newId, $title);
         $stmt->close();
 
-        if (!$ok) {
-            return ['ok' => false, 'message' => 'Error al crear: ' . $error];
-        }
-
-        hg_update_pretty_id_if_exists($link, 'fact_admin_posts', $newId, $title);
-        return ['ok' => true, 'message' => 'Noticia creada.'];
+        return ['handled' => true, 'ok' => true, 'message' => 'Noticia creada.'];
     }
 }
 
