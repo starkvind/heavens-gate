@@ -37,6 +37,29 @@ PILOTS = {
             'hg_resources_admin_fetch_rows(',
         ],
     },
+    'chronicles': {
+        'controller': ROOT / 'app/controllers/admin/admin_chronicles.php',
+        'domain': ROOT / 'app/domains/chronicles/admin.php',
+        'markers': [
+            'hg_chronicles_admin_fetch_current_image(',
+            'hg_chronicles_admin_delete(',
+            'hg_chronicles_admin_create(',
+            'hg_chronicles_admin_update(',
+            'hg_chronicles_admin_set_image(',
+            'hg_chronicles_admin_fetch_rows(',
+        ],
+    },
+    'relations': {
+        'controller': ROOT / 'app/controllers/admin/admin_relations.php',
+        'domain': ROOT / 'app/domains/relationships/admin.php',
+        'markers': [
+            'hg_relationships_admin_fetch_characters(',
+            'hg_relationships_admin_delete(',
+            'hg_relationships_admin_create(',
+            'hg_relationships_admin_update(',
+            'hg_relationships_admin_fetch_rows(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
