@@ -69,6 +69,7 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 include_once(__DIR__ . '/admin_characters_service.php');
+include_once(__DIR__ . '/../../domains/characters/admin_queries.php');
 include_once(__DIR__ . '/admin_characters_ajax.php');
 
 // Rutas de avatar (usadas por create/update/delete en CRUD).
@@ -90,62 +91,12 @@ $ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
 /* -------------------------------------------------
    Estado (catalogo + fallback legacy)
 ------------------------------------------------- */
-$estado_opts = [];
-$default_status_id = 0;
-$has_status_id_col = false;
-if ($rsChk = $link->query("SHOW COLUMNS FROM fact_characters LIKE 'status_id'")) {
-    $has_status_id_col = ($rsChk->num_rows > 0);
-    $rsChk->close();
-}
-$has_status_dim = false;
-if ($rsTbl = $link->query("SHOW TABLES LIKE 'dim_character_status'")) {
-    $has_status_dim = ($rsTbl->num_rows > 0);
-    $rsTbl->close();
-}
-if ($has_status_dim) {
-  if ($qst = $link->query("SELECT id, label, is_active FROM dim_character_status ORDER BY sort_order ASC, label ASC")) {
-    while ($row = $qst->fetch_assoc()) {
-      $sid = (int)($row['id'] ?? 0);
-      $label = (string)($row['label'] ?? '');
-      if ($sid <= 0 || $label === '') continue;
-      $estado_opts[$sid] = $label;
-      if ((int)($row['is_active'] ?? 0) === 1 && $default_status_id <= 0) {
-        $default_status_id = $sid;
-      }
-    }
-    $qst->close();
-  }
-}
-if ($default_status_id <= 0 && !empty($estado_opts)) {
-    $firstSid = (int)array_key_first($estado_opts);
-    if ($firstSid > 0) {
-        $default_status_id = $firstSid;
-    }
-}
-
-// Estado usado para desactivar en "delete" (soft delete).
-$inactive_status_id = 0;
-if ($has_status_dim) {
-    if ($stIn = $link->prepare("SELECT id, label FROM dim_character_status WHERE is_active=0 ORDER BY sort_order ASC, label ASC LIMIT 1")) {
-        $stIn->execute();
-        if ($rsIn = $stIn->get_result()) {
-            if ($rIn = $rsIn->fetch_assoc()) {
-                $inactive_status_id = (int)($rIn['id'] ?? 0);
-            }
-        }
-        $stIn->close();
-    }
-}
-if ($inactive_status_id <= 0) {
-    $preferred_inactive = ['inactivo','inactiva','desactivado','desactivada','retirado','retirada','baja','fallecido','fallecida','muerto','muerta'];
-    foreach ($estado_opts as $sid => $lbl) {
-        $norm = function_exists('mb_strtolower') ? mb_strtolower((string)$lbl, 'UTF-8') : strtolower((string)$lbl);
-        if (in_array($norm, $preferred_inactive, true)) {
-            $inactive_status_id = (int)$sid;
-            break;
-        }
-    }
-}
+$statusState = hg_characters_admin_status_state($link);
+$estado_opts = $statusState['options'];
+$default_status_id = (int)$statusState['default_id'];
+$inactive_status_id = (int)$statusState['inactive_id'];
+$has_status_id_col = !empty($statusState['has_status_id_col']);
+$has_status_dim = !empty($statusState['has_status_dim']);
 
 if (hg_admin_characters_handle_ajax($link)) {
     return;
@@ -216,397 +167,53 @@ $character_kind_maxlen = pjs_column_char_maxlen($link, 'fact_characters', $chara
 /* -------------------------------------------------
    Cargar opciones de referencia
 ------------------------------------------------- */
-$opts_cronicas = fetchPairs($link, "SELECT id, name FROM dim_chronicles ORDER BY name");
-$opts_clanes   = fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER BY name");
-$opts_jug      = fetchPairs($link, "SELECT id, name FROM dim_players ORDER BY name");
-$opts_sist     = fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name");
-$opts_totems   = fetchPairs($link, "SELECT id, name FROM dim_totems ORDER BY name");
-$opts_afili    = fetchPairs($link, "SELECT id, kind AS name FROM dim_character_types ORDER BY sort_order, kind");
-$opts_archetypes = fetchPairs($link, "SELECT id, name FROM dim_archetypes ORDER BY name");
-$opts_manadas_flat = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
+$catalogs = hg_characters_admin_reference_catalogs($link);
+$opts_cronicas = $catalogs['chronicles'];
+$opts_clanes = $catalogs['organizations'];
+$opts_jug = $catalogs['players'];
+$opts_sist = $catalogs['systems'];
+$opts_totems = $catalogs['totems'];
+$opts_afili = $catalogs['character_types'];
+$opts_archetypes = $catalogs['archetypes'];
+$opts_manadas_flat = $catalogs['groups'];
+$opts_dones = $catalogs['gifts'];
+$opts_disciplinas = $catalogs['disciplines'];
+$opts_rituales = $catalogs['rites'];
 
-/* --- PODERES: catálogos --- */
-$opts_dones        = fetchPairs($link, "SELECT id, CONCAT(name, ' (', gift_group, ')') AS name FROM fact_gifts");
-$opts_disciplinas  = fetchPairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY name");
-$opts_rituales     = fetchPairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id");
-$discipline_power_to_type = [];
-if ($st = $link->prepare("SELECT id, disc FROM fact_discipline_powers")) {
-    $st->execute();
-    if ($rs = $st->get_result()) {
-        while ($r = $rs->fetch_assoc()) {
-            $powerId = (int)($r['id'] ?? 0);
-            $typeIdRaw = trim((string)($r['disc'] ?? ''));
-            if ($powerId <= 0 || $typeIdRaw === '' || !ctype_digit($typeIdRaw)) continue;
-            $typeId = (int)$typeIdRaw;
-            if ($typeId <= 0) continue;
-            $discipline_power_to_type[$powerId] = $typeId;
-        }
-    }
-    $st->close();
-}
+$complexCatalogs = hg_characters_admin_complex_catalogs($link);
+$discipline_power_to_type = $complexCatalogs['disciplinePowerToType'];
+$opts_myd_full = $complexCatalogs['merits'];
+$opts_items_full = $complexCatalogs['items'];
+$has_dim_systems_resources = $complexCatalogs['hasResources'];
+$has_bridge_systems_resources = $complexCatalogs['hasSystemResources'];
+$has_bridge_char_resources = $complexCatalogs['hasCharResources'];
+$has_bridge_char_resources_log = $complexCatalogs['hasCharResourcesLog'];
+$opts_resources_full = $complexCatalogs['resources'];
+$resources_by_id = $complexCatalogs['resourcesById'];
+$sys_resources_by_system = $complexCatalogs['resourcesBySystem'];
+$traits_catalog = $complexCatalogs['traits'];
+$valid_trait_ids = $complexCatalogs['validTraits'];
+$monster_blocked_trait_ids = $complexCatalogs['blockedMonster'];
+$trait_kind_order = $complexCatalogs['traitOrder'];
+$trait_set_order = $complexCatalogs['traitSetOrder'];
 
-/* --- MÉRITOS/DEFECTOS: catálogo completo (para select + chips) --- */
-$opts_myd_full = []; // [{id,name,tipo,coste}]
-if ($st = $link->prepare("SELECT id, name, kind, cost FROM dim_merits_flaws ORDER BY kind DESC, cost, name")) {
-    $st->execute(); $rs = $st->get_result();
-    while ($r = $rs->fetch_assoc()) {
-        $opts_myd_full[] = [
-            'id'    => (int)$r['id'],
-            'name'  => (string)$r['name'],
-            'tipo'  => (string)$r['kind'],
-            'coste' => (string)($r['cost'] ?? ''),
-        ];
-    }
-    $st->close();
-}
+$dimensions = hg_characters_admin_system_dimensions($link, $opts_sist);
+$opts_razas = $dimensions['breed']['options'];
+$razas_by_sys = $dimensions['breed']['by_system'];
+$raza_id_to_sys = $dimensions['breed']['id_to_system'];
+$raza_id_to_allowed_sys = $dimensions['breed']['allowed'];
+$opts_ausp = $dimensions['auspice']['options'];
+$ausp_by_sys = $dimensions['auspice']['by_system'];
+$ausp_id_to_sys = $dimensions['auspice']['id_to_system'];
+$ausp_id_to_allowed_sys = $dimensions['auspice']['allowed'];
+$opts_tribus = $dimensions['tribe']['options'];
+$tribus_by_sys = $dimensions['tribe']['by_system'];
+$tribu_id_to_sys = $dimensions['tribe']['id_to_system'];
+$tribu_id_to_allowed_sys = $dimensions['tribe']['allowed'];
 
-/* --- INVENTARIO: catálogo --- */
-$opts_items_full = []; // [{id,name,tipo}]
-if ($st = $link->prepare("SELECT id, name, item_type_id FROM fact_items ORDER BY name")) {
-    $st->execute(); $rs = $st->get_result();
-    while ($r = $rs->fetch_assoc()) {
-        $opts_items_full[] = [
-            'id'   => (int)$r['id'],
-            'name' => (string)$r['name'],
-            'tipo' => (int)($r['item_type_id'] ?? 0),
-        ];
-    }
-    $st->close();
-}
-
-/* --- RECURSOS: catálogo + defaults por sistema --- */
-$has_dim_systems_resources = pjs_table_exists($link, 'dim_systems_resources');
-$has_bridge_systems_resources = pjs_table_exists($link, 'bridge_systems_resources_to_system');
-$has_bridge_char_resources = pjs_table_exists($link, 'bridge_characters_system_resources');
-$has_bridge_char_resources_log = pjs_table_exists($link, 'bridge_characters_system_resources_log');
-
-$opts_resources_full = [];      // [{id,name,kind,sort_order}]
-$resources_by_id = [];          // [id => row]
-$sys_resources_by_system = [];  // [system_id => [{id,name,kind,sort_order}]]
-
-if ($has_dim_systems_resources) {
-    if ($st = $link->prepare("SELECT id, name, kind, sort_order FROM dim_systems_resources ORDER BY kind, sort_order, name")) {
-        $st->execute(); $rs = $st->get_result();
-        while ($r = $rs->fetch_assoc()) {
-            $row = [
-                'id' => (int)$r['id'],
-                'name' => (string)$r['name'],
-                'kind' => (string)$r['kind'],
-                'sort_order' => (int)($r['sort_order'] ?? 0),
-            ];
-            $opts_resources_full[] = $row;
-            $resources_by_id[(int)$r['id']] = $row;
-        }
-        $st->close();
-    }
-}
-
-if ($has_bridge_systems_resources && $has_dim_systems_resources) {
-    $hasActiveCol = pjs_table_has_column($link, 'bridge_systems_resources_to_system', 'is_active');
-    $sqlSysRes = "
-        SELECT b.system_id, r.id, r.name, r.kind, r.sort_order
-        FROM bridge_systems_resources_to_system b
-        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
-    ";
-    if ($hasActiveCol) $sqlSysRes .= " WHERE b.is_active = 1";
-    $sqlSysRes .= " ORDER BY b.system_id, r.kind, r.sort_order, r.name";
-
-    if ($rs = $link->query($sqlSysRes)) {
-        while ($r = $rs->fetch_assoc()) {
-            $sid = (int)$r['system_id'];
-            if (!isset($sys_resources_by_system[$sid])) $sys_resources_by_system[$sid] = [];
-            $sys_resources_by_system[$sid][] = [
-                'id' => (int)$r['id'],
-                'name' => (string)$r['name'],
-                'kind' => (string)$r['kind'],
-                'sort_order' => (int)($r['sort_order'] ?? 0),
-            ];
-        }
-        $rs->close();
-    }
-}
-
-/* --- TRAITS: catálogo (todos los tipos) --- */
-$traits_catalog = [];
-$valid_trait_ids = [];
-$monster_blocked_trait_ids = [];
-$trait_order_fixed = ['Atributos','Talentos','Técnicas','Conocimientos','Trasfondos'];
-$trait_kind_seen = [];
-if ($st = $link->prepare("
-    SELECT id, name, kind, classification
-    FROM dim_traits
-    WHERE kind IS NOT NULL AND TRIM(kind) <> ''
-    ORDER BY kind, name
-")) {
-    $st->execute(); $rs = $st->get_result();
-    while ($r = $rs->fetch_assoc()) {
-        $kindTrait = (string)$r['kind'];
-        $classification = (string)($r['classification'] ?? '');
-        $traitId = (int)($r['id'] ?? 0);
-        if ($traitId <= 0 || $kindTrait === '') continue;
-        $valid_trait_ids[$traitId] = true;
-        $traits_catalog[] = [
-            'id'=>$traitId,
-            'name'=>(string)$r['name'],
-            'kind'=>$kindTrait,
-            'classification'=>$classification,
-        ];
-        $trait_kind_seen[$kindTrait] = true;
-
-        $kindNorm = function_exists('mb_strtolower') ? mb_strtolower($kindTrait, 'UTF-8') : strtolower($kindTrait);
-        $classNorm = function_exists('mb_strtolower') ? mb_strtolower($classification, 'UTF-8') : strtolower($classification);
-        $kindNorm = str_replace('é', 'e', $kindNorm);
-        $isSec = (strpos($classNorm, '002 secundarias') === 0);
-        $isBlockedForMonster = ($kindNorm === 'trasfondos')
-            || ($isSec && in_array($kindNorm, ['talentos','tecnicas','conocimientos'], true));
-        if ($isBlockedForMonster) {
-            $monster_blocked_trait_ids[$traitId] = true;
-        }
-    }
-    $st->close();
-}
-// Orden fijo + resto al final (alfabético)
-$trait_kind_order = $trait_order_fixed;
-foreach (array_keys($trait_kind_seen) as $kind) {
-    if (!in_array($kind, $trait_kind_order, true)) $trait_kind_order[] = $kind;
-}
-
-/* --- TRAIT SETS: orden por sistema --- */
-$trait_set_order = [];
-if ($rs = $link->query("SELECT system_id, trait_id, sort_order FROM fact_trait_sets WHERE is_active=1")) {
-    while ($r = $rs->fetch_assoc()) {
-        $sid = (int)$r['system_id'];
-        $tid = (int)$r['trait_id'];
-        $ord = (int)$r['sort_order'];
-        $trait_set_order[$sid][$tid] = $ord;
-    }
-    $rs->close();
-}
-
-/* -------------------------------------------------
-   Sistema -> (Raza, Auspicio, Tribu)
-------------------------------------------------- */
-// RAZAS
-$opts_razas = [];
-$razas_by_sys = []; $raza_id_to_sys = []; $raza_id_to_allowed_sys = []; $razas_seen_by_sys = [];
-if ($st = $link->prepare("SELECT id, name, system_id FROM dim_breeds ORDER BY system_id, name")) {
-    $st->execute(); $rs = $st->get_result();
-    while ($r = $rs->fetch_assoc()) {
-        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
-        $opts_razas[$id] = $nm . ($sys>0 && isset($opts_sist[$sys]) ? ' ('.$opts_sist[$sys].')' : '');
-        $raza_id_to_sys[$id] = $sys;
-        if ($sys > 0) {
-            if (!isset($raza_id_to_allowed_sys[$id])) $raza_id_to_allowed_sys[$id] = [];
-            $raza_id_to_allowed_sys[$id][$sys] = true;
-        }
-        if (!isset($razas_seen_by_sys[$sys][$id])) {
-            $razas_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
-            $razas_seen_by_sys[$sys][$id] = true;
-        }
-    }
-    $st->close();
-}
-$bridgeExtraRazaTable = '';
-$bridgeExtraRazaFk = '';
-$bridgeExtraRazaCandidates = [
-    ['table' => 'bridge_systems_ex_races', 'fk' => 'race_id'],
-    ['table' => 'bridge_systems_ex_races', 'fk' => 'breed_id'],
-    ['table' => 'bridge_systems_ex_breeds', 'fk' => 'breed_id'],
-];
-foreach ($bridgeExtraRazaCandidates as $candidate) {
-    $table = (string)$candidate['table'];
-    $fk = (string)$candidate['fk'];
-    if (!pjs_table_exists($link, $table)) continue;
-    if (!pjs_table_has_column($link, $table, 'system_id')) continue;
-    if (!pjs_table_has_column($link, $table, $fk)) continue;
-    $bridgeExtraRazaTable = $table;
-    $bridgeExtraRazaFk = $fk;
-    break;
-}
-if ($bridgeExtraRazaTable !== '' && $bridgeExtraRazaFk !== '') {
-    $hasActiveCol = pjs_table_has_column($link, $bridgeExtraRazaTable, 'is_active');
-    $sqlExtraRaza = "
-        SELECT b.system_id AS system_id, d.id AS id, d.name AS name
-        FROM {$bridgeExtraRazaTable} b
-        INNER JOIN dim_breeds d ON d.id = b.{$bridgeExtraRazaFk}
-    ";
-    if ($hasActiveCol) $sqlExtraRaza .= " WHERE (b.is_active = 1 OR b.is_active IS NULL)";
-    $sqlExtraRaza .= " ORDER BY b.system_id, d.name";
-    if ($st = $link->prepare($sqlExtraRaza)) {
-        $st->execute(); $rs = $st->get_result();
-        while ($r = $rs->fetch_assoc()) {
-            $sys = (int)($r['system_id'] ?? 0);
-            $id = (int)($r['id'] ?? 0);
-            $nm = (string)($r['name'] ?? '');
-            if ($sys <= 0 || $id <= 0 || $nm === '') continue;
-            if (!isset($raza_id_to_allowed_sys[$id])) $raza_id_to_allowed_sys[$id] = [];
-            $raza_id_to_allowed_sys[$id][$sys] = true;
-            if (!isset($razas_seen_by_sys[$sys][$id])) {
-                $razas_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
-                $razas_seen_by_sys[$sys][$id] = true;
-            }
-        }
-        $st->close();
-    }
-}
-// AUSPICIOS
-$opts_ausp = []; $ausp_by_sys = []; $ausp_id_to_sys = []; $ausp_id_to_allowed_sys = []; $ausp_seen_by_sys = [];
-if ($st = $link->prepare("SELECT id, name, system_id FROM dim_auspices ORDER BY system_id, name")) {
-    $st->execute(); $rs = $st->get_result();
-    while ($r = $rs->fetch_assoc()) {
-        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
-        $opts_ausp[$id] = $nm;
-        $ausp_id_to_sys[$id] = $sys;
-        if ($sys > 0) {
-            if (!isset($ausp_id_to_allowed_sys[$id])) $ausp_id_to_allowed_sys[$id] = [];
-            $ausp_id_to_allowed_sys[$id][$sys] = true;
-        }
-        if (!isset($ausp_seen_by_sys[$sys][$id])) {
-            $ausp_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
-            $ausp_seen_by_sys[$sys][$id] = true;
-        }
-    }
-    $st->close();
-} else {
-    $opts_ausp = fetchPairs($link, "SELECT id, name FROM dim_auspices ORDER BY name");
-}
-$bridgeExtraAuspTable = '';
-$bridgeExtraAuspFk = '';
-$bridgeExtraAuspCandidates = [
-    ['table' => 'bridge_systems_ex_auspices', 'fk' => 'auspice_id'],
-];
-foreach ($bridgeExtraAuspCandidates as $candidate) {
-    $table = (string)$candidate['table'];
-    $fk = (string)$candidate['fk'];
-    if (!pjs_table_exists($link, $table)) continue;
-    if (!pjs_table_has_column($link, $table, 'system_id')) continue;
-    if (!pjs_table_has_column($link, $table, $fk)) continue;
-    $bridgeExtraAuspTable = $table;
-    $bridgeExtraAuspFk = $fk;
-    break;
-}
-if ($bridgeExtraAuspTable !== '' && $bridgeExtraAuspFk !== '') {
-    $hasActiveCol = pjs_table_has_column($link, $bridgeExtraAuspTable, 'is_active');
-    $sqlExtraAusp = "
-        SELECT b.system_id AS system_id, d.id AS id, d.name AS name
-        FROM {$bridgeExtraAuspTable} b
-        INNER JOIN dim_auspices d ON d.id = b.{$bridgeExtraAuspFk}
-    ";
-    if ($hasActiveCol) $sqlExtraAusp .= " WHERE (b.is_active = 1 OR b.is_active IS NULL)";
-    $sqlExtraAusp .= " ORDER BY b.system_id, d.name";
-    if ($st = $link->prepare($sqlExtraAusp)) {
-        $st->execute(); $rs = $st->get_result();
-        while ($r = $rs->fetch_assoc()) {
-            $sys = (int)($r['system_id'] ?? 0);
-            $id = (int)($r['id'] ?? 0);
-            $nm = (string)($r['name'] ?? '');
-            if ($sys <= 0 || $id <= 0 || $nm === '') continue;
-            if (!isset($ausp_id_to_allowed_sys[$id])) $ausp_id_to_allowed_sys[$id] = [];
-            $ausp_id_to_allowed_sys[$id][$sys] = true;
-            if (!isset($ausp_seen_by_sys[$sys][$id])) {
-                $ausp_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
-                $ausp_seen_by_sys[$sys][$id] = true;
-            }
-        }
-        $st->close();
-    }
-}
-// TRIBUS
-$opts_tribus = []; $tribus_by_sys = []; $tribu_id_to_sys = []; $tribu_id_to_allowed_sys = []; $tribus_seen_by_sys = [];
-if ($st = $link->prepare("SELECT id, name, system_id FROM dim_tribes ORDER BY system_id, name")) {
-    $st->execute(); $rs = $st->get_result();
-    while ($r = $rs->fetch_assoc()) {
-        $id = (int)$r['id']; $nm = (string)$r['name']; $sys = (int)($r['system_id'] ?? 0);
-        $opts_tribus[$id] = $nm;
-        $tribu_id_to_sys[$id] = $sys;
-        if ($sys > 0) {
-            if (!isset($tribu_id_to_allowed_sys[$id])) $tribu_id_to_allowed_sys[$id] = [];
-            $tribu_id_to_allowed_sys[$id][$sys] = true;
-        }
-        if (!isset($tribus_seen_by_sys[$sys][$id])) {
-            $tribus_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
-            $tribus_seen_by_sys[$sys][$id] = true;
-        }
-    }
-    $st->close();
-} else {
-    $opts_tribus = fetchPairs($link, "SELECT id, name FROM dim_tribes ORDER BY name");
-}
-$bridgeExtraTribuTable = '';
-$bridgeExtraTribuFk = '';
-$bridgeExtraTribuCandidates = [
-    ['table' => 'bridge_systems_ex_tribes', 'fk' => 'tribe_id'],
-];
-foreach ($bridgeExtraTribuCandidates as $candidate) {
-    $table = (string)$candidate['table'];
-    $fk = (string)$candidate['fk'];
-    if (!pjs_table_exists($link, $table)) continue;
-    if (!pjs_table_has_column($link, $table, 'system_id')) continue;
-    if (!pjs_table_has_column($link, $table, $fk)) continue;
-    $bridgeExtraTribuTable = $table;
-    $bridgeExtraTribuFk = $fk;
-    break;
-}
-if ($bridgeExtraTribuTable !== '' && $bridgeExtraTribuFk !== '') {
-    $hasActiveCol = pjs_table_has_column($link, $bridgeExtraTribuTable, 'is_active');
-    $sqlExtraTribu = "
-        SELECT b.system_id AS system_id, d.id AS id, d.name AS name
-        FROM {$bridgeExtraTribuTable} b
-        INNER JOIN dim_tribes d ON d.id = b.{$bridgeExtraTribuFk}
-    ";
-    if ($hasActiveCol) $sqlExtraTribu .= " WHERE (b.is_active = 1 OR b.is_active IS NULL)";
-    $sqlExtraTribu .= " ORDER BY b.system_id, d.name";
-    if ($st = $link->prepare($sqlExtraTribu)) {
-        $st->execute(); $rs = $st->get_result();
-        while ($r = $rs->fetch_assoc()) {
-            $sys = (int)($r['system_id'] ?? 0);
-            $id = (int)($r['id'] ?? 0);
-            $nm = (string)($r['name'] ?? '');
-            if ($sys <= 0 || $id <= 0 || $nm === '') continue;
-            if (!isset($tribu_id_to_allowed_sys[$id])) $tribu_id_to_allowed_sys[$id] = [];
-            $tribu_id_to_allowed_sys[$id][$sys] = true;
-            if (!isset($tribus_seen_by_sys[$sys][$id])) {
-                $tribus_by_sys[$sys][] = ['id'=>$id,'name'=>$nm];
-                $tribus_seen_by_sys[$sys][$id] = true;
-            }
-        }
-        $st->close();
-    }
-}
-
-/* -------------------------------------------------
-   MAPAS Clan->Manadas (por BRIDGE bridge_organizations_groups)
-------------------------------------------------- */
-$manadas_map_id_to_clan = [];
-$manadas_by_clan        = [];
-
-$sqlMap = "
-    SELECT
-        b.group_id AS manada_id,
-        m.name     AS manada_name,
-        b.organization_id  AS organization_id
-    FROM bridge_organizations_groups b
-    INNER JOIN dim_groups m ON m.id = b.group_id
-    INNER JOIN dim_organizations  c ON c.id = b.organization_id
-    WHERE (b.is_active = 1 OR b.is_active IS NULL)
-    ORDER BY b.group_id ASC, b.updated_at DESC, b.created_at DESC, b.organization_id DESC, m.name ASC
-";
-if ($stmtM = $link->prepare($sqlMap)) {
-    $stmtM->execute();
-    $resM = $stmtM->get_result();
-    $seenManadas = [];
-    while ($row = $resM->fetch_assoc()) {
-        $mid = (int)$row['manada_id'];
-        if ($mid <= 0 || isset($seenManadas[$mid])) {
-            continue;
-        }
-        $seenManadas[$mid] = true;
-        $cid = (int)$row['organization_id'];
-        $manadas_map_id_to_clan[$mid] = $cid;
-        $manadas_by_clan[$cid][] = ['id'=>$mid, 'name'=>$row['manada_name']];
-    }
-    $stmtM->close();
-}
+$groupMaps = hg_characters_admin_group_maps($link);
+$manadas_map_id_to_clan = $groupMaps['group_to_org'];
+$manadas_by_clan = $groupMaps['by_org'];
 
 /* -------------------------------------------------
    Crear / Editar (POST) + avatar + validaciones + PODERES + MÉRITOS/DEFECTOS + INVENTARIO + CAMPOS COMPLEJOS
