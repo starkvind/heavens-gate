@@ -7,15 +7,9 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/documents/admin_external_links.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function ael_table_exists(mysqli $db, string $table): bool {
-    $safe = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    if ($safe === '') return false;
-    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safe}' LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
-}
 function ael_valid_url(string $url): bool {
     $url = trim($url);
     if ($url === '') return false;
@@ -48,8 +42,8 @@ if (!function_exists('admin_external_links_csrf_ok')) {
 }
 
 $flash = [];
-$hasTable = ael_table_exists($link, 'fact_external_links');
-$hasBridge = ael_table_exists($link, 'bridge_characters_external_links');
+$hasTable = hg_external_links_admin_table_exists($link, 'fact_external_links');
+$hasBridge = hg_external_links_admin_table_exists($link, 'bridge_characters_external_links');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
@@ -76,60 +70,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } elseif (!ael_valid_url($url)) {
                 $flash[] = ['type' => 'error', 'msg' => 'La URL debe ser valida y empezar por http(s).'];
             } else {
-                if ($action === 'create') {
-                    $sql = "INSERT INTO fact_external_links (title, url, kind, source_label, description, is_active)
-                            VALUES (?, ?, ?, ?, ?, ?)";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param('sssssi', $title, $url, $kind, $sourceLabel, $description, $isActive);
-                        if ($st->execute()) {
-                            $newId = (int)$link->insert_id;
-                            hg_update_pretty_id_if_exists($link, 'fact_external_links', $newId, $title);
-                            $flash[] = ['type' => 'ok', 'msg' => 'Enlace externo creado.'];
-                        } else {
-                            $flash[] = ['type' => 'error', 'msg' => 'Error al crear: '.$st->error];
-                        }
-                        $st->close();
-                    } else {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar CREATE: '.$link->error];
-                    }
-                } else {
-                    if ($id <= 0) {
-                        $flash[] = ['type' => 'error', 'msg' => 'ID inválido para actualizar.'];
-                    } else {
-                        $sql = "UPDATE fact_external_links
-                                SET title=?, url=?, kind=?, source_label=?, description=?, is_active=?, updated_at=NOW()
-                                WHERE id=?";
-                        if ($st = $link->prepare($sql)) {
-                            $st->bind_param('sssssii', $title, $url, $kind, $sourceLabel, $description, $isActive, $id);
-                            if ($st->execute()) {
-                                hg_update_pretty_id_if_exists($link, 'fact_external_links', $id, $title);
-                                $flash[] = ['type' => 'ok', 'msg' => 'Enlace externo actualizado.'];
-                            } else {
-                                $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar: '.$st->error];
-                            }
-                            $st->close();
-                        } else {
-                            $flash[] = ['type' => 'error', 'msg' => 'Error al preparar UPDATE: '.$link->error];
-                        }
-                    }
-                }
+                $result = $action === 'create'
+                    ? hg_external_links_admin_create($link, $title, $url, $kind, $sourceLabel, $description, $isActive)
+                    : hg_external_links_admin_update($link, $id, $title, $url, $kind, $sourceLabel, $description, $isActive);
+                $flash[] = [
+                    'type' => !empty($result['ok']) ? 'ok' : 'error',
+                    'msg' => (string)($result['message'] ?? 'Error al guardar.'),
+                ];
             }
         } elseif ($action === 'delete') {
-            if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID inválido para borrar.'];
-            } else {
-                if ($st = $link->prepare("DELETE FROM fact_external_links WHERE id=?")) {
-                    $st->bind_param('i', $id);
-                    if ($st->execute()) {
-                        $flash[] = ['type' => 'ok', 'msg' => 'Enlace externo eliminado.'];
-                    } else {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al borrar: '.$st->error];
-                    }
-                    $st->close();
-                } else {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar DELETE: '.$link->error];
-                }
-            }
+            $result = hg_external_links_admin_delete($link, $id);
+            $flash[] = [
+                'type' => !empty($result['ok']) ? 'ok' : 'error',
+                'msg' => (string)($result['message'] ?? 'Error al borrar.'),
+            ];
         }
     }
 }
@@ -164,38 +118,7 @@ $q = trim((string)($_GET['q'] ?? ''));
 $rows = [];
 
 if ($hasTable) {
-    $where = "WHERE 1=1";
-    $types = '';
-    $params = [];
-    if ($q !== '') {
-        $where .= " AND (l.title LIKE ? OR l.url LIKE ? OR l.kind LIKE ? OR l.source_label LIKE ?)";
-        $types .= 'ssss';
-        $like = '%'.$q.'%';
-        $params[] = $like; $params[] = $like; $params[] = $like; $params[] = $like;
-    }
-
-    $bridgeJoin = '';
-    if ($hasBridge) {
-        $bridgeJoin = "LEFT JOIN (
-            SELECT external_link_id, COUNT(*) AS chars_count
-            FROM bridge_characters_external_links
-            GROUP BY external_link_id
-        ) bx ON bx.external_link_id = l.id";
-    }
-
-    $sql = "SELECT l.id, l.pretty_id, l.title, l.url, l.kind, l.source_label, l.description, l.is_active, l.updated_at, l.created_at,
-                   ".($hasBridge ? "COALESCE(bx.chars_count, 0)" : "0")." AS chars_count
-            FROM fact_external_links l
-            {$bridgeJoin}
-            {$where}
-            ORDER BY l.is_active DESC, l.updated_at DESC, l.id DESC";
-    if ($st = $link->prepare($sql)) {
-        if ($types !== '') $st->bind_param($types, ...$params);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($r = $rs->fetch_assoc())) { $rows[] = $r; }
-        $st->close();
-    }
+    $rows = hg_external_links_admin_fetch_rows($link, $q, $hasBridge);
 }
 
 $actions = "<span class='adm-flex-right-8'><a class='btn' href='/talim?s=admin_character_links'>Gestionar vínculos de personajes</a></span>";
