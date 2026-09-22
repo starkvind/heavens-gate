@@ -740,269 +740,73 @@ $flash[] = ['type'=>'ok','msg'=>'[EDIT] Personaje actualizado.'];
 /* -------------------------------------------------
    Listado + Paginación
 ------------------------------------------------- */
-$where = "WHERE 1=1"; $params = []; $types = "";
-if ($fil_cr > 0) { $where .= " AND p.chronicle_id = ?"; $types .= "i"; $params[] = $fil_cr; }
-if ($fil_ma > 0) { $where .= " AND pgb.group_id = ?"; $types .= "i"; $params[] = $fil_ma; }
-if ($q !== '')   { $where .= " AND p.name LIKE ?"; $types .= "s"; $params[] = "%".$q."%"; }
-
-$sqlCnt = "
-  SELECT COUNT(*) AS c
-  FROM fact_characters p
-  LEFT JOIN (
-      SELECT character_id, MIN(group_id) AS group_id
-      FROM bridge_characters_groups
-      WHERE (is_active=1 OR is_active IS NULL)
-      GROUP BY character_id
-  ) pgb ON pgb.character_id = p.id
-  LEFT JOIN (
-      SELECT character_id, MIN(organization_id) AS organization_id
-      FROM bridge_characters_organizations
-      WHERE (is_active=1 OR is_active IS NULL)
-      GROUP BY character_id
-  ) pcb ON pcb.character_id = p.id
-  $where
-";
-
-$stmtC = $link->prepare($sqlCnt);
-if ($types) { $stmtC->bind_param($types, ...$params); }
-$stmtC->execute();
-$resC = $stmtC->get_result();
-$total = ($resC && ($rowC = $resC->fetch_assoc())) ? intval($rowC['c']) : 0;
-$stmtC->close();
-
+$total = hg_characters_admin_count($link, $fil_cr, $fil_ma, $q);
 $pages = max(1, (int)ceil($total / $perPage));
-$page  = min($page, $pages);
-$offset= ($page - 1) * $perPage;
+$page = min($page, $pages);
+$offset = ($page - 1) * $perPage;
 
-$sql = "
-SELECT
-  p.id, p.name, p.alias, p.garou_name, p.gender, p.concept,
-  p.chronicle_id, p.player_id, p.system_id, p.text_color,
-  p.breed_id, p.auspice_id, p.tribe_id, p.nature_id, p.demeanor_id,
-  -- [OK] IDs desde bridge (para el modal y coherencia)
-  COALESCE(pgb.group_id, 0) AS manada,
-  COALESCE(pcb.organization_id, 0)  AS clan,
-  p.image_url, p.character_type_id, p.totem_id, p.`$character_kind_column` AS kind,
-
-  nj.name AS jugador_,
-  nc.name AS cronica_,
-  nr.name AS raza_n,
-  na.name AS auspicio_n,
-  nt.name AS tribu_n,
-  ds.name AS sistema_n,
-  dt.name AS totem_n,
-
-  nm.name AS manada_n,
-  nc2.name AS clan_n,
-  af.kind AS tipo_n
-
-FROM fact_characters p
-
-LEFT JOIN (
-    SELECT character_id, MIN(group_id) AS group_id
-    FROM bridge_characters_groups
-    WHERE (is_active=1 OR is_active IS NULL)
-    GROUP BY character_id
-) pgb ON pgb.character_id = p.id
-
-LEFT JOIN (
-    SELECT character_id, MIN(organization_id) AS organization_id
-    FROM bridge_characters_organizations
-    WHERE (is_active=1 OR is_active IS NULL)
-    GROUP BY character_id
-) pcb ON pcb.character_id = p.id
-
-LEFT JOIN dim_players  nj ON p.player_id = nj.id
-LEFT JOIN dim_chronicles  nc ON p.chronicle_id = nc.id
-LEFT JOIN dim_systems     ds ON p.system_id = ds.id
-LEFT JOIN dim_totems      dt ON p.totem_id = dt.id
-LEFT JOIN dim_breeds      nr ON p.breed_id    = nr.id
-LEFT JOIN dim_auspices  na ON p.auspice_id= na.id
-LEFT JOIN dim_tribes     nt ON p.tribe_id   = nt.id
-
--- [OK] Nombres desde ids bridge
-LEFT JOIN dim_groups   nm  ON nm.id  = pgb.group_id
-LEFT JOIN dim_organizations    nc2 ON nc2.id = pcb.organization_id
-
-LEFT JOIN dim_character_types af ON p.character_type_id  = af.id
-
-$where
-ORDER BY p.name ASC
-LIMIT ?, ?";
-
-$typesPage = $types."ii";
-$paramsPage = $params; $paramsPage[] = $offset; $paramsPage[] = $perPage;
-$stmt = $link->prepare($sql);
-
-if ($stmt === false) {
-    hg_runtime_log_error('admin_characters.list_prepare', $link->errno . ' - ' . $link->error);
-    hg_admin_render_error(
-        'Personajes no disponibles',
-        'No se pudo preparar el listado de personajes.',
-        500
-    );
+$pageResult = hg_characters_admin_fetch_page($link, $character_kind_column, $fil_cr, $fil_ma, $q, $offset, $perPage);
+if (empty($pageResult['ok'])) {
+    hg_runtime_log_error('admin_characters.list_prepare', (string)($pageResult['error'] ?? $link->error));
+    hg_admin_render_error('Personajes no disponibles', 'No se pudo preparar el listado de personajes.', 500);
     return;
 }
+$rows = $pageResult['rows'];
+$ids_page = array_map(static fn($row) => (int)($row['id'] ?? 0), $rows);
 
-$stmt->bind_param($typesPage, ...$paramsPage);
-$stmt->execute();
-$res = $stmt->get_result();
-$rows = [];
-$ids_page = [];
-while ($r = $res->fetch_assoc()) { $rows[] = $r; $ids_page[] = (int)$r['id']; }
-$stmt->close();
+$preload = hg_characters_admin_preload($link, $ids_page);
+$char_details = $preload['details'];
 
-/* --- CAMPOS COMPLEJOS: precarga (SIN AJAX) --- */
-$char_details = [];
-if (!empty($ids_page)) {
-    $in = implode(',', array_map('intval', $ids_page));
-    $qdet = $link->query("SELECT fc.id, COALESCE(dcs.label, '') AS status, fc.status_id, fc.rank, fc.info_text, fc.notes FROM fact_characters fc LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id WHERE fc.id IN ($in)");
-    if ($qdet) {
-        while ($d = $qdet->fetch_assoc()) {
-            $cid = (int)($d['id'] ?? 0);
-            if ($cid <= 0) continue;
-            $char_details[$cid] = [
-                'status'      => (string)($d['status'] ?? ''),
-                'status_id'   => (int)($d['status_id'] ?? 0),
-                'causamuerte' => '',
-                'rango'       => (string)($d['rank'] ?? ''),
-                'infotext'    => (string)($d['info_text'] ?? ''),
-                'notes'       => (string)($d['notes'] ?? ''),
-            ];
-        }
-        $qdet->close();
-    }
-}
-
-/* --- PODERES: precarga poderes --- */
 $char_powers = [];
-if (!empty($ids_page)) {
-    $in = implode(',', array_map('intval',$ids_page));
-    $qpow = $link->query("SELECT character_id, power_kind, power_id, power_level FROM bridge_characters_powers WHERE character_id IN ($in) ORDER BY power_kind, power_id");
-    if ($qpow) {
-        while($pw = $qpow->fetch_assoc()){
-            $cid = (int)$pw['character_id'];
-            $tp  = (string)$pw['power_kind'];
-            $pid = (int)$pw['power_id'];
-            $rawPid = $pid;
-            $lvl = (int)$pw['power_level'];
-            if ($tp === 'disciplinas' && !isset($opts_disciplinas[$pid]) && isset($discipline_power_to_type[$pid])) {
-                $pid = (int)$discipline_power_to_type[$pid];
-            }
-            if ($tp==='dones')          { $nm = $opts_dones[$pid]        ?? ('#'.$rawPid); }
-            elseif ($tp==='disciplinas'){ $nm = $opts_disciplinas[$pid]  ?? ('#'.$rawPid); }
-            else                        { $nm = $opts_rituales[$pid]     ?? ('#'.$rawPid); }
-            $key = $tp . ':' . $pid;
-            if (!isset($char_powers[$cid])) $char_powers[$cid] = [];
-            if (!isset($char_powers[$cid][$key])) {
-                $char_powers[$cid][$key] = ['t'=>$tp,'id'=>$pid,'lvl'=>$lvl,'name'=>$nm];
-            } elseif ($lvl > (int)$char_powers[$cid][$key]['lvl']) {
-                $char_powers[$cid][$key]['lvl'] = $lvl;
-            }
-        }
-        $qpow->close();
+foreach ($preload['powers'] as $pw) {
+    $cid = (int)$pw['character_id'];
+    $tp = (string)$pw['power_kind'];
+    $pid = (int)$pw['power_id'];
+    $rawPid = $pid;
+    $lvl = (int)$pw['power_level'];
+    if ($tp === 'disciplinas' && !isset($opts_disciplinas[$pid]) && isset($discipline_power_to_type[$pid])) {
+        $pid = (int)$discipline_power_to_type[$pid];
     }
-    foreach ($char_powers as $cid => $rowsByKey) {
-        $char_powers[$cid] = array_values($rowsByKey);
+    if ($tp === 'dones') $nm = $opts_dones[$pid] ?? ('#'.$rawPid);
+    elseif ($tp === 'disciplinas') $nm = $opts_disciplinas[$pid] ?? ('#'.$rawPid);
+    else $nm = $opts_rituales[$pid] ?? ('#'.$rawPid);
+    $key = $tp . ':' . $pid;
+    if (!isset($char_powers[$cid])) $char_powers[$cid] = [];
+    if (!isset($char_powers[$cid][$key])) {
+        $char_powers[$cid][$key] = ['t'=>$tp,'id'=>$pid,'lvl'=>$lvl,'name'=>$nm];
+    } elseif ($lvl > (int)$char_powers[$cid][$key]['lvl']) {
+        $char_powers[$cid][$key]['lvl'] = $lvl;
     }
 }
+foreach ($char_powers as $cid => $rowsByKey) $char_powers[$cid] = array_values($rowsByKey);
 
-/* --- MÉRITOS/DEFECTOS: precarga --- */
 $char_myd = [];
-if (!empty($ids_page)) {
-    $in = implode(',', array_map('intval',$ids_page));
-    $qmyd = $link->query("
-        SELECT b.character_id, nmd.id, nmd.name, nmd.kind, nmd.cost, b.level
-        FROM bridge_characters_merits_flaws b
-        JOIN dim_merits_flaws nmd ON nmd.id = b.merit_flaw_id
-        WHERE b.character_id IN ($in)
-        ORDER BY nmd.kind DESC, nmd.cost, nmd.name
-    ");
-    if ($qmyd) {
-        while($r = $qmyd->fetch_assoc()){
-            $cid = (int)$r['character_id'];
-            $char_myd[$cid][] = [
-                'id'    => (int)$r['id'],
-                'name'  => (string)$r['name'],
-                'tipo'  => (string)$r['kind'],
-                'coste' => (string)($r['cost'] ?? ''),
-                'nivel' => $r['level'] === null ? null : (int)$r['level'],
-            ];
-        }
-        $qmyd->close();
-    }
+foreach ($preload['myd'] as $row) {
+    $cid = (int)$row['character_id'];
+    $char_myd[$cid][] = [
+        'id'=>(int)$row['id'],'name'=>(string)$row['name'],'tipo'=>(string)$row['kind'],
+        'coste'=>(string)($row['cost'] ?? ''),'nivel'=>$row['level'] === null ? null : (int)$row['level'],
+    ];
 }
 
-/* --- INVENTARIO: precarga --- */
 $char_items = [];
-if (!empty($ids_page)) {
-    $in = implode(',', array_map('intval',$ids_page));
-    $qit = $link->query("
-        SELECT b.character_id, o.id, o.name, o.item_type_id
-        FROM bridge_characters_items b
-        JOIN fact_items o ON o.id = b.item_id
-        WHERE b.character_id IN ($in)
-        ORDER BY o.name
-    ");
-    if ($qit) {
-        while($r = $qit->fetch_assoc()){
-            $cid = (int)$r['character_id'];
-            $char_items[$cid][] = [
-                'id'   => (int)$r['id'],
-                'name' => (string)$r['name'],
-                'tipo' => (int)($r['item_type_id'] ?? 0),
-            ];
-        }
-        $qit->close();
-    }
+foreach ($preload['items'] as $row) {
+    $cid = (int)$row['character_id'];
+    $char_items[$cid][] = ['id'=>(int)$row['id'],'name'=>(string)$row['name'],'tipo'=>(int)($row['item_type_id'] ?? 0)];
 }
 
-/* --- TRAITS: precarga --- */
 $char_traits = [];
-if (!empty($ids_page)) {
-    $in = implode(',', array_map('intval',$ids_page));
-    $qtr = $link->query("
-        SELECT character_id, trait_id, value
-        FROM bridge_characters_traits
-        WHERE character_id IN ($in)
-        ORDER BY character_id, trait_id
-    ");
-    if ($qtr) {
-        while ($r = $qtr->fetch_assoc()) {
-            $cid = (int)$r['character_id'];
-            $tid = (int)$r['trait_id'];
-            $val = (int)$r['value'];
-            $char_traits[$cid][$tid] = $val;
-        }
-        $qtr->close();
-    }
+foreach ($preload['traits'] as $row) {
+    $char_traits[(int)$row['character_id']][(int)$row['trait_id']] = (int)$row['value'];
 }
 
-/* --- RECURSOS: precarga --- */
 $char_resources = [];
-if ($has_bridge_char_resources && $has_dim_systems_resources && !empty($ids_page)) {
-    $in = implode(',', array_map('intval', $ids_page));
-    $qrs = $link->query("
-        SELECT b.character_id, b.resource_id, b.value_permanent, b.value_temporary, r.name, r.kind, r.sort_order
-        FROM bridge_characters_system_resources b
-        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
-        WHERE b.character_id IN ($in)
-        ORDER BY b.character_id, r.kind, r.sort_order, r.name
-    ");
-    if ($qrs) {
-        while ($r = $qrs->fetch_assoc()) {
-            $cid = (int)$r['character_id'];
-            $char_resources[$cid][] = [
-                'id' => (int)$r['resource_id'],
-                'name' => (string)$r['name'],
-                'kind' => (string)$r['kind'],
-                'sort_order' => (int)($r['sort_order'] ?? 0),
-                'perm' => (int)($r['value_permanent'] ?? 0),
-                'temp' => (int)($r['value_temporary'] ?? 0),
-            ];
-        }
-        $qrs->close();
-    }
+foreach ($preload['resources'] as $row) {
+    $cid = (int)$row['character_id'];
+    $char_resources[$cid][] = [
+        'id'=>(int)$row['resource_id'],'name'=>(string)$row['name'],'kind'=>(string)$row['kind'],
+        'sort_order'=>(int)($row['sort_order'] ?? 0),'perm'=>(int)($row['value_permanent'] ?? 0),'temp'=>(int)($row['value_temporary'] ?? 0),
+    ];
 }
 
 // Base AJAX (misma página)
