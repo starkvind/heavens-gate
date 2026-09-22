@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+include_once(__DIR__ . '/../../domains/systems/admin_resources.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
@@ -24,17 +25,6 @@ function slugify_resource_pretty(string $text): string {
     $text = strtolower($text);
     $text = preg_replace('~[^-a-z0-9]+~', '', $text);
     return $text;
-}
-function persist_resource_pretty_id(mysqli $link, int $id, string $source): bool {
-    if ($id <= 0) return false;
-    $slug = slugify_resource_pretty($source);
-    if ($slug === '') $slug = (string)$id;
-    $st = $link->prepare("UPDATE dim_systems_resources SET pretty_id=? WHERE id=?");
-    if (!$st) return false;
-    $st->bind_param('si', $slug, $id);
-    $ok = $st->execute();
-    $st->close();
-    return (bool)$ok;
 }
 function short_txt(string $s, int $n=110): string {
     $s = trim(preg_replace('/\s+/u', ' ', (string)$s));
@@ -79,14 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $id = (int)($_POST['id'] ?? 0);
 
         if ($action === 'delete') {
-            if ($id > 0 && ($st = $link->prepare("DELETE FROM dim_systems_resources WHERE id=?"))) {
-                $st->bind_param('i', $id);
-                if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Recurso eliminado.'];
-                else $flash[] = ['type'=>'error','msg'=>'Error al eliminar: '.$st->error];
-                $st->close();
-            } else {
-                $flash[] = ['type'=>'error','msg'=>'ID inválido para eliminar.'];
-            }
+            $result = hg_resources_admin_delete($link, $id);
+            $flash[] = [
+                'type' => !empty($result['ok']) ? 'ok' : 'error',
+                'msg' => (string)($result['message'] ?? 'Error al eliminar.'),
+            ];
         }
 
         if ($action === 'create' || $action === 'update') {
@@ -104,57 +91,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             } elseif (!in_array($kind, $kindAllowed, true)) {
                 $flash[] = ['type'=>'error','msg'=>'Tipo inválido. Solo se permite: renombre o estado.'];
             } else {
-                if ($action === 'create') {
-                    $sql = "INSERT INTO dim_systems_resources (name, kind, sort_order, description, created_at, updated_at) VALUES (?,?,?,?,NOW(),NOW())";
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
-                    } else {
-                        $st->bind_param('ssis', $name, $kind, $sortOrder, $description);
-                        if ($st->execute()) {
-                            $newId = (int)$link->insert_id;
-                            $prettyOk = persist_resource_pretty_id($link, $newId, $name);
-                            $flash[] = ['type'=>$prettyOk ? 'ok' : 'error','msg'=>$prettyOk ? 'Recurso creado.' : 'Recurso creado, pero no se pudo guardar pretty_id.'];
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
-                        }
-                        $st->close();
-                    }
-                } else {
-                    if ($id <= 0) {
-                        $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
-                    } else {
-                        $sql = "UPDATE dim_systems_resources SET name=?, kind=?, sort_order=?, description=?, updated_at=NOW() WHERE id=?";
-                        $st = $link->prepare($sql);
-                        if (!$st) {
-                            $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
-                        } else {
-                            $st->bind_param('ssisi', $name, $kind, $sortOrder, $description, $id);
-                            if ($st->execute()) {
-                                $prettyOk = persist_resource_pretty_id($link, $id, $name);
-                                $flash[] = ['type'=>$prettyOk ? 'ok' : 'error','msg'=>$prettyOk ? 'Recurso actualizado.' : 'Recurso actualizado, pero no se pudo guardar pretty_id.'];
-                            } else {
-                                $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
-                            }
-                            $st->close();
-                        }
-                    }
-                }
+                $slug = slugify_resource_pretty($name);
+                if ($slug === '') $slug = (string)$id;
+
+                $result = $action === 'create'
+                    ? hg_resources_admin_create($link, $name, $kind, $sortOrder, $description, $slug)
+                    : hg_resources_admin_update($link, $id, $name, $kind, $sortOrder, $description, $slug);
+                $flash[] = [
+                    'type' => !empty($result['ok']) ? 'ok' : 'error',
+                    'msg' => (string)($result['message'] ?? 'Error al guardar.'),
+                ];
             }
         }
     }
 }
 
-$rows = [];
-$rowsFull = [];
-$rs = $link->query("SELECT id, pretty_id, name, kind, sort_order, description FROM dim_systems_resources ORDER BY kind ASC, sort_order ASC, name ASC");
-if ($rs) {
-    while ($r = $rs->fetch_assoc()) {
-        $rows[] = $r;
-        $rowsFull[] = $r;
-    }
-    $rs->close();
-}
+$rows = hg_resources_admin_fetch_rows($link);
+$rowsFull = $rows;
 
 if ($isAjaxRequest && (string)($_GET['ajax_mode'] ?? '') === 'list') {
     if (function_exists('hg_admin_require_session')) {
