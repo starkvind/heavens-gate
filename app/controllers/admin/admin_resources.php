@@ -16,16 +16,6 @@ $isAjaxRequest = (
 );
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function slugify_resource_pretty(string $text): string {
-    $text = trim((string)$text);
-    if ($text === '') return '';
-    if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
-    $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-    $text = trim($text, '-');
-    $text = strtolower($text);
-    $text = preg_replace('~[^-a-z0-9]+~', '', $text);
-    return $text;
-}
 function short_txt(string $s, int $n=110): string {
     $s = trim(preg_replace('/\s+/u', ' ', (string)$s));
     if (mb_strlen($s) <= $n) return $s;
@@ -91,12 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             } elseif (!in_array($kind, $kindAllowed, true)) {
                 $flash[] = ['type'=>'error','msg'=>'Tipo inválido. Solo se permite: renombre o estado.'];
             } else {
-                $slug = slugify_resource_pretty($name);
-                if ($slug === '') $slug = (string)$id;
-
                 $result = $action === 'create'
-                    ? hg_resources_admin_create($link, $name, $kind, $sortOrder, $description, $slug)
-                    : hg_resources_admin_update($link, $id, $name, $kind, $sortOrder, $description, $slug);
+                    ? hg_resources_admin_create($link, $name, $kind, $sortOrder, $description, $name)
+                    : hg_resources_admin_update($link, $id, $name, $kind, $sortOrder, $description, $name);
                 $flash[] = [
                     'type' => !empty($result['ok']) ? 'ok' : 'error',
                     'msg' => (string)($result['message'] ?? 'Error al guardar.'),
