@@ -82,10 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 			$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
 		} else {
 			$result = hg_news_admin_save($link, $id, $autor, $titulo, $mensaje);
-			$flash[] = [
-				'type' => !empty($result['ok']) ? 'ok' : 'error',
-				'msg' => (string)($result['message'] ?? 'Error al guardar.'),
-			];
+			if (!empty($result['handled'])) {
+				$flash[] = [
+					'type' => !empty($result['ok']) ? 'ok' : 'error',
+					'msg' => (string)($result['message'] ?? 'Error al guardar.'),
+				];
+			}
 		}
 	}
 }
