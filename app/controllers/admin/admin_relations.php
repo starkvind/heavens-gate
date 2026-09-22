@@ -263,7 +263,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 
 <div class="relations-toolbar">
 	<div class="bar adm-u-021">
-		<input class="inp" id="quickFilterRelations" type="text" placeholder="Buscar por ID, personaje, tipo o tag...">
+		<input class="inp" id="quickFilterRelations" type="text" placeholder="Buscar por ID, personaje o tag...">
 	</div>
 	<div class="relations-stats">
 		<div class="relations-stat">
@@ -283,9 +283,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 			<th class="adm-w-60">ID</th>
 			<th>Origen</th>
 			<th>Destino</th>
-			<th>Tipo</th>
 			<th>Tag</th>
-			<th>Flechas</th>
 			<th class="adm-w-160">Acciones</th>
 		</tr>
 	</thead>
@@ -308,9 +306,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 			<td><?= (int)$r['id'] ?></td>
 			<td><?= h($srcName) ?></td>
 			<td><?= h($dstName) ?></td>
-			<td><?= h($relName) ?></td>
 			<td><?= h(ucfirst($relTag)) ?></td>
-			<td><?= h($arrows[$r['arrows'] ?? ''] ?? '') ?></td>
 			<td>
 				<button
 					class="btn"
@@ -336,7 +332,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 		</tr>
 	<?php endforeach; ?>
 	<?php if (empty($relaciones)): ?>
-		<tr><td colspan="7" class="adm-color-muted">(Sin relaciones)</td></tr>
+		<tr><td colspan="5" class="adm-color-muted">(Sin relaciones)</td></tr>
 	<?php endif; ?>
 	</tbody>
 </table>
