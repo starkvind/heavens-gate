@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_auth.php');
+include_once(__DIR__ . '/../../domains/relationships/admin.php');
 hg_admin_session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -31,9 +32,7 @@ $tags  = ['amistad','conflicto','familia','alianza','otro'];
 $arrows = ["to" => "Origen -> Destino","from" => "Destino -> Origen","to,from" => "Doble direccion","" => "Sin flechas"];
 
 // Datos
-$personajes = [];
-$rs = $link->query("SELECT id, name FROM fact_characters WHERE chronicle_id NOT IN (2, 7) ORDER BY name ASC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $personajes[] = $r; } $rs->close(); }
+$personajes = hg_relationships_admin_fetch_characters($link);
 $personajesById = [];
 foreach ($personajes as $p) { $personajesById[(int)$p['id']] = (string)$p['name']; }
 
@@ -73,10 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
 			if (relations_is_ajax()) { relations_error('ID de relacion invalido.', 422, ['id' => 'invalid']); }
 			$flash[] = ['type'=>'error','msg'=>'ID de relacion invalido.'];
 		}
-		if ($id > 0 && ($st = $link->prepare("DELETE FROM bridge_characters_relations WHERE id = ?"))) {
-			$st->bind_param("i", $id);
-			$st->execute();
-			$st->close();
+		if ($id > 0 && hg_relationships_admin_delete($link, $id)) {
 			if (relations_is_ajax()) { relations_success('Relacion eliminada.', ['id' => $id]); }
 			$flash[] = ['type'=>'ok','msg'=>'Relacion eliminada.'];
 		}
@@ -113,12 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 			$flash[] = ['type'=>'error','msg'=>'Origen y destino no pueden ser el mismo personaje.'];
 		} else {
 			if ($mode === 'create') {
-				$st = $link->prepare("INSERT INTO bridge_characters_relations (source_id, target_id, relation_type, tag, importance, description, arrows) VALUES (?,?,?,?,?,?,?)");
-				if ($st) {
-					$st->bind_param("iississ", $source, $target, $type, $tag, $importance, $description, $ar);
-					$st->execute();
-					$newId = (int)$st->insert_id;
-					$st->close();
+				$newId = hg_relationships_admin_create($link, $source, $target, $type, $tag, $importance, $description, $ar);
+				if ($newId !== null) {
                     hg_content_touch_many($link, 'character', [$source, $target]);
 					if (relations_is_ajax()) { relations_success('Relacion creada.', ['id' => $newId]); }
 					$flash[] = ['type'=>'ok','msg'=>'Relacion creada.'];
@@ -126,11 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 					relations_error('No se pudo crear la relacion.', 500, ['db' => 'insert_prepare_failed']);
 				}
 			} elseif ($mode === 'edit' && $id > 0) {
-				$st = $link->prepare("UPDATE bridge_characters_relations SET source_id=?, target_id=?, relation_type=?, tag=?, importance=?, description=?, arrows=? WHERE id=?");
-				if ($st) {
-					$st->bind_param("iississi", $source, $target, $type, $tag, $importance, $description, $ar, $id);
-					$st->execute();
-					$st->close();
+				if (hg_relationships_admin_update($link, $id, $source, $target, $type, $tag, $importance, $description, $ar)) {
                     hg_content_touch_many($link, 'character', [$source, $target]);
 					if (relations_is_ajax()) { relations_success('Relacion actualizada.', ['id' => $id]); }
 					$flash[] = ['type'=>'ok','msg'=>'Relacion actualizada.'];
@@ -147,9 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 
 // Paginacion simple
 // Relaciones completas (paginaci?n en cliente)
-$relaciones = [];
-$rs = $link->query("SELECT * FROM bridge_characters_relations ORDER BY id DESC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close(); }
+$relaciones = hg_relationships_admin_fetch_rows($link);
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" onclick="openRelModal()">+ Nueva relacion</button>');
