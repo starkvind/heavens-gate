@@ -13,6 +13,7 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/maps/admin.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
@@ -122,45 +123,12 @@ if (isset($_GET['ajax'])) {
 
   // --- Listados
   if ($a === 'list_all') {
-    // MAPS
-    $maps = [];
-    $m = $link->query("SELECT id,name,slug,center_lat,center_lng,default_zoom,min_zoom,max_zoom,
-                              bounds_sw_lat,bounds_sw_lng,bounds_ne_lat,bounds_ne_lng,default_tile,
-                              created_at,updated_at
-                       FROM dim_maps ORDER BY name");
-    while ($row = $m->fetch_assoc()) $maps[] = $row;
-
-    // CATS
-    $cats = [];
-    $c = $link->query("SELECT id,name,slug,color_hex,icon,sort_order,created_at,updated_at
-                       FROM dim_map_categories ORDER BY sort_order, name");
-    while ($row = $c->fetch_assoc()) $cats[] = $row;
-
-    // POIS (incluye description)
-    $pois = [];
-    $p = $link->query("SELECT p.id, p.name, p.description, p.map_id, m.name AS map_name,
-                              p.category_id, c.name AS category_name,
-                              p.thumbnail, p.latitude, p.longitude,
-                              p.created_at, p.updated_at
-                       FROM fact_map_pois p
-                       JOIN dim_maps m ON m.id=p.map_id
-                       JOIN dim_map_categories c ON c.id=p.category_id
-                       ORDER BY p.id DESC");
-    while ($row = $p->fetch_assoc()) $pois[] = $row;
-
-    // ÁREAS (usar columnas reales: geometry)
+    $data = hg_maps_admin_fetch_all($link);
     $areas = [];
-    $aqq = $link->query("SELECT a.id, a.name, a.map_id, m.name AS map_name,
-                                a.description, a.color_hex,
-                                a.geometry, a.created_at, a.updated_at
-                         FROM fact_map_areas a
-                         JOIN dim_maps m ON m.id=a.map_id
-                         ORDER BY a.id DESC");
-    while ($row = $aqq->fetch_assoc()) {
+    foreach ($data['areas'] as $row) {
       $areas[] = area_row_to_payload($row);
     }
-
-    ok(['maps'=>$maps, 'cats'=>$cats, 'pois'=>$pois, 'areas'=>$areas]);
+    ok(['maps'=>$data['maps'], 'cats'=>$data['cats'], 'pois'=>$data['pois'], 'areas'=>$areas]);
   }
 
   // --- Guardar mapa (crear/editar)
@@ -184,35 +152,14 @@ if (isset($_GET['ajax'])) {
 
     $default_tile = trim($_POST['default_tile'] ?? 'carto-dark');
 
-    if ($id>0) {
-      // UPDATE
-      $st = $link->prepare("UPDATE dim_maps
-        SET name=?, slug=?, center_lat=?, center_lng=?, default_zoom=?, min_zoom=?, max_zoom=?,
-            bounds_sw_lat=?, bounds_sw_lng=?, bounds_ne_lat=?, bounds_ne_lng=?, default_tile=?
-        WHERE id=?");
-      $st->bind_param(
-        'ssddiiiddddsi',
-        $name, $slug, $center_lat, $center_lng, $default_zoom, $min_zoom, $max_zoom,
-        $bsw_lat, $bsw_lng, $bne_lat, $bne_lng, $default_tile, $id
-      );
-      $st->execute(); $st->close();
-      hg_update_pretty_id_if_exists($link, 'dim_maps', $id, $name);
-      hg_content_touch_table($link, 'dim_maps', $id);
-    } else {
-      // INSERT
-      $st = $link->prepare("INSERT INTO dim_maps
-       (name,slug,center_lat,center_lng,default_zoom,min_zoom,max_zoom,
-        bounds_sw_lat,bounds_sw_lng,bounds_ne_lat,bounds_ne_lng,default_tile)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-      $st->bind_param(
-        'ssddiiidddds',
-        $name, $slug, $center_lat, $center_lng, $default_zoom, $min_zoom, $max_zoom,
-        $bsw_lat, $bsw_lng, $bne_lat, $bne_lng, $default_tile
-      );
-      $st->execute(); $id = $st->insert_id; $st->close();
-      hg_update_pretty_id_if_exists($link, 'dim_maps', $id, $name);
-      hg_content_touch_table($link, 'dim_maps', $id);
-    }
+    $id = hg_maps_admin_save_map($link, [
+      'id'=>$id, 'name'=>$name, 'slug'=>$slug,
+      'center_lat'=>$center_lat, 'center_lng'=>$center_lng,
+      'default_zoom'=>$default_zoom, 'min_zoom'=>$min_zoom, 'max_zoom'=>$max_zoom,
+      'bounds_sw_lat'=>$bsw_lat, 'bounds_sw_lng'=>$bsw_lng,
+      'bounds_ne_lat'=>$bne_lat, 'bounds_ne_lng'=>$bne_lng,
+      'default_tile'=>$default_tile,
+    ]);
     ok(['id'=>$id]);
   }
 
@@ -220,8 +167,7 @@ if (isset($_GET['ajax'])) {
     $id = (int)($_POST['id'] ?? 0);
     if ($id<=0) jerr("ID inválido");
     // Aviso: ON DELETE CASCADE en fk_pois_map eliminará sus POIs y Áreas
-    $st = $link->prepare("DELETE FROM dim_maps WHERE id=?");
-    $st->bind_param('i',$id); $st->execute(); $st->close();
+    hg_maps_admin_delete_map($link, $id);
     ok();
   }
 
@@ -237,17 +183,10 @@ if (isset($_GET['ajax'])) {
     $icon = trim($_POST['icon'] ?? '');
     $sort_order = (int)($_POST['sort_order'] ?? 0);
 
-    if ($id>0) {
-      $st = $link->prepare("UPDATE dim_map_categories SET name=?, slug=?, color_hex=?, icon=?, sort_order=? WHERE id=?");
-      $st->bind_param('ssssii', $name,$slug,$color_hex,$icon,$sort_order,$id);
-      $st->execute(); $st->close();
-      hg_update_pretty_id_if_exists($link, 'dim_map_categories', $id, $name);
-    } else {
-      $st = $link->prepare("INSERT INTO dim_map_categories (name,slug,color_hex,icon,sort_order) VALUES (?,?,?,?,?)");
-      $st->bind_param('ssssi', $name,$slug,$color_hex,$icon,$sort_order);
-      $st->execute(); $id = $st->insert_id; $st->close();
-      hg_update_pretty_id_if_exists($link, 'dim_map_categories', $id, $name);
-    }
+    $id = hg_maps_admin_save_category($link, [
+      'id'=>$id, 'name'=>$name, 'slug'=>$slug, 'color_hex'=>$color_hex,
+      'icon'=>$icon, 'sort_order'=>$sort_order,
+    ]);
     ok(['id'=>$id]);
   }
 
@@ -256,24 +195,9 @@ if (isset($_GET['ajax'])) {
     if ($id<=0) jerr("ID inválido");
 
     // Bloquear borrado si está en uso por algún POI o ÁREA
-    $totalInUse = 0;
-
-    $st = $link->prepare("SELECT COUNT(*) AS n FROM fact_map_pois WHERE category_id=?");
-    $st->bind_param('i',$id); $st->execute();
-    $n1 = ($st->get_result()->fetch_assoc()['n'] ?? 0); $st->close();
-
-    if ($link->query("SHOW COLUMNS FROM fact_map_areas LIKE 'category_id'")->num_rows > 0) {
-      $st = $link->prepare("SELECT COUNT(*) AS n FROM fact_map_areas WHERE category_id=?");
-      $st->bind_param('i',$id); $st->execute();
-      $n2 = ($st->get_result()->fetch_assoc()['n'] ?? 0); $st->close();
-      $totalInUse = (int)$n1 + (int)$n2;
-    } else {
-      $totalInUse = (int)$n1;
-    }
-
+    $totalInUse = hg_maps_admin_category_usage_count($link, $id);
     if ($totalInUse>0) jerr("No se puede borrar: hay $totalInUse elemento(s) usando esta categoría.");
-    $st = $link->prepare("DELETE FROM dim_map_categories WHERE id=?");
-    $st->bind_param('i',$id); $st->execute(); $st->close();
+    hg_maps_admin_delete_category($link, $id);
     ok();
   }
 
@@ -291,30 +215,18 @@ if (isset($_GET['ajax'])) {
     if ($map_id<=0) jerr("Selecciona un mapa.");
     if ($category_id<=0) jerr("Selecciona una categoría.");
 
-    if ($id>0) {
-      $st = $link->prepare("UPDATE fact_map_pois
-                            SET name=?, map_id=?, category_id=?, description=?, thumbnail=?, latitude=?, longitude=?
-                            WHERE id=?");
-      $st->bind_param('siissddi', $name,$map_id,$category_id,$description,$thumbnail,$latitude,$longitude,$id);
-      $st->execute(); $st->close();
-      hg_update_pretty_id_if_exists($link, 'fact_map_pois', $id, $name);
-    } else {
-      $st = $link->prepare("INSERT INTO fact_map_pois
-                            (name,map_id,category_id,description,thumbnail,latitude,longitude)
-                            VALUES (?,?,?,?,?,?,?)");
-      $st->bind_param('siissdd', $name,$map_id,$category_id,$description,$thumbnail,$latitude,$longitude);
-      $st->execute(); $id = $st->insert_id; $st->close();
-      hg_update_pretty_id_if_exists($link, 'fact_map_pois', $id, $name);
-    }
-    hg_content_touch_table($link, 'dim_maps', $map_id);
+    $id = hg_maps_admin_save_poi($link, [
+      'id'=>$id, 'name'=>$name, 'map_id'=>$map_id, 'category_id'=>$category_id,
+      'description'=>$description, 'thumbnail'=>$thumbnail,
+      'latitude'=>$latitude, 'longitude'=>$longitude,
+    ]);
     ok(['id'=>$id]);
   }
 
   if ($a === 'delete_poi' && $_SERVER['REQUEST_METHOD']==='POST') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id<=0) jerr("ID inválido");
-    $st = $link->prepare("DELETE FROM fact_map_pois WHERE id=?");
-    $st->bind_param('i',$id); $st->execute(); $st->close();
+    hg_maps_admin_delete_poi($link, $id);
     ok();
   }
 
@@ -367,30 +279,18 @@ if (isset($_GET['ajax'])) {
     $geometry_final = json_encode($gj, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
     if ($geometry_final === false) jerr("Error serializando GeoJSON");
 
-    if ($id>0) {
-      $st = $link->prepare("UPDATE fact_map_areas
-                            SET name=?, map_id=?, description=?, color_hex=?, geometry=?
-                            WHERE id=?");
-      $st->bind_param('sisssi', $name,$map_id,$description,$color_hex,$geometry_final,$id);
-      $st->execute(); $st->close();
-      hg_update_pretty_id_if_exists($link, 'fact_map_areas', $id, $name);
-    } else {
-      $st = $link->prepare("INSERT INTO fact_map_areas
-                            (name,map_id,description,color_hex,geometry)
-                            VALUES (?,?,?,?,?)");
-      $st->bind_param('sisss', $name,$map_id,$description,$color_hex,$geometry_final);
-      $st->execute(); $id = $st->insert_id; $st->close();
-      hg_update_pretty_id_if_exists($link, 'fact_map_areas', $id, $name);
-    }
-    hg_content_touch_table($link, 'dim_maps', $map_id);
+    $id = hg_maps_admin_save_area($link, [
+      'id'=>$id, 'name'=>$name, 'map_id'=>$map_id,
+      'description'=>$description, 'color_hex'=>$color_hex,
+      'geometry'=>$geometry_final,
+    ]);
     ok(['id'=>$id]);
   }
 
   if ($a === 'delete_area' && $_SERVER['REQUEST_METHOD']==='POST') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id<=0) jerr("ID inválido");
-    $st = $link->prepare("DELETE FROM fact_map_areas WHERE id=?");
-    $st->bind_param('i',$id); $st->execute(); $st->close();
+    hg_maps_admin_delete_area($link, $id);
     ok();
   }
 
@@ -400,38 +300,12 @@ if (isset($_GET['ajax'])) {
 /* ---------------------------------------------------------
    Render normal (no-AJAX): cargamos datos iniciales para JS
    --------------------------------------------------------- */
-$maps = [];
-$m = $link->query("SELECT id,name,slug,center_lat,center_lng,default_zoom,min_zoom,max_zoom,
-                          bounds_sw_lat,bounds_sw_lng,bounds_ne_lat,bounds_ne_lng,default_tile,
-                          created_at,updated_at
-                   FROM dim_maps ORDER BY name");
-while ($row = $m->fetch_assoc()) $maps[] = $row;
-
-$cats = [];
-$c = $link->query("SELECT id,name,slug,color_hex,icon,sort_order,created_at,updated_at
-                   FROM dim_map_categories ORDER BY sort_order, name");
-while ($row = $c->fetch_assoc()) $cats[] = $row;
-
-$pois = [];
-$p = $link->query("SELECT p.id, p.name, p.description, p.map_id, m.name AS map_name,
-                          p.category_id, c.name AS category_name,
-                          p.thumbnail, p.latitude, p.longitude,
-                          p.created_at, p.updated_at
-                   FROM fact_map_pois p
-                   JOIN dim_maps m ON m.id=p.map_id
-                   JOIN dim_map_categories c ON c.id=p.category_id
-                   ORDER BY p.id DESC");
-while ($row = $p->fetch_assoc()) $pois[] = $row;
-
-// Áreas para render inicial (normalizar como en list_all)
+$data = hg_maps_admin_fetch_all($link);
+$maps = $data['maps'];
+$cats = $data['cats'];
+$pois = $data['pois'];
 $areas = [];
-$aq = $link->query("SELECT a.id, a.name, a.map_id, m.name AS map_name,
-                           a.description, a.color_hex,
-                           a.geometry, a.created_at, a.updated_at
-                    FROM fact_map_areas a
-                    JOIN dim_maps m ON m.id=a.map_id
-                    ORDER BY a.id DESC");
-while ($row = $aq->fetch_assoc()) {
+foreach ($data['areas'] as $row) {
   $areas[] = area_row_to_payload($row);
 }
 
