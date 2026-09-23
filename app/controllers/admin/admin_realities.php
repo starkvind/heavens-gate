@@ -7,6 +7,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_catalog_utils.php');
+include_once(__DIR__ . '/../../domains/timeline/admin_realities.php');
 
 $phase7AuditHelper = __DIR__ . '/../../helpers/admin_phase7_audit.php';
 if (is_file($phase7AuditHelper)) {
@@ -70,22 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $action = (string)($_POST['crud_action'] ?? '');
         $id = (int)($_POST['id'] ?? 0);
         if ($action === 'delete') {
-            if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID invalido para eliminar.'];
-            } else {
-                $deps = hg_admin_catalog_get_reality_dependencies($link, $id);
-                if (hg_admin_catalog_dependencies_total($deps) > 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'No se puede borrar la realidad porque tiene dependencias: ' . hg_admin_catalog_dependencies_summary($deps) . '.'];
-                } elseif ($st = $link->prepare('DELETE FROM dim_realities WHERE id = ?')) {
-                    $st->bind_param('i', $id);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Realidad eliminada.'];
-                    else { hg_runtime_log_error('admin_realities.delete', $st->error); $flash[] = ['type' => 'error', 'msg' => 'No se pudo eliminar la realidad.']; }
-                    $st->close();
-                } else {
-                    hg_runtime_log_error('admin_realities.delete.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el borrado de la realidad.'];
-                }
-            }
+            $result = hg_realities_admin_delete($link, $id);
+            $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
         }
         if ($action === 'create' || $action === 'update') {
             $name = trim((string)($_POST['name'] ?? ''));
@@ -103,85 +90,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $flash[] = ['type' => 'error', 'msg' => 'Ya existe otra realidad con ese pretty_id.'];
             } elseif (hg_admin_catalog_name_exists($link, 'dim_realities', $name, $id)) {
                 $flash[] = ['type' => 'error', 'msg' => 'Ya existe otra realidad con ese nombre.'];
-            } elseif ($action === 'create') {
-                $cols = ['name', 'description'];
-                $vals = [$name, $description];
-                $types = 'ss';
-                if ($hasSortOrder) { $cols[] = 'sort_order'; $vals[] = $sortOrder; $types .= 'i'; }
-                if ($hasIsActive) { $cols[] = 'is_active'; $vals[] = $isActive; $types .= 'i'; }
-                if ($hasCreatedAt) $cols[] = 'created_at';
-                if ($hasUpdatedAt) $cols[] = 'updated_at';
-                $ph = [];
-                foreach ($cols as $col) $ph[] = ($col === 'created_at' || $col === 'updated_at') ? 'NOW()' : '?';
-                $sql = "INSERT INTO dim_realities (`" . implode('`,`', $cols) . "`) VALUES (" . implode(',', $ph) . ")";
-                if ($st = $link->prepare($sql)) {
-                    $st->bind_param($types, ...$vals);
-                    if ($st->execute()) {
-                        $prettyOk = $hasPrettyId ? hg_admin_catalog_update_pretty_id($link, 'dim_realities', (int)$link->insert_id, $prettyId) : true;
-                        $flash[] = ['type' => $prettyOk ? 'ok' : 'error', 'msg' => $prettyOk ? 'Realidad creada.' : 'Realidad creada, pero no se pudo guardar pretty_id.'];
-                    } else {
-                        hg_runtime_log_error('admin_realities.create', $st->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo crear la realidad.'];
-                    }
-                    $st->close();
-                } else {
-                    hg_runtime_log_error('admin_realities.create.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el alta de la realidad.'];
-                }
             } else {
-                if ($id <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'ID invalido para actualizar.'];
-                } else {
-                    $sets = ['`name` = ?', '`description` = ?'];
-                    $vals = [$name, $description];
-                    $types = 'ss';
-                    if ($hasSortOrder) { $sets[] = '`sort_order` = ?'; $vals[] = $sortOrder; $types .= 'i'; }
-                    if ($hasIsActive) { $sets[] = '`is_active` = ?'; $vals[] = $isActive; $types .= 'i'; }
-                    if ($hasUpdatedAt) $sets[] = '`updated_at` = NOW()';
-                    $vals[] = $id;
-                    $types .= 'i';
-                    $sql = "UPDATE dim_realities SET " . implode(', ', $sets) . " WHERE id = ?";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param($types, ...$vals);
-                        if ($st->execute()) {
-                            $prettyOk = $hasPrettyId ? hg_admin_catalog_update_pretty_id($link, 'dim_realities', $id, $prettyId) : true;
-                            $flash[] = ['type' => $prettyOk ? 'ok' : 'error', 'msg' => $prettyOk ? 'Realidad actualizada.' : 'Realidad actualizada, pero no se pudo guardar pretty_id.'];
-                        } else {
-                            hg_runtime_log_error('admin_realities.update', $st->error);
-                            $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar la realidad.'];
-                        }
-                        $st->close();
-                    } else {
-                        hg_runtime_log_error('admin_realities.update.prepare', $link->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar la actualizacion de la realidad.'];
-                    }
-                }
+                $schema = [
+                    'pretty_id'=>$hasPrettyId,
+                    'sort_order'=>$hasSortOrder,
+                    'is_active'=>$hasIsActive,
+                    'created_at'=>$hasCreatedAt,
+                    'updated_at'=>$hasUpdatedAt,
+                ];
+                $result = ($action === 'create')
+                    ? hg_realities_admin_create($link,$schema,$name,$description,$sortOrder,$isActive,$prettyId)
+                    : hg_realities_admin_update($link,$schema,$id,$name,$description,$sortOrder,$isActive,$prettyId);
+                $flash[] = ['type'=>!empty($result['ok']) && !empty($result['pretty_ok']) ? 'ok' : (empty($result['ok'])?'error':'error'),'msg'=>(string)$result['message']];
             }
         }
     }
 }
 
-$select = ['r.id', $hasPrettyId ? "COALESCE(r.pretty_id, '') AS pretty_id" : "'' AS pretty_id", 'r.name', "COALESCE(r.description, '') AS description", $hasSortOrder ? 'COALESCE(r.sort_order, 0) AS sort_order' : '0 AS sort_order', $hasIsActive ? 'COALESCE(r.is_active, 1) AS is_active' : '1 AS is_active', $hasCharacterRealityId ? '(SELECT COUNT(*) FROM fact_characters fc WHERE fc.reality_id = r.id) AS characters_count' : '0 AS characters_count', $hasTimelineRealityId ? '(SELECT COUNT(*) FROM bridge_timeline_events_realities bt WHERE bt.reality_id = r.id) AS timeline_count' : '0 AS timeline_count'];
+$schema = [
+    'pretty_id'=>$hasPrettyId,
+    'sort_order'=>$hasSortOrder,
+    'is_active'=>$hasIsActive,
+    'character_reality'=>$hasCharacterRealityId,
+    'timeline_reality'=>$hasTimelineRealityId,
+];
 $rows = [];
 $rowsFull = [];
 $auditRealitiesCount = 0;
 $auditRealitiesPrettyCount = 0;
 $realitiesWithoutTimelineCount = 0;
-$orderBy = ($hasIsActive ? 'COALESCE(r.is_active, 1) DESC, ' : '') . ($hasSortOrder ? 'COALESCE(r.sort_order, 999999) ASC, ' : '') . 'r.name ASC, r.id ASC';
-$rs = $link->query('SELECT ' . implode(', ', $select) . ' FROM dim_realities r ORDER BY ' . $orderBy);
-if ($rs) {
-    while ($row = $rs->fetch_assoc()) {
-        $row['dependency_summary'] = hg_are_dep_summary($row);
-        $row['audit_flags'] = function_exists('hg_phase7_reality_flags') ? hg_phase7_reality_flags($row) : [];
-        $row['audit_summary'] = function_exists('hg_phase7_build_flags_summary') ? hg_phase7_build_flags_summary((array)$row['audit_flags']) : (!empty($row['audit_flags']) ? implode(' | ', (array)$row['audit_flags']) : 'OK');
-        $row['audit_class'] = hg_are_audit_class((array)$row['audit_flags']);
-        if (!empty($row['audit_flags'])) $auditRealitiesCount++;
-        if (in_array('Sin pretty_id', (array)$row['audit_flags'], true) || in_array('Pretty invalido', (array)$row['audit_flags'], true)) $auditRealitiesPrettyCount++;
-        if ((int)($row['timeline_count'] ?? 0) <= 0) $realitiesWithoutTimelineCount++;
-        $rows[] = $row;
-        $rowsFull[] = $row;
-    }
-    $rs->close();
+foreach (hg_realities_admin_rows($link, $schema) as $row) {
+    $row['dependency_summary'] = hg_are_dep_summary($row);
+    $row['audit_flags'] = function_exists('hg_phase7_reality_flags') ? hg_phase7_reality_flags($row) : [];
+    $row['audit_summary'] = function_exists('hg_phase7_build_flags_summary') ? hg_phase7_build_flags_summary((array)$row['audit_flags']) : (!empty($row['audit_flags']) ? implode(' | ', (array)$row['audit_flags']) : 'OK');
+    $row['audit_class'] = hg_are_audit_class((array)$row['audit_flags']);
+    if (!empty($row['audit_flags'])) $auditRealitiesCount++;
+    if (in_array('Sin pretty_id', (array)$row['audit_flags'], true) || in_array('Pretty invalido', (array)$row['audit_flags'], true)) $auditRealitiesPrettyCount++;
+    if ((int)($row['timeline_count'] ?? 0) <= 0) $realitiesWithoutTimelineCount++;
+    $rows[] = $row;
+    $rowsFull[] = $row;
 }
 
 $ajaxWrite = $isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']);
