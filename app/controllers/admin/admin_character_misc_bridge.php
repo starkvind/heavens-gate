@@ -6,189 +6,9 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/characters/admin_misc_bridge.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-
-function acmb_table_exists(mysqli $db, string $table): bool
-{
-    static $cache = [];
-    if (isset($cache[$table])) return $cache[$table];
-    $ok = false;
-    if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-        $st->bind_param('s', $table);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$table] = $ok;
-    return $ok;
-}
-
-function acmb_column_exists(mysqli $db, string $table, string $column): bool
-{
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$key] = $ok;
-    return $ok;
-}
-
-function acmb_bind_params(mysqli_stmt $st, string $types, array &$values): bool
-{
-    if ($types === '') return true;
-    $refs = [];
-    $refs[] = $types;
-    foreach ($values as $k => $v) {
-        $refs[] = &$values[$k];
-    }
-    return (bool)call_user_func_array([$st, 'bind_param'], $refs);
-}
-
-function acmb_character_options(mysqli $db): array
-{
-    $rows = [];
-    $hasSystem = acmb_column_exists($db, 'fact_characters', 'system_id') && acmb_table_exists($db, 'dim_systems');
-    $hasChronicle = acmb_column_exists($db, 'fact_characters', 'chronicle_id') && acmb_table_exists($db, 'dim_chronicles');
-    $sql = "
-        SELECT
-            c.id,
-            COALESCE(NULLIF(TRIM(c.name), ''), CONCAT('Personaje #', c.id)) AS name,
-            " . ($hasSystem ? "COALESCE(ds.name, '')" : "''") . " AS system_name,
-            " . ($hasSystem ? "COALESCE(c.system_id, 0)" : "0") . " AS system_id,
-            " . ($hasChronicle ? "COALESCE(ch.name, '')" : "''") . " AS chronicle_name
-        FROM fact_characters c
-        " . ($hasSystem ? "LEFT JOIN dim_systems ds ON ds.id = c.system_id" : "") . "
-        " . ($hasChronicle ? "LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id" : "") . "
-        ORDER BY c.name ASC, c.id ASC
-    ";
-    if ($rs = $db->query($sql)) {
-        while ($row = $rs->fetch_assoc()) {
-            $id = (int)($row['id'] ?? 0);
-            if ($id <= 0) continue;
-            $label = (string)($row['name'] ?? ('Personaje #' . $id));
-            $systemName = trim((string)($row['system_name'] ?? ''));
-            $chronicleName = trim((string)($row['chronicle_name'] ?? ''));
-            if ($systemName !== '') $label .= ' [Sis: ' . $systemName . ']';
-            if ($chronicleName !== '') $label .= ' [Cr: ' . $chronicleName . ']';
-            $rows[$id] = [
-                'label' => $label,
-                'system_id' => (int)($row['system_id'] ?? 0),
-            ];
-        }
-        $rs->close();
-    }
-    return $rows;
-}
-
-function acmb_misc_options(mysqli $db): array
-{
-    $rows = [];
-    $sql = "
-        SELECT m.id, m.name, m.kind, COALESCE(m.system_id, 0) AS system_id, COALESCE(ds.name, m.system_name, '') AS system_name
-        FROM fact_misc_systems m
-        LEFT JOIN dim_systems ds ON ds.id = m.system_id
-        ORDER BY system_name ASC, m.kind ASC, m.name ASC, m.id ASC
-    ";
-    if ($rs = $db->query($sql)) {
-        while ($row = $rs->fetch_assoc()) {
-            $id = (int)($row['id'] ?? 0);
-            if ($id <= 0) continue;
-            $systemName = trim((string)($row['system_name'] ?? ''));
-            $kind = trim((string)($row['kind'] ?? ''));
-            $name = trim((string)($row['name'] ?? ''));
-            $label = '';
-            if ($systemName !== '') $label .= '[' . $systemName . '] ';
-            if ($kind !== '') $label .= $kind . ' - ';
-            $label .= ($name !== '' ? $name : ('Misc #' . $id));
-            $rows[$id] = [
-                'label' => $label,
-                'system_id' => (int)($row['system_id'] ?? 0),
-            ];
-        }
-        $rs->close();
-    }
-    return $rows;
-}
-
-function acmb_fetch_assignments(mysqli $db, int $characterId, int $systemId, string $q): array
-{
-    $sql = "
-        SELECT
-            b.id,
-            b.character_id,
-            b.misc_system_id,
-            COALESCE(b.sort_order, 0) AS sort_order,
-            COALESCE(b.notes, '') AS notes,
-            COALESCE(b.is_active, 1) AS is_active,
-            c.name AS character_name,
-            COALESCE(c.system_id, 0) AS character_system_id,
-            COALESCE(ds.name, '') AS character_system_name,
-            m.name AS misc_name,
-            COALESCE(m.kind, '') AS misc_kind,
-            COALESCE(m.system_id, 0) AS misc_system_id_value,
-            COALESCE(ms.name, m.system_name, '') AS misc_system_name
-        FROM bridge_characters_misc_systems b
-        INNER JOIN fact_characters c ON c.id = b.character_id
-        INNER JOIN fact_misc_systems m ON m.id = b.misc_system_id
-        LEFT JOIN dim_systems ds ON ds.id = c.system_id
-        LEFT JOIN dim_systems ms ON ms.id = m.system_id
-        WHERE 1=1
-    ";
-    $types = '';
-    $params = [];
-    if ($characterId > 0) {
-        $sql .= " AND b.character_id = ?";
-        $types .= 'i';
-        $params[] = $characterId;
-    }
-    if ($systemId > 0) {
-        $sql .= " AND (c.system_id = ? OR m.system_id = ?)";
-        $types .= 'ii';
-        $params[] = $systemId;
-        $params[] = $systemId;
-    }
-    $q = trim($q);
-    if ($q !== '') {
-        $like = '%' . $q . '%';
-        $sql .= " AND (
-            c.name LIKE ?
-            OR m.name LIKE ?
-            OR m.kind LIKE ?
-            OR COALESCE(ds.name, '') LIKE ?
-            OR COALESCE(ms.name, m.system_name, '') LIKE ?
-        )";
-        $types .= 'sssss';
-        $params[] = $like;
-        $params[] = $like;
-        $params[] = $like;
-        $params[] = $like;
-        $params[] = $like;
-    }
-    $sql .= " ORDER BY c.name ASC, b.sort_order ASC, m.kind ASC, m.name ASC, b.id ASC";
-
-    $rows = [];
-    if ($st = $db->prepare($sql)) {
-        if ($types !== '') acmb_bind_params($st, $types, $params);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $rows[] = $row;
-        }
-        $st->close();
-    }
-    return $rows;
-}
 
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
@@ -211,15 +31,7 @@ $search = trim((string)($_GET['q'] ?? $_POST['q'] ?? ''));
 
 $characterOptions = $hasCharacters ? acmb_character_options($link) : [];
 $miscOptions = $hasMisc ? acmb_misc_options($link) : [];
-$systemOptions = [];
-if (acmb_table_exists($link, 'dim_systems')) {
-    if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
-        while ($row = $rs->fetch_assoc()) {
-            $systemOptions[(int)($row['id'] ?? 0)] = (string)($row['name'] ?? '');
-        }
-        $rs->close();
-    }
-}
+$systemOptions = acmb_system_options($link);
 
 if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (function_exists('hg_admin_require_session')) hg_admin_require_session(true);
@@ -257,60 +69,20 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
             hg_admin_json_error('Selecciona un misc system válido.', 400, ['misc_system_id' => 'invalid']);
         }
 
-        if ($id > 0) {
-            $existsId = 0;
-            if ($st = $link->prepare("SELECT id FROM bridge_characters_misc_systems WHERE id = ? LIMIT 1")) {
-                $st->bind_param('i', $id);
-                $st->execute();
-                $st->bind_result($existsId);
-                $st->fetch();
-                $st->close();
-            }
-            if ($existsId <= 0) {
-                hg_admin_json_error('La asignación no existe.', 404, ['id' => 'not_found']);
-            }
+        if ($id > 0 && !acmb_assignment_exists($link, $id)) {
+            hg_admin_json_error('La asignación no existe.', 404, ['id' => 'not_found']);
         }
 
-        $duplicateId = 0;
-        if ($st = $link->prepare("SELECT id FROM bridge_characters_misc_systems WHERE character_id = ? AND misc_system_id = ? AND id <> ? LIMIT 1")) {
-            $st->bind_param('iii', $characterId, $miscId, $id);
-            $st->execute();
-            $st->bind_result($duplicateId);
-            $st->fetch();
-            $st->close();
-        }
+        $duplicateId = acmb_duplicate_assignment($link, $characterId, $miscId, $id);
         if ($duplicateId > 0) {
             hg_admin_json_error('Ese misc system ya está asignado al personaje.', 400, ['duplicate' => $duplicateId]);
         }
 
-        if ($id > 0) {
-            $sql = "UPDATE bridge_characters_misc_systems
-                    SET character_id = ?, misc_system_id = ?, sort_order = ?, notes = NULLIF(?, ''), is_active = ?, updated_at = NOW()
-                    WHERE id = ?";
-            if ($st = $link->prepare($sql)) {
-                $st->bind_param('iiisii', $characterId, $miscId, $sortOrder, $notes, $isActive, $id);
-                $ok = $st->execute();
-                $err = $st->error;
-                $st->close();
-                if (!$ok) hg_admin_json_error('No se pudo guardar la asignación.', 500, ['db' => $err]);
-            } else {
-                hg_admin_json_error('No se pudo preparar la actualización.', 500, ['db' => $link->error]);
-            }
-            hg_admin_json_success(['id' => $id], 'Asignación actualizada.');
+        $result = acmb_save_assignment($link, $id, $characterId, $miscId, $sortOrder, $notes, $isActive);
+        if (empty($result['ok'])) {
+            hg_admin_json_error((string)$result['message'], 500, ['db'=>(string)($result['error'] ?? '')]);
         }
-
-        $sql = "INSERT INTO bridge_characters_misc_systems (character_id, misc_system_id, sort_order, notes, is_active)
-                VALUES (?, ?, ?, NULLIF(?, ''), ?)";
-        if ($st = $link->prepare($sql)) {
-            $st->bind_param('iiisi', $characterId, $miscId, $sortOrder, $notes, $isActive);
-            $ok = $st->execute();
-            $newId = (int)$st->insert_id;
-            $err = $st->error;
-            $st->close();
-            if (!$ok) hg_admin_json_error('No se pudo crear la asignación.', 500, ['db' => $err]);
-            hg_admin_json_success(['id' => $newId], 'Asignación creada.');
-        }
-        hg_admin_json_error('No se pudo preparar el guardado.', 500, ['db' => $link->error]);
+        hg_admin_json_success(['id'=>(int)$result['id']], (string)$result['message']);
     }
 
     if ($action === 'delete') {
@@ -318,15 +90,11 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id <= 0) {
             hg_admin_json_error('ID inválido.', 400, ['id' => 'invalid']);
         }
-        if ($st = $link->prepare("DELETE FROM bridge_characters_misc_systems WHERE id = ?")) {
-            $st->bind_param('i', $id);
-            $ok = $st->execute();
-            $err = $st->error;
-            $st->close();
-            if (!$ok) hg_admin_json_error('No se pudo borrar la asignación.', 500, ['db' => $err]);
-            hg_admin_json_success(['id' => $id], 'Asignación eliminada.');
+        $result = acmb_delete_assignment($link, $id);
+        if (empty($result['ok'])) {
+            hg_admin_json_error((string)$result['message'], 500, ['db'=>(string)($result['error'] ?? '')]);
         }
-        hg_admin_json_error('No se pudo preparar el borrado.', 500, ['db' => $link->error]);
+        hg_admin_json_success(['id'=>$id], (string)$result['message']);
     }
 
     hg_admin_json_error('Acción no soportada.', 400, ['action' => 'unsupported']);
