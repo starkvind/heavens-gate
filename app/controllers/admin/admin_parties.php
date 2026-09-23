@@ -16,29 +16,15 @@
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/parties/admin.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function is_post(){ return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'; }
-function has_table(mysqli $db, string $table): bool {
-    $table = str_replace('`', '', $table);
-    $rs = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
-function has_column(mysqli $db, string $table, string $column): bool {
-    $table = str_replace('`', '', $table);
-    $column = str_replace('`', '', $column);
-    $rs = $db->query("SHOW COLUMNS FROM `".$db->real_escape_string($table)."` LIKE '".$db->real_escape_string($column)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
+
+
 function cur_url(): string {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     return $uri ?: '';
@@ -87,18 +73,18 @@ function csrf_check(): bool {
 ----------------------------- */
 $partyMembersTable = '';
 foreach (['fact_party_members', 'party_members'] as $t) {
-    if (has_table($link, $t)) { $partyMembersTable = $t; break; }
+    if (hg_parties_admin_has_table($link, $t)) { $partyMembersTable = $t; break; }
 }
 $partyChangesTable = '';
 foreach (['fact_party_members_changes', 'party_members_changes'] as $t) {
-    if (has_table($link, $t)) { $partyChangesTable = $t; break; }
+    if (hg_parties_admin_has_table($link, $t)) { $partyChangesTable = $t; break; }
 }
-$partyFkCol = ($partyMembersTable !== '' && has_column($link, $partyMembersTable, 'plot_id'))
+$partyFkCol = ($partyMembersTable !== '' && hg_parties_admin_has_column($link, $partyMembersTable, 'plot_id'))
     ? 'plot_id'
-    : (($partyMembersTable !== '' && has_column($link, $partyMembersTable, 'party_id')) ? 'party_id' : '');
-$changesFkCol = ($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'plot_char_id'))
+    : (($partyMembersTable !== '' && hg_parties_admin_has_column($link, $partyMembersTable, 'party_id')) ? 'party_id' : '');
+$changesFkCol = ($partyChangesTable !== '' && hg_parties_admin_has_column($link, $partyChangesTable, 'plot_char_id'))
     ? 'plot_char_id'
-    : (($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'party_member_id')) ? 'party_member_id' : '');
+    : (($partyChangesTable !== '' && hg_parties_admin_has_column($link, $partyChangesTable, 'party_member_id')) ? 'party_member_id' : '');
 $hasPartiesSchema = ($partyMembersTable !== '' && $partyFkCol !== '' && $partyChangesTable !== '' && $changesFkCol !== '');
 
 $isAjaxRequest = is_post() && (
@@ -161,32 +147,14 @@ if ($action === 'save_plot') {
         parties_fail('El nombre de la trama es obligatorio.', ['open_plot'=>$id ?: 1]);
     }
 
-    if ($id === 0) {
-        $st = $link->prepare("\n            INSERT INTO dim_parties (name, description, active, sort_order, created_at, updated_at)\n            VALUES (?, ?, ?, ?, NOW(), NOW())\n        ");
-        if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-        $st->bind_param('ssii', $name, $desc, $act, $ord);
-        if ($st->execute()) {
-            $newId = (int)$st->insert_id;
-            hg_update_pretty_id_if_exists($link, 'dim_parties', $newId, $name);
-            $st->close();
-            parties_ok('Trama creada (#'.$newId.').', ['open_plot'=>null, 'focus_plot'=>$newId], ['id'=>$newId, 'focus_plot'=>$newId]);
-        }
-        $errCreate = 'Error al crear: '.$st->error;
-        $st->close();
-        parties_fail($errCreate, ['open_plot'=>1]);
-    }
-
-    $st = $link->prepare("\n        UPDATE dim_parties\n           SET name=?, description=?, active=?, sort_order=?, updated_at=NOW()\n        WHERE id=?\n    ");
-    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-    $st->bind_param('ssiii', $name, $desc, $act, $ord, $id);
-    if ($st->execute()) {
-        hg_update_pretty_id_if_exists($link, 'dim_parties', $id, $name);
-        $st->close();
-        parties_ok('Trama actualizada (#'.$id.').', ['open_plot'=>null, 'focus_plot'=>$id], ['id'=>$id, 'focus_plot'=>$id]);
-    }
-    $errUpdate = 'Error al actualizar: '.$st->error;
-    $st->close();
-    parties_fail($errUpdate, ['open_plot'=>$id ?: 1]);
+    $result = hg_parties_admin_save_plot($link,$id,$name,$desc,$act,$ord);
+    if (empty($result['ok'])) parties_fail((string)$result['error'], ['open_plot'=>$id ?: 1]);
+    $savedId = (int)$result['id'];
+    parties_ok(
+        !empty($result['created']) ? 'Trama creada (#'.$savedId.').' : 'Trama actualizada (#'.$savedId.').',
+        ['open_plot'=>null, 'focus_plot'=>$savedId],
+        ['id'=>$savedId, 'focus_plot'=>$savedId]
+    );
 }
 if ($action === 'save_plot_char') {
     if (!$hasPartiesSchema) {
@@ -207,44 +175,14 @@ if ($action === 'save_plot_char') {
     foreach ($stats as $s) $vals[$s] = (int)($_POST["m_$s"] ?? 0);
     if ($vals['hp'] < 0) $vals['hp'] = 0;
 
-    if ($id === 0) {
-        $st = $link->prepare("\n            INSERT INTO `{$partyMembersTable}`\n            (`{$partyFkCol}`, base_char_id, alias, m_hp, m_rage, m_gnosis, m_glamour, m_mana, m_blood, m_wp, notes, active, updated_at)\n            VALUES (?,?,?,?,?,?,?,?,?,?,?, ?, NOW())\n        ");
-        if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-
-        $st->bind_param(
-            'iisiiiiiiisi',
-            $plot,$base,$alias,
-            $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
-            $notes,$act
-        );
-
-        if ($st->execute()) {
-            $newId = (int)$st->insert_id;
-            $st->close();
-            parties_ok('Personaje anadido a trama (#'.$newId.').', ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null], ['id'=>$newId, 'plot_id'=>$plot]);
-        }
-        $errIns = 'Error al insertar: '.$st->error;
-        $st->close();
-        parties_fail($errIns, ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
-    }
-
-    $st = $link->prepare("\n        UPDATE `{$partyMembersTable}` SET\n        `{$partyFkCol}`=?, base_char_id=?, alias=?,\n        m_hp=?, m_rage=?, m_gnosis=?, m_glamour=?, m_mana=?, m_blood=?, m_wp=?,\n        notes=?, active=?, updated_at=NOW()\n        WHERE id=?\n    ");
-    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-
-    $st->bind_param(
-        'iisiiiiiiisii',
-        $plot,$base,$alias,
-        $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
-        $notes,$act,$id
+    $result = hg_parties_admin_save_member($link,$partyMembersTable,$partyFkCol,$id,$plot,$base,$alias,$vals,$notes,$act);
+    if (empty($result['ok'])) parties_fail((string)$result['error'], ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
+    $savedId=(int)$result['id'];
+    parties_ok(
+        !empty($result['created']) ? 'Personaje anadido a trama (#'.$savedId.').' : 'Personaje en trama actualizado (#'.$savedId.').',
+        ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null],
+        ['id'=>$savedId, 'plot_id'=>$plot]
     );
-
-    if ($st->execute()) {
-        $st->close();
-        parties_ok('Personaje en trama actualizado (#'.$id.').', ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null], ['id'=>$id, 'plot_id'=>$plot]);
-    }
-    $errUp = 'Error al actualizar: '.$st->error;
-    $st->close();
-    parties_fail($errUp, ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
 }
 if ($action === 'add_change') {
     if (!$hasPartiesSchema) {
@@ -263,88 +201,20 @@ if ($action === 'add_change') {
         parties_fail('Recurso invalido.', ['open_changes'=>$cid]);
     }
 
-    $st = $link->prepare("\n        INSERT INTO `{$partyChangesTable}`\n        (`{$changesFkCol}`, resource, value, notes, created_at)\n        VALUES (?, ?, ?, ?, NOW())\n    ");
-    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-    $st->bind_param('isis', $cid, $res, $val, $note);
-    if ($st->execute()) {
-        $newId = (int)$st->insert_id;
-        $st->close();
-        parties_ok('Cambio registrado.', ['open_changes'=>$cid], ['id'=>$newId, 'plot_char_id'=>$cid]);
-    }
-    $errChg = 'Error al registrar cambio: '.$st->error;
-    $st->close();
-    parties_fail($errChg, ['open_changes'=>$cid]);
+    $result = hg_parties_admin_add_change($link,$partyChangesTable,$changesFkCol,$cid,$res,$val,$note);
+    if (empty($result['ok'])) parties_fail((string)$result['error'], ['open_changes'=>$cid]);
+    parties_ok('Cambio registrado.', ['open_changes'=>$cid], ['id'=>(int)$result['id'], 'plot_char_id'=>$cid]);
 }
 /* -----------------------------
    Cargas de datos
 ----------------------------- */
 
-// Plots
-$plots = [];
-$q = $link->query("SELECT * FROM dim_parties ORDER BY sort_order DESC, created_at DESC");
-if ($q) { while ($r = $q->fetch_assoc()) $plots[] = $r; $q->close(); }
-
-// Personajes base (fact_characters)
-$baseChars = [];
-$hasStatusId = has_column($link, 'fact_characters', 'status_id');
-$hasStatusDim = has_table($link, 'dim_character_status');
-$baseCharsSql = "SELECT fc.id, fc.name AS nombre, fc.alias FROM fact_characters fc";
-if ($hasStatusId && $hasStatusDim) {
-    $baseCharsSql .= " LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id";
-    $baseCharsSql .= " WHERE COALESCE(dcs.is_active, 0) = 1";
-}
-$baseCharsSql .= " ORDER BY fc.name ASC";
-$q = $link->query($baseCharsSql);
-if ($q) { while ($r = $q->fetch_assoc()) $baseChars[] = $r; $q->close(); }
-
-// Plot characters (bridge)
-$plotCharsByPlot = [];
-$plotCharsFlat   = []; // por id
-$q = null;
-if ($hasPartiesSchema) {
-    $q = $link->query("
-        SELECT pc.*,
-               pc.`{$partyFkCol}` AS plot_id,
-               p.name AS plot_name,
-               p.sort_order AS plot_sort_order,
-               b.name AS base_nombre,
-               b.alias  AS base_alias
-        FROM `{$partyMembersTable}` pc
-        JOIN dim_parties p ON p.id = pc.`{$partyFkCol}`
-        LEFT JOIN fact_characters b ON b.id = pc.base_char_id
-        ORDER BY p.sort_order DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
-    ");
-}
-$plotCharIds = [];
-if ($q) {
-    while ($r = $q->fetch_assoc()) {
-        $pid = (int)$r['plot_id'];
-        $cid = (int)$r['id'];
-        $plotCharsByPlot[$pid][] = $r;
-        $plotCharsFlat[$cid] = $r;
-        $plotCharIds[] = $cid;
-    }
-    $q->close();
-}
-
-// Cambios agrupados para todos los plot_char en la página
-$changesByPlotChar = [];
-if (!empty($plotCharIds)) {
-    $in = implode(',', array_map('intval', $plotCharIds));
-    $q = $link->query("
-        SELECT id, `{$changesFkCol}` AS plot_char_id, resource, value, notes, created_at
-        FROM `{$partyChangesTable}`
-        WHERE `{$changesFkCol}` IN ($in)
-        ORDER BY created_at DESC
-    ");
-    if ($q) {
-        while ($r = $q->fetch_assoc()) {
-            $cid = (int)$r['plot_char_id'];
-            $changesByPlotChar[$cid][] = $r;
-        }
-        $q->close();
-    }
-}
+$state = hg_parties_admin_load_state($link,$partyMembersTable,$partyFkCol,$partyChangesTable,$changesFkCol,$hasPartiesSchema);
+$plots = $state['plots'];
+$baseChars = $state['baseChars'];
+$plotCharsByPlot = $state['plotCharsByPlot'];
+$plotCharsFlat = $state['plotCharsFlat'];
+$changesByPlotChar = $state['changesByPlotChar'];
 
 if (($_GET['ajax'] ?? '') === 'state') {
     if (function_exists('hg_admin_require_session')) {
