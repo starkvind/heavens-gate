@@ -2,6 +2,7 @@
 // admin_systems_resources.php - Recursos por sistema (AJAX)
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/systems/admin.php');
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
@@ -15,30 +16,6 @@ $isAjaxRequest = (
 
 if (!function_exists('h')) {
     function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
-
-function asr_table_exists(mysqli $link, string $table): bool {
-    $st = $link->prepare('SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
-    if (!$st) return false;
-    $st->bind_param('s', $table);
-    $st->execute();
-    $res = $st->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $st->close();
-    return ((int)($row['c'] ?? 0) > 0);
-}
-
-function asr_table_columns(mysqli $link, string $table): array {
-    $out = [];
-    $safe = str_replace('`', '``', $table);
-    $sql = "SHOW COLUMNS FROM `{$safe}`";
-    if ($res = $link->query($sql)) {
-        while ($r = $res->fetch_assoc()) {
-            $out[(string)$r['Field']] = true;
-        }
-        $res->free();
-    }
-    return $out;
 }
 
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_systems_resources';
@@ -68,145 +45,6 @@ $bridgeCols = $hasBridge ? asr_table_columns($link, $tblBridge) : [];
 
 if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
     hg_admin_require_session(true);
-}
-
-function asr_load_state(mysqli $link, int $systemId, string $tblSystems, string $tblResources, string $tblBridge, array $bridgeCols): array {
-    $systems = [];
-    if ($res = $link->query("SELECT id, name FROM `{$tblSystems}` ORDER BY sort_order, name")) {
-        while ($r = $res->fetch_assoc()) $systems[] = ['id' => (int)$r['id'], 'name' => (string)$r['name']];
-        $res->free();
-    }
-
-    if ($systemId <= 0 && !empty($systems)) {
-        $systemId = (int)$systems[0]['id'];
-    }
-
-    $resources = [];
-    if ($res = $link->query("SELECT id, name, kind, sort_order, description FROM `{$tblResources}` ORDER BY kind, sort_order, name")) {
-        while ($r = $res->fetch_assoc()) {
-            $resources[] = [
-                'id' => (int)$r['id'],
-                'name' => (string)$r['name'],
-                'kind' => (string)$r['kind'],
-                'sort_order' => (int)$r['sort_order'],
-                'description' => (string)($r['description'] ?? ''),
-            ];
-        }
-        $res->free();
-    }
-
-    $current = [];
-    if ($systemId > 0) {
-        $selCols = ['resource_id'];
-        if (isset($bridgeCols['sort_order'])) $selCols[] = 'sort_order';
-        if (isset($bridgeCols['is_active'])) $selCols[] = 'is_active';
-        if (isset($bridgeCols['position'])) $selCols[] = 'position';
-
-        $sqlCur = "SELECT " . implode(',', $selCols) . " FROM `{$tblBridge}` WHERE system_id = ?";
-        if ($st = $link->prepare($sqlCur)) {
-            $st->bind_param('i', $systemId);
-            $st->execute();
-            $rs = $st->get_result();
-            while ($r = $rs->fetch_assoc()) {
-                $rid = (int)$r['resource_id'];
-                $current[$rid] = [
-                    'sort_order' => (int)($r['sort_order'] ?? 0),
-                    'is_active' => (int)($r['is_active'] ?? 1),
-                    'position' => (string)($r['position'] ?? ''),
-                ];
-            }
-            $st->close();
-        }
-    }
-
-    return [
-        'system_id' => $systemId,
-        'systems' => $systems,
-        'resources' => $resources,
-        'current' => $current,
-        'flags' => [
-            'has_sort' => isset($bridgeCols['sort_order']),
-            'has_active' => isset($bridgeCols['is_active']),
-            'has_position' => isset($bridgeCols['position']),
-        ],
-    ];
-}
-
-function asr_save(mysqli $link, int $systemId, array $rows, array $selected, string $tblBridge, array $bridgeCols): array {
-    if ($systemId <= 0) {
-        return ['ok' => false, 'message' => 'Sistema invalido.'];
-    }
-
-    $selectedMap = [];
-    foreach ($selected as $rid) {
-        $rid = (int)$rid;
-        if ($rid > 0) $selectedMap[$rid] = true;
-    }
-
-    $keepRows = [];
-    foreach ($rows as $rid => $row) {
-        $rid = (int)$rid;
-        if ($rid <= 0 || !isset($selectedMap[$rid])) continue;
-        $keepRows[$rid] = [
-            'sort_order' => (int)($row['sort_order'] ?? 0),
-            'is_active' => isset($row['is_active']) ? 1 : 0,
-            'position' => trim((string)($row['position'] ?? '')),
-        ];
-    }
-
-    $link->begin_transaction();
-    try {
-        $del = $link->prepare("DELETE FROM `{$tblBridge}` WHERE system_id = ?");
-        if (!$del) throw new RuntimeException('No se pudo preparar DELETE.');
-        $del->bind_param('i', $systemId);
-        $del->execute();
-        $del->close();
-
-        $insertCols = ['system_id', 'resource_id'];
-        $hasSort = isset($bridgeCols['sort_order']);
-        $hasActive = isset($bridgeCols['is_active']);
-        $hasPosition = isset($bridgeCols['position']);
-        if ($hasSort) $insertCols[] = 'sort_order';
-        if ($hasActive) $insertCols[] = 'is_active';
-        if ($hasPosition) $insertCols[] = 'position';
-
-        $placeholders = implode(',', array_fill(0, count($insertCols), '?'));
-        $sqlIns = "INSERT INTO `{$tblBridge}` (" . implode(',', $insertCols) . ") VALUES ({$placeholders})";
-        $ins = $link->prepare($sqlIns);
-        if (!$ins) throw new RuntimeException('No se pudo preparar INSERT.');
-
-        foreach ($keepRows as $rid => $row) {
-            $sortOrder = (int)$row['sort_order'];
-            $isActive = (int)$row['is_active'];
-            $position = (string)$row['position'];
-
-            if ($hasSort && $hasActive && $hasPosition) {
-                $ins->bind_param('iiiis', $systemId, $rid, $sortOrder, $isActive, $position);
-            } elseif ($hasSort && $hasActive && !$hasPosition) {
-                $ins->bind_param('iiii', $systemId, $rid, $sortOrder, $isActive);
-            } elseif ($hasSort && !$hasActive && $hasPosition) {
-                $ins->bind_param('iiis', $systemId, $rid, $sortOrder, $position);
-            } elseif (!$hasSort && $hasActive && $hasPosition) {
-                $ins->bind_param('iiis', $systemId, $rid, $isActive, $position);
-            } elseif ($hasSort && !$hasActive && !$hasPosition) {
-                $ins->bind_param('iii', $systemId, $rid, $sortOrder);
-            } elseif (!$hasSort && $hasActive && !$hasPosition) {
-                $ins->bind_param('iii', $systemId, $rid, $isActive);
-            } elseif (!$hasSort && !$hasActive && $hasPosition) {
-                $ins->bind_param('iis', $systemId, $rid, $position);
-            } else {
-                $ins->bind_param('ii', $systemId, $rid);
-            }
-            $ins->execute();
-        }
-        $ins->close();
-
-        $link->commit();
-        return ['ok' => true, 'message' => 'Guardado correctamente.'];
-    } catch (Throwable $e) {
-        $link->rollback();
-        return ['ok' => false, 'message' => 'Error al guardar: ' . $e->getMessage()];
-    }
 }
 
 if (!$hasSystems || !$hasResources || !$hasBridge) {
