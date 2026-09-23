@@ -9,6 +9,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/inventory/admin.php');
 $isAjaxRequest = (
 	((string)($_GET['ajax'] ?? '') === '1')
 	|| (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
@@ -41,28 +43,6 @@ function items_csrf_ok(): bool {
 		return hg_admin_csrf_valid($t, 'csrf_admin_items');
 	}
 	return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_items']) && hash_equals($_SESSION['csrf_admin_items'], $t);
-}
-
-function slugify_pretty(string $text): string {
-	$text = trim((string)$text);
-	if ($text === '') return '';
-	if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
-	$text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-	$text = trim($text, '-');
-	$text = strtolower($text);
-	$text = preg_replace('~[^-a-z0-9]+~', '', $text);
-	return $text;
-}
-function update_pretty_id(mysqli $link, string $table, int $id, string $source): void {
-	if ($id <= 0) return;
-	$slug = slugify_pretty($source);
-	if ($slug === '') $slug = (string)$id;
-	$sql = "UPDATE `$table` SET pretty_id=? WHERE id=?";
-	if ($st = $link->prepare($sql)) {
-		$st->bind_param("si", $slug, $id);
-		$st->execute();
-		$st->close();
-	}
 }
 
 // Subidas de imagen
@@ -119,16 +99,9 @@ function sanitize_utf8_text(string $s): string {
 }
 
 // Catálogos
-$types = [];
-if ($rs = $link->query("SELECT id, name FROM dim_item_types ORDER BY name ASC")) {
-	while ($r = $rs->fetch_assoc()) { $types[] = $r; }
-	$rs->close();
-}
-$origins = [];
-if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name ASC")) {
-	while ($r = $rs->fetch_assoc()) { $origins[] = $r; }
-	$rs->close();
-}
+$itemOptions = hg_inventory_admin_item_options($link);
+$types = $itemOptions['types'];
+$origins = $itemOptions['origins'];
 
 // Borrar legacy
 if (!$isAjaxRequest && isset($_GET['delete'])) {
@@ -146,16 +119,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
 		$id = (int)($_POST['id'] ?? 0);
 		if ($id <= 0) {
 			$flash[] = ['type'=>'error','msg'=>'ID invalido para borrar.'];
-		} elseif ($st = $link->prepare("DELETE FROM fact_items WHERE id = ?")) {
-			$st->bind_param("i", $id);
-			if ($st->execute()) {
-				$flash[] = ['type'=>'ok','msg'=>'Objeto eliminado.'];
-			} else {
-				$flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-			}
-			$st->close();
 		} else {
-			$flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
+			$result = hg_inventory_admin_item_delete($link, $id);
+			$flash[] = !empty($result['ok'])
+				? ['type'=>'ok','msg'=>'Objeto eliminado.']
+				: ['type'=>'error','msg'=>'Error al borrar: '.(string)($result['error'] ?? '')];
 		}
 	}
 }
@@ -200,61 +168,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 
 		if ($name === '') {
 			$flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
+		} elseif ($id <= 0 && (!empty($_POST['id']) || !empty($_POST['item_id']))) {
+			$flash[] = ['type'=>'error','msg'=>'ID inválido. No se pudo actualizar el objeto.'];
 		} else {
-			if ($id > 0) {
-				$st = $link->prepare("UPDATE fact_items
-					SET name=?, item_type_id=?, skill_name=?, level=?, gnosis=?, rating=?, bonus=?, damage_type=?, metal=?, strength_req=?, dexterity_req=?, image_url=?, description=?, bibliography_id=?
-					WHERE id=?");
-				if ($st) {
-					$st->bind_param(
-						"sisiiiisiiissii",
-						$name, $itemTypeId, $habilidad, $level, $gnosis, $valor, $bonus, $dano, $metal,
-						$fuerza, $destreza, $img, $description, $bibliographyId, $id
-					);
-					$ok = $st->execute();
-					$stErr = $st->error;
-					$stNo = $st->errno;
-					$st->close();
-					if ($ok) {
-						update_pretty_id($link, 'fact_items', $id, $name);
-						hg_content_touch_table($link, 'fact_items', $id);
-						$flash[] = ['type'=>'ok','msg'=>'Objeto actualizado.'];
-					} else {
-						$flash[] = ['type'=>'error','msg'=>'Error al actualizar (id '.$id.'): ' . ($stErr ?: $link->error) . ' ['.$stNo.']'];
-					}
-				} else {
-					$flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
-				}
+			$data = [
+				'name' => $name,
+				'item_type_id' => $itemTypeId,
+				'skill_name' => $habilidad,
+				'level' => $level,
+				'gnosis' => $gnosis,
+				'rating' => $valor,
+				'bonus' => $bonus,
+				'damage_type' => $dano,
+				'metal' => $metal,
+				'strength_req' => $fuerza,
+				'dexterity_req' => $destreza,
+				'image_url' => $img,
+				'description' => $description,
+				'bibliography_id' => $bibliographyId,
+			];
+			$result = hg_inventory_admin_item_save($link, $id, $data);
+			if (!empty($result['ok'])) {
+				$savedId = (int)$result['id'];
+				hg_update_pretty_id_if_exists($link, 'fact_items', $savedId, $name);
+				hg_content_touch_table($link, 'fact_items', $savedId);
+				$flash[] = ['type'=>'ok','msg'=>$id > 0 ? 'Objeto actualizado.' : 'Objeto creado.'];
 			} else {
-				// Si no hay ID al editar, no insertamos por error
-				if (!empty($_POST['id']) || !empty($_POST['item_id'])) {
-					$flash[] = ['type'=>'error','msg'=>'ID inválido. No se pudo actualizar el objeto.'];
-				} else {
-				$st = $link->prepare("INSERT INTO fact_items
-					(name, item_type_id, skill_name, level, gnosis, rating, bonus, damage_type, metal, strength_req, dexterity_req, image_url, description, bibliography_id)
-					VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-				if ($st) {
-					$st->bind_param(
-						"sisiiiisiiissi",
-						$name, $itemTypeId, $habilidad, $level, $gnosis, $valor, $bonus, $dano, $metal,
-						$fuerza, $destreza, $img, $description, $bibliographyId
-					);
-					$ok = $st->execute();
-					$stErr = $st->error;
-					$stNo = $st->errno;
-					$st->close();
-					if ($ok) {
-						$newId = $link->insert_id;
-						update_pretty_id($link, 'fact_items', (int)$newId, $name);
-						hg_content_touch_table($link, 'fact_items', (int)$newId);
-						$flash[] = ['type'=>'ok','msg'=>'Objeto creado.'];
-					} else {
-						$flash[] = ['type'=>'error','msg'=>'Error al crear: ' . ($stErr ?: $link->error) . ' ['.$stNo.']'];
-					}
-				} else {
-					$flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
-				}
-				}
+				$prefix = $id > 0 ? 'Error al actualizar (id '.$id.'): ' : 'Error al crear: ';
+				$flash[] = ['type'=>'error','msg'=>$prefix . (string)($result['error'] ?? '') . ' ['.(int)($result['errno'] ?? 0).']'];
 			}
 		}
 	}
@@ -263,25 +204,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 // Prefill edición
 $edit = null;
 if (isset($_GET['edit'])) {
-	$eid = (int)$_GET['edit'];
-	if ($eid > 0 && ($st = $link->prepare("SELECT * FROM fact_items WHERE id=?"))) {
-		$st->bind_param("i", $eid);
-		$st->execute();
-		$res = $st->get_result();
-		$edit = $res ? $res->fetch_assoc() : null;
-		$st->close();
-	}
+	$edit = hg_inventory_admin_item_fetch($link, (int)$_GET['edit']);
 }
 
 // Listado
-$rows = [];
-$rs = $link->query("SELECT id, name, item_type_id, bibliography_id FROM fact_items ORDER BY name ASC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $rows[] = $r; } $rs->close(); }
+$rows = hg_inventory_admin_item_rows($link);
 
 // Datos completos para edición en modal
-$rowsFull = [];
-$rs = $link->query("SELECT * FROM fact_items ORDER BY name ASC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $rowsFull[] = $r; } $rs->close(); }
+$rowsFull = hg_inventory_admin_item_rows_full($link);
 
 function type_name($types, $id){
 	foreach ($types as $t) if ((int)$t['id'] === (int)$id) return $t['name'];
