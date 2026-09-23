@@ -568,3 +568,30 @@ characters_controller = (ROOT / 'app/controllers/admin/admin_characters.php').re
 if "if ($action === 'create' || $action === 'update')" not in characters_controller:
     print('ERROR: Character form validation is no longer scoped away from delete payloads', file=sys.stderr)
     sys.exit(1)
+
+
+# Phase 6.11 smoke regressions: optional bibliography FKs must map 0 -> NULL,
+# item type is required, and Misc energy rows may deliberately use resources
+# owned by another System.
+systems_domain = (ROOT / 'app/domains/systems/admin.php').read_text(encoding='utf-8', errors='replace')
+if "bibliography_id=NULLIF(?, 0)" not in systems_domain or "NULLIF(?, 0),NOW(),NOW()" not in systems_domain:
+    print('ERROR: Admin Systems no longer maps empty bibliography to NULL', file=sys.stderr)
+    sys.exit(1)
+
+inventory_domain = (ROOT / 'app/domains/inventory/admin.php').read_text(encoding='utf-8', errors='replace')
+if "bibliography_id=NULLIF(?, 0)" not in inventory_domain or "NULLIF(?, 0))" not in inventory_domain:
+    print('ERROR: Admin Items no longer maps empty bibliography to NULL', file=sys.stderr)
+    sys.exit(1)
+
+items_controller = (ROOT / 'app/controllers/admin/admin_items.php').read_text(encoding='utf-8', errors='replace')
+if "Selecciona un tipo de objeto válido." not in items_controller:
+    print('ERROR: Admin Items lost required item-type validation', file=sys.stderr)
+    sys.exit(1)
+
+systems_energy_controller = (ROOT / 'app/controllers/admin/admin_systems_energy.php').read_text(encoding='utf-8', errors='replace')
+if "$allowAllStateResources = ($tab === 'misc')" not in systems_energy_controller:
+    print('ERROR: Admin Systems Energy lost Misc cross-system resource allowance', file=sys.stderr)
+    sys.exit(1)
+if "return state.tab === 'misc' ||" not in systems_energy_controller:
+    print('ERROR: Admin Systems Energy UI no longer exposes all resources for Misc', file=sys.stderr)
+    sys.exit(1)
