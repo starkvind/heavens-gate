@@ -21,22 +21,12 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/documents/admin_docs.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function str_has($hay, $needle){ return $needle !== '' && mb_stripos((string)$hay, (string)$needle) !== false; }
 
-function fetchPairs(mysqli $link, string $sql): array {
-    $out = [];
-    $q = @$link->query($sql);
-    if (!$q) return $out;
-    while ($r = $q->fetch_assoc()) {
-        $id = isset($r['id']) ? (int)$r['id'] : (int)($r['value'] ?? 0);
-        $nm = (string)($r['name'] ?? $r['kind'] ?? $r['tipo'] ?? '');
-        $out[$id] = $nm;
-    }
-    $q->close();
-    return $out;
-}
+
 
 /* -----------------------------
    CSRF (simple)
@@ -213,124 +203,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         foreach ($flash as $m) if (($m['type'] ?? '') === 'error') { $hasErr = true; break; }
 
         if (!$hasErr) {
-            $table = $M['table'];
-            $pk    = $M['pk'];
-
-            // DELETE (safeguard para secciones con docs)
             if ($action === 'delete') {
-                if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'Falta ID para borrar.'];
-                } else {
-                    $canDelete = true;
-                    if ($postTab === 'sections') {
-                        $stChk = $link->prepare("SELECT COUNT(*) AS c FROM fact_docs WHERE section_id=?");
-                        $stChk->bind_param("i", $id);
-                        $stChk->execute();
-                        $rs = $stChk->get_result();
-                        $cnt = ($rs && ($r=$rs->fetch_assoc())) ? (int)$r['c'] : 0;
-                        $stChk->close();
-                        if ($cnt > 0) {
-                            $canDelete = false;
-                            $flash[] = ['type'=>'error','msg'=>'No se puede borrar: hay documentos en esa sección ('.$cnt.').'];
-                            // evita borrar secciones con documentos vinculados
-                        }
-                    }
-
-                    if ($canDelete) {
-                    $sql = "DELETE FROM `$table` WHERE `$pk`=?";
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
-                    } else {
-                        $st->bind_param("i", $id);
-                        if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Eliminado correctamente.'];
-                        else $flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-                        $st->close();
-                    }
-                    }
-                }
+                $result = hg_docs_admin_delete($link,$M,$postTab,$id);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
+            } elseif ($action === 'create') {
+                $result = hg_docs_admin_create($link,$M,$vals);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
+            } elseif ($action === 'update') {
+                $result = hg_docs_admin_update($link,$M,$vals,$id);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
 
-            // CREATE
-            if ($action === 'create') {
-                $cols = [];
-                $ph   = [];
-                $types= '';
-                $bind = [];
-
-                foreach ($M['fields'] as $f) {
-                    $cols[] = $f['k'];
-                    $ph[]   = '?';
-                    $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
-                    $bind[] = $vals[$f['k']];
-                }
-
-                $sql = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`",$cols)).") VALUES (".implode(',',$ph).")";
-                if (!empty($M['has_timestamps'])) {
-                    $sqlTry = "INSERT INTO `$table` (".implode(',', array_map(fn($c)=>"`$c`",$cols)).", `created_at`, `updated_at`) VALUES (".implode(',',$ph).", NOW(), NOW())";
-                    $st = @$link->prepare($sqlTry);
-                    if ($st) { $st->close(); $sql = $sqlTry; }
-                }
-
-                $st = $link->prepare($sql);
-                if (!$st) {
-                    $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
-                } else {
-                    $st->bind_param($types, ...$bind);
-                    if ($st->execute()) {
-                        $flash[] = ['type'=>'ok','msg'=>'OK '.$M['title'].' creado correctamente.'];
-                        $newId = (int)$link->insert_id;
-                        $src = (string)($vals[$M['name_col']] ?? '');
-                        hg_update_pretty_id_if_exists($link, $table, $newId, $src);
-                        hg_content_touch_table($link, $table, $newId);
-                    } else {
-                        $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
-                    }
-                    $st->close();
-                }
-            }
-
-            // UPDATE
-            if ($action === 'update') {
-                if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'Falta ID para actualizar.'];
-                } else {
-                    $sets = [];
-                    $types= '';
-                    $bind = [];
-
-                    foreach ($M['fields'] as $f) {
-                        $sets[] = "`".$f['k']."`=?";
-                        $types .= (($f['db'] ?? 's') === 'i') ? 'i' : 's';
-                        $bind[] = $vals[$f['k']];
-                    }
-
-                    $sql = "UPDATE `$table` SET ".implode(', ', $sets);
-                    if (!empty($M['has_timestamps'])) $sql .= ", `updated_at`=NOW()";
-                    $sql .= " WHERE `$pk`=?";
-
-                    $types .= "i";
-                    $bind[] = $id;
-
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
-                    } else {
-                        $st->bind_param($types, ...$bind);
-                        if ($st->execute()) {
-                            $flash[] = ['type'=>'ok','msg'=>'OK '.$M['title'].' actualizado.'];
-                            $src = (string)($vals[$M['name_col']] ?? '');
-                            hg_update_pretty_id_if_exists($link, $table, $id, $src);
-                            hg_content_touch_table($link, $table, $id);
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
-                        }
-                        $st->close();
-                    }
-                }
-            }
-
-            // Mantener tab actual tras POST
             $tab = $postTab;
             $META = meta_for($tab, $opts_sections, $opts_origins);
         }
@@ -387,41 +270,16 @@ if ($ajaxMode === 'list') {
     $qAjax = trim((string)($_GET['q'] ?? ''));
     $MAjax = meta_for($tabAjax, $opts_sections, $opts_origins);
 
-    $tableAjax = $MAjax['table'];
     $pkAjax = $MAjax['pk'];
-    $nameColAjax = $MAjax['name_col'];
-
-    $whereAjax = "WHERE 1=1";
-    $paramsAjax = [];
-    $typesAjax = '';
-    if ($qAjax !== '') {
-        $whereAjax .= " AND `$nameColAjax` LIKE ?";
-        $typesAjax .= "s";
-        $paramsAjax[] = "%".$qAjax."%";
-    }
-
-    $colsAllAjax = array_map(fn($f)=>"`".$f['k']."`", $MAjax['fields']);
-    $colsAllAjax[] = "`$pkAjax`";
-    $colsAllAjax = array_values(array_unique($colsAllAjax));
-
-    $sqlAjax = "SELECT ".implode(',', $colsAllAjax)." FROM `$tableAjax` $whereAjax ORDER BY ".$MAjax['order_by'];
-    $stAjax = $link->prepare($sqlAjax);
-    if (!$stAjax) {
+    $listResult = hg_docs_admin_rows($link,$MAjax,$qAjax);
+    if (empty($listResult['ok'])) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok'=>false,'message'=>'Error al preparar listado AJAX','error'=>$link->error], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        echo json_encode(['ok'=>false,'message'=>'Error al preparar listado AJAX','error'=>(string)($listResult['error'] ?? '')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
-    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
-    if (!$stAjax->execute()) {
-        $stAjax->close();
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok'=>false,'message'=>'Error al ejecutar listado AJAX','error'=>$link->error], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-        exit;
-    }
-    $rsAjax = $stAjax->get_result();
     $rowsAjax = [];
     $rowMapAjax = [];
-    while ($r = $rsAjax->fetch_assoc()) {
+    foreach ($listResult['rows'] as $r) {
         $idv = (int)$r[$pkAjax];
         if ($tabAjax === 'docs') {
             $r['seccion_name'] = ($opts_sections[(int)($r['section_id'] ?? 0)] ?? '');
@@ -430,7 +288,6 @@ if ($ajaxMode === 'list') {
         $rowsAjax[] = $r;
         $rowMapAjax[$idv] = $r;
     }
-    $stAjax->close();
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -450,58 +307,25 @@ $table   = $META['table'];
 $pk      = $META['pk'];
 $nameCol = $META['name_col'];
 
-$where = "WHERE 1=1";
-$params = [];
-$types  = "";
-
-if ($q !== '') {
-    $where .= " AND `$nameCol` LIKE ?";
-    $types .= "s";
-    $params[] = "%".$q."%";
-}
-
-// COUNT
-$sqlCnt = "SELECT COUNT(*) AS c FROM `$table` $where";
-$stC = $link->prepare($sqlCnt);
-if ($types) $stC->bind_param($types, ...$params);
-$stC->execute();
-$rsC = $stC->get_result();
-$total = ($rsC && ($rowC=$rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
-$stC->close();
-
+$total = hg_docs_admin_count($link,$META,$q);
 $pages = max(1, (int)ceil($total / $perPage));
 $page  = min($page, $pages);
 $offset= ($page-1)*$perPage;
 
-// SELECT rows completos
-$colsAll = array_map(fn($f)=>"`".$f['k']."`", $META['fields']);
-$colsAll[] = "`$pk`";
-$colsAll = array_values(array_unique($colsAll));
-
-$sqlList = "SELECT ".implode(',', $colsAll)." FROM `$table` $where ORDER BY ".$META['order_by']." LIMIT ?, ?";
-$types2 = $types."ii";
-$params2 = $params;
-$params2[] = $offset;
-$params2[] = $perPage;
-
-$stL = $link->prepare($sqlList);
-$stL->bind_param($types2, ...$params2);
-$stL->execute();
-$rsL = $stL->get_result();
-
+$listResult = hg_docs_admin_rows($link,$META,$q,$offset,$perPage);
 $rows = [];
 $rowMap = [];
-while ($r = $rsL->fetch_assoc()) {
-    $idv = (int)$r[$pk];
-    if ($tab === 'docs') {
-        $r['seccion_name'] = ($opts_sections[(int)($r['section_id'] ?? 0)] ?? '');
-        $r['origin_name'] = ($opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '');
+if (!empty($listResult['ok'])) {
+    foreach ($listResult['rows'] as $r) {
+        $idv = (int)$r[$pk];
+        if ($tab === 'docs') {
+            $r['seccion_name'] = ($opts_sections[(int)($r['section_id'] ?? 0)] ?? '');
+            $r['origin_name'] = ($opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '');
+        }
+        $rows[] = $r;
+        $rowMap[$idv] = $r;
     }
-    $rows[] = $r;
-    $rowMap[$idv] = $r;
 }
-$stL->close();
-
 function ui_title(string $tab): string { return $tab==='docs' ? 'Documentos' : 'Secciones'; }
 function ui_short(string $s, int $n=120): string {
     $s = trim((string)$s);
