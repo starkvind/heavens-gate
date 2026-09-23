@@ -35,6 +35,8 @@ SCROLL_TARGETS = {
     'app/controllers/admin/admin_birthdays_quick.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
     'app/controllers/admin/admin_characters_worlds.php': ['worlds-table-wrap', 'adm-wide-table'],
     'app/controllers/admin/admin_gift_image_mass.php': ['table-scroll', 'adm-wide-table', 'autoWidth: false'],
+    'app/controllers/admin/admin_docs.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
+    'app/controllers/admin/admin_parties.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
 }
 
 for rel, markers in SCROLL_TARGETS.items():
