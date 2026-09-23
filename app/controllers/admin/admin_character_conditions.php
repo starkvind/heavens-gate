@@ -249,16 +249,16 @@ admin_panel_open('Condiciones de Personaje', $actions);
     <button class="btn" type="button" id="btnApplyConditionFilter">Aplicar</button>
 </form>
 
-<table class="table" id="tablaConditions">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de condiciones"><table class="table adm-wide-table" id="tablaConditions">
     <thead>
         <tr>
             <th class="adm-w-70">ID</th>
-            <th class="adm-w-260">Nombre</th>
+            <th class="adm-w-260 adm-col-name">Nombre</th>
             <th class="adm-w-180">Categoria</th>
             <th class="adm-w-120">Repeticiones</th>
             <th class="adm-w-220">Origen</th>
-            <th>Descripcion</th>
-            <th class="adm-w-170">Acciones</th>
+            <th class="adm-col-text">Descripcion</th>
+            <th class="adm-w-170 adm-th-actions">Acciones</th>
         </tr>
     </thead>
     <tbody id="conditionsTbody">
@@ -274,17 +274,17 @@ admin_panel_open('Condiciones de Personaje', $actions);
             <td><?= $r['max_instances'] === null ? 'Sin limite' : (int)$r['max_instances'] ?></td>
             <td><?= h((string)$r['origin_name']) ?></td>
             <td class="adm-cell-wrap"><?= h((string)$r['description']) ?></td>
-            <td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
                 <button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
                 <button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
-            </td>
+                </div></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($rows)): ?>
         <tr><td colspan="7" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
     </tbody>
-</table>
+</table></div>
 
 <div class="pager" id="conditionsPager">
     <?php
