@@ -1063,13 +1063,18 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .avatar-mass-filters input{
   width:100%; background:#000033; color:#fff; border:1px solid #333; border-radius:6px; padding:6px 8px; font-size:12px;
 }
-.avatar-mass-list{ width:100%; border-collapse:collapse; font-size:11px; }
-.avatar-mass-list th,.avatar-mass-list td{ border:1px solid #000088; padding:6px 8px; vertical-align:middle; background:#05014E; }
+.avatar-mass-list{ width:max-content !important; min-width:1500px; border-collapse:collapse; font-size:11px; table-layout:auto; }
+.avatar-mass-list th,.avatar-mass-list td{ border:1px solid #000088; padding:6px 8px; vertical-align:middle; background:#05014E; white-space:nowrap; word-break:normal; overflow-wrap:normal; }
+.avatar-mass-list th:nth-child(3),.avatar-mass-list td:nth-child(3){ min-width:220px; }
+.avatar-mass-list th:nth-child(4),.avatar-mass-list td:nth-child(4){ min-width:100px; }
+.avatar-mass-list th:nth-child(5),.avatar-mass-list td:nth-child(5){ min-width:120px; }
+.avatar-mass-list th:nth-child(6),.avatar-mass-list td:nth-child(6){ min-width:90px; }
+.avatar-mass-list th:nth-child(10),.avatar-mass-list td:nth-child(10){ min-width:360px; }
 .avatar-mass-list th{ background:#050b36; color:#33CCCC; text-align:left; position:sticky; top:0; z-index:2; }
 .avatar-mass-list tr:hover td{ background:#000066; }
 .avatar-cell{ display:flex; align-items:center; gap:10px; }
 .avatar-cell img{ width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #1b4aa0; background:#000022; }
-.avatar-mass-list input[type="file"]{ max-width:100%; font-size:11px; }
+.avatar-mass-list input[type="file"]{ width:260px; max-width:none; font-size:11px; }
 .avatar-mass-list input[type="text"]{ width:100%; min-width:0; box-sizing:border-box; }
 .avatar-mass-list .adm-flex-wrap-8{ display:grid; gap:8px; align-items:start; min-width:220px; }
 .avatar-mass-list td:nth-child(6),
@@ -1156,6 +1161,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 }
 .adm-table-wrap .table,
 .table-scroll .table,
+.table-scroll > table,
 .worlds-table-wrap .table,
 .worlds-table-wrap .worlds-table,
 .adm-table-scroll .table,
