@@ -7,28 +7,11 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/documents/admin_character_links.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function acl_table_exists(mysqli $db, string $table): bool {
-    $safe = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    if ($safe === '') return false;
-    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safe}' LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
-}
-function acl_column_exists(mysqli $db, string $table, string $column): bool {
-    $safeTable = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    $safeCol = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $column));
-    if ($safeTable === '' || $safeCol === '') return false;
-    $sql = "SELECT 1
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = '{$safeTable}'
-              AND COLUMN_NAME = '{$safeCol}'
-            LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
-}
+
+
 
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
@@ -79,111 +62,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } else {
         $action = (string)($_POST['action'] ?? '');
 
-        if ($action === 'link_doc') {
+        if (in_array($action, ['link_doc','update_doc_link','unlink_doc'], true)) {
             if (!$hasBridgeDocs || !$hasDocs) {
-                $flash[] = ['type' => 'error', 'msg' => 'Falta la tabla de bridge o documentos.'];
+                $flash[] = ['type'=>'error','msg'=>'Falta la tabla de bridge o documentos.'];
             } else {
                 $docId = (int)($_POST['doc_id'] ?? 0);
                 $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
                 $sortOrder = (int)($_POST['sort_order'] ?? 0);
-                if ($docId <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'Selecciona un documento vÃ¡lido.'];
-                } else {
-                    $sql = "INSERT INTO bridge_characters_docs (character_id, doc_id, relation_label, sort_order)
-                            VALUES (?, ?, ?, ?)
-                            ON DUPLICATE KEY UPDATE relation_label=VALUES(relation_label), sort_order=VALUES(sort_order), updated_at=NOW()";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param('iisi', $selectedCharacterId, $docId, $relationLabel, $sortOrder);
-                        if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Documento vinculado al personaje.'];
-                        else $flash[] = ['type' => 'error', 'msg' => 'Error al vincular documento: '.$st->error];
-                        $st->close();
-                    } else {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar vinculo de documento.'];
-                    }
-                }
+                $result = acl_doc_link_mutation($link,$action,$selectedCharacterId,$docId,$relationLabel,$sortOrder);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
-        } elseif ($action === 'update_doc_link') {
-            $docId = (int)($_POST['doc_id'] ?? 0);
-            $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
-            $sortOrder = (int)($_POST['sort_order'] ?? 0);
-            if ($docId <= 0 || !$hasBridgeDocs) {
-                $flash[] = ['type' => 'error', 'msg' => 'Fila de documento invalida.'];
-            } else {
-                if ($st = $link->prepare("UPDATE bridge_characters_docs SET relation_label=?, sort_order=?, updated_at=NOW() WHERE character_id=? AND doc_id=?")) {
-                    $st->bind_param('siii', $relationLabel, $sortOrder, $selectedCharacterId, $docId);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de documento actualizado.'];
-                    else $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar vinculo de documento: '.$st->error];
-                    $st->close();
-                } else {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar actualizacion de documento: '.$link->error];
-                }
-            }
-        } elseif ($action === 'unlink_doc') {
-            $docId = (int)($_POST['doc_id'] ?? 0);
-            if ($docId <= 0 || !$hasBridgeDocs) {
-                $flash[] = ['type' => 'error', 'msg' => 'Fila de documento invalida.'];
-            } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_docs WHERE character_id=? AND doc_id=?")) {
-                    $st->bind_param('ii', $selectedCharacterId, $docId);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de documento eliminado.'];
-                    else $flash[] = ['type' => 'error', 'msg' => 'Error al eliminar vinculo de documento: '.$st->error];
-                    $st->close();
-                } else {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar borrado de documento: '.$link->error];
-                }
-            }
-        } elseif ($action === 'link_external') {
+        } elseif (in_array($action, ['link_external','update_external_link','unlink_external'], true)) {
             if (!$hasBridgeExternal || !$hasExternal) {
-                $flash[] = ['type' => 'error', 'msg' => 'Falta la tabla de bridge o enlaces externos.'];
+                $flash[] = ['type'=>'error','msg'=>'Falta la tabla de bridge o enlaces externos.'];
             } else {
                 $externalId = (int)($_POST['external_link_id'] ?? 0);
                 $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
                 $sortOrder = (int)($_POST['sort_order'] ?? 0);
-                if ($externalId <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'Selecciona un enlace externo vÃ¡lido.'];
-                } else {
-                    $sql = "INSERT INTO bridge_characters_external_links (character_id, external_link_id, relation_label, sort_order)
-                            VALUES (?, ?, ?, ?)
-                            ON DUPLICATE KEY UPDATE relation_label=VALUES(relation_label), sort_order=VALUES(sort_order), updated_at=NOW()";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param('iisi', $selectedCharacterId, $externalId, $relationLabel, $sortOrder);
-                        if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Enlace externo vinculado al personaje.'];
-                        else $flash[] = ['type' => 'error', 'msg' => 'Error al vincular enlace externo: '.$st->error];
-                        $st->close();
-                    } else {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar vinculo de enlace externo.'];
-                    }
-                }
-            }
-        } elseif ($action === 'update_external_link') {
-            $externalId = (int)($_POST['external_link_id'] ?? 0);
-            $relationLabel = trim((string)($_POST['relation_label'] ?? ''));
-            $sortOrder = (int)($_POST['sort_order'] ?? 0);
-            if ($externalId <= 0 || !$hasBridgeExternal) {
-                $flash[] = ['type' => 'error', 'msg' => 'Fila de enlace externo invalida.'];
-            } else {
-                if ($st = $link->prepare("UPDATE bridge_characters_external_links SET relation_label=?, sort_order=?, updated_at=NOW() WHERE character_id=? AND external_link_id=?")) {
-                    $st->bind_param('siii', $relationLabel, $sortOrder, $selectedCharacterId, $externalId);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de enlace externo actualizado.'];
-                    else $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar vinculo externo: '.$st->error];
-                    $st->close();
-                } else {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar actualizacion de enlace externo: '.$link->error];
-                }
-            }
-        } elseif ($action === 'unlink_external') {
-            $externalId = (int)($_POST['external_link_id'] ?? 0);
-            if ($externalId <= 0 || !$hasBridgeExternal) {
-                $flash[] = ['type' => 'error', 'msg' => 'Fila de enlace externo invalida.'];
-            } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_external_links WHERE character_id=? AND external_link_id=?")) {
-                    $st->bind_param('ii', $selectedCharacterId, $externalId);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo de enlace externo eliminado.'];
-                    else $flash[] = ['type' => 'error', 'msg' => 'Error al eliminar vinculo externo: '.$st->error];
-                    $st->close();
-                } else {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar borrado de enlace externo: '.$link->error];
-                }
+                $result = acl_external_link_mutation($link,$action,$selectedCharacterId,$externalId,$relationLabel,$sortOrder);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
         }
     }
@@ -225,138 +122,21 @@ if ($isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['act
     exit;
 }
 
-$characters = [];
-if ($hasCharacters) {
-    $chrNameSelect = $hasChronicles ? "COALESCE(ch.name, '') AS chronicle_name" : "'' AS chronicle_name";
-    $realitySelect = $hasRealityFilter ? ", c.reality_id, COALESCE(r.name, '') AS reality_name" : ", 0 AS reality_id, '' AS reality_name";
-    $sqlChars = "SELECT c.id, c.name, c.alias, c.chronicle_id, {$chrNameSelect}{$realitySelect}
-                 FROM fact_characters c";
-    if ($hasChronicles) $sqlChars .= " LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id";
-    if ($hasRealityFilter) $sqlChars .= " LEFT JOIN dim_realities r ON r.id = c.reality_id";
-    $sqlChars .= " WHERE 1=1";
-
-    $bindChronicle = false;
-    $bindReality = false;
-    if ($selectedChronicleId > 0) {
-        $sqlChars .= " AND c.chronicle_id = ?";
-        $bindChronicle = true;
-    }
-    if ($selectedRealityId > 0 && $hasRealityFilter) {
-        $sqlChars .= " AND c.reality_id = ?";
-        $bindReality = true;
-    }
-    $sqlChars .= " ORDER BY c.name ASC";
-
-    if ($st = $link->prepare($sqlChars)) {
-        if ($bindChronicle && $bindReality) {
-            $st->bind_param('ii', $selectedChronicleId, $selectedRealityId);
-        } elseif ($bindChronicle) {
-            $st->bind_param('i', $selectedChronicleId);
-        } elseif ($bindReality) {
-            $st->bind_param('i', $selectedRealityId);
-        }
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) { $characters[] = $row; }
-        $st->close();
-    }
-}
-
-$chronicles = [];
-if ($hasChronicles) {
-    if ($rs = $link->query("SELECT id, name FROM dim_chronicles ORDER BY name ASC")) {
-        while ($row = $rs->fetch_assoc()) { $chronicles[] = $row; }
-        $rs->close();
-    }
-}
-
-$realities = [];
-if ($hasRealityFilter) {
-    if ($rs = $link->query("SELECT id, name FROM dim_realities ORDER BY name ASC")) {
-        while ($row = $rs->fetch_assoc()) { $realities[] = $row; }
-        $rs->close();
-    }
-}
-
-$docs = [];
-if ($hasDocs) {
-    $sqlDocs = "SELECT d.id, d.title, d.pretty_id, COALESCE(c.kind, '') AS category_name
-                FROM fact_docs d
-                LEFT JOIN dim_doc_categories c ON c.id = d.section_id
-                ORDER BY c.sort_order ASC, d.title ASC";
-    if ($rs = $link->query($sqlDocs)) {
-        while ($row = $rs->fetch_assoc()) { $docs[] = $row; }
-        $rs->close();
-    }
-}
-
-$externalLinks = [];
-if ($hasExternal) {
-    if ($rs = $link->query("SELECT id, title, url, kind, is_active FROM fact_external_links ORDER BY is_active DESC, title ASC")) {
-        while ($row = $rs->fetch_assoc()) { $externalLinks[] = $row; }
-        $rs->close();
-    }
-}
-
-$linkedDocs = [];
-if ($selectedCharacterId > 0 && $hasBridgeDocs && $hasDocs) {
-    $sql = "SELECT b.doc_id, COALESCE(b.relation_label, '') AS relation_label, COALESCE(b.sort_order, 0) AS sort_order,
-                   d.title, d.pretty_id, COALESCE(c.kind, '') AS category_name
-            FROM bridge_characters_docs b
-            INNER JOIN fact_docs d ON d.id = b.doc_id
-            LEFT JOIN dim_doc_categories c ON c.id = d.section_id
-            WHERE b.character_id = ?
-            ORDER BY b.sort_order ASC, d.title ASC";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $selectedCharacterId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) { $linkedDocs[] = $row; }
-        $st->close();
-    }
-}
-
-$linkedExternal = [];
-if ($selectedCharacterId > 0 && $hasBridgeExternal && $hasExternal) {
-    $sql = "SELECT b.external_link_id, COALESCE(b.relation_label, '') AS relation_label, COALESCE(b.sort_order, 0) AS sort_order,
-                   l.title, l.url, l.kind, l.is_active
-            FROM bridge_characters_external_links b
-            INNER JOIN fact_external_links l ON l.id = b.external_link_id
-            WHERE b.character_id = ?
-            ORDER BY b.sort_order ASC, l.title ASC";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $selectedCharacterId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) { $linkedExternal[] = $row; }
-        $st->close();
-    }
-}
-
-$characterName = '';
-$characterChronicle = '';
-$characterReality = '';
-if ($selectedCharacterId > 0 && $hasCharacters) {
-    $chrNameSelect = $hasChronicles ? "COALESCE(ch.name, '') AS chronicle_name" : "'' AS chronicle_name";
-    $realitySelect = $hasRealityFilter ? ", COALESCE(r.name, '') AS reality_name" : ", '' AS reality_name";
-    $sqlCurrentCharacter = "SELECT c.name, {$chrNameSelect}{$realitySelect}
-                            FROM fact_characters c";
-    if ($hasChronicles) $sqlCurrentCharacter .= " LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id";
-    if ($hasRealityFilter) $sqlCurrentCharacter .= " LEFT JOIN dim_realities r ON r.id = c.reality_id";
-    $sqlCurrentCharacter .= " WHERE c.id=? LIMIT 1";
-    if ($st = $link->prepare($sqlCurrentCharacter)) {
-        $st->bind_param('i', $selectedCharacterId);
-        $st->execute();
-        if ($rs = $st->get_result()) {
-            if ($row = $rs->fetch_assoc()) {
-                $characterName = (string)($row['name'] ?? '');
-                $characterChronicle = (string)($row['chronicle_name'] ?? '');
-                $characterReality = (string)($row['reality_name'] ?? '');
-            }
-        }
-        $st->close();
-    }
-}
+$characters = $hasCharacters
+    ? acl_fetch_characters($link,$selectedChronicleId,$selectedRealityId,$hasChronicles,$hasRealityFilter)
+    : [];
+$chronicles = $hasChronicles ? acl_fetch_pairs($link,"SELECT id, name FROM dim_chronicles ORDER BY name ASC") : [];
+$realities = $hasRealityFilter ? acl_fetch_pairs($link,"SELECT id, name FROM dim_realities ORDER BY name ASC") : [];
+$docs = $hasDocs ? acl_fetch_pairs($link,"SELECT d.id, d.title, d.pretty_id, COALESCE(c.kind, '') AS category_name FROM fact_docs d LEFT JOIN dim_doc_categories c ON c.id = d.section_id ORDER BY c.sort_order ASC, d.title ASC") : [];
+$externalLinks = $hasExternal ? acl_fetch_pairs($link,"SELECT id, title, url, kind, is_active FROM fact_external_links ORDER BY is_active DESC, title ASC") : [];
+$linkedDocs = ($selectedCharacterId > 0 && $hasBridgeDocs && $hasDocs) ? acl_fetch_linked_docs($link,$selectedCharacterId) : [];
+$linkedExternal = ($selectedCharacterId > 0 && $hasBridgeExternal && $hasExternal) ? acl_fetch_linked_external($link,$selectedCharacterId) : [];
+$currentCharacter = ($selectedCharacterId > 0 && $hasCharacters)
+    ? acl_fetch_current_character($link,$selectedCharacterId,$hasChronicles,$hasRealityFilter)
+    : ['name'=>'','chronicle_name'=>'','reality_name'=>''];
+$characterName = (string)($currentCharacter['name'] ?? '');
+$characterChronicle = (string)($currentCharacter['chronicle_name'] ?? '');
+$characterReality = (string)($currentCharacter['reality_name'] ?? '');
 
 $actions = "<span class='adm-flex-right-8'>"
     . "<a class='btn' href='/talim?s=admin_external_links'>Gestionar enlaces externos</a>"
