@@ -31,23 +31,27 @@ function hg_systems_admin_system_delete(mysqli $link, int $id): array {
 }
 
 function hg_systems_admin_system_save(mysqli $link, int $id, array $d): array {
-    if ($id > 0) {
-        $st = $link->prepare('UPDATE dim_systems SET sort_order=?, name=?, image_url=?, forms=?, description=?, bibliography_id=? WHERE id=?');
-        if (!$st) return hg_systems_admin_result(false, $link->error, $id);
-        $st->bind_param('issisii', $d['sort_order'], $d['name'], $d['image_url'], $d['forms'], $d['description'], $d['bibliography_id'], $id);
+    try {
+        if ($id > 0) {
+            $st = $link->prepare('UPDATE dim_systems SET sort_order=?, name=?, image_url=?, forms=?, description=?, bibliography_id=NULLIF(?, 0) WHERE id=?');
+            if (!$st) return hg_systems_admin_result(false, $link->error, $id);
+            $st->bind_param('issisii', $d['sort_order'], $d['name'], $d['image_url'], $d['forms'], $d['description'], $d['bibliography_id'], $id);
+            $ok = $st->execute();
+            $error = $st->error;
+            $st->close();
+            return hg_systems_admin_result($ok, $error, $id);
+        }
+        $st = $link->prepare('INSERT INTO dim_systems (sort_order, name, image_url, forms, description, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,NULLIF(?, 0),NOW(),NOW())');
+        if (!$st) return hg_systems_admin_result(false, $link->error);
+        $st->bind_param('issisi', $d['sort_order'], $d['name'], $d['image_url'], $d['forms'], $d['description'], $d['bibliography_id']);
         $ok = $st->execute();
         $error = $st->error;
+        $newId = $ok ? (int)$st->insert_id : 0;
         $st->close();
-        return hg_systems_admin_result($ok, $error, $id);
+        return hg_systems_admin_result($ok, $error, $newId);
+    } catch (mysqli_sql_exception $e) {
+        return hg_systems_admin_result(false, $e->getMessage(), $id);
     }
-    $st = $link->prepare('INSERT INTO dim_systems (sort_order, name, image_url, forms, description, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())');
-    if (!$st) return hg_systems_admin_result(false, $link->error);
-    $st->bind_param('issisi', $d['sort_order'], $d['name'], $d['image_url'], $d['forms'], $d['description'], $d['bibliography_id']);
-    $ok = $st->execute();
-    $error = $st->error;
-    $newId = $ok ? (int)$st->insert_id : 0;
-    $st->close();
-    return hg_systems_admin_result($ok, $error, $newId);
 }
 
 function hg_systems_admin_system_rows(mysqli $link): array {
