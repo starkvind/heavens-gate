@@ -401,14 +401,14 @@ if ($ajaxSaveDelete) {
 	</div>
 </div>
 
-<table class="table" id="tablaItems">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de objetos"><table class="table adm-wide-table" id="tablaItems">
 	<thead>
 		<tr>
 			<th class="adm-w-60">ID</th>
-			<th>Nombre</th>
+			<th class="adm-col-name">Nombre</th>
 			<th>Tipo</th>
 			<th>Origen</th>
-			<th class="adm-w-160">Acciones</th>
+			<th class="adm-w-160 adm-th-actions">Acciones</th>
 		</tr>
 	</thead>
 	<tbody id="itemsTbody">
@@ -423,17 +423,17 @@ if ($ajaxSaveDelete) {
 			<td><?= h($r['name']) ?></td>
 			<td><?= h(type_name($types, $r['item_type_id'] ?? 0)) ?></td>
 			<td><?= h(origin_name($origins, $r['bibliography_id'] ?? 0)) ?></td>
-			<td>
+			<td class="adm-cell-actions"><div class="adm-actions-inline">
 				<button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
 				<button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
-			</td>
+				</div></td>
 		</tr>
 	<?php endforeach; ?>
 	<?php if (empty($rows)): ?>
 		<tr><td colspan="5" class="adm-color-muted">(Sin objetos)</td></tr>
 	<?php endif; ?>
 	</tbody>
-</table>
+</table></div>
 
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
