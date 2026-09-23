@@ -238,15 +238,15 @@ admin_panel_open('Traits', $actions);
     <button class="btn" type="button" id="btnApplyTraitsFilter">Aplicar</button>
 </form>
 
-<table class="table" id="tablaTraits">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de traits"><table class="table adm-wide-table" id="tablaTraits">
     <thead>
         <tr>
             <th class="adm-w-70">ID</th>
-            <th class="adm-w-260">Nombre</th>
+            <th class="adm-w-260 adm-col-name">Nombre</th>
             <th class="adm-w-180">Tipo</th>
             <th class="adm-w-180">Clasificacion</th>
             <th class="adm-w-180">Origen</th>
-            <th class="adm-w-170">Acciones</th>
+            <th class="adm-w-170 adm-th-actions">Acciones</th>
         </tr>
     </thead>
     <tbody id="traitsTbody">
@@ -261,17 +261,17 @@ admin_panel_open('Traits', $actions);
             <td><?= h((string)$r['kind']) ?></td>
             <td><?= h((string)$r['classification']) ?></td>
             <td><?= h((string)$r['origin_name']) ?></td>
-            <td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
                 <button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
                 <button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
-            </td>
+                </div></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($rows)): ?>
         <tr><td colspan="6" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
     </tbody>
-</table>
+</table></div>
 
 <div class="pager" id="traitsPager">
     <?php
