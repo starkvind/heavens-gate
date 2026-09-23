@@ -54,5 +54,8 @@ jobs:
       - name: Audit Admin domain boundaries
         run: python3 .github/ci/php-admin-domain-boundary-audit.py
 
+      - name: Audit final Admin structure
+        run: python3 .github/ci/php-admin-final-structural-audit.py
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
