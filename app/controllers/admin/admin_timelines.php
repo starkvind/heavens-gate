@@ -309,20 +309,20 @@ admin_panel_open('Línea temporal', $actions);
 }
 </style>
 
-<table class="table" id="eventsTable">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de línea temporal"><table class="table adm-wide-table" id="eventsTable">
     <thead>
         <tr>
             <th>Fecha</th>
-            <th>Título</th>
+            <th class="adm-col-title">Título</th>
             <th>Tipo</th>
             <th>Crónica</th>
-            <th>Vínculos</th>
+            <th class="adm-col-text">Vínculos</th>
             <th>Estado</th>
-            <th>Acciones</th>
+            <th class="adm-th-actions">Acciones</th>
         </tr>
     </thead>
     <tbody></tbody>
-</table>
+</table></div>
 <div id="eventsPager" class="pager adm-justify-end"></div>
 
 <div class="chap-modal-back" id="eventModalBack" aria-hidden="true">
