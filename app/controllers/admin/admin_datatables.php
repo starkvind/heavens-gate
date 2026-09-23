@@ -2,6 +2,7 @@
 // admin_datatables.php - Configure default/vital columns for public DataTables.
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/datatable_config.php');
+include_once(__DIR__ . '/../../domains/configuration/admin_datatables.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
@@ -43,15 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($id <= 0) {
                 $flash[] = ['type' => 'err', 'msg' => 'Fila inválida.'];
-            } elseif ($stmt = $link->prepare('UPDATE dim_datatable_columns SET visible_default = ?, is_core = ? WHERE id = ?')) {
-                $stmt->bind_param('iii', $visibleDefault, $isCore, $id);
-                $ok = $stmt->execute();
-                $stmt->close();
-                $flash[] = $ok
+            } else {
+                $result = hg_configuration_admin_datatable_update($link, $id, $visibleDefault, $isCore);
+                $flash[] = !empty($result['ok'])
                     ? ['type' => 'ok', 'msg' => 'Configuración actualizada.']
                     : ['type' => 'err', 'msg' => 'No se pudo actualizar la configuración.'];
-            } else {
-                $flash[] = ['type' => 'err', 'msg' => 'No se pudo preparar la actualización.'];
             }
         } elseif ($action === 'insert') {
             $datatableId = trim((string)($_POST['datatable_id'] ?? ''));
@@ -66,54 +63,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$validId || $datatableLabel === '' || mb_strlen($datatableLabel) > 100 || $columnLabel === '' || mb_strlen($columnLabel) > 100 || $columnIndex === false) {
                 $flash[] = ['type' => 'err', 'msg' => 'Revisa ID, índice y etiquetas.'];
             } else {
-                $sql = 'INSERT INTO dim_datatable_columns '
-                    . '(datatable_id, datatable_label, column_index, column_label, visible_default, is_core) '
-                    . 'VALUES (?, ?, ?, ?, ?, ?)';
-                if ($stmt = $link->prepare($sql)) {
-                    $stmt->bind_param('ssisii', $datatableId, $datatableLabel, $columnIndex, $columnLabel, $visibleDefault, $isCore);
-                    $ok = $stmt->execute();
-                    $duplicate = ((int)$stmt->errno === 1062);
-                    $stmt->close();
-                    if ($ok) {
-                        $flash[] = ['type' => 'ok', 'msg' => 'Columna añadida.'];
-                    } elseif ($duplicate) {
-                        $flash[] = ['type' => 'err', 'msg' => 'Ese DataTable ya tiene configurado ese índice.'];
-                    } else {
-                        $flash[] = ['type' => 'err', 'msg' => 'No se pudo añadir la columna.'];
-                    }
+                $result = hg_configuration_admin_datatable_insert(
+                    $link,
+                    $datatableId,
+                    $datatableLabel,
+                    (int)$columnIndex,
+                    $columnLabel,
+                    $visibleDefault,
+                    $isCore
+                );
+                if (!empty($result['ok'])) {
+                    $flash[] = ['type' => 'ok', 'msg' => 'Columna añadida.'];
+                } elseif (!empty($result['duplicate'])) {
+                    $flash[] = ['type' => 'err', 'msg' => 'Ese DataTable ya tiene configurado ese índice.'];
                 } else {
-                    $flash[] = ['type' => 'err', 'msg' => 'No se pudo preparar el alta.'];
+                    $flash[] = ['type' => 'err', 'msg' => 'No se pudo añadir la columna.'];
                 }
             }
         } elseif ($action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id <= 0) {
                 $flash[] = ['type' => 'err', 'msg' => 'Fila inválida.'];
-            } elseif ($stmt = $link->prepare('DELETE FROM dim_datatable_columns WHERE id = ?')) {
-                $stmt->bind_param('i', $id);
-                $ok = $stmt->execute();
-                $stmt->close();
-                $flash[] = $ok
+            } else {
+                $result = hg_configuration_admin_datatable_delete($link, $id);
+                $flash[] = !empty($result['ok'])
                     ? ['type' => 'ok', 'msg' => 'Columna eliminada de la configuración.']
                     : ['type' => 'err', 'msg' => 'No se pudo eliminar la columna.'];
-            } else {
-                $flash[] = ['type' => 'err', 'msg' => 'No se pudo preparar el borrado.'];
             }
         }
     }
 }
 
-$rows = [];
-if ($tableReady) {
-    $sql = 'SELECT id, datatable_id, datatable_label, column_index, column_label, visible_default, is_core '
-        . 'FROM dim_datatable_columns ORDER BY datatable_label, datatable_id, column_index';
-    if ($result = $link->query($sql)) {
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-        $result->free();
-    }
-}
+$rows = $tableReady ? hg_configuration_admin_datatable_rows($link) : [];
 
 admin_panel_open('Columnas DataTables');
 ?>
