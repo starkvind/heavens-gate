@@ -379,13 +379,13 @@ function ui_short(string $s, int $n=120): string {
     </div>
   <?php endif; ?>
 
-  <table class="table" id="tablaDocs">
+  <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de documentación"><table class="table adm-wide-table" id="tablaDocs">
     <thead>
       <tr>
         <?php foreach ($META['list_cols'] as $c): ?>
           <th width="<?= (int)($c['w'] ?? 120) ?>"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
-        <th class="adm-w-190">Acciones</th>
+        <th class="adm-w-190 adm-th-actions">Acciones</th>
       </tr>
     </thead>
     <tbody id="docsTbody">
@@ -413,17 +413,17 @@ function ui_short(string $s, int $n=120): string {
               <?php endif; ?>
             </td>
           <?php endforeach; ?>
-          <td>
+          <td class="adm-cell-actions"><div class="adm-actions-inline">
             <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">Editar</button>
             <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">Borrar</button>
-          </td>
+            </div></td>
         </tr>
       <?php endforeach; ?>
       <?php if (empty($rows)): ?>
         <tr><td colspan="<?= count($META['list_cols'])+1 ?>" class="adm-color-muted">(Sin resultados)</td></tr>
       <?php endif; ?>
     </tbody>
-  </table>
+  </table></div>
 
   <div class="pager">
     <?php
