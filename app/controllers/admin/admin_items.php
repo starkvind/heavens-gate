@@ -102,6 +102,16 @@ function sanitize_utf8_text(string $s): string {
 $itemOptions = hg_inventory_admin_item_options($link);
 $types = $itemOptions['types'];
 $origins = $itemOptions['origins'];
+$itemTypeIds = [];
+foreach ($types as $typeRow) {
+    $typeId = (int)($typeRow['id'] ?? 0);
+    if ($typeId > 0) $itemTypeIds[$typeId] = true;
+}
+$itemOriginIds = [];
+foreach ($origins as $originRow) {
+    $originId = (int)($originRow['id'] ?? 0);
+    if ($originId > 0) $itemOriginIds[$originId] = true;
+}
 
 // Borrar legacy
 if (!$isAjaxRequest && isset($_GET['delete'])) {
@@ -168,6 +178,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 
 		if ($name === '') {
 			$flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
+		} elseif (!isset($itemTypeIds[$itemTypeId])) {
+			$flash[] = ['type'=>'error','msg'=>'Selecciona un tipo de objeto válido.'];
+		} elseif ($bibliographyId > 0 && !isset($itemOriginIds[$bibliographyId])) {
+			$flash[] = ['type'=>'error','msg'=>'El origen seleccionado no es válido.'];
 		} elseif ($id <= 0 && (!empty($_POST['id']) || !empty($_POST['item_id']))) {
 			$flash[] = ['type'=>'error','msg'=>'ID inválido. No se pudo actualizar el objeto.'];
 		} else {
@@ -318,8 +332,8 @@ if ($ajaxSaveDelete) {
 					<input class="inp" type="text" name="name" id="item_name" required>
 
 					<label>Tipo</label>
-					<select class="select" name="item_type_id" id="item_type_id">
-						<option value="0">--</option>
+					<select class="select" name="item_type_id" id="item_type_id" required>
+						<option value="">-- Seleccionar --</option>
 						<?php foreach ($types as $t): ?>
 							<option value="<?= (int)$t['id'] ?>"><?= h($t['name']) ?></option>
 						<?php endforeach; ?>
