@@ -182,6 +182,79 @@ PILOTS = {
             'hg_cca_load_state(',
         ],
     },
+    'groups': {
+        'controller': ROOT / 'app/controllers/admin/admin_groups.php',
+        'domain': ROOT / 'app/domains/organizations/admin_groups.php',
+        'markers': [
+            'hg_groups_clans_table(',
+            'hg_groups_groups_table(',
+            'hg_groups_clan_detail(',
+            'hg_groups_group_members(',
+            'hg_groups_create_clan(',
+            'hg_groups_create_group(',
+        ],
+    },
+    'organizations': {
+        'controller': ROOT / 'app/controllers/admin/admin_organizations.php',
+        'domain': ROOT / 'app/domains/organizations/admin.php',
+        'markers': [
+            'hg_aorg_fetch_organizations(',
+            'hg_aorg_fetch_organization(',
+            'hg_aorg_update_org(',
+            'hg_aorg_save_department(',
+            'hg_aorg_save_position(',
+        ],
+    },
+    'bridges': {
+        'controller': ROOT / 'app/controllers/admin/admin_bridges.php',
+        'domain': ROOT / 'app/domains/organizations/admin_bridges.php',
+        'markers': [
+            'set_active_character_group(',
+            'set_active_character_clan(',
+            'set_clan_group(',
+            'bridges_deactivate_row(',
+            'bridges_load_state(',
+        ],
+    },
+    'character_conditions_bridge': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_conditions_bridge.php',
+        'domain': ROOT / 'app/domains/characters/admin_conditions_bridge.php',
+        'markers': [
+            'hg_accb_character_options(',
+            'hg_accb_condition_catalog(',
+            'hg_accb_delete(',
+            'hg_accb_save(',
+            'hg_accb_fetch_assignments(',
+        ],
+    },
+    'character_misc_bridge': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_misc_bridge.php',
+        'domain': ROOT / 'app/domains/characters/admin_misc_bridge.php',
+        'markers': [
+            'acmb_character_options(',
+            'acmb_misc_options(',
+            'acmb_save_assignment(',
+            'acmb_delete_assignment(',
+            'acmb_fetch_assignments(',
+        ],
+    },
+    'character_affiliations_canonical': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_affiliations_canonical.php',
+        'domain': ROOT / 'app/domains/organizations/admin_canonical.php',
+        'markers': [
+            'acac_run_canonicalizer(',
+        ],
+    },
+    'org_chart_schema': {
+        'controller': ROOT / 'app/controllers/admin/admin_org_chart_schema.php',
+        'domain': ROOT / 'app/domains/organizations/admin_chart_schema.php',
+        'markers': [
+            'hg_aocs_table_exists(',
+            'hg_aocs_fetch_organizations(',
+            'hg_aocs_fetch_departments(',
+            'hg_aocs_upsert_department(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
