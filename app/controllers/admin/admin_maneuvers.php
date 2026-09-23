@@ -2,6 +2,7 @@
 // admin_maneuvers.php -- assignments for bridge_maneuvers_systems and bridge_maneuvers_forms
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/maneuver_bridges.php');
+include_once(__DIR__ . '/../../domains/rules/admin.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
@@ -30,83 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_maneuver_links']
     } elseif (!$bridgesReady || $selectedId <= 0) {
         $flash[] = ['type' => 'error', 'msg' => 'No se puede guardar la asignacion.'];
     } else {
-        $systems = array_values(array_unique(array_filter(array_map('intval', (array)($_POST['system_ids'] ?? [])))));
-        $forms = array_values(array_unique(array_filter(array_map('intval', (array)($_POST['form_ids'] ?? [])))));
-        $link->begin_transaction();
-        try {
-            $deleteSystem = $link->prepare('DELETE FROM bridge_maneuvers_systems WHERE maneuver_id = ?');
-            $deleteForm = $link->prepare('DELETE FROM bridge_maneuvers_forms WHERE maneuver_id = ?');
-            $deleteSystem->bind_param('i', $selectedId);
-            $deleteForm->bind_param('i', $selectedId);
-            if (!$deleteSystem->execute() || !$deleteForm->execute()) throw new RuntimeException($link->error);
-            $deleteSystem->close();
-            $deleteForm->close();
-
-            $insertSystem = $link->prepare('INSERT INTO bridge_maneuvers_systems (maneuver_id, system_id) VALUES (?, ?)');
-            foreach ($systems as $systemId) {
-                $insertSystem->bind_param('ii', $selectedId, $systemId);
-                if (!$insertSystem->execute()) throw new RuntimeException($insertSystem->error);
-            }
-            $insertSystem->close();
-
-            $insertForm = $link->prepare('INSERT INTO bridge_maneuvers_forms (maneuver_id, form_id) VALUES (?, ?)');
-            foreach ($forms as $formId) {
-                $insertForm->bind_param('ii', $selectedId, $formId);
-                if (!$insertForm->execute()) throw new RuntimeException($insertForm->error);
-            }
-            $insertForm->close();
-            $link->commit();
-            $flash[] = ['type' => 'ok', 'msg' => 'Asignacion de maniobra guardada.'];
-        } catch (Throwable $error) {
-            $link->rollback();
-            $flash[] = ['type' => 'error', 'msg' => 'Error al guardar: ' . $error->getMessage()];
-        }
+        $systemsPosted = (array)($_POST['system_ids'] ?? []);
+        $formsPosted = (array)($_POST['form_ids'] ?? []);
+        $result = hg_rules_admin_maneuver_save_links($link, $selectedId, $systemsPosted, $formsPosted);
+        $flash[] = !empty($result['ok'])
+            ? ['type' => 'ok', 'msg' => 'Asignacion de maniobra guardada.']
+            : ['type' => 'error', 'msg' => 'Error al guardar: ' . (string)($result['error'] ?? '')];
     }
 }
 
-$maneuvers = [];
-if ($result = $link->query('SELECT id, name, system_name, user FROM fact_combat_maneuvers ORDER BY system_name, name')) {
-    while ($row = $result->fetch_assoc()) $maneuvers[] = $row;
-    $result->free();
-}
-if ($selectedId <= 0 && !empty($maneuvers)) $selectedId = (int)$maneuvers[0]['id'];
-
-$systems = [];
-if ($result = $link->query('SELECT id, name FROM dim_systems ORDER BY sort_order, name')) {
-    while ($row = $result->fetch_assoc()) $systems[] = $row;
-    $result->free();
-}
-$forms = [];
-if ($result = $link->query('SELECT f.id, f.form, f.race, s.name AS system_name FROM dim_forms f JOIN dim_systems s ON s.id=f.system_id ORDER BY s.sort_order, s.name, f.race, f.form')) {
-    while ($row = $result->fetch_assoc()) $forms[] = $row;
-    $result->free();
-}
-
-$selectedSystems = [];
-$selectedForms = [];
-$maneuverLinkMap = [];
-if ($bridgesReady) {
-    if ($result = $link->query('SELECT maneuver_id, system_id FROM bridge_maneuvers_systems')) {
-        while ($row = $result->fetch_assoc()) $maneuverLinkMap[(int)$row['maneuver_id']]['systems'][] = (int)$row['system_id'];
-        $result->free();
-    }
-    if ($result = $link->query('SELECT maneuver_id, form_id FROM bridge_maneuvers_forms')) {
-        while ($row = $result->fetch_assoc()) $maneuverLinkMap[(int)$row['maneuver_id']]['forms'][] = (int)$row['form_id'];
-        $result->free();
-    }
-}
-if ($bridgesReady && $selectedId > 0) {
-    if ($stmt = $link->prepare('SELECT system_id FROM bridge_maneuvers_systems WHERE maneuver_id = ?')) {
-        $stmt->bind_param('i', $selectedId); $stmt->execute(); $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) $selectedSystems[(int)$row['system_id']] = true;
-        $stmt->close();
-    }
-    if ($stmt = $link->prepare('SELECT form_id FROM bridge_maneuvers_forms WHERE maneuver_id = ?')) {
-        $stmt->bind_param('i', $selectedId); $stmt->execute(); $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) $selectedForms[(int)$row['form_id']] = true;
-        $stmt->close();
-    }
-}
+$state = hg_rules_admin_maneuver_state($link, $selectedId, $bridgesReady);
+$maneuvers = $state['maneuvers'];
+$selectedId = (int)$state['selectedId'];
+$systems = $state['systems'];
+$forms = $state['forms'];
+$selectedSystems = $state['selectedSystems'];
+$selectedForms = $state['selectedForms'];
+$maneuverLinkMap = $state['maneuverLinkMap'];
 
 admin_panel_open('Maniobras: sistemas y formas');
 ?>
