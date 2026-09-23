@@ -1160,6 +1160,7 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
   -webkit-overflow-scrolling:touch;
 }
 .adm-table-wrap .table,
+.adm-table-wrap .adm-table,
 .table-scroll .table,
 .table-scroll > table,
 .worlds-table-wrap .table,
