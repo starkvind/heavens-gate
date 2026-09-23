@@ -271,8 +271,8 @@ uksort($rankOptions, 'strnatcasecmp');
     <input id="gift-image-search" class="adm-grid-full" type="text" placeholder="Buscar por nombre, id o pretty_id...">
   </div>
 
-  <div class="table-scroll">
-    <table class="avatar-mass-list display" id="gift-image-table">
+  <div class="table-scroll" tabindex="0" aria-label="Tabla de imágenes masivas de dones">
+    <table class="avatar-mass-list display adm-wide-table" id="gift-image-table">
       <thead>
         <tr>
           <th class="adm-w-90">ID</th>
@@ -489,6 +489,7 @@ window.jQuery(function(){
     });
 
     dataTable = window.jQuery(table).DataTable({
+      autoWidth: false,
       pageLength: 50,
       lengthMenu: [25, 50, 100, 250],
       order: [[2, 'asc']],
