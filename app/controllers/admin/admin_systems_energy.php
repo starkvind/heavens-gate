@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = (string)($_POST['action'] ?? '');
     if ($action === 'save_assignments') {
         $updatesRaw = isset($_POST['updates']) && is_array($_POST['updates']) ? $_POST['updates'] : [];
-        $allowAllStateResources = ((int)($_POST['allow_all_state_resources'] ?? 0) === 1);
+        $allowAllStateResources = ($tab === 'misc') || ((int)($_POST['allow_all_state_resources'] ?? 0) === 1);
         $save = ase_save_assignments($link, $tab, $updatesRaw, $resourcesBySystem, $resourcesAll, $allowAllStateResources);
         $state = ase_state($link, $tab, $systemId, $q, $resourcesAll, $resourcesBySystem);
         if (!empty($save['ok'])) {
@@ -245,7 +245,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
   }
 
   function useAllStateResources(){
-    return !!(allowAllStateResources && allowAllStateResources.checked);
+    return state.tab === 'misc' || !!(allowAllStateResources && allowAllStateResources.checked);
   }
 
   function resourcesForSystem(systemId){
