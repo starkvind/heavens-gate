@@ -178,18 +178,18 @@ admin_panel_open('Muertes de personajes', $actions);
     <button class="btn" type="button" id="btnApplyAcdFilter">Aplicar</button>
   </form>
 
-  <table class="table" id="acdTable">
+  <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de muertes de personajes"><table class="table adm-wide-table" id="acdTable">
     <thead>
       <tr>
         <th class="adm-w-80">ID PJ</th>
-        <th class="adm-w-220">Personaje</th>
+        <th class="adm-w-220 adm-col-name">Personaje</th>
         <th class="adm-w-140">Estado PJ</th>
         <th class="adm-w-120">Tipo</th>
         <th class="adm-w-120">Fecha</th>
         <th class="adm-w-180">Responsable</th>
-        <th>Evento</th>
+        <th class="adm-col-text">Evento</th>
         <th class="adm-w-80">Peso</th>
-        <th class="adm-w-170">Acciones</th>
+        <th class="adm-w-170 adm-th-actions">Acciones</th>
       </tr>
     </thead>
     <tbody id="acdTbody">
@@ -216,17 +216,17 @@ admin_panel_open('Muertes de personajes', $actions);
           <td><?= hg_acd_h(trim((string)($r['killer_name'] ?? '')) !== '' ? (string)$r['killer_name'] : '-') ?></td>
           <td><?= hg_acd_h($eventLabel) ?></td>
           <td><?= (int)($r['narrative_weight'] ?? 1) ?></td>
-          <td>
+          <td class="adm-cell-actions"><div class="adm-actions-inline">
             <button class="btn" type="button" data-edit="<?= $charId ?>">Editar</button>
             <button class="btn btn-red" type="button" data-del="<?= $charId ?>">Borrar</button>
-          </td>
+            </div></td>
         </tr>
       <?php endforeach; ?>
       <?php if (empty($rows)): ?>
         <tr><td colspan="9" class="adm-color-muted">(Sin muertes registradas)</td></tr>
       <?php endif; ?>
     </tbody>
-  </table>
+  </table></div>
 
   <div class="pager" id="acdPager">
     <?php
