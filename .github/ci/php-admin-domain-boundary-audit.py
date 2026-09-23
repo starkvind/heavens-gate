@@ -521,6 +521,47 @@ PILOTS = {
             'hg_rules_admin_traits_page(',
         ],
     },
+    'players': {
+        'controller': ROOT / 'app/controllers/admin/admin_players.php',
+        'domain': ROOT / 'app/domains/players/admin.php',
+        'markers': [
+            'hg_players_admin_fetch_current(',
+            'hg_players_admin_player_exists(',
+            'hg_players_admin_create(',
+            'hg_players_admin_update(',
+            'hg_players_admin_delete(',
+            'hg_players_admin_fetch_rows(',
+        ],
+    },
+    'datatables': {
+        'controller': ROOT / 'app/controllers/admin/admin_datatables.php',
+        'domain': ROOT / 'app/domains/configuration/admin_datatables.php',
+        'markers': [
+            'hg_configuration_admin_datatable_update(',
+            'hg_configuration_admin_datatable_insert(',
+            'hg_configuration_admin_datatable_delete(',
+            'hg_configuration_admin_datatable_rows(',
+        ],
+    },
+    'menu': {
+        'controller': ROOT / 'app/controllers/admin/admin_menu.php',
+        'domain': ROOT / 'app/domains/configuration/admin.php',
+        'markers': [
+            'hg_configuration_admin_menu_update(',
+            'hg_configuration_admin_menu_create(',
+            'hg_configuration_admin_menu_disable(',
+            'hg_configuration_admin_menu_update_bulk(',
+            'hg_configuration_admin_menu_reorder(',
+            'hg_configuration_admin_menu_rows(',
+        ],
+    },
+    'admin_password': {
+        'controller': ROOT / 'app/controllers/admin/admin_get_pwd.php',
+        'domain': ROOT / 'app/domains/configuration/admin.php',
+        'markers': [
+            'hg_configuration_admin_load_admin_password(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
