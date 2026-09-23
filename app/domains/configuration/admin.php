@@ -177,22 +177,22 @@ if (!function_exists('hg_configuration_admin_menu_delete')) {
         try {
             $link->begin_transaction();
 
-            // Menu has a self-reference through parent_id. Delete selected children first
-            // so deleting a top-level menu is safe without changing FK semantics.
-            $in = implode(',', array_fill(0, count($ids), '?'));
-            $types = str_repeat('i', count($ids));
-
-            $children = $link->prepare("DELETE FROM dim_menu_items WHERE parent_id IN ($in) AND id IN ($in)");
+            // Menu has a self-reference through parent_id. Remove children of
+            // every selected parent first, then the selected rows themselves.
+            $children = $link->prepare('DELETE FROM dim_menu_items WHERE parent_id = ?');
             if (!$children) throw new RuntimeException($link->error);
-            $args = array_merge($ids, $ids);
-            $children->bind_param($types . $types, ...$args);
-            if (!$children->execute()) throw new RuntimeException($children->error);
+            foreach ($ids as $id) {
+                $children->bind_param('i', $id);
+                if (!$children->execute()) throw new RuntimeException($children->error);
+            }
             $children->close();
 
-            $rows = $link->prepare("DELETE FROM dim_menu_items WHERE id IN ($in)");
+            $rows = $link->prepare('DELETE FROM dim_menu_items WHERE id = ?');
             if (!$rows) throw new RuntimeException($link->error);
-            $rows->bind_param($types, ...$ids);
-            if (!$rows->execute()) throw new RuntimeException($rows->error);
+            foreach (array_reverse($ids) as $id) {
+                $rows->bind_param('i', $id);
+                if (!$rows->execute()) throw new RuntimeException($rows->error);
+            }
             $rows->close();
 
             $link->commit();
