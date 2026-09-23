@@ -333,6 +333,65 @@ PILOTS = {
             'hg_realities_admin_rows(',
         ],
     },
+    'docs': {
+        'controller': ROOT / 'app/controllers/admin/admin_docs.php',
+        'domain': ROOT / 'app/domains/documents/admin_docs.php',
+        'markers': [
+            'hg_docs_admin_delete(',
+            'hg_docs_admin_create(',
+            'hg_docs_admin_update(',
+            'hg_docs_admin_rows(',
+        ],
+    },
+    'character_links': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_links.php',
+        'domain': ROOT / 'app/domains/documents/admin_character_links.php',
+        'markers': [
+            'acl_doc_link_mutation(',
+            'acl_external_link_mutation(',
+            'acl_fetch_characters(',
+            'acl_fetch_current_character(',
+        ],
+    },
+    'doc_links': {
+        'controller': ROOT / 'app/controllers/admin/admin_doc_links.php',
+        'domain': ROOT / 'app/domains/documents/admin_links.php',
+        'markers': [
+            'adl_fetch_docs(',
+            'adl_fetch_characters_for_doc(',
+            'adl_sync_doc_characters(',
+        ],
+    },
+    'bso': {
+        'controller': ROOT / 'app/controllers/admin/admin_bso.php',
+        'domain': ROOT / 'app/domains/soundtracks/admin.php',
+        'markers': [
+            'hg_abs_delete_soundtrack(',
+            'hg_abs_add_link(',
+            'hg_abs_save_soundtrack(',
+            'hg_abs_fetch_soundtrack_rows(',
+        ],
+    },
+    'bso_link': {
+        'controller': ROOT / 'app/controllers/admin/admin_bso_link.php',
+        'domain': ROOT / 'app/domains/soundtracks/admin_links.php',
+        'markers': [
+            'hg_abl_create_link(',
+            'hg_abl_delete_link(',
+            'hg_abl_dedupe(',
+            'hg_abl_fetch_payload(',
+        ],
+    },
+    'gift_image_mass': {
+        'controller': ROOT / 'app/controllers/admin/admin_gift_image_mass.php',
+        'domain': ROOT / 'app/domains/powers/admin_gift_images.php',
+        'markers': [
+            'hg_gift_image_mass_fetch_prompt_gift(',
+            'hg_gift_image_mass_fetch_image_row(',
+            'hg_gift_image_mass_update_image(',
+            'hg_gift_image_mass_fetch_gifts(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
