@@ -10,6 +10,7 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
+include_once(__DIR__ . '/../../domains/chapters/admin.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 
 $CHAPTER_UPLOADDIR = hg_admin_project_root() . '/public/img/chapters';
@@ -59,128 +60,10 @@ function parse_pending_relations($raw): array {
 
     return array_values($out);
 }
-function ac_col_exists(mysqli $link, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$key] = $ok;
-    return $ok;
-}
-function ac_fetch_season(mysqli $link, int $seasonId): ?array {
-    if ($seasonId <= 0) return null;
-    if ($st = $link->prepare('SELECT id, season_number, name FROM dim_seasons WHERE id = ? LIMIT 1')) {
-        $st->bind_param('i', $seasonId);
-        $st->execute();
-        $rs = $st->get_result();
-        $row = $rs ? $rs->fetch_assoc() : null;
-        $st->close();
-        return $row ?: null;
-    }
-    return null;
-}
 
-function attach_chapter_characters(mysqli $link, int $chapterId, array $relations): int {
-    if ($chapterId <= 0 || empty($relations)) {
-        return 0;
-    }
 
-    $added = 0;
 
-    $hasParticipationRole = ac_col_exists($link, 'bridge_chapters_characters', 'participation_role');
-    $hasUpdatedAt = ac_col_exists($link, 'bridge_chapters_characters', 'updated_at');
 
-    if ($hasParticipationRole) {
-        if ($hasUpdatedAt) {
-            $st = $link->prepare('
-                INSERT INTO bridge_chapters_characters
-                    (chapter_id, character_id, participation_role)
-                VALUES
-                    (?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    participation_role = VALUES(participation_role),
-                    updated_at = CURRENT_TIMESTAMP
-            ');
-        } else {
-            $st = $link->prepare('
-                INSERT INTO bridge_chapters_characters
-                    (chapter_id, character_id, participation_role)
-                VALUES
-                    (?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    participation_role = VALUES(participation_role)
-            ');
-        }
-    } else {
-        if ($hasUpdatedAt) {
-            $st = $link->prepare('
-                INSERT INTO bridge_chapters_characters
-                    (chapter_id, character_id)
-                VALUES
-                    (?, ?)
-                ON DUPLICATE KEY UPDATE
-                    updated_at = CURRENT_TIMESTAMP
-            ');
-        } else {
-            $st = $link->prepare('
-                INSERT INTO bridge_chapters_characters
-                    (chapter_id, character_id)
-                VALUES
-                    (?, ?)
-                ON DUPLICATE KEY UPDATE
-                    chapter_id = VALUES(chapter_id)
-            ');
-        }
-    }
-
-    if (!$st) {
-        return 0;
-    }
-
-    foreach ($relations as $relation) {
-        if (is_array($relation)) {
-            $characterId = (int)($relation['character_id'] ?? 0);
-            $participationRole = normalize_participation_role($relation['participation_role'] ?? 'npc');
-        } else {
-            $characterId = (int)$relation;
-            $participationRole = 'npc';
-        }
-
-        if ($characterId <= 0) {
-            continue;
-        }
-
-        if ($hasParticipationRole) {
-            $st->bind_param('iis', $chapterId, $characterId, $participationRole);
-        } else {
-            $st->bind_param('ii', $chapterId, $characterId);
-        }
-
-        $st->execute();
-
-        /*
-         * affected_rows:
-         * 1 = fila insertada
-         * 2 = fila existente actualizada
-         * 0 = fila existente sin cambios reales
-         */
-        if ($st->affected_rows === 1) {
-            $added++;
-        }
-    }
-
-    $st->close();
-
-    return $added;
-}
 
 $hasChapterSeasonId = true;
 $hasChapterImageUrl = ac_col_exists($link, 'dim_chapters', 'image_url');
@@ -226,32 +109,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
     if ($action === 'get_relations') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
-        $rows = [];
-        if ($hasChapterBridgeId) {
-            if ($chapterId > 0 && ($clean = $link->prepare("
-                DELETE b1
-                FROM bridge_chapters_characters b1
-                INNER JOIN bridge_chapters_characters b2
-                    ON b1.chapter_id = b2.chapter_id
-                   AND b1.character_id = b2.character_id
-                   AND b1.id > b2.id
-                WHERE b1.chapter_id = ?
-            "))) {
-                $clean->bind_param('i', $chapterId);
-                $clean->execute();
-                $clean->close();
-            }
-        }
-        $roleExpr = $hasChapterParticipationRole
-            ? "COALESCE(NULLIF(TRIM(b.participation_role), ''), 'npc')"
-            : "CASE WHEN c.character_kind = 'pj' THEN 'player' ELSE 'npc' END";
-        if ($chapterId > 0 && ($st = $link->prepare("SELECT b.character_id, c.name, ch.name AS chronicle_name, {$roleExpr} AS participation_role FROM bridge_chapters_characters b JOIN fact_characters c ON c.id = b.character_id LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id WHERE b.chapter_id = ? ORDER BY c.name ASC, c.id ASC"))) {
-            $st->bind_param('i', $chapterId);
-            $st->execute();
-            $rs = $st->get_result();
-            while ($r = $rs->fetch_assoc()) { $rows[] = $r; }
-            $st->close();
-        }
+        $rows = hg_chapters_admin_get_relations($link, $chapterId, $hasChapterBridgeId, $hasChapterParticipationRole);
         echo json_encode(['ok' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -260,37 +118,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         $characterId = (int)($_POST['character_id'] ?? 0);
         $participationRole = normalize_participation_role($_POST['participation_role'] ?? 'npc');
-        $ok = false;
-        if ($chapterId > 0 && $characterId > 0) {
-            $exists = 0;
-            if ($chk = $link->prepare('SELECT COUNT(*) FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ?')) {
-                $chk->bind_param('ii', $chapterId, $characterId);
-                $chk->execute();
-                $chk->bind_result($exists);
-                $chk->fetch();
-                $chk->close();
-            }
-
-            if ($exists > 0) {
-                if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE chapter_id = ? AND character_id = ?'))) {
-                    $st->bind_param('sii', $participationRole, $chapterId, $characterId);
-                    $ok = $st->execute();
-                    $st->close();
-                } else {
-                    $ok = true;
-                }
-            } elseif ($hasChapterParticipationRole && ($st = $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id, participation_role) VALUES (?, ?, ?)'))) {
-                $st->bind_param('iis', $chapterId, $characterId, $participationRole);
-                $ok = $st->execute();
-                $st->close();
-            } elseif (!$hasChapterParticipationRole && ($st = $link->prepare('INSERT INTO bridge_chapters_characters (chapter_id, character_id) VALUES (?, ?)'))) {
-                $st->bind_param('ii', $chapterId, $characterId);
-                $ok = $st->execute();
-                $st->close();
-            } else {
-                $ok = false;
-            }
-        }
+        $ok = hg_chapters_admin_add_relation($link, $chapterId, $characterId, $participationRole, $hasChapterParticipationRole);
         if ($ok) {
             hg_content_touch_table($link, 'dim_chapters', $chapterId);
             hg_content_touch_table($link, 'fact_characters', $characterId);
@@ -303,16 +131,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         $characterId = (int)($_POST['character_id'] ?? 0);
         $participationRole = normalize_participation_role($_POST['participation_role'] ?? 'npc');
-        $ok = false;
-        if ($chapterId > 0 && $characterId > 0) {
-            if ($hasChapterParticipationRole && ($st = $link->prepare('UPDATE bridge_chapters_characters SET participation_role = ? WHERE chapter_id = ? AND character_id = ?'))) {
-                $st->bind_param('sii', $participationRole, $chapterId, $characterId);
-                $ok = $st->execute();
-                $st->close();
-            } elseif (!$hasChapterParticipationRole) {
-                $ok = true;
-            }
-        }
+        $ok = hg_chapters_admin_update_relation_role($link, $chapterId, $characterId, $participationRole, $hasChapterParticipationRole);
         if ($ok) {
             hg_content_touch_table($link, 'dim_chapters', $chapterId);
             hg_content_touch_table($link, 'fact_characters', $characterId);
@@ -324,12 +143,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($action === 'del_relation') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         $characterId = (int)($_POST['character_id'] ?? 0);
-        $ok = false;
-        if ($chapterId > 0 && $characterId > 0 && ($st = $link->prepare('DELETE FROM bridge_chapters_characters WHERE chapter_id = ? AND character_id = ?'))) {
-            $st->bind_param('ii', $chapterId, $characterId);
-            $ok = $st->execute();
-            $st->close();
-        }
+        $ok = hg_chapters_admin_delete_relation($link, $chapterId, $characterId);
         if ($ok) {
             hg_content_touch_table($link, 'dim_chapters', $chapterId);
             hg_content_touch_table($link, 'fact_characters', $characterId);
@@ -344,25 +158,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             echo json_encode(['ok' => false, 'error' => 'ID de capítulo inválido']);
             exit;
         }
-        $currentImage = '';
-        if ($hasChapterImageUrl && ($stImg = $link->prepare('SELECT image_url FROM dim_chapters WHERE id = ? LIMIT 1'))) {
-            $stImg->bind_param('i', $chapterId);
-            $stImg->execute();
-            $rsImg = $stImg->get_result();
-            if ($rowImg = $rsImg->fetch_assoc()) {
-                $currentImage = (string)($rowImg['image_url'] ?? '');
-            }
-            $stImg->close();
-        }
-        $ok = false;
-        if ($st = $link->prepare('DELETE FROM dim_chapters WHERE id = ?')) {
-            $st->bind_param('i', $chapterId);
-            $ok = $st->execute();
-            $st->close();
-        }
-        if ($ok && $currentImage !== '') {
-            hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
-        }
+        $currentImage = $hasChapterImageUrl ? hg_chapters_admin_current_image($link, $chapterId) : '';
+        $ok = hg_chapters_admin_delete($link, $chapterId);
+        if ($ok && $currentImage !== '') hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
         echo json_encode(['ok' => (bool)$ok, 'message' => $ok ? 'Capítulo eliminado.' : 'No se pudo eliminar.']);
         exit;
     }
@@ -380,16 +178,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         if ($removeImage) {
             $imageUrl = '';
         }
-        $currentImage = '';
-        if ($hasChapterImageUrl && $id > 0 && ($stImg = $link->prepare('SELECT image_url FROM dim_chapters WHERE id = ? LIMIT 1'))) {
-            $stImg->bind_param('i', $id);
-            $stImg->execute();
-            $rsImg = $stImg->get_result();
-            if ($rowImg = $rsImg->fetch_assoc()) {
-                $currentImage = (string)($rowImg['image_url'] ?? '');
-            }
-            $stImg->close();
-        }
+        $currentImage = ($hasChapterImageUrl && $id > 0) ? hg_chapters_admin_current_image($link, $id) : '';
         $pendingRelations = parse_pending_relations($_POST['pending_relations_json'] ?? '');
         if (empty($pendingRelations)) {
             $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
@@ -407,35 +196,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             exit;
         }
 
-        $savedId = 0;
-        $ok = false;
-        if ($id > 0) {
-            if ($hasChapterImageUrl) {
-                $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, image_url=?, updated_at=NOW() WHERE id=?';
-                $st = $link->prepare($sql);
-                $st->bind_param('siisssi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $imageUrl, $id);
-            } else {
-                $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
-                $st = $link->prepare($sql);
-                $st->bind_param('siissi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $id);
-            }
-            $ok = $st->execute();
-            $savedId = $id;
-            $st->close();
-        } else {
-            if ($hasChapterImageUrl) {
-                $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, image_url, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
-                $st = $link->prepare($sql);
-                $st->bind_param('siisss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $imageUrl);
-            } else {
-                $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
-                $st = $link->prepare($sql);
-                $st->bind_param('siiss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis);
-            }
-            $ok = $st->execute();
-            $savedId = (int)$link->insert_id;
-            $st->close();
-        }
+        $saveResult = hg_chapters_admin_save($link, $id, $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $imageUrl, $hasChapterImageUrl);
+        $ok = !empty($saveResult['ok']);
+        $savedId = (int)($saveResult['id'] ?? 0);
 
         if (!$ok || $savedId <= 0) {
             echo json_encode(['ok' => false, 'error' => 'No se pudo guardar el capitulo.']);
@@ -451,11 +214,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 if ($currentImage !== '') {
                     hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
                 }
-                if ($stImg = $link->prepare('UPDATE dim_chapters SET image_url = ? WHERE id = ?')) {
-                    $stImg->bind_param('si', $res['url'], $savedId);
-                    $stImg->execute();
-                    $stImg->close();
-                }
+                hg_chapters_admin_set_image($link, $savedId, (string)$res['url']);
                 $imageUrl = (string)$res['url'];
             } elseif (($res['msg'] ?? '') !== 'no_file') {
                 echo json_encode(['ok' => false, 'error' => 'Imagen no guardada: ' . (string)$res['msg']]);
@@ -465,15 +224,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             hg_admin_safe_unlink_upload($currentImage, $CHAPTER_UPLOADDIR);
         }
 
-        $chapterRow = null;
-        $imageSelect = $hasChapterImageUrl ? 'c.image_url,' : "'' AS image_url,";
-        if ($st = $link->prepare("SELECT c.id, c.name, c.chapter_number, {$imageSelect} s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id WHERE c.id = ? LIMIT 1")) {
-            $st->bind_param('i', $savedId);
-            $st->execute();
-            $rs = $st->get_result();
-            $chapterRow = $rs ? $rs->fetch_assoc() : null;
-            $st->close();
-        }
+        $chapterRow = hg_chapters_admin_fetch_row($link, $savedId, $hasChapterImageUrl);
 
         echo json_encode([
             'ok' => true,
@@ -518,54 +269,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
     if ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
         $flash[] = ['type' => 'err', 'msg' => 'Nombre, capitulo y temporada son obligatorios.'];
     } else {
-        if ($id > 0) {
-            $sql = 'UPDATE dim_chapters SET name=?, chapter_number=?, season_id=?, played_date=?, synopsis=?, updated_at=NOW() WHERE id=?';
-            $st = $link->prepare($sql);
-            $st->bind_param('siissi', $name, $chapterNumber, $seasonId, $playedDate, $synopsis, $id);
-            $ok = $st->execute();
-            $st->close();
-            if ($ok) {
-                hg_update_pretty_id_if_exists($link, 'dim_chapters', $id, $name);
-                hg_content_touch_table($link, 'dim_chapters', $id);
-                attach_chapter_characters($link, $id, $pendingRelations);
-                $flash[] = ['type' => 'ok', 'msg' => 'Capítulo actualizado.'];
-            }
-        } else {
-            $sql = 'INSERT INTO dim_chapters (name, chapter_number, season_id, played_date, synopsis, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
-            $st = $link->prepare($sql);
-            $st->bind_param('siiss', $name, $chapterNumber, $seasonId, $playedDate, $synopsis);
-            $ok = $st->execute();
-            $newId = (int)$link->insert_id;
-            $st->close();
-            if ($ok) {
-                hg_update_pretty_id_if_exists($link, 'dim_chapters', $newId, $name);
-                hg_content_touch_table($link, 'dim_chapters', $newId);
-                attach_chapter_characters($link, $newId, $pendingRelations);
-                $flash[] = ['type' => 'ok', 'msg' => 'Capítulo creado.'];
-            }
+        $saveResult = hg_chapters_admin_save($link, $id, $name, $chapterNumber, $seasonId, $playedDate, $synopsis, '', false);
+        $ok = !empty($saveResult['ok']);
+        $savedId = (int)($saveResult['id'] ?? 0);
+        if ($ok && $savedId > 0) {
+            hg_update_pretty_id_if_exists($link, 'dim_chapters', $savedId, $name);
+            hg_content_touch_table($link, 'dim_chapters', $savedId);
+            attach_chapter_characters($link, $savedId, $pendingRelations);
+            $flash[] = ['type' => 'ok', 'msg' => $id > 0 ? 'Capítulo actualizado.' : 'Capítulo creado.'];
         }
     }
     }
 }
 
-$personajes = [];
-if ($rs = $link->query('SELECT p.id, p.name, COALESCE(ch.name, "") AS chronicle_name FROM fact_characters p LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id ORDER BY p.name ASC, p.id ASC')) {
-    while ($r = $rs->fetch_assoc()) { $personajes[] = $r; }
-    $rs->close();
-}
-
-$temporadasCatalogo = [];
-if ($rs = $link->query('SELECT id, season_number, name, sort_order FROM dim_seasons ORDER BY sort_order ASC, season_number ASC, id ASC')) {
-    while ($r = $rs->fetch_assoc()) { $temporadasCatalogo[] = $r; }
-    $rs->close();
-}
-
-$chapters = [];
-$chapterImageSelect = $hasChapterImageUrl ? 'c.image_url,' : "'' AS image_url,";
-if ($rs = $link->query("SELECT c.id, c.name, c.chapter_number, {$chapterImageSelect} s.season_number AS season_number, c.season_id AS season_id, c.played_date, c.synopsis, s.name AS season_name, s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id ORDER BY COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC, c.id ASC")) {
-    while ($r = $rs->fetch_assoc()) { $chapters[] = $r; }
-    $rs->close();
-}
+$personajes = hg_chapters_admin_characters($link);
+$temporadasCatalogo = hg_chapters_admin_seasons($link);
+$chapters = hg_chapters_admin_rows($link, $hasChapterImageUrl);
 
 $actions = '<span class="adm-flex-right-wrap-8">'
     . '<label class="adm-text-left">Filtro rápido <input class="inp" type="text" id="quickFilter" placeholder="Nombre..."></label>'
