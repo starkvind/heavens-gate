@@ -107,7 +107,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 						['href' => '/talim?s=admin_players', 'label' => 'Gestionar Jugadores', 'keywords' => ['usuarios', 'player']],
 						['href' => '/talim?s=admin_avatar_mass', 'label' => 'Editar avatares de forma masiva', 'keywords' => ['imagenes', 'avatar']],
 						['href' => '/talim?s=admin_character_deaths', 'label' => 'Editar muertes de personajes', 'keywords' => ['estado', 'fallecidos']],
-						['href' => '/talim?s=admin_birthdays_quick', 'label' => 'Editar Cumpleaños', 'keywords' => ['fechas', 'birthday']],
+						['href' => '/talim?s=admin_birthdays_quick', 'label' => 'Editar fechas de nacimiento', 'keywords' => ['fechas', 'birthday', 'birthdate']],
 						['href' => '/talim?s=admin_characters_clone', 'label' => 'Copiar Personajes', 'keywords' => ['duplicar', 'clonar']],
 					],
 				],
