@@ -392,6 +392,135 @@ PILOTS = {
             'hg_gift_image_mass_fetch_gifts(',
         ],
     },
+    'actions': {
+        'controller': ROOT / 'app/controllers/admin/admin_actions.php',
+        'domain': ROOT / 'app/domains/rules/admin.php',
+        'markers': [
+            'hg_rules_admin_actions_options(',
+            'hg_rules_admin_actions_delete(',
+            'hg_rules_admin_actions_create(',
+            'hg_rules_admin_actions_update(',
+            'hg_rules_admin_actions_rows(',
+        ],
+    },
+    'forms': {
+        'controller': ROOT / 'app/controllers/admin/admin_forms.php',
+        'domain': ROOT / 'app/domains/systems/admin.php',
+        'markers': [
+            'hg_systems_admin_forms_options(',
+            'hg_systems_admin_form_delete(',
+            'hg_systems_admin_form_save(',
+            'hg_systems_admin_form_rows(',
+        ],
+    },
+    'items': {
+        'controller': ROOT / 'app/controllers/admin/admin_items.php',
+        'domain': ROOT / 'app/domains/inventory/admin.php',
+        'markers': [
+            'hg_inventory_admin_item_options(',
+            'hg_inventory_admin_item_delete(',
+            'hg_inventory_admin_item_save(',
+            'hg_inventory_admin_item_fetch(',
+            'hg_inventory_admin_item_rows(',
+        ],
+    },
+    'maneuvers': {
+        'controller': ROOT / 'app/controllers/admin/admin_maneuvers.php',
+        'domain': ROOT / 'app/domains/rules/admin.php',
+        'markers': [
+            'hg_rules_admin_maneuver_save_links(',
+            'hg_rules_admin_maneuver_state(',
+        ],
+    },
+    'merits_flaws': {
+        'controller': ROOT / 'app/controllers/admin/admin_merits_flaws.php',
+        'domain': ROOT / 'app/domains/rules/admin.php',
+        'markers': [
+            'hg_rules_admin_merits_options(',
+            'hg_rules_admin_merits_create(',
+            'hg_rules_admin_merits_update(',
+            'hg_rules_admin_merits_delete(',
+            'hg_rules_admin_merits_search(',
+            'hg_rules_admin_merits_count(',
+            'hg_rules_admin_merits_page(',
+        ],
+    },
+    'character_conditions': {
+        'controller': ROOT / 'app/controllers/admin/admin_character_conditions.php',
+        'domain': ROOT / 'app/domains/rules/admin.php',
+        'markers': [
+            'hg_rules_admin_conditions_origins(',
+            'hg_rules_admin_conditions_create(',
+            'hg_rules_admin_conditions_update(',
+            'hg_rules_admin_conditions_delete(',
+            'hg_rules_admin_conditions_search(',
+            'hg_rules_admin_conditions_count(',
+            'hg_rules_admin_conditions_page(',
+        ],
+    },
+    'systems': {
+        'controller': ROOT / 'app/controllers/admin/admin_systems.php',
+        'domain': ROOT / 'app/domains/systems/admin.php',
+        'markers': [
+            'hg_systems_admin_origins(',
+            'hg_systems_admin_system_delete(',
+            'hg_systems_admin_system_save(',
+            'hg_systems_admin_system_rows(',
+        ],
+    },
+    'systems_energy': {
+        'controller': ROOT / 'app/controllers/admin/admin_systems_energy.php',
+        'domain': ROOT / 'app/domains/systems/admin.php',
+        'markers': [
+            'ase_load_systems(',
+            'ase_load_rows(',
+            'ase_save_assignments(',
+        ],
+    },
+    'systems_extra_details': {
+        'controller': ROOT / 'app/controllers/admin/admin_systems_extra_details.php',
+        'domain': ROOT / 'app/domains/systems/admin.php',
+        'markers': [
+            'ased_table_exists(',
+            'ased_column_exists(',
+            'ased_systems(',
+            'ased_catalog(',
+            'ased_existing_assignments(',
+            'ased_save_group(',
+        ],
+    },
+    'systems_resources': {
+        'controller': ROOT / 'app/controllers/admin/admin_systems_resources.php',
+        'domain': ROOT / 'app/domains/systems/admin.php',
+        'markers': [
+            'asr_table_exists(',
+            'asr_table_columns(',
+            'asr_load_state(',
+            'asr_save(',
+        ],
+    },
+    'trait_sets': {
+        'controller': ROOT / 'app/controllers/admin/admin_trait_sets.php',
+        'domain': ROOT / 'app/domains/rules/admin.php',
+        'markers': [
+            'hg_rules_admin_trait_sets_systems(',
+            'hg_rules_admin_trait_sets_state(',
+            'hg_rules_admin_trait_sets_save(',
+        ],
+    },
+    'traits': {
+        'controller': ROOT / 'app/controllers/admin/admin_traits.php',
+        'domain': ROOT / 'app/domains/rules/admin.php',
+        'markers': [
+            'hg_rules_admin_traits_options(',
+            'hg_rules_admin_traits_create(',
+            'hg_rules_admin_traits_update(',
+            'hg_rules_admin_traits_delete(',
+            'hg_rules_admin_traits_search(',
+            'hg_rules_admin_traits_count(',
+            'hg_rules_admin_traits_page(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
