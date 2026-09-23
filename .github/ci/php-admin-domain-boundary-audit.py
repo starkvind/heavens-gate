@@ -549,7 +549,7 @@ PILOTS = {
         'markers': [
             'hg_configuration_admin_menu_update(',
             'hg_configuration_admin_menu_create(',
-            'hg_configuration_admin_menu_disable(',
+            'hg_configuration_admin_menu_delete(',
             'hg_configuration_admin_menu_update_bulk(',
             'hg_configuration_admin_menu_reorder(',
             'hg_configuration_admin_menu_rows(',
