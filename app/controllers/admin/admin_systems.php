@@ -11,6 +11,7 @@ include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/systems/admin.php');
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
     || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
@@ -28,11 +29,7 @@ function sanitize_utf8_text(string $s): string {
     return $s ?? '';
 }
 
-$origins = [];
-if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $origins[] = $r; }
-    $rs->close();
-}
+$origins = hg_systems_admin_origins($link);
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSystemModal()">+ Nuevo sistema</button>'
@@ -79,16 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             $flash[] = ['type'=>'error','msg'=>'ID inválido para borrar.'];
-        } elseif ($st = $link->prepare("DELETE FROM dim_systems WHERE id=?")) {
-            $st->bind_param('i', $id);
-            if ($st->execute()) {
-                $flash[] = ['type'=>'ok','msg'=>'Sistema eliminado.'];
-            } else {
-                $flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-            }
-            $st->close();
         } else {
-            $flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
+            $result = hg_systems_admin_system_delete($link, $id);
+            $flash[] = !empty($result['ok'])
+                ? ['type'=>'ok','msg'=>'Sistema eliminado.']
+                : ['type'=>'error','msg'=>'Error al borrar: '.(string)($result['error'] ?? '')];
         }
     }
 }
@@ -113,51 +105,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
     if ($name === '') {
         $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
     } else {
-        if ($id > 0) {
-            $sql = "UPDATE dim_systems SET sort_order=?, name=?, image_url=?, forms=?, description=?, bibliography_id=? WHERE id=?";
-            if ($st = $link->prepare($sql)) {
-                $st->bind_param('issisii', $orden, $name, $img, $formas, $desc, $bibliographyId, $id);
-                if ($st->execute()) {
-                    hg_update_pretty_id_if_exists($link, 'dim_systems', $id, $name);
-                    hg_content_touch_table($link, 'dim_systems', $id);
-                    $flash[] = ['type'=>'ok','msg'=>'Sistema actualizado.'];
-                } else {
-                    $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
-                }
-                $st->close();
+        $data = [
+            'sort_order' => $orden,
+            'name' => $name,
+            'image_url' => $img,
+            'forms' => $formas,
+            'description' => $desc,
+            'bibliography_id' => $bibliographyId,
+        ];
+        $result = hg_systems_admin_system_save($link, $id, $data);
+        if (!empty($result['ok'])) {
+            $savedId = (int)$result['id'];
+            hg_update_pretty_id_if_exists($link, 'dim_systems', $savedId, $name);
+            hg_content_touch_table($link, 'dim_systems', $savedId);
+            if ($id > 0) {
+                $flash[] = ['type'=>'ok','msg'=>'Sistema actualizado.'];
             } else {
-                $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
+                $defaultManeuvers = hg_assign_default_maneuvers_to_system($link, $savedId);
+                $flash[] = ['type'=>'ok','msg'=>'Sistema creado. Maniobras basicas asignadas: ' . $defaultManeuvers . '.'];
             }
         } else {
-            $sql = "INSERT INTO dim_systems (sort_order, name, image_url, forms, description, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())";
-            if ($st = $link->prepare($sql)) {
-                $st->bind_param('issisi', $orden, $name, $img, $formas, $desc, $bibliographyId);
-                if ($st->execute()) {
-                    $newId = (int)$st->insert_id;
-                    hg_update_pretty_id_if_exists($link, 'dim_systems', $newId, $name);
-                    hg_content_touch_table($link, 'dim_systems', $newId);
-                    $defaultManeuvers = hg_assign_default_maneuvers_to_system($link, $newId);
-                    $flash[] = ['type'=>'ok','msg'=>'Sistema creado. Maniobras basicas asignadas: ' . $defaultManeuvers . '.'];
-                } else {
-                    $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
-                }
-                $st->close();
-            } else {
-                $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
-            }
+            $flash[] = ['type'=>'error','msg'=>($id > 0 ? 'Error al actualizar: ' : 'Error al crear: ') . (string)($result['error'] ?? '')];
         }
     }
     }
 }
 
 // Listado
-$rows = [];
-$rowsFull = [];
-$sql = "SELECT s.id, s.sort_order AS orden, s.name, s.image_url, s.forms AS formas, s.description AS descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.sort_order, s.name";
-if ($rs = $link->query($sql)) {
-    while ($r = $rs->fetch_assoc()) { $rows[] = $r; $rowsFull[] = $r; }
-    $rs->close();
-}
+$rows = hg_systems_admin_system_rows($link);
+$rowsFull = $rows;
 
 if ($isAjaxRequest && (string)($_GET['ajax_mode'] ?? '') === 'list') {
     if (function_exists('hg_admin_require_session')) {
