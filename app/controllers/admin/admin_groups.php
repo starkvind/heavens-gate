@@ -20,6 +20,7 @@ if (method_exists($link, 'set_charset')) {
   mysqli_set_charset($link, 'utf8mb4');
 }
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/organizations/admin_groups.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 $isAjaxRequest = hg_admin_is_ajax_request();
@@ -34,29 +35,6 @@ $ADMIN_CSRF_TOKEN = function_exists('hg_admin_ensure_csrf_token')
 
 /* ----------------------- helpers ----------------------- */
 function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-function q($link,$sql,$types='',$params=[]){
-  $st = mysqli_prepare($link,$sql);
-  if(!$st){ return [false,mysqli_error($link),null,null]; }
-  if($types!==''){ mysqli_stmt_bind_param($st,$types,...$params); }
-  if(!mysqli_stmt_execute($st)){ $err=mysqli_stmt_error($st); mysqli_stmt_close($st); return [false,$err,null,null]; }
-  $res = mysqli_stmt_get_result($st);
-  $id  = mysqli_insert_id($link);
-  mysqli_stmt_close($st);
-  return [true,null,$res ?? null,$id];
-}
-
-function get_totems($link): array {
-  $out = [];
-  $sql = "SELECT id, name FROM dim_totems ORDER BY name ASC";
-  [$ok,$err,$rs] = q($link,$sql);
-  if($ok && $rs){
-    while($r = mysqli_fetch_assoc($rs)){
-      $out[(int)$r['id']] = (string)$r['name'];
-    }
-  }
-  return $out;
-}
-
 function normalize_totem_id($raw): ?int {
   $value = trim((string)$raw);
   if ($value === '' || $value === '0' || $value === '-1') {
@@ -81,22 +59,14 @@ function ag_status_badge(string $text, bool $isOn = true): string {
 
 /* ----------------------- Renders (HTML) ----------------------- */
 function render_clans_table($link){
-  $sql = "SELECT c.id, c.name,
-          (SELECT COUNT(*)
-             FROM bridge_organizations_groups b
-             INNER JOIN dim_groups m ON m.id = b.group_id
-            WHERE b.organization_id = c.id
-              AND b.is_active = 1
-              AND COALESCE(m.is_active, 1) = 1) AS groups_active
-          FROM dim_organizations c
-          ORDER BY c.name ASC";
-  [$ok,$err,$rs] = q($link,$sql);
-  if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
+  $result = hg_groups_clans_table($link);
+  if(empty($result['ok'])){ echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; return; }
+  $rows = $result['rows'];
 
   echo "<table class='table' id='clansTable'>
           <thead><tr><th>ID</th><th>Organización</th><th>Manadas activas</th><th></th></tr></thead>
           <tbody>";
-  while($r = mysqli_fetch_assoc($rs)){
+  foreach($rows as $r){
     echo "<tr class='row'>
             <td>".e($r['id'])."</td>
             <td><strong>".e($r['name'])."</strong></td>
@@ -110,27 +80,14 @@ function render_clans_table($link){
 }
 
 function render_groups_table($link){
-  $sql = "SELECT
-            m.id,
-            m.name,
-            m.is_active AS activa,
-            (
-              SELECT o.name
-              FROM bridge_organizations_groups bog
-              INNER JOIN dim_organizations o ON o.id = bog.organization_id
-              WHERE bog.group_id = m.id AND bog.is_active = 1
-              ORDER BY o.name ASC
-              LIMIT 1
-            ) AS organization_name
-          FROM dim_groups m
-          ORDER BY m.name ASC";
-  [$ok,$err,$rs] = q($link,$sql);
-  if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
+  $result = hg_groups_groups_table($link);
+  if(empty($result['ok'])){ echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; return; }
+  $rows = $result['rows'];
 
   echo "<table class='table' id='groupsTable'>
           <thead><tr><th>ID</th><th>Manada</th><th>Estado</th><th>Organización activa</th><th></th></tr></thead>
           <tbody>";
-  while($r = mysqli_fetch_assoc($rs)){
+  foreach($rows as $r){
     $isActive = (int)$r['activa']===1;
     $organizationName = trim((string)($r['organization_name'] ?? ''));
     echo "<tr class='row'>
@@ -149,36 +106,10 @@ function render_groups_table($link){
 /* --- fragmento: detalle clan (packs vinculados + disponibles) --- */
 function render_clan_detail($link,$organization_id){
   $organization_id = (int)$organization_id;
-
-  $sqlL = "SELECT m.id, m.name, m.is_active AS group_is_active, b.is_active
-           FROM bridge_organizations_groups b
-           INNER JOIN dim_groups m ON m.id=b.group_id
-           WHERE b.organization_id=?
-           ORDER BY m.name ASC";
-  [$ok1,$err1,$rs1] = q($link,$sqlL,'i',[$organization_id]);
-  if(!$ok1){ echo "<div class='err'>".e($err1)."</div>"; return; }
-
-  $linked=[]; $ids=[];
-  while($r=mysqli_fetch_assoc($rs1)){ $linked[]=$r; $ids[]=(int)$r['id']; }
-
-  if(count($ids)){
-    $in = implode(',', array_map('intval',$ids));
-    $sqlA = "SELECT id,name
-             FROM dim_groups
-             WHERE COALESCE(is_active, 1) = 1
-               AND id NOT IN ($in)
-             ORDER BY name ASC";
-    [$ok2,$err2,$rs2] = q($link,$sqlA);
-  } else {
-    $sqlA = "SELECT id,name
-             FROM dim_groups
-             WHERE COALESCE(is_active, 1) = 1
-             ORDER BY name ASC";
-    [$ok2,$err2,$rs2] = q($link,$sqlA);
-  }
-  if(!$ok2){ echo "<div class='err'>".e($err2)."</div>"; return; }
-
-  $avail=[]; while($r=mysqli_fetch_assoc($rs2)){ $avail[]=$r; }
+  $result = hg_groups_clan_detail($link,$organization_id);
+  if(empty($result['ok'])){ echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; return; }
+  $linked = $result['linked'];
+  $avail = $result['available'];
   $active = array_values(array_filter($linked, fn($x)=>(int)$x['is_active']===1 && (int)($x['group_is_active'] ?? 1)===1));
   $inactive = array_values(array_filter($linked, fn($x)=>!((int)$x['is_active']===1 && (int)($x['group_is_active'] ?? 1)===1)));
 
@@ -241,16 +172,10 @@ function render_clan_detail($link,$organization_id){
 /* --- fragmento: detalle manada (miembros) --- */
 function render_group_detail($link,$group_id){
   $group_id = (int)$group_id;
-  $sql = "SELECT p.id, p.name AS nombre, p.alias, p.garou_name AS nombregarou, b.is_active, b.position
-          FROM bridge_characters_groups b
-          INNER JOIN fact_characters p ON p.id=b.character_id
-          WHERE b.group_id=?
-          ORDER BY p.name ASC";
-  [$ok,$err,$rs] = q($link,$sql,'i',[$group_id]);
-  if(!$ok){ echo "<div class='err'>".e($err)."</div>"; return; }
-
+  $result = hg_groups_group_members($link,$group_id);
+  if(empty($result['ok'])){ echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; return; }
   $a=[];$i=[];
-  while($r=mysqli_fetch_assoc($rs)){ ((int)$r['is_active']===1) ? $a[]=$r : $i[]=$r; }
+  foreach($result['rows'] as $r){ ((int)$r['is_active']===1) ? $a[]=$r : $i[]=$r; }
 
   echo "<div class='toolbar'>
           <input id='searchChar' type='text' placeholder='Buscar personaje para añadir...'>
@@ -290,11 +215,9 @@ function render_group_detail($link,$group_id){
 /* --- MODALES --- */
 function render_clan_modal($link,$organization_id){
   $organization_id = (int)$organization_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,totem_id AS totem,color,is_npc,`description` FROM dim_organizations WHERE id=? LIMIT 1",'i',[$organization_id]);
-  if(!$ok || !$rs || !($clan=mysqli_fetch_assoc($rs))){
-    echo "<div class='err'>Clan no encontrado.</div>"; return;
-  }
-  $totems = get_totems($link);
+  $clan = hg_groups_fetch_clan($link,$organization_id);
+  if(!$clan){ echo "<div class='err'>Clan no encontrado.</div>"; return; }
+  $totems = hg_groups_totems($link);
   $totemSel = isset($clan['totem']) ? (int)$clan['totem'] : null;
   $clanColor = (string)($clan['color'] ?? '#ffffff');
   if (!preg_match('/^#[0-9a-fA-F]{6}$/', $clanColor)) $clanColor = '#ffffff';
@@ -333,24 +256,12 @@ function render_clan_modal($link,$organization_id){
 
 function render_group_modal($link,$group_id){
   $group_id = (int)$group_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name,is_active AS activa,IFNULL(chronicle_id,1) AS cronica, totem_id AS totem, `description` FROM dim_groups WHERE id=? LIMIT 1",'i',[$group_id]);
-  if(!$ok || !$rs || !($g=mysqli_fetch_assoc($rs))){
-    echo "<div class='err'>Manada no encontrada.</div>"; return;
-  }
-  $totems = get_totems($link);
+  $g = hg_groups_fetch_group($link,$group_id);
+  if(!$g){ echo "<div class='err'>Manada no encontrada.</div>"; return; }
+  $totems = hg_groups_totems($link);
   $groupDesc = (string)($g['description'] ?? '');
   $totemSel = isset($g['totem']) ? (int)$g['totem'] : null;
-  $orgNames = [];
-  [$okOrg,$errOrg,$rsOrg] = q($link, "SELECT o.name, bog.is_active
-    FROM bridge_organizations_groups bog
-    INNER JOIN dim_organizations o ON o.id = bog.organization_id
-    WHERE bog.group_id = ?
-    ORDER BY bog.is_active DESC, o.name ASC", 'i', [$group_id]);
-  if ($okOrg && $rsOrg) {
-    while($orgRow = mysqli_fetch_assoc($rsOrg)){
-      $orgNames[] = ((int)($orgRow['is_active'] ?? 0) === 1 ? '[Activa] ' : '[Inactiva] ') . (string)($orgRow['name'] ?? '');
-    }
-  }
+  $orgNames = hg_groups_group_org_names($link,$group_id);
   $groupIsActive = ((int)$g['activa']===1);
   echo "<div class='modal-header'>
           <h3>Editar manada</h3>
@@ -397,12 +308,8 @@ function render_group_modal($link,$group_id){
 }
 
 function render_clan_create_form($link){
-  $nextSort = 0;
-  $totems = get_totems($link);
-  [$ok,$err,$rs] = q($link, "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort FROM dim_organizations");
-  if ($ok && $rs && ($row = mysqli_fetch_assoc($rs))) {
-    $nextSort = (int)($row['next_sort'] ?? 0);
-  }
+  $nextSort = hg_groups_next_org_sort($link);
+  $totems = hg_groups_totems($link);
   echo "<div class='modal-header'>
           <h3>Nuevo clan</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
@@ -430,8 +337,8 @@ function render_clan_create_form($link){
 
 function render_group_create_form($link,$prefill_clan_id=0){
   $prefill_clan_id=(int)$prefill_clan_id;
-  [$ok,$err,$rs] = q($link,"SELECT id,name FROM dim_organizations ORDER BY name ASC");
-  $totems = get_totems($link);
+  $organizations = hg_groups_organizations($link);
+  $totems = hg_groups_totems($link);
   echo "<div class='modal-header'>
           <h3>Nueva manada</h3>
           <button class='modal-close' aria-label='Cerrar'>&times;</button>
@@ -462,9 +369,9 @@ function render_group_create_form($link,$prefill_clan_id=0){
               <div class='toolbar'>
                 <select id='newGroupClan' class='adm-input-dark-flex'>
                   <option value='0' ".($prefill_clan_id===0?'selected':'').">— Sin asignar —</option>";
-  if($ok){ while($c=mysqli_fetch_assoc($rs)){
-    echo "<option value='".e($c['id'])."' ".($prefill_clan_id===(int)$c['id']?'selected':'').">".e($c['name'])."</option>";
-  }}
+  foreach($organizations as $org){
+    echo "<option value='".e($org['id'])."' ".($prefill_clan_id===(int)$org['id']?'selected':'').">".e($org['name'])."</option>";
+  }
   echo        "</select>
               </div>
               <div class='toolbar adm-mt-8'>
@@ -521,8 +428,7 @@ if(!empty($_POST['action'])){
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#ffffff';
     $is_npc=((int)($_POST['is_npc']??0)===1)?1:0;
     $description=(string)($_POST['description']??'');
-    if($id>0 && $name!==''){ q($link,"UPDATE dim_organizations SET name=?, totem_id=?, color=?, is_npc=?, `description`=? WHERE id=?",'sisisi',[$name,$totem,$color,$is_npc,$description,$id]); }
-    hg_update_pretty_id_if_exists($link, 'dim_organizations', $id, $name);
+    if($id>0 && $name!==''){ hg_groups_update_clan($link,$id,$name,$totem,$color,$is_npc,$description); }
     render_clan_modal($link,$id); exit;
   }
 
@@ -537,10 +443,9 @@ if(!empty($_POST['action'])){
     $is_npc=((int)($_POST['is_npc']??0)===1)?1:0;
     $description=(string)($_POST['description']??'');
     if($name===''){ render_clan_create_form($link); echo "<div class='err'>Indica un nombre.</div>"; exit; }
-    // Insert básico: si tu tabla exige más campos NOT NULL sin default, añade aquí columnas con valores por defecto.
-    [$ok,$err,$rs,$newId] = q($link,"INSERT INTO dim_organizations (name, sort_order, totem_id, color, is_npc, `description`) VALUES (?,?,?,?,?,?)",'sisiss',[$name, $sort_order, $totem, $color, $is_npc, $description]);
-    if(!$ok){ render_clan_create_form($link); echo "<div class='err'>".e($err)."</div>"; exit; }
-    hg_update_pretty_id_if_exists($link, 'dim_organizations', (int)$newId, $name);
+    $result = hg_groups_create_clan($link,$name,$sort_order,$totem,$color,$is_npc,$description);
+    if(empty($result['ok'])){ render_clan_create_form($link); echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; exit; }
+    $newId = (int)$result['id'];
     render_clan_modal($link,$newId); exit;
   }
 
@@ -552,10 +457,7 @@ if(!empty($_POST['action'])){
     $cronica = (int)($_POST['cronica']??1); if($cronica<1){ $cronica=1; }
     $totem = normalize_totem_id($_POST['totem'] ?? null);
     $description=(string)($_POST['description']??'');
-    if($id>0 && $name!==''){
-      q($link,"UPDATE dim_groups SET name=?, is_active=?, chronicle_id=?, totem_id=?, `description`=? WHERE id=?",'siiisi',[$name,$activa,$cronica,$totem,$description,$id]);
-      hg_update_pretty_id_if_exists($link, 'dim_groups', $id, $name);
-    }
+    if($id>0 && $name!==''){ hg_groups_update_group($link,$id,$name,$activa,$cronica,$totem,$description); }
     render_group_modal($link,$id); exit;
   }
 
@@ -569,31 +471,9 @@ if(!empty($_POST['action'])){
     $description=(string)($_POST['description']??'');
     if($name===''){ render_group_create_form($link,$organization_id); echo "<div class='err'>Indica un nombre.</div>"; exit; }
 
-    // dim_groups: name, chronicle_id, totem_id, is_active, description (NOT NULL)
-    [$ok,$err,$rs,$newId] = q($link,
-      "INSERT INTO dim_groups (name, chronicle_id, totem_id, is_active, `description`) VALUES (?,?,?,?,?)",
-      'siiis', [$name, $cronica, $totem, $activa, $description]);
-    if(!$ok){ render_group_create_form($link,$organization_id); echo "<div class='err'>".e($err)."</div>"; exit; }
-    hg_update_pretty_id_if_exists($link, 'dim_groups', (int)$newId, $name);
-
-    // Bridge (opcional) si seleccionó organization_id
-    if($organization_id>0){
-      q(
-        $link,
-        "UPDATE bridge_organizations_groups
-         SET is_active=0
-         WHERE group_id=? AND organization_id<>?",
-        'ii',
-        [$newId,$organization_id]
-      );
-      q(
-        $link,
-        "INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)
-         ON DUPLICATE KEY UPDATE is_active=1",
-        'ii',
-        [$organization_id,$newId]
-      );
-    }
+    $result = hg_groups_create_group($link,$name,$cronica,$totem,$activa,$description,$organization_id);
+    if(empty($result['ok'])){ render_group_create_form($link,$organization_id); echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; exit; }
+    $newId = (int)$result['id'];
     render_group_modal($link,$newId); exit;
   }
 
@@ -601,31 +481,13 @@ if(!empty($_POST['action'])){
   if($act==='clan_add_group'){
     $organization_id=(int)($_POST['organization_id']??0);
     $group_id=(int)($_POST['group_id']??0);
-    if($organization_id>0 && $group_id>0){
-      q(
-        $link,
-        "UPDATE bridge_organizations_groups
-         SET is_active=0
-         WHERE group_id=? AND organization_id<>?",
-        'ii',
-        [$group_id,$organization_id]
-      );
-      q(
-        $link,
-        "INSERT INTO bridge_organizations_groups (organization_id,group_id,is_active) VALUES (?,?,1)
-         ON DUPLICATE KEY UPDATE is_active=1",
-        'ii',
-        [$organization_id,$group_id]
-      );
-    }
+    if($organization_id>0 && $group_id>0){ hg_groups_set_org_group($link,$organization_id,$group_id,true); }
     render_clan_detail($link,$organization_id); exit;
   }
   if($act==='clan_remove_group'){
     $organization_id=(int)($_POST['organization_id']??0);
     $group_id=(int)($_POST['group_id']??0);
-    if($organization_id>0 && $group_id>0){
-      q($link,"UPDATE bridge_organizations_groups SET is_active=0 WHERE organization_id=? AND group_id=?",'ii',[$organization_id,$group_id]);
-    }
+    if($organization_id>0 && $group_id>0){ hg_groups_set_org_group($link,$organization_id,$group_id,false); }
     render_clan_detail($link,$organization_id); exit;
   }
 
@@ -634,32 +496,20 @@ if(!empty($_POST['action'])){
     $group_id=(int)($_POST['group_id']??0);
     $character_id=(int)($_POST['character_id']??0);
     $position=trim((string)($_POST['position']??''));
-    if($group_id>0 && $character_id>0){
-      q(
-        $link,
-        "INSERT INTO bridge_characters_groups (character_id,group_id,is_active,position) VALUES (?,?,1,?)
-         ON DUPLICATE KEY UPDATE is_active=1, position=VALUES(position)",
-        'iis',
-        [$character_id,$group_id,$position]
-      );
-    }
+    if($group_id>0 && $character_id>0){ hg_groups_add_member($link,$group_id,$character_id,$position); }
     render_group_detail($link,$group_id); exit;
   }
   if($act==='group_remove_member'){
     $group_id=(int)($_POST['group_id']??0);
     $character_id=(int)($_POST['character_id']??0);
-    if($group_id>0 && $character_id>0){
-      q($link,"UPDATE bridge_characters_groups SET is_active=0 WHERE group_id=? AND character_id=?",'ii',[$group_id,$character_id]);
-    }
+    if($group_id>0 && $character_id>0){ hg_groups_remove_member($link,$group_id,$character_id); }
     render_group_detail($link,$group_id); exit;
   }
   if($act==='group_save_position'){
     $group_id=(int)($_POST['group_id']??0);
     $character_id=(int)($_POST['character_id']??0);
     $position=trim((string)($_POST['position']??''));
-    if($group_id>0 && $character_id>0){
-      q($link,"UPDATE bridge_characters_groups SET position=? WHERE group_id=? AND character_id=?", 'sii', [$position,$group_id,$character_id]);
-    }
+    if($group_id>0 && $character_id>0){ hg_groups_save_member_position($link,$group_id,$character_id,$position); }
     render_group_detail($link,$group_id); exit;
   }
 
@@ -667,14 +517,11 @@ if(!empty($_POST['action'])){
   if($act==='search_characters'){
     $qtxt = trim((string)($_POST['q']??''));
     if($qtxt===''){ echo ""; exit; }
-    $like="%{$qtxt}%";
-    [$ok,$err,$rs] = q($link,"SELECT id,name AS nombre,alias,garou_name AS nombregarou
-                              FROM fact_characters
-                              WHERE name LIKE ? OR alias LIKE ? OR garou_name LIKE ?
-                              ORDER BY name ASC LIMIT 30",'sss',[$like,$like,$like]);
-    if(!$ok){ echo "<div class='err'>".e($err)."</div>"; exit; }
+    $result = hg_groups_search_characters($link,$qtxt);
+    if(empty($result['ok'])){ echo "<div class='err'>".e($result['error'] ?? 'Error')."</div>"; exit; }
+    $searchRows = $result['rows'];
     echo "<div class='grid'>";
-    while($r=mysqli_fetch_assoc($rs)){
+    foreach($searchRows as $r){
       $lab = $r['nombre'].( $r['alias'] ? " ({$r['alias']})" : "" );
       echo "<div class='card'>
               <div class='adm-flex-between-8'>
