@@ -2,6 +2,7 @@
 // admin_actions.php - CRUD del catálogo fact_actions mediante modal.
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/rules/admin.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 if (!hg_admin_require_db($link)) { return; }
@@ -9,15 +10,6 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 
 function admin_actions_h($value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
-
-function admin_actions_rows(mysqli $link, string $sql): array {
-    $rows = [];
-    if ($result = $link->query($sql)) {
-        while ($row = $result->fetch_assoc()) { $rows[] = $row; }
-        $result->free();
-    }
-    return $rows;
 }
 
 function admin_actions_save_image(array $file, string $uploadDir, string $urlBase): array {
@@ -60,9 +52,10 @@ $csrfKey = 'csrf_admin_actions';
 $csrf = function_exists('hg_admin_ensure_csrf_token') ? hg_admin_ensure_csrf_token($csrfKey) : ($_SESSION[$csrfKey] ??= bin2hex(random_bytes(16)));
 $flash = [];
 
-$attributes = admin_actions_rows($link, "SELECT id, name FROM dim_traits WHERE kind = 'Atributos' ORDER BY name");
-$skills = admin_actions_rows($link, "SELECT id, name, kind FROM dim_traits WHERE kind IN ('Talentos', 'Técnicas', 'Conocimientos') ORDER BY kind, name");
-$bibliographies = admin_actions_rows($link, 'SELECT id, name FROM dim_bibliographies ORDER BY name');
+$actionOptions = hg_rules_admin_actions_options($link);
+$attributes = $actionOptions['attributes'];
+$skills = $actionOptions['skills'];
+$bibliographies = $actionOptions['bibliographies'];
 $attributeIds = array_flip(array_map(static fn(array $row): int => (int)$row['id'], $attributes));
 $skillIds = array_flip(array_map(static fn(array $row): int => (int)$row['id'], $skills));
 $bibliographyIds = array_flip(array_map(static fn(array $row): int => (int)$row['id'], $bibliographies));
@@ -76,22 +69,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if (!$csrfValid) {
         $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
     } elseif ($crudAction === 'delete') {
-        $oldImage = '';
-        if ($id > 0 && ($stmt = $link->prepare('SELECT image_url FROM fact_actions WHERE id = ? LIMIT 1'))) {
-            $stmt->bind_param('i', $id); $stmt->execute();
-            $row = $stmt->get_result()->fetch_assoc(); $oldImage = (string)($row['image_url'] ?? ''); $stmt->close();
-        }
+        $oldImage = hg_rules_admin_actions_image($link, $id);
         if ($id <= 0) {
             $flash[] = ['type' => 'error', 'msg' => 'Acción inválida para borrar.'];
-        } elseif ($stmt = $link->prepare('DELETE FROM fact_actions WHERE id = ?')) {
-            $stmt->bind_param('i', $id);
-            if ($stmt->execute()) {
+        } else {
+            $result = hg_rules_admin_actions_delete($link, $id);
+            if (!empty($result['ok'])) {
                 admin_actions_delete_local_image($oldImage, $actionImageDir, $actionImageUrlBase);
                 $flash[] = ['type' => 'ok', 'msg' => 'Acción eliminada.'];
             } else {
-                $flash[] = ['type' => 'error', 'msg' => 'No se pudo eliminar la acción: ' . $stmt->error];
+                $flash[] = ['type' => 'error', 'msg' => 'No se pudo eliminar la acción: ' . (string)($result['error'] ?? '')];
             }
-            $stmt->close();
         }
     } elseif (in_array($crudAction, ['create', 'update'], true)) {
         $name = trim((string)($_POST['name'] ?? ''));
@@ -109,9 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $removeImage = !empty($_POST['image_remove']);
         $oldImage = '';
 
-        if ($crudAction === 'update' && $id > 0 && ($stmt = $link->prepare('SELECT image_url FROM fact_actions WHERE id = ? LIMIT 1'))) {
-            $stmt->bind_param('i', $id); $stmt->execute();
-            $row = $stmt->get_result()->fetch_assoc(); $oldImage = (string)($row['image_url'] ?? ''); $stmt->close();
+        if ($crudAction === 'update' && $id > 0) {
+            $oldImage = hg_rules_admin_actions_image($link, $id);
         }
         if ($name === '') $flash[] = ['type' => 'error', 'msg' => 'El nombre es obligatorio.'];
         if ($category === '') $flash[] = ['type' => 'error', 'msg' => 'La categoría es obligatoria.'];
@@ -138,22 +125,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         }
         if ($removeImage && $uploadedImage === '') $imageUrl = '';
 
-        if (!$hasErrors && $crudAction === 'create') {
-            $stmt = $link->prepare("INSERT INTO fact_actions (name, category, text, image_url, attribute_trait_id, skill_trait_id, difficulty_mode, fixed_difficulty, suggested_difficulty, min_difficulty, max_difficulty, bibliography_id) VALUES (?, ?, ?, NULLIF(?, ''), ?, ?, ?, NULLIF(?, 0), NULLIF(?, 0), NULLIF(?, 0), NULLIF(?, 0), NULLIF(?, 0))");
-            if ($stmt) {
-                $stmt->bind_param('ssssiisiiiii', $name, $category, $text, $imageUrl, $attributeId, $skillId, $mode, $fixedDifficulty, $suggestedDifficulty, $minDifficulty, $maxDifficulty, $bibliographyId);
-                if ($stmt->execute()) { hg_update_pretty_id_if_exists($link, 'fact_actions', (int)$link->insert_id, $name); $flash[] = ['type' => 'ok', 'msg' => 'Acción creada.']; }
-                else { $flash[] = ['type' => 'error', 'msg' => 'No se pudo crear la acción: ' . $stmt->error]; }
-                $stmt->close();
-            }
-        } elseif (!$hasErrors && $crudAction === 'update') {
-            $stmt = $link->prepare("UPDATE fact_actions SET name = ?, category = ?, text = ?, image_url = NULLIF(?, ''), attribute_trait_id = ?, skill_trait_id = ?, difficulty_mode = ?, fixed_difficulty = NULLIF(?, 0), suggested_difficulty = NULLIF(?, 0), min_difficulty = NULLIF(?, 0), max_difficulty = NULLIF(?, 0), bibliography_id = NULLIF(?, 0) WHERE id = ?");
-            if ($id <= 0) { $flash[] = ['type' => 'error', 'msg' => 'Acción inválida para actualizar.']; }
-            elseif ($stmt) {
-                $stmt->bind_param('ssssiisiiiiii', $name, $category, $text, $imageUrl, $attributeId, $skillId, $mode, $fixedDifficulty, $suggestedDifficulty, $minDifficulty, $maxDifficulty, $bibliographyId, $id);
-                if ($stmt->execute()) { if ($oldImage !== $imageUrl) admin_actions_delete_local_image($oldImage, $actionImageDir, $actionImageUrlBase); hg_update_pretty_id_if_exists($link, 'fact_actions', $id, $name); $flash[] = ['type' => 'ok', 'msg' => 'Acción actualizada.']; }
-                else { $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar la acción: ' . $stmt->error]; }
-                $stmt->close();
+        if (!$hasErrors) {
+            $payload = [
+                'name' => $name,
+                'category' => $category,
+                'text' => $text,
+                'image_url' => $imageUrl,
+                'attribute_trait_id' => $attributeId,
+                'skill_trait_id' => $skillId,
+                'difficulty_mode' => $mode,
+                'fixed_difficulty' => $fixedDifficulty,
+                'suggested_difficulty' => $suggestedDifficulty,
+                'min_difficulty' => $minDifficulty,
+                'max_difficulty' => $maxDifficulty,
+                'bibliography_id' => $bibliographyId,
+            ];
+            if ($crudAction === 'create') {
+                $result = hg_rules_admin_actions_create($link, $payload);
+                if (!empty($result['ok'])) {
+                    hg_update_pretty_id_if_exists($link, 'fact_actions', (int)$result['id'], $name);
+                    $flash[] = ['type' => 'ok', 'msg' => 'Acción creada.'];
+                } else {
+                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo crear la acción: ' . (string)($result['error'] ?? '')];
+                }
+            } elseif ($crudAction === 'update') {
+                if ($id <= 0) {
+                    $flash[] = ['type' => 'error', 'msg' => 'Acción inválida para actualizar.'];
+                } else {
+                    $result = hg_rules_admin_actions_update($link, $id, $payload);
+                    if (!empty($result['ok'])) {
+                        if ($oldImage !== $imageUrl) admin_actions_delete_local_image($oldImage, $actionImageDir, $actionImageUrlBase);
+                        hg_update_pretty_id_if_exists($link, 'fact_actions', $id, $name);
+                        $flash[] = ['type' => 'ok', 'msg' => 'Acción actualizada.'];
+                    } else {
+                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar la acción: ' . (string)($result['error'] ?? '')];
+                    }
+                }
             }
         }
         $hasErrors = (bool)array_filter($flash, static fn(array $notice): bool => ($notice['type'] ?? '') === 'error');
@@ -161,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 }
 
-$actions = admin_actions_rows($link, "SELECT a.*, COALESCE(attr.name, '') AS attribute_name, COALESCE(skill.name, '') AS skill_name FROM fact_actions a LEFT JOIN dim_traits attr ON attr.id = a.attribute_trait_id LEFT JOIN dim_traits skill ON skill.id = a.skill_trait_id ORDER BY a.category, a.name");
+$actions = hg_rules_admin_actions_rows($link);
 $actionCategories = [];
 foreach ($actions as $action) {
     $actionCategory = trim((string)($action['category'] ?? ''));
