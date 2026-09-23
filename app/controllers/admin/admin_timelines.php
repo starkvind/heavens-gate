@@ -13,86 +13,18 @@ if (method_exists($link, 'set_charset')) {
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/timeline/admin.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-function hg_admin_col_exists(mysqli $link, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
 
-    $ok = false;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
 
-    $cache[$key] = $ok;
-    return $ok;
-}
 
-function hg_admin_has_table(mysqli $link, string $table): bool {
-    $table = str_replace('`', '', $table);
-    $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
 
-function hg_admin_pick_deaths_table(mysqli $link): string {
-    if (hg_admin_has_table($link, 'fact_characters_deaths')) return 'fact_characters_deaths';
-    if (hg_admin_has_table($link, 'fact_characters_death')) return 'fact_characters_death';
-    return '';
-}
 
-function hg_admin_sync_death_ground_truth(mysqli $link, string $deathsTable, int $eventId, ?string $deathDate): void {
-    if ($deathsTable === '' || $eventId <= 0) return;
 
-    $linkedDeaths = 0;
-    if ($stCount = $link->prepare("SELECT COUNT(*) FROM `{$deathsTable}` WHERE death_timeline_event_id = ?")) {
-        $stCount->bind_param('i', $eventId);
-        $stCount->execute();
-        $stCount->bind_result($linkedDeaths);
-        $stCount->fetch();
-        $stCount->close();
-    }
-    if ((int)$linkedDeaths <= 0) return;
 
-    if ($stDeaths = $link->prepare("UPDATE `{$deathsTable}` SET death_date = ? WHERE death_timeline_event_id = ?")) {
-        $stDeaths->bind_param('si', $deathDate, $eventId);
-        $stDeaths->execute();
-        $stDeaths->close();
-    }
-
-    $eventDate = ($deathDate !== null && $deathDate !== '') ? $deathDate : '1000-01-01';
-    $precision = ($deathDate !== null && $deathDate !== '') ? 'day' : 'unknown';
-    $dateNote = ($deathDate !== null && $deathDate !== '')
-        ? null
-        : 'Fecha de muerte no especificada (sincronizado desde muertes).';
-
-    if ($stEv = $link->prepare("
-        UPDATE fact_timeline_events
-        SET
-            event_type_id = 5,
-            event_date = ?,
-            sort_date = ?,
-            date_precision = ?,
-            date_note = ?,
-            updated_at = NOW()
-        WHERE id = ?
-        LIMIT 1
-    ")) {
-        $stEv->bind_param('ssssi', $eventDate, $eventDate, $precision, $dateNote, $eventId);
-        $stEv->execute();
-        $stEv->close();
-    }
-}
 
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_timelines';
 if (function_exists('hg_admin_ensure_csrf_token')) {
@@ -109,64 +41,25 @@ $hasChronicleSortOrder = hg_admin_col_exists($link, 'dim_chronicles', 'sort_orde
 $hasRealitySortOrder = hg_admin_col_exists($link, 'dim_realities', 'sort_order');
 $hasChronBridgeSortOrder = hg_admin_col_exists($link, 'bridge_timeline_events_chronicles', 'sort_order');
 
-$eventTypes = [];
+$eventTypes = hg_timeline_admin_event_types($link, $hasTypeSortOrder);
 $eventTypeById = [];
 $eventTypeByPretty = [];
 $defaultEventTypeId = 0;
-
-$eventTypeSortSelect = $hasTypeSortOrder ? 'sort_order' : '0';
-$eventTypeOrderSql = $hasTypeSortOrder ? 'sort_order ASC, name ASC' : 'name ASC, id ASC';
-if ($rs = $link->query("SELECT id, pretty_id, name, {$eventTypeSortSelect} AS sort_order, is_active FROM dim_timeline_events_types ORDER BY {$eventTypeOrderSql}")) {
-    while ($row = $rs->fetch_assoc()) {
-        $eventTypes[] = $row;
-        $eventTypeById[(int)$row['id']] = $row;
-        $eventTypeByPretty[(string)$row['pretty_id']] = $row;
-        if ((string)$row['pretty_id'] === 'evento') {
-            $defaultEventTypeId = (int)$row['id'];
-        }
-    }
-    $rs->close();
+foreach ($eventTypes as $row) {
+    $eventTypeById[(int)$row['id']] = $row;
+    $eventTypeByPretty[(string)$row['pretty_id']] = $row;
+    if ((string)$row['pretty_id'] === 'evento') $defaultEventTypeId = (int)$row['id'];
 }
-if ($defaultEventTypeId <= 0 && !empty($eventTypes)) {
-    $defaultEventTypeId = (int)$eventTypes[0]['id'];
-}
+if ($defaultEventTypeId <= 0 && !empty($eventTypes)) $defaultEventTypeId = (int)$eventTypes[0]['id'];
 $deathsTable = hg_admin_pick_deaths_table($link);
 
-$chronicles = [];
+$chronicles = hg_timeline_admin_chronicles($link, $hasChronicleSortOrder);
 $chronicleById = [];
-$chronicleOrderSql = $hasChronicleSortOrder ? 'sort_order ASC, name ASC' : 'name ASC, id ASC';
-if ($rs = $link->query("SELECT id, name FROM dim_chronicles ORDER BY {$chronicleOrderSql}")) {
-    while ($row = $rs->fetch_assoc()) {
-        $chronicles[] = $row;
-        $chronicleById[(int)$row['id']] = (string)$row['name'];
-    }
-    $rs->close();
-}
+foreach ($chronicles as $row) $chronicleById[(int)$row['id']] = (string)$row['name'];
 
-$realities = [];
-$realityOrderSql = $hasRealitySortOrder ? 'sort_order ASC, name ASC' : 'name ASC, id ASC';
-if ($rs = $link->query("SELECT id, name FROM dim_realities ORDER BY {$realityOrderSql}")) {
-    while ($row = $rs->fetch_assoc()) {
-        $realities[] = $row;
-    }
-    $rs->close();
-}
-
-$chapters = [];
-if ($rs = $link->query("SELECT c.id, c.name, s.season_number, s.season_kind, c.chapter_number FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id = c.season_id ORDER BY COALESCE(s.sort_order, 9999) ASC, c.chapter_number ASC, c.id ASC")) {
-    while ($row = $rs->fetch_assoc()) {
-        $chapters[] = $row;
-    }
-    $rs->close();
-}
-
-$characters = [];
-if ($rs = $link->query("SELECT p.id, p.name, COALESCE(ch.name, '') AS chronicle_name FROM fact_characters p LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id ORDER BY p.name ASC, p.id ASC")) {
-    while ($row = $rs->fetch_assoc()) {
-        $characters[] = $row;
-    }
-    $rs->close();
-}
+$realities = hg_timeline_admin_realities($link, $hasRealitySortOrder);
+$chapters = hg_timeline_admin_chapters($link);
+$characters = hg_timeline_admin_characters($link);
 
 function hg_admin_parse_int_ids($raw): array {
     $values = [];
@@ -190,132 +83,14 @@ function hg_admin_parse_int_ids($raw): array {
     return $out;
 }
 
-function hg_admin_sync_bridge_ids(mysqli $link, string $table, string $refCol, int $eventId, array $ids): void {
-    if ($eventId <= 0) return;
-    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-    $refCol = preg_replace('/[^a-zA-Z0-9_]/', '', $refCol);
-    if ($table === '' || $refCol === '') return;
-    $hasSortOrder = hg_admin_col_exists($link, $table, 'sort_order');
 
-    if ($stDel = $link->prepare("DELETE FROM {$table} WHERE event_id = ?")) {
-        $stDel->bind_param('i', $eventId);
-        $stDel->execute();
-        $stDel->close();
-    }
 
-    if (empty($ids)) return;
 
-    if ($hasSortOrder) {
-        $sqlIns = "INSERT INTO {$table} (event_id, {$refCol}, sort_order) VALUES (?, ?, ?)";
-        if ($stIns = $link->prepare($sqlIns)) {
-            foreach (array_values($ids) as $i => $refId) {
-                $sortOrder = (int)$i;
-                $stIns->bind_param('iii', $eventId, $refId, $sortOrder);
-                $stIns->execute();
-            }
-            $stIns->close();
-        }
-    } else {
-        $sqlIns = "INSERT INTO {$table} (event_id, {$refCol}) VALUES (?, ?)";
-        if ($stIns = $link->prepare($sqlIns)) {
-            foreach (array_values($ids) as $refId) {
-                $stIns->bind_param('ii', $eventId, $refId);
-                $stIns->execute();
-            }
-            $stIns->close();
-        }
-    }
-}
 
-function hg_admin_sync_bridge_characters(mysqli $link, int $eventId, array $characterIds): void {
-    if ($eventId <= 0) return;
-    $hasSortOrder = hg_admin_col_exists($link, 'bridge_timeline_events_characters', 'sort_order');
-    $hasRoleLabel = hg_admin_col_exists($link, 'bridge_timeline_events_characters', 'role_label');
 
-    if ($stDel = $link->prepare("DELETE FROM bridge_timeline_events_characters WHERE event_id = ?")) {
-        $stDel->bind_param('i', $eventId);
-        $stDel->execute();
-        $stDel->close();
-    }
-
-    if (empty($characterIds)) return;
-
-    if ($hasRoleLabel && $hasSortOrder) {
-        $sqlIns = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label, sort_order) VALUES (?, ?, NULL, ?)";
-        if ($stIns = $link->prepare($sqlIns)) {
-            foreach (array_values($characterIds) as $i => $characterId) {
-                $sortOrder = (int)$i;
-                $stIns->bind_param('iii', $eventId, $characterId, $sortOrder);
-                $stIns->execute();
-            }
-            $stIns->close();
-        }
-        return;
-    }
-
-    if ($hasRoleLabel && !$hasSortOrder) {
-        $sqlIns = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label) VALUES (?, ?, NULL)";
-        if ($stIns = $link->prepare($sqlIns)) {
-            foreach (array_values($characterIds) as $characterId) {
-                $stIns->bind_param('ii', $eventId, $characterId);
-                $stIns->execute();
-            }
-            $stIns->close();
-        }
-        return;
-    }
-
-    if (!$hasRoleLabel && $hasSortOrder) {
-        $sqlIns = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, sort_order) VALUES (?, ?, ?)";
-        if ($stIns = $link->prepare($sqlIns)) {
-            foreach (array_values($characterIds) as $i => $characterId) {
-                $sortOrder = (int)$i;
-                $stIns->bind_param('iii', $eventId, $characterId, $sortOrder);
-                $stIns->execute();
-            }
-            $stIns->close();
-        }
-        return;
-    }
-
-    $sqlIns = "INSERT INTO bridge_timeline_events_characters (event_id, character_id) VALUES (?, ?)";
-    if ($stIns = $link->prepare($sqlIns)) {
-        foreach (array_values($characterIds) as $characterId) {
-            $stIns->bind_param('ii', $eventId, $characterId);
-            $stIns->execute();
-        }
-        $stIns->close();
-    }
-}
-
-function hg_admin_get_bridge_ids(mysqli $link, string $table, string $refCol, int $eventId): array {
-    $ids = [];
-    if ($eventId <= 0) return $ids;
-    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-    $refCol = preg_replace('/[^a-zA-Z0-9_]/', '', $refCol);
-    if ($table === '' || $refCol === '') return $ids;
-    $orderBy = hg_admin_col_exists($link, $table, 'sort_order') ? 'sort_order ASC, id ASC' : 'id ASC';
-    $sql = "SELECT {$refCol} AS ref_id FROM {$table} WHERE event_id = ? ORDER BY {$orderBy}";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $eventId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $rid = (int)($row['ref_id'] ?? 0);
-            if ($rid > 0) $ids[] = $rid;
-        }
-        $st->close();
-    }
-    return $ids;
-}
 
 $getEventLinks = function(int $eventId) use ($link): array {
-    return [
-        'chronicle_ids' => hg_admin_get_bridge_ids($link, 'bridge_timeline_events_chronicles', 'chronicle_id', $eventId),
-        'character_ids' => hg_admin_get_bridge_ids($link, 'bridge_timeline_events_characters', 'character_id', $eventId),
-        'chapter_ids' => hg_admin_get_bridge_ids($link, 'bridge_timeline_events_chapters', 'chapter_id', $eventId),
-        'reality_ids' => hg_admin_get_bridge_ids($link, 'bridge_timeline_events_realities', 'reality_id', $eventId),
-    ];
+    return hg_timeline_admin_event_links($link, $eventId);
 };
 
 $chronicleConcatOrderSql = ($hasChronBridgeSortOrder ? 'bec.sort_order ASC, ' : '')
@@ -325,62 +100,8 @@ $primaryChronicleExpr = $hasChronBridgeSortOrder
     ? "COALESCE(MIN(CASE WHEN bec.sort_order = 0 THEN bec.chronicle_id END), MIN(bec.chronicle_id), 0)"
     : "COALESCE(MIN(bec.chronicle_id), 0)";
 
-$getEventRow = function(int $eventId) use ($link, $getEventLinks, $chronicleConcatOrderSql, $primaryChronicleExpr): ?array {
-    if ($eventId <= 0) return null;
-
-    $sql = "
-        SELECT
-            e.id,
-            e.pretty_id,
-            e.title,
-            e.event_date,
-            e.date_precision,
-            e.date_note,
-            e.location,
-            e.source,
-            e.description,
-            e.is_active,
-            e.event_type_id,
-            COALESCE(t.name, 'Evento') AS type_name,
-            COALESCE(t.pretty_id, 'evento') AS type_slug,
-            {$primaryChronicleExpr} AS primary_chronicle_id,
-            COALESCE(
-                NULLIF(GROUP_CONCAT(DISTINCT c.name ORDER BY {$chronicleConcatOrderSql} SEPARATOR ' | '), ''),
-                e.timeline,
-                ''
-            ) AS chronicle_line
-        FROM fact_timeline_events e
-        LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id
-        LEFT JOIN bridge_timeline_events_chronicles bec ON bec.event_id = e.id
-        LEFT JOIN dim_chronicles c ON c.id = bec.chronicle_id
-        WHERE e.id = ?
-        GROUP BY
-            e.id, e.pretty_id, e.title, e.event_date, e.date_precision, e.date_note,
-            e.location, e.source, e.description, e.is_active, e.event_type_id,
-            t.name, t.pretty_id
-        LIMIT 1
-    ";
-
-    $st = $link->prepare($sql);
-    if (!$st) return null;
-    $st->bind_param('i', $eventId);
-    $st->execute();
-    $rs = $st->get_result();
-    $row = $rs ? $rs->fetch_assoc() : null;
-    $st->close();
-    if (!$row) return null;
-
-    $links = $getEventLinks($eventId);
-    $row['chronicle_ids'] = implode(',', $links['chronicle_ids']);
-    $row['character_ids'] = implode(',', $links['character_ids']);
-    $row['chapter_ids'] = implode(',', $links['chapter_ids']);
-    $row['reality_ids'] = implode(',', $links['reality_ids']);
-    $row['chronicles_count'] = count($links['chronicle_ids']);
-    $row['characters_count'] = count($links['character_ids']);
-    $row['chapters_count'] = count($links['chapter_ids']);
-    $row['realities_count'] = count($links['reality_ids']);
-
-    return $row;
+$getEventRow = function(int $eventId) use ($link, $chronicleConcatOrderSql, $primaryChronicleExpr): ?array {
+    return hg_timeline_admin_event_row($link, $eventId, $chronicleConcatOrderSql, $primaryChronicleExpr);
 };
 
 $isAjax = isset($_GET['ajax']) && (string)$_GET['ajax'] === '1';
@@ -425,12 +146,7 @@ if ($isAjax) {
             exit;
         }
 
-        $ok = false;
-        if ($st = $link->prepare('DELETE FROM fact_timeline_events WHERE id = ?')) {
-            $st->bind_param('i', $eventId);
-            $ok = $st->execute();
-            $st->close();
-        }
+        $ok = hg_timeline_admin_delete_event($link, $eventId);
 
         if (!$ok) {
             if (function_exists('hg_admin_json_error')) hg_admin_json_error('No se pudo eliminar el evento.', 500);
@@ -491,96 +207,30 @@ if ($isAjax) {
         $dateNoteSql = ($dateNote !== '') ? $dateNote : null;
         $timelineLegacySql = ($timelineLegacy !== null && trim($timelineLegacy) !== '') ? $timelineLegacy : null;
 
-        $savedId = 0;
-        try {
-            $link->begin_transaction();
-
-            if ($id > 0) {
-                $sql = "
-                    UPDATE fact_timeline_events
-                    SET
-                        title = ?,
-                        event_date = ?,
-                        date_precision = ?,
-                        date_note = ?,
-                        sort_date = ?,
-                        description = ?,
-                        location = ?,
-                        source = ?,
-                        event_type_id = ?,
-                        timeline = ?,
-                        is_active = ?,
-                        updated_at = NOW()
-                    WHERE id = ?
-                ";
-                $st = $link->prepare($sql);
-                $st->bind_param(
-                    'ssssssssisii',
-                    $title,
-                    $eventDate,
-                    $datePrecision,
-                    $dateNoteSql,
-                    $sortDate,
-                    $description,
-                    $location,
-                    $source,
-                    $eventTypeId,
-                    $timelineLegacySql,
-                    $isActive,
-                    $id
-                );
-                $ok = $st->execute();
-                $st->close();
-                if (!$ok) {
-                    throw new RuntimeException('No se pudo actualizar el evento.');
-                }
-                $savedId = $id;
-            } else {
-                $sql = "
-                    INSERT INTO fact_timeline_events
-                    (title, event_date, date_precision, date_note, sort_date, description, location, source, event_type_id, timeline, is_active)
-                    VALUES
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ";
-                $st = $link->prepare($sql);
-                $st->bind_param(
-                    'ssssssssisi',
-                    $title,
-                    $eventDate,
-                    $datePrecision,
-                    $dateNoteSql,
-                    $sortDate,
-                    $description,
-                    $location,
-                    $source,
-                    $eventTypeId,
-                    $timelineLegacySql,
-                    $isActive
-                );
-                $ok = $st->execute();
-                $savedId = (int)$link->insert_id;
-                $st->close();
-                if (!$ok || $savedId <= 0) {
-                    throw new RuntimeException('No se pudo crear el evento.');
-                }
-                hg_update_pretty_id_if_exists($link, 'fact_timeline_events', $savedId, $title);
-            }
-
-            hg_admin_sync_bridge_ids($link, 'bridge_timeline_events_chronicles', 'chronicle_id', $savedId, $chronicleIds);
-            hg_admin_sync_bridge_characters($link, $savedId, $characterIds);
-            hg_admin_sync_bridge_ids($link, 'bridge_timeline_events_chapters', 'chapter_id', $savedId, $chapterIds);
-            hg_admin_sync_bridge_ids($link, 'bridge_timeline_events_realities', 'reality_id', $savedId, $realityIds);
-
-            $syncDeathDate = ($datePrecision === 'unknown' || $eventDate === '1000-01-01') ? null : $eventDate;
-            hg_admin_sync_death_ground_truth($link, $deathsTable, $savedId, $syncDeathDate);
-
-            $link->commit();
-        } catch (Throwable $e) {
-            $link->rollback();
-            if (function_exists('hg_admin_json_error')) hg_admin_json_error($e->getMessage(), 500);
-            echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        $result = hg_timeline_admin_save_event($link, [
+            'id'=>$id,
+            'title'=>$title,
+            'event_date'=>$eventDate,
+            'date_precision'=>$datePrecision,
+            'date_note_sql'=>$dateNoteSql,
+            'sort_date'=>$sortDate,
+            'description'=>$description,
+            'location'=>$location,
+            'source'=>$source,
+            'event_type_id'=>$eventTypeId,
+            'timeline_legacy_sql'=>$timelineLegacySql,
+            'is_active'=>$isActive,
+            'chronicle_ids'=>$chronicleIds,
+            'character_ids'=>$characterIds,
+            'chapter_ids'=>$chapterIds,
+            'reality_ids'=>$realityIds,
+        ], $deathsTable);
+        if (empty($result['ok'])) {
+            if (function_exists('hg_admin_json_error')) hg_admin_json_error((string)$result['error'], 500);
+            echo json_encode(['ok'=>false,'error'=>(string)$result['error']]);
             exit;
         }
+        $savedId = (int)$result['id'];
 
         hg_content_touch_table($link, 'fact_timeline_events', $savedId);
         $saved = $getEventRow($savedId);
@@ -608,69 +258,7 @@ if ($isAjax) {
     exit;
 }
 
-$events = [];
-$sql = "
-    SELECT
-        e.id,
-        e.pretty_id,
-        e.title,
-        e.event_date,
-        e.date_precision,
-        e.date_note,
-        e.location,
-        e.source,
-        e.description,
-        e.is_active,
-        e.event_type_id,
-        COALESCE(t.name, 'Evento') AS type_name,
-        COALESCE(t.pretty_id, 'evento') AS type_slug,
-        {$primaryChronicleExpr} AS primary_chronicle_id,
-        COALESCE(
-            NULLIF(GROUP_CONCAT(DISTINCT c.name ORDER BY {$chronicleConcatOrderSql} SEPARATOR ' | '), ''),
-            e.timeline,
-            ''
-        ) AS chronicle_line
-    FROM fact_timeline_events e
-    LEFT JOIN dim_timeline_events_types t ON t.id = e.event_type_id
-    LEFT JOIN bridge_timeline_events_chronicles bec ON bec.event_id = e.id
-    LEFT JOIN dim_chronicles c ON c.id = bec.chronicle_id
-    GROUP BY
-        e.id, e.pretty_id, e.title, e.event_date, e.date_precision, e.date_note,
-        e.location, e.source, e.description, e.is_active, e.event_type_id,
-        t.name, t.pretty_id
-    ORDER BY COALESCE(e.sort_date, e.event_date) DESC, e.id DESC
-";
-if ($rs = $link->query($sql)) {
-    while ($row = $rs->fetch_assoc()) {
-        $events[] = $row;
-    }
-    $rs->close();
-}
-
-foreach ($events as &$row) {
-    $eventId = (int)($row['id'] ?? 0);
-    if ($eventId <= 0) {
-        $row['chronicle_ids'] = '';
-        $row['character_ids'] = '';
-        $row['chapter_ids'] = '';
-        $row['reality_ids'] = '';
-        $row['chronicles_count'] = 0;
-        $row['characters_count'] = 0;
-        $row['chapters_count'] = 0;
-        $row['realities_count'] = 0;
-        continue;
-    }
-    $links = $getEventLinks($eventId);
-    $row['chronicle_ids'] = implode(',', $links['chronicle_ids']);
-    $row['character_ids'] = implode(',', $links['character_ids']);
-    $row['chapter_ids'] = implode(',', $links['chapter_ids']);
-    $row['reality_ids'] = implode(',', $links['reality_ids']);
-    $row['chronicles_count'] = count($links['chronicle_ids']);
-    $row['characters_count'] = count($links['character_ids']);
-    $row['chapters_count'] = count($links['chapter_ids']);
-    $row['realities_count'] = count($links['reality_ids']);
-}
-unset($row);
+$events = hg_timeline_admin_events($link, $chronicleConcatOrderSql, $primaryChronicleExpr);
 
 $actions = '<span class="adm-flex-right-wrap-8">'
     . '<label class="adm-text-left">Filtro rápido <input class="inp" type="text" id="quickFilter" placeholder="Título o fuente..."></label>'
