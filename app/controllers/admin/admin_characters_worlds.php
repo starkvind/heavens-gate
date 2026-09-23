@@ -97,13 +97,13 @@ $characters = $state['characters'];
       <input id="f-search-worlds" type="text" placeholder="Buscar por nombre, id o pretty_id...">
     </div>
 
-    <div class="worlds-table-wrap">
-      <table class="worlds-table" id="worlds-table">
+    <div class="worlds-table-wrap adm-sticky-actions" tabindex="0" aria-label="Tabla de mundos de personajes">
+      <table class="worlds-table adm-wide-table" id="worlds-table">
         <thead>
           <tr>
             <th class="adm-w-80">ID</th>
             <!--<th class="adm-w-190">Pretty ID</th>-->
-            <th>Personaje</th>
+            <th class="adm-col-name">Personaje</th>
             <th class="adm-w-220">Organización</th>
             <th class="adm-w-280">Crónica</th>
             <th class="adm-w-280">Realidad</th>
