@@ -160,68 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                     hg_admin_safe_unlink_upload($currentImage, $SEASON_UPLOADDIR);
                 }
                 $flash[] = ['type'=>!empty($result['pretty_ok']) ? 'ok' : 'error','msg'=>(string)$result['message']];
-            } else {
-                if ($id <= 0) {
-                    $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
-                } else {
-                    $sets = ['`name`=?', '`season_number`=?'];
-                    $vals = [$name, $seasonNumber];
-                    $types = 'si';
-
-                    if ($hasSeasonKind) { $sets[] = '`season_kind`=?'; $vals[] = $seasonKind; $types .= 's'; }
-                    if ($hasChronicleId) {
-                        if ($chronicleId > 0) {
-                            $sets[] = '`chronicle_id`=?';
-                            $vals[] = $chronicleId;
-                            $types .= 'i';
-                        } else {
-                            $sets[] = '`chronicle_id`=NULL';
-                        }
-                    }
-                    $sets[] = '`description`=?'; $vals[] = $description; $types .= 's';
-                    if ($hasOpening)     { $sets[] = '`opening`=?';     $vals[] = $opening; $types .= 's'; }
-                    if ($hasMainCast)    { $sets[] = '`main_cast`=?';   $vals[] = $mainCast; $types .= 's'; }
-                    if ($hasSortOrder)   { $sets[] = '`sort_order`=?';  $vals[] = $sortOrder; $types .= 'i'; }
-                    if ($hasFinished)    { $sets[] = '`finished`=?';    $vals[] = $finished; $types .= 'i'; }
-                    if ($hasImageUrl)     { $sets[] = '`image_url`=?';   $vals[] = $imageUrl; $types .= 's'; }
-                    if ($hasUpdatedAt)   { $sets[] = '`updated_at`=NOW()'; }
-
-                    $sql = "UPDATE dim_seasons SET ".implode(', ', $sets)." WHERE id=?";
-                    $types .= 'i';
-                    $vals[] = $id;
-
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
-                    } else {
-                        $st->bind_param($types, ...$vals);
-                        if ($st->execute()) {
-                            $prettyOk = persist_season_pretty_id($link, $id, $name);
-                            if ($hasImageUpload) {
-                                $res = hg_admin_save_image_upload($_FILES['image_upload'], 'season', $id, $name, $SEASON_UPLOADDIR, $SEASON_URLBASE);
-                                if (!empty($res['ok'])) {
-                                    if ($currentImage !== '') {
-                                        hg_admin_safe_unlink_upload($currentImage, $SEASON_UPLOADDIR);
-                                    }
-                                    if ($stImg = $link->prepare('UPDATE dim_seasons SET image_url = ? WHERE id = ?')) {
-                                        $stImg->bind_param('si', $res['url'], $id);
-                                        $stImg->execute();
-                                        $stImg->close();
-                                    }
-                                    $flash[] = ['type'=>'ok','msg'=>'Imagen de la temporada actualizada.'];
-                                } elseif (($res['msg'] ?? '') !== 'no_file') {
-                                    $flash[] = ['type'=>'error','msg'=>'Imagen no guardada: ' . (string)$res['msg']];
-                                }
-                            } elseif ($hasImageUrl && $currentImage !== '' && $currentImage !== $imageUrl) {
-                                hg_admin_safe_unlink_upload($currentImage, $SEASON_UPLOADDIR);
-                            }
-                            $flash[] = ['type'=>$prettyOk ? 'ok' : 'error','msg'=>$prettyOk ? 'Temporada actualizada.' : 'Temporada actualizada, pero no se pudo guardar pretty_id.'];
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
-                        }
-                        $st->close();
-                    }
-                }
             }
         }
     }
