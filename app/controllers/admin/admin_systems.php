@@ -30,6 +30,11 @@ function sanitize_utf8_text(string $s): string {
 }
 
 $origins = hg_systems_admin_origins($link);
+$originIds = [];
+foreach ($origins as $originRow) {
+    $originId = (int)($originRow['id'] ?? 0);
+    if ($originId > 0) $originIds[$originId] = true;
+}
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" onclick="openSystemModal()">+ Nuevo sistema</button>'
@@ -104,6 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
 
     if ($name === '') {
         $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
+    } elseif ($bibliographyId > 0 && !isset($originIds[$bibliographyId])) {
+        $flash[] = ['type'=>'error','msg'=>'El origen seleccionado no es válido.'];
     } else {
         $data = [
             'sort_order' => $orden,
