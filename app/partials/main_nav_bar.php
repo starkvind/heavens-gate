@@ -210,7 +210,7 @@
 							echo " $pillSeparator L&iacute;nea temporal";
 							break;
 						case 'admin_birthdays_quick':
-							echo " $pillSeparator Cumplea&ntilde;os r&aacute;pidos";
+							echo " $pillSeparator Fechas de nacimiento";
 							break;
 						case 'admin_bso':
 						case 'admin_bso_link':
