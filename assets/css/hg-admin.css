@@ -1157,8 +1157,10 @@ textarea.inp { min-height:140px; resize:vertical; white-space:pre-wrap; }
 .adm-table-wrap .table,
 .table-scroll .table,
 .worlds-table-wrap .table,
+.worlds-table-wrap .worlds-table,
 .adm-table-scroll .table,
-.adm-table-scroll .adm-table{
+.adm-table-scroll .adm-table,
+.adm-table-scroll > table{
   width:max-content;
   min-width:100%;
   table-layout:auto;
