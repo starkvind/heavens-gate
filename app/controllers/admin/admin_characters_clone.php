@@ -154,14 +154,14 @@ admin_panel_open('Copiar personajes entre cronicas', $actions);
     <button class="btn" type="submit">Aplicar</button>
 </form>
 
-<table class="table" id="accTable">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla para clonar personajes"><table class="table adm-wide-table" id="accTable">
     <thead>
         <tr>
             <th class="adm-w-70">ID</th>
-            <th>Nombre</th>
+            <th class="adm-col-name">Nombre</th>
             <th class="adm-w-260">Cronica</th>
             <th class="adm-w-220">Realidad</th>
-            <th class="adm-w-170">Acciones</th>
+            <th class="adm-w-170 adm-th-actions">Acciones</th>
         </tr>
     </thead>
     <tbody id="accTbody">
@@ -171,7 +171,7 @@ admin_panel_open('Copiar personajes entre cronicas', $actions);
             <td><?= hg_acc_h((string)$r['name']) ?></td>
             <td><?= hg_acc_h((string)$r['chronicle_name']) ?></td>
             <td><?= hg_acc_h((string)$r['reality_name']) ?></td>
-            <td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
                 <button
                     class="btn"
                     type="button"
@@ -181,14 +181,14 @@ admin_panel_open('Copiar personajes entre cronicas', $actions);
                     data-chronicle-id="<?= (int)$r['chronicle_id'] ?>"
                     data-reality-id="<?= (int)$r['reality_id'] ?>"
                 >Copiar</button>
-            </td>
+                </div></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($rows)): ?>
         <tr><td colspan="5" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
     </tbody>
-</table>
+</table></div>
 
 <div class="pager" id="accPager">
     <?php
