@@ -318,14 +318,14 @@ $csrf = $_SESSION['csrf'];
   </div>
 
   <!-- LISTADO DE TRAMAS -->
-  <table class="table" id="plotsTable">
+  <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de tramas"><table class="table adm-wide-table" id="plotsTable">
     <thead>
       <tr>
         <th class="adm-w-60">ID</th>
-        <th>Nombre</th>
+        <th class="adm-col-name">Nombre</th>
         <th class="adm-w-90">Activa</th>
         <th class="adm-w-80">Orden</th>
-        <th class="adm-w-260">Acciones</th>
+        <th class="adm-w-260 adm-th-actions">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -336,18 +336,18 @@ $csrf = $_SESSION['csrf'];
         <td><?= h($p['name']) ?></td>
         <td><?= ((int)$p['active']===1) ? '<span class="badge">Sí</span>' : '<span class="badge off">No</span>' ?></td>
         <td><?= (int)($p['sort_order'] ?? 0) ?></td>
-        <td>
+        <td class="adm-cell-actions"><div class="adm-actions-inline">
           <button class="btn" type="button" onclick='openPlotEdit(<?= json_encode($p, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
           <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
           <button class="btn btn-ghost" type="button" onclick="scrollToPlot(<?= $pid ?>)">⬇ Ver personajes</button>
-        </td>
+          </div></td>
       </tr>
     <?php endforeach; ?>
     <?php if (empty($plots)): ?>
       <tr><td colspan="5" class="adm-color-muted">(No hay tramas aún)</td></tr>
     <?php endif; ?>
     </tbody>
-  </table>
+  </table></div>
 
   <!-- PERSONAJES POR TRAMA -->
   <div class="section" id="charsSection">
@@ -363,15 +363,15 @@ $csrf = $_SESSION['csrf'];
         <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
       </div>
 
-      <table class="table">
+      <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Personajes de la trama"><table class="table adm-wide-table">
         <thead>
           <tr>
             <th class="adm-w-60">ID</th>
-            <th>Alias</th>
-            <th>Base</th>
+            <th class="adm-col-name">Alias</th>
+            <th class="adm-col-name">Base</th>
             <th class="adm-w-80">Act.</th>
             <th class="adm-w-420">Stats (base)</th>
-            <th class="adm-w-220">Acciones</th>
+            <th class="adm-w-220 adm-th-actions">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -397,17 +397,17 @@ $csrf = $_SESSION['csrf'];
               <span class="badge">Sangre <?= (int)$pc['m_blood'] ?></span>
               <span class="badge">FV <?= (int)$pc['m_wp'] ?></span>
             </td>
-            <td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
               <button class="btn" type="button" onclick='openCharEdit(<?= json_encode($pc, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
               <button class="btn" type="button" onclick="openChanges(<?= $cid ?>)">📜 Cambios</button>
-            </td>
+              </div></td>
           </tr>
         <?php endforeach; ?>
         <?php if (empty($pcs)): ?>
           <tr><td colspan="6" class="adm-color-muted">(No hay personajes en esta trama)</td></tr>
         <?php endif; ?>
         </tbody>
-      </table>
+      </table></div>
     <?php endforeach; ?>
   </div>
 </div>
