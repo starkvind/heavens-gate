@@ -206,7 +206,7 @@ admin_panel_open(
                     <input id="asoQuickFilter" class="inp adm-season-order-input" type="text" placeholder="Titulo, descripcion o temporada...">
                 </label>
             </div>
-            <div id="asoNodesWrap"></div>
+            <div id="asoNodesWrap" class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de orden de temporadas"></div>
         </section>
     </div>
 <?php endif; ?>
@@ -370,7 +370,7 @@ admin_panel_open(
       nodesWrap.innerHTML = '<div class="adm-season-order-empty">Todavia no hay nodos en este orden.</div>';
       return;
     }
-    var html = '<table class="adm-season-order-table"><thead><tr><th>Pos</th><th>Nodo</th><th>Vinculo</th><th>Rama</th><th>Acciones</th></tr></thead><tbody>';
+    var html = '<table class="adm-season-order-table adm-wide-table"><thead><tr><th class="adm-w-80">Pos</th><th class="adm-col-title">Nodo</th><th class="adm-w-220">Vinculo</th><th class="adm-w-180">Rama</th><th class="adm-th-actions">Acciones</th></tr></thead><tbody>';
     nodes.forEach(function(node){
       var parentText = '';
       if (parseInt(node.parent_node_id || 0, 10) > 0) {
@@ -394,7 +394,7 @@ admin_panel_open(
       html += '</td>';
       html += '<td>' + seasonLink + '</td>';
       html += '<td><span class="adm-season-order-badge' + (node.branch_type === 'secondary' ? ' adm-season-order-badge-secondary' : '') + '">' + esc(node.branch_type === 'secondary' ? 'Secundaria' : 'Principal') + parentText + '</span></td>';
-      html += '<td><button class="btn btn-green aso-edit-node" data-id="' + esc(node.id) + '" type="button">Editar</button> <button class="btn btn-red aso-delete-node" data-id="' + esc(node.id) + '" type="button">Borrar</button></td>';
+      html += '<td class="adm-cell-actions"><div class="adm-actions-inline"><button class="btn btn-green aso-edit-node" data-id="' + esc(node.id) + '" type="button">Editar</button><button class="btn btn-red aso-delete-node" data-id="' + esc(node.id) + '" type="button">Borrar</button></div></td>';
       html += '</tr>';
     });
     html += '</tbody></table>';
