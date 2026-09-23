@@ -17,6 +17,7 @@ for marker in [
     '.adm-th-actions',
     'width:max-content',
     'overflow-wrap:break-word',
+    'min-width:1500px',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
@@ -33,6 +34,7 @@ SCROLL_TARGETS = {
     'app/controllers/admin/admin_season_order.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
     'app/controllers/admin/admin_birthdays_quick.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
     'app/controllers/admin/admin_characters_worlds.php': ['worlds-table-wrap', 'adm-wide-table'],
+    'app/controllers/admin/admin_gift_image_mass.php': ['table-scroll', 'adm-wide-table', 'autoWidth: false'],
 }
 
 for rel, markers in SCROLL_TARGETS.items():
