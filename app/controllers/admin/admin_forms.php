@@ -9,32 +9,14 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/systems/admin.php');
 $isAjaxRequest = (
     ((string)($_GET['ajax'] ?? '') === '1')
     || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
 );
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function slugify_pretty(string $text): string {
-    $text = trim((string)$text);
-    if ($text === '') return '';
-    if (function_exists('iconv')) { $text = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text; }
-    $text = preg_replace('~[^\\pL\\d]+~u', '-', $text);
-    $text = trim($text, '-');
-    $text = strtolower($text);
-    $text = preg_replace('~[^-a-z0-9]+~', '', $text);
-    return $text;
-}
-function update_pretty_id(mysqli $link, string $table, int $id, string $source): void {
-    if ($id <= 0) return;
-    $slug = slugify_pretty($source);
-    if ($slug === '') $slug = (string)$id;
-    if ($st = $link->prepare("UPDATE `$table` SET pretty_id=? WHERE id=?")) {
-        $st->bind_param("si", $slug, $id);
-        $st->execute();
-        $st->close();
-    }
-}
 function sanitize_utf8_text(string $s): string {
     if (function_exists('mb_check_encoding') && !mb_check_encoding($s, 'UTF-8')) {
         if (function_exists('iconv')) {
@@ -46,37 +28,19 @@ function sanitize_utf8_text(string $s): string {
     return $s ?? '';
 }
 
-$origins = [];
-if ($rs = $link->query("SELECT id, name FROM dim_bibliographies ORDER BY name ASC")) {
-    while ($r = $rs->fetch_assoc()) { $origins[] = $r; }
-    $rs->close();
-}
-
-$systems = [];
+$formOptions = hg_systems_admin_forms_options($link);
+$origins = $formOptions['origins'];
+$systems = $formOptions['systems'];
+$tribesBySystem = $formOptions['tribesBySystem'];
 $systemNameById = [];
 $systemIdByName = [];
-if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
-    while ($r = $rs->fetch_assoc()) {
-        $sid = (int)($r['id'] ?? 0);
-        $sname = trim((string)($r['name'] ?? ''));
-        if ($sid <= 0 || $sname === '') { continue; }
-        $systems[] = ['id' => $sid, 'name' => $sname];
-        $systemNameById[$sid] = $sname;
-        $key = function_exists('mb_strtolower') ? mb_strtolower($sname, 'UTF-8') : strtolower($sname);
-        $systemIdByName[$key] = $sid;
-    }
-    $rs->close();
-}
-$tribesBySystem = [];
-if ($rs = $link->query("SELECT system_id, name FROM dim_tribes ORDER BY system_id ASC, name ASC")) {
-    while ($r = $rs->fetch_assoc()) {
-        $sid = (int)($r['system_id'] ?? 0);
-        $tname = trim((string)($r['name'] ?? ''));
-        if ($sid <= 0 || $tname === '') { continue; }
-        if (!isset($tribesBySystem[$sid])) { $tribesBySystem[$sid] = []; }
-        $tribesBySystem[$sid][] = $tname;
-    }
-    $rs->close();
+foreach ($systems as $r) {
+    $sid = (int)($r['id'] ?? 0);
+    $sname = trim((string)($r['name'] ?? ''));
+    if ($sid <= 0 || $sname === '') continue;
+    $systemNameById[$sid] = $sname;
+    $key = function_exists('mb_strtolower') ? mb_strtolower($sname, 'UTF-8') : strtolower($sname);
+    $systemIdByName[$key] = $sid;
 }
 $sysRaw = trim((string)($_GET['sys'] ?? ''));
 $sys = 0;
@@ -144,13 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             $flash[] = ['type'=>'error','msg'=>'ID inválido para borrar.'];
-        } elseif ($st = $link->prepare("DELETE FROM dim_forms WHERE id=?")) {
-            $st->bind_param('i', $id);
-            if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Forma eliminada.'];
-            else $flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-            $st->close();
         } else {
-            $flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
+            $result = hg_systems_admin_form_delete($link, $id);
+            $flash[] = !empty($result['ok'])
+                ? ['type'=>'ok','msg'=>'Forma eliminada.']
+                : ['type'=>'error','msg'=>'Error al borrar: '.(string)($result['error'] ?? '')];
         }
     }
 }
@@ -191,63 +153,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
     if ($systemId <= 0 || $afiliacion === '' || $raza === '' || $forma === '') {
         $flash[] = ['type'=>'error','msg'=>'Sistema, afiliacion, raza y forma son obligatorias.'];
     } else {
-        if ($id > 0) {
-            $sql = "UPDATE dim_forms SET affiliation=?, race=?, system_id=?, form=?, description=?, image_url=?, weapons=?, firearms=?, strength_bonus=?, dexterity_bonus=?, stamina_bonus=?, regeneration=?, hpregen=?, bibliography_id=?, updated_at=NOW() WHERE id=?";
-            if ($st = $link->prepare($sql)) {
-                $st->bind_param('ssisssiisssiiii', $afiliacion, $raza, $systemId, $forma, $desc, $imagen, $armas, $armasfuego, $bonfue, $bondes, $bonres, $regenera, $hpregen, $bibliographyId, $id);
-                if ($st->execute()) {
-                    $src = trim($systemNameForSlug.' '.$afiliacion.' '.$forma);
-                    update_pretty_id($link, 'dim_forms', $id, $src);
-                    $flash[] = ['type'=>'ok','msg'=>'Forma actualizada.'];
-                } else {
-                    $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
-                }
-                $st->close();
-            } else {
-                $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
-            }
+        $data = [
+            'affiliation' => $afiliacion,
+            'race' => $raza,
+            'system_id' => $systemId,
+            'form' => $forma,
+            'description' => $desc,
+            'image_url' => $imagen,
+            'weapons' => $armas,
+            'firearms' => $armasfuego,
+            'strength_bonus' => $bonfue,
+            'dexterity_bonus' => $bondes,
+            'stamina_bonus' => $bonres,
+            'regeneration' => $regenera,
+            'hpregen' => $hpregen,
+            'bibliography_id' => $bibliographyId,
+        ];
+        $result = hg_systems_admin_form_save($link, $id, $data);
+        if (!empty($result['ok'])) {
+            $savedId = (int)$result['id'];
+            $src = trim($systemNameForSlug.' '.$afiliacion.' '.$forma);
+            hg_update_pretty_id_if_exists($link, 'dim_forms', $savedId, $src);
+            $flash[] = ['type'=>'ok','msg'=>$id > 0 ? 'Forma actualizada.' : 'Forma creada.'];
         } else {
-            $sql = "INSERT INTO dim_forms (affiliation, race, system_id, form, description, image_url, weapons, firearms, strength_bonus, dexterity_bonus, stamina_bonus, regeneration, hpregen, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())";
-            if ($st = $link->prepare($sql)) {
-                $st->bind_param('ssisssiisssiii', $afiliacion, $raza, $systemId, $forma, $desc, $imagen, $armas, $armasfuego, $bonfue, $bondes, $bonres, $regenera, $hpregen, $bibliographyId);
-                if ($st->execute()) {
-                    $newId = (int)$st->insert_id;
-                    $src = trim($systemNameForSlug.' '.$afiliacion.' '.$forma);
-                    update_pretty_id($link, 'dim_forms', $newId, $src);
-                    $flash[] = ['type'=>'ok','msg'=>'Forma creada.'];
-                } else {
-                    $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
-                }
-                $st->close();
-            } else {
-                $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
-            }
+            $flash[] = ['type'=>'error','msg'=>($id > 0 ? 'Error al actualizar: ' : 'Error al crear: ').(string)($result['error'] ?? '')];
         }
     }
     }
 }
 
-$rows = [];
-$rowsFull = [];
-$sql = "SELECT f.id, f.pretty_id, f.description, f.affiliation AS afiliacion, f.race AS raza, f.system_id, COALESCE(ds.name,'') AS system_name, f.form AS forma, f.image_url AS imagen, f.weapons AS armas, f.firearms AS armasfuego, f.strength_bonus AS bonfue, f.dexterity_bonus AS bondes, f.stamina_bonus AS bonres, f.regeneration AS regenera, f.hpregen, f.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_forms f LEFT JOIN dim_systems ds ON ds.id=f.system_id LEFT JOIN dim_bibliographies b ON f.bibliography_id=b.id";
-if ($sys > 0) {
-    $sql .= " WHERE f.system_id = ?";
-}
-$sql .= " ORDER BY ds.sort_order, ds.name, f.affiliation, f.race, f.form";
-if ($sys > 0) {
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $sys);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($r = $rs->fetch_assoc()) { $rows[] = $r; $rowsFull[] = $r; }
-        $st->close();
-    }
-} else {
-    if ($rs = $link->query($sql)) {
-        while ($r = $rs->fetch_assoc()) { $rows[] = $r; $rowsFull[] = $r; }
-        $rs->close();
-    }
-}
+$rows = hg_systems_admin_form_rows($link, $sys);
+$rowsFull = $rows;
 
 if ($isAjaxRequest && (string)($_GET['ajax_mode'] ?? '') === 'list') {
     if (function_exists('hg_admin_require_session')) {
