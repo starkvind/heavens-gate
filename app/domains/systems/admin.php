@@ -21,13 +21,17 @@ function hg_systems_admin_origins(mysqli $link): array {
 
 function hg_systems_admin_system_delete(mysqli $link, int $id): array {
     if ($id <= 0) return hg_systems_admin_result(false, 'invalid_id');
-    $st = $link->prepare('DELETE FROM dim_systems WHERE id=?');
-    if (!$st) return hg_systems_admin_result(false, $link->error);
-    $st->bind_param('i', $id);
-    $ok = $st->execute();
-    $error = $st->error;
-    $st->close();
-    return hg_systems_admin_result($ok, $error);
+    try {
+        $st = $link->prepare('DELETE FROM dim_systems WHERE id=?');
+        if (!$st) return hg_systems_admin_result(false, $link->error);
+        $st->bind_param('i', $id);
+        $ok = $st->execute();
+        $error = $st->error;
+        $st->close();
+        return hg_systems_admin_result($ok, $error);
+    } catch (mysqli_sql_exception $e) {
+        return hg_systems_admin_result(false, $e->getMessage(), $id);
+    }
 }
 
 function hg_systems_admin_system_save(mysqli $link, int $id, array $d): array {
