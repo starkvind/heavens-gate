@@ -2,6 +2,7 @@
 // admin_gift_image_mass.php - Actualizacion masiva de imagenes de dones.
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/powers/admin_gift_images.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) {
     $link->set_charset('utf8mb4');
@@ -164,21 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (string)($_GET['action'] ?? '') === 
         hg_admin_json_error('Don no valido.', 422, ['gift_id' => 'required']);
     }
 
-    $statement = $link->prepare(
-        'SELECT g.name, g.rank, g.kind, COALESCE(t.name, g.kind) AS kind_name, g.gift_group, g.system_name, g.description, g.mechanics_text
-         FROM fact_gifts g
-         LEFT JOIN dim_gift_types t ON t.id = CAST(g.kind AS UNSIGNED)
-         WHERE g.id = ?
-         LIMIT 1'
-    );
-    if (!$statement) {
-        hg_admin_json_error('No se pudo preparar la consulta del don.', 500);
-    }
-    $statement->bind_param('i', $giftId);
-    $statement->execute();
-    $result = $statement->get_result();
-    $gift = $result ? $result->fetch_assoc() : null;
-    $statement->close();
+    $gift = hg_gift_image_mass_fetch_prompt_gift($link, $giftId);
     if (!$gift) {
         hg_admin_json_error('El don no existe.', 404);
     }
@@ -202,17 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         hg_admin_json_error('Don no valido.', 422, ['gift_id' => 'required']);
     }
 
-    $giftName = '';
-    $currentImage = '';
-    $statement = $link->prepare('SELECT name, image_url FROM fact_gifts WHERE id = ? LIMIT 1');
-    if (!$statement) {
-        hg_admin_json_error('No se pudo preparar la consulta del don.', 500);
-    }
-    $statement->bind_param('i', $giftId);
-    $statement->execute();
-    $result = $statement->get_result();
-    $gift = $result ? $result->fetch_assoc() : null;
-    $statement->close();
+    $gift = hg_gift_image_mass_fetch_image_row($link, $giftId);
     if (!$gift) {
         hg_admin_json_error('El don no existe.', 404);
     }
@@ -225,18 +202,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     }
 
     $newImage = (string)$upload['url'];
-    $statement = $link->prepare('UPDATE fact_gifts SET image_url = ? WHERE id = ?');
-    if (!$statement) {
-        hg_gift_image_mass_unlink($newImage, $GIFT_UPLOAD_DIR);
-        hg_admin_json_error('No se pudo preparar la actualizacion del don.', 500);
-    }
-    $statement->bind_param('si', $newImage, $giftId);
-    if (!$statement->execute()) {
-        $statement->close();
+    if (!hg_gift_image_mass_update_image($link, $giftId, $newImage)) {
         hg_gift_image_mass_unlink($newImage, $GIFT_UPLOAD_DIR);
         hg_admin_json_error('No se pudo actualizar la imagen del don.', 500);
     }
-    $statement->close();
 
     if ($currentImage !== '' && $currentImage !== $newImage) {
         hg_gift_image_mass_unlink($currentImage, $GIFT_UPLOAD_DIR);
@@ -248,27 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     );
 }
 
-$gifts = [];
-$query = "
-    SELECT g.id, g.pretty_id, g.name, g.image_url, g.kind,
-           COALESCE(t.name, g.kind) AS kind_name, g.gift_group, g.rank, g.system_name,
-           COALESCE(owners.character_count, 0) AS character_count
-    FROM fact_gifts g
-    LEFT JOIN dim_gift_types t ON t.id = CAST(g.kind AS UNSIGNED)
-    LEFT JOIN (
-        SELECT power_id, COUNT(DISTINCT character_id) AS character_count
-        FROM bridge_characters_powers
-        WHERE power_kind = 'dones'
-        GROUP BY power_id
-    ) owners ON owners.power_id = g.id
-    ORDER BY g.name ASC, g.id ASC
-";
-if ($result = $link->query($query)) {
-    while ($row = $result->fetch_assoc()) {
-        $gifts[] = $row;
-    }
-    $result->close();
-}
+$gifts = hg_gift_image_mass_fetch_gifts($link);
 
 $kindOptions = [];
 $groupOptions = [];
