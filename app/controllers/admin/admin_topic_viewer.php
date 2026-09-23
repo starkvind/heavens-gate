@@ -12,45 +12,21 @@ if (method_exists($link, 'set_charset')) {
 
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/chapters/admin_topic_viewer.php');
 
 if (!function_exists('h')) {
     function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
 
-function topic_viewer_table_exists(mysqli $link): bool
-{
-    $rs = $link->query("SHOW TABLES LIKE 'fact_tools_topic_viewer'");
-    return $rs && $rs->num_rows > 0;
-}
-
-function topic_viewer_column_exists(mysqli $link, string $table, string $column): bool
-{
-    $st = $link->prepare("SELECT 1
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-        LIMIT 1");
-    if (!$st) {
-        return false;
-    }
-    $st->bind_param("ss", $table, $column);
-    $st->execute();
-    $rs = $st->get_result();
-    $ok = ($rs && $rs->num_rows > 0);
-    $st->close();
-    return $ok;
-}
-
-if (!topic_viewer_table_exists($link)) {
+if (!hg_topic_viewer_table_exists($link)) {
     echo "<div class='panel-wrap'><div class='hdr'><h2>Temas de visor de foro</h2><a class='btn' href='/talim'>&larr; Panel</a></div>";
     echo "<p class='adm-admin-error'>Falta la tabla <code>fact_tools_topic_viewer</code> en esta base de datos.</p></div>";
     return;
 }
 
-$hasChapterIdCol = topic_viewer_column_exists($link, 'fact_tools_topic_viewer', 'chapter_id');
-$hasScopeTypeCol = topic_viewer_column_exists($link, 'fact_tools_topic_viewer', 'link_scope_type');
-$hasScopeIdCol = topic_viewer_column_exists($link, 'fact_tools_topic_viewer', 'link_scope_id');
+$hasChapterIdCol = hg_topic_viewer_column_exists($link, 'fact_tools_topic_viewer', 'chapter_id');
+$hasScopeTypeCol = hg_topic_viewer_column_exists($link, 'fact_tools_topic_viewer', 'link_scope_type');
+$hasScopeIdCol = hg_topic_viewer_column_exists($link, 'fact_tools_topic_viewer', 'link_scope_id');
 $supportsEpisodeAndScope = $hasChapterIdCol && $hasScopeTypeCol && $hasScopeIdCol;
 
 $csrfKey = 'csrf_admin_topic_viewer';
@@ -77,94 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
 
         if ($action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
-            if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID inválido para borrar.'];
-            } else {
-                $st = $link->prepare("DELETE FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
-                if (!$st) {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar DELETE: ' . $link->error];
-                } else {
-                    $st->bind_param("i", $id);
-                    if ($st->execute()) {
-                        $flash[] = ['type' => 'ok', 'msg' => 'Tema eliminado.'];
-                    } else {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al borrar: ' . $st->error];
-                    }
-                    $st->close();
-                }
-            }
+            $result = hg_topic_viewer_delete($link, $id);
+            $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
         }
 
         if ($action === 'move') {
             $id = (int)($_POST['id'] ?? 0);
             $direction = (string)($_POST['direction'] ?? '');
-            if ($id <= 0 || !in_array($direction, ['up', 'down'], true)) {
-                $flash[] = ['type' => 'error', 'msg' => 'Movimiento de orden inválido.'];
-            } else {
-                $scopeSql = $supportsEpisodeAndScope
-                    ? "COALESCE(link_scope_type, '') = ? AND COALESCE(link_scope_id, 0) = ?"
-                    : '1 = 1';
-                $currentSelect = $supportsEpisodeAndScope ? "id, COALESCE(link_scope_type, '') AS scope_type, COALESCE(link_scope_id, 0) AS scope_id" : "id, '' AS scope_type, 0 AS scope_id";
-                $stCurrent = $link->prepare("SELECT {$currentSelect} FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
-                if (!$stCurrent) {
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el movimiento.'];
-                } else {
-                    $stCurrent->bind_param('i', $id);
-                    $stCurrent->execute();
-                    $current = $stCurrent->get_result()->fetch_assoc();
-                    $stCurrent->close();
-                    if (!$current) {
-                        $flash[] = ['type' => 'error', 'msg' => 'No se encontró el tema que quieres mover.'];
-                    } else {
-                        $sqlGroup = "SELECT id FROM fact_tools_topic_viewer WHERE {$scopeSql} ORDER BY sort_order ASC, topic_name ASC, id ASC";
-                        $stGroup = $link->prepare($sqlGroup);
-                        if (!$stGroup) {
-                            $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el orden del grupo.'];
-                        } else {
-                            if ($supportsEpisodeAndScope) {
-                                $scopeType = (string)$current['scope_type'];
-                                $scopeId = (int)$current['scope_id'];
-                                $stGroup->bind_param('si', $scopeType, $scopeId);
-                            }
-                            $stGroup->execute();
-                            $groupRows = $stGroup->get_result()->fetch_all(MYSQLI_ASSOC);
-                            $stGroup->close();
-                            $position = -1;
-                            foreach ($groupRows as $index => $groupRow) {
-                                if ((int)$groupRow['id'] === $id) { $position = $index; break; }
-                            }
-                            $target = $direction === 'up' ? $position - 1 : $position + 1;
-                            if ($position < 0 || $target < 0 || $target >= count($groupRows)) {
-                                $flash[] = ['type' => 'error', 'msg' => 'El tema ya está en ese extremo de su agrupación.'];
-                            } else {
-                                $swap = $groupRows[$position];
-                                $groupRows[$position] = $groupRows[$target];
-                                $groupRows[$target] = $swap;
-                                $link->begin_transaction();
-                                $stOrder = $link->prepare('UPDATE fact_tools_topic_viewer SET sort_order = ? WHERE id = ? LIMIT 1');
-                                $ok = (bool)$stOrder;
-                                if ($stOrder) {
-                                    foreach ($groupRows as $index => $groupRow) {
-                                        $order = ($index + 1) * 10;
-                                        $rowId = (int)$groupRow['id'];
-                                        $stOrder->bind_param('ii', $order, $rowId);
-                                        if (!$stOrder->execute()) { $ok = false; break; }
-                                    }
-                                    $stOrder->close();
-                                }
-                                if ($ok) {
-                                    $link->commit();
-                                    $flash[] = ['type' => 'ok', 'msg' => 'Orden actualizado dentro de su agrupación.'];
-                                } else {
-                                    $link->rollback();
-                                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar el orden.'];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            $result = hg_topic_viewer_move($link, $id, $direction, $supportsEpisodeAndScope);
+            $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
         }
+
         if ($action === 'save') {
             $id = (int)($_POST['id'] ?? 0);
             $topicName = trim((string)($_POST['topic_name'] ?? ''));
@@ -188,94 +87,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $flash[] = ['type' => 'error', 'msg' => 'Si eliges tipo de agrupación, link_scope_id debe ser > 0.'];
                 $editId = $id;
             } else {
-                $chapterIdOrNull = ($hasChapterIdCol && $chapterId > 0) ? $chapterId : null;
-
-                if ($id > 0) {
-                    if ($supportsEpisodeAndScope) {
-                        $st = $link->prepare("UPDATE fact_tools_topic_viewer
-                            SET topic_name = ?, topic_id = ?, topic_url = ?, topic_description = ?, sort_order = ?, is_active = ?,
-                                chapter_id = ?, link_scope_type = ?, link_scope_id = ?
-                            WHERE id = ? LIMIT 1");
-                    } else {
-                        $st = $link->prepare("UPDATE fact_tools_topic_viewer
-                            SET topic_name = ?, topic_id = ?, topic_url = ?, topic_description = ?, sort_order = ?, is_active = ?
-                            WHERE id = ? LIMIT 1");
-                    }
-                    if (!$st) {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar UPDATE: ' . $link->error];
-                    } else {
-                        if ($supportsEpisodeAndScope) {
-                            $scopeTypeOrNull = ($scopeType !== '') ? $scopeType : null;
-                            $scopeIdOrNull = ($scopeType !== '' && $scopeId > 0) ? $scopeId : null;
-                            $st->bind_param(
-                                "sissiiisii",
-                                $topicName,
-                                $topicId,
-                                $topicUrl,
-                                $topicDescription,
-                                $sortOrder,
-                                $isActive,
-                                $chapterIdOrNull,
-                                $scopeTypeOrNull,
-                                $scopeIdOrNull,
-                                $id
-                            );
-                        } else {
-                            $st->bind_param("sissiii", $topicName, $topicId, $topicUrl, $topicDescription, $sortOrder, $isActive, $id);
-                        }
-                        if ($st->execute()) {
-                            $flash[] = ['type' => 'ok', 'msg' => 'Tema actualizado.'];
-                            $editId = 0;
-                        } else {
-                            $code = (int)$st->errno;
-                            $msg = ($code === 1062) ? 'Ya existe un tema con ese topic_id.' : ('Error al actualizar: ' . $st->error);
-                            $flash[] = ['type' => 'error', 'msg' => $msg];
-                            $editId = $id;
-                        }
-                        $st->close();
-                    }
-                } else {
-                    if ($supportsEpisodeAndScope) {
-                        $st = $link->prepare("INSERT INTO fact_tools_topic_viewer
-                            (topic_name, topic_id, topic_url, topic_description, sort_order, is_active, chapter_id, link_scope_type, link_scope_id, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                    } else {
-                        $st = $link->prepare("INSERT INTO fact_tools_topic_viewer
-                            (topic_name, topic_id, topic_url, topic_description, sort_order, is_active, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, NOW())");
-                    }
-                    if (!$st) {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar INSERT: ' . $link->error];
-                    } else {
-                        if ($supportsEpisodeAndScope) {
-                            $scopeTypeOrNull = ($scopeType !== '') ? $scopeType : null;
-                            $scopeIdOrNull = ($scopeType !== '' && $scopeId > 0) ? $scopeId : null;
-                            $st->bind_param(
-                                "sissiiisi",
-                                $topicName,
-                                $topicId,
-                                $topicUrl,
-                                $topicDescription,
-                                $sortOrder,
-                                $isActive,
-                                $chapterIdOrNull,
-                                $scopeTypeOrNull,
-                                $scopeIdOrNull
-                            );
-                        } else {
-                            $st->bind_param("sissii", $topicName, $topicId, $topicUrl, $topicDescription, $sortOrder, $isActive);
-                        }
-                        if ($st->execute()) {
-                            $flash[] = ['type' => 'ok', 'msg' => 'Tema creado.'];
-                        } else {
-                            $code = (int)$st->errno;
-                            $msg = ($code === 1062) ? 'Ya existe un tema con ese topic_id.' : ('Error al crear: ' . $st->error);
-                            $flash[] = ['type' => 'error', 'msg' => $msg];
-                            $editId = 0;
-                        }
-                        $st->close();
-                    }
-                }
+                $result = hg_topic_viewer_save($link, $id, [
+                    'topic_name'=>$topicName,
+                    'topic_id'=>$topicId,
+                    'topic_url'=>$topicUrl,
+                    'topic_description'=>$topicDescription,
+                    'sort_order'=>$sortOrder,
+                    'is_active'=>$isActive,
+                    'chapter_id'=>$chapterId,
+                    'scope_type'=>$scopeType,
+                    'scope_id'=>$scopeId,
+                ], $supportsEpisodeAndScope);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
+                $editId = !empty($result['ok']) ? 0 : $id;
             }
         }
     }
@@ -294,16 +118,8 @@ $editRow = [
     'link_scope_id' => 0,
 ];
 if ($editId > 0) {
-    $st = $link->prepare("SELECT * FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
-    if ($st) {
-        $st->bind_param("i", $editId);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($row = $rs->fetch_assoc()) {
-            $editRow = $row;
-        }
-        $st->close();
-    }
+    $loaded = hg_topic_viewer_fetch_row($link, $editId);
+    if ($loaded) $editRow = $loaded;
 }
 
 $hasFlashError = false;
@@ -332,61 +148,8 @@ if (
     ]);
 }
 
-$chapterOptions = [];
-if ($hasChapterIdCol) {
-    $rsChapters = $link->query("SELECT dc.id, dc.name, dc.chapter_number, ds.name AS season_name, ds.season_number
-        FROM dim_chapters dc
-        LEFT JOIN dim_seasons ds ON ds.id = dc.season_id
-        ORDER BY
-            COALESCE(ds.season_number, 9999) ASC,
-            dc.chapter_number ASC,
-            dc.id ASC");
-    if ($rsChapters) {
-        while ($c = $rsChapters->fetch_assoc()) {
-            $chapterOptions[] = $c;
-        }
-        $rsChapters->close();
-    }
-}
-
-$rows = [];
-$sqlRows = "SELECT
-                ftv.id,
-                ftv.topic_name,
-                ftv.topic_id,
-                ftv.topic_url,
-                ftv.topic_description,
-                ftv.sort_order,
-                ftv.is_active,
-                ftv.created_at,
-                ftv.updated_at";
-if ($supportsEpisodeAndScope) {
-    $sqlRows .= ",
-                ftv.chapter_id,
-                ftv.link_scope_type,
-                ftv.link_scope_id,
-                dc.name AS chapter_name,
-                dc.chapter_number,
-                ds.name AS season_name,
-                ds.season_number";
-}
-$sqlRows .= "
-            FROM fact_tools_topic_viewer ftv";
-if ($supportsEpisodeAndScope) {
-    $sqlRows .= "
-            LEFT JOIN dim_chapters dc ON dc.id = ftv.chapter_id
-            LEFT JOIN dim_seasons ds ON ds.id = dc.season_id";
-}
-$sqlRows .= "
-            ORDER BY ftv.is_active DESC, ftv.sort_order ASC, ftv.topic_name ASC, ftv.id DESC";
-
-$rs = $link->query($sqlRows);
-if ($rs) {
-    while ($r = $rs->fetch_assoc()) {
-        $rows[] = $r;
-    }
-    $rs->close();
-}
+$chapterOptions = $hasChapterIdCol ? hg_topic_viewer_chapter_options($link) : [];
+$rows = hg_topic_viewer_rows($link, $supportsEpisodeAndScope);
 $totalTopics = count($rows);
 $activeTopics = 0;
 foreach ($rows as $rowCount) {
