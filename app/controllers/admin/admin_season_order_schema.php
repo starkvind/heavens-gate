@@ -5,39 +5,16 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../domains/chapters/admin_season_order_schema.php');
 
 function hg_asos_h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function hg_asos_table_exists(mysqli $link, string $table): bool
-{
-    $stmt = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-    if (!$stmt) {
-        return false;
-    }
-    $stmt->bind_param('s', $table);
-    $stmt->execute();
-    $stmt->bind_result($count);
-    $stmt->fetch();
-    $stmt->close();
-    return (int)$count > 0;
-}
 
-function hg_asos_count_rows(mysqli $link, string $table): int
-{
-    if (!hg_asos_table_exists($link, $table)) {
-        return 0;
-    }
-    $rs = $link->query("SELECT COUNT(*) AS c FROM `$table`");
-    if (!$rs) {
-        return 0;
-    }
-    $row = $rs->fetch_assoc();
-    $rs->close();
-    return (int)($row['c'] ?? 0);
-}
+
+
 
 $tableReady = hg_asos_table_exists($link, 'bridge_season_order_nodes');
 $rowCount = hg_asos_count_rows($link, 'bridge_season_order_nodes');
