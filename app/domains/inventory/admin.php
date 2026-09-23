@@ -30,40 +30,44 @@ function hg_inventory_admin_item_delete(mysqli $link, int $id): array {
 }
 
 function hg_inventory_admin_item_save(mysqli $link, int $id, array $d): array {
-    if ($id > 0) {
-        $st = $link->prepare('UPDATE fact_items
-            SET name=?, item_type_id=?, skill_name=?, level=?, gnosis=?, rating=?, bonus=?, damage_type=?, metal=?, strength_req=?, dexterity_req=?, image_url=?, description=?, bibliography_id=?
-            WHERE id=?');
-        if (!$st) return ['ok'=>false,'error'=>$link->error,'errno'=>(int)$link->errno,'id'=>$id];
+    try {
+        if ($id > 0) {
+            $st = $link->prepare('UPDATE fact_items
+                SET name=?, item_type_id=?, skill_name=?, level=?, gnosis=?, rating=?, bonus=?, damage_type=?, metal=?, strength_req=?, dexterity_req=?, image_url=?, description=?, bibliography_id=NULLIF(?, 0)
+                WHERE id=?');
+            if (!$st) return ['ok'=>false,'error'=>$link->error,'errno'=>(int)$link->errno,'id'=>$id];
+            $st->bind_param(
+                'sisiiiisiiissii',
+                $d['name'], $d['item_type_id'], $d['skill_name'], $d['level'], $d['gnosis'], $d['rating'], $d['bonus'],
+                $d['damage_type'], $d['metal'], $d['strength_req'], $d['dexterity_req'], $d['image_url'],
+                $d['description'], $d['bibliography_id'], $id
+            );
+            $ok = $st->execute();
+            $error = $st->error;
+            $errno = $st->errno;
+            $st->close();
+            return ['ok'=>$ok,'error'=>$error,'errno'=>$errno,'id'=>$id];
+        }
+
+        $st = $link->prepare('INSERT INTO fact_items
+            (name, item_type_id, skill_name, level, gnosis, rating, bonus, damage_type, metal, strength_req, dexterity_req, image_url, description, bibliography_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NULLIF(?, 0))');
+        if (!$st) return ['ok'=>false,'error'=>$link->error,'errno'=>(int)$link->errno,'id'=>0];
         $st->bind_param(
-            'sisiiiisiiissii',
+            'sisiiiisiiissi',
             $d['name'], $d['item_type_id'], $d['skill_name'], $d['level'], $d['gnosis'], $d['rating'], $d['bonus'],
             $d['damage_type'], $d['metal'], $d['strength_req'], $d['dexterity_req'], $d['image_url'],
-            $d['description'], $d['bibliography_id'], $id
+            $d['description'], $d['bibliography_id']
         );
         $ok = $st->execute();
         $error = $st->error;
         $errno = $st->errno;
+        $newId = $ok ? (int)$link->insert_id : 0;
         $st->close();
-        return ['ok'=>$ok,'error'=>$error,'errno'=>$errno,'id'=>$id];
+        return ['ok'=>$ok,'error'=>$error,'errno'=>$errno,'id'=>$newId];
+    } catch (mysqli_sql_exception $e) {
+        return ['ok'=>false,'error'=>$e->getMessage(),'errno'=>(int)$e->getCode(),'id'=>$id];
     }
-
-    $st = $link->prepare('INSERT INTO fact_items
-        (name, item_type_id, skill_name, level, gnosis, rating, bonus, damage_type, metal, strength_req, dexterity_req, image_url, description, bibliography_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    if (!$st) return ['ok'=>false,'error'=>$link->error,'errno'=>(int)$link->errno,'id'=>0];
-    $st->bind_param(
-        'sisiiiisiiissi',
-        $d['name'], $d['item_type_id'], $d['skill_name'], $d['level'], $d['gnosis'], $d['rating'], $d['bonus'],
-        $d['damage_type'], $d['metal'], $d['strength_req'], $d['dexterity_req'], $d['image_url'],
-        $d['description'], $d['bibliography_id']
-    );
-    $ok = $st->execute();
-    $error = $st->error;
-    $errno = $st->errno;
-    $newId = $ok ? (int)$link->insert_id : 0;
-    $st->close();
-    return ['ok'=>$ok,'error'=>$error,'errno'=>$errno,'id'=>$newId];
 }
 
 function hg_inventory_admin_item_fetch(mysqli $link, int $id): ?array {
