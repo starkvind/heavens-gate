@@ -2,6 +2,7 @@
 // admin_trait_sets.php - Configurar traits por sistema (AJAX)
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/rules/admin.php');
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
@@ -33,127 +34,7 @@ function trait_sets_csrf_ok(): bool {
     return is_string($token) && $token !== '' && isset($_SESSION['csrf_admin_trait_sets']) && hash_equals($_SESSION['csrf_admin_trait_sets'], $token);
 }
 
-function trait_sets_load_systems(mysqli $link): array {
-    $systems = [];
-    if ($rs = $link->query('SELECT id, name FROM dim_systems ORDER BY name')) {
-        while ($r = $rs->fetch_assoc()) {
-            $systems[] = ['id' => (int)$r['id'], 'name' => (string)$r['name']];
-        }
-        $rs->close();
-    }
-    return $systems;
-}
-
-function trait_sets_load_state(mysqli $link, int $systemId): array {
-    $traitsByType = [];
-    $traitOrderFixed = ['Atributos','Talentos','Tecnicas','Conocimientos','Trasfondos'];
-
-    if ($st = $link->prepare("SELECT id, name, kind AS tipo FROM dim_traits WHERE kind IS NOT NULL AND TRIM(kind) <> '' ORDER BY kind, name")) {
-        $st->execute();
-        $rs = $st->get_result();
-        while ($r = $rs->fetch_assoc()) {
-            $tipo = (string)$r['tipo'];
-            if (!isset($traitsByType[$tipo])) $traitsByType[$tipo] = [];
-            $traitsByType[$tipo][] = ['id' => (int)$r['id'], 'name' => (string)$r['name']];
-        }
-        $st->close();
-    }
-
-    $traitTypes = $traitOrderFixed;
-    foreach (array_keys($traitsByType) as $tipo) {
-        if (!in_array($tipo, $traitTypes, true)) $traitTypes[] = $tipo;
-    }
-
-    $existing = [];
-    if ($systemId > 0) {
-        if ($st = $link->prepare('SELECT trait_id, sort_order, is_active FROM fact_trait_sets WHERE system_id = ?')) {
-            $st->bind_param('i', $systemId);
-            $st->execute();
-            $rs = $st->get_result();
-            while ($r = $rs->fetch_assoc()) {
-                $existing[(int)$r['trait_id']] = [
-                    'sort_order' => (int)$r['sort_order'],
-                    'is_active' => (int)$r['is_active'],
-                ];
-            }
-            $st->close();
-        }
-    }
-
-    $groups = [];
-    foreach ($traitTypes as $tipo) {
-        $list = $traitsByType[$tipo] ?? [];
-        if (empty($list)) continue;
-        $traits = [];
-        foreach ($list as $t) {
-            $tid = (int)$t['id'];
-            $ex = $existing[$tid] ?? null;
-            $traits[] = [
-                'id' => $tid,
-                'name' => (string)$t['name'],
-                'checked' => ($ex && (int)$ex['is_active'] === 1),
-                'sort_order' => $ex ? (int)$ex['sort_order'] : 0,
-            ];
-        }
-        $groups[] = ['type' => $tipo, 'traits' => $traits];
-    }
-
-    return [
-        'system_id' => $systemId,
-        'groups' => $groups,
-    ];
-}
-
-function trait_sets_save(mysqli $link, int $systemId, array $includeRaw, array $sortRaw): array {
-    if ($systemId <= 0) {
-        return ['ok' => false, 'message' => 'Sistema invalido.'];
-    }
-
-    $include = array_map('intval', $includeRaw);
-    $include = array_values(array_filter($include, static function($v){ return $v > 0; }));
-
-    $link->begin_transaction();
-    $ok = true;
-
-    if (empty($include)) {
-        if ($st = $link->prepare('DELETE FROM fact_trait_sets WHERE system_id = ?')) {
-            $st->bind_param('i', $systemId);
-            $ok = $st->execute();
-            $st->close();
-        } else {
-            $ok = false;
-        }
-    } else {
-        $idList = implode(',', $include);
-        $sql = "DELETE FROM fact_trait_sets WHERE system_id={$systemId} AND trait_id NOT IN ({$idList})";
-        $ok = $link->query($sql) !== false;
-    }
-
-    if ($ok) {
-        $sqlUpsert = 'INSERT INTO fact_trait_sets (system_id, trait_id, sort_order, is_active) VALUES (?,?,?,1) '
-            . 'ON DUPLICATE KEY UPDATE sort_order=VALUES(sort_order), is_active=1, updated_at=NOW()';
-        if ($st = $link->prepare($sqlUpsert)) {
-            foreach ($include as $tid) {
-                $ord = isset($sortRaw[$tid]) ? (int)$sortRaw[$tid] : 0;
-                $st->bind_param('iii', $systemId, $tid, $ord);
-                if (!$st->execute()) { $ok = false; break; }
-            }
-            $st->close();
-        } else {
-            $ok = false;
-        }
-    }
-
-    if ($ok) {
-        $link->commit();
-        return ['ok' => true, 'message' => 'Guardado.'];
-    }
-
-    $link->rollback();
-    return ['ok' => false, 'message' => 'Error al guardar.'];
-}
-
-$systems = trait_sets_load_systems($link);
+$systems = hg_rules_admin_trait_sets_systems($link);
 $systemId = isset($_GET['system_id']) ? (int)$_GET['system_id'] : (int)($_POST['system_id'] ?? 0);
 if ($systemId <= 0 && !empty($systems)) $systemId = (int)$systems[0]['id'];
 
@@ -162,7 +43,7 @@ if ($isAjaxRequest && function_exists('hg_admin_require_session')) {
 }
 
 if ($isAjaxRequest && (string)($_GET['ajax_mode'] ?? '') === 'state') {
-    $state = trait_sets_load_state($link, $systemId);
+    $state = hg_rules_admin_trait_sets_state($link, $systemId);
     if (function_exists('hg_admin_json_success')) {
         hg_admin_json_success(['systems' => $systems, 'state' => $state], 'Estado');
     }
@@ -179,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_trait_sets'])) {
         }
         $flash[] = ['type' => 'err', 'msg' => 'CSRF invalido.'];
     } else {
-        $save = trait_sets_save(
+        $save = hg_rules_admin_trait_sets_save(
             $link,
             (int)($_POST['system_id'] ?? 0),
             isset($_POST['include']) ? (array)$_POST['include'] : [],
@@ -188,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_trait_sets'])) {
         $systemId = (int)($_POST['system_id'] ?? $systemId);
 
         if ($isAjaxRequest) {
-            $state = trait_sets_load_state($link, $systemId);
+            $state = hg_rules_admin_trait_sets_state($link, $systemId);
             if (!empty($save['ok'])) {
                 if (function_exists('hg_admin_json_success')) {
                     hg_admin_json_success(['systems' => $systems, 'state' => $state], (string)$save['message']);
@@ -209,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_trait_sets'])) {
     }
 }
 
-$initialState = trait_sets_load_state($link, $systemId);
+$initialState = hg_rules_admin_trait_sets_state($link, $systemId);
 
 $systemOptions = '';
 foreach ($systems as $s) {
