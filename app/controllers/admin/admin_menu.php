@@ -1,6 +1,7 @@
 <?php
 // admin_menu.php ? Editor de menu (dim_menu_items)
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/configuration/admin.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -50,38 +51,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $msg = 'No hay campos para actualizar';
                 $errors['fields'] = 'empty';
             } else {
-                $set = [];
-                $types = '';
-                $values = [];
-                foreach ($fields as $k => $v) {
-                    if (!in_array($k, $allowedFields, true)) continue;
-                    if ($k === 'enabled') {
-                        $v = (int)((string)$v === '1' || $v === 1 || $v === true);
-                        $types .= 'i';
-                    } else {
-                        $v = (string)$v;
-                        $types .= 's';
-                    }
-                    $set[] = "$k=?";
-                    $values[] = $v;
-                }
-                if (empty($set)) {
+                $result = hg_configuration_admin_menu_update($link, $id, $fields);
+                if (($result['error'] ?? '') === 'no_allowed_fields') {
                     $msg = 'No hay campos permitidos';
                     $errors['fields'] = 'not_allowed';
+                } elseif (!empty($result['ok'])) {
+                    $ok = true;
+                    $msg = 'Menu actualizado';
                 } else {
-                    $sql = "UPDATE dim_menu_items SET " . implode(',', $set) . " WHERE id=?";
-                    if ($st = $link->prepare($sql)) {
-                        $types .= 'i';
-                        $values[] = $id;
-                        $ok = (bool)($st->bind_param($types, ...$values) && $st->execute());
-                        $st->close();
-                    }
-                    if ($ok) {
-                        $msg = 'Menu actualizado';
-                    } else {
-                        $msg = 'No se pudo actualizar el menu';
-                        $errors['db'] = 'update_failed';
-                    }
+                    $msg = 'No se pudo actualizar el menu';
+                    $errors['db'] = 'update_failed';
                 }
             }
         } elseif ($action === 'create') {
@@ -90,57 +69,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             $label = trim((string)($payload['label'] ?? 'Nuevo menu'));
             if ($label === '') $label = 'Nuevo menu';
 
-            $next = 1;
-            if ($parentId === null) {
-                $res = $link->query("SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM dim_menu_items WHERE parent_id IS NULL");
-                if ($res && ($row = $res->fetch_assoc())) { $next = (int)$row['n']; }
-                if ($res) $res->close();
-            } else {
-                if ($st = $link->prepare("SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM dim_menu_items WHERE parent_id = ?")) {
-                    $st->bind_param('i', $parentId);
-                    $st->execute();
-                    $st->bind_result($n);
-                    if ($st->fetch()) { $next = (int)$n; }
-                    $st->close();
-                }
-            }
-
-            $newId = 0;
-            if ($parentId === null) {
-                $sql = "INSERT INTO dim_menu_items (parent_id,label,href,target,item_type,dynamic_source,css_class,icon,icon_hover,menu_key,enabled,sort_order) VALUES (NULL, ?, '', '_self', 'static', '', '', '', '', '', 1, ?)";
-                if ($st2 = $link->prepare($sql)) {
-                    $st2->bind_param('si', $label, $next);
-                    $ok = (bool)$st2->execute();
-                    $newId = (int)$st2->insert_id;
-                    $st2->close();
-                }
-            } else {
-                $sql = "INSERT INTO dim_menu_items (parent_id,label,href,target,item_type,dynamic_source,css_class,icon,icon_hover,menu_key,enabled,sort_order) VALUES (?, ?, '', '_self', 'static', '', '', '', '', '', 1, ?)";
-                if ($st2 = $link->prepare($sql)) {
-                    $st2->bind_param('isi', $parentId, $label, $next);
-                    $ok = (bool)$st2->execute();
-                    $newId = (int)$st2->insert_id;
-                    $st2->close();
-                }
-            }
-
+            $result = hg_configuration_admin_menu_create($link, $parentId, $label);
+            $ok = !empty($result['ok']);
             if ($ok) {
                 $msg = 'Menu creado';
-                $data = [
-                    'id' => $newId,
-                    'parent_id' => $parentId,
-                    'label' => $label,
-                    'href' => '',
-                    'target' => '_self',
-                    'item_type' => 'static',
-                    'dynamic_source' => '',
-                    'css_class' => '',
-                    'icon' => '',
-                    'icon_hover' => '',
-                    'menu_key' => '',
-                    'enabled' => 1,
-                    'sort_order' => $next,
-                ];
+                $data = $result['data'] ?? null;
             } else {
                 $msg = 'No se pudo crear el menu';
                 $errors['db'] = 'insert_failed';
@@ -152,17 +85,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $msg = 'No hay ids validos para borrar';
                 $errors['ids'] = 'empty';
             } else {
-                $in = implode(',', array_fill(0, count($ids), '?'));
-                $types = str_repeat('i', count($ids));
-                $sql = "UPDATE dim_menu_items SET enabled=0 WHERE id IN ($in)";
-                if ($st = $link->prepare($sql)) {
-                    $st->bind_param($types, ...$ids);
-                    $ok = (bool)$st->execute();
-                    $st->close();
-                }
+                $result = hg_configuration_admin_menu_disable($link, $ids);
+                $ok = !empty($result['ok']);
                 if ($ok) {
                     $msg = 'Elementos eliminados';
-                    $data = ['ids' => $ids];
+                    $data = ['ids' => (array)($result['ids'] ?? $ids)];
                 } else {
                     $msg = 'No se pudieron eliminar los elementos';
                     $errors['db'] = 'delete_failed';
@@ -174,40 +101,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $msg = 'No hay items para actualizar';
                 $errors['items'] = 'empty';
             } else {
-                $ok = true;
-                $updated = 0;
-                foreach ($items as $it) {
-                    $id = (int)($it['id'] ?? 0);
-                    $fields = (array)($it['fields'] ?? []);
-                    if ($id <= 0 || empty($fields)) continue;
-                    $set = [];
-                    $types = '';
-                    $values = [];
-                    foreach ($fields as $k => $v) {
-                        if (!in_array($k, $allowedFields, true)) continue;
-                        if ($k === 'enabled') {
-                            $v = (int)((string)$v === '1' || $v === 1 || $v === true);
-                            $types .= 'i';
-                        } else {
-                            $v = (string)$v;
-                            $types .= 's';
-                        }
-                        $set[] = "$k=?";
-                        $values[] = $v;
-                    }
-                    if (empty($set)) continue;
-                    $sql = "UPDATE dim_menu_items SET " . implode(',', $set) . " WHERE id=?";
-                    if ($st = $link->prepare($sql)) {
-                        $types .= 'i';
-                        $values[] = $id;
-                        $thisOk = (bool)($st->bind_param($types, ...$values) && $st->execute());
-                        $st->close();
-                        $ok = $ok && $thisOk;
-                        if ($thisOk) $updated++;
-                    } else {
-                        $ok = false;
-                    }
-                }
+                $result = hg_configuration_admin_menu_update_bulk($link, $items);
+                $ok = !empty($result['ok']);
+                $updated = (int)($result['updated'] ?? 0);
                 if ($ok) {
                     $msg = 'Cambios guardados';
                     $data = ['updated' => $updated];
@@ -222,36 +118,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $msg = 'No hay orden para guardar';
                 $errors['items'] = 'empty';
             } else {
-                $ok = true;
-                $updated = 0;
-                foreach ($items as $it) {
-                    $id = (int)($it['id'] ?? 0);
-                    $parentId = $it['parent_id'] ?? null;
-                    $order = (int)($it['sort_order'] ?? 0);
-                    if ($id <= 0) continue;
-                    if ($parentId === null || $parentId === '') {
-                        if ($st = $link->prepare("UPDATE dim_menu_items SET parent_id=NULL, sort_order=? WHERE id=?")) {
-                            $st->bind_param('ii', $order, $id);
-                            $thisOk = (bool)$st->execute();
-                            $st->close();
-                            $ok = $ok && $thisOk;
-                            if ($thisOk) $updated++;
-                        } else {
-                            $ok = false;
-                        }
-                    } else {
-                        $pid = (int)$parentId;
-                        if ($st = $link->prepare("UPDATE dim_menu_items SET parent_id=?, sort_order=? WHERE id=?")) {
-                            $st->bind_param('iii', $pid, $order, $id);
-                            $thisOk = (bool)$st->execute();
-                            $st->close();
-                            $ok = $ok && $thisOk;
-                            if ($thisOk) $updated++;
-                        } else {
-                            $ok = false;
-                        }
-                    }
-                }
+                $result = hg_configuration_admin_menu_reorder($link, $items);
+                $ok = !empty($result['ok']);
+                $updated = (int)($result['updated'] ?? 0);
                 if ($ok) {
                     $msg = 'Orden guardado';
                     $data = ['updated' => $updated];
@@ -289,11 +158,7 @@ if (is_dir($iconDir)) {
     foreach (glob($iconDir . '/*.webp') as $f) { $iconFiles[] = basename($f); }
     sort($iconFiles);
 }
-$rows = [];
-if ($rs = $link->query("SELECT id,parent_id,label,href,target,item_type,dynamic_source,css_class,icon,icon_hover,menu_key,enabled,sort_order FROM dim_menu_items ORDER BY parent_id, sort_order, id")) {
-    while ($r = $rs->fetch_assoc()) { $rows[] = $r; }
-    $rs->close();
-}
+$rows = hg_configuration_admin_menu_rows($link);
 
 $parents = [];
 $children = [];
