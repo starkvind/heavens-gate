@@ -168,23 +168,37 @@ if (!function_exists('hg_configuration_admin_menu_create')) {
     }
 }
 
-if (!function_exists('hg_configuration_admin_menu_disable')) {
-    function hg_configuration_admin_menu_disable(mysqli $link, array $ids): array
+if (!function_exists('hg_configuration_admin_menu_delete')) {
+    function hg_configuration_admin_menu_delete(mysqli $link, array $ids): array
     {
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn($v) => $v > 0)));
         if (!$ids) return ['ok' => false, 'error' => 'empty_ids', 'ids' => []];
 
-        $in = implode(',', array_fill(0, count($ids), '?'));
-        $types = str_repeat('i', count($ids));
         try {
-            $st = $link->prepare("UPDATE dim_menu_items SET enabled=0 WHERE id IN ($in)");
-            if (!$st) return ['ok' => false, 'error' => $link->error, 'ids' => $ids];
-            $st->bind_param($types, ...$ids);
-            $ok = $st->execute();
-            $error = $st->error;
-            $st->close();
-            return ['ok' => $ok, 'error' => $error, 'ids' => $ids];
-        } catch (mysqli_sql_exception $e) {
+            $link->begin_transaction();
+
+            // Menu has a self-reference through parent_id. Delete selected children first
+            // so deleting a top-level menu is safe without changing FK semantics.
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            $types = str_repeat('i', count($ids));
+
+            $children = $link->prepare("DELETE FROM dim_menu_items WHERE parent_id IN ($in) AND id IN ($in)");
+            if (!$children) throw new RuntimeException($link->error);
+            $args = array_merge($ids, $ids);
+            $children->bind_param($types . $types, ...$args);
+            if (!$children->execute()) throw new RuntimeException($children->error);
+            $children->close();
+
+            $rows = $link->prepare("DELETE FROM dim_menu_items WHERE id IN ($in)");
+            if (!$rows) throw new RuntimeException($link->error);
+            $rows->bind_param($types, ...$ids);
+            if (!$rows->execute()) throw new RuntimeException($rows->error);
+            $rows->close();
+
+            $link->commit();
+            return ['ok' => true, 'error' => '', 'ids' => $ids];
+        } catch (Throwable $e) {
+            $link->rollback();
             return ['ok' => false, 'error' => $e->getMessage(), 'ids' => $ids];
         }
     }
