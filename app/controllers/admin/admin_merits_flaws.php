@@ -268,17 +268,17 @@ admin_panel_open('Meritos y Defectos', $actions);
     <button class="btn" type="button" id="btnApplyMydFilter">Aplicar</button>
 </form>
 
-<table class="table" id="tablaMyd">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de méritos y defectos"><table class="table adm-wide-table" id="tablaMyd">
     <thead>
         <tr>
             <th class="adm-w-70">ID</th>
-            <th class="adm-w-260">Nombre</th>
+            <th class="adm-w-260 adm-col-name">Nombre</th>
             <th class="adm-w-140">Tipo</th>
             <th class="adm-w-180">Afiliación</th>
             <th class="adm-w-80">Coste</th>
             <th class="adm-w-180">Sistema</th>
             <th class="adm-w-180">Origen</th>
-            <th class="adm-w-170">Acciones</th>
+            <th class="adm-w-170 adm-th-actions">Acciones</th>
         </tr>
     </thead>
     <tbody id="mydTbody">
@@ -295,17 +295,17 @@ admin_panel_open('Meritos y Defectos', $actions);
             <td><?= h((string)$r['cost']) ?></td>
             <td><?= h((string)$r['system_name']) ?></td>
             <td><?= h((string)$r['origin_name']) ?></td>
-            <td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
                 <button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
                 <button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
-            </td>
+                </div></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($rows)): ?>
         <tr><td colspan="8" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
     </tbody>
-</table>
+</table></div>
 
 <div class="pager" id="mydPager">
     <?php
