@@ -7,6 +7,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_catalog_utils.php');
+include_once(__DIR__ . '/../../domains/soundtracks/admin.php');
 
 $phase7AuditHelper = __DIR__ . '/../../helpers/admin_phase7_audit.php';
 if (is_file($phase7AuditHelper)) {
@@ -49,24 +50,7 @@ function hg_abs_normalize_youtube(string $input): string {
     $id = hg_abs_youtube_id($input);
     return $id !== '' ? ('https://www.youtube.com/watch?v=' . $id) : '';
 }
-function hg_abs_soundtrack_exists(mysqli $link, string $title, string $artist, string $youtubeUrl, int $excludeId = 0): bool {
-    $title = trim($title);
-    $artist = trim($artist);
-    $youtubeUrl = trim($youtubeUrl);
-    if ($title === '' || $youtubeUrl === '') return false;
-    $sql = "SELECT id FROM dim_soundtracks WHERE TRIM(COALESCE(title, '')) = ? AND TRIM(COALESCE(artist, '')) = ? AND TRIM(COALESCE(youtube_url, '')) = ? AND id <> ? LIMIT 1";
-    $st = $link->prepare($sql);
-    if (!$st) return false;
-    $foundId = 0;
-    $st->bind_param('sssi', $title, $artist, $youtubeUrl, $excludeId);
-    $ok = false;
-    if ($st->execute()) {
-        $st->bind_result($foundId);
-        $ok = $st->fetch();
-    }
-    $st->close();
-    return (bool)$ok && $foundId > 0;
-}
+
 function hg_abs_dep_summary(array $row): string {
     $parts = [];
     $characters = (int)($row['characters_count'] ?? 0);
@@ -82,210 +66,18 @@ function hg_abs_audit_class(array $flags): string {
     if (count($flags) >= 3) return 'warn';
     return 'review';
 }
-function hg_abs_bridge_total(mysqli $link, int $soundtrackId): int {
-    return hg_table_has_column($link, 'bridge_soundtrack_links', 'soundtrack_id')
-        ? hg_admin_catalog_count_by_id($link, 'bridge_soundtrack_links', 'soundtrack_id', $soundtrackId)
-        : 0;
-}
-function hg_abs_type_label(string $type): string {
-    if ($type === 'personaje') return 'Personaje';
-    if ($type === 'temporada') return 'Temporada';
-    if ($type === 'episodio') return 'Episodio';
-    return ucfirst($type);
-}
-function hg_abs_public_url(string $type, string $prettyId, int $objectId): string {
-    $slug = trim($prettyId) !== '' ? trim($prettyId) : (string)$objectId;
-    if ($slug === '' || $objectId <= 0) return '';
-    if ($type === 'personaje') return '/characters/' . rawurlencode($slug);
-    if ($type === 'temporada') return '/seasons/' . rawurlencode($slug);
-    if ($type === 'episodio') return '/chapters/' . rawurlencode($slug);
-    return '';
-}
-function hg_abs_soundtrack_link_exists(mysqli $link, int $soundtrackId, string $type, int $objectId): bool {
-    if ($soundtrackId <= 0 || $objectId <= 0 || $type === '' || !hg_table_has_column($link, 'bridge_soundtrack_links', 'soundtrack_id')) return false;
-    $sql = 'SELECT id FROM bridge_soundtrack_links WHERE soundtrack_id = ? AND object_type = ? AND object_id = ? LIMIT 1';
-    $st = $link->prepare($sql);
-    if (!$st) return false;
-    $foundId = 0;
-    $ok = false;
-    $st->bind_param('isi', $soundtrackId, $type, $objectId);
-    if ($st->execute()) {
-        $st->bind_result($foundId);
-        $ok = $st->fetch();
-    }
-    $st->close();
-    return (bool)$ok && $foundId > 0;
-}
-function hg_abs_link_object_exists(mysqli $link, string $type, int $objectId): bool {
-    if ($objectId <= 0) return false;
-    $table = $type === 'personaje' ? 'fact_characters' : ($type === 'temporada' ? 'dim_seasons' : ($type === 'episodio' ? 'dim_chapters' : ''));
-    if ($table === '') return false;
-    $sql = "SELECT id FROM `$table` WHERE id = ? LIMIT 1";
-    $st = $link->prepare($sql);
-    if (!$st) return false;
-    $foundId = 0;
-    $ok = false;
-    $st->bind_param('i', $objectId);
-    if ($st->execute()) {
-        $st->bind_result($foundId);
-        $ok = $st->fetch();
-    }
-    $st->close();
-    return (bool)$ok && $foundId > 0;
-}
-function hg_abs_query_rows(mysqli $link, string $sql, ?string $fallbackSql = null): array {
-    $rows = [];
-    $rs = $link->query($sql);
-    if (!$rs && $fallbackSql !== null && trim($fallbackSql) !== '') {
-        if (function_exists('hg_runtime_log_error')) hg_runtime_log_error('admin_bso.query_rows.primary', $link->error . ' | SQL: ' . $sql);
-        $rs = $link->query($fallbackSql);
-    }
-    if ($rs) {
-        while ($row = $rs->fetch_assoc()) $rows[] = $row;
-        $rs->close();
-    } elseif (function_exists('hg_runtime_log_error')) {
-        hg_runtime_log_error('admin_bso.query_rows.final', $link->error . ' | SQL: ' . ($fallbackSql !== null && trim($fallbackSql) !== '' ? $fallbackSql : $sql));
-    }
-    return $rows;
-}
-function hg_abs_format_season_base_label(int $seasonId, string $name, int $seasonNumber): string {
-    $name = trim($name);
-    if ($seasonNumber > 0 && $name !== '') return 'T' . $seasonNumber . ' - ' . $name;
-    if ($seasonNumber > 0) return 'T' . $seasonNumber;
-    return $name !== '' ? $name : ('Temporada #' . $seasonId);
-}
-function hg_abs_format_episode_base_label(int $episodeId, string $name, int $chapterNumber): string {
-    $name = trim($name);
-    if ($chapterNumber > 0 && $name !== '') return 'E' . $chapterNumber . ' - ' . $name;
-    if ($chapterNumber > 0) return 'E' . $chapterNumber;
-    return $name !== '' ? $name : ('Episodio #' . $episodeId);
-}
-function hg_abs_chronicle_name_map(mysqli $link): array {
-    $map = [];
-    if (!hg_table_has_column($link, 'dim_chronicles', 'name')) return $map;
-    $rows = hg_abs_query_rows($link, "SELECT id, COALESCE(NULLIF(TRIM(name), ''), CONCAT('Cronica #', id)) AS chronicle_name FROM dim_chronicles ORDER BY name ASC, id ASC");
-    foreach ($rows as $row) {
-        $id = (int)($row['id'] ?? 0);
-        if ($id <= 0) continue;
-        $map[$id] = (string)($row['chronicle_name'] ?? ('Cronica #' . $id));
-    }
-    return $map;
-}
-function hg_abs_build_link_catalog(mysqli $link): array {
-    static $cache = null;
-    if ($cache !== null) return $cache;
 
-    $chronicleMap = hg_abs_chronicle_name_map($link);
-    $hasCharPretty = hg_table_has_column($link, 'fact_characters', 'pretty_id');
-    $hasCharChronicleId = hg_table_has_column($link, 'fact_characters', 'chronicle_id');
-    $hasSeasonPretty = hg_table_has_column($link, 'dim_seasons', 'pretty_id');
-    $hasSeasonNumber = hg_table_has_column($link, 'dim_seasons', 'season_number');
-    $hasSeasonChronicleId = hg_table_has_column($link, 'dim_seasons', 'chronicle_id');
-    $hasChapterPretty = hg_table_has_column($link, 'dim_chapters', 'pretty_id');
-    $hasChapterNumber = hg_table_has_column($link, 'dim_chapters', 'chapter_number');
-    $hasChapterSeasonId = hg_table_has_column($link, 'dim_chapters', 'season_id');
-    $hasChapterPlayedDate = hg_table_has_column($link, 'dim_chapters', 'played_date');
 
-    $options = ['personaje' => [], 'temporada' => [], 'episodio' => []];
-    $labels = ['personaje' => [], 'temporada' => [], 'episodio' => []];
-    $pretty = ['personaje' => [], 'temporada' => [], 'episodio' => []];
-    $seasonBaseById = [];
 
-    $seasonRows = hg_abs_query_rows(
-        $link,
-        "SELECT s.id,
-                COALESCE(NULLIF(TRIM(s.name), ''), CONCAT('Temporada #', s.id)) AS season_name,
-                " . ($hasSeasonNumber ? "COALESCE(s.season_number, 0)" : "0") . " AS season_number,
-                " . ($hasSeasonPretty ? "COALESCE(s.pretty_id, '')" : "''") . " AS pretty_id,
-                " . ($hasSeasonChronicleId ? "COALESCE(s.chronicle_id, 0)" : "0") . " AS chronicle_id
-         FROM dim_seasons s
-         ORDER BY " . ($hasSeasonNumber ? "season_number ASC, " : "") . "season_name ASC, s.id ASC"
-    );
-    foreach ($seasonRows as $row) {
-        $id = (int)($row['id'] ?? 0);
-        if ($id <= 0) continue;
-        $baseLabel = hg_abs_format_season_base_label($id, (string)($row['season_name'] ?? ''), (int)($row['season_number'] ?? 0));
-        $chronicleId = (int)($row['chronicle_id'] ?? 0);
-        $chronicleLabel = ($chronicleId > 0 && isset($chronicleMap[$chronicleId])) ? $chronicleMap[$chronicleId] : 'Sin cronica asociada';
-        $label = $baseLabel . ' | ' . $chronicleLabel;
-        $prettyId = (string)($row['pretty_id'] ?? '');
-        $seasonBaseById[$id] = $baseLabel;
-        $labels['temporada'][$id] = $label;
-        $pretty['temporada'][$id] = $prettyId;
-        $options['temporada'][] = ['id' => $id, 'label' => $label, 'pretty_id' => $prettyId];
-    }
 
-    $characterRows = hg_abs_query_rows(
-        $link,
-        "SELECT c.id,
-                COALESCE(NULLIF(TRIM(c.name), ''), CONCAT('Personaje #', c.id)) AS character_name,
-                " . ($hasCharPretty ? "COALESCE(c.pretty_id, '')" : "''") . " AS pretty_id,
-                " . ($hasCharChronicleId ? "COALESCE(c.chronicle_id, 0)" : "0") . " AS chronicle_id
-         FROM fact_characters c
-         ORDER BY character_name ASC, c.id ASC"
-    );
-    foreach ($characterRows as $row) {
-        $id = (int)($row['id'] ?? 0);
-        if ($id <= 0) continue;
-        $chronicleId = (int)($row['chronicle_id'] ?? 0);
-        $chronicleLabel = ($chronicleId > 0 && isset($chronicleMap[$chronicleId])) ? $chronicleMap[$chronicleId] : 'Sin cronica asociada';
-        $label = '#' . $id . ' | ' . (string)($row['character_name'] ?? ('Personaje #' . $id)) . ' | ' . $chronicleLabel;
-        $prettyId = (string)($row['pretty_id'] ?? '');
-        $labels['personaje'][$id] = $label;
-        $pretty['personaje'][$id] = $prettyId;
-        $options['personaje'][] = ['id' => $id, 'label' => $label, 'pretty_id' => $prettyId];
-    }
 
-    $chapterRows = hg_abs_query_rows(
-        $link,
-        "SELECT c.id,
-                COALESCE(NULLIF(TRIM(c.name), ''), CONCAT('Episodio #', c.id)) AS chapter_name,
-                " . ($hasChapterNumber ? "COALESCE(c.chapter_number, 0)" : "0") . " AS chapter_number,
-                " . ($hasChapterSeasonId ? "COALESCE(c.season_id, 0)" : "0") . " AS season_id,
-                " . ($hasChapterPretty ? "COALESCE(c.pretty_id, '')" : "''") . " AS pretty_id
-         FROM dim_chapters c
-         ORDER BY " . ($hasChapterPlayedDate ? "c.played_date DESC, " : "") . ($hasChapterNumber ? "chapter_number DESC, " : "") . "c.id DESC"
-    );
-    foreach ($chapterRows as $row) {
-        $id = (int)($row['id'] ?? 0);
-        if ($id <= 0) continue;
-        $seasonId = (int)($row['season_id'] ?? 0);
-        $seasonLabel = ($seasonId > 0 && isset($seasonBaseById[$seasonId])) ? $seasonBaseById[$seasonId] : 'Sin temporada asociada';
-        $label = hg_abs_format_episode_base_label($id, (string)($row['chapter_name'] ?? ''), (int)($row['chapter_number'] ?? 0)) . ' | ' . $seasonLabel;
-        $prettyId = (string)($row['pretty_id'] ?? '');
-        $labels['episodio'][$id] = $label;
-        $pretty['episodio'][$id] = $prettyId;
-        $options['episodio'][] = ['id' => $id, 'label' => $label, 'pretty_id' => $prettyId];
-    }
 
-    $cache = ['options' => $options, 'labels' => $labels, 'pretty' => $pretty];
-    return $cache;
-}
-function hg_abs_fetch_link_options(mysqli $link): array {
-    $catalog = hg_abs_build_link_catalog($link);
-    return (array)($catalog['options'] ?? ['personaje' => [], 'temporada' => [], 'episodio' => []]);
-}
-function hg_abs_fetch_links_by_soundtrack(mysqli $link): array {
-    if (!hg_table_has_column($link, 'bridge_soundtrack_links', 'soundtrack_id')) return [];
-    $catalog = hg_abs_build_link_catalog($link);
-    $labels = (array)($catalog['labels'] ?? []);
-    $pretty = (array)($catalog['pretty'] ?? []);
-    $rows = hg_abs_query_rows($link, "SELECT id, soundtrack_id, object_type, object_id FROM bridge_soundtrack_links ORDER BY soundtrack_id ASC, object_type ASC, object_id ASC, id ASC");
-    $map = [];
-    foreach ($rows as $row) {
-        $sid = (int)($row['soundtrack_id'] ?? 0);
-        $type = (string)($row['object_type'] ?? '');
-        $objectId = (int)($row['object_id'] ?? 0);
-        if ($sid <= 0 || $type === '' || $objectId <= 0) continue;
-        $row['object_label'] = (string)($labels[$type][$objectId] ?? ('#' . $objectId));
-        $row['object_pretty_id'] = (string)($pretty[$type][$objectId] ?? '');
-        $row['type_label'] = hg_abs_type_label($type);
-        $row['public_url'] = hg_abs_public_url($type, (string)($row['object_pretty_id'] ?? ''), $objectId);
-        if (!isset($map[$sid])) $map[$sid] = [];
-        $map[$sid][] = $row;
-    }
-    return $map;
-}
+
+
+
+
+
+
 
 $hasAddedAt = hg_table_has_column($link, 'dim_soundtracks', 'added_at');
 $hasCreatedAt = hg_table_has_column($link, 'dim_soundtracks', 'created_at');
@@ -316,78 +108,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $action = (string)($_POST['crud_action'] ?? '');
         $id = (int)($_POST['id'] ?? 0);
         if ($action === 'delete') {
-            if ($id <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID invalido para eliminar.'];
-            } else {
-                $deps = [
-                    ['key' => 'links', 'label' => 'Vinculos BSO', 'count' => hg_abs_bridge_total($link, $id)],
-                ];
-                if (hg_admin_catalog_dependencies_total($deps) > 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'No se puede borrar el tema porque tiene vinculos activos: ' . hg_admin_catalog_dependencies_summary($deps) . '.'];
-                } elseif ($st = $link->prepare('DELETE FROM dim_soundtracks WHERE id = ?')) {
-                    $st->bind_param('i', $id);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Tema eliminado.'];
-                    else { hg_runtime_log_error('admin_bso.delete', $st->error); $flash[] = ['type' => 'error', 'msg' => 'No se pudo eliminar el tema.']; }
-                    $st->close();
-                } else {
-                    hg_runtime_log_error('admin_bso.delete.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el borrado del tema.'];
-                }
-            }
+            $result = hg_abs_delete_soundtrack($link, $id);
+            $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
         }
         if ($action === 'add_link') {
             $soundtrackId = $id > 0 ? $id : (int)($_POST['soundtrack_id'] ?? 0);
             $objectType = trim((string)($_POST['link_object_type'] ?? ''));
             $objectId = (int)($_POST['link_object_id'] ?? 0);
-            if ($soundtrackId <= 0 || !in_array($objectType, ['personaje', 'temporada', 'episodio'], true) || $objectId <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'Datos de vinculo invalidos.'];
+            if ($soundtrackId <= 0 || !in_array($objectType, ['personaje','temporada','episodio'], true) || $objectId <= 0) {
+                $flash[] = ['type'=>'error','msg'=>'Datos de vinculo invalidos.'];
             } elseif (!hg_table_has_column($link, 'bridge_soundtrack_links', 'soundtrack_id')) {
-                $flash[] = ['type' => 'error', 'msg' => 'La tabla de vinculos BSO no esta disponible en este entorno.'];
+                $flash[] = ['type'=>'error','msg'=>'La tabla de vinculos BSO no esta disponible en este entorno.'];
             } elseif (!hg_abs_link_object_exists($link, $objectType, $objectId)) {
-                $flash[] = ['type' => 'error', 'msg' => 'El destino seleccionado ya no existe.'];
+                $flash[] = ['type'=>'error','msg'=>'El destino seleccionado ya no existe.'];
             } elseif (hg_abs_soundtrack_link_exists($link, $soundtrackId, $objectType, $objectId)) {
-                $flash[] = ['type' => 'error', 'msg' => 'Ese vinculo ya existe para el tema.'];
+                $flash[] = ['type'=>'error','msg'=>'Ese vinculo ya existe para el tema.'];
             } else {
-                $hasLinkCreatedAt = hg_table_has_column($link, 'bridge_soundtrack_links', 'created_at');
-                $hasLinkUpdatedAt = hg_table_has_column($link, 'bridge_soundtrack_links', 'updated_at');
-                $cols = ['soundtrack_id', 'object_type', 'object_id'];
-                $vals = [$soundtrackId, $objectType, $objectId];
-                $types = 'isi';
-                if ($hasLinkCreatedAt) $cols[] = 'created_at';
-                if ($hasLinkUpdatedAt) $cols[] = 'updated_at';
-                $ph = [];
-                foreach ($cols as $col) $ph[] = ($col === 'created_at' || $col === 'updated_at') ? 'NOW()' : '?';
-                $sql = "INSERT INTO bridge_soundtrack_links (`" . implode('`,`', $cols) . "`) VALUES (" . implode(',', $ph) . ")";
-                if ($st = $link->prepare($sql)) {
-                    $st->bind_param($types, ...$vals);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo anadido al tema.'];
-                    else {
-                        hg_runtime_log_error('admin_bso.add_link', $st->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo anadir el vinculo al tema.'];
-                    }
-                    $st->close();
-                } else {
-                    hg_runtime_log_error('admin_bso.add_link.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el alta del vinculo.'];
-                }
+                $result = hg_abs_add_link($link,$soundtrackId,$objectType,$objectId);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
         }
         if ($action === 'delete_link') {
             $linkId = (int)($_POST['link_id'] ?? 0);
-            if ($linkId <= 0) {
-                $flash[] = ['type' => 'error', 'msg' => 'ID de vinculo invalido.'];
-            } elseif ($st = $link->prepare('DELETE FROM bridge_soundtrack_links WHERE id = ?')) {
-                $st->bind_param('i', $linkId);
-                if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Vinculo eliminado del tema.'];
-                else {
-                    hg_runtime_log_error('admin_bso.delete_link', $st->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo eliminar el vinculo del tema.'];
-                }
-                $st->close();
-            } else {
-                hg_runtime_log_error('admin_bso.delete_link.prepare', $link->error);
-                $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el borrado del vinculo.'];
-            }
+            $result = hg_abs_delete_link($link,$linkId);
+            $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
         }
         if ($action === 'fetch_link_options') {
             $ajaxLinkObjectType = trim((string)($_POST['link_object_type'] ?? ''));
@@ -408,108 +152,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             $addedAt = $hasAddedAt ? trim((string)($_POST['added_at'] ?? '')) : '';
 
             if ($title === '') {
-                $flash[] = ['type' => 'error', 'msg' => 'El titulo es obligatorio.'];
+                $flash[] = ['type'=>'error','msg'=>'El titulo es obligatorio.'];
             } elseif ($hasYoutubeUrl && $youtubeUrl === '') {
-                $flash[] = ['type' => 'error', 'msg' => 'El enlace o ID de YouTube no es valido.'];
-            } elseif ($hasYoutubeUrl && hg_abs_soundtrack_exists($link, $title, $artist, $youtubeUrl, $id)) {
-                $flash[] = ['type' => 'error', 'msg' => 'Ya existe otro tema con ese titulo, artista y enlace.'];
-            } elseif ($action === 'create') {
-                $cols = ['title'];
-                $vals = [$title];
-                $types = 's';
-                if ($hasArtist) { $cols[] = 'artist'; $vals[] = $artist; $types .= 's'; }
-                if ($hasYoutubeUrl) { $cols[] = 'youtube_url'; $vals[] = $youtubeUrl; $types .= 's'; }
-                if ($hasContextTitle) { $cols[] = 'context_title'; $vals[] = $contextTitle; $types .= 's'; }
-                if ($hasAddedAt && preg_match('/^\d{4}-\d{2}-\d{2}$/', $addedAt)) { $cols[] = 'added_at'; $vals[] = $addedAt; $types .= 's'; }
-                if ($hasCreatedAt) $cols[] = 'created_at';
-                if ($hasUpdatedAt) $cols[] = 'updated_at';
-                $ph = [];
-                foreach ($cols as $col) $ph[] = ($col === 'created_at' || $col === 'updated_at') ? 'NOW()' : '?';
-                $sql = "INSERT INTO dim_soundtracks (`" . implode('`,`', $cols) . "`) VALUES (" . implode(',', $ph) . ")";
-                if ($st = $link->prepare($sql)) {
-                    $st->bind_param($types, ...$vals);
-                    if ($st->execute()) {
-                        hg_update_pretty_id_if_exists($link, 'dim_soundtracks', (int)$link->insert_id, $title);
-                        hg_content_touch_table($link, 'dim_soundtracks', (int)$link->insert_id);
-                        $flash[] = ['type' => 'ok', 'msg' => 'Tema creado.'];
-                    } else {
-                        hg_runtime_log_error('admin_bso.create', $st->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo crear el tema.'];
-                    }
-                    $st->close();
-                } else {
-                    hg_runtime_log_error('admin_bso.create.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el alta del tema.'];
-                }
+                $flash[] = ['type'=>'error','msg'=>'El enlace o ID de YouTube no es valido.'];
+            } elseif ($hasYoutubeUrl && hg_abs_soundtrack_exists($link,$title,$artist,$youtubeUrl,$id)) {
+                $flash[] = ['type'=>'error','msg'=>'Ya existe otro tema con ese titulo, artista y enlace.'];
             } else {
-                if ($id <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'ID invalido para actualizar.'];
-                } else {
-                    $sets = ['`title` = ?'];
-                    $vals = [$title];
-                    $types = 's';
-                    if ($hasArtist) { $sets[] = '`artist` = ?'; $vals[] = $artist; $types .= 's'; }
-                    if ($hasYoutubeUrl) { $sets[] = '`youtube_url` = ?'; $vals[] = $youtubeUrl; $types .= 's'; }
-                    if ($hasContextTitle) { $sets[] = '`context_title` = ?'; $vals[] = $contextTitle; $types .= 's'; }
-                    if ($hasAddedAt && preg_match('/^\d{4}-\d{2}-\d{2}$/', $addedAt)) { $sets[] = '`added_at` = ?'; $vals[] = $addedAt; $types .= 's'; }
-                    if ($hasUpdatedAt) $sets[] = '`updated_at` = NOW()';
-                    $vals[] = $id;
-                    $types .= 'i';
-                    $sql = "UPDATE dim_soundtracks SET " . implode(', ', $sets) . " WHERE id = ?";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param($types, ...$vals);
-                        if ($st->execute()) {
-                            hg_update_pretty_id_if_exists($link, 'dim_soundtracks', $id, $title);
-                            hg_content_touch_table($link, 'dim_soundtracks', $id);
-                            $flash[] = ['type' => 'ok', 'msg' => 'Tema actualizado.'];
-                        } else {
-                            hg_runtime_log_error('admin_bso.update', $st->error);
-                            $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar el tema.'];
-                        }
-                        $st->close();
-                    } else {
-                        hg_runtime_log_error('admin_bso.update.prepare', $link->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar la actualizacion del tema.'];
-                    }
-                }
+                $result = hg_abs_save_soundtrack($link,$action,$id,[
+                    'artist'=>$hasArtist,
+                    'youtube_url'=>$hasYoutubeUrl,
+                    'context_title'=>$hasContextTitle,
+                    'added_at'=>$hasAddedAt,
+                    'created_at'=>$hasCreatedAt,
+                    'updated_at'=>$hasUpdatedAt,
+                ],[
+                    'title'=>$title,
+                    'artist'=>$artist,
+                    'youtube_url'=>$youtubeUrl,
+                    'context_title'=>$contextTitle,
+                    'added_at'=>$addedAt,
+                ]);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
         }
     }
 }
-
-$select = [
-    's.id',
-    "COALESCE(s.title, '') AS title",
-    $hasArtist ? "COALESCE(s.artist, '') AS artist" : "'' AS artist",
-    $hasContextTitle ? "COALESCE(s.context_title, '') AS context_title" : "'' AS context_title",
-    $hasYoutubeUrl ? "COALESCE(s.youtube_url, '') AS youtube_url" : "'' AS youtube_url",
-    $hasAddedAt ? "COALESCE(CAST(s.added_at AS CHAR), '') AS added_at" : "'' AS added_at",
-    ($hasBridge && $hasBridgeObjectType) ? "(SELECT COUNT(*) FROM bridge_soundtrack_links b WHERE b.soundtrack_id = s.id AND b.object_type = 'personaje') AS characters_count" : '0 AS characters_count',
-    ($hasBridge && $hasBridgeObjectType) ? "(SELECT COUNT(*) FROM bridge_soundtrack_links b WHERE b.soundtrack_id = s.id AND b.object_type = 'temporada') AS seasons_count" : '0 AS seasons_count',
-    ($hasBridge && $hasBridgeObjectType) ? "(SELECT COUNT(*) FROM bridge_soundtrack_links b WHERE b.soundtrack_id = s.id AND b.object_type = 'episodio') AS chapters_count" : '0 AS chapters_count',
-    $hasBridge ? "(SELECT COUNT(*) FROM bridge_soundtrack_links b WHERE b.soundtrack_id = s.id) AS links_count" : '0 AS links_count',
-];
 
 $rows = [];
 $rowsFull = [];
 $auditBsoCount = 0;
 $auditBsoYoutubeCount = 0;
 $bsoWithoutLinksCount = 0;
-$rs = $link->query('SELECT ' . implode(', ', $select) . ' FROM dim_soundtracks s ORDER BY ' . ($hasAddedAt ? 's.added_at DESC, ' : '') . 's.id DESC');
-if ($rs) {
-    while ($row = $rs->fetch_assoc()) {
-        $row['dependency_summary'] = hg_abs_dep_summary($row);
-        $row['youtube_id'] = hg_abs_youtube_id((string)($row['youtube_url'] ?? ''));
-        $row['audit_flags'] = function_exists('hg_phase7_soundtrack_flags') ? hg_phase7_soundtrack_flags($row) : [];
-        $row['audit_summary'] = function_exists('hg_phase7_build_flags_summary') ? hg_phase7_build_flags_summary((array)$row['audit_flags']) : (!empty($row['audit_flags']) ? implode(' | ', (array)$row['audit_flags']) : 'OK');
-        $row['audit_class'] = hg_abs_audit_class((array)$row['audit_flags']);
-        if (!empty($row['audit_flags'])) $auditBsoCount++;
-        if (in_array('Sin YouTube', (array)$row['audit_flags'], true) || in_array('YouTube no normalizado', (array)$row['audit_flags'], true)) $auditBsoYoutubeCount++;
-        if ((int)($row['links_count'] ?? 0) <= 0) $bsoWithoutLinksCount++;
-        $rows[] = $row;
-        $rowsFull[] = $row;
-    }
-    $rs->close();
+$baseRows = hg_abs_fetch_soundtrack_rows($link,[
+    'artist'=>$hasArtist,
+    'context_title'=>$hasContextTitle,
+    'youtube_url'=>$hasYoutubeUrl,
+    'added_at'=>$hasAddedAt,
+    'bridge'=>$hasBridge,
+    'bridge_object_type'=>$hasBridgeObjectType,
+]);
+foreach ($baseRows as $row) {
+    $row['dependency_summary'] = hg_abs_dep_summary($row);
+    $row['youtube_id'] = hg_abs_youtube_id((string)($row['youtube_url'] ?? ''));
+    $row['audit_flags'] = function_exists('hg_phase7_soundtrack_flags') ? hg_phase7_soundtrack_flags($row) : [];
+    $row['audit_summary'] = function_exists('hg_phase7_build_flags_summary') ? hg_phase7_build_flags_summary((array)$row['audit_flags']) : (!empty($row['audit_flags']) ? implode(' | ', (array)$row['audit_flags']) : 'OK');
+    $row['audit_class'] = hg_abs_audit_class((array)$row['audit_flags']);
+    if (!empty($row['audit_flags'])) $auditBsoCount++;
+    if (in_array('Sin YouTube', (array)$row['audit_flags'], true) || in_array('YouTube no normalizado', (array)$row['audit_flags'], true)) $auditBsoYoutubeCount++;
+    if ((int)($row['links_count'] ?? 0) <= 0) $bsoWithoutLinksCount++;
+    $rows[] = $row;
+    $rowsFull[] = $row;
 }
 $linkOptions = $hasBridge ? hg_abs_fetch_link_options($link) : ['personaje' => [], 'temporada' => [], 'episodio' => []];
 $linksBySoundtrack = $hasBridge ? hg_abs_fetch_links_by_soundtrack($link) : [];
