@@ -8,21 +8,9 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/rules/admin.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function fetchPairs(mysqli $link, string $sql): array {
-    $out = [];
-    $q = @$link->query($sql);
-    if (!$q) return $out;
-    while ($r = $q->fetch_assoc()) {
-        $id = isset($r['id']) ? (int)$r['id'] : 0;
-        $nm = (string)($r['name'] ?? '');
-        if ($id > 0) $out[$id] = $nm;
-    }
-    $q->close();
-    return $out;
-}
-
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_traits';
 if (function_exists('hg_admin_ensure_csrf_token')) {
     $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
@@ -49,21 +37,10 @@ $q       = trim((string)($_GET['q'] ?? ''));
 $offset  = ($page - 1) * $perPage;
 $flash = [];
 
-$opts_origins = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name");
-$opts_kinds = [];
-if ($rs = $link->query("SELECT DISTINCT kind FROM dim_traits WHERE kind IS NOT NULL AND TRIM(kind) <> '' ORDER BY kind ASC")) {
-    while ($r = $rs->fetch_assoc()) {
-        $opts_kinds[] = (string)($r['kind'] ?? '');
-    }
-    $rs->close();
-}
-$opts_classifications = [];
-if ($rs = $link->query("SELECT DISTINCT classification FROM dim_traits WHERE classification IS NOT NULL AND TRIM(classification) <> '' ORDER BY classification ASC")) {
-    while ($r = $rs->fetch_assoc()) {
-        $opts_classifications[] = (string)($r['classification'] ?? '');
-    }
-    $rs->close();
-}
+$traitOptions = hg_rules_admin_traits_options($link);
+$opts_origins = $traitOptions['origins'];
+$opts_kinds = $traitOptions['kinds'];
+$opts_classifications = $traitOptions['classifications'];
 
 $isAjaxCrudRequest = (
     $_SERVER['REQUEST_METHOD'] === 'POST'
@@ -109,57 +86,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         foreach ($flash as $m) { if (($m['type'] ?? '') === 'error') { $hasErr = true; break; } }
 
         if (!$hasErr) {
+            $data = [
+                'name' => $name,
+                'kind' => $kind,
+                'classification' => $classification,
+                'description' => $description,
+                'levels' => $levels,
+                'posse' => $posse,
+                'special' => $special,
+                'bibliography_id' => $bibliography_id,
+            ];
             if ($action === 'create') {
-                $sql = "INSERT INTO dim_traits (name, kind, classification, description, levels, posse, special, bibliography_id, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), NOW(), NOW())";
-                $st = $link->prepare($sql);
-                if (!$st) {
-                    $flash[] = ['type'=>'error','msg'=>'Error al preparar INSERT: '.$link->error];
+                $result = hg_rules_admin_traits_create($link, $data);
+                if (!empty($result['ok'])) {
+                    hg_update_pretty_id_if_exists($link, 'dim_traits', (int)$result['id'], $name);
+                    $flash[] = ['type'=>'ok','msg'=>'Trait creado correctamente.'];
                 } else {
-                    $st->bind_param("sssssssi", $name, $kind, $classification, $description, $levels, $posse, $special, $bibliography_id);
-                    if ($st->execute()) {
-                        $newId = (int)$link->insert_id;
-                        hg_update_pretty_id_if_exists($link, 'dim_traits', $newId, $name);
-                        $flash[] = ['type'=>'ok','msg'=>'Trait creado correctamente.'];
-                    } else {
-                        $flash[] = ['type'=>'error','msg'=>'Error al crear: '.$st->error];
-                    }
-                    $st->close();
+                    $flash[] = ['type'=>'error','msg'=>'Error al crear: '.(string)($result['error'] ?? '')];
                 }
             } elseif ($action === 'update') {
                 if ($id <= 0) {
                     $flash[] = ['type'=>'error','msg'=>'ID inválido para actualizar.'];
                 } else {
-                    $sql = "UPDATE dim_traits
-                            SET name=?, kind=?, classification=?, description=?, levels=?, posse=?, special=?, bibliography_id=NULLIF(?, 0), updated_at=NOW()
-                            WHERE id=?";
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar UPDATE: '.$link->error];
+                    $result = hg_rules_admin_traits_update($link, $id, $data);
+                    if (!empty($result['ok'])) {
+                        hg_update_pretty_id_if_exists($link, 'dim_traits', $id, $name);
+                        $flash[] = ['type'=>'ok','msg'=>'Trait actualizado.'];
                     } else {
-                        $st->bind_param("sssssssii", $name, $kind, $classification, $description, $levels, $posse, $special, $bibliography_id, $id);
-                        if ($st->execute()) {
-                            hg_update_pretty_id_if_exists($link, 'dim_traits', $id, $name);
-                            $flash[] = ['type'=>'ok','msg'=>'Trait actualizado.'];
-                        } else {
-                            $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.$st->error];
-                        }
-                        $st->close();
+                        $flash[] = ['type'=>'error','msg'=>'Error al actualizar: '.(string)($result['error'] ?? '')];
                     }
                 }
             } elseif ($action === 'delete') {
                 if ($id <= 0) {
                     $flash[] = ['type'=>'error','msg'=>'ID inválido para borrar.'];
                 } else {
-                    $st = $link->prepare("DELETE FROM dim_traits WHERE id=?");
-                    if (!$st) {
-                        $flash[] = ['type'=>'error','msg'=>'Error al preparar DELETE: '.$link->error];
-                    } else {
-                        $st->bind_param("i", $id);
-                        if ($st->execute()) $flash[] = ['type'=>'ok','msg'=>'Trait eliminado.'];
-                        else $flash[] = ['type'=>'error','msg'=>'Error al borrar: '.$st->error];
-                        $st->close();
-                    }
+                    $result = hg_rules_admin_traits_delete($link, $id);
+                    $flash[] = !empty($result['ok'])
+                        ? ['type'=>'ok','msg'=>'Trait eliminado.']
+                        : ['type'=>'error','msg'=>'Error al borrar: '.(string)($result['error'] ?? '')];
                 }
             }
         }
@@ -212,35 +176,13 @@ if ($ajaxMode === 'search' || $ajaxMode === '1') {
         hg_admin_require_session(true);
     }
     $qAjax = trim((string)($_GET['q'] ?? ''));
-    $whereAjax = "WHERE 1=1";
-    $typesAjax = "";
-    $paramsAjax = [];
-    if ($qAjax !== '') {
-        $whereAjax .= " AND (name LIKE ? OR kind LIKE ? OR classification LIKE ?)";
-        $typesAjax = "sss";
-        $needleAjax = "%".$qAjax."%";
-        $paramsAjax[] = $needleAjax;
-        $paramsAjax[] = $needleAjax;
-        $paramsAjax[] = $needleAjax;
-    }
-
-    $sqlAjax = "SELECT id, name, kind, classification, description, levels, posse, special, bibliography_id, pretty_id
-                FROM dim_traits
-                ".$whereAjax."
-                ORDER BY id DESC";
-    $stAjax = $link->prepare($sqlAjax);
-    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
-    $stAjax->execute();
-    $rsAjax = $stAjax->get_result();
-
-    $rowsAjax = [];
+    $rowsAjax = hg_rules_admin_traits_search($link, $qAjax);
     $rowMapAjax = [];
-    while ($r = $rsAjax->fetch_assoc()) {
+    foreach ($rowsAjax as &$r) {
         $r['origin_name'] = $opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '';
-        $rowsAjax[] = $r;
         $rowMapAjax[(int)$r['id']] = $r;
     }
-    $stAjax->close();
+    unset($r);
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -252,52 +194,18 @@ if ($ajaxMode === 'search' || $ajaxMode === '1') {
     exit;
 }
 
-$where = "WHERE 1=1";
-$types = "";
-$params = [];
-if ($q !== '') {
-    $where .= " AND (name LIKE ? OR kind LIKE ? OR classification LIKE ?)";
-    $types .= "sss";
-    $needle = "%".$q."%";
-    $params[] = $needle;
-    $params[] = $needle;
-    $params[] = $needle;
-}
-
-$sqlCnt = "SELECT COUNT(*) AS c FROM dim_traits ".$where;
-$stC = $link->prepare($sqlCnt);
-if ($types !== '') $stC->bind_param($types, ...$params);
-$stC->execute();
-$rsC = $stC->get_result();
-$total = ($rsC && ($rowC = $rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
-$stC->close();
-
+$total = hg_rules_admin_traits_count($link, $q);
 $pages = max(1, (int)ceil($total / $perPage));
 $page  = min($page, $pages);
 $offset= ($page - 1) * $perPage;
 
-$sqlList = "SELECT id, name, kind, classification, description, levels, posse, special, bibliography_id, pretty_id
-            FROM dim_traits
-            ".$where."
-            ORDER BY id DESC
-            LIMIT ?, ?";
-$types2 = $types . "ii";
-$params2 = $params;
-$params2[] = $offset;
-$params2[] = $perPage;
-
-$rows = [];
+$rows = hg_rules_admin_traits_page($link, $q, $offset, $perPage);
 $rowMap = [];
-$stL = $link->prepare($sqlList);
-$stL->bind_param($types2, ...$params2);
-$stL->execute();
-$rsL = $stL->get_result();
-while ($r = $rsL->fetch_assoc()) {
+foreach ($rows as &$r) {
     $r['origin_name'] = $opts_origins[(int)($r['bibliography_id'] ?? 0)] ?? '';
-    $rows[] = $r;
     $rowMap[(int)$r['id']] = $r;
 }
-$stL->close();
+unset($r);
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" id="btnNewTrait">+ Nuevo trait</button>'
