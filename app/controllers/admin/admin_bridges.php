@@ -150,10 +150,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
       $groupId = max(0,(int)($_POST['group_id'] ?? 0));
       $allowed = [$T_CHAR_GROUP, $T_CHAR_CLAN, $T_CLAN_GROUP];
       $done = bridges_deactivate_row($link,$table,$id,$characterId,$organizationId,$groupId,$allowed);
-        if ($done) {
-          $lastMsg = "Relacion desactivada.";
-          $flash[] = ['type'=>'ok','msg'=>$lastMsg];
-        }
+      if ($done) {
+        $lastMsg = "Relacion desactivada.";
+        $flash[] = ['type'=>'ok','msg'=>$lastMsg];
       }
     }
 
