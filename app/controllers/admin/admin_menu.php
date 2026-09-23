@@ -85,7 +85,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 $msg = 'No hay ids validos para borrar';
                 $errors['ids'] = 'empty';
             } else {
-                $result = hg_configuration_admin_menu_disable($link, $ids);
+                $result = hg_configuration_admin_menu_delete($link, $ids);
                 $ok = !empty($result['ok']);
                 if ($ok) {
                     $msg = 'Elementos eliminados';
@@ -525,13 +525,7 @@ window.ADMIN_CSRF_TOKEN = <?= json_encode($ADMIN_CSRF_TOKEN, JSON_HEX_TAG|JSON_H
         }
         api('delete', { ids: ids }).then(res => {
             if (res && res.ok !== false) {
-                row.classList.add('is-deleted');
-                pushHistory({
-                    undo: () => {
-                        row.classList.remove('is-deleted');
-                        api('update_bulk', { items: ids.map(i => ({ id: i, fields: { enabled: 1 } })) });
-                    }
-                });
+                row.remove();
                 showToast('Eliminado');
                 saveOrder();
             }
