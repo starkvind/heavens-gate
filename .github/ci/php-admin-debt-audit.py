@@ -15,21 +15,16 @@ PATTERNS = {
 }
 
 CEILINGS = {
-    'sql': 274,
-    'schema': 14,
+    'sql': 171,
+    'schema': 8,
     'get': 203,
     'post': 714,
     'request': 1,
 }
 
 RESIDUAL_SQL_CEILINGS = {
-    'app/controllers/admin/admin_chapters.php': 28,
-    'app/controllers/admin/admin_timelines.php': 24,
     'app/controllers/admin/admin_character_links.php': 16,
-    'app/controllers/admin/admin_topic_viewer.php': 13,
-    'app/controllers/admin/admin_season_order.php': 12,
     'app/controllers/admin/admin_doc_links.php': 12,
-    'app/controllers/admin/admin_parties.php': 11,
     'app/controllers/admin/admin_bso.php': 11,
     'app/controllers/admin/admin_maneuvers.php': 11,
     'app/controllers/admin/admin_menu.php': 10,
@@ -82,7 +77,7 @@ for metric, title in [
 errors = []
 for metric, ceiling in CEILINGS.items():
     if totals[metric] > ceiling:
-        errors.append(f'{metric} regressed above Phase 6.8 package baseline {ceiling}: {totals[metric]}')
+        errors.append(f'{metric} regressed above Phase 6.9 package baseline {ceiling}: {totals[metric]}')
 
 row_by_path = {path: counts for path, _lines, counts in rows}
 for path, ceiling in RESIDUAL_SQL_CEILINGS.items():
