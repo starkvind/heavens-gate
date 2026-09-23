@@ -15,19 +15,14 @@ PATTERNS = {
 }
 
 CEILINGS = {
-    'sql': 24,
+    'sql': 0,
     'schema': 0,
     'get': 203,
     'post': 714,
     'request': 1,
 }
 
-RESIDUAL_SQL_CEILINGS = {
-    'app/controllers/admin/admin_menu.php': 10,
-    'app/controllers/admin/admin_players.php': 8,
-    'app/controllers/admin/admin_datatables.php': 4,
-    'app/controllers/admin/admin_get_pwd.php': 2,
-}
+RESIDUAL_SQL_CEILINGS = {}
 
 rows = []
 totals = {key: 0 for key in PATTERNS}
@@ -75,13 +70,13 @@ for metric, title in [
 errors = []
 for metric, ceiling in CEILINGS.items():
     if totals[metric] > ceiling:
-        errors.append(f'{metric} regressed above Phase 6.11 package baseline {ceiling}: {totals[metric]}')
+        errors.append(f'{metric} regressed above Phase 6.12 exit baseline {ceiling}: {totals[metric]}')
 
 row_by_path = {path: counts for path, _lines, counts in rows}
 for path, ceiling in RESIDUAL_SQL_CEILINGS.items():
     current = row_by_path.get(path, {}).get('sql', 0)
     if current > ceiling:
-        errors.append(f'{path} SQL regressed above current Phase 6 residual ceiling {ceiling}: {current}')
+        errors.append(f'{path} SQL regressed above Phase 6.12 residual ceiling {ceiling}: {current}')
 
 if errors:
     for error in errors:
