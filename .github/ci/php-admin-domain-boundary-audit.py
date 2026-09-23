@@ -255,6 +255,84 @@ PILOTS = {
             'hg_aocs_upsert_department(',
         ],
     },
+    'chapters': {
+        'controller': ROOT / 'app/controllers/admin/admin_chapters.php',
+        'domain': ROOT / 'app/domains/chapters/admin.php',
+        'markers': [
+            'hg_chapters_admin_get_relations(',
+            'hg_chapters_admin_save(',
+            'hg_chapters_admin_fetch_row(',
+            'hg_chapters_admin_rows(',
+        ],
+    },
+    'seasons': {
+        'controller': ROOT / 'app/controllers/admin/admin_seasons.php',
+        'domain': ROOT / 'app/domains/chapters/admin_seasons.php',
+        'markers': [
+            'hg_seasons_admin_create(',
+            'hg_seasons_admin_update(',
+            'hg_seasons_admin_set_image(',
+            'hg_seasons_admin_rows(',
+        ],
+    },
+    'season_order': {
+        'controller': ROOT / 'app/controllers/admin/admin_season_order.php',
+        'domain': ROOT / 'app/domains/chapters/admin_season_order.php',
+        'markers': [
+            'hg_aso_fetch_season_options(',
+            'hg_aso_fetch_orders(',
+            'hg_aso_save_node(',
+            'hg_aso_delete_node(',
+        ],
+    },
+    'season_order_schema': {
+        'controller': ROOT / 'app/controllers/admin/admin_season_order_schema.php',
+        'domain': ROOT / 'app/domains/chapters/admin_season_order_schema.php',
+        'markers': [
+            'hg_asos_table_exists(',
+            'hg_asos_count_rows(',
+        ],
+    },
+    'timelines': {
+        'controller': ROOT / 'app/controllers/admin/admin_timelines.php',
+        'domain': ROOT / 'app/domains/timeline/admin.php',
+        'markers': [
+            'hg_timeline_admin_event_types(',
+            'hg_timeline_admin_save_event(',
+            'hg_timeline_admin_event_row(',
+            'hg_timeline_admin_events(',
+        ],
+    },
+    'parties': {
+        'controller': ROOT / 'app/controllers/admin/admin_parties.php',
+        'domain': ROOT / 'app/domains/parties/admin.php',
+        'markers': [
+            'hg_parties_admin_save_plot(',
+            'hg_parties_admin_save_member(',
+            'hg_parties_admin_add_change(',
+            'hg_parties_admin_load_state(',
+        ],
+    },
+    'topic_viewer': {
+        'controller': ROOT / 'app/controllers/admin/admin_topic_viewer.php',
+        'domain': ROOT / 'app/domains/chapters/admin_topic_viewer.php',
+        'markers': [
+            'hg_topic_viewer_move(',
+            'hg_topic_viewer_save(',
+            'hg_topic_viewer_chapter_options(',
+            'hg_topic_viewer_rows(',
+        ],
+    },
+    'realities': {
+        'controller': ROOT / 'app/controllers/admin/admin_realities.php',
+        'domain': ROOT / 'app/domains/timeline/admin_realities.php',
+        'markers': [
+            'hg_realities_admin_delete(',
+            'hg_realities_admin_create(',
+            'hg_realities_admin_update(',
+            'hg_realities_admin_rows(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
