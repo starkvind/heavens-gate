@@ -96,24 +96,24 @@ $actions = '<span class="adm-flex-right-wrap-8">'
     . '<button class="btn btn-green" type="button" id="abqReload">Recargar</button>'
     . '</span>';
 
-admin_panel_open('Cumpleaños Rápidos', $actions);
+admin_panel_open('Fechas de nacimiento', $actions);
 ?>
 <div class="adm-callout">
   Revisa y corrige la fecha de nacimiento directamente sobre el evento de timeline.
 </div>
 
-<div class="adm-grid-table">
-  <table class="table" id="abqTable">
+<div class="adm-grid-table adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de fechas de nacimiento">
+  <table class="table adm-wide-table" id="abqTable">
     <thead>
       <tr>
         <th class="adm-w-60">ID</th>
         <th class="adm-w-160">Pretty</th>
-        <th>Personaje</th>
+        <th class="adm-col-name">Personaje</th>
         <th class="adm-w-170">Fecha nacimiento</th>
         <th class="adm-w-120">Fecha evento</th>
         <th class="adm-w-90">Evento ID</th>
         <th class="adm-w-160">Estado</th>
-        <th class="adm-w-100">Acción</th>
+        <th class="adm-w-100 adm-th-actions">Acción</th>
       </tr>
     </thead>
     <tbody></tbody>
