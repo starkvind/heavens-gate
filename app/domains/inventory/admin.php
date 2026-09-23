@@ -19,14 +19,18 @@ function hg_inventory_admin_item_options(mysqli $link): array {
 
 function hg_inventory_admin_item_delete(mysqli $link, int $id): array {
     if ($id <= 0) return ['ok'=>false,'error'=>'invalid_id','errno'=>0];
-    $st = $link->prepare('DELETE FROM fact_items WHERE id = ?');
-    if (!$st) return ['ok'=>false,'error'=>$link->error,'errno'=>(int)$link->errno];
-    $st->bind_param('i', $id);
-    $ok = $st->execute();
-    $error = $st->error;
-    $errno = $st->errno;
-    $st->close();
-    return ['ok'=>$ok,'error'=>$error,'errno'=>$errno];
+    try {
+        $st = $link->prepare('DELETE FROM fact_items WHERE id = ?');
+        if (!$st) return ['ok'=>false,'error'=>$link->error,'errno'=>(int)$link->errno];
+        $st->bind_param('i', $id);
+        $ok = $st->execute();
+        $error = $st->error;
+        $errno = $st->errno;
+        $st->close();
+        return ['ok'=>$ok,'error'=>$error,'errno'=>$errno];
+    } catch (mysqli_sql_exception $e) {
+        return ['ok'=>false,'error'=>$e->getMessage(),'errno'=>(int)$e->getCode()];
+    }
 }
 
 function hg_inventory_admin_item_save(mysqli $link, int $id, array $d): array {
