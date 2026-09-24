@@ -11,23 +11,14 @@ if (!function_exists('hg404_h')) {
 if (!function_exists('hg404_table_exists')) {
     function hg404_table_exists(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        if (isset($cache[$table])) {
-            return $cache[$table];
-        }
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$table] = $ok;
-        return $ok;
+        return in_array($table, [
+            'fact_characters',
+            'dim_chapters',
+            'dim_seasons',
+            'fact_gifts',
+            'fact_items',
+            'dim_item_types',
+        ], true);
     }
 }
 
