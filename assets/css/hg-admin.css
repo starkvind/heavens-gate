@@ -2026,10 +2026,13 @@ body { font-family: Verdana, Arial, sans-serif; }
 .adm-mt-8 { margin-top:8px; }
 .adm-mt-10 { margin-top:10px; }
 .adm-mt-12 { margin-top:12px; }
+.adm-mb-8 { margin-bottom:8px; }
 .adm-mb-10 { margin-bottom:10px; }
+.adm-mb-12 { margin-bottom:12px; }
 .adm-m-6-0-10 { margin:6px 0 10px; }
 .adm-ml-auto-left { margin-left:auto; text-align:left; }
 .adm-ul-reset { margin:0; padding-left:18px; }
+.adm-minw-110 { min-width:110px; }
 .adm-maxw-120 { max-width:120px; }
 .adm-maxw-360 { max-width:360px; }
 .adm-w-150 { width:150px; }
