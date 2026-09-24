@@ -141,27 +141,6 @@ if (!function_exists('hg_power_custom_markdown_download')) {
     }
 }
 
-if (!function_exists('hg_power_custom_fetch_rows')) {
-    function hg_power_custom_fetch_rows(mysqli $link, string $query): array
-    {
-        $stmt = $link->prepare($query);
-        if (!$stmt) {
-            return [];
-        }
-
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $rows = [];
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-
-        $stmt->close();
-        return $rows;
-    }
-}
-
 if (!function_exists('hg_power_custom_make_chip_list')) {
     function hg_power_custom_make_chip_list(array $values): array
     {
