@@ -535,7 +535,7 @@ function participationRoleLabel(role){
 function relationRoleSelectHtml(selectedRole, onChangeExpr, disabled){
     const role = normalizeParticipationRole(selectedRole);
     const disabledAttr = disabled ? ' disabled' : '';
-    return `<select class="select" style="min-width:110px" onchange="${esc(onChangeExpr)}"${disabledAttr}>
+    return `<select class="select adm-minw-110" onchange="${esc(onChangeExpr)}"${disabledAttr}>
         <option value="npc"${role === 'npc' ? ' selected' : ''}>NPC</option>
         <option value="player"${role === 'player' ? ' selected' : ''}>Player</option>
     </select>`;
