@@ -4,6 +4,35 @@
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/content_updates.php');
 
+if (!function_exists('pjs_table_exists')) {
+    function pjs_table_exists(mysqli $link, string $table): bool {
+        static $tables = [
+            'dim_character_status' => true,
+            'dim_systems_resources' => true,
+            'bridge_systems_resources_to_system' => true,
+            'bridge_characters_system_resources' => true,
+            'bridge_characters_system_resources_log' => true,
+            'bridge_systems_ex_races' => true,
+            'bridge_systems_ex_auspices' => true,
+            'bridge_systems_ex_tribes' => true,
+        ];
+        return isset($tables[$table]);
+    }
+}
+
+if (!function_exists('pjs_table_has_column')) {
+    function pjs_table_has_column(mysqli $link, string $table, string $column): bool {
+        static $schema = [
+            'fact_characters' => ['status_id'],
+            'bridge_systems_resources_to_system' => ['is_active', 'system_id', 'resource_id', 'sort_order'],
+            'bridge_systems_ex_races' => ['system_id', 'race_id', 'is_active'],
+            'bridge_systems_ex_auspices' => ['system_id', 'auspice_id', 'is_active'],
+            'bridge_systems_ex_tribes' => ['system_id', 'tribe_id', 'is_active'],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
+    }
+}
+
 if (!function_exists('pjs_column_char_maxlen')) {
     function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
         $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
