@@ -318,7 +318,7 @@ admin_panel_open('Línea temporal', $actions);
             <th>Crónica</th>
             <th class="adm-col-text">Vínculos</th>
             <th>Estado</th>
-            <th class="adm-th-actions">Acciones</th>
+            <th class="adm-th-actions" title="Acciones">Acc.</th>
         </tr>
     </thead>
     <tbody></tbody>
@@ -494,10 +494,10 @@ function renderTable(){
                 <span title="Realidades"> R:${Number(e.realities_count || 0)}</span>
             </td>
             <td>${Number(e.is_active || 0) === 1 ? 'Activo' : 'Inactivo'}</td>
-            <td>
-                <button class="btn" type="button" onclick="openEventModal(${Number(e.id)})">Editar</button>
-                <button class="btn btn-red" type="button" onclick="deleteEvent(${Number(e.id)})">Borrar</button>
-            </td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
+                <button class="btn adm-icon-btn" type="button" onclick="openEventModal(${Number(e.id)})" aria-label="Editar" title="Editar">✏</button>
+                <button class="btn btn-red adm-icon-btn" type="button" onclick="deleteEvent(${Number(e.id)})" aria-label="Borrar" title="Borrar">🗑</button>
+            </div></td>
         `;
         tbody.appendChild(tr);
     }
