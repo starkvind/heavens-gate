@@ -39,6 +39,12 @@ for marker in [
     '.adm-column-picker',
     '.adm-freeze-left',
     '#mainBody.route-admin .main-wrapper',
+    '.adm-shell-tier-standard',
+    '.adm-shell-tier-wide',
+    '.adm-shell-tier-max',
+    '--adm-shell-max',
+    '--adm-table-min',
+    'Phase 6.99z: global Admin visual language',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
@@ -57,6 +63,9 @@ for marker in [
     "headers(table).length >= 5",
     'compactActionColumn',
     "querySelectorAll('table')",
+    'workspaceTier',
+    'applyWorkspaceTier',
+    'adm-shell-tier-',
 ]:
     if marker not in dense_js:
         errors.append(f'dense Admin table JS lost spreadsheet marker: {marker}')
@@ -69,6 +78,12 @@ if "route-admin" not in index_php or "hg_request_route($hgRequest) === 'talim'" 
 
 if len(admin_files) != 62:
     errors.append(f'Admin UX inventory changed unexpectedly: expected 62 controllers, found {len(admin_files)}')
+
+if inline_style_files:
+    errors.append(
+        'Admin controller inline CSS returned after 6.99z centralization: '
+        + ', '.join(path.name for path in inline_style_files)
+    )
 
 SCROLL_TARGETS = {
     'app/controllers/admin/admin_actions.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
@@ -130,7 +145,7 @@ for rel, marker in birthdates.items():
 print('# Phase 6.99z Admin UX foundation audit')
 print(f'Admin controllers scanned: {len(admin_files)}')
 print(f'Controllers emitting tables: {len(table_files)}')
-print(f'Controllers with inline style blocks: {len(inline_style_files)}')
+print(f'Controllers with inline style blocks: {len(inline_style_files)} (required: 0)')
 print(f'Explicit wide-table regression targets: {len(SCROLL_TARGETS)}')
 print(f'Birthdates labels: {len(birthdates)}')
 
