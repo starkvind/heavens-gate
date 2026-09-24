@@ -9,6 +9,17 @@ css = css_path.read_text(encoding='utf-8', errors='replace')
 dense_js_path = ROOT / 'assets/js/hg-admin-dense-tables.js'
 dense_js = dense_js_path.read_text(encoding='utf-8', errors='replace') if dense_js_path.exists() else ''
 admin_main = (ROOT / 'app/controllers/admin/admin_main.php').read_text(encoding='utf-8', errors='replace')
+index_php = (ROOT / 'index.php').read_text(encoding='utf-8', errors='replace')
+admin_dir = ROOT / 'app/controllers/admin'
+admin_files = sorted(admin_dir.glob('*.php'))
+table_files = []
+inline_style_files = []
+for path in admin_files:
+    source = path.read_text(encoding='utf-8', errors='replace')
+    if '<table' in source:
+        table_files.append(path)
+    if '<style' in source:
+        inline_style_files.append(path)
 
 errors = []
 
@@ -27,6 +38,7 @@ for marker in [
     '.adm-table-bottom-rail',
     '.adm-column-picker',
     '.adm-freeze-left',
+    '#mainBody.route-admin .main-wrapper',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
@@ -41,12 +53,22 @@ for marker in [
     'adm-admin-wide-panel',
     'Mostrar todas',
     'Vista inicial',
+    'isDenseCandidate',
+    "headers(table).length >= 5",
+    'compactActionColumn',
+    "querySelectorAll('table')",
 ]:
     if marker not in dense_js:
         errors.append(f'dense Admin table JS lost spreadsheet marker: {marker}')
 
 if '/assets/js/hg-admin-dense-tables.js' not in admin_main:
     errors.append('admin_main no longer loads the shared dense table controller')
+
+if "route-admin" not in index_php or "hg_request_route($hgRequest) === 'talim'" not in index_php:
+    errors.append('talim no longer receives the global route-admin shell class')
+
+if len(admin_files) != 62:
+    errors.append(f'Admin UX inventory changed unexpectedly: expected 62 controllers, found {len(admin_files)}')
 
 SCROLL_TARGETS = {
     'app/controllers/admin/admin_actions.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
@@ -106,7 +128,10 @@ for rel, marker in birthdates.items():
         errors.append(f'{rel} lost Birthdates label: {marker}')
 
 print('# Phase 6.99z Admin UX foundation audit')
-print(f'Wide-table targets: {len(SCROLL_TARGETS)}')
+print(f'Admin controllers scanned: {len(admin_files)}')
+print(f'Controllers emitting tables: {len(table_files)}')
+print(f'Controllers with inline style blocks: {len(inline_style_files)}')
+print(f'Explicit wide-table regression targets: {len(SCROLL_TARGETS)}')
 print(f'Birthdates labels: {len(birthdates)}')
 
 if errors:
