@@ -385,7 +385,7 @@ function ui_short(string $s, int $n=120): string {
         <?php foreach ($META['list_cols'] as $c): ?>
           <th width="<?= (int)($c['w'] ?? 120) ?>"><?= h($c['label']) ?></th>
         <?php endforeach; ?>
-        <th class="adm-w-190 adm-th-actions">Acciones</th>
+        <th class="adm-th-actions" title="Acciones">Acc.</th>
       </tr>
     </thead>
     <tbody id="docsTbody">
@@ -414,8 +414,8 @@ function ui_short(string $s, int $n=120): string {
             </td>
           <?php endforeach; ?>
           <td class="adm-cell-actions"><div class="adm-actions-inline">
-            <button class="btn" type="button" data-edit="<?= (int)$r[$pk] ?>">Editar</button>
-            <button class="btn btn-red" type="button" data-del="<?= (int)$r[$pk] ?>">Borrar</button>
+            <button class="btn adm-icon-btn" type="button" data-edit="<?= (int)$r[$pk] ?>" aria-label="Editar" title="Editar">✏</button>
+            <button class="btn btn-red adm-icon-btn" type="button" data-del="<?= (int)$r[$pk] ?>" aria-label="Borrar" title="Borrar">🗑</button>
             </div></td>
         </tr>
       <?php endforeach; ?>
@@ -887,8 +887,8 @@ function syncEditorsToTextarea(){
         html += '<td>' + escapeHtml(shortText(val, 140)) + '</td>';
       });
       var rid = (parseInt(r.id || 0, 10) || 0);
-      html += '<td><button class="btn" type="button" data-edit="' + rid + '">Editar</button> ';
-      html += '<button class="btn btn-red" type="button" data-del="' + rid + '">Borrar</button></td>';
+      html += '<td><button class="btn adm-icon-btn" type="button" data-edit="' + rid + '" aria-label="Editar" title="Editar">✏</button> ';
+      html += '<button class="btn btn-red adm-icon-btn" type="button" data-del="' + rid + '" aria-label="Borrar" title="Borrar">🗑</button></td>';
       html += '</tr>';
     });
 
