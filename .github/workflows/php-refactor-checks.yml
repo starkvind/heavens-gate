@@ -60,6 +60,9 @@ jobs:
       - name: Audit Admin UX foundation
         run: python3 .github/ci/php-admin-ux-foundation-audit.py
 
+      - name: Audit Admin usage telemetry
+        run: python3 .github/ci/php-admin-usage-audit.py
+
       - name: Check dense Admin table JavaScript
         run: node --check assets/js/hg-admin-dense-tables.js
 
