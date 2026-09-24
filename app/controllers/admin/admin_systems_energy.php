@@ -162,23 +162,7 @@ $actions = '<span class="adm-flex-right-8">'
 admin_panel_open('Vincular energías a recursos', $actions);
 ?>
 
-<style>
-.ase-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px 0}
-.ase-tab{padding:7px 12px;border:1px solid #17366e;border-radius:999px;background:#071b4a;color:#dfefff;cursor:pointer}
-.ase-tab.active{background:#0d356f;color:#fff}
-.ase-status{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px 0}
-.ase-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-.ase-note{margin:0 0 12px 0;color:#d7e7ff}
-.ase-muted{color:#9fb6dc}
-.ase-energy-cell{min-width:340px}
-.ase-energy-list{display:flex;flex-direction:column;gap:6px}
-.ase-energy-row{display:grid;grid-template-columns:minmax(160px,2fr) 84px 78px 78px;gap:6px;align-items:center}
-.ase-energy-head{display:grid;grid-template-columns:minmax(160px,2fr) 84px 78px 78px;gap:6px;font-size:12px;color:#9fb6dc;margin:0 0 6px 0}
-.ase-energy-actions{margin-top:6px}
-@media (max-width: 920px){
-  .ase-energy-head,.ase-energy-row{grid-template-columns:1fr}
-}
-</style>
+
 
 <div class="ase-tabs" id="aseTabs">
   <button class="ase-tab<?= $tab === 'breeds' ? ' active' : '' ?>" type="button" data-tab="breeds">Razas</button>
