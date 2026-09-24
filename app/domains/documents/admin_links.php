@@ -2,26 +2,30 @@
 
 function adl_table_exists(mysqli $db, string $table): bool
 {
-    $safe = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    if ($safe === '') return false;
-    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safe}' LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
+    static $tables = [
+        'fact_docs' => true,
+        'fact_characters' => true,
+        'bridge_characters_docs' => true,
+        'dim_chronicles' => true,
+        'dim_realities' => true,
+        'dim_systems' => true,
+        'bridge_characters_organizations' => true,
+        'dim_organizations' => true,
+        'bridge_characters_groups' => true,
+        'dim_groups' => true,
+    ];
+    return isset($tables[$table]);
 }
 
 function adl_column_exists(mysqli $db, string $table, string $column): bool
 {
-    $safeTable = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    $safeCol = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $column));
-    if ($safeTable === '' || $safeCol === '') return false;
-    $sql = "SELECT 1
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = '{$safeTable}'
-              AND COLUMN_NAME = '{$safeCol}'
-            LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
+    static $schema = [
+        'fact_characters' => ['reality_id', 'system_id'],
+        'bridge_characters_organizations' => ['is_active'],
+        'bridge_characters_groups' => ['is_active'],
+        'bridge_characters_docs' => ['relation_label', 'sort_order'],
+    ];
+    return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
 
 function adl_bind_params(mysqli_stmt $st, string $types, array &$values): bool
