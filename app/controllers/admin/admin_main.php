@@ -291,6 +291,6 @@ HTML;
 		}
 	}
 	if (hg_admin_is_authenticated()) {
-		echo '<script src="/assets/js/hg-admin-dense-tables.js?v=699z-spreadsheet-2"></script>';
+		echo '<script src="/assets/js/hg-admin-dense-tables.js?v=699z-admin-wide-3"></script>';
 	}
 ?>
