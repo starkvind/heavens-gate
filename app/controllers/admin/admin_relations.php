@@ -218,7 +218,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 					data-description="<?= h((string)($r['description'] ?? '')) ?>"
 					onclick="openRelModal(this)"
 				>Editar</button>
-				<form method="post" class="rel-delete-form" data-id="<?= (int)$r['id'] ?>" style="display:inline">
+				<form method="post" class="rel-delete-form adm-inline" data-id="<?= (int)$r['id'] ?>">
 					<input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
 					<input type="hidden" name="crud_action" value="delete">
 					<input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
