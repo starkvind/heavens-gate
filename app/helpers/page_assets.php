@@ -148,3 +148,24 @@ if (!function_exists('hg_page_render_registered_styles')) {
         }
     }
 }
+
+
+if (!function_exists('hg_page_register_route_styles')) {
+    function hg_page_register_route_styles(string $routeKey): void
+    {
+        $routeKey = trim($routeKey);
+
+        if (in_array($routeKey, ['listasistemas', 'sistemas', 'versistdetalle', 'verforma'], true)) {
+            hg_page_register_stylesheet('/assets/css/hg-systems.css');
+            return;
+        }
+
+        if (in_array($routeKey, ['maps', 'maps_detail'], true)) {
+            hg_page_register_stylesheet('/assets/vendor/leaflet/leaflet.1.9.4.css');
+            hg_page_register_stylesheet('/assets/vendor/leaflet/markercluster/MarkerCluster.1.5.3.css');
+            hg_page_register_stylesheet('/assets/vendor/leaflet/markercluster/MarkerCluster.Default.1.5.3.css');
+            hg_page_register_stylesheet('/assets/css/hg-chapters.css');
+            hg_page_register_stylesheet('/assets/css/hg-maps.css');
+        }
+    }
+}
