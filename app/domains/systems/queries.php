@@ -32,7 +32,11 @@ function hg_systems_table_for_detail_type(int $type): ?array
 
 function hg_systems_table_exists(mysqli $link, string $table): bool
 {
-    return $table === 'bridge_systems_detail_labels';
+    return in_array($table, [
+        'bridge_systems_detail_labels',
+        'bridge_systems_resources_to_system',
+        'bridge_characters_misc_systems',
+    ], true);
 }
 
 function hg_systems_column_exists(mysqli $link, string $table, string $column): bool
@@ -43,6 +47,8 @@ function hg_systems_column_exists(mysqli $link, string $table, string $column): 
             'label_misc', 'label_pack', 'label_clan', 'label_pk_name', 'label_social',
         ],
         'dim_forms' => ['race'],
+        'bridge_systems_resources_to_system' => ['is_active', 'sort_order'],
+        'bridge_characters_misc_systems' => ['is_active', 'sort_order'],
     ];
     return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
@@ -234,3 +240,171 @@ function hg_systems_fetch_resources(mysqli $link, int $systemId): array
 }
 
 
+if (!function_exists('hg_systems_fetch_resource')) {
+    function hg_systems_fetch_resource(mysqli $link, int $resourceId): ?array
+    {
+        if ($resourceId <= 0) return null;
+        $stmt = mysqli_prepare($link, 'SELECT id, name, kind, description FROM dim_systems_resources WHERE id = ? LIMIT 1');
+        if (!$stmt) return null;
+        mysqli_stmt_bind_param($stmt, 'i', $resourceId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) mysqli_free_result($result);
+        mysqli_stmt_close($stmt);
+        return $row ?: null;
+    }
+}
+
+function hg_systems_fetch_mobile_resources(mysqli $link, int $systemId)
+{
+    if ($systemId <= 0) return [];
+    $sql = "
+        SELECT r.name, r.kind, r.description
+        FROM bridge_systems_resources_to_system b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+        WHERE b.system_id = ?
+          AND (b.is_active = 1 OR b.is_active IS NULL)
+        ORDER BY r.kind ASC, COALESCE(b.sort_order, r.sort_order, 9999) ASC, r.name ASC
+    ";
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return false;
+    $stmt->bind_param('i', $systemId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+    return $rows;
+}
+
+function hg_systems_fetch_detail(mysqli $link, int $type, int $detailId)
+{
+    $def = hg_systems_table_for_detail_type($type);
+    if (!$def || $detailId <= 0) return null;
+    $table = $def['table'];
+    $energySql = hg_ser_energy_sql_parts($link, $table, 't');
+    $sql = "SELECT t.*{$energySql['select']} FROM `$table` t{$energySql['join']} WHERE t.id = ? LIMIT 1";
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return false;
+    $stmt->bind_param('i', $detailId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $row = $rs ? $rs->fetch_assoc() : null;
+    $stmt->close();
+    return $row ?: null;
+}
+
+function hg_systems_fetch_gifts(mysqli $link, string $groupName, int $systemId)
+{
+    if ($groupName === '' || $systemId <= 0) return [];
+    $stmt = $link->prepare("SELECT id, name, rank FROM fact_gifts WHERE gift_group = ? AND system_id = ? ORDER BY rank ASC, name ASC");
+    if (!$stmt) return false;
+    $stmt->bind_param('si', $groupName, $systemId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+    return $rows;
+}
+
+function hg_systems_fetch_members(mysqli $link, int $type, int $detailId, $excludedChronicles = '2,7', bool $mobile = false)
+{
+    $def = hg_systems_table_for_detail_type($type);
+    if (!$def || $detailId <= 0) return [];
+
+    $excluded = hg_systems_normalize_int_csv($excludedChronicles);
+    $whereChron = $excluded !== '' ? "AND p.chronicle_id NOT IN ($excluded)" : '';
+    $charField = $def['character_field'];
+
+    if ($mobile) {
+        $select = "p.id, p.name, p.alias, p.image_url, p.gender, COALESCE(dcs.label, '') AS status";
+        $joins = 'LEFT JOIN dim_character_status dcs ON dcs.id = p.status_id';
+        $groupBy = '';
+        $order = 'p.name ASC, p.id ASC';
+    } else {
+        $select = "p.id, p.name,
+            GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS grupos,
+            GROUP_CONCAT(DISTINCT o.name ORDER BY o.name SEPARATOR ', ') AS organizaciones";
+        $joins = "LEFT JOIN bridge_characters_groups bcg ON bcg.character_id = p.id
+            LEFT JOIN dim_groups g ON g.id = bcg.group_id
+            LEFT JOIN bridge_characters_organizations bco ON bco.character_id = p.id
+            LEFT JOIN dim_organizations o ON o.id = bco.organization_id";
+        $groupBy = 'GROUP BY p.id';
+        $order = 'p.name ASC';
+    }
+
+    if ($charField !== '') {
+        $sql = "SELECT $select
+                FROM fact_characters p
+                $joins
+                WHERE p.`$charField` = ?
+                  $whereChron
+                $groupBy
+                ORDER BY $order";
+    } elseif ($type === 4) {
+        if (!$mobile) {
+            $select .= ', MIN(COALESCE(bcms.sort_order, 0)) AS misc_sort_order';
+            $order = 'misc_sort_order ASC, p.name ASC';
+        }
+        $sql = "SELECT $select
+                FROM bridge_characters_misc_systems bcms
+                INNER JOIN fact_characters p ON p.id = bcms.character_id
+                $joins
+                WHERE bcms.misc_system_id = ?
+                  AND (bcms.is_active = 1 OR bcms.is_active IS NULL)
+                  $whereChron
+                $groupBy
+                ORDER BY $order";
+    } else {
+        return [];
+    }
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return false;
+    $stmt->bind_param('i', $detailId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+    return $rows;
+}
+
+function hg_systems_fetch_form(mysqli $link, int $formId)
+{
+    if ($formId <= 0) return null;
+    $hasRace = hg_systems_column_exists($link, 'dim_forms', 'race');
+    $select = "f.*, COALESCE(NULLIF(ds.name, ''), '') AS system_name_resolved";
+    $joins = 'LEFT JOIN dim_systems ds ON ds.id = f.system_id';
+    if ($hasRace) {
+        $select .= ", COALESCE(NULLIF(db.name, ''), NULLIF(f.race, '')) AS breed_name_resolved";
+        $joins .= ' LEFT JOIN dim_breeds db ON db.system_id = f.system_id AND db.name = f.race';
+    } else {
+        $select .= ", '' AS breed_name_resolved";
+    }
+    $stmt = $link->prepare("SELECT $select FROM dim_forms f $joins WHERE f.id = ? LIMIT 1");
+    if (!$stmt) return false;
+    $stmt->bind_param('i', $formId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $row = $rs ? $rs->fetch_assoc() : null;
+    $stmt->close();
+    return $row ?: null;
+}
+
+function hg_systems_fetch_form_maneuvers(mysqli $link, int $systemId, string $formName)
+{
+    if ($systemId <= 0 || $formName === '') return [];
+    $likeForm = '%' . $formName . '%';
+    $stmt = $link->prepare("SELECT id, pretty_id, name, image_url FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC");
+    if (!$stmt) return false;
+    $stmt->bind_param('is', $systemId, $likeForm);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+    return $rows;
+}
