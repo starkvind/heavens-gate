@@ -176,12 +176,6 @@ function pretty_url(mysqli $link, string $table, string $base, int $id): string 
     return rtrim($base, '/') . '/' . $id;
 }
 
-function ensure_trailing_query(string $url, string $query): string {
-    if ($query === '') return $url;
-    if (str_contains($url, '?')) return $url . '&' . $query;
-    return $url . '?' . $query;
-}
-
 function hg_table_has_column(mysqli $link, string $table, string $column): bool {
     static $cache = [];
     $key = $table . ':' . $column;
