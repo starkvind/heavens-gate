@@ -123,7 +123,7 @@ admin_panel_open(
   <?php if (!$departmentsReady): ?>
     <div class="err">No existe `dim_organization_departments` en esta base de datos. El panel queda en modo consulta.</div>
   <?php else: ?>
-    <form method="get" class="adm-org-category-grid" style="margin-bottom:12px">
+    <form method="get" class="adm-org-category-grid adm-mb-12">
       <input type="hidden" name="s" value="admin_org_chart_schema">
       <label>
         Organizacion a editar
