@@ -208,22 +208,6 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					],
 				],
 				[
-					'title' => 'Juego de cartas',
-					'summary' => 'Todo lo relacionado con el gacha queda aislado aquí para encontrarlo rápido.',
-					'items' => [
-						['href' => '/talim?s=admin_game_cards', 'label' => 'Gestionar Cartas del Gacha', 'keywords' => ['cartas', 'gacha', 'deck', 'cards']],
-						['href' => '/admin/game-cards/seed', 'label' => 'Sembrar Cartas del Gacha', 'keywords' => ['seed', 'cartas', 'gacha']],
-					],
-				],
-				[
-					'title' => 'Simulador',
-					'summary' => 'Paneles propios del simulador, separados del resto de contenido.',
-					'items' => [
-						['href' => '/talim?s=admin_sim_browser', 'label' => 'Temporadas Simulador', 'keywords' => ['sim', 'browser', 'temporadas']],
-						['href' => '/talim?s=admin_sim_character_talk', 'label' => 'Frases PJs Simulador', 'keywords' => ['sim', 'talk', 'dialogos']],
-					],
-				],
-				[
 					'title' => 'Sistema',
 					'summary' => 'Herramientas internas, auditorías y utilidades de administración.',
 					'items' => [
