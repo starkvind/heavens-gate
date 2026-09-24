@@ -29,6 +29,12 @@
     'gift-image-table': 3
   };
 
+  var identityById = {
+    'worlds-table': [0, 2],
+    abqTable: [0, 2],
+    'gift-image-table': [0, 2]
+  };
+
   function normalize(value) {
     return String(value || '')
       .toLowerCase()
@@ -114,11 +120,24 @@
     return false;
   }
 
+  function identityColumns(table) {
+    if (table.id && identityById[table.id]) return identityById[table.id].slice();
+
+    var hs = headers(table).map(normalize);
+    if (hs.indexOf('imagen') === 0 && hs.indexOf('accion') === 1) return [1];
+
+    var freeze = Math.min(freezeCount(table), hs.length);
+    var out = [];
+    for (var i = 0; i < freeze; i += 1) out.push(i);
+    return out;
+  }
+
   function requiredColumns(table) {
     var hs = headers(table);
     var required = Object.create(null);
-    var freeze = freezeCount(table);
-    for (var i = 0; i < Math.min(freeze, hs.length); i += 1) required[i] = true;
+    identityColumns(table).forEach(function (index) {
+      if (index >= 0 && index < hs.length) required[index] = true;
+    });
     hs.forEach(function (label, index) {
       if (isActionHeader(label, index, hs.length)) required[index] = true;
     });
@@ -264,6 +283,10 @@
   }
 
   function makeToolbar(group, table, wrapper) {
+    if (group.toolbar && !document.documentElement.contains(group.toolbar)) {
+      group.toolbar = null;
+      group.countNode = null;
+    }
     if (group.toolbar || headers(table).length < 5) return;
 
     var hs = headers(table);
