@@ -1,6 +1,6 @@
 <?php
 
-function fetchPairs(mysqli $link, string $sql): array {
+function hg_docs_admin_fetch_pairs(mysqli $link, string $sql): array {
     $out = [];
     $q = @$link->query($sql);
     if (!$q) return $out;
