@@ -10,7 +10,6 @@ allowed = {
     'app/domains/characters/admin_clone.php',
     'app/domains/characters/admin_collision_audit.php',
     'app/domains/characters/admin_service.php',
-    'app/domains/maps/queries.php',
     'app/domains/organizations/admin_chart_schema.php',
     'app/helpers/mentions.php',
     'app/helpers/pretty.php',
