@@ -117,13 +117,7 @@
 	// =========================
 	// MenÃº desde base de datos (dim_menu_items)
 	// =========================
-	$useDbMenu = false;
-	if (isset($link) && ($link instanceof mysqli)) {
-		if ($res = $link->query("SHOW TABLES LIKE 'dim_menu_items'")) {
-			if ($res->num_rows > 0) $useDbMenu = true;
-			$res->free();
-		}
-	}
+	$useDbMenu = isset($link) && ($link instanceof mysqli);
 
 	
 
