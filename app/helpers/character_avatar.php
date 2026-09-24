@@ -14,45 +14,14 @@ if (!function_exists('hg_character_avatar_fallback_by_gender')) {
     }
 }
 
-if (!function_exists('hg_character_kind_column')) {
-    function hg_character_kind_column(mysqli $link, string $table = 'fact_characters'): string
-    {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') {
-            return '';
-        }
-        if (isset($cache[$table])) {
-            return $cache[$table];
-        }
-        foreach (['character_kind', 'kind'] as $candidate) {
-            $rs = mysqli_query($link, "SHOW COLUMNS FROM `$table` LIKE '$candidate'");
-            if ($rs && mysqli_num_rows($rs) > 0) {
-                mysqli_free_result($rs);
-                $cache[$table] = $candidate;
-                return $candidate;
-            }
-            if ($rs) {
-                mysqli_free_result($rs);
-            }
-        }
-        $cache[$table] = '';
-        return '';
-    }
-}
-
 if (!function_exists('hg_character_kind_select')) {
     function hg_character_kind_select(mysqli $link, string $alias = '', string $table = 'fact_characters'): string
     {
-        $col = hg_character_kind_column($link, $table);
-        if ($col === '') {
-            return "''";
-        }
         $alias = preg_replace('/[^a-zA-Z0-9_]/', '', $alias);
         if ($alias !== '') {
-            return "`$alias`.`$col`";
+            return "`$alias`.`character_kind`";
         }
-        return "`$col`";
+        return "`character_kind`";
     }
 }
 
@@ -191,38 +160,10 @@ if (!function_exists('hg_character_avatar_parse_ref')) {
     }
 }
 
-if (!function_exists('hg_character_avatar_variants_table_exists')) {
-    function hg_character_avatar_variants_table_exists(mysqli $link, bool $refresh = false): bool
-    {
-        static $cache = null;
-        if (!$refresh && $cache !== null) {
-            return $cache;
-        }
-
-        $cache = false;
-        if ($st = $link->prepare("
-            SELECT COUNT(*)
-            FROM information_schema.TABLES
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'fact_character_avatar_variants'
-        ")) {
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $cache = ((int)$count > 0);
-            $st->close();
-        }
-
-        return $cache;
-    }
-}
-
 if (!function_exists('hg_character_avatar_variants_ensure_schema')) {
     function hg_character_avatar_variants_ensure_schema(mysqli $link): bool
     {
-        // Runtime code must never create or migrate schema. The table is
-        // provisioned through controlled maintenance outside the web request.
-        return hg_character_avatar_variants_table_exists($link, true);
+        return true;
     }
 }
 
@@ -243,9 +184,6 @@ if (!function_exists('hg_character_avatar_variant_image_url')) {
         }
 
         $cache[$cacheKey] = '';
-        if (!hg_character_avatar_variants_table_exists($link)) {
-            return '';
-        }
 
         if ($st = $link->prepare("
             SELECT image_url
