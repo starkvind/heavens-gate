@@ -23,7 +23,7 @@ ci_paths = sorted(
 runtime_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in runtime_paths}
 ci_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in ci_paths}
 
-php_block_re = re.compile(r'<\?php(.*?)(?:\?>|$)', re.S)
+php_block_re = re.compile(r'<\?(?:php|=)(.*?)(?:\?>|$)', re.S)
 
 def php_only(text: str) -> str:
     blocks = php_block_re.findall(text)
