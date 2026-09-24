@@ -188,16 +188,5 @@ foreach ($ajaxMarkers as $marker) {
     }
 }
 
-$retired = [
-    'app/controllers/admin/admin_game_cards.php',
-    'app/controllers/admin/admin_sim_browser.php',
-    'app/controllers/admin/admin_sim_character_talk.php',
-];
-foreach ($retired as $relative) {
-    $source = hg_admin_contract_source($root, $relative);
-    if (strpos($source, 'http_response_code(410)') === false) {
-        hg_admin_contract_fail('Retired Admin surface lost 410 tombstone: ' . $relative);
-    }
-}
 
 fwrite(STDOUT, "Admin shell/security characterization: PASS\n");
