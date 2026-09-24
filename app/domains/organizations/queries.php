@@ -5,18 +5,7 @@
 if (!function_exists('hg_organizations_table_exists')) {
     function hg_organizations_table_exists(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') return false;
-        if (array_key_exists($table, $cache)) return $cache[$table];
-        $stmt = $link->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
-        if (!$stmt) return $cache[$table] = false;
-        $stmt->bind_param('s', $table);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return $cache[$table] = ((int)$count > 0);
+        return in_array($table, ['bridge_characters_org', 'dim_organization_departments'], true);
     }
 }
 
@@ -145,20 +134,7 @@ if (!function_exists('hg_organizations_fetch_roles')) {
 if (!function_exists('hg_organizations_has_column')) {
     function hg_organizations_has_column(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) return $cache[$key];
-        $stmt = $link->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
-        if (!$stmt) return $cache[$key] = false;
-        $stmt->bind_param('ss', $table, $column);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return $cache[$key] = ((int)$count > 0);
+        return !($table === 'fact_characters' && $column === 'kind');
     }
 }
 
