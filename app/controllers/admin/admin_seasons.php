@@ -188,24 +188,7 @@ $rowsFull = $rows;
     </div>
 <?php endif; ?>
 
-<style>
-.season-kind-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-    border: 1px solid #0a4fa3;
-    background: #0a2e66;
-    color: #e7f3ff;
-}
-.season-kind--temporada { border-color: #0e64c7; background: #083679; color: #d9efff; }
-.season-kind--inciso { border-color: #3f86d4; background: #1d4878; color: #d9f1ff; }
-.season-kind--historia_personal { border-color: #0aa88f; background: #0b5a4e; color: #d8fff8; }
-.season-kind--especial { border-color: #8b7cff; background: #3e2d8a; color: #ece8ff; }
-.adm-thumb-hint { font-size: 10px; color: #9db5d3; }
-</style>
+
 
 <div class="modal-back" id="seasonModal">
     <div class="modal">
