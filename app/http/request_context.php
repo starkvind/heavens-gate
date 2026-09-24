@@ -48,8 +48,6 @@ function hg_request_context_from_query(array $query, array $body = []): array
         'muestradisc' => ['discipline_power' => 'b'],
         'timeline_event' => ['event' => 't'],
         'maps_detail' => ['poi' => 'id'],
-        'combat_simulator_log' => ['combat' => 'b'],
-        'vercombat' => ['combat' => 'b'],
         'mentions' => ['mention_type' => 'type'],
         'talim' => ['admin_section' => 's'],
         'forum_message' => ['id' => 'id', 'palette' => 'palette'],
