@@ -81,8 +81,8 @@ for marker in ['adm-panel', 'adm-panel-header', 'adm-panel-actions', 'adm-panel-
     if marker not in admin_styles:
         errors.append(f'Admin panel helper lost shared markup marker: {marker}')
 
-if len(admin_files) != 62:
-    errors.append(f'Admin UX inventory changed unexpectedly: expected 62 controllers, found {len(admin_files)}')
+if len(admin_files) != 63:
+    errors.append(f'Admin UX inventory changed unexpectedly: expected 63 controllers, found {len(admin_files)}')
 
 if inline_style_files:
     errors.append(
