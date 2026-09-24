@@ -18,6 +18,8 @@ for marker in [
     'width:max-content',
     'overflow-wrap:break-word',
     'min-width:1500px',
+    '.adm-icon-btn',
+    'min-width:76px',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
@@ -48,6 +50,25 @@ for rel, markers in SCROLL_TARGETS.items():
     for marker in markers:
         if marker not in text:
             errors.append(f'{rel} lost UX marker: {marker}')
+
+ICON_ACTION_TARGETS = [
+    'app/controllers/admin/admin_actions.php',
+    'app/controllers/admin/admin_traits.php',
+    'app/controllers/admin/admin_character_conditions.php',
+    'app/controllers/admin/admin_merits_flaws.php',
+    'app/controllers/admin/admin_items.php',
+    'app/controllers/admin/admin_character_deaths.php',
+    'app/controllers/admin/admin_timelines.php',
+    'app/controllers/admin/admin_season_order.php',
+    'app/controllers/admin/admin_docs.php',
+    'app/controllers/admin/admin_parties.php',
+]
+for rel in ICON_ACTION_TARGETS:
+    text = (ROOT / rel).read_text(encoding='utf-8', errors='replace')
+    if 'adm-icon-btn' not in text:
+        errors.append(f'{rel} lost compact icon actions')
+    if 'aria-label=' not in text or 'title=' not in text:
+        errors.append(f'{rel} icon actions lost accessible labels')
 
 birthdates = {
     'app/controllers/admin/admin_birthdays_quick.php': 'Fechas de nacimiento',
