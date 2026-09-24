@@ -8,6 +8,7 @@
   var activeWrapper = null;
   var syncingRail = false;
   var refreshQueued = false;
+  var workspaceQueued = false;
 
   var defaultsById = {
     tablaTraits: ['clasificacion', 'origen'],
@@ -35,6 +36,19 @@
     'gift-image-table': [0, 2]
   };
 
+  var workspaceRouteTier = {
+    admin_birthdays_quick: 'standard',
+    admin_timelines: 'standard',
+    admin_characters: 'standard',
+    admin_parties: 'standard',
+    admin_docs: 'standard',
+    admin_gift_image_mass: 'max',
+    admin_maps: 'wide',
+    admin_pois: 'wide',
+    admin_org_chart: 'wide',
+    admin_season_order: 'wide'
+  };
+
   function normalize(value) {
     return String(value || '')
       .toLowerCase()
@@ -51,6 +65,43 @@
     } catch (e) {
       return window.location.pathname || 'admin';
     }
+  }
+
+  function workspaceTier() {
+    var route = routeKey();
+    if (route === '/talim' || route === 'talim' || route === 'admin_main') return 'compact';
+    if (workspaceRouteTier[route]) return workspaceRouteTier[route];
+
+    var maxColumns = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('table'), function (table) {
+      if (table.closest('.modal, .popup-edit, .icon-picker')) return;
+      maxColumns = Math.max(maxColumns, headers(table).length);
+    });
+
+    if (maxColumns >= 11) return 'max';
+    if (maxColumns >= 8) return 'wide';
+    if (maxColumns >= 5) return 'standard';
+
+    if (document.querySelector('.map-editor, .org-chart, .traits-grid, .adm-complex-editor')) return 'wide';
+    return 'compact';
+  }
+
+  function applyWorkspaceTier() {
+    workspaceQueued = false;
+    var body = document.body;
+    if (!body) return;
+    ['compact', 'standard', 'wide', 'max'].forEach(function (tier) {
+      body.classList.remove('adm-shell-tier-' + tier);
+    });
+    var tier = workspaceTier();
+    body.classList.add('adm-shell-tier-' + tier);
+    body.setAttribute('data-admin-workspace-tier', tier);
+  }
+
+  function scheduleWorkspaceTier() {
+    if (workspaceQueued) return;
+    workspaceQueued = true;
+    window.requestAnimationFrame(applyWorkspaceTier);
   }
 
   function headers(table) {
@@ -486,6 +537,7 @@
     });
 
     table.dataset.admDenseReady = '1';
+    scheduleWorkspaceTier();
     scheduleRailRefresh();
   }
 
@@ -586,6 +638,7 @@
         applyFreeze(table);
       });
     });
+    scheduleWorkspaceTier();
     scheduleRailRefresh();
   }
 
@@ -600,8 +653,12 @@
   function init() {
     document.body.classList.add('adm-admin-dense-ready');
     scan(document);
+    applyWorkspaceTier();
     mutation.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener('resize', refreshAllFreeze);
+    window.addEventListener('resize', function () {
+      refreshAllFreeze();
+      scheduleWorkspaceTier();
+    });
     window.addEventListener('scroll', scheduleRailRefresh, { passive: true });
     document.addEventListener('visibilitychange', scheduleRailRefresh);
     scheduleRailRefresh();
