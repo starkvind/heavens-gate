@@ -23,10 +23,80 @@ ci_paths = sorted(
 runtime_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in runtime_paths}
 ci_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in ci_paths}
 
-php_block_re = re.compile(r'<\?(?:php|=)(.*?)(?:\?>|$)', re.S)
+php_open_re = re.compile(r'<\?(?:php|=)', re.I)
 
 def php_only(text: str) -> str:
-    blocks = php_block_re.findall(text)
+    """Extract PHP regions without treating ?> inside strings/comments as a close tag."""
+    blocks = []
+    pos = 0
+    length = len(text)
+
+    while pos < length:
+        match = php_open_re.search(text, pos)
+        if not match:
+            break
+
+        start = match.end()
+        i = start
+        state = 'code'
+        quote = ''
+
+        while i < length:
+            ch = text[i]
+            nxt = text[i + 1] if i + 1 < length else ''
+
+            if state == 'code':
+                if ch in ("'", '"', '`'):
+                    quote = ch
+                    state = 'quote'
+                    i += 1
+                    continue
+                if ch == '/' and nxt == '/':
+                    state = 'line_comment'
+                    i += 2
+                    continue
+                if ch == '#':
+                    state = 'line_comment'
+                    i += 1
+                    continue
+                if ch == '/' and nxt == '*':
+                    state = 'block_comment'
+                    i += 2
+                    continue
+                if ch == '?' and nxt == '>':
+                    blocks.append(text[start:i])
+                    pos = i + 2
+                    break
+                i += 1
+                continue
+
+            if state == 'quote':
+                if ch == '\\':
+                    i += 2
+                    continue
+                if ch == quote:
+                    state = 'code'
+                    quote = ''
+                i += 1
+                continue
+
+            if state == 'line_comment':
+                if ch in ('\n', '\r'):
+                    state = 'code'
+                i += 1
+                continue
+
+            if state == 'block_comment':
+                if ch == '*' and nxt == '/':
+                    state = 'code'
+                    i += 2
+                    continue
+                i += 1
+                continue
+        else:
+            blocks.append(text[start:])
+            pos = length
+
     return '\n'.join(blocks)
 
 runtime_php_text = {p: php_only(text) for p, text in runtime_text.items()}
