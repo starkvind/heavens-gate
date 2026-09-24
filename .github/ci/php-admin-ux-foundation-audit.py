@@ -9,6 +9,7 @@ css = css_path.read_text(encoding='utf-8', errors='replace')
 dense_js_path = ROOT / 'assets/js/hg-admin-dense-tables.js'
 dense_js = dense_js_path.read_text(encoding='utf-8', errors='replace') if dense_js_path.exists() else ''
 admin_main = (ROOT / 'app/controllers/admin/admin_main.php').read_text(encoding='utf-8', errors='replace')
+admin_styles = (ROOT / 'app/partials/admin/admin_styles.php').read_text(encoding='utf-8', errors='replace')
 index_php = (ROOT / 'index.php').read_text(encoding='utf-8', errors='replace')
 admin_dir = ROOT / 'app/controllers/admin'
 admin_files = sorted(admin_dir.glob('*.php'))
@@ -75,6 +76,10 @@ if '/assets/js/hg-admin-dense-tables.js' not in admin_main:
 
 if "route-admin" not in index_php or "hg_request_route($hgRequest) === 'talim'" not in index_php:
     errors.append('talim no longer receives the global route-admin shell class')
+
+for marker in ['adm-panel', 'adm-panel-header', 'adm-panel-actions', 'adm-panel-back']:
+    if marker not in admin_styles:
+        errors.append(f'Admin panel helper lost shared markup marker: {marker}')
 
 if len(admin_files) != 62:
     errors.append(f'Admin UX inventory changed unexpectedly: expected 62 controllers, found {len(admin_files)}')
