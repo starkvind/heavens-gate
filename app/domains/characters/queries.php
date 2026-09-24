@@ -532,6 +532,7 @@ if (!function_exists('hg_characters_table_exists')) {
             'bridge_characters_groups' => true,
             'bridge_characters_misc_systems' => true,
             'bridge_characters_organizations' => true,
+            'bridge_characters_system_resources' => true,
             'bridge_organizations_groups' => true,
             'bridge_systems_resources_to_system' => true,
             'bridge_timeline_events_characters' => true,
