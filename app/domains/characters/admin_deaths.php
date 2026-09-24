@@ -1,36 +1,8 @@
 <?php
 include_once(__DIR__ . '/../../helpers/content_updates.php');
 
-function hg_acd_has_table(mysqli $db, string $table): bool {
-    $table = str_replace('`', '', $table);
-    $rs = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
-
 function hg_acd_pick_deaths_table(mysqli $db): string {
-    if (hg_acd_has_table($db, 'fact_characters_deaths')) return 'fact_characters_deaths';
-    if (hg_acd_has_table($db, 'fact_characters_death')) return 'fact_characters_death';
-    return '';
-}
-
-function hg_acd_col_exists(mysqli $db, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$key] = $ok;
-    return $ok;
+    return 'fact_characters_deaths';
 }
 
 function hg_acd_character_name(mysqli $db, int $characterId): string {
@@ -47,9 +19,6 @@ function hg_acd_character_name(mysqli $db, int $characterId): string {
 }
 
 function hg_acd_resolve_status_id(mysqli $db, string $prettyId, string $label, int $fallback): int {
-    if (!hg_acd_has_table($db, 'dim_character_status')) {
-        return $fallback;
-    }
     $id = 0;
     if ($st = $db->prepare("SELECT id FROM dim_character_status WHERE pretty_id = ? LIMIT 1")) {
         $st->bind_param('s', $prettyId);
@@ -73,7 +42,7 @@ function hg_acd_resolve_status_id(mysqli $db, string $prettyId, string $label, i
 }
 
 function hg_acd_set_character_status_by_death(mysqli $db, int $characterId, bool $hasDeath): void {
-    if ($characterId <= 0 || !hg_acd_has_table($db, 'fact_characters')) return;
+    if ($characterId <= 0) return;
     $statusId = $hasDeath
         ? hg_acd_resolve_status_id($db, 'cadaver', 'Cadáver', 3)
         : hg_acd_resolve_status_id($db, 'en_activo', 'En activo', 1);
@@ -89,11 +58,6 @@ function hg_acd_set_character_status_by_death(mysqli $db, int $characterId, bool
 
 function hg_acd_sync_event_characters(mysqli $db, int $eventId, int $characterId, ?int $killerId): void {
     if ($eventId <= 0 || $characterId <= 0) return;
-    if (!hg_acd_has_table($db, 'bridge_timeline_events_characters')) return;
-
-    $hasSortOrder = hg_acd_col_exists($db, 'bridge_timeline_events_characters', 'sort_order');
-    $hasRoleLabel = hg_acd_col_exists($db, 'bridge_timeline_events_characters', 'role_label');
-
     if ($st = $db->prepare("DELETE FROM bridge_timeline_events_characters WHERE event_id = ?")) {
         $st->bind_param('i', $eventId);
         $st->execute();
@@ -107,64 +71,22 @@ function hg_acd_sync_event_characters(mysqli $db, int $eventId, int $characterId
         $pairs[] = ['id' => $killerId, 'role' => 'killer', 'sort' => 1];
     }
 
-    if ($hasRoleLabel && $hasSortOrder) {
-        $sql = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label, sort_order) VALUES (?, ?, ?, ?)";
-        if ($st = $db->prepare($sql)) {
-            foreach ($pairs as $p) {
-                $cid = (int)$p['id'];
-                $role = (string)$p['role'];
-                $sort = (int)$p['sort'];
-                $st->bind_param('iisi', $eventId, $cid, $role, $sort);
-                $st->execute();
-            }
-            $st->close();
-        }
-        return;
-    }
-
-    if ($hasRoleLabel && !$hasSortOrder) {
-        $sql = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label) VALUES (?, ?, ?)";
-        if ($st = $db->prepare($sql)) {
-            foreach ($pairs as $p) {
-                $cid = (int)$p['id'];
-                $role = (string)$p['role'];
-                $st->bind_param('iis', $eventId, $cid, $role);
-                $st->execute();
-            }
-            $st->close();
-        }
-        return;
-    }
-
-    if (!$hasRoleLabel && $hasSortOrder) {
-        $sql = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, sort_order) VALUES (?, ?, ?)";
-        if ($st = $db->prepare($sql)) {
-            foreach ($pairs as $p) {
-                $cid = (int)$p['id'];
-                $sort = (int)$p['sort'];
-                $st->bind_param('iii', $eventId, $cid, $sort);
-                $st->execute();
-            }
-            $st->close();
-        }
-        return;
-    }
-
-    $sql = "INSERT INTO bridge_timeline_events_characters (event_id, character_id) VALUES (?, ?)";
+    $sql = "INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label, sort_order) VALUES (?, ?, ?, ?)";
     if ($st = $db->prepare($sql)) {
         foreach ($pairs as $p) {
             $cid = (int)$p['id'];
-            $st->bind_param('ii', $eventId, $cid);
+            $role = (string)$p['role'];
+            $sort = (int)$p['sort'];
+            $st->bind_param('iisi', $eventId, $cid, $role, $sort);
             $st->execute();
         }
         $st->close();
     }
+
 }
 
 function hg_acd_sync_event_chronicle(mysqli $db, int $eventId, int $characterId): void {
     if ($eventId <= 0 || $characterId <= 0) return;
-    if (!hg_acd_has_table($db, 'bridge_timeline_events_chronicles')) return;
-
     $chronicleId = 0;
     if ($st = $db->prepare("SELECT chronicle_id FROM fact_characters WHERE id = ? LIMIT 1")) {
         $st->bind_param('i', $characterId);
@@ -182,19 +104,10 @@ function hg_acd_sync_event_chronicle(mysqli $db, int $eventId, int $characterId)
     }
     if ($chronicleId <= 0) return;
 
-    $hasSortOrder = hg_acd_col_exists($db, 'bridge_timeline_events_chronicles', 'sort_order');
-    if ($hasSortOrder) {
-        if ($st = $db->prepare("INSERT INTO bridge_timeline_events_chronicles (event_id, chronicle_id, sort_order) VALUES (?, ?, 0)")) {
-            $st->bind_param('ii', $eventId, $chronicleId);
-            $st->execute();
-            $st->close();
-        }
-    } else {
-        if ($st = $db->prepare("INSERT INTO bridge_timeline_events_chronicles (event_id, chronicle_id) VALUES (?, ?)")) {
-            $st->bind_param('ii', $eventId, $chronicleId);
-            $st->execute();
-            $st->close();
-        }
+    if ($st = $db->prepare("INSERT INTO bridge_timeline_events_chronicles (event_id, chronicle_id, sort_order) VALUES (?, ?, 0)")) {
+        $st->bind_param('ii', $eventId, $chronicleId);
+        $st->execute();
+        $st->close();
     }
 }
 
