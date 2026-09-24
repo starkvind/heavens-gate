@@ -76,15 +76,7 @@ foreach ($chars as $row) {
     if ($hasReality && trim((string)$row['reality_name']) === '') $withoutReality++;
 }
 ?>
-<style>
-.cca{background:#05014e;border:1px solid #000088;border-radius:10px;padding:12px}
-.cca h2,.cca h3{color:#33ffff}.cca-note{max-width:1000px;color:#cad8f3;font-size:12px}
-.cca-stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.cca-stat{border:1px solid #21469a;border-radius:7px;padding:8px 12px;background:#07155f}
-.cca-stat b{display:block;color:#33ffff;font-size:18px}.cca-stat span{font-size:10px;color:#cad8f3}
-.cca-table-wrap{overflow:auto;border:1px solid #000088;border-radius:7px}.cca table{border-collapse:collapse;width:100%;font-size:11px}
-.cca th,.cca td{padding:7px;border-bottom:1px solid #172b74;vertical-align:top;text-align:left}.cca th{background:#07155f;color:#9ff}
-.cca-item{margin-bottom:6px}.cca-muted{color:#94a5c8}.cca-key{font-family:monospace;color:#ffcf8f}
-</style>
+
 <div class="cca">
 <h2>Auditoría de colisiones de personajes</h2>
 <p class="cca-note">Solo lectura. Las coincidencias son candidatos a revisión, no órdenes de fusión. Un mismo nombre puede corresponder a contrapartes multiversales o a personajes legítimamente distintos.</p>
