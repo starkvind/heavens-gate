@@ -17,33 +17,9 @@ function hg_powers_normalize_int_csv($csv): string
     return implode(',', array_values(array_unique($ids)));
 }
 
-function hg_powers_column_exists(mysqli $link, string $table, string $column): bool
-{
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (array_key_exists($key, $cache)) return $cache[$key];
-
-    $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-    $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-    if ($table === '' || $column === '') return $cache[$key] = false;
-
-    $rs = $link->query("SHOW COLUMNS FROM `$table` LIKE '" . $link->real_escape_string($column) . "'");
-    if (!$rs) return $cache[$key] = false;
-
-    $exists = $rs->num_rows > 0;
-    $rs->free();
-    return $cache[$key] = $exists;
-}
-
-function hg_powers_gift_rules_column(mysqli $link): string
-{
-    return hg_powers_column_exists($link, 'fact_gifts', 'mechanics_text') ? 'mechanics_text' : 'system_name';
-}
-
 function hg_powers_fetch_catalog(mysqli $link, string $kind)
 {
     if ($kind === 'gifts') {
-        $rulesCol = hg_powers_gift_rules_column($link);
         $sql = "SELECT
                     d.id AS gift_id,
                     d.pretty_id AS gift_pretty_id,
@@ -54,7 +30,7 @@ function hg_powers_fetch_catalog(mysqli $link, string $kind)
                     d.attribute_name AS gift_roll_attribute,
                     d.ability_name AS gift_roll_skill,
                     d.description AS gift_description,
-                    d.`$rulesCol` AS gift_roll_description,
+                    d.mechanics_text AS gift_roll_description,
                     s.name AS gift_fera_system,
                     d.system_id AS gift_system_id,
                     nb.name AS gift_origin
@@ -242,10 +218,8 @@ function hg_powers_fetch_disciplines_for_type(mysqli $link, int $typeId)
 function hg_powers_fetch_gift(mysqli $link, int $giftId)
 {
     if ($giftId <= 0) return null;
-    $rulesCol = hg_powers_gift_rules_column($link);
-    $legacySystemCol = hg_powers_column_exists($link, 'fact_gifts', 'shifter_system_name') ? 'shifter_system_name' : 'system_name';
     $sql = "SELECT g.*, s.name AS resolved_system_name, gt.name AS type_name, b.name AS origin_name,
-                   g.`$rulesCol` AS mechanics_resolved, g.`$legacySystemCol` AS legacy_system_name
+                   g.mechanics_text AS mechanics_resolved, g.system_name AS legacy_system_name
             FROM fact_gifts g
             LEFT JOIN dim_systems s ON s.id = g.system_id
             LEFT JOIN dim_gift_types gt ON gt.id = g.kind
