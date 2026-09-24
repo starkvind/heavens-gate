@@ -203,38 +203,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Cómodo tirador de dados d10 para partidas de foro.";
 			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
-		case 'combat_simulator':
-		case 'combat_simulator_result':
-		case 'combat_simulator_logs':
-		case 'combat_simulator_log':
-		case 'combat_simulator_scores':
-		case 'combat_simulator_weapons':
-		case 'combat_simulator_tournament':
-		case 'simulador':
-		case 'simulador2':
-		case 'combtodo':
-		case 'vercombat':
-		case 'punts':
-		case 'arms':
-		case 'sim_tournament':
-            $title = "Simulador de combate | Heaven's Gate";
-            $description = "Simulador de combate de personajes usando datos reales de la web.";
-			$image = $baseURL . "/img/og/og_image_power.webp";
-            break;
-		case 'game_cards':
-		case 'game_cards_collection':
-		case 'game_cards_combat':
-		case 'game_cards_mobile':
-		case 'game_cards_explanation':
-		case 'game_cards_lab':
-		case 'game_cards_lab_collection':
-		case 'game_cards_lab_combat':
-		case 'game_cards_lab_mobile':
-		case 'game_cards_lab_explanation':
-            $title = "Archivo de mnemógeno | Heaven's Gate";
-            $description = "Minijuego coleccionable de cartas de Heaven's Gate con colección guardada en el navegador.";
-			$image = $baseURL . "/img/og/og_image_power.webp";
-            break;
 		case 'gallery':
             $title = "Galeria de imagenes | Heaven's Gate";
             $description = "Lista de imagenes utilizadas en la campana.";
