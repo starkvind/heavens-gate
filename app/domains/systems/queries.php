@@ -32,34 +32,19 @@ function hg_systems_table_for_detail_type(int $type): ?array
 
 function hg_systems_table_exists(mysqli $link, string $table): bool
 {
-    static $cache = [];
-    if (array_key_exists($table, $cache)) return $cache[$table];
-
-    $safeTable = str_replace('`', '', $table);
-    $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($safeTable) . "'");
-    if (!$rs) return $cache[$table] = false;
-
-    $exists = $rs->num_rows > 0;
-    $rs->free();
-    return $cache[$table] = $exists;
+    return $table === 'bridge_systems_detail_labels';
 }
 
 function hg_systems_column_exists(mysqli $link, string $table, string $column): bool
 {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (array_key_exists($key, $cache)) return $cache[$key];
-
-    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1";
-    if (!$stmt = $link->prepare($sql)) return $cache[$key] = false;
-
-    $stmt->bind_param('ss', $table, $column);
-    $stmt->execute();
-    $rs = $stmt->get_result();
-    $exists = $rs && $rs->num_rows > 0;
-    $stmt->close();
-
-    return $cache[$key] = $exists;
+    static $schema = [
+        'bridge_systems_detail_labels' => [
+            'system_id', 'label_auspice', 'label_breed', 'label_tribe',
+            'label_misc', 'label_pack', 'label_clan', 'label_pk_name', 'label_social',
+        ],
+        'dim_forms' => ['race'],
+    ];
+    return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
 
 function hg_systems_resolve_id(mysqli $link, string $table, $raw): int
