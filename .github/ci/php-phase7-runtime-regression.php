@@ -83,8 +83,12 @@ $removedPhase72Symbols = [
 ];
 
 foreach (['app', 'api'] as $runtimeRoot) {
+    $runtimePath = $root . '/' . $runtimeRoot;
+    if (!is_dir($runtimePath)) {
+        continue;
+    }
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($root . '/' . $runtimeRoot, FilesystemIterator::SKIP_DOTS)
+        new RecursiveDirectoryIterator($runtimePath, FilesystemIterator::SKIP_DOTS)
     );
     foreach ($iterator as $file) {
         if (!$file->isFile() || strtolower($file->getExtension()) !== 'php') {
