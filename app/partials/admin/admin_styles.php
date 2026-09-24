@@ -5,9 +5,9 @@ if (!function_exists('admin_panel_open')) {
         echo "<div class='panel-wrap adm-panel'>";
         echo "<div class='hdr adm-panel-header'>";
         echo "<h2>" . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . "</h2>";
-        echo "<a class='btn' href='/talim'>&larr; Panel</a>";
+        echo "<a class='btn adm-panel-back' href='/talim'>&larr; Panel</a>";
         if ($actionsHtml !== '') {
-            echo $actionsHtml;
+            echo "<div class='adm-panel-actions'>" . $actionsHtml . "</div>";
         }
         echo "</div>";
     }
