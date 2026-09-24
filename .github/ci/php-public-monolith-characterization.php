@@ -102,6 +102,11 @@ if ($characterQueries === false || strpos($characterQueries, "'bridge_characters
     hg_monolith_fail('Biography resources lost the production character-resource bridge contract');
 }
 
+$frontController = file_get_contents($root . '/index.php');
+if ($frontController === false || strpos($frontController, 'hg_page_register_route_styles(hg_request_route($hgRequest));') === false) {
+    hg_monolith_fail('Desktop front controller no longer preloads route styles before dispatch');
+}
+
 require_once $root . '/app/helpers/page_assets.php';
 unset($GLOBALS['hg_page_assets']);
 hg_page_register_route_styles('listasistemas');
