@@ -54,6 +54,9 @@ jobs:
       - name: Characterize Phase 7 runtime regressions
         run: php .github/ci/php-phase7-runtime-regression.php
 
+      - name: Audit archived games stay out of production
+        run: python3 .github/ci/php-retired-games-archive-audit.py
+
       - name: Characterize public monolith seams
         run: php .github/ci/php-public-monolith-characterization.php
 
