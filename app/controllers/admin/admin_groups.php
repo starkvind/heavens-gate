@@ -541,40 +541,7 @@ $ADMIN_GROUPS_ENDPOINT = '/talim?s=admin_groups&ajax=1';
 admin_panel_open('Grupos (Manadas y Clanes)');
 ?>
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
-<style>
-#agModal {
-  --adm-s2-bg: #000033;
-  --adm-s2-color: #ffffff;
-  --adm-s2-border: #333333;
-  --adm-s2-hover: #001199;
-  --adm-s2-selected: #00105f;
-}
-#adminGroupsApp,
-#adminGroupsApp h3,
-#adminGroupsApp .small,
-#adminGroupsApp th,
-#adminGroupsApp td,
-#agModal .modal-body,
-#agModal .modal-body h3,
-#agModal .modal-body h4,
-#agModal .modal-body .small,
-#agModal .modal-body label {
-  text-align: left;
-}
-#adminGroupsApp .btn,
-#agModal .modal-body .btn {
-  text-align: center;
-}
-#agModal .select2-dropdown { background: var(--adm-s2-bg) !important; border: 1px solid var(--adm-s2-border) !important; color: var(--adm-s2-color) !important; }
-#agModal .select2-results__option { background: transparent !important; color: var(--adm-s2-color) !important; }
-#agModal .select2-container--default .select2-results__option--selected { background: var(--adm-s2-selected) !important; color: var(--adm-s2-color) !important; }
-#agModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background: var(--adm-s2-hover) !important; color: #ffffff !important; }
-#agModal .select2-container--default .select2-selection--single { background: var(--adm-s2-bg) !important; border-color: var(--adm-s2-border) !important; }
-#agModal .select2-container--default .select2-selection--single .select2-selection__rendered { color: var(--adm-s2-color) !important; }
-#agModal .select2-container--default .select2-selection--single .select2-selection__placeholder { color: rgba(255, 255, 255, .78) !important; }
-#agModal .select2-container--default .select2-selection--single .select2-selection__arrow b { border-color: #9fd8ff transparent transparent !important; }
-#agModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b { border-color: transparent transparent #9fd8ff !important; }
-</style>
+
 <div class="adm-crud-wrap" id="adminGroupsApp">
   <div class="tabs">
     <a href="#" class="tablink active" data-tab="clans">Clanes</a>
