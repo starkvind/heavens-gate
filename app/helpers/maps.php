@@ -294,34 +294,6 @@ function hg_maps_filter_excluded_map_names(array $filters, array $mapNamesById):
     return array_values(array_unique($names));
 }
 
-function hg_maps_sql_append_not_in_ids(string &$sql, string &$types, array &$params, string $column, array $ids): void
-{
-    if (empty($ids)) {
-        return;
-    }
-
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $sql .= " AND {$column} NOT IN ({$placeholders})";
-    $types .= str_repeat('i', count($ids));
-    foreach ($ids as $id) {
-        $params[] = (int)$id;
-    }
-}
-
-function hg_maps_sql_append_not_in_strings(string &$sql, string &$types, array &$params, string $column, array $values): void
-{
-    if (empty($values)) {
-        return;
-    }
-
-    $placeholders = implode(',', array_fill(0, count($values), '?'));
-    $sql .= " AND {$column} NOT IN ({$placeholders})";
-    $types .= str_repeat('s', count($values));
-    foreach ($values as $value) {
-        $params[] = (string)$value;
-    }
-}
-
 function hg_maps_build_detail_url(array $poi, string $fromMapSlug = ''): string
 {
     $detailKey = trim((string)($poi['pretty_id'] ?? ''));
