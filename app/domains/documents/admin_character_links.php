@@ -1,20 +1,22 @@
 <?php
 
 function acl_table_exists(mysqli $db, string $table): bool {
-    $safe = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    if ($safe === '') return false;
-    $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safe}' LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
+    static $tables = [
+        'fact_characters' => true,
+        'fact_docs' => true,
+        'bridge_characters_docs' => true,
+        'fact_external_links' => true,
+        'bridge_characters_external_links' => true,
+        'dim_chronicles' => true,
+        'dim_realities' => true,
+    ];
+    return isset($tables[$table]);
 }
+
 function acl_column_exists(mysqli $db, string $table, string $column): bool {
-    $safeTable = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-    $safeCol = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $column));
-    if ($safeTable === '' || $safeCol === '') return false;
-    $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safeTable}' AND COLUMN_NAME = '{$safeCol}' LIMIT 1";
-    $rs = mysqli_query($db, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
+    return $table === 'fact_characters' && $column === 'reality_id';
 }
+
 function acl_doc_link_mutation(mysqli $link,string $action,int $characterId,int $docId,string $label,int $sort): array {
     if($docId<=0)return ['ok'=>false,'message'=>$action==='link_doc'?'Selecciona un documento vÃ¡lido.':'Fila de documento invalida.'];
     if($action==='link_doc'){
