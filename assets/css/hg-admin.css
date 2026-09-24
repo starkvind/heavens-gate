@@ -3167,3 +3167,60 @@ body { font-family: Verdana, Arial, sans-serif; }
   outline:2px solid var(--adm-accent);
   outline-offset:2px;
 }
+
+
+/* ==== Admin usage telemetry dashboard ==== */
+#mainBody.route-admin .adm-usage-summary{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:8px;
+  margin:8px 0 12px;
+}
+#mainBody.route-admin .adm-usage-card{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-height:66px;
+  padding:10px 12px;
+  border:1px solid var(--adm-border-soft);
+  border-radius:8px;
+  background:#030447;
+}
+#mainBody.route-admin .adm-usage-card strong{
+  color:var(--adm-accent);
+  font-size:22px;
+  line-height:1;
+}
+#mainBody.route-admin .adm-usage-card span,
+#mainBody.route-admin .adm-note{
+  color:var(--adm-muted);
+  font-size:10px;
+}
+#mainBody.route-admin .adm-usage-toolbar{
+  margin:10px 0 6px;
+}
+#mainBody.route-admin .adm-usage-days{
+  display:grid;
+  gap:5px;
+  max-width:760px;
+}
+#mainBody.route-admin .adm-usage-day{
+  display:grid;
+  grid-template-columns:92px minmax(120px,1fr) 48px;
+  gap:8px;
+  align-items:center;
+}
+#mainBody.route-admin .adm-usage-bar-track{
+  height:9px;
+  overflow:hidden;
+  border:1px solid var(--adm-border);
+  border-radius:999px;
+  background:#02023f;
+}
+#mainBody.route-admin .adm-usage-bar{
+  display:block;
+  width:var(--adm-usage-pct,2%);
+  height:100%;
+  border-radius:999px;
+  background:#1177bb;
+}
