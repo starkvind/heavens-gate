@@ -65,8 +65,8 @@ $flash = [];
 /* -----------------------------
    Opciones de referencia
 ------------------------------ */
-$opts_sections = fetchPairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
-$opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
+$opts_sections = hg_docs_admin_fetch_pairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
+$opts_origins  = hg_docs_admin_fetch_pairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
 
 /* -----------------------------
    Metadatos CRUD
@@ -143,8 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
         // refrescar secciones por si se editaron
-        $opts_sections = fetchPairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
-        $opts_origins  = fetchPairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
+        $opts_sections = hg_docs_admin_fetch_pairs($link, "SELECT id, kind FROM dim_doc_categories ORDER BY sort_order ASC, kind ASC");
+        $opts_origins  = hg_docs_admin_fetch_pairs($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
 
         $M = meta_for($postTab, $opts_sections, $opts_origins);
         $action = (string)$_POST['crud_action'];
