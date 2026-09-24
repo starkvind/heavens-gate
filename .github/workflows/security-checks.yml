@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          find app api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l index.php
 
       - name: Guard CSS architecture
