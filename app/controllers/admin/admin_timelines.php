@@ -273,41 +273,7 @@ $actions .= '</select></label>'
 
 admin_panel_open('Línea temporal', $actions);
 ?>
-<style>
-.admin-multi{
-    min-height: 120px;
-}
-.adm-help{
-    display:block;
-    margin-top:4px;
-    color:#8fb1d9;
-    font-size:10px;
-}
-.adm-rel-row{
-    display:flex;
-    gap:8px;
-    margin-bottom:8px;
-    align-items:center;
-    flex-wrap:wrap;
-}
-.adm-rel-select{
-    max-width:420px;
-}
-.adm-rel-box{
-    border:1px solid #1d3f88;
-    background:#071544;
-    border-radius:6px;
-    padding:8px;
-    min-height:42px;
-}
-.adm-rel-box ul{
-    margin:0;
-    padding-left:18px;
-}
-.adm-rel-box li{
-    margin:0 0 6px;
-}
-</style>
+
 
 <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de línea temporal"><table class="table adm-wide-table" id="eventsTable">
     <thead>
