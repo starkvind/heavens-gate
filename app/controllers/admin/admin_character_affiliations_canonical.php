@@ -56,12 +56,7 @@ admin_panel_open(
 ?>
 <?php if (!empty($flash)): ?><div class="flash"><?php foreach ($flash as $m): $cl = $m['type'] === 'ok' ? 'ok' : (($m['type'] ?? '') === 'error' ? 'err' : 'info'); ?><div class="<?= $cl ?>"><?= acac_h($m['msg'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
 
-<style>
-.adm-charcanon-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-.adm-charcanon-log{white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;line-height:1.45;color:#d7e7ff;background:#06153a;border:1px solid #17366e;border-radius:8px;padding:10px;max-height:420px;overflow:auto}
-.adm-charcanon-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}
-.adm-charcanon-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-</style>
+
 
 <p>Regla canonica aplicada por esta pantalla:</p>
 <ul>
