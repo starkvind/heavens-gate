@@ -1,53 +1,16 @@
 <?php
 
-if (!function_exists('hg_accb_table_exists')) {
-    function hg_accb_table_exists(mysqli $link, string $table): bool {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$table] = $ok;
-    }
-}
-
-if (!function_exists('hg_accb_column_exists')) {
-    function hg_accb_column_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        return $cache[$key] = $ok;
-    }
-}
-
 if (!function_exists('hg_accb_character_options')) {
     function hg_accb_character_options(mysqli $link): array {
-        $hasChronicles = hg_accb_table_exists($link, 'dim_chronicles') && hg_accb_column_exists($link, 'fact_characters', 'chronicle_id');
-        $hasRealities = hg_accb_table_exists($link, 'dim_realities') && hg_accb_column_exists($link, 'fact_characters', 'reality_id');
-        $chronicleSelect = $hasChronicles ? "COALESCE(NULLIF(TRIM(ch.name), ''), 'Sin cronica')" : "'Sin cronica'";
-        $realitySelect = $hasRealities ? "COALESCE(NULLIF(TRIM(r.name), ''), 'Sin realidad')" : "'Sin realidad'";
+        $chronicleSelect = "COALESCE(NULLIF(TRIM(ch.name), ''), 'Sin cronica')";
+        $realitySelect = "COALESCE(NULLIF(TRIM(r.name), ''), 'Sin realidad')";
         $sql = "SELECT c.id,
                        COALESCE(NULLIF(TRIM(c.name), ''), CONCAT('Personaje #', c.id)) AS character_name,
                        {$chronicleSelect} AS chronicle_name,
                        {$realitySelect} AS reality_name
                 FROM fact_characters c";
-        if ($hasChronicles) $sql .= " LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id";
-        if ($hasRealities) $sql .= " LEFT JOIN dim_realities r ON r.id = c.reality_id";
+        $sql .= " LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id";
+        $sql .= " LEFT JOIN dim_realities r ON r.id = c.reality_id";
         $sql .= " ORDER BY c.name ASC, c.id ASC";
         $out = [];
         if ($rs = $link->query($sql)) {
