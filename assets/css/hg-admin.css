@@ -2664,3 +2664,165 @@ body { font-family: Verdana, Arial, sans-serif; }
 
 /* ==== 6.99z centralized from admin_bso_link.php ==== */
 .adm-state-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-state-badge.warn{background:#4a3200;border-color:#b37a11;color:#ffefbf}.adm-state-badge.err{background:#4a0000;border-color:#b31111;color:#ffd7d7}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-link-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.adm-summary-band{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}.adm-summary-pill{padding:5px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}.adm-bso-link-table .table th,.adm-bso-link-table .table td{vertical-align:top}.adm-bso-link-theme{min-width:220px;max-width:280px}.adm-bso-link-dest{min-width:240px;max-width:320px}.adm-bso-link-state{min-width:180px;max-width:240px}
+
+
+/* ==== 6.99z centralized from admin_relations.php ==== */
+#relModal{
+	--adm-s2-bg: #000033;
+	--adm-s2-color: #ffffff;
+	--adm-s2-border: #333333;
+	--adm-s2-hover: #001199;
+	--adm-s2-selected: #00105f;
+}
+#relModal .select2-dropdown{
+	background: var(--adm-s2-bg) !important;
+	border: 1px solid var(--adm-s2-border) !important;
+	color: var(--adm-s2-color) !important;
+}
+#relModal .select2-results__option{
+	background: transparent !important;
+	color: var(--adm-s2-color) !important;
+}
+#relModal .select2-container--default .select2-results__option--selected{
+	background: var(--adm-s2-selected) !important;
+	color: var(--adm-s2-color) !important;
+}
+#relModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
+	background: var(--adm-s2-hover) !important;
+	color: #ffffff !important;
+}
+#relModal .select2-container--default .select2-selection--single .select2-selection__arrow b{
+	border-color: #9fd8ff transparent transparent transparent !important;
+}
+#relModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b{
+	border-color: transparent transparent #9fd8ff transparent !important;
+}
+#relModal .select2-container{
+	width: 100% !important;
+}
+.relations-toolbar{
+	display:flex;
+	flex-wrap:wrap;
+	gap:10px;
+	align-items:flex-end;
+	margin-bottom:12px;
+}
+.relations-stats{
+	display:flex;
+	flex-wrap:wrap;
+	gap:8px;
+}
+.relations-stat{
+	padding:8px 12px;
+	border:1px solid rgba(255,255,255,.14);
+	border-radius:10px;
+	background:rgba(255,255,255,.04);
+	min-width:120px;
+}
+.relations-stat strong{
+	display:block;
+	font-size:18px;
+	line-height:1.1;
+}
+.relations-stat span{
+	opacity:.75;
+	font-size:12px;
+}
+.relations-swap{
+	display:flex;
+	align-items:flex-end;
+	justify-content:center;
+}
+.relations-swap .btn{
+	width:100%;
+}
+.arrow-picker{
+	display:grid;
+	grid-template-columns:repeat(4, minmax(0, 1fr));
+	gap:8px;
+	margin-top:6px;
+}
+.arrow-choice{
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	min-height:44px;
+	border:1px solid rgba(255,255,255,.18);
+	border-radius:10px;
+	background:rgba(255,255,255,.05);
+	color:#ffffff;
+	cursor:pointer;
+	font-size:22px;
+	line-height:1;
+	transition:background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.arrow-choice:hover{
+	background:rgba(255,255,255,.1);
+	border-color:rgba(159,216,255,.45);
+}
+.arrow-choice.is-active{
+	background:rgba(0,17,153,.42);
+	border-color:#9fd8ff;
+	transform:translateY(-1px);
+}
+.arrow-choice small{
+	font-size:11px;
+	opacity:.8;
+	margin-left:6px;
+}
+
+
+/* ==== 6.99z centralized from admin_realities.php ==== */
+.adm-dep-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-dep-badge.off{background:#2a2a2a;border-color:#555;color:#ddd}.adm-status-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;border:1px solid #1b4aa0;background:#083679;color:#d9efff}.adm-status-pill.off{background:#3a2a2a;border-color:#884444;color:#ffd9d9}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-summary-band{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}.adm-summary-pill{padding:5px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}.adm-audit-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2d6a9f;background:#0a2147;color:#e8f5ff;font-size:10px;line-height:1.2}.adm-audit-badge.review{background:#4a3200;border-color:#b37a11;color:#ffefbf}.adm-audit-badge.warn{background:#4a0000;border-color:#b31111;color:#ffd7d7}
+
+
+/* ==== 6.99z centralized from admin_chapters.php ==== */
+.adm-thumb-hint{font-size:10px;color:#9db5d3}
+
+
+/* ==== 6.99z centralized from admin_doc_links.php ==== */
+.panel-wrap, .panel-wrap * { text-align: left !important; }
+
+
+/* ==== 6.99z centralized from admin_chronicles.php ==== */
+.adm-dep-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-dep-badge.off{background:#2a2a2a;border-color:#555;color:#ddd}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-thumb-hint{font-size:10px;color:#9db5d3}
+
+
+/* ==== 6.99z centralized from admin_timelines.php ==== */
+.admin-multi{
+    min-height: 120px;
+}
+.adm-help{
+    display:block;
+    margin-top:4px;
+    color:#8fb1d9;
+    font-size:10px;
+}
+.adm-rel-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
+    align-items:center;
+    flex-wrap:wrap;
+}
+.adm-rel-select{
+    max-width:420px;
+}
+.adm-rel-box{
+    border:1px solid #1d3f88;
+    background:#071544;
+    border-radius:6px;
+    padding:8px;
+    min-height:42px;
+}
+.adm-rel-box ul{
+    margin:0;
+    padding-left:18px;
+}
+.adm-rel-box li{
+    margin:0 0 6px;
+}
+
+
+/* ==== 6.99z centralized from admin_external_links.php ==== */
+.panel-wrap, .panel-wrap * { text-align: left !important; }
