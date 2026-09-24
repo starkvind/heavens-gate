@@ -51,6 +51,9 @@ jobs:
       - name: Audit Phase 7.3 schema contract
         run: python3 .github/ci/php-schema-contract-audit.py
 
+      - name: Characterize Phase 7 runtime regressions
+        run: php .github/ci/php-phase7-runtime-regression.php
+
       - name: Characterize public monolith seams
         run: php .github/ci/php-public-monolith-characterization.php
 
