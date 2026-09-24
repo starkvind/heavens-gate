@@ -2204,14 +2204,28 @@ body { font-family: Verdana, Arial, sans-serif; }
 }
 
 
-/* ==== Phase 6.99z: dense Admin spreadsheet layout ==== */
-.panel-wrap.adm-admin-wide-panel{
+/* ==== Phase 6.99z: homogeneous Admin workspace + spreadsheet tables ==== */
+#mainBody.route-admin .main-wrapper{
   width:min(96vw, 1800px);
   max-width:none;
+}
+#mainBody.route-admin .fcentro{
+  min-width:0;
+  text-align:left;
+}
+#mainBody.route-admin .panel-wrap{
+  width:100%;
+  max-width:none;
+  margin-inline:0;
   box-sizing:border-box;
-  position:relative;
-  left:50%;
-  transform:translateX(-50%);
+}
+.panel-wrap.adm-admin-wide-panel{
+  width:100%;
+  max-width:none;
+  box-sizing:border-box;
+  position:static;
+  left:auto;
+  transform:none;
 }
 .adm-dense-table{
   position:relative;
@@ -2327,8 +2341,8 @@ body { font-family: Verdana, Arial, sans-serif; }
   height:1px;
 }
 @media (max-width:800px){
-  .panel-wrap.adm-admin-wide-panel{
-    width:calc(100vw - 10px);
+  #mainBody.route-admin .main-wrapper{
+    width:calc(100vw - 12px);
   }
   .adm-table-tools{
     flex-wrap:wrap;
