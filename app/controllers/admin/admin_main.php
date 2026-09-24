@@ -290,4 +290,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 HTML;
 		}
 	}
+	if (hg_admin_is_authenticated()) {
+		echo '<script src="/assets/js/hg-admin-dense-tables.js?v=699z-spreadsheet-1"></script>';
+	}
 ?>
