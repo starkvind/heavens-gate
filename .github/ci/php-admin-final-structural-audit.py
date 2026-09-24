@@ -9,7 +9,7 @@ ADMIN = ROOT / 'app/controllers/admin'
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
 SCHEMA = re.compile(r"\bSHOW\s+COLUMNS\b|\binformation_schema\b", re.I)
 
-EXPECTED_CONTROLLER_COUNT = 62
+EXPECTED_CONTROLLER_COUNT = 63
 
 WRAPPERS = {
     'admin_episodios.php': {
