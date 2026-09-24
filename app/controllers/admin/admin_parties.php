@@ -67,25 +67,6 @@ function csrf_check(): bool {
     return is_string($t) && hash_equals($_SESSION['csrf'] ?? '', $t);
 }
 
-/* -----------------------------
-   Compatibilidad de esquema
------------------------------ */
-$partyMembersTable = '';
-foreach (['fact_party_members', 'party_members'] as $t) {
-    if (hg_parties_admin_has_table($link, $t)) { $partyMembersTable = $t; break; }
-}
-$partyChangesTable = '';
-foreach (['fact_party_members_changes', 'party_members_changes'] as $t) {
-    if (hg_parties_admin_has_table($link, $t)) { $partyChangesTable = $t; break; }
-}
-$partyFkCol = ($partyMembersTable !== '' && hg_parties_admin_has_column($link, $partyMembersTable, 'plot_id'))
-    ? 'plot_id'
-    : (($partyMembersTable !== '' && hg_parties_admin_has_column($link, $partyMembersTable, 'party_id')) ? 'party_id' : '');
-$changesFkCol = ($partyChangesTable !== '' && hg_parties_admin_has_column($link, $partyChangesTable, 'plot_char_id'))
-    ? 'plot_char_id'
-    : (($partyChangesTable !== '' && hg_parties_admin_has_column($link, $partyChangesTable, 'party_member_id')) ? 'party_member_id' : '');
-$hasPartiesSchema = ($partyMembersTable !== '' && $partyFkCol !== '' && $partyChangesTable !== '' && $changesFkCol !== '');
-
 $isAjaxRequest = is_post() && (
     ((string)($_POST['ajax'] ?? '') === '1')
     || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
@@ -156,9 +137,6 @@ if ($action === 'save_plot') {
     );
 }
 if ($action === 'save_plot_char') {
-    if (!$hasPartiesSchema) {
-        parties_fail('Esquema de tramas/personajes no compatible.');
-    }
     $id     = (int)($_POST['id'] ?? 0);
     $plot   = (int)($_POST['plot_id'] ?? 0);
     $base   = (int)($_POST['base_char_id'] ?? 0);
@@ -174,7 +152,7 @@ if ($action === 'save_plot_char') {
     foreach ($stats as $s) $vals[$s] = (int)($_POST["m_$s"] ?? 0);
     if ($vals['hp'] < 0) $vals['hp'] = 0;
 
-    $result = hg_parties_admin_save_member($link,$partyMembersTable,$partyFkCol,$id,$plot,$base,$alias,$vals,$notes,$act);
+    $result = hg_parties_admin_save_member($link,$id,$plot,$base,$alias,$vals,$notes,$act);
     if (empty($result['ok'])) parties_fail((string)$result['error'], ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
     $savedId=(int)$result['id'];
     parties_ok(
@@ -184,9 +162,6 @@ if ($action === 'save_plot_char') {
     );
 }
 if ($action === 'add_change') {
-    if (!$hasPartiesSchema) {
-        parties_fail('Esquema de cambios no compatible.');
-    }
     $cid  = (int)($_POST['plot_char_id'] ?? 0);
     $res  = (string)($_POST['resource'] ?? '');
     $val  = (int)($_POST['value'] ?? 0);
@@ -200,7 +175,7 @@ if ($action === 'add_change') {
         parties_fail('Recurso invalido.', ['open_changes'=>$cid]);
     }
 
-    $result = hg_parties_admin_add_change($link,$partyChangesTable,$changesFkCol,$cid,$res,$val,$note);
+    $result = hg_parties_admin_add_change($link,$cid,$res,$val,$note);
     if (empty($result['ok'])) parties_fail((string)$result['error'], ['open_changes'=>$cid]);
     parties_ok('Cambio registrado.', ['open_changes'=>$cid], ['id'=>(int)$result['id'], 'plot_char_id'=>$cid]);
 }
@@ -208,7 +183,7 @@ if ($action === 'add_change') {
    Cargas de datos
 ----------------------------- */
 
-$state = hg_parties_admin_load_state($link,$partyMembersTable,$partyFkCol,$partyChangesTable,$changesFkCol,$hasPartiesSchema);
+$state = hg_parties_admin_load_state($link);
 $plots = $state['plots'];
 $baseChars = $state['baseChars'];
 $plotCharsByPlot = $state['plotCharsByPlot'];
@@ -301,15 +276,7 @@ $csrf = $_SESSION['csrf'];
     </div>
   <?php endif; ?>
 
-  <?php if (!$hasPartiesSchema): ?>
-    <div class="flash">
-      <div class="err">
-        ❌ Esquema no compatible para miembros/cambios de trama.
-        Se esperaba `fact_party_members.plot_id` o `party_members.party_id`,
-        y `fact_party_members_changes.plot_char_id` o `party_members_changes.party_member_id`.
-      </div>
-    </div>
-  <?php endif; ?>
+
 
   <div class="toolbar adm-mb-8">
     <input class="inp" type="text" id="filterPlots" placeholder="Filtrar tramas (nombre, activa, orden...)">
