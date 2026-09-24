@@ -50,6 +50,9 @@ if (!empty($isBarePage)) {
 
 require_once __DIR__ . '/app/presentation/desktop_context.php';
 $bodyThemeClass = hg_desktop_theme_class($hgRequest);
+if (hg_request_route($hgRequest) === 'talim') {
+    $bodyThemeClass .= ' route-admin';
+}
 $desktopMobileViewUrl = hg_view_switch_url((string)($_SERVER['REQUEST_URI'] ?? '/'), 'mobile');
 
 include __DIR__ . '/app/views/layout/desktop.php';
