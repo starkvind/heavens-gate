@@ -230,15 +230,6 @@ admin_panel_open('Fechas de nacimiento', $actions);
 })();
 </script>
 
-<style>
-.adm-callout { margin: 10px 0; font-size: 13px; color: #b7cdf8; }
-.adm-grid-table { overflow-x: auto; }
-.abq-state { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; letter-spacing: .02em; }
-.state-ok { background: #123f2a; color: #79f0b0; }
-.state-sin_evento { background: #532121; color: #ffb3b3; }
-.state-evento_sin_fecha { background: #4f3f13; color: #ffe08f; }
-.abq-birthtext { min-width: 150px; }
-.abq-eventdate { min-width: 120px; }
-</style>
+
 <?php admin_panel_close(); ?>
 
