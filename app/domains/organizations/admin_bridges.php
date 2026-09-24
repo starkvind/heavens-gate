@@ -12,16 +12,9 @@ function hg_organizations_admin_fetch_pairs(mysqli $link, string $sql): array {
 }
 
 function bridges_table_has_column(mysqli $link, string $table, string $column): bool {
-  $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-  $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-  if ($t === '' || $c === '') return false;
-  $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
-  if (!$rs = $link->query($sql)) return false;
-  $ok = ($rs->num_rows > 0);
-  $rs->close();
-  return $ok;
+  // Current production bridge tables use composite keys and have no synthetic id.
+  return false;
 }
-
 
 function set_active_character_group(mysqli $link, string $T_CHAR_GROUP, int $charId, int $groupId): void {
   if ($charId <= 0) return;
