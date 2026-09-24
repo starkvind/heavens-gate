@@ -54,12 +54,7 @@ if (!function_exists('hg_mobile_menu_is_desktop_only_href')) {
 if (!function_exists('hg_mobile_menu_table_exists')) {
     function hg_mobile_menu_table_exists(mysqli $link): bool
     {
-        if ($res = $link->query("SHOW TABLES LIKE 'dim_menu_items'")) {
-            $exists = $res->num_rows > 0;
-            $res->free();
-            return $exists;
-        }
-        return false;
+        return true;
     }
 }
 
