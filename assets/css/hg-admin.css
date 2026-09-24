@@ -2071,7 +2071,8 @@ body { font-family: Verdana, Arial, sans-serif; }
 .adm-sticky-actions thead th:last-child{
   position:sticky;
   right:0;
-  min-width:150px;
+  width:1%;
+  min-width:76px;
   z-index:3;
   background:#05014E !important;
   box-shadow:-8px 0 12px -12px rgba(0,0,0,.9);
@@ -2087,9 +2088,26 @@ body { font-family: Verdana, Arial, sans-serif; }
 }
 .adm-actions-inline{
   display:flex;
-  gap:6px;
+  gap:4px;
   align-items:center;
+  justify-content:flex-start;
   flex-wrap:nowrap;
+}
+.adm-icon-btn{
+  width:32px;
+  min-width:32px;
+  height:32px;
+  padding:0 !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  font-size:16px;
+  font-weight:700;
+}
+.adm-icon-btn:focus-visible{
+  outline:2px solid #33FFFF;
+  outline-offset:2px;
 }
 .adm-wide-table th,
 .adm-wide-table td{
@@ -2103,7 +2121,7 @@ body { font-family: Verdana, Arial, sans-serif; }
 .adm-col-name{ min-width:180px; }
 .adm-col-title{ min-width:220px; }
 .adm-col-text{ min-width:240px; max-width:420px; }
-.adm-col-actions{ min-width:150px; }
+.adm-col-actions{ min-width:76px; width:1%; }
 .adm-table-scroll:focus-visible,
 .adm-table-wrap:focus-visible,
 .table-scroll:focus-visible,
