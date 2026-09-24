@@ -1,40 +1,5 @@
 <?php
 
-function acmb_table_exists(mysqli $db, string $table): bool
-{
-    static $cache = [];
-    if (isset($cache[$table])) return $cache[$table];
-    $ok = false;
-    if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-        $st->bind_param('s', $table);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$table] = $ok;
-    return $ok;
-}
-
-function acmb_column_exists(mysqli $db, string $table, string $column): bool
-{
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$key] = $ok;
-    return $ok;
-}
-
 function acmb_bind_params(mysqli_stmt $st, string $types, array &$values): bool
 {
     if ($types === '') return true;
@@ -49,18 +14,16 @@ function acmb_bind_params(mysqli_stmt $st, string $types, array &$values): bool
 function acmb_character_options(mysqli $db): array
 {
     $rows = [];
-    $hasSystem = acmb_column_exists($db, 'fact_characters', 'system_id') && acmb_table_exists($db, 'dim_systems');
-    $hasChronicle = acmb_column_exists($db, 'fact_characters', 'chronicle_id') && acmb_table_exists($db, 'dim_chronicles');
     $sql = "
         SELECT
             c.id,
             COALESCE(NULLIF(TRIM(c.name), ''), CONCAT('Personaje #', c.id)) AS name,
-            " . ($hasSystem ? "COALESCE(ds.name, '')" : "''") . " AS system_name,
-            " . ($hasSystem ? "COALESCE(c.system_id, 0)" : "0") . " AS system_id,
-            " . ($hasChronicle ? "COALESCE(ch.name, '')" : "''") . " AS chronicle_name
+            COALESCE(ds.name, '') AS system_name,
+            COALESCE(c.system_id, 0) AS system_id,
+            COALESCE(ch.name, '') AS chronicle_name
         FROM fact_characters c
-        " . ($hasSystem ? "LEFT JOIN dim_systems ds ON ds.id = c.system_id" : "") . "
-        " . ($hasChronicle ? "LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id" : "") . "
+        LEFT JOIN dim_systems ds ON ds.id = c.system_id
+        LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id
         ORDER BY c.name ASC, c.id ASC
     ";
     if ($rs = $db->query($sql)) {
@@ -186,7 +149,6 @@ function acmb_fetch_assignments(mysqli $db, int $characterId, int $systemId, str
 if (!function_exists('acmb_system_options')) {
     function acmb_system_options(mysqli $db): array {
         $rows=[];
-        if (!acmb_table_exists($db,'dim_systems')) return $rows;
         if ($rs=$db->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
             while($row=$rs->fetch_assoc()) $rows[(int)($row['id'] ?? 0)] = (string)($row['name'] ?? '');
             $rs->close();
