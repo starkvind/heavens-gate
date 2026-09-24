@@ -69,10 +69,11 @@ if (!function_exists('hg_admin_render_menu_section')) {
         // Telemetria minima: solo cargas completas GET. Nunca AJAX/POST ni datos personales.
         if (!$isAjaxAdminRequest && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET') {
             $usageSection = null;
-            if (!isset($_GET['s'])) {
+            $usageRequestedRaw = filter_input(INPUT_GET, 's', FILTER_UNSAFE_RAW);
+            $usageRequested = is_string($usageRequestedRaw) ? trim($usageRequestedRaw) : '';
+            if ($usageRequested === '') {
                 $usageSection = 'admin_main';
             } else {
-                $usageRequested = (string)$_GET['s'];
                 $usageResolved = hg_admin_section_resolve($usageRequested, 'normal');
                 if ($usageResolved !== null && (string)($usageResolved['section'] ?? '') !== 'logout') {
                     $usageSection = (string)$usageResolved['section'];
