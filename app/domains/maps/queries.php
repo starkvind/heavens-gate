@@ -14,28 +14,6 @@ function hg_maps_query_schema_info(mysqli $link): array
         return $cache[$cacheKey];
     }
 
-    $columnExists = static function (string $table, string $column) use ($link): bool {
-        $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $safeColumn = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($safeTable === '' || $safeColumn === '') {
-            return false;
-        }
-
-        $stmt = $link->prepare(
-            'SELECT COUNT(*) FROM information_schema.COLUMNS '
-            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        if (!($stmt instanceof mysqli_stmt)) {
-            return false;
-        }
-        $stmt->bind_param('ss', $safeTable, $safeColumn);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return (int)$count > 0;
-    };
-
     $indexExists = static function (string $table, string $indexName) use ($link): bool {
         $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
         $safeIndex = preg_replace('/[^a-zA-Z0-9_]/', '', $indexName);
@@ -59,9 +37,9 @@ function hg_maps_query_schema_info(mysqli $link): array
     };
 
     $cache[$cacheKey] = [
-        'has_map_id' => $columnExists('fact_map_pois', 'map_id'),
-        'has_cat_id' => $columnExists('fact_map_pois', 'category_id'),
-        'has_pretty_id' => $columnExists('fact_map_pois', 'pretty_id'),
+        'has_map_id' => true,
+        'has_cat_id' => true,
+        'has_pretty_id' => true,
         'has_fulltext' => $indexExists('fact_map_pois', 'ft_pois'),
     ];
 
