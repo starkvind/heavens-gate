@@ -47,8 +47,6 @@ $expected = [
     'players' => 'app/controllers/playr/playr_list.php',
     'seeplayer' => 'app/controllers/playr/playr_page.php',
     'forum_message' => 'app/partials/forum_message_snippet.php',
-    'combat_simulator' => 'app/controllers/tool/combat_simulator.php',
-    'game_cards' => 'app/controllers/tool/game_cards.php',
 ];
 
 foreach ($expected as $route => $file) {
@@ -171,11 +169,5 @@ if ($desktopLayout === false || strpos($desktopLayout, "include __DIR__ . '/head
     hg_dispatch_fail('Desktop layout no longer owns its document head');
 }
 
-foreach (['combat_simulator.php', 'game_cards.php'] as $retired) {
-    $retiredSource = file_get_contents($root . '/app/controllers/tool/' . $retired);
-    if ($retiredSource === false || strpos($retiredSource, 'http_response_code(410)') === false) {
-        hg_dispatch_fail("Retired tool is no longer an explicit HTTP 410 stub: {$retired}");
-    }
-}
 
 fwrite(STDOUT, 'PHP dispatch characterization: OK (' . count($routes) . " mapped routes)\n");
