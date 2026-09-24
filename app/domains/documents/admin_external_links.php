@@ -5,14 +5,7 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 if (!function_exists('hg_external_links_admin_table_exists')) {
     function hg_external_links_admin_table_exists(mysqli $db, string $table): bool
     {
-        $safe = mysqli_real_escape_string($db, preg_replace('/[^a-zA-Z0-9_]/', '', $table));
-        if ($safe === '') {
-            return false;
-        }
-
-        $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$safe}' LIMIT 1";
-        $result = mysqli_query($db, $sql);
-        return $result && mysqli_num_rows($result) > 0;
+        return in_array($table, ['fact_external_links', 'bridge_characters_external_links'], true);
     }
 }
 
