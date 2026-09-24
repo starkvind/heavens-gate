@@ -58,52 +58,6 @@ if (!function_exists('hg_ser_column_exists')) {
     }
 }
 
-if (!function_exists('hg_ser_index_exists')) {
-    function hg_ser_index_exists(mysqli $link, string $table, string $index): bool
-    {
-        $cache = &$GLOBALS['hg_ser_cache'];
-        if (!isset($cache) || !is_array($cache)) $cache = [];
-        $key = 'i:' . $table . ':' . $index;
-        if (isset($cache[$key])) return (bool)$cache[$key];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?")) {
-            $st->bind_param('ss', $table, $index);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
-    }
-}
-
-if (!function_exists('hg_ser_constraint_exists')) {
-    function hg_ser_constraint_exists(mysqli $link, string $table, string $constraint): bool
-    {
-        $cache = &$GLOBALS['hg_ser_cache'];
-        if (!isset($cache) || !is_array($cache)) $cache = [];
-        $key = 'fk:' . $table . ':' . $constraint;
-        if (isset($cache[$key])) return (bool)$cache[$key];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?")) {
-            $st->bind_param('ss', $table, $constraint);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
-    }
-}
-
 if (!function_exists('hg_ser_energy_tables')) {
     function hg_ser_energy_tables(): array
     {
@@ -854,28 +808,3 @@ if (!function_exists('hg_ser_legacy_pending_rows')) {
     }
 }
 
-if (!function_exists('hg_ser_retire_legacy_schema')) {
-    function hg_ser_retire_legacy_schema(mysqli $link): array
-    {
-        return [
-            'ok' => false,
-            'messages' => [],
-            'errors' => [[
-                'error' => 'Las migraciones de esquema están deshabilitadas en el runtime web.',
-            ]],
-        ];
-    }
-}
-
-if (!function_exists('hg_ser_ensure_energy_schema')) {
-    function hg_ser_ensure_energy_schema(mysqli $link): array
-    {
-        return [
-            'ok' => false,
-            'messages' => [],
-            'errors' => [[
-                'error' => 'Las migraciones de esquema están deshabilitadas en el runtime web.',
-            ]],
-        ];
-    }
-}
