@@ -1,29 +1,5 @@
 <?php
 
-if (!function_exists('hg_character_types_column_exists')) {
-    function hg_character_types_column_exists(mysqli $link, string $table, string $column): bool
-    {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) return $cache[$key];
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        if (!$stmt) return $cache[$key] = false;
-        mysqli_stmt_bind_param($stmt, 'ss', $table, $column);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-        return $cache[$key] = ((int)$count > 0);
-    }
-}
-
 if (!function_exists('hg_character_types_normalize_excluded_ids')) {
     function hg_character_types_normalize_excluded_ids($excludedChronicles): array
     {
@@ -42,15 +18,9 @@ if (!function_exists('hg_character_types_fetch_one')) {
     function hg_character_types_fetch_one(mysqli $link, int $typeId): ?array
     {
         if ($typeId <= 0) return null;
-        $imageExpr = hg_character_types_column_exists($link, 'dim_character_types', 'image_url')
-            ? "COALESCE(image_url, '')"
-            : "''";
-        $descriptionExpr = hg_character_types_column_exists($link, 'dim_character_types', 'description')
-            ? "COALESCE(description, '')"
-            : "''";
         $stmt = mysqli_prepare(
             $link,
-            "SELECT id, kind, {$imageExpr} AS image_url, {$descriptionExpr} AS description
+            "SELECT id, kind, COALESCE(image_url, '') AS image_url, COALESCE(description, '') AS description
              FROM dim_character_types
              WHERE id = ?
              LIMIT 1"
@@ -184,11 +154,6 @@ if (!function_exists('hg_character_types_fetch_characters')) {
     {
         if ($typeId <= 0) return [];
         $excludedIds = hg_character_types_normalize_excluded_ids($excludedChronicles);
-        foreach (['character_type_id', 'kind', 'tipo'] as $typeColumn) {
-            if (!hg_character_types_column_exists($link, 'fact_characters', $typeColumn)) continue;
-            $rows = hg_character_types_fetch_characters_for_column($link, $typeId, $typeColumn, $excludedIds);
-            if ($rows !== null) return $rows;
-        }
-        return null;
+        return hg_character_types_fetch_characters_for_column($link, $typeId, 'character_type_id', $excludedIds);
     }
 }
