@@ -3,30 +3,13 @@
 if (!function_exists('hg_search_catalog_column_exists')) {
     function hg_search_catalog_column_exists(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) {
-            return $cache[$key];
-        }
-
-        $ok = false;
-        if ($stmt = $link->prepare("
-            SELECT COUNT(*)
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = ?
-              AND COLUMN_NAME = ?
-        ")) {
-            $stmt->bind_param('ss', $table, $column);
-            $stmt->execute();
-            $stmt->bind_result($count);
-            $stmt->fetch();
-            $stmt->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
+        static $schema = [
+            'fact_gifts' => ['mechanics_text'],
+            'dim_chapters' => ['synopsis'],
+            'fact_misc_systems' => ['description'],
+            'dim_seasons' => ['chronicle_id'],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
     }
 }
 
