@@ -14,39 +14,7 @@ if (!$isAjaxRequest):
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
-<style>
-/* Override local: evita texto blanco sobre fondo blanco en Select2 */
-#mb{
-  --adm-s2-bg: #000033;
-  --adm-s2-color: #ffffff;
-  --adm-s2-border: #333333;
-  --adm-s2-hover: #001199;
-  --adm-s2-selected: #00105f;
-}
-#mb .select2-dropdown{
-  background: var(--adm-s2-bg) !important;
-  border: 1px solid var(--adm-s2-border) !important;
-  color: var(--adm-s2-color) !important;
-}
-#mb .select2-results__option{
-  background: transparent !important;
-  color: var(--adm-s2-color) !important;
-}
-#mb .select2-container--default .select2-results__option--selected{
-  background: var(--adm-s2-selected) !important;
-  color: var(--adm-s2-color) !important;
-}
-#mb .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
-  background: var(--adm-s2-hover) !important;
-  color: #ffffff !important;
-}
-#mb .select2-container--default .select2-selection--single .select2-selection__arrow b{
-  border-color: #9fd8ff transparent transparent transparent !important;
-}
-#mb .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b{
-  border-color: transparent transparent #9fd8ff transparent !important;
-}
-</style>
+
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php endif; ?>
 
