@@ -1,43 +1,6 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_birth_events.php');
 
-if (!function_exists('hg_abq_col_exists')) {
-    function hg_abq_col_exists(mysqli $db, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-        $ok = false;
-        if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        $cache[$key] = $ok;
-        return $ok;
-    }
-}
-
-if (!function_exists('hg_abq_table_exists')) {
-    function hg_abq_table_exists(mysqli $db, string $table): bool {
-        static $cache = [];
-        if (isset($cache[$table])) return $cache[$table];
-        $ok = false;
-        if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-        $cache[$table] = $ok;
-        return $ok;
-    }
-}
-
 if (!function_exists('hg_abq_parse_birth_to_ymd')) {
     function hg_abq_parse_birth_to_ymd(string $raw): ?string {
         $raw = trim($raw);
@@ -244,16 +207,8 @@ if (!function_exists('hg_abq_save_row')) {
 
                 $title = 'Cumpleaños de ' . trim($characterName);
                 $description = 'Evento de nacimiento del personaje ' . trim($characterName) . ' (id=' . $characterId . ').';
-                $hasKindCol = hg_abq_col_exists($link, 'fact_timeline_events', 'kind');
-
                 if ($eventId > 0) {
-                    $sqlUpdateEvent = $hasKindCol
-                        ? "UPDATE fact_timeline_events
-                           SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
-                               title = ?, description = ?, event_type_id = ?, kind = 'nacimiento', is_active = 1,
-                               source = 'admin_birthdays_quick', updated_at = NOW()
-                           WHERE id = ?"
-                        : "UPDATE fact_timeline_events
+                    $sqlUpdateEvent = "UPDATE fact_timeline_events
                            SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
                                title = ?, description = ?, event_type_id = ?, is_active = 1,
                                source = 'admin_birthdays_quick', updated_at = NOW()
@@ -264,11 +219,7 @@ if (!function_exists('hg_abq_save_row')) {
                         $st->close();
                     }
                 } else {
-                    $sqlInsertEvent = $hasKindCol
-                        ? "INSERT INTO fact_timeline_events
-                           (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, kind, is_active, source, timeline)
-                           VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 'nacimiento', 1, 'admin_birthdays_quick', NULL)"
-                        : "INSERT INTO fact_timeline_events
+                    $sqlInsertEvent = "INSERT INTO fact_timeline_events
                            (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, is_active, source, timeline)
                            VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 1, 'admin_birthdays_quick', NULL)";
                     if ($st = $link->prepare($sqlInsertEvent)) {
@@ -289,17 +240,7 @@ if (!function_exists('hg_abq_save_row')) {
                         $st->close();
                     }
                     if ((int)$bridgeExists <= 0) {
-                        $hasRole = hg_abq_col_exists($link, 'bridge_timeline_events_characters', 'role_label');
-                        $hasSort = hg_abq_col_exists($link, 'bridge_timeline_events_characters', 'sort_order');
-                        if ($hasRole && $hasSort) {
-                            $st = $link->prepare('INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label, sort_order) VALUES (?, ?, "protagonista", 0)');
-                        } elseif ($hasRole) {
-                            $st = $link->prepare('INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label) VALUES (?, ?, "protagonista")');
-                        } elseif ($hasSort) {
-                            $st = $link->prepare('INSERT INTO bridge_timeline_events_characters (event_id, character_id, sort_order) VALUES (?, ?, 0)');
-                        } else {
-                            $st = $link->prepare('INSERT INTO bridge_timeline_events_characters (event_id, character_id) VALUES (?, ?)');
-                        }
+                        $st = $link->prepare('INSERT INTO bridge_timeline_events_characters (event_id, character_id, role_label, sort_order) VALUES (?, ?, "protagonista", 0)');
                         if ($st) {
                             $st->bind_param('ii', $eventId, $characterId);
                             $st->execute();
