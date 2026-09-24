@@ -8,40 +8,41 @@
 if (!function_exists('hg_timeline_table_exists')) {
     function hg_timeline_table_exists(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') return false;
-        if (array_key_exists($table, $cache)) return $cache[$table];
-
-        $stmt = $link->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
-        if (!$stmt) return $cache[$table] = false;
-        $stmt->bind_param('s', $table);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return $cache[$table] = ((int)$count > 0);
+        static $tables = [
+            'bridge_timeline_events_chapters' => true,
+            'bridge_timeline_events_characters' => true,
+            'bridge_timeline_events_chronicles' => true,
+            'bridge_timeline_events_realities' => true,
+            'dim_chapters' => true,
+            'dim_chronicles' => true,
+            'dim_realities' => true,
+            'dim_seasons' => true,
+            'dim_timeline_events_types' => true,
+            'fact_characters' => true,
+            'fact_timeline_events' => true,
+        ];
+        return isset($tables[$table]);
     }
 }
 
 if (!function_exists('hg_timeline_column_exists')) {
     function hg_timeline_column_exists(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) return $cache[$key];
-
-        $stmt = $link->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
-        if (!$stmt) return $cache[$key] = false;
-        $stmt->bind_param('ss', $table, $column);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return $cache[$key] = ((int)$count > 0);
+        static $schema = [
+            'bridge_timeline_events_chapters' => ['sort_order'],
+            'bridge_timeline_events_characters' => ['role_label', 'sort_order'],
+            'bridge_timeline_events_chronicles' => ['sort_order'],
+            'bridge_timeline_events_realities' => ['sort_order'],
+            'dim_chronicles' => ['sort_order'],
+            'dim_realities' => [],
+            'dim_seasons' => ['chronicle_id'],
+            'dim_timeline_events_types' => ['color_hex'],
+            'fact_timeline_events' => [
+                'date_note', 'date_precision', 'event_type_id', 'is_active',
+                'location', 'pretty_id', 'sort_date', 'source', 'timeline',
+            ],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
     }
 }
 
