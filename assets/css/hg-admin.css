@@ -2205,9 +2205,37 @@ body { font-family: Verdana, Arial, sans-serif; }
 
 
 /* ==== Phase 6.99z: homogeneous Admin workspace + spreadsheet tables ==== */
+#mainBody.route-admin{
+  --adm-shell-max:1080px;
+  --adm-table-min:720px;
+  --adm-panel-pad:14px;
+  --adm-gap:8px;
+  --adm-control-h:32px;
+  --adm-radius:8px;
+  --adm-panel-bg:#05014E;
+  --adm-panel-head:#050b36;
+  --adm-border:#000088;
+  --adm-border-soft:#1b4aa0;
+  --adm-input-bg:#02023f;
+  --adm-text:#f5f7ff;
+  --adm-muted:#9bb8c8;
+  --adm-accent:#33FFFF;
+}
+#mainBody.route-admin.adm-shell-tier-standard{
+  --adm-shell-max:1320px;
+  --adm-table-min:980px;
+}
+#mainBody.route-admin.adm-shell-tier-wide{
+  --adm-shell-max:1520px;
+  --adm-table-min:1180px;
+}
+#mainBody.route-admin.adm-shell-tier-max{
+  --adm-shell-max:1760px;
+  --adm-table-min:1450px;
+}
 #mainBody.route-admin .main-wrapper{
-  width:min(96vw, 1800px);
-  max-width:none;
+  width:min(calc(100vw - 24px), var(--adm-shell-max));
+  max-width:var(--adm-shell-max);
 }
 #mainBody.route-admin .fcentro{
   min-width:0;
@@ -2216,7 +2244,7 @@ body { font-family: Verdana, Arial, sans-serif; }
 #mainBody.route-admin .panel-wrap{
   width:100%;
   max-width:none;
-  margin-inline:0;
+  margin:12px 0 0;
   box-sizing:border-box;
 }
 .panel-wrap.adm-admin-wide-panel{
@@ -2233,7 +2261,7 @@ body { font-family: Verdana, Arial, sans-serif; }
 }
 .adm-dense-table .adm-wide-table{
   width:max-content;
-  min-width:100%;
+  min-width:max(100%, var(--adm-table-min, 720px));
 }
 .adm-wide-table .adm-col-hidden{
   display:none !important;
@@ -2350,4 +2378,214 @@ body { font-family: Verdana, Arial, sans-serif; }
   .adm-table-tools-help{
     width:100%;
   }
+}
+
+
+/* ==== Phase 6.99z: global Admin visual language ==== */
+#mainBody.route-admin .fcentro{
+  font-size:12px;
+  line-height:1.4;
+  color:var(--adm-text);
+}
+#mainBody.route-admin .panel-wrap{
+  padding:var(--adm-panel-pad) !important;
+  border:1px solid var(--adm-border) !important;
+  border-radius:10px !important;
+  background:var(--adm-panel-bg) !important;
+  box-shadow:none !important;
+}
+#mainBody.route-admin .panel-wrap > .hdr,
+#mainBody.route-admin .panel-wrap .adm-panel-header{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+  margin:0 0 10px !important;
+  padding:0 !important;
+  min-height:34px;
+}
+#mainBody.route-admin .panel-wrap > .hdr h2,
+#mainBody.route-admin .panel-wrap > h2,
+#mainBody.route-admin .panel-wrap h2.adm-title{
+  margin:0 !important;
+  color:var(--adm-accent) !important;
+  font-size:18px !important;
+  line-height:1.2 !important;
+}
+#mainBody.route-admin .panel-wrap h3{
+  margin:12px 0 8px;
+  color:var(--adm-accent);
+  line-height:1.25;
+}
+#mainBody.route-admin .toolbar,
+#mainBody.route-admin .adm-toolbar,
+#mainBody.route-admin .adm-filters,
+#mainBody.route-admin .filters,
+#mainBody.route-admin .filter-row,
+#mainBody.route-admin .search-row,
+#mainBody.route-admin .adm-flex-right-8,
+#mainBody.route-admin .adm-flex-right-wrap-8,
+#mainBody.route-admin .adm-flex-wrap-8,
+#mainBody.route-admin .adm-flex-wrap-10-mb10{
+  display:flex !important;
+  align-items:flex-end !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+}
+#mainBody.route-admin .hdr .adm-flex-right-8,
+#mainBody.route-admin .hdr .adm-flex-right-wrap-8{
+  margin-left:auto !important;
+}
+#mainBody.route-admin label{
+  color:#cfe;
+}
+#mainBody.route-admin .panel-wrap input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+#mainBody.route-admin .panel-wrap select,
+#mainBody.route-admin .panel-wrap .inp,
+#mainBody.route-admin .panel-wrap .select{
+  min-height:var(--adm-control-h) !important;
+  box-sizing:border-box !important;
+  border:1px solid var(--adm-border-soft) !important;
+  border-radius:6px !important;
+  background:var(--adm-input-bg) !important;
+  color:var(--adm-text) !important;
+  padding:5px 8px !important;
+  font:inherit !important;
+}
+#mainBody.route-admin .panel-wrap textarea,
+#mainBody.route-admin .panel-wrap textarea.inp{
+  box-sizing:border-box !important;
+  border:1px solid var(--adm-border-soft) !important;
+  border-radius:6px !important;
+  background:var(--adm-input-bg) !important;
+  color:var(--adm-text) !important;
+  padding:7px 8px !important;
+  font:inherit !important;
+}
+#mainBody.route-admin .btn,
+#mainBody.route-admin button.btn,
+#mainBody.route-admin a.btn{
+  min-height:32px;
+  box-sizing:border-box;
+  border-radius:7px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  line-height:1.1;
+  white-space:nowrap;
+}
+#mainBody.route-admin .adm-icon-btn{
+  width:32px;
+  min-width:32px;
+  height:32px;
+  min-height:32px;
+}
+#mainBody.route-admin .adm-table-scroll,
+#mainBody.route-admin .adm-table-wrap,
+#mainBody.route-admin .table-scroll,
+#mainBody.route-admin .worlds-table-wrap{
+  border:1px solid var(--adm-border);
+  border-radius:7px;
+  background:#04013f;
+}
+#mainBody.route-admin table.table,
+#mainBody.route-admin table.adm-table,
+#mainBody.route-admin table.adm-wide-table,
+#mainBody.route-admin table.worlds-table,
+#mainBody.route-admin table.avatar-mass-list{
+  border-collapse:collapse !important;
+  font-size:11px !important;
+}
+#mainBody.route-admin table.table th,
+#mainBody.route-admin table.adm-table th,
+#mainBody.route-admin table.adm-wide-table th,
+#mainBody.route-admin table.worlds-table th,
+#mainBody.route-admin table.avatar-mass-list th{
+  padding:7px 8px !important;
+  background:var(--adm-panel-head) !important;
+  color:var(--adm-accent) !important;
+  border:1px solid var(--adm-border) !important;
+  text-align:left !important;
+  vertical-align:middle !important;
+  font-weight:700 !important;
+}
+#mainBody.route-admin table.table td,
+#mainBody.route-admin table.adm-table td,
+#mainBody.route-admin table.adm-wide-table td,
+#mainBody.route-admin table.worlds-table td,
+#mainBody.route-admin table.avatar-mass-list td{
+  padding:7px 8px !important;
+  border:1px solid var(--adm-border) !important;
+  background:#05014E;
+  vertical-align:middle !important;
+}
+#mainBody.route-admin table tbody tr:hover > td{
+  background:#000066;
+}
+#mainBody.route-admin .adm-table-tools{
+  margin:8px 0 6px !important;
+}
+#mainBody.route-admin .pager{
+  display:flex !important;
+  gap:6px !important;
+  align-items:center !important;
+  flex-wrap:wrap !important;
+  margin:10px 0 0 !important;
+}
+#mainBody.route-admin .flash{
+  margin:8px 0 !important;
+}
+#mainBody.route-admin .flash > .ok,
+#mainBody.route-admin .flash > .err,
+#mainBody.route-admin .flash > .info{
+  padding:8px 10px !important;
+  border-radius:7px !important;
+  border:1px solid var(--adm-border-soft) !important;
+}
+#mainBody.route-admin .modal-back{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:12000 !important;
+  padding:16px !important;
+  box-sizing:border-box !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#mainBody.route-admin .modal-back > .modal,
+#mainBody.route-admin .modal-back .modal-dialog{
+  width:min(760px, calc(100vw - 32px)) !important;
+  max-width:760px !important;
+  max-height:88vh !important;
+  overflow:auto !important;
+  box-sizing:border-box !important;
+  border:1px solid var(--adm-border-soft) !important;
+  border-radius:10px !important;
+  background:var(--adm-panel-bg) !important;
+  padding:14px !important;
+}
+#mainBody.route-admin .modal-back .adm-modal-980{
+  width:min(980px, calc(100vw - 32px)) !important;
+  max-width:980px !important;
+}
+#mainBody.route-admin .modal-back .adm-modal-sm{
+  width:min(560px, calc(100vw - 32px)) !important;
+  max-width:560px !important;
+}
+#mainBody.route-admin .modal-actions{
+  position:sticky;
+  bottom:0;
+  z-index:2;
+  display:flex !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+  margin-top:12px !important;
+  padding:10px 0 0 !important;
+  background:linear-gradient(to top, var(--adm-panel-bg) 78%, rgba(5,1,78,0));
+  border-top:1px solid var(--adm-border) !important;
+}
+#mainBody.route-admin :focus-visible{
+  outline:2px solid var(--adm-accent);
+  outline-offset:2px;
 }
