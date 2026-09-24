@@ -148,27 +148,7 @@ admin_panel_open(
 <script>window.ADMIN_CSRF_TOKEN = <?= json_encode($csrf, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE); ?>;</script>
 <script src="<?= hg_aso_h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 
-<style>
-.adm-season-order-grid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:14px}
-.adm-season-order-box{border:1px solid #17366e;background:#07153a;padding:12px}
-.adm-season-order-box h3{margin:0 0 10px}
-.adm-season-order-help{color:#b5cae6;font-size:12px;line-height:1.45}
-.adm-season-order-select,.adm-season-order-input,.adm-season-order-textarea{width:100%;box-sizing:border-box}
-.adm-season-order-meta{display:grid;gap:8px}
-.adm-season-order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.adm-season-order-table{width:100%;border-collapse:collapse}
-.adm-season-order-table th,.adm-season-order-table td{padding:8px 6px;border-bottom:1px solid #17366e;text-align:left;vertical-align:top}
-.adm-season-order-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid #2d63c9;background:#082261;color:#dcecff;font-size:11px;line-height:1.2}
-.adm-season-order-badge-secondary{border-color:#0fa88d;background:#083f38;color:#dcfff8}
-.adm-season-order-node-title{font-weight:700;color:#eef6ff}
-.adm-season-order-node-desc{margin-top:4px;color:#b8cae8;font-size:12px;line-height:1.4}
-.adm-season-order-muted{color:#94abd1;font-size:12px}
-.adm-season-order-empty{padding:14px;border:1px dashed #27467f;color:#c6d9f5}
-.adm-season-order-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
-.adm-season-order-modal-grid label{display:grid;gap:5px}
-.adm-season-order-modal-wide{grid-column:1/-1}
-@media (max-width: 980px){.adm-season-order-grid{grid-template-columns:1fr}.adm-season-order-modal-grid{grid-template-columns:1fr}}
-</style>
+
 
 <?php if (!$schemaReady): ?>
     <div class="err">
