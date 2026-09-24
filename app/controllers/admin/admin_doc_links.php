@@ -204,7 +204,7 @@ $actions = "<span class='adm-flex-right-8'>"
     . "<a class='btn' href='/talim?s=admin_character_links'>Vincular desde Personaje</a>"
     . "</span>";
 admin_panel_open('Vincular Documento -> Personajes', $actions);
-echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>";
+echo "";
 ?>
 <div id="adl-container">
 <div id="adl-root">
