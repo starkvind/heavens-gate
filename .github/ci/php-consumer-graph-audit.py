@@ -22,6 +22,15 @@ ci_paths = sorted(
 runtime_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in runtime_paths}
 ci_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in ci_paths}
 
+php_block_re = re.compile(r'<\\?php(.*?)(?:\\?>|$)', re.S)
+
+def php_only(text: str) -> str:
+    blocks = php_block_re.findall(text)
+    return '\n'.join(blocks)
+
+runtime_php_text = {p: php_only(text) for p, text in runtime_text.items()}
+ci_php_text = {p: php_only(text) for p, text in ci_text.items()}
+
 helper_files = sorted((ROOT / 'app' / 'helpers').glob('*.php'))
 partial_files = sorted((ROOT / 'app' / 'partials').rglob('*.php'))
 domain_files = sorted((ROOT / 'app' / 'domains').rglob('*.php'))
@@ -59,7 +68,7 @@ unreferenced_partials = [
 decl_re = re.compile(r'(?m)^\s*(?:if\s*\([^\n]*\)\s*)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(')
 declarations = defaultdict(list)
 for path in owned_files:
-    text = runtime_text.get(path, path.read_text(encoding='utf-8', errors='replace'))
+    text = runtime_php_text.get(path, php_only(path.read_text(encoding='utf-8', errors='replace')))
     for match in decl_re.finditer(text):
         line = text.count('\n', 0, match.start()) + 1
         declarations[match.group(1)].append((path, line))
@@ -87,8 +96,8 @@ def build_symbol_index(corpus, subtract_declarations):
                 files[name].add(rel(path))
     return counts, files
 
-runtime_counts, runtime_ref_files = build_symbol_index(runtime_text, True)
-ci_counts, ci_ref_files = build_symbol_index(ci_text, False)
+runtime_counts, runtime_ref_files = build_symbol_index(runtime_php_text, True)
+ci_counts, ci_ref_files = build_symbol_index(ci_php_text, False)
 
 duplicates = {name: locs for name, locs in declarations.items() if len(locs) > 1}
 zero_runtime_symbols = []
