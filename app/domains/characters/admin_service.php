@@ -4,31 +4,6 @@
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/content_updates.php');
 
-if (!function_exists('pjs_table_exists')) {
-    function pjs_table_exists(mysqli $link, string $table): bool {
-        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($t === '') return false;
-        $sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' LIMIT 1";
-        $rs = $link->query($sql);
-        if (!$rs) return false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $ok;
-    }
-}
-if (!function_exists('pjs_table_has_column')) {
-    function pjs_table_has_column(mysqli $link, string $table, string $column): bool {
-        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($t === '' || $c === '') return false;
-        $sql = "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
-        $rs = $link->query($sql);
-        if (!$rs) return false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $ok;
-    }
-}
 if (!function_exists('pjs_column_char_maxlen')) {
     function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
         $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
@@ -45,7 +20,6 @@ if (!function_exists('pjs_column_char_maxlen')) {
 if (!function_exists('pjs_fetch_id_lookup')) {
     function pjs_fetch_id_lookup(mysqli $link, string $table): array {
         $out = [];
-        if (!pjs_table_exists($link, $table)) return $out;
         $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
         if ($t === '') return $out;
         if (!$rs = $link->query("SELECT id FROM `{$t}`")) return $out;
@@ -60,7 +34,6 @@ if (!function_exists('pjs_fetch_id_lookup')) {
 if (!function_exists('pjs_fetch_discipline_power_type_map')) {
     function pjs_fetch_discipline_power_type_map(mysqli $link): array {
         $out = [];
-        if (!pjs_table_exists($link, 'fact_discipline_powers')) return $out;
         if (!$rs = $link->query("SELECT id, disc FROM fact_discipline_powers")) return $out;
         while ($row = $rs->fetch_assoc()) {
             $powerId = (int)($row['id'] ?? 0);
@@ -76,26 +49,13 @@ if (!function_exists('pjs_fetch_discipline_power_type_map')) {
 if (!function_exists('pjs_resolve_group_owner_organization')) {
     function pjs_resolve_group_owner_organization(mysqli $link, int $groupId): int {
         if ($groupId <= 0) return 0;
-        if (!pjs_table_exists($link, 'bridge_organizations_groups')) return 0;
-
-        $hasActive = pjs_table_has_column($link, 'bridge_organizations_groups', 'is_active');
-        $hasUpdated = pjs_table_has_column($link, 'bridge_organizations_groups', 'updated_at');
-        $hasCreated = pjs_table_has_column($link, 'bridge_organizations_groups', 'created_at');
-
-        $sql = "SELECT organization_id FROM bridge_organizations_groups WHERE group_id=?";
-        if ($hasActive) {
-            $sql .= " AND (is_active=1 OR is_active IS NULL)";
-        }
-        $sql .= " ORDER BY";
-        if ($hasUpdated) {
-            $sql .= " updated_at DESC,";
-        }
-        if ($hasCreated) {
-            $sql .= " created_at DESC,";
-        }
-        $sql .= " organization_id DESC LIMIT 1";
-
         $organizationId = 0;
+        $sql = "SELECT organization_id
+                FROM bridge_organizations_groups
+                WHERE group_id = ?
+                  AND (is_active = 1 OR is_active IS NULL)
+                ORDER BY updated_at DESC, created_at DESC, organization_id DESC
+                LIMIT 1";
         if ($st = $link->prepare($sql)) {
             $st->bind_param("i", $groupId);
             $st->execute();
@@ -106,10 +66,10 @@ if (!function_exists('pjs_resolve_group_owner_organization')) {
             }
             $st->close();
         }
-
         return $organizationId;
     }
 }
+
 if (!function_exists('sync_character_bridges')) {
     function sync_character_bridges(mysqli $link, int $characterId, int $groupId, int $organizationId): void {
         if ($characterId <= 0) return;
@@ -121,89 +81,52 @@ if (!function_exists('sync_character_bridges')) {
             }
         }
 
-        $hasGroups = pjs_table_exists($link, 'bridge_characters_groups');
-        $hasOrgs = pjs_table_exists($link, 'bridge_characters_organizations');
-        $groupsHasActive = $hasGroups && pjs_table_has_column($link, 'bridge_characters_groups', 'is_active');
-        $orgsHasActive = $hasOrgs && pjs_table_has_column($link, 'bridge_characters_organizations', 'is_active');
-
-        if ($hasGroups) {
-            if ($groupsHasActive) {
-                if ($groupId > 0) {
-                    if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=? AND group_id<>?")) {
-                        $st->bind_param("ii", $characterId, $groupId);
-                        $st->execute();
-                        $st->close();
-                    }
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, is_active, position) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
-                        $st->bind_param("ii", $characterId, $groupId);
-                        $st->execute();
-                        $st->close();
-                    }
-                } else {
-                    if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=?")) {
-                        $st->bind_param("i", $characterId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
-            } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_groups WHERE character_id=?")) {
-                    $st->bind_param("i", $characterId);
-                    $st->execute();
-                    $st->close();
-                }
-                if ($groupId > 0) {
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, position) VALUES (?, ?, '')")) {
-                        $st->bind_param("ii", $characterId, $groupId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
+        if ($groupId > 0) {
+            if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=? AND group_id<>?")) {
+                $st->bind_param("ii", $characterId, $groupId);
+                $st->execute();
+                $st->close();
+            }
+            if ($st = $link->prepare("INSERT INTO bridge_characters_groups (character_id, group_id, is_active, position) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
+                $st->bind_param("ii", $characterId, $groupId);
+                $st->execute();
+                $st->close();
+            }
+        } else {
+            if ($st = $link->prepare("UPDATE bridge_characters_groups SET is_active=0 WHERE character_id=?")) {
+                $st->bind_param("i", $characterId);
+                $st->execute();
+                $st->close();
             }
         }
 
-        if ($hasOrgs) {
-            if ($orgsHasActive) {
-                if ($organizationId > 0) {
-                    if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
-                        $st->bind_param("ii", $characterId, $organizationId);
-                        $st->execute();
-                        $st->close();
-                    }
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, is_active, role) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
-                        $st->bind_param("ii", $characterId, $organizationId);
-                        $st->execute();
-                        $st->close();
-                    }
-                } else {
-                    if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=?")) {
-                        $st->bind_param("i", $characterId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
-            } else {
-                if ($st = $link->prepare("DELETE FROM bridge_characters_organizations WHERE character_id=?")) {
-                    $st->bind_param("i", $characterId);
-                    $st->execute();
-                    $st->close();
-                }
-                if ($organizationId > 0) {
-                    if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, role) VALUES (?, ?, '')")) {
-                        $st->bind_param("ii", $characterId, $organizationId);
-                        $st->execute();
-                        $st->close();
-                    }
-                }
+        if ($organizationId > 0) {
+            if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=? AND organization_id<>?")) {
+                $st->bind_param("ii", $characterId, $organizationId);
+                $st->execute();
+                $st->close();
+            }
+            if ($st = $link->prepare("INSERT INTO bridge_characters_organizations (character_id, organization_id, is_active, role) VALUES (?, ?, 1, '') ON DUPLICATE KEY UPDATE is_active=1")) {
+                $st->bind_param("ii", $characterId, $organizationId);
+                $st->execute();
+                $st->close();
+            }
+        } else {
+            if ($st = $link->prepare("UPDATE bridge_characters_organizations SET is_active=0 WHERE character_id=?")) {
+                $st->bind_param("i", $characterId);
+                $st->execute();
+                $st->close();
             }
         }
+
         hg_content_touch_table($link, 'fact_characters', $characterId);
     }
 }
+
 if (!function_exists('save_character_powers')) {
     function save_character_powers(mysqli $link, int $characterId, array $types, array $ids, array $levels): array {
         $res = ['inserted' => 0, 'skipped' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_powers')) return $res;
+        if ($characterId <= 0) return $res;
 
         $allowed = ['dones' => true, 'disciplinas' => true, 'rituales' => true];
         $validByType = [
@@ -250,7 +173,7 @@ if (!function_exists('save_character_powers')) {
 if (!function_exists('save_character_merits_flaws')) {
     function save_character_merits_flaws(mysqli $link, int $characterId, array $ids, array $levelsRaw): array {
         $res = ['inserted' => 0, 'skipped' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_merits_flaws')) return $res;
+        if ($characterId <= 0) return $res;
 
         $n = max(count($ids), count($levelsRaw));
         $rows = [];
@@ -303,7 +226,7 @@ if (!function_exists('save_character_merits_flaws')) {
 if (!function_exists('save_character_items')) {
     function save_character_items(mysqli $link, int $characterId, array $ids): array {
         $res = ['inserted' => 0, 'skipped' => 0];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_items')) return $res;
+        if ($characterId <= 0) return $res;
 
         $rows = [];
         foreach ($ids as $id) {
@@ -342,9 +265,9 @@ if (!function_exists('save_character_traits')) {
             'inserted' => 0,
             'deleted' => 0,
         ];
-        if ($characterId <= 0 || !pjs_table_exists($link, 'bridge_characters_traits')) return $res;
+        if ($characterId <= 0) return $res;
 
-        $hasLog = pjs_table_exists($link, 'bridge_characters_traits_log');
+        $hasLog = true;
         $existing = [];
         if ($st = $link->prepare("SELECT trait_id, value FROM bridge_characters_traits WHERE character_id=?")) {
             $st->bind_param("i", $characterId);
@@ -439,7 +362,7 @@ if (!function_exists('save_character_resources')) {
         ?string $createdBy = null
     ): array {
         $res = ['saved' => 0, 'forced' => 0, 'disabled' => false, 'error' => null];
-        if ($characterId <= 0 || !$hasBridge || !pjs_table_exists($link, 'bridge_characters_system_resources')) {
+        if ($characterId <= 0 || !$hasBridge) {
             $res['disabled'] = true;
             return $res;
         }
@@ -482,7 +405,7 @@ if (!function_exists('save_character_resources')) {
         $up = $link->prepare("INSERT INTO bridge_characters_system_resources (character_id, resource_id, value_permanent, value_temporary) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE value_permanent=VALUES(value_permanent), value_temporary=VALUES(value_temporary)");
         $del = $link->prepare("DELETE FROM bridge_characters_system_resources WHERE character_id=? AND resource_id=?");
         $lg = null;
-        if ($hasLog && pjs_table_exists($link, 'bridge_characters_system_resources_log')) {
+        if ($hasLog) {
             $lg = $link->prepare("INSERT INTO bridge_characters_system_resources_log (character_id, resource_id, old_permanent, new_permanent, old_temporary, new_temporary, delta_permanent, delta_temporary, reason, source, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
         }
 
