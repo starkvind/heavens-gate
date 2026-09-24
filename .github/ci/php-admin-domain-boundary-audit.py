@@ -562,6 +562,13 @@ PILOTS = {
             'hg_configuration_admin_load_admin_password(',
         ],
     },
+    'admin_usage': {
+        'controller': ROOT / 'app/controllers/admin/admin_usage.php',
+        'domain': ROOT / 'app/domains/admin_usage/queries.php',
+        'markers': [
+            'hg_admin_usage_report(',
+        ],
+    },
 }
 
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
