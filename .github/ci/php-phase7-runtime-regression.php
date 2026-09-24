@@ -12,7 +12,14 @@ function hg_phase7_runtime_fail(string $message): never
 
 $contracts = [
     'app/domains/systems/queries.php' => [
+        'function hg_systems_fetch_resource',
         'function hg_systems_fetch_resources',
+        'function hg_systems_fetch_mobile_resources',
+        'function hg_systems_fetch_detail',
+        'function hg_systems_fetch_gifts',
+        'function hg_systems_fetch_members',
+        'function hg_systems_fetch_form',
+        'function hg_systems_fetch_form_maneuvers',
         'bridge_systems_resources_to_system',
         'dim_systems_resources',
     ],
@@ -73,7 +80,6 @@ $removedPhase72Symbols = [
     'hg_maps_sql_append_not_in_strings',
     'hg_power_custom_fetch_rows',
     'hg_cbe_month_map',
-    'hg_systems_fetch_resource',
 ];
 
 foreach (['app', 'api'] as $runtimeRoot) {
