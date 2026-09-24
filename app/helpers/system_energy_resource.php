@@ -610,13 +610,6 @@ if (!function_exists('hg_ser_legacy_status')) {
     }
 }
 
-if (!function_exists('hg_ser_legacy_pending_where')) {
-    function hg_ser_legacy_pending_where(mysqli $link, string $table): string
-    {
-        return '';
-    }
-}
-
 if (!function_exists('hg_ser_legacy_pending_rows')) {
     function hg_ser_legacy_pending_rows(mysqli $link, string $table, int $limit = 100): array
     {
