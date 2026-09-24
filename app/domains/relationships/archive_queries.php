@@ -17,21 +17,7 @@ if (!function_exists('hg_relationship_archive_normalize_ids')) {
 if (!function_exists('hg_relationship_archive_table_exists')) {
     function hg_relationship_archive_table_exists(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') return false;
-        if (array_key_exists($table, $cache)) return $cache[$table];
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-        );
-        if (!$stmt) return $cache[$table] = false;
-        mysqli_stmt_bind_param($stmt, 's', $table);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-        return $cache[$table] = ((int)$count > 0);
+        return in_array($table, ['dim_organization_departments', 'bridge_characters_org'], true);
     }
 }
 
