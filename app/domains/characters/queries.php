@@ -22,26 +22,16 @@ if (!function_exists('hg_characters_normalize_int_csv')) {
 if (!function_exists('hg_characters_has_column')) {
     function hg_characters_has_column(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') {
-            return false;
-        }
-
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) {
-            return $cache[$key];
-        }
-
-        $result = mysqli_query($link, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
-        if (!$result) {
-            return $cache[$key] = false;
-        }
-
-        $exists = mysqli_num_rows($result) > 0;
-        mysqli_free_result($result);
-        return $cache[$key] = $exists;
+        static $schema = [
+            'bridge_characters_conditions' => ['instance_no', 'is_active', 'location'],
+            'bridge_characters_misc_systems' => ['is_active', 'sort_order'],
+            'bridge_systems_resources_to_system' => ['sort_order'],
+            'dim_character_types' => ['description', 'image_url'],
+            'dim_groups' => [],
+            'fact_characters' => [],
+            'fact_timeline_events' => ['date_note', 'date_precision', 'event_type_id', 'is_active', 'pretty_id', 'sort_date'],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
     }
 }
 
@@ -537,29 +527,23 @@ if (!function_exists('hg_characters_fetch_table_rows')) {
 if (!function_exists('hg_characters_table_exists')) {
     function hg_characters_table_exists(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') {
-            return false;
-        }
-        if (array_key_exists($table, $cache)) {
-            return $cache[$table];
-        }
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-        );
-        if (!$stmt) {
-            return $cache[$table] = false;
-        }
-        mysqli_stmt_bind_param($stmt, 's', $table);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-
-        return $cache[$table] = ((int)$count > 0);
+        static $tables = [
+            'bridge_characters_conditions' => true,
+            'bridge_characters_groups' => true,
+            'bridge_characters_misc_systems' => true,
+            'bridge_characters_organizations' => true,
+            'bridge_organizations_groups' => true,
+            'bridge_systems_resources_to_system' => true,
+            'bridge_timeline_events_characters' => true,
+            'dim_character_conditions' => true,
+            'dim_groups' => true,
+            'dim_organizations' => true,
+            'dim_systems_resources' => true,
+            'dim_timeline_events_types' => true,
+            'fact_misc_systems' => true,
+            'fact_timeline_events' => true,
+        ];
+        return isset($tables[$table]);
     }
 }
 
