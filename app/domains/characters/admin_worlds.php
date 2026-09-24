@@ -1,35 +1,7 @@
 <?php
 
-if (!function_exists('hg_acw_has_table')) {
-    function hg_acw_has_table(mysqli $db, string $table): bool {
-        $table = str_replace(chr(96), '', $table);
-        $rs = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'");
-        if (!$rs) return false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $ok;
-    }
-}
-
-if (!function_exists('hg_acw_has_column')) {
-    function hg_acw_has_column(mysqli $db, string $table, string $column): bool {
-        $table = str_replace(chr(96), '', $table);
-        $column = str_replace(chr(96), '', $column);
-        $safeTable = $db->real_escape_string($table);
-        $safeColumn = $db->real_escape_string($column);
-        $rs = $db->query("SHOW COLUMNS FROM ".$safeTable." LIKE '".$safeColumn."'");
-        if (!$rs) return false;
-        $ok = ($rs->num_rows > 0);
-        $rs->close();
-        return $ok;
-    }
-}
-
 if (!function_exists('hg_acw_save_character_world')) {
     function hg_acw_save_character_world(mysqli $link, int $characterId, int $chronicleId, int $realityId): array {
-        if (!hg_acw_has_table($link, 'dim_realities') || !hg_acw_has_column($link, 'fact_characters', 'reality_id')) {
-            return ['ok'=>false,'msg'=>'Falta esquema: dim_realities / fact_characters.reality_id'];
-        }
         if ($characterId <= 0 || $chronicleId <= 0 || $realityId <= 0) {
             return ['ok'=>false,'msg'=>'IDs inválidos'];
         }
@@ -49,16 +21,14 @@ if (!function_exists('hg_acw_save_character_world')) {
 
 if (!function_exists('hg_acw_load_state')) {
     function hg_acw_load_state(mysqli $link): array {
-        $hasRealitySchema = hg_acw_has_table($link, 'dim_realities') && hg_acw_has_column($link, 'fact_characters', 'reality_id');
+        $hasRealitySchema = true;
         $fetch=function(string $sql) use($link): array {
             $rows=[]; $rs=$link->query($sql); if($rs){while($r=$rs->fetch_assoc())$rows[]=$r;$rs->close();} return $rows;
         };
         $chronicles=$fetch("SELECT id, name FROM dim_chronicles ORDER BY name ASC");
-        $realities=$hasRealitySchema ? $fetch("SELECT id, name FROM dim_realities ORDER BY name ASC") : [];
+        $realities=$fetch("SELECT id, name FROM dim_realities ORDER BY name ASC");
         $organizations=$fetch("SELECT id, name FROM dim_organizations ORDER BY name ASC");
-        $characters=[];
-        if ($hasRealitySchema) {
-            $characters=$fetch("
+        $characters=$fetch("
                 SELECT p.id,p.pretty_id,p.name,p.chronicle_id,p.reality_id,
                        COALESCE(bo.organization_id,0) AS organization_id,
                        COALESCE(ch.name,'') AS chronicle_name,
@@ -76,7 +46,6 @@ if (!function_exists('hg_acw_load_state')) {
                 LEFT JOIN dim_realities r ON r.id = p.reality_id
                 ORDER BY p.name ASC, p.id ASC
             ");
-        }
         return compact('hasRealitySchema','chronicles','realities','organizations','characters');
     }
 }
