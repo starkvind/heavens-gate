@@ -61,27 +61,6 @@ if (!function_exists('hg_cbe_column_exists')) {
     }
 }
 
-if (!function_exists('hg_cbe_month_map')) {
-    function hg_cbe_month_map(): array
-    {
-        return [
-            'enero' => 1,
-            'febrero' => 2,
-            'marzo' => 3,
-            'abril' => 4,
-            'mayo' => 5,
-            'junio' => 6,
-            'julio' => 7,
-            'agosto' => 8,
-            'septiembre' => 9,
-            'setiembre' => 9,
-            'octubre' => 10,
-            'noviembre' => 11,
-            'diciembre' => 12,
-        ];
-    }
-}
-
 if (!function_exists('hg_cbe_birthtext_expr')) {
     function hg_cbe_birthtext_expr(mysqli $db, string $characterAlias = 'fc'): string
     {
