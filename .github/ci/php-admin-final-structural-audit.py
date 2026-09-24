@@ -9,7 +9,7 @@ ADMIN = ROOT / 'app/controllers/admin'
 SQL = re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\(")
 SCHEMA = re.compile(r"\bSHOW\s+COLUMNS\b|\binformation_schema\b", re.I)
 
-EXPECTED_CONTROLLER_COUNT = 62
+EXPECTED_CONTROLLER_COUNT = 59
 
 WRAPPERS = {
     'admin_characters_service.php': {
@@ -20,12 +20,6 @@ WRAPPERS = {
         'max_lines': 8,
         'markers': ["hg_admin_logout("],
     },
-}
-
-TOMBSTONES = {
-    'admin_game_cards.php': 12,
-    'admin_sim_browser.php': 12,
-    'admin_sim_character_talk.php': 12,
 }
 
 files = sorted(ADMIN.glob('*.php'))
@@ -66,25 +60,12 @@ for name, rule in WRAPPERS.items():
         if marker not in text:
             errors.append(f'{path.relative_to(ROOT)} lost wrapper marker: {marker}')
 
-for name, max_lines in TOMBSTONES.items():
-    path = ADMIN / name
-    if not path.exists():
-        errors.append(f'missing Admin tombstone: {path.relative_to(ROOT)}')
-        continue
-    text = path.read_text(encoding='utf-8', errors='replace')
-    lines = text.count('\n') + 1
-    if lines > max_lines:
-        errors.append(f'{path.relative_to(ROOT)} tombstone grew unexpectedly: {lines} lines > {max_lines}')
-    if 'http_response_code(410)' not in text:
-        errors.append(f'{path.relative_to(ROOT)} is no longer an explicit 410 tombstone')
-
 print('# Phase 6.13 final Admin structural audit')
 print(f'Controllers: {len(files)}')
 print(f'Controller lines: {line_total}')
 print(f'Direct SQL call sites: {sql_total}')
 print(f'Schema probes: {schema_total}')
 print(f'Thin wrappers checked: {len(WRAPPERS)}')
-print(f'410 tombstones checked: {len(TOMBSTONES)}')
 
 if errors:
     for error in errors:
