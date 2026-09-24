@@ -180,23 +180,7 @@ $actions .= '</select></label></form></span>';
 admin_panel_open('Extra Details to System', $actions);
 ?>
 <?php if (!empty($flash)): ?><div class="flash"><?php foreach ($flash as $m): $cl = ($m['type'] ?? '') === 'ok' ? 'ok' : 'err'; ?><div class="<?= $cl ?>"><?= ased_h($m['msg'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
-<style>
-.ased-wrap{max-width:600px;margin:0 auto}
-.ased-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px 0}
-.ased-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-.ased-card{border:1px solid #000088;border-radius:10px;padding:14px;background:rgba(0,0,40,.22)}
-.ased-block + .ased-block{margin-top:18px;padding-top:18px;border-top:1px solid rgba(130,160,255,.18)}
-.ased-block h3{margin:0 0 10px 0}
-.ased-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.ased-select{min-width:260px;max-width:100%}
-.ased-chiplist{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.ased-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0c2454;border:1px solid #274c99;color:#eef4ff;max-width:100%}
-.ased-chip-text{display:flex;flex-direction:column;min-width:0}
-.ased-chip-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
-.ased-chip-origin{font-size:10px;line-height:1.2;color:#b9cbff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
-.ased-chip-remove{border:0;background:transparent;color:#ffd9d9;font-weight:700;cursor:pointer;padding:0 2px}
-.ased-empty{color:#cfd8ff;font-style:italic}
-</style>
+
 
 <div class="ased-wrap">
   <div class="ased-summary">
