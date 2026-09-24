@@ -189,7 +189,7 @@ admin_panel_open('Muertes de personajes', $actions);
         <th class="adm-w-180">Responsable</th>
         <th class="adm-col-text">Evento</th>
         <th class="adm-w-80">Peso</th>
-        <th class="adm-w-170 adm-th-actions">Acciones</th>
+        <th class="adm-th-actions" title="Acciones">Acc.</th>
       </tr>
     </thead>
     <tbody id="acdTbody">
@@ -217,8 +217,8 @@ admin_panel_open('Muertes de personajes', $actions);
           <td><?= hg_acd_h($eventLabel) ?></td>
           <td><?= (int)($r['narrative_weight'] ?? 1) ?></td>
           <td class="adm-cell-actions"><div class="adm-actions-inline">
-            <button class="btn" type="button" data-edit="<?= $charId ?>">Editar</button>
-            <button class="btn btn-red" type="button" data-del="<?= $charId ?>">Borrar</button>
+            <button class="btn adm-icon-btn" type="button" data-edit="<?= $charId ?>" aria-label="Editar" title="Editar">✏</button>
+            <button class="btn btn-red adm-icon-btn" type="button" data-del="<?= $charId ?>" aria-label="Borrar" title="Borrar">🗑</button>
             </div></td>
         </tr>
       <?php endforeach; ?>
@@ -432,8 +432,8 @@ var ACD_ROWS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT
       + '<td>' + esc(eventLabel) + '</td>'
       + '<td>' + Number(r.narrative_weight || 1) + '</td>'
       + '<td>'
-      + '<button class="btn" type="button" data-edit="' + Number(r.character_id || 0) + '">Editar</button> '
-      + '<button class="btn btn-red" type="button" data-del="' + Number(r.character_id || 0) + '">Borrar</button>'
+      + '<button class="btn adm-icon-btn" type="button" data-edit="' + Number(r.character_id || 0) + '" aria-label="Editar" title="Editar">✏</button> '
+      + '<button class="btn btn-red adm-icon-btn" type="button" data-del="' + Number(r.character_id || 0) + '" aria-label="Borrar" title="Borrar">🗑</button>'
       + '</td>'
       + '</tr>';
   }
