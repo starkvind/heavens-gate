@@ -31,6 +31,10 @@ $hgQuery = hg_request_routing_bootstrap($link, $uri, $_GET, $method);
 $hgBody = $_POST;
 $hgRequest = hg_request_context_from_query($hgQuery, $hgBody);
 
+if (function_exists('hg_page_register_route_styles')) {
+    hg_page_register_route_styles(hg_request_route($hgRequest));
+}
+
 if (hg_should_render_mobile(
     hg_request_route($hgRequest),
     hg_request_query_param($hgRequest, 'view')
