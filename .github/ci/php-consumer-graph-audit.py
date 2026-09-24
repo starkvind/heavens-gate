@@ -2,6 +2,7 @@
 from collections import Counter, defaultdict
 from pathlib import Path
 import re
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -141,3 +142,20 @@ for item in zero_runtime_symbols:
         item['name'] + ' | DECL=' + ','.join(item['decls'])
         + ' | CI=' + (','.join(item['ci_refs']) if item['ci_refs'] else '-')
     )
+
+errors = []
+if unreferenced_helpers:
+    errors.append(f'{len(unreferenced_helpers)} helper file(s) have zero runtime consumers')
+if unreferenced_partials:
+    errors.append(f'{len(unreferenced_partials)} partial file(s) have zero runtime consumers')
+if duplicates:
+    errors.append(f'{len(duplicates)} duplicate named PHP function symbol(s) remain')
+if zero_runtime_symbols:
+    errors.append(f'{len(zero_runtime_symbols)} named PHP function(s) have zero runtime semantic refs')
+
+if errors:
+    for error in errors:
+        print(f'ERROR: {error}', file=sys.stderr)
+    sys.exit(1)
+
+print('Phase 7.2 consumer graph audit: PASS')
