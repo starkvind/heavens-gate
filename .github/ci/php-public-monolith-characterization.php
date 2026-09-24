@@ -97,4 +97,36 @@ if ($mobileData === false || strpos($mobileData, '$mobileCharacterDetailReady = 
     hg_monolith_fail('Mobile biography data preparation no longer signals successful completion');
 }
 
+$characterQueries = file_get_contents($root . '/app/domains/characters/queries.php');
+if ($characterQueries === false || strpos($characterQueries, "'bridge_characters_system_resources' => true") === false) {
+    hg_monolith_fail('Biography resources lost the production character-resource bridge contract');
+}
+
+require_once $root . '/app/helpers/page_assets.php';
+unset($GLOBALS['hg_page_assets']);
+hg_page_register_route_styles('listasistemas');
+ob_start();
+hg_page_render_registered_styles();
+$systemStyles = (string)ob_get_clean();
+if (strpos($systemStyles, 'hg-systems.css') === false) {
+    hg_monolith_fail('Systems route no longer preloads hg-systems.css');
+}
+
+unset($GLOBALS['hg_page_assets']);
+hg_page_register_route_styles('maps');
+ob_start();
+hg_page_render_registered_styles();
+$mapStyles = (string)ob_get_clean();
+foreach ([
+    'leaflet.1.9.4.css',
+    'MarkerCluster.1.5.3.css',
+    'MarkerCluster.Default.1.5.3.css',
+    'hg-chapters.css',
+    'hg-maps.css',
+] as $requiredStyle) {
+    if (strpos($mapStyles, $requiredStyle) === false) {
+        hg_monolith_fail('Maps route lost required stylesheet: ' . $requiredStyle);
+    }
+}
+
 fwrite(STDOUT, "PHP public monolith characterization: OK\n");
