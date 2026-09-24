@@ -68,7 +68,7 @@
 		if (hg_starts_with($path, '/powers')) {
 			return 'powersMenu';
 		}
-		if (hg_starts_with($path, '/tools') || hg_starts_with($path, '/games') || hg_starts_with($path, '/game-cards')) {
+		if (hg_starts_with($path, '/tools')) {
 			return 'toolsMenu';
 		}
 		return null;
@@ -492,8 +492,6 @@
 		<td class="sekzo">
 			<div class="ocultable<?= ($menuOpenId === 'toolsMenu') ? ' open' : '' ?>" id="toolsMenu">
 				<a href="/tools/dice"><div class="renglonMenu">Tiradados</div></a>
-				<a href="/games/combat-simulator"><div class="renglonMenu">Simulador de Combate</div></a>
-				<a href="/games/card-game"><div class="renglonMenu">Archivo de Mnemogeno</div></a>
 				<a href="/tools/forum-avatar"><div class="renglonMenu">Creador Mensajes Foro</div></a>
 				<a href="/tools/forum-topic-viewer"><div class="renglonMenu">Visor de temas foro</div></a>
 				<a href="/tools/csp"><div class="renglonMenu">TablÃ³n de Mensajes</div></a>
