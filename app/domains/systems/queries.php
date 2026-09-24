@@ -200,3 +200,37 @@ function hg_systems_fetch_misc(mysqli $link, string $systemName, ?string $altern
 }
 
 
+function hg_systems_fetch_resources(mysqli $link, int $systemId): array
+{
+    if ($systemId <= 0) return [];
+
+    $sql = "
+        SELECT r.id, r.name, r.kind, r.description, b.sort_order
+        FROM bridge_systems_resources_to_system b
+        INNER JOIN dim_systems_resources r ON r.id = b.resource_id
+        WHERE b.system_id = ?
+          AND r.kind IN ('renombre', 'estado')
+          AND b.is_active = 1
+        ORDER BY
+            r.kind,
+            COALESCE(NULLIF(CAST(b.sort_order AS SIGNED), 0), CAST(r.sort_order AS SIGNED), 9999),
+            CAST(r.sort_order AS SIGNED),
+            r.name
+    ";
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return [];
+
+    $stmt->bind_param('i', $systemId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) {
+        $rows[] = $row;
+    }
+    $stmt->close();
+
+    return $rows;
+}
+
+
