@@ -60,5 +60,8 @@ jobs:
       - name: Audit Admin UX foundation
         run: python3 .github/ci/php-admin-ux-foundation-audit.py
 
+      - name: Check dense Admin table JavaScript
+        run: node --check assets/js/hg-admin-dense-tables.js
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
