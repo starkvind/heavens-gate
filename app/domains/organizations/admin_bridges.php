@@ -1,6 +1,6 @@
 <?php
 
-function fetchPairs(mysqli $link, string $sql): array {
+function hg_organizations_admin_fetch_pairs(mysqli $link, string $sql): array {
   $out = [];
   if ($rs = $link->query($sql)) {
     while($r = $rs->fetch_assoc()){
@@ -127,8 +127,8 @@ if (!function_exists('bridges_deactivate_row')) {
 
 if (!function_exists('bridges_load_state')) {
   function bridges_load_state(mysqli $link, string $T_CHAR_GROUP, string $T_CHAR_CLAN, string $T_CLAN_GROUP, string $excludeChronicles): array {
-    $opts_clanes = fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER BY name");
-    $opts_manadas = fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
+    $opts_clanes = hg_organizations_admin_fetch_pairs($link, "SELECT id, name FROM dim_organizations ORDER BY name");
+    $opts_manadas = hg_organizations_admin_fetch_pairs($link, "SELECT id, name FROM dim_groups ORDER BY name");
     $charGroupHasId = bridges_table_has_column($link,$T_CHAR_GROUP,'id');
     $charClanHasId = bridges_table_has_column($link,$T_CHAR_CLAN,'id');
     $clanGroupHasId = bridges_table_has_column($link,$T_CLAN_GROUP,'id');
