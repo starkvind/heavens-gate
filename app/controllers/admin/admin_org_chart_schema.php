@@ -109,19 +109,7 @@ admin_panel_open(
 ?>
 <?php if (!empty($flash)): ?><div class="flash"><?php foreach ($flash as $m): $cl = $m['type'] === 'ok' ? 'ok' : (($m['type'] ?? '') === 'error' ? 'err' : 'info'); ?><div class="<?= $cl ?>"><?= hg_aocs_h($m['msg'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
 
-<style>
-.adm-org-schema-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}
-.adm-org-schema-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-.adm-org-category-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:10px 12px;align-items:end}
-.adm-org-category-grid label{display:grid;gap:5px;color:#dfefff}
-.adm-org-category-grid input,.adm-org-category-grid select,.adm-org-category-grid textarea{width:100%;box-sizing:border-box}
-.adm-org-category-grid textarea{min-height:74px}
-.adm-org-category-wide{grid-column:1/-1}
-.adm-org-category-table{width:100%;border-collapse:collapse;margin-top:10px}
-.adm-org-category-table th,.adm-org-category-table td{border-bottom:1px solid #17366e;padding:6px 7px;text-align:left;vertical-align:top}
-.adm-org-category-swatch{display:inline-block;width:12px;height:12px;border-radius:999px;border:1px solid rgba(255,255,255,.65);vertical-align:middle;margin-right:6px}
-@media(max-width:760px){.adm-org-category-grid{grid-template-columns:1fr}}
-</style>
+
 
 <div class="adm-org-schema-summary">
   <span class="adm-org-schema-pill">Departamentos: <?= $departmentsReady ? 'OK' : 'Ausente' ?><?= $departmentsReady ? ' (' . (int)$departmentsCount . ')' : '' ?></span>
