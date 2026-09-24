@@ -7,6 +7,7 @@
 	// Verificar la conexión a la base de datos
 	include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 	include_once(__DIR__ . '/../../helpers/admin_sections.php');
+include_once(__DIR__ . '/../../domains/admin_usage/queries.php');
 if (!hg_admin_require_db($link)) { return; }
 
 if (!function_exists('hg_admin_menu_attr')) {
@@ -65,6 +66,23 @@ if (!function_exists('hg_admin_render_menu_section')) {
 		}
 		include("admin_login.php");
 	} else {
+        // Telemetria minima: solo cargas completas GET. Nunca AJAX/POST ni datos personales.
+        if (!$isAjaxAdminRequest && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET') {
+            $usageSection = null;
+            if (!isset($_GET['s'])) {
+                $usageSection = 'admin_main';
+            } else {
+                $usageRequested = (string)$_GET['s'];
+                $usageResolved = hg_admin_section_resolve($usageRequested, 'normal');
+                if ($usageResolved !== null && (string)($usageResolved['section'] ?? '') !== 'logout') {
+                    $usageSection = (string)$usageResolved['section'];
+                }
+            }
+            if (is_string($usageSection) && $usageSection !== '') {
+                hg_admin_usage_record($link, $usageSection);
+            }
+        }
+
 		// Modo AJAX: responder sin navbar/layout para no romper JSON.
 		if ($isAjaxAdminRequest) {
 			$seccionAjax = htmlspecialchars((string)$_GET['s']);
@@ -210,6 +228,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					'items' => [
 						['href' => '/talim?s=admin_menu', 'label' => 'Editar Menú', 'keywords' => ['menu']],
 						['href' => '/talim?s=admin_datatables', 'label' => 'Columnas DataTables', 'keywords' => ['datatable', 'columnas', 'frontend', 'visibilidad']],
+						['href' => '/talim?s=admin_usage', 'label' => 'Uso del Admin', 'hint' => 'Accesos por sección, sin datos personales', 'keywords' => ['uso', 'telemetria', 'estadisticas', 'accesos']],
 						['href' => '/talim?s=admin_inspect_db', 'label' => 'Inspeccionar BDD', 'keywords' => ['db', 'bdd']],
 						['href' => '/talim?s=admin_mentions_help', 'label' => 'Ayuda Mentions', 'keywords' => ['mentions', 'ayuda']],
 						['href' => '/talim?s=admin_season_order_schema', 'label' => 'Schema orden temporadas', 'keywords' => ['schema', 'temporadas']],
