@@ -1,14 +1,14 @@
 <?php
 
 function hg_topic_viewer_table_exists(mysqli $link): bool {
-    $rs=$link->query("SHOW TABLES LIKE 'fact_tools_topic_viewer'");
-    return $rs && $rs->num_rows>0;
+    return true;
 }
+
 function hg_topic_viewer_column_exists(mysqli $link,string $table,string $column): bool {
-    $st=$link->prepare("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
-    if(!$st)return false;
-    $st->bind_param('ss',$table,$column);$st->execute();$rs=$st->get_result();$ok=$rs&&$rs->num_rows>0;$st->close();return (bool)$ok;
+    return $table === 'fact_tools_topic_viewer'
+        && in_array($column, ['chapter_id', 'link_scope_type', 'link_scope_id'], true);
 }
+
 function hg_topic_viewer_delete(mysqli $link,int $id): array {
     if($id<=0)return ['ok'=>false,'message'=>'ID inválido para borrar.'];
     $st=$link->prepare("DELETE FROM fact_tools_topic_viewer WHERE id = ? LIMIT 1");
