@@ -251,25 +251,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'forum_avatar_tool' => '/tools/forum-avatar',
         'forum_avatar_api' => '/api/forum-avatar',
         'forum_topic_viewer' => '/tools/forum-topic-viewer',
-        'combat_simulator' => '/games/combat-simulator',
-        'combat_simulator_result' => '/games/combat-simulator/result',
-        'combat_simulator_scores' => '/games/combat-simulator/scores',
-        'combat_simulator_weapons' => '/games/combat-simulator/weapons',
-        'combat_simulator_tournament' => '/games/combat-simulator/tournament',
-        'game_cards' => '/games/card-game',
-        'game_cards_collection' => '/games/card-game/collection',
-        'game_cards_combat' => '/games/card-game/combat',
-        'game_cards_mobile' => '/games/card-game/mobile',
-        'game_cards_explanation' => '/games/card-game/explanation',
-        'game_cards_lab' => '/games/hg-cardgame-dev-lab',
-        'game_cards_lab_collection' => '/games/hg-cardgame-dev-lab/collection',
-        'game_cards_lab_combat' => '/games/hg-cardgame-dev-lab/combat',
-        'game_cards_lab_mobile' => '/games/hg-cardgame-dev-lab/mobile',
-        'game_cards_lab_explanation' => '/games/hg-cardgame-dev-lab/explanation',
-        'simulador' => '/games/combat-simulator',
-        'punts' => '/games/combat-simulator/scores',
-        'arms' => '/games/combat-simulator/weapons',
-        'sim_tournament' => '/games/combat-simulator/tournament',
         'tooltip' => '/ajax/tooltip',
         'maps_api' => '/maps/api',
         'dice_api' => '/api/dice',
@@ -383,13 +364,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         case 'maps_detail':
             if (!isset($query['id'])) return '/maps';
             return '/maps/poi/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'fact_map_pois', (string)$query['id']));
-        case 'combat_simulator_log':
-        case 'vercombat':
-            if (!isset($query['b'])) return '/games/combat-simulator/log';
-            return '/games/combat-simulator/log/' . rawurlencode(trim((string)$query['b']));
-        case 'combat_simulator_logs':
-        case 'combtodo':
-            return '/games/combat-simulator/log';
         case 'mentions':
             return trim((string)($query['type'] ?? '')) === 'episode' ? '/ajax/epis' : '/ajax/mentions';
         case 'seegroup':
@@ -412,10 +386,6 @@ function hg_request_router_legacy_query_result(mysqli $link, string $path, array
     switch ($route) {
         case 'busk':
         case 'talim':
-        case 'combat_simulator_logs':
-        case 'combtodo':
-            $queryString = hg_request_router_query($query, ['p']);
-            break;
         case 'mentions':
             if (trim((string)($query['type'] ?? '')) === 'episode') {
                 $legacyPath = '/ajax/epis';
