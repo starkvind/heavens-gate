@@ -3,6 +3,24 @@
 include_once(__DIR__ . '/admin_service.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
+if (!function_exists('hg_characters_admin_fetch_pairs')) {
+    function hg_characters_admin_fetch_pairs(mysqli $link, string $sql): array
+    {
+        $out = [];
+        $result = $link->query($sql);
+        if (!$result) return $out;
+
+        while ($row = $result->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) continue;
+            $out[$id] = (string)($row['name'] ?? '');
+        }
+        $result->close();
+
+        return $out;
+    }
+}
+
 if (!function_exists('hg_characters_admin_status_state')) {
     function hg_characters_admin_status_state(mysqli $link): array
     {
@@ -56,17 +74,17 @@ if (!function_exists('hg_characters_admin_reference_catalogs')) {
     function hg_characters_admin_reference_catalogs(mysqli $link): array
     {
         return [
-            'chronicles' => fetchPairs($link, "SELECT id, name FROM dim_chronicles ORDER BY name"),
-            'organizations' => fetchPairs($link, "SELECT id, name FROM dim_organizations ORDER BY name"),
-            'players' => fetchPairs($link, "SELECT id, name FROM dim_players ORDER BY name"),
-            'systems' => fetchPairs($link, "SELECT id, name FROM dim_systems ORDER BY name"),
-            'totems' => fetchPairs($link, "SELECT id, name FROM dim_totems ORDER BY name"),
-            'character_types' => fetchPairs($link, "SELECT id, kind AS name FROM dim_character_types ORDER BY sort_order, kind"),
-            'archetypes' => fetchPairs($link, "SELECT id, name FROM dim_archetypes ORDER BY name"),
-            'groups' => fetchPairs($link, "SELECT id, name FROM dim_groups ORDER BY name"),
-            'gifts' => fetchPairs($link, "SELECT id, CONCAT(name, ' (', gift_group, ')') AS name FROM fact_gifts"),
-            'disciplines' => fetchPairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY name"),
-            'rites' => fetchPairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id"),
+            'chronicles' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_chronicles ORDER BY name"),
+            'organizations' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_organizations ORDER BY name"),
+            'players' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_players ORDER BY name"),
+            'systems' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_systems ORDER BY name"),
+            'totems' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_totems ORDER BY name"),
+            'character_types' => hg_characters_admin_fetch_pairs($link, "SELECT id, kind AS name FROM dim_character_types ORDER BY sort_order, kind"),
+            'archetypes' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_archetypes ORDER BY name"),
+            'groups' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_groups ORDER BY name"),
+            'gifts' => hg_characters_admin_fetch_pairs($link, "SELECT id, CONCAT(name, ' (', gift_group, ')') AS name FROM fact_gifts"),
+            'disciplines' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY name"),
+            'rites' => hg_characters_admin_fetch_pairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id"),
         ];
     }
 }
