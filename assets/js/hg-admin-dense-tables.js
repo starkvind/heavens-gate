@@ -124,12 +124,36 @@
     if (table.id && identityById[table.id]) return identityById[table.id].slice();
 
     var hs = headers(table).map(normalize);
-    if (hs.indexOf('imagen') === 0 && hs.indexOf('accion') === 1) return [1];
-
-    var freeze = Math.min(freezeCount(table), hs.length);
     var out = [];
-    for (var i = 0; i < freeze; i += 1) out.push(i);
-    return out;
+
+    function add(index) {
+      if (index >= 0 && out.indexOf(index) === -1 && !isActionHeader(hs[index], index, hs.length)) {
+        out.push(index);
+      }
+    }
+
+    var idIndex = hs.findIndex(function (label) {
+      return /^(id|id pj|id personaje|#)$/.test(label);
+    });
+    add(idIndex);
+
+    var identityIndex = hs.findIndex(function (label) {
+      return /^(nombre|alias|titulo|personaje|accion|don|sistema|cronica|temporada|documento|recurso|trait|rasgo|condicion|objeto|merito|defecto|forma|menu|organizacion|trama)$/.test(label);
+    });
+    add(identityIndex);
+
+    if (out.length === 0) {
+      var freeze = Math.min(freezeCount(table), hs.length);
+      for (var i = 0; i < freeze; i += 1) add(i);
+    } else if (out.length === 1 && idIndex >= 0) {
+      for (var j = 0; j < hs.length && out.length < 2; j += 1) {
+        if (j === idIndex) continue;
+        if (/^(pretty|pretty id|imagen|estado|orden|pos|fecha|tipo|act\.?|activo|activa)$/.test(hs[j])) continue;
+        add(j);
+      }
+    }
+
+    return out.slice(0, 2);
   }
 
   function requiredColumns(table) {
@@ -213,34 +237,27 @@
 
   function applyFreeze(table) {
     clearFreeze(table);
-    var hs = headers(table);
-    var count = Math.min(freezeCount(table), hs.length);
-    var offsets = [];
+    var indexes = identityColumns(table);
+    var offsets = Object.create(null);
     var running = 0;
 
-    for (var i = 0; i < count; i += 1) {
-      var head = table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells[i] : null;
-      offsets[i] = running;
-      if (head && !head.classList.contains('adm-col-hidden')) {
-        running += head.getBoundingClientRect().width;
-      }
-    }
+    indexes.forEach(function (index) {
+      var head = table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells[index] : null;
+      if (!head || head.classList.contains('adm-col-hidden')) return;
+      offsets[index] = running;
+      running += head.getBoundingClientRect().width;
+    });
 
     Array.prototype.forEach.call(table.rows, function (row) {
-      for (var index = 0; index < count; index += 1) {
+      var lastVisible = null;
+      indexes.forEach(function (index) {
         var cell = row.cells[index];
-        if (!cell || cell.classList.contains('adm-col-hidden')) continue;
+        if (!cell || cell.classList.contains('adm-col-hidden') || offsets[index] === undefined) return;
         cell.classList.add('adm-freeze-left');
         cell.style.left = offsets[index] + 'px';
-      }
-
-      for (var edge = count - 1; edge >= 0; edge -= 1) {
-        var edgeCell = row.cells[edge];
-        if (edgeCell && !edgeCell.classList.contains('adm-col-hidden')) {
-          edgeCell.classList.add('adm-freeze-left-edge');
-          break;
-        }
-      }
+        lastVisible = cell;
+      });
+      if (lastVisible) lastVisible.classList.add('adm-freeze-left-edge');
     });
   }
 
@@ -374,8 +391,55 @@
     refreshToolbarCount(group);
   }
 
+  function isDenseCandidate(table) {
+    if (!table || !table.classList) return false;
+    if (table.getAttribute('data-admin-no-spreadsheet') === '1') return false;
+    if (table.classList.contains('adm-wide-table')) return true;
+    if (table.closest('.modal, .popup-edit, .icon-picker')) return false;
+    return headers(table).length >= 5;
+  }
+
+  function compactActionColumn(table, wrapper) {
+    var hs = headers(table);
+    if (!hs.length) return;
+    var index = hs.length - 1;
+    if (!isActionHeader(hs[index], index, hs.length)) return;
+
+    wrapper.classList.add('adm-sticky-actions');
+    var head = table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells[index] : null;
+    if (head) {
+      head.classList.add('adm-th-actions');
+      head.title = 'Acciones';
+      if (normalize(head.textContent) !== 'acc.') head.textContent = 'Acc.';
+    }
+
+    Array.prototype.forEach.call(table.tBodies || [], function (tbody) {
+      Array.prototype.forEach.call(tbody.rows || [], function (row) {
+        var cell = row.cells[index];
+        if (!cell) return;
+        cell.classList.add('adm-cell-actions');
+
+        Array.prototype.forEach.call(cell.querySelectorAll('button, a'), function (control) {
+          var label = normalize(control.textContent);
+          if (label === 'editar' || label === '✏ editar' || label === '✏') {
+            control.classList.add('adm-icon-btn');
+            if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Editar');
+            if (!control.getAttribute('title')) control.setAttribute('title', 'Editar');
+            control.textContent = '✏';
+          } else if (label === 'borrar' || label === '🗑 borrar' || label === '🗑') {
+            control.classList.add('adm-icon-btn');
+            if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Borrar');
+            if (!control.getAttribute('title')) control.setAttribute('title', 'Borrar');
+            control.textContent = '🗑';
+          }
+        });
+      });
+    });
+  }
+
   function registerTable(table) {
-    if (!table || !table.classList || !table.classList.contains('adm-wide-table')) return;
+    if (!isDenseCandidate(table)) return;
+    table.classList.add('adm-wide-table');
 
     var wrapper = wrapperFor(table);
     wrapper.classList.add('adm-dense-table');
@@ -383,6 +447,8 @@
 
     var panel = panelFor(wrapper);
     if (panel) panel.classList.add('adm-admin-wide-panel');
+
+    compactActionColumn(table, wrapper);
 
     var group = groupFor(table);
     if (group.tables.indexOf(table) === -1) group.tables.push(table);
@@ -394,6 +460,7 @@
     if (!table.dataset.admDenseObserved) {
       var observer = new MutationObserver(function () {
         window.requestAnimationFrame(function () {
+          compactActionColumn(table, wrapper);
           applyHidden(table, group.hidden);
           applyFreeze(table);
           scheduleRailRefresh();
@@ -424,8 +491,14 @@
 
   function scan(root) {
     var scope = root && root.querySelectorAll ? root : document;
-    if (scope.matches && scope.matches('table.adm-wide-table')) registerTable(scope);
-    Array.prototype.forEach.call(scope.querySelectorAll('table.adm-wide-table'), registerTable);
+    if (scope.matches && scope.matches('table')) registerTable(scope);
+
+    if (scope.closest) {
+      var ownerTable = scope.closest('table');
+      if (ownerTable) registerTable(ownerTable);
+    }
+
+    Array.prototype.forEach.call(scope.querySelectorAll('table'), registerTable);
   }
 
   function ensureRail() {
