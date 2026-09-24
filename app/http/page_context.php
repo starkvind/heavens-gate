@@ -132,10 +132,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $title = "Nebulosa de relaciones - Heaven's Gate";
             $description = "Visualiza las relaciones entre clanes, manadas y personajes en Heaven's Gate.";
             break;
-        case 'doc':
-            $title = "Documentación - Heaven's Gate";
-            $description = "Accede a la documentacion oficial y trasfondo de la campana.";
-            break;
         case 'inv':
         case 'verobj':
 		case 'seeitem':
@@ -250,11 +246,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $title = "Mapas | Heaven's Gate";
             $description = "Mapas interactivos sobre lugares de interes en la campana.";
 			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
-            break;
-		case 'plots':
-            $title = "Equipos activos | Heaven's Gate";
-            $description = "Lista de personajes en tramas abiertas y su estado, su salud y sus recursos.";
-			$image = $baseURL . "/img/og/og_image_bio.webp"; // ahora correcto
             break;
         default:
             // Fallback genérico

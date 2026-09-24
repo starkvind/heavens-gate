@@ -3,7 +3,6 @@
 function hg_dispatch_bare_routes(): array
 {
     return [
-        'snippet_forum_a',
         'forum_message',
         'forum_diceroll',
         'forum_item',

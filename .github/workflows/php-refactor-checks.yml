@@ -42,6 +42,9 @@ jobs:
       - name: Audit extracted domain query boundaries
         run: python3 .github/ci/php-domain-query-boundary-audit.py
 
+      - name: Audit Phase 7 legacy purge
+        run: python3 .github/ci/php-legacy-purge-audit.py
+
       - name: Characterize public monolith seams
         run: php .github/ci/php-public-monolith-characterization.php
 

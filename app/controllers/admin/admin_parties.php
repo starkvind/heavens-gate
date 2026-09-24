@@ -17,7 +17,6 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/parties/admin.php');
-include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 

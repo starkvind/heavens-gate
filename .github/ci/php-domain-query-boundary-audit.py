@@ -101,16 +101,12 @@ EXTRACTED_CONTROLLERS = {
         ROOT / 'app/controllers/pwrs/totm_table.php',
         ROOT / 'app/controllers/pwrs/totm_full_list.php',
         ROOT / 'app/controllers/pwrs/totm_custom_list.php',
-        ROOT / 'app/controllers/pwrs/disc_category_list.php',
         ROOT / 'app/controllers/pwrs/disc_group_list.php',
         ROOT / 'app/controllers/pwrs/disc_page.php',
         ROOT / 'app/controllers/pwrs/disc_table.php',
         ROOT / 'app/controllers/pwrs/disc_full_list.php',
         ROOT / 'app/controllers/pwrs/disc_custom_list.php',
         ROOT / 'app/mobile/controllers/powers.php',
-    ],
-    'rules_powers': [
-        ROOT / 'app/mobile/controllers/rules_powers.php',
     ],
     'chapters': [
         ROOT / 'app/controllers/chapters/seasons_home.php',
