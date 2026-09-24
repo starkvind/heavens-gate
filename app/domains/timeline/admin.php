@@ -13,10 +13,6 @@ function hg_admin_col_exists(mysqli $link, string $table, string $column): bool 
     return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
 
-function hg_admin_has_table(mysqli $link, string $table): bool {
-    return $table === 'fact_characters_deaths';
-}
-
 function hg_admin_pick_deaths_table(mysqli $link): string {
     return 'fact_characters_deaths';
 }
