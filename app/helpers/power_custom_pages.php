@@ -162,30 +162,6 @@ if (!function_exists('hg_power_custom_fetch_rows')) {
     }
 }
 
-if (!function_exists('hg_power_custom_build_items')) {
-    function hg_power_custom_build_items(mysqli $link, array $config): array
-    {
-        $rows = hg_power_custom_fetch_rows($link, (string)($config['query'] ?? ''));
-        $mapper = $config['map_row'] ?? null;
-        $items = [];
-
-        foreach ($rows as $row) {
-            $item = is_callable($mapper) ? $mapper($row, $link) : $row;
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $item = hg_power_custom_ensure_utf8($item);
-            $item['fields'] = is_array($item['fields'] ?? null) ? $item['fields'] : [];
-            $item['chips'] = is_array($item['chips'] ?? null) ? $item['chips'] : [];
-            $item['sections'] = is_array($item['sections'] ?? null) ? $item['sections'] : [];
-            $items[] = $item;
-        }
-
-        return $items;
-    }
-}
-
 if (!function_exists('hg_power_custom_make_chip_list')) {
     function hg_power_custom_make_chip_list(array $values): array
     {
@@ -217,41 +193,6 @@ if (!function_exists('hg_power_custom_sections')) {
             ];
         }
         return $normalized;
-    }
-}
-
-if (!function_exists('hg_power_custom_gift_rules_col')) {
-    function hg_power_custom_gift_rules_col(mysqli $link): string
-    {
-        $rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
-        if ($rs && mysqli_num_rows($rs) > 0) {
-            mysqli_free_result($rs);
-            return 'mechanics_text';
-        }
-        if ($rs) {
-            mysqli_free_result($rs);
-        }
-        return 'system_name';
-    }
-}
-
-if (!function_exists('hg_power_custom_asset_image')) {
-    function hg_power_custom_asset_image(string $value, string $fallback, string $baseDir = ''): string
-    {
-        $img = trim($value);
-        if ($img === '') {
-            return $fallback;
-        }
-        if (preg_match('#^https?://#i', $img) || strncmp($img, '/', 1) === 0) {
-            return $img;
-        }
-        if (strpos($img, '/') !== false) {
-            return '/' . ltrim($img, '/');
-        }
-        if ($baseDir !== '') {
-            return rtrim($baseDir, '/') . '/' . ltrim($img, '/');
-        }
-        return '/' . ltrim($img, '/');
     }
 }
 
