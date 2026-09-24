@@ -1,22 +1,16 @@
 <?php
 
 function hg_admin_col_exists(mysqli $link, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-
-    $ok = false;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-
-    $cache[$key] = $ok;
-    return $ok;
+    static $schema = [
+        'dim_timeline_events_types' => ['sort_order'],
+        'dim_chronicles' => ['sort_order'],
+        'dim_realities' => [],
+        'bridge_timeline_events_chronicles' => ['sort_order'],
+        'bridge_timeline_events_chapters' => ['sort_order'],
+        'bridge_timeline_events_realities' => ['sort_order'],
+        'bridge_timeline_events_characters' => ['sort_order', 'role_label'],
+    ];
+    return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
 
 function hg_admin_has_table(mysqli $link, string $table): bool {
