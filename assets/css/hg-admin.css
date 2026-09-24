@@ -2589,3 +2589,78 @@ body { font-family: Verdana, Arial, sans-serif; }
   outline:2px solid var(--adm-accent);
   outline-offset:2px;
 }
+
+
+/* ==== 6.99z centralized from admin_season_order_schema.php ==== */
+.adm-season-order-schema-pills{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.adm-season-order-schema-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
+
+
+/* ==== 6.99z centralized from admin_bso.php ==== */
+.adm-dep-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-dep-badge.off{background:#2a2a2a;border-color:#555;color:#ddd}.adm-bso-link{color:#9fe7ff}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-bso-table .table th,.adm-bso-table .table td{vertical-align:top}.adm-bso-title{min-width:220px}.adm-bso-artist{min-width:160px}.adm-bso-usage{min-width:180px}.adm-bso-context{min-width:180px;max-width:260px}.adm-bso-youtube{min-width:180px;max-width:260px}.adm-bso-links-box{margin-top:14px;border-top:1px solid #000088;padding-top:12px}.adm-bso-links-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}.adm-bso-link-item{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;border:1px solid #15306b;border-radius:8px;padding:8px;background:#06164a}.adm-bso-link-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.adm-bso-link-type{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-bso-links-empty{color:#bbb;font-size:12px}.adm-bso-link-add{margin-top:10px;display:grid;grid-template-columns:140px 1fr auto;gap:8px;align-items:end}.adm-bso-link-add .btn{white-space:nowrap}.adm-summary-band{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}.adm-summary-pill{padding:5px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}.adm-audit-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2d6a9f;background:#0a2147;color:#e8f5ff;font-size:10px;line-height:1.2}.adm-audit-badge.review{background:#4a3200;border-color:#b37a11;color:#ffefbf}.adm-audit-badge.warn{background:#4a0000;border-color:#b31111;color:#ffd7d7}#bsoModal .select2-container{width:100%!important;font-size:12px}#bsoModal .select2-container--default .select2-selection--single{height:30px;border:1px solid #000088;background:#05014E;color:#fff;border-radius:4px}#bsoModal .select2-container--default .select2-selection--single .select2-selection__rendered{color:#fff;line-height:28px;padding-left:10px;padding-right:28px}#bsoModal .select2-container--default .select2-selection--single .select2-selection__placeholder{color:#9dd}#bsoModal .select2-container--default .select2-selection--single .select2-selection__arrow{height:28px}#bsoModal .select2-container--default .select2-selection--single .select2-selection__arrow b{border-color:#9fd8ff transparent transparent transparent!important}#bsoModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b{border-color:transparent transparent #9fd8ff transparent!important}#bsoModal .select2-dropdown{background:#05014E!important;border:1px solid #000088!important;color:#fff!important;z-index:30000}#bsoModal .select2-search--dropdown{padding:8px}#bsoModal .select2-search--dropdown .select2-search__field{background:#00105f!important;border:1px solid #33FFFF!important;color:#fff!important;border-radius:4px;padding:6px 8px}#bsoModal .select2-results__option{background:transparent!important;color:#fff!important;white-space:normal;overflow-wrap:anywhere;line-height:1.35;padding:8px 10px}#bsoModal .select2-container--default .select2-results__option--selected{background:#00105f!important;color:#fff!important}#bsoModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{background:#0a56d1!important;color:#fff!important}#bsoModal .select2-results>.select2-results__options{max-height:320px!important}
+
+
+/* ==== 6.99z centralized from admin_actions.php ==== */
+.adm-actions-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;margin:0 0 12px}.adm-actions-category-filter{min-width:200px}.adm-actions-filter{min-width:min(360px,100%)}.adm-action-image{width:54px;height:54px;object-fit:cover;border:1px solid #000088;border-radius:6px;background:#05014e}.adm-action-preview{width:120px;height:80px;object-fit:cover;border:1px solid #000088;border-radius:6px;background:#05014e}.adm-action-preview[hidden]{display:none}.adm-action-empty{font-size:11px;color:#aebed5}.adm-actions-table{max-height:70vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-action-desc{max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+/* ==== 6.99z centralized from admin_groups.php ==== */
+#agModal {
+  --adm-s2-bg: #000033;
+  --adm-s2-color: #ffffff;
+  --adm-s2-border: #333333;
+  --adm-s2-hover: #001199;
+  --adm-s2-selected: #00105f;
+}
+#adminGroupsApp,
+#adminGroupsApp h3,
+#adminGroupsApp .small,
+#adminGroupsApp th,
+#adminGroupsApp td,
+#agModal .modal-body,
+#agModal .modal-body h3,
+#agModal .modal-body h4,
+#agModal .modal-body .small,
+#agModal .modal-body label {
+  text-align: left;
+}
+#adminGroupsApp .btn,
+#agModal .modal-body .btn {
+  text-align: center;
+}
+#agModal .select2-dropdown { background: var(--adm-s2-bg) !important; border: 1px solid var(--adm-s2-border) !important; color: var(--adm-s2-color) !important; }
+#agModal .select2-results__option { background: transparent !important; color: var(--adm-s2-color) !important; }
+#agModal .select2-container--default .select2-results__option--selected { background: var(--adm-s2-selected) !important; color: var(--adm-s2-color) !important; }
+#agModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background: var(--adm-s2-hover) !important; color: #ffffff !important; }
+#agModal .select2-container--default .select2-selection--single { background: var(--adm-s2-bg) !important; border-color: var(--adm-s2-border) !important; }
+#agModal .select2-container--default .select2-selection--single .select2-selection__rendered { color: var(--adm-s2-color) !important; }
+#agModal .select2-container--default .select2-selection--single .select2-selection__placeholder { color: rgba(255, 255, 255, .78) !important; }
+#agModal .select2-container--default .select2-selection--single .select2-selection__arrow b { border-color: #9fd8ff transparent transparent !important; }
+#agModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b { border-color: transparent transparent #9fd8ff !important; }
+
+
+/* ==== 6.99z centralized from admin_seasons.php ==== */
+.season-kind-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    border: 1px solid #0a4fa3;
+    background: #0a2e66;
+    color: #e7f3ff;
+}
+.season-kind--temporada { border-color: #0e64c7; background: #083679; color: #d9efff; }
+.season-kind--inciso { border-color: #3f86d4; background: #1d4878; color: #d9f1ff; }
+.season-kind--historia_personal { border-color: #0aa88f; background: #0b5a4e; color: #d8fff8; }
+.season-kind--especial { border-color: #8b7cff; background: #3e2d8a; color: #ece8ff; }
+.adm-thumb-hint { font-size: 10px; color: #9db5d3; }
+
+
+/* ==== 6.99z centralized from admin_players.php ==== */
+.adm-dep-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-dep-badge.off{background:#2a2a2a;border-color:#555;color:#ddd}.adm-status-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;border:1px solid #1b4aa0;background:#083679;color:#d9efff}.adm-status-pill.off{background:#3a2a2a;border-color:#884444;color:#ffd9d9}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-thumb-hint{font-size:10px;color:#9db5d3}.adm-summary-band{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}.adm-summary-pill{padding:5px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}.adm-audit-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2d6a9f;background:#0a2147;color:#e8f5ff;font-size:10px;line-height:1.2}.adm-audit-badge.review{background:#4a3200;border-color:#b37a11;color:#ffefbf}.adm-audit-badge.warn{background:#4a0000;border-color:#b31111;color:#ffd7d7}
+
+
+/* ==== 6.99z centralized from admin_bso_link.php ==== */
+.adm-state-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-state-badge.warn{background:#4a3200;border-color:#b37a11;color:#ffefbf}.adm-state-badge.err{background:#4a0000;border-color:#b31111;color:#ffd7d7}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-link-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.adm-summary-band{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0}.adm-summary-pill{padding:5px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}.adm-bso-link-table .table th,.adm-bso-link-table .table td{vertical-align:top}.adm-bso-link-theme{min-width:220px;max-width:280px}.adm-bso-link-dest{min-width:240px;max-width:320px}.adm-bso-link-state{min-width:180px;max-width:240px}
