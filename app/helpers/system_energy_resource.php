@@ -1,60 +1,39 @@
 <?php
 
-if (!function_exists('hg_ser_cache')) {
-    function hg_ser_cache(): array
-    {
-        if (!isset($GLOBALS['hg_ser_cache']) || !is_array($GLOBALS['hg_ser_cache'])) {
-            $GLOBALS['hg_ser_cache'] = [];
-        }
-        return $GLOBALS['hg_ser_cache'];
-    }
-}
-
 if (!function_exists('hg_ser_table_exists')) {
     function hg_ser_table_exists(mysqli $link, string $table): bool
     {
-        $table = trim($table);
-        if ($table === '') return false;
-        $cache = &$GLOBALS['hg_ser_cache'];
-        if (!isset($cache) || !is_array($cache)) $cache = [];
-        $key = 't:' . $table;
-        if (isset($cache[$key])) return (bool)$cache[$key];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
+        static $tables = [
+            'dim_breeds' => true,
+            'dim_auspices' => true,
+            'dim_tribes' => true,
+            'fact_misc_systems' => true,
+            'dim_systems_resources' => true,
+            'bridge_systems_resources_to_system' => true,
+            'bridge_breeds_energy_resources' => true,
+            'bridge_auspices_energy_resources' => true,
+            'bridge_tribes_energy_resources' => true,
+            'bridge_misc_systems_energy_resources' => true,
+        ];
+        return isset($tables[$table]);
     }
 }
 
 if (!function_exists('hg_ser_column_exists')) {
     function hg_ser_column_exists(mysqli $link, string $table, string $column): bool
     {
-        $cache = &$GLOBALS['hg_ser_cache'];
-        if (!isset($cache) || !is_array($cache)) $cache = [];
-        $key = 'c:' . $table . ':' . $column;
-        if (isset($cache[$key])) return (bool)$cache[$key];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
+        static $columns = [
+            'dim_breeds' => ['system_id', 'system_name', 'energy_resources_configured'],
+            'dim_auspices' => ['system_id', 'system_name', 'energy_resources_configured'],
+            'dim_tribes' => ['system_id', 'system_name', 'energy_resources_configured'],
+            'fact_misc_systems' => ['system_id', 'system_name', 'energy_resources_configured'],
+            'bridge_systems_resources_to_system' => ['system_id', 'resource_id', 'sort_order', 'is_active'],
+            'bridge_breeds_energy_resources' => ['breed_id', 'resource_id', 'energy_value', 'sort_order', 'is_active'],
+            'bridge_auspices_energy_resources' => ['auspice_id', 'resource_id', 'energy_value', 'sort_order', 'is_active'],
+            'bridge_tribes_energy_resources' => ['tribe_id', 'resource_id', 'energy_value', 'sort_order', 'is_active'],
+            'bridge_misc_systems_energy_resources' => ['misc_system_id', 'resource_id', 'energy_value', 'sort_order', 'is_active'],
+        ];
+        return isset($columns[$table]) && in_array($column, $columns[$table], true);
     }
 }
 
@@ -64,55 +43,27 @@ if (!function_exists('hg_ser_energy_tables')) {
         return [
             'dim_breeds' => [
                 'default_label' => 'Gnosis',
-                'legacy_fk' => 'energy_resource_id',
                 'config_column' => 'energy_resources_configured',
-                'legacy_name_column' => '',
-                'legacy_value_column' => 'energy',
                 'bridge_table' => 'bridge_breeds_energy_resources',
                 'detail_fk' => 'breed_id',
-                'index_name' => 'idx_dim_breeds_energy_resource_id',
-                'constraint_name' => 'fk_dim_breeds_energy_resource',
-                'bridge_constraint_resource' => 'fk_brer_resource',
-                'bridge_constraint_detail' => 'fk_brer_breed',
             ],
             'dim_auspices' => [
                 'default_label' => 'Rabia',
-                'legacy_fk' => 'energy_resource_id',
                 'config_column' => 'energy_resources_configured',
-                'legacy_name_column' => '',
-                'legacy_value_column' => 'energy',
                 'bridge_table' => 'bridge_auspices_energy_resources',
                 'detail_fk' => 'auspice_id',
-                'index_name' => 'idx_dim_auspices_energy_resource_id',
-                'constraint_name' => 'fk_dim_auspices_energy_resource',
-                'bridge_constraint_resource' => 'fk_baer_resource',
-                'bridge_constraint_detail' => 'fk_baer_auspice',
             ],
             'dim_tribes' => [
                 'default_label' => 'Fuerza de Voluntad',
-                'legacy_fk' => 'energy_resource_id',
                 'config_column' => 'energy_resources_configured',
-                'legacy_name_column' => '',
-                'legacy_value_column' => 'energy',
                 'bridge_table' => 'bridge_tribes_energy_resources',
                 'detail_fk' => 'tribe_id',
-                'index_name' => 'idx_dim_tribes_energy_resource_id',
-                'constraint_name' => 'fk_dim_tribes_energy_resource',
-                'bridge_constraint_resource' => 'fk_bter_resource',
-                'bridge_constraint_detail' => 'fk_bter_tribe',
             ],
             'fact_misc_systems' => [
                 'default_label' => '',
-                'legacy_fk' => '',
                 'config_column' => 'energy_resources_configured',
-                'legacy_name_column' => 'energy_name',
-                'legacy_value_column' => 'energy_value',
                 'bridge_table' => 'bridge_misc_systems_energy_resources',
                 'detail_fk' => 'misc_system_id',
-                'index_name' => '',
-                'constraint_name' => '',
-                'bridge_constraint_resource' => 'fk_bmser_resource',
-                'bridge_constraint_detail' => 'fk_bmser_misc_system',
             ],
         ];
     }
@@ -137,27 +88,21 @@ if (!function_exists('hg_ser_energy_bridge_meta')) {
 if (!function_exists('hg_ser_has_energy_resource_column')) {
     function hg_ser_has_energy_resource_column(mysqli $link, string $table): bool
     {
-        $meta = hg_ser_energy_bridge_meta($table);
-        $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-        return !empty($meta) && $legacyFk !== '' && hg_ser_column_exists($link, $table, $legacyFk);
+        return false;
     }
 }
 
 if (!function_exists('hg_ser_has_legacy_energy_value_column')) {
     function hg_ser_has_legacy_energy_value_column(mysqli $link, string $table): bool
     {
-        $meta = hg_ser_energy_bridge_meta($table);
-        $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-        return hg_ser_supports_table($table) && $legacyValueColumn !== '' && hg_ser_column_exists($link, $table, $legacyValueColumn);
+        return false;
     }
 }
 
 if (!function_exists('hg_ser_has_legacy_energy_name_column')) {
     function hg_ser_has_legacy_energy_name_column(mysqli $link, string $table): bool
     {
-        $meta = hg_ser_energy_bridge_meta($table);
-        $legacyNameColumn = (string)($meta['legacy_name_column'] ?? '');
-        return hg_ser_supports_table($table) && $legacyNameColumn !== '' && hg_ser_column_exists($link, $table, $legacyNameColumn);
+        return false;
     }
 }
 
@@ -204,27 +149,14 @@ if (!function_exists('hg_ser_energy_label_from_row')) {
 if (!function_exists('hg_ser_energy_sql_parts')) {
     function hg_ser_energy_sql_parts(mysqli $link, string $table, string $alias = 't', string $resourceAlias = 'er'): array
     {
-        if (!hg_ser_has_energy_resource_column($link, $table)) {
-            return ['select' => '', 'join' => ''];
-        }
-
-        $meta = hg_ser_energy_bridge_meta($table);
-        $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-        return [
-            'select' => ", COALESCE($resourceAlias.id, 0) AS energy_resource_id, COALESCE($resourceAlias.name, '') AS energy_resource_name, COALESCE($resourceAlias.pretty_id, '') AS energy_resource_pretty_id",
-            'join' => " LEFT JOIN dim_systems_resources $resourceAlias ON $resourceAlias.id = $alias.`$legacyFk`",
-        ];
+        return ['select' => '', 'join' => ''];
     }
 }
 
 if (!function_exists('hg_ser_energy_value_sql_expr')) {
     function hg_ser_energy_value_sql_expr(mysqli $link, string $table, string $alias = 't'): string
     {
-        $meta = hg_ser_energy_bridge_meta($table);
-        $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-        return (hg_ser_has_legacy_energy_value_column($link, $table) && $legacyValueColumn !== '')
-            ? "COALESCE($alias.`$legacyValueColumn`, 0)"
-            : "0";
+        return '0';
     }
 }
 
@@ -457,36 +389,7 @@ if (!function_exists('hg_ser_is_energy_configured')) {
 if (!function_exists('hg_ser_legacy_energy_entries_from_row')) {
     function hg_ser_legacy_energy_entries_from_row(mysqli $link, string $table, array $row, string $fallbackSystemName = ''): array
     {
-        $meta = hg_ser_energy_bridge_meta($table);
-        $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-        $legacyNameColumn = (string)($meta['legacy_name_column'] ?? '');
-        $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-
-        $energy = (int)($row[$legacyValueColumn] ?? 0);
-        if ($energy <= 0) return [];
-
-        $label = $legacyNameColumn !== '' && trim((string)($row[$legacyNameColumn] ?? '')) !== ''
-            ? trim((string)($row[$legacyNameColumn] ?? ''))
-            : hg_ser_energy_label_from_row($table, $row, $fallbackSystemName);
-        $resourceId = (int)($row['energy_resource_id'] ?? 0);
-        $prettyId = (string)($row['energy_resource_pretty_id'] ?? '');
-
-        if ($resourceId <= 0 && $legacyFk !== '' && hg_ser_has_energy_resource_column($link, $table)) {
-            if ($legacyFk !== 'energy_resource_id' && isset($row[$legacyFk])) {
-                $resourceId = (int)$row[$legacyFk];
-            }
-        }
-
-        return [[
-            'bridge_id' => 0,
-            'resource_id' => $resourceId,
-            'resource_name' => $label,
-            'resource_pretty_id' => $prettyId,
-            'energy_value' => $energy,
-            'sort_order' => 0,
-            'is_active' => 1,
-            'is_legacy' => 1,
-        ]];
+        return [];
     }
 }
 
@@ -677,7 +580,6 @@ if (!function_exists('hg_ser_schema_status')) {
                 'table_exists' => hg_ser_table_exists($link, $table),
                 'energy_resource_id' => hg_ser_has_energy_resource_column($link, $table),
                 'config_column' => hg_ser_has_energy_config_column($link, $table),
-                'legacy_value_column' => hg_ser_has_legacy_energy_value_column($link, $table),
                 'bridge_table' => $bridgeTable !== '' && hg_ser_table_exists($link, $bridgeTable),
                 'bridge_fk_detail' => ($bridgeTable !== '' && $detailFk !== '') ? hg_ser_column_exists($link, $bridgeTable, $detailFk) : false,
                 'bridge_fk_resource' => ($bridgeTable !== '') ? hg_ser_column_exists($link, $bridgeTable, 'resource_id') : false,
@@ -695,32 +597,13 @@ if (!function_exists('hg_ser_legacy_status')) {
     {
         $status = [];
         foreach (hg_ser_energy_tables() as $table => $meta) {
-            $configColumn = (string)($meta['config_column'] ?? '');
-            $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-            $legacyNameColumn = (string)($meta['legacy_name_column'] ?? '');
-            $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-            $hasConfig = ($configColumn !== '') && hg_ser_column_exists($link, $table, $configColumn);
-            $hasEnergy = hg_ser_has_legacy_energy_value_column($link, $table);
-            $hasEnergyName = $legacyNameColumn !== '' && hg_ser_has_legacy_energy_name_column($link, $table);
-            $hasResource = ($legacyFk !== '') && hg_ser_column_exists($link, $table, $legacyFk);
-            $pending = 0;
-
-            $pendingWhere = hg_ser_legacy_pending_where($link, $table);
-            if ($pendingWhere !== '') {
-                if ($rs = $link->query("SELECT COUNT(*) AS c FROM `$table` WHERE $pendingWhere")) {
-                    $row = $rs->fetch_assoc();
-                    $pending = (int)($row['c'] ?? 0);
-                    $rs->close();
-                }
-            }
-
             $status[$table] = [
-                'has_energy' => $hasEnergy,
-                'has_energy_name' => $hasEnergyName,
-                'has_resource' => $hasResource,
-                'has_config' => $hasConfig,
-                'pending_count' => $pending,
-                'can_retire' => $hasConfig && $pending === 0 && ($hasEnergy || $hasResource || $hasEnergyName),
+                'has_energy' => false,
+                'has_energy_name' => false,
+                'has_resource' => false,
+                'has_config' => true,
+                'pending_count' => 0,
+                'can_retire' => false,
             ];
         }
         return $status;
@@ -730,81 +613,14 @@ if (!function_exists('hg_ser_legacy_status')) {
 if (!function_exists('hg_ser_legacy_pending_where')) {
     function hg_ser_legacy_pending_where(mysqli $link, string $table): string
     {
-        $meta = hg_ser_energy_bridge_meta($table);
-        if (empty($meta)) return '';
-
-        $configColumn = (string)($meta['config_column'] ?? '');
-        $legacyFk = (string)($meta['legacy_fk'] ?? 'energy_resource_id');
-        $legacyNameColumn = (string)($meta['legacy_name_column'] ?? '');
-        $legacyValueColumn = (string)($meta['legacy_value_column'] ?? 'energy');
-        $hasConfig = ($configColumn !== '') && hg_ser_column_exists($link, $table, $configColumn);
-        $hasEnergy = hg_ser_has_legacy_energy_value_column($link, $table);
-        $hasEnergyName = $legacyNameColumn !== '' && hg_ser_has_legacy_energy_name_column($link, $table);
-        $hasResource = ($legacyFk !== '') && hg_ser_column_exists($link, $table, $legacyFk);
-
-        if (!$hasConfig || (!$hasEnergy && !$hasResource && !$hasEnergyName)) {
-            return '';
-        }
-
-        $pendingWhere = "COALESCE(`$configColumn`, 0) = 0";
-        if ($hasEnergyName && $hasEnergy && $hasResource) {
-            $pendingWhere .= " AND (TRIM(COALESCE(`$legacyNameColumn`, '')) <> '' OR COALESCE(`$legacyValueColumn`, 0) > 0 OR COALESCE(`$legacyFk`, 0) > 0)";
-        } elseif ($hasEnergyName && $hasEnergy) {
-            $pendingWhere .= " AND (TRIM(COALESCE(`$legacyNameColumn`, '')) <> '' OR COALESCE(`$legacyValueColumn`, 0) > 0)";
-        } elseif ($hasEnergy && $hasResource) {
-            $pendingWhere .= " AND (COALESCE(`$legacyValueColumn`, 0) > 0 OR COALESCE(`$legacyFk`, 0) > 0)";
-        } elseif ($hasEnergyName) {
-            $pendingWhere .= " AND TRIM(COALESCE(`$legacyNameColumn`, '')) <> ''";
-        } elseif ($hasEnergy) {
-            $pendingWhere .= " AND COALESCE(`$legacyValueColumn`, 0) > 0";
-        } elseif ($hasResource) {
-            $pendingWhere .= " AND COALESCE(`$legacyFk`, 0) > 0";
-        }
-
-        return $pendingWhere;
+        return '';
     }
 }
 
 if (!function_exists('hg_ser_legacy_pending_rows')) {
     function hg_ser_legacy_pending_rows(mysqli $link, string $table, int $limit = 100): array
     {
-        $rows = [];
-        $pendingWhere = hg_ser_legacy_pending_where($link, $table);
-        if ($pendingWhere === '') return $rows;
-
-        $limit = max(1, min(500, $limit));
-        $hasSystemId = hg_ser_column_exists($link, $table, 'system_id');
-        $hasSystemName = hg_ser_column_exists($link, $table, 'system_name');
-
-        $systemSelect = $hasSystemName
-            ? "COALESCE(s.name, t.system_name, '')"
-            : ($hasSystemId ? "COALESCE(s.name, '')" : "''");
-        $systemJoin = $hasSystemId ? "LEFT JOIN dim_systems s ON s.id = t.system_id" : '';
-
-        $sql = "
-            SELECT
-                t.id,
-                COALESCE(t.name, '') AS name,
-                $systemSelect AS system_name
-            FROM `$table` t
-            $systemJoin
-            WHERE $pendingWhere
-            ORDER BY system_name ASC, name ASC, t.id ASC
-            LIMIT $limit
-        ";
-
-        if ($rs = $link->query($sql)) {
-            while ($row = $rs->fetch_assoc()) {
-                $rows[] = [
-                    'id' => (int)($row['id'] ?? 0),
-                    'name' => (string)($row['name'] ?? ''),
-                    'system_name' => (string)($row['system_name'] ?? ''),
-                ];
-            }
-            $rs->close();
-        }
-
-        return $rows;
+        return [];
     }
 }
 
