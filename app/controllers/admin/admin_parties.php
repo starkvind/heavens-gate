@@ -325,7 +325,7 @@ $csrf = $_SESSION['csrf'];
         <th class="adm-col-name">Nombre</th>
         <th class="adm-w-90">Activa</th>
         <th class="adm-w-80">Orden</th>
-        <th class="adm-w-260 adm-th-actions">Acciones</th>
+        <th class="adm-th-actions" title="Acciones">Acc.</th>
       </tr>
     </thead>
     <tbody>
@@ -337,9 +337,9 @@ $csrf = $_SESSION['csrf'];
         <td><?= ((int)$p['active']===1) ? '<span class="badge">Sí</span>' : '<span class="badge off">No</span>' ?></td>
         <td><?= (int)($p['sort_order'] ?? 0) ?></td>
         <td class="adm-cell-actions"><div class="adm-actions-inline">
-          <button class="btn" type="button" onclick='openPlotEdit(<?= json_encode($p, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
-          <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
-          <button class="btn btn-ghost" type="button" onclick="scrollToPlot(<?= $pid ?>)">⬇ Ver personajes</button>
+          <button class="btn adm-icon-btn" type="button" onclick='openPlotEdit(<?= json_encode($p, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)' aria-label="Editar trama" title="Editar trama">✏</button>
+          <button class="btn btn-green adm-icon-btn" type="button" onclick="openCharCreate(<?= $pid ?>)" aria-label="Añadir personaje" title="Añadir personaje">＋</button>
+          <button class="btn btn-ghost adm-icon-btn" type="button" onclick="scrollToPlot(<?= $pid ?>)" aria-label="Ver personajes" title="Ver personajes">↓</button>
           </div></td>
       </tr>
     <?php endforeach; ?>
@@ -371,7 +371,7 @@ $csrf = $_SESSION['csrf'];
             <th class="adm-col-name">Base</th>
             <th class="adm-w-80">Act.</th>
             <th class="adm-w-420">Stats (base)</th>
-            <th class="adm-w-220 adm-th-actions">Acciones</th>
+            <th class="adm-th-actions" title="Acciones">Acc.</th>
           </tr>
         </thead>
         <tbody>
@@ -398,8 +398,8 @@ $csrf = $_SESSION['csrf'];
               <span class="badge">FV <?= (int)$pc['m_wp'] ?></span>
             </td>
             <td class="adm-cell-actions"><div class="adm-actions-inline">
-              <button class="btn" type="button" onclick='openCharEdit(<?= json_encode($pc, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
-              <button class="btn" type="button" onclick="openChanges(<?= $cid ?>)">📜 Cambios</button>
+              <button class="btn adm-icon-btn" type="button" onclick='openCharEdit(<?= json_encode($pc, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)' aria-label="Editar personaje" title="Editar personaje">✏</button>
+              <button class="btn adm-icon-btn" type="button" onclick="openChanges(<?= $cid ?>)" aria-label="Cambios" title="Cambios">📜</button>
               </div></td>
           </tr>
         <?php endforeach; ?>
@@ -950,11 +950,11 @@ function openChanges(plotCharId){
       html += '<td>'+esc(p.name || '')+'</td>';
       html += '<td>'+(active ? '<span class="badge">Si</span>' : '<span class="badge off">No</span>')+'</td>';
       html += '<td>'+esc(p.sort_order || 0)+'</td>';
-      html += '<td>';
-      html += '<button class="btn js-plot-edit" type="button" data-id="'+id+'">Editar</button> ';
-      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+id+'">Añadir personaje</button> ';
-      html += '<button class="btn btn-ghost js-plot-scroll" type="button" data-id="'+id+'">Ver personajes</button>';
-      html += '</td></tr>';
+      html += '<td class="adm-cell-actions"><div class="adm-actions-inline">';
+      html += '<button class="btn adm-icon-btn js-plot-edit" type="button" data-id="'+id+'" aria-label="Editar trama" title="Editar trama">✏</button>';
+      html += '<button class="btn btn-green adm-icon-btn js-plot-add-char" type="button" data-id="'+id+'" aria-label="Añadir personaje" title="Añadir personaje">＋</button>';
+      html += '<button class="btn btn-ghost adm-icon-btn js-plot-scroll" type="button" data-id="'+id+'" aria-label="Ver personajes" title="Ver personajes">↓</button>';
+      html += '</div></td></tr>';
     });
     plotsTbody.innerHTML = html;
   }
@@ -971,8 +971,8 @@ function openChanges(plotCharId){
       html += '<span class="badge">Orden: '+esc(p.sort_order || 0)+'</span>';
       html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+pid+'">Añadir personaje</button>';
       html += '</div>';
-      html += '<table class="table"><thead><tr>'
-        + '<th class="adm-w-60">ID</th><th>Alias</th><th>Base</th><th class="adm-w-80">Act.</th><th class="adm-w-420">Stats (base)</th><th class="adm-w-220">Acciones</th>'
+      html += '<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Personajes de la trama"><table class="table adm-wide-table"><thead><tr>'
+        + '<th class="adm-w-60">ID</th><th class="adm-col-name">Alias</th><th class="adm-col-name">Base</th><th class="adm-w-80">Act.</th><th class="adm-w-420">Stats (base)</th><th class="adm-th-actions" title="Acciones">Acc.</th>'
         + '</tr></thead><tbody>';
       if (!pcs.length) {
         html += '<tr><td colspan="6" class="adm-color-muted">(No hay personajes en esta trama)</td></tr>';
@@ -997,11 +997,11 @@ function openChanges(plotCharId){
             + '<span class="badge">Sangre '+(parseInt(pc.m_blood||0,10)||0)+'</span> '
             + '<span class="badge">FV '+(parseInt(pc.m_wp||0,10)||0)+'</span>'
             + '</td>';
-          html += '<td><button class="btn js-char-edit" type="button" data-id="'+cid+'">Editar</button> <button class="btn js-char-changes" type="button" data-id="'+cid+'">Cambios</button></td>';
+          html += '<td class="adm-cell-actions"><div class="adm-actions-inline"><button class="btn adm-icon-btn js-char-edit" type="button" data-id="'+cid+'" aria-label="Editar personaje" title="Editar personaje">✏</button><button class="btn adm-icon-btn js-char-changes" type="button" data-id="'+cid+'" aria-label="Cambios" title="Cambios">📜</button></div></td>';
           html += '</tr>';
         });
       }
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
     });
     charsSection.innerHTML = html;
   }
