@@ -66,7 +66,7 @@ for token in ["case 'doc':", "case 'plots':"]:
 routes = (ROOT / 'app/routing/routes.php').read_text(encoding='utf-8', errors='replace')
 for marker in [
     "'bio_chronicles'    => ['app/controllers/main/main_chronicles.php'",
-    "'arquetip' => ['app/controllers/docs/arche_table.php'",
+    "'arquetip'       => ['app/controllers/docs/arche_table.php'",
     "'disciplinas' => ['app/controllers/pwrs/disc_table.php'",
 ]:
     if marker not in routes:
