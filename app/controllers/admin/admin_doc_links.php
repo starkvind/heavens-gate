@@ -313,7 +313,7 @@ echo "";
         <input type="hidden" name="doc_q" value="<?= h($docQ) ?>">
         <input type="hidden" name="char_q" value="<?= h($charQ) ?>">
 
-        <div class="adm-flex-right-8" style="margin-bottom: 10px;">
+        <div class="adm-flex-right-8 adm-mb-10">
             <button class="btn" type="button" id="adlCheckAll">Seleccionar todos</button>
             <button class="btn" type="button" id="adlUncheckAll">Deseleccionar todos</button>
             <button class="btn btn-blue" type="submit">Guardar vínculos</button>
