@@ -314,12 +314,6 @@
 					case 'admin_doc_links':
 						echo " $pillSeparator Documentos vinculados a personajes";
 						break;
-					case 'admin_sim_browser':
-						echo " $pillSeparator Temporadas simulador";
-						break;
-					case 'admin_sim_character_talk':
-						echo " $pillSeparator Frases de simulador";
-						break;
 					case 'admin_org_chart_schema':
 						echo " $pillSeparator Organigramas";
 						break;
