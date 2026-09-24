@@ -278,7 +278,7 @@ admin_panel_open('Meritos y Defectos', $actions);
             <th class="adm-w-80">Coste</th>
             <th class="adm-w-180">Sistema</th>
             <th class="adm-w-180">Origen</th>
-            <th class="adm-w-170 adm-th-actions">Acciones</th>
+            <th class="adm-th-actions" title="Acciones">Acc.</th>
         </tr>
     </thead>
     <tbody id="mydTbody">
@@ -296,8 +296,8 @@ admin_panel_open('Meritos y Defectos', $actions);
             <td><?= h((string)$r['system_name']) ?></td>
             <td><?= h((string)$r['origin_name']) ?></td>
             <td class="adm-cell-actions"><div class="adm-actions-inline">
-                <button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
-                <button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
+                <button class="btn adm-icon-btn" type="button" data-edit="<?= (int)$r['id'] ?>" aria-label="Editar" title="Editar">✏</button>
+                <button class="btn btn-red adm-icon-btn" type="button" data-del="<?= (int)$r['id'] ?>" aria-label="Borrar" title="Borrar">🗑</button>
                 </div></td>
         </tr>
         <?php endforeach; ?>
@@ -579,8 +579,8 @@ var MYD_ROWS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT
                 + '<td>'+esc(r.system_name)+'</td>'
                 + '<td>'+esc(r.origin_name)+'</td>'
                 + '<td>'
-                + '<button class="btn" type="button" data-edit="'+(parseInt(r.id || 0, 10) || 0)+'">Editar</button> '
-                + '<button class="btn btn-red" type="button" data-del="'+(parseInt(r.id || 0, 10) || 0)+'">Borrar</button>'
+                + '<button class="btn adm-icon-btn" type="button" data-edit="'+(parseInt(r.id || 0, 10) || 0)+'" aria-label="Editar" title="Editar">✏</button> '
+                + '<button class="btn btn-red adm-icon-btn" type="button" data-del="'+(parseInt(r.id || 0, 10) || 0)+'" aria-label="Borrar" title="Borrar">🗑</button>'
                 + '</td>'
                 + '</tr>';
         });
