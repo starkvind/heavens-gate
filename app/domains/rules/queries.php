@@ -17,22 +17,12 @@ if (!function_exists('hg_rules_normalize_int_csv')) {
 if (!function_exists('hg_rules_column_exists')) {
     function hg_rules_column_exists(mysqli $db, string $table, string $column): bool
     {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) {
-            return $cache[$key];
-        }
-
-        $exists = false;
-        if ($stmt = $db->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?')) {
-            $stmt->bind_param('ss', $table, $column);
-            $stmt->execute();
-            $stmt->bind_result($count);
-            $stmt->fetch();
-            $stmt->close();
-            $exists = ((int)$count > 0);
-        }
-        return $cache[$key] = $exists;
+        static $schema = [
+            'bridge_characters_conditions' => ['is_active'],
+            'dim_merits_flaws' => ['affiliation', 'cost', 'description', 'kind', 'system_name'],
+            'dim_traits' => ['kind'],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
     }
 }
 
