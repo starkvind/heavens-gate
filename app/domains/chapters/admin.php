@@ -1,20 +1,11 @@
 <?php
 
 function ac_col_exists(mysqli $link, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$key] = $ok;
-    return $ok;
+    static $schema = [
+        'dim_chapters' => ['image_url'],
+        'bridge_chapters_characters' => ['participation_role', 'updated_at'],
+    ];
+    return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
 
 function ac_fetch_season(mysqli $link, int $seasonId): ?array {
