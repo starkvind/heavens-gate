@@ -408,7 +408,7 @@ if ($ajaxSaveDelete) {
 			<th class="adm-col-name">Nombre</th>
 			<th>Tipo</th>
 			<th>Origen</th>
-			<th class="adm-w-160 adm-th-actions">Acciones</th>
+			<th class="adm-th-actions" title="Acciones">Acc.</th>
 		</tr>
 	</thead>
 	<tbody id="itemsTbody">
@@ -424,8 +424,8 @@ if ($ajaxSaveDelete) {
 			<td><?= h(type_name($types, $r['item_type_id'] ?? 0)) ?></td>
 			<td><?= h(origin_name($origins, $r['bibliography_id'] ?? 0)) ?></td>
 			<td class="adm-cell-actions"><div class="adm-actions-inline">
-				<button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
-				<button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
+				<button class="btn adm-icon-btn" type="button" data-edit="<?= (int)$r['id'] ?>" aria-label="Editar" title="Editar">✏</button>
+				<button class="btn btn-red adm-icon-btn" type="button" data-del="<?= (int)$r['id'] ?>" aria-label="Borrar" title="Borrar">🗑</button>
 				</div></td>
 		</tr>
 	<?php endforeach; ?>
@@ -619,8 +619,8 @@ function renderRows(rows){
 			+ '<td>' + esc(r.name || '') + '</td>'
 			+ '<td>' + esc(typeName) + '</td>'
 			+ '<td>' + esc(originName) + '</td>'
-			+ '<td><button class="btn" type="button" data-edit="' + id + '">Editar</button> '
-			+ '<button class="btn btn-red" type="button" data-del="' + id + '">Borrar</button></td>'
+			+ '<td><button class="btn adm-icon-btn" type="button" data-edit="' + id + '" aria-label="Editar" title="Editar">✏</button> '
+			+ '<button class="btn btn-red adm-icon-btn" type="button" data-del="' + id + '" aria-label="Borrar" title="Borrar">🗑</button></td>'
 			+ '</tr>';
 	});
 	tbody.innerHTML = html;
