@@ -3,53 +3,27 @@
 if (!function_exists('hg_chapters_table_exists')) {
     function hg_chapters_table_exists(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        $table = str_replace('`', '', trim($table));
-        if ($table === '') return false;
-        if (array_key_exists($table, $cache)) return $cache[$table];
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-        );
-        if (!$stmt) return $cache[$table] = false;
-
-        mysqli_stmt_bind_param($stmt, 's', $table);
-        if (!mysqli_stmt_execute($stmt)) {
-            mysqli_stmt_close($stmt);
-            return $cache[$table] = false;
-        }
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-
-        return $cache[$table] = ((int)$count > 0);
+        static $tables = [
+            'bridge_chapters_characters' => true,
+            'bridge_season_order_nodes' => true,
+            'bridge_timeline_events_chapters' => true,
+            'fact_timeline_events' => true,
+        ];
+        return isset($tables[$table]);
     }
 }
 
 if (!function_exists('hg_chapters_column_exists')) {
     function hg_chapters_column_exists(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) return $cache[$key];
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        if (!$stmt) return $cache[$key] = false;
-
-        mysqli_stmt_bind_param($stmt, 'ss', $table, $column);
-        if (!mysqli_stmt_execute($stmt)) {
-            mysqli_stmt_close($stmt);
-            return $cache[$key] = false;
-        }
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-
-        return $cache[$key] = ((int)$count > 0);
+        static $schema = [
+            'bridge_chapters_characters' => ['participation_role'],
+            'dim_chapters' => ['image_url', 'pretty_id', 'synopsis'],
+            'dim_seasons' => ['chronicle_id', 'image_url', 'season_kind'],
+            'fact_characters' => ['chronicle_id'],
+            'fact_timeline_events' => ['pretty_id'],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
     }
 }
 
