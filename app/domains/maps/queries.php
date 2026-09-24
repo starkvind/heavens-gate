@@ -14,33 +14,11 @@ function hg_maps_query_schema_info(mysqli $link): array
         return $cache[$cacheKey];
     }
 
-    $indexExists = static function (string $table, string $indexName) use ($link): bool {
-        $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $safeIndex = preg_replace('/[^a-zA-Z0-9_]/', '', $indexName);
-        if ($safeTable === '' || $safeIndex === '') {
-            return false;
-        }
-
-        $stmt = $link->prepare(
-            'SELECT COUNT(*) FROM information_schema.STATISTICS '
-            . 'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?'
-        );
-        if (!($stmt instanceof mysqli_stmt)) {
-            return false;
-        }
-        $stmt->bind_param('ss', $safeTable, $safeIndex);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-        return (int)$count > 0;
-    };
-
     $cache[$cacheKey] = [
         'has_map_id' => true,
         'has_cat_id' => true,
         'has_pretty_id' => true,
-        'has_fulltext' => $indexExists('fact_map_pois', 'ft_pois'),
+        'has_fulltext' => true,
     ];
 
     return $cache[$cacheKey];
