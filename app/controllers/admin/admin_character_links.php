@@ -143,7 +143,7 @@ $actions = "<span class='adm-flex-right-8'>"
     . "<a class='btn' href='/talim?s=admin_doc_links'>Vincular desde Documento</a>"
     . "</span>";
 admin_panel_open('Vinculos de Personajes (Docs y Enlaces)', $actions);
-echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>";
+echo "";
 $moduleUrl = '/talim?s=admin_character_links';
 $moduleAjaxUrl = '/talim?ajax=1&s=admin_character_links';
 ?>
