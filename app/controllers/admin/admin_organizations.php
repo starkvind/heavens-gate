@@ -300,36 +300,7 @@ if ($selectedOrg) {
 admin_panel_open('Organizaciones', $actions);
 ?>
 
-<style>
-.aorg-top{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(360px,1.25fr);gap:12px;margin-bottom:12px}
-.aorg-compact-form{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;align-items:end}
-.aorg-compact-form label{display:grid;gap:3px;color:#dfefff;font-size:11px}
-.aorg-compact-form input,.aorg-compact-form select,.aorg-compact-form textarea{box-sizing:border-box;width:100%}
-.aorg-wide{grid-column:1/-1}
-.aorg-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
-.aorg-tab{border:1px solid #17458b;background:#06164a;color:#dff7ff;border-radius:6px;padding:7px 10px;cursor:pointer}
-.aorg-tab.active{background:#003b8f;border-color:#33cccc;color:#fff}
-.aorg-panel{display:none}
-.aorg-panel.active{display:block}
-.aorg-table-wrap{overflow:auto;border:1px solid #000088;border-radius:8px;margin-top:8px}
-.aorg-table{width:100%;border-collapse:collapse;font-size:11px}
-.aorg-table th,.aorg-table td{border-bottom:1px solid #123777;background:#05014e;padding:5px 6px;vertical-align:top;text-align:left}
-.aorg-table th{background:#050b36;color:#33cccc;position:sticky;top:0;z-index:1}
-.aorg-table input,.aorg-table select,.aorg-table textarea{box-sizing:border-box;width:100%;font-size:11px}
-.aorg-table textarea{min-height:48px}
-.aorg-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.aorg-mini{max-width:78px}
-.aorg-medium{min-width:160px}
-.aorg-large{min-width:220px}
-.aorg-status{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.aorg-muted{color:#a9c8f5}
-.aorg-badges{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
-.aorg-badge{padding:4px 9px;border:1px solid #17366e;border-radius:999px;background:#071b4a;color:#dfefff}
-.aorg-details{margin-top:4px}
-.aorg-details summary{cursor:pointer;color:#9fe7ff}
-.aorg-off{opacity:.55}
-@media(max-width:920px){.aorg-top,.aorg-compact-form{grid-template-columns:1fr}.aorg-table th,.aorg-table td{white-space:normal}}
-</style>
+
 
 <?php if (!$selectedOrg): ?>
     <div class="err">No hay organizaciones disponibles. Crea la organizacion desde <a href="/talim?s=admin_groups">Grupos y manadas</a>.</div>
