@@ -48,6 +48,9 @@ jobs:
       - name: Audit Phase 7.2 consumers
         run: python3 .github/ci/php-consumer-graph-audit.py
 
+      - name: Inventory Phase 7.3 schema probes
+        run: python3 .github/ci/php-schema-probe-inventory.py
+
       - name: Characterize public monolith seams
         run: php .github/ci/php-public-monolith-characterization.php
 
