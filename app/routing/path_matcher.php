@@ -66,7 +66,6 @@ function hg_request_path_matcher_match(string $path): array
         '/maps' => ['p' => 'maps'],
         '/talim' => ['p' => 'talim'],
         '/admin' => ['p' => 'talim'],
-        '/admin/game-cards' => ['p' => 'talim', 's' => 'admin_game_cards'],
         '/admin/merits-flaws' => ['p' => 'talim', 's' => 'admin_merits_flaws'],
         '/admin/actions' => ['p' => 'talim', 's' => 'admin_actions'],
         '/forum/message' => ['p' => 'forum_message'],
@@ -79,30 +78,6 @@ function hg_request_path_matcher_match(string $path): array
         '/tools/forum-avatar' => ['p' => 'forum_avatar_tool'],
         '/api/forum-avatar' => ['p' => 'forum_avatar_api'],
         '/tools/forum-topic-viewer' => ['p' => 'forum_topic_viewer'],
-        '/games/combat-simulator' => ['p' => 'combat_simulator'],
-        '/games/combat-simulator/result' => ['p' => 'combat_simulator_result'],
-        '/games/combat-simulator/log' => ['p' => 'combat_simulator_logs'],
-        '/games/combat-simulator/scores' => ['p' => 'combat_simulator_scores'],
-        '/games/combat-simulator/weapons' => ['p' => 'combat_simulator_weapons'],
-        '/games/combat-simulator/tournament' => ['p' => 'combat_simulator_tournament'],
-        '/tools/combat-simulator' => ['p' => 'combat_simulator'],
-        '/tools/combat-simulator/result' => ['p' => 'combat_simulator_result'],
-        '/tools/combat-simulator/log' => ['p' => 'combat_simulator_logs'],
-        '/tools/combat-simulator/scores' => ['p' => 'combat_simulator_scores'],
-        '/tools/combat-simulator/weapons' => ['p' => 'combat_simulator_weapons'],
-        '/tools/combat-simulator/tournament' => ['p' => 'combat_simulator_tournament'],
-        '/games/card-game' => ['p' => 'game_cards'],
-        '/games/card-game/collection' => ['p' => 'game_cards_collection'],
-        '/games/card-game/combat' => ['p' => 'game_cards_combat'],
-        '/games/card-game/mobile' => ['p' => 'game_cards_mobile'],
-        '/games/card-game/explanation' => ['p' => 'game_cards_explanation'],
-        '/games/hg-cardgame-dev-lab' => ['p' => 'game_cards_lab'],
-        '/games/hg-cardgame-dev-lab/collection' => ['p' => 'game_cards_lab_collection'],
-        '/games/hg-cardgame-dev-lab/combat' => ['p' => 'game_cards_lab_combat'],
-        '/games/hg-cardgame-dev-lab/mobile' => ['p' => 'game_cards_lab_mobile'],
-        '/games/hg-cardgame-dev-lab/explanation' => ['p' => 'game_cards_lab_explanation'],
-        '/game-cards' => ['p' => 'game_cards'],
-        '/tools/game-cards' => ['p' => 'game_cards'],
         '/ajax/tooltip' => ['p' => 'tooltip'],
         '/ajax/mentions' => ['p' => 'mentions'],
         '/ajax/epis' => ['p' => 'mentions', 'type' => 'episode'],
@@ -119,7 +94,6 @@ function hg_request_path_matcher_match(string $path): array
 
     $redirects = [
         '#^/index\.php$#' => '/',
-        '#^/game_cards\.php$#' => '/games/card-game',
         '#^/crop\.html$#' => '/tools/crop',
         '#^/sep/snippet_forum_hg\.php$#' => '/forum/message',
         '#^/characters/chronicles$#' => '/chronicles',
@@ -265,12 +239,6 @@ function hg_request_path_matcher_match(string $path): array
         },
         '#^/maps/poi/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'maps_detail', 'id' => $m[1]];
-        },
-        '#^/games/combat-simulator/log/([0-9]+)$#' => static function (array $m): array {
-            return ['p' => 'combat_simulator_log', 'b' => $m[1]];
-        },
-        '#^/tools/combat-simulator/log/([0-9]+)$#' => static function (array $m): array {
-            return ['p' => 'combat_simulator_log', 'b' => $m[1]];
         },
     ];
 
