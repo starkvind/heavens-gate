@@ -45,6 +45,9 @@ jobs:
       - name: Audit Phase 7 legacy purge
         run: python3 .github/ci/php-legacy-purge-audit.py
 
+      - name: Inventory Phase 7.2 consumers
+        run: python3 .github/ci/php-consumer-graph-audit.py
+
       - name: Characterize public monolith seams
         run: php .github/ci/php-public-monolith-characterization.php
 
