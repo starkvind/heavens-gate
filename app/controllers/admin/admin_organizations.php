@@ -549,7 +549,7 @@ admin_panel_open('Organizaciones', $actions);
 <section class="aorg-panel" id="aorg-tab-assign">
     <fieldset class="bioSeccion">
         <legend>&nbsp;Asignar personajes a posiciones&nbsp;</legend>
-        <div class="aorg-actions" style="margin-bottom:8px">
+        <div class="aorg-actions adm-mb-8">
             <label>Filtro rapido <input class="inp" type="text" id="aorgAssignmentFilter" placeholder="Cargo, personaje o departamento"></label>
         </div>
         <div class="aorg-table-wrap">
