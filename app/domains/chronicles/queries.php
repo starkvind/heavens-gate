@@ -3,46 +3,20 @@
 if (!function_exists('hg_chronicles_has_column')) {
     function hg_chronicles_has_column(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) return $cache[$key];
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        if (!$stmt) return $cache[$key] = false;
-        mysqli_stmt_bind_param($stmt, 'ss', $table, $column);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-        return $cache[$key] = ((int)$count > 0);
+        static $schema = [
+            'dim_chapters' => ['season_id'],
+            'dim_chronicles' => ['description', 'image_url', 'pretty_id', 'sort_order'],
+            'dim_seasons' => ['chronicle_id', 'description', 'finished', 'pretty_id', 'season_kind', 'sort_order'],
+            'fact_characters' => ['chronicle_id', 'gender', 'image_url', 'status_id'],
+        ];
+        return isset($schema[$table]) && in_array($column, $schema[$table], true);
     }
 }
 
 if (!function_exists('hg_chronicles_has_table')) {
     function hg_chronicles_has_table(mysqli $link, string $table): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') return false;
-        if (array_key_exists($table, $cache)) return $cache[$table];
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-        );
-        if (!$stmt) return $cache[$table] = false;
-        mysqli_stmt_bind_param($stmt, 's', $table);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-        return $cache[$table] = ((int)$count > 0);
+        return $table === 'dim_character_status';
     }
 }
 
