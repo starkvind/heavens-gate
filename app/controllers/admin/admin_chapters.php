@@ -308,7 +308,7 @@ admin_panel_open('Capítulos', $actions);
 </div>
 <?php endif; ?>
 
-<style>.adm-thumb-hint{font-size:10px;color:#9db5d3}</style>
+
 
 <table class="table" id="chaptersTable">
     <thead>
