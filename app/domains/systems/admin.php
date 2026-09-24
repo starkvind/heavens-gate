@@ -255,26 +255,28 @@ function ase_save_assignments(mysqli $link, string $tab, array $updates, array $
 
 function ased_table_exists(mysqli $link, string $table): bool
 {
-    $st = $link->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
-    if (!$st) return false;
-    $st->bind_param('s', $table);
-    $st->execute();
-    $st->bind_result($count);
-    $st->fetch();
-    $st->close();
-    return ((int)$count > 0);
+    return in_array($table, [
+        'dim_systems',
+        'dim_breeds',
+        'dim_auspices',
+        'dim_tribes',
+        'bridge_systems_ex_races',
+        'bridge_systems_ex_auspices',
+        'bridge_systems_ex_tribes',
+    ], true);
 }
 
 function ased_column_exists(mysqli $link, string $table, string $column): bool
 {
-    $st = $link->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
-    if (!$st) return false;
-    $st->bind_param('ss', $table, $column);
-    $st->execute();
-    $st->bind_result($count);
-    $st->fetch();
-    $st->close();
-    return ((int)$count > 0);
+    static $schema = [
+        'dim_breeds' => ['system_id'],
+        'dim_auspices' => ['system_id'],
+        'dim_tribes' => ['system_id'],
+        'bridge_systems_ex_races' => ['system_id', 'race_id', 'is_active'],
+        'bridge_systems_ex_auspices' => ['system_id', 'auspice_id', 'is_active'],
+        'bridge_systems_ex_tribes' => ['system_id', 'tribe_id', 'is_active'],
+    ];
+    return isset($schema[$table]) && in_array($column, $schema[$table], true);
 }
 
 function ased_systems(mysqli $link): array
@@ -394,27 +396,20 @@ function ased_save_group(mysqli $link, int $systemId, array $group, array $selec
 }
 
 function asr_table_exists(mysqli $link, string $table): bool {
-    $st = $link->prepare('SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
-    if (!$st) return false;
-    $st->bind_param('s', $table);
-    $st->execute();
-    $res = $st->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $st->close();
-    return ((int)($row['c'] ?? 0) > 0);
+    return in_array($table, ['dim_systems', 'dim_systems_resources', 'bridge_systems_resources_to_system'], true);
 }
 
 function asr_table_columns(mysqli $link, string $table): array {
-    $out = [];
-    $safe = str_replace('`', '``', $table);
-    $sql = "SHOW COLUMNS FROM `{$safe}`";
-    if ($res = $link->query($sql)) {
-        while ($r = $res->fetch_assoc()) {
-            $out[(string)$r['Field']] = true;
-        }
-        $res->free();
-    }
-    return $out;
+    if ($table !== 'bridge_systems_resources_to_system') return [];
+    return [
+        'id' => true,
+        'system_id' => true,
+        'resource_id' => true,
+        'sort_order' => true,
+        'is_active' => true,
+        'created_at' => true,
+        'updated_at' => true,
+    ];
 }
 
 function asr_load_state(mysqli $link, int $systemId, string $tblSystems, string $tblResources, string $tblBridge, array $bridgeCols): array {
