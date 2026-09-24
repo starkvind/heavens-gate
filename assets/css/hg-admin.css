@@ -3003,6 +3003,17 @@ body { font-family: Verdana, Arial, sans-serif; }
 #mainBody.route-admin .hdr .adm-flex-right-wrap-8{
   margin-left:auto !important;
 }
+#mainBody.route-admin .adm-panel-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#mainBody.route-admin .adm-panel-actions > .adm-flex-right-8,
+#mainBody.route-admin .adm-panel-actions > .adm-flex-right-wrap-8{
+  margin-left:0 !important;
+}
 #mainBody.route-admin label{
   color:#cfe;
 }
