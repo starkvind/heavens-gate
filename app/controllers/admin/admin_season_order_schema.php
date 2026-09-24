@@ -27,10 +27,7 @@ admin_panel_open(
 );
 ?>
 
-<style>
-.adm-season-order-schema-pills{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
-.adm-season-order-schema-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-</style>
+
 
 <div class="adm-season-order-schema-pills">
   <span class="adm-season-order-schema-pill">Tabla: <?= $tableReady ? 'OK' : 'Ausente' ?><?= $tableReady ? ' (' . (int)$rowCount . ' filas)' : '' ?></span>
