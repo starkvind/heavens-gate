@@ -181,9 +181,7 @@ admin_panel_open('Gestionar acciones', '<button class="btn btn-green" type="butt
 ?>
 <?php foreach ($flash as $notice): ?><div class="flash"><div class="<?= ($notice['type'] ?? '') === 'ok' ? 'ok' : 'err' ?>"><?= admin_actions_h($notice['msg'] ?? '') ?></div></div><?php endforeach; ?>
 
-<style>
-.adm-actions-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;margin:0 0 12px}.adm-actions-category-filter{min-width:200px}.adm-actions-filter{min-width:min(360px,100%)}.adm-action-image{width:54px;height:54px;object-fit:cover;border:1px solid #000088;border-radius:6px;background:#05014e}.adm-action-preview{width:120px;height:80px;object-fit:cover;border:1px solid #000088;border-radius:6px;background:#05014e}.adm-action-preview[hidden]{display:none}.adm-action-empty{font-size:11px;color:#aebed5}.adm-actions-table{max-height:70vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-action-desc{max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-</style>
+
 
 <div class="adm-actions-toolbar">
     <select id="actionCategoryFilter" class="select adm-actions-category-filter" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option><?php foreach ($actionCategories as $actionCategory): ?><option value="<?= admin_actions_h($actionCategory) ?>"><?= admin_actions_h($actionCategory) ?></option><?php endforeach; ?></select>
