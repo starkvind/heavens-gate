@@ -18,24 +18,7 @@ if (!function_exists('hg_inventory_normalize_int_csv')) {
 if (!function_exists('hg_inventory_has_column')) {
     function hg_inventory_has_column(mysqli $link, string $table, string $column): bool
     {
-        static $cache = [];
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $column = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($table === '' || $column === '') return false;
-        $key = $table . ':' . $column;
-        if (array_key_exists($key, $cache)) return $cache[$key];
-
-        $stmt = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        if (!$stmt) return $cache[$key] = false;
-        mysqli_stmt_bind_param($stmt, 'ss', $table, $column);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $count);
-        mysqli_stmt_fetch($stmt);
-        mysqli_stmt_close($stmt);
-        return $cache[$key] = ((int)$count > 0);
+        return $table === 'fact_characters' && $column === 'character_kind';
     }
 }
 
