@@ -58,6 +58,7 @@ if (!function_exists('hg_admin_section_registry')) {
             'admin_systems_resources' => ['target' => 'admin_systems_resources.php', 'normal' => true, 'ajax' => true],
             'admin_resources' => ['target' => 'admin_resources.php', 'normal' => true, 'ajax' => true],
             'admin_datatables' => ['target' => 'admin_datatables.php', 'normal' => true, 'ajax' => false],
+            'admin_usage' => ['target' => 'admin_usage.php', 'normal' => true, 'ajax' => false],
             'admin_inspect_db' => ['target' => '../../tools/inspect_db.php', 'normal' => true, 'ajax' => false],
             'admin_mentions_help' => ['target' => 'mentions_help.html', 'normal' => true, 'ajax' => false],
             'admin_org_chart_schema' => ['target' => 'admin_org_chart_schema.php', 'normal' => true, 'ajax' => false],
