@@ -87,6 +87,21 @@ function hg_maps_safe_url(?string $url): string
     return '';
 }
 
+function hg_maps_json($value): string
+{
+    $json = json_encode(
+        $value,
+        JSON_UNESCAPED_UNICODE
+        | JSON_UNESCAPED_SLASHES
+        | JSON_HEX_TAG
+        | JSON_HEX_AMP
+        | JSON_HEX_APOS
+        | JSON_HEX_QUOT
+    );
+
+    return is_string($json) ? $json : 'null';
+}
+
 function hg_maps_tile_presets(): array
 {
     static $tiles = null;
