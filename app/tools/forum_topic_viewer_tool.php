@@ -541,16 +541,8 @@ function hgfv_pick_smf_table($link, $tableBaseName)
 
 function hgfv_column_exists($link, $tableName, $columnName)
 {
-    $safeTable = mysqli_real_escape_string($link, (string)$tableName);
-    $safeCol = mysqli_real_escape_string($link, (string)$columnName);
-    $sql = "SELECT 1
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = '$safeTable'
-              AND COLUMN_NAME = '$safeCol'
-            LIMIT 1";
-    $rs = mysqli_query($link, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
+    return $tableName === 'fact_tools_topic_viewer'
+        && in_array($columnName, ['chapter_id', 'link_scope_type', 'link_scope_id'], true);
 }
 
 function hgfv_normalize_author_avatar_url($raw)
