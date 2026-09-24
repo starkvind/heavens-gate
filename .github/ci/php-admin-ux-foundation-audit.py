@@ -6,6 +6,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 css_path = ROOT / 'assets/css/hg-admin.css'
 css = css_path.read_text(encoding='utf-8', errors='replace')
+dense_js_path = ROOT / 'assets/js/hg-admin-dense-tables.js'
+dense_js = dense_js_path.read_text(encoding='utf-8', errors='replace') if dense_js_path.exists() else ''
+admin_main = (ROOT / 'app/controllers/admin/admin_main.php').read_text(encoding='utf-8', errors='replace')
 
 errors = []
 
@@ -20,9 +23,30 @@ for marker in [
     'min-width:1500px',
     '.adm-icon-btn',
     'min-width:76px',
+    '.adm-admin-wide-panel',
+    '.adm-table-bottom-rail',
+    '.adm-column-picker',
+    '.adm-freeze-left',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
+
+
+for marker in [
+    'STORAGE_PREFIX',
+    'defaultHidden',
+    'freezeCount',
+    'localStorage',
+    'adm-table-bottom-rail',
+    'adm-admin-wide-panel',
+    'Mostrar todas',
+    'Vista inicial',
+]:
+    if marker not in dense_js:
+        errors.append(f'dense Admin table JS lost spreadsheet marker: {marker}')
+
+if '/assets/js/hg-admin-dense-tables.js' not in admin_main:
+    errors.append('admin_main no longer loads the shared dense table controller')
 
 SCROLL_TARGETS = {
     'app/controllers/admin/admin_actions.php': ['adm-table-scroll', 'adm-sticky-actions', 'adm-wide-table'],
