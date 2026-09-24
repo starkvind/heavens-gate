@@ -669,16 +669,7 @@ admin_panel_open('Detalles de sistemas', $actions);
   </div>
 </div>
 
-<style>
-.energy-bridge-editor{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-.energy-bridge-grid{display:grid;grid-template-columns:minmax(240px,2fr) 110px 90px 90px;gap:8px;align-items:center}
-.energy-bridge-grid-head{font-size:12px;color:#8ea7cf}
-.energy-bridge-list{display:flex;flex-direction:column;gap:8px}
-.energy-bridge-row{display:grid;grid-template-columns:minmax(240px,2fr) 110px 90px 90px;gap:8px;align-items:center}
-.energy-bridge-actions{display:flex;justify-content:flex-start}
-.energy-bridge-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-@media (max-width: 900px){.energy-bridge-grid,.energy-bridge-row{grid-template-columns:1fr}}
-</style>
+
 
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
