@@ -15,7 +15,7 @@ if (!function_exists('hg_admin_usage_h')) {
     }
 }
 
-$windowDays = max(7, min(365, (int)($_GET['days'] ?? 30)));
+$windowDaysRaw = filter_input(INPUT_GET, 'days', FILTER_VALIDATE_INT);\n$windowDays = max(7, min(365, is_int($windowDaysRaw) ? $windowDaysRaw : 30));
 $report = hg_admin_usage_report($link, $windowDays);
 
 $tracked = [];
