@@ -3,32 +3,7 @@
 if (!function_exists('hg_character_worlds_schema_ready')) {
     function hg_character_worlds_schema_ready(mysqli $link): bool
     {
-        $stmtTable = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
-        );
-        if (!$stmtTable) return false;
-        $table = 'dim_realities';
-        mysqli_stmt_bind_param($stmtTable, 's', $table);
-        mysqli_stmt_execute($stmtTable);
-        mysqli_stmt_bind_result($stmtTable, $tableCount);
-        mysqli_stmt_fetch($stmtTable);
-        mysqli_stmt_close($stmtTable);
-        if ((int)$tableCount <= 0) return false;
-
-        $stmtColumn = mysqli_prepare(
-            $link,
-            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        if (!$stmtColumn) return false;
-        $characterTable = 'fact_characters';
-        $column = 'reality_id';
-        mysqli_stmt_bind_param($stmtColumn, 'ss', $characterTable, $column);
-        mysqli_stmt_execute($stmtColumn);
-        mysqli_stmt_bind_result($stmtColumn, $columnCount);
-        mysqli_stmt_fetch($stmtColumn);
-        mysqli_stmt_close($stmtColumn);
-        return (int)$columnCount > 0;
+        return true;
     }
 }
 
@@ -52,7 +27,7 @@ if (!function_exists('hg_character_worlds_fetch')) {
         int $realityId = 0,
         $excludedChronicles = ''
     ): ?array {
-        $kindSql = function_exists('hg_character_kind_select') ? hg_character_kind_select($link, 'p') : "''";
+        $kindSql = hg_character_kind_select($link, 'p');
         $sql = "SELECT p.id, p.name, p.alias, COALESCE(dcs.label, '') AS status,
                        p.status_id, p.image_url, p.gender, {$kindSql} AS character_kind,
                        p.reality_id, COALESCE(r.name, 'Sin realidad') AS reality_name
