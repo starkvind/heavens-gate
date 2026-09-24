@@ -14,18 +14,11 @@ function hg_admin_col_exists(mysqli $link, string $table, string $column): bool 
 }
 
 function hg_admin_has_table(mysqli $link, string $table): bool {
-    $table = str_replace('`', '', $table);
-    $rs = $link->query("SHOW TABLES LIKE '" . $link->real_escape_string($table) . "'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
+    return $table === 'fact_characters_deaths';
 }
 
 function hg_admin_pick_deaths_table(mysqli $link): string {
-    if (hg_admin_has_table($link, 'fact_characters_deaths')) return 'fact_characters_deaths';
-    if (hg_admin_has_table($link, 'fact_characters_death')) return 'fact_characters_death';
-    return '';
+    return 'fact_characters_deaths';
 }
 
 function hg_admin_sync_death_ground_truth(mysqli $link, string $deathsTable, int $eventId, ?string $deathDate): void {
