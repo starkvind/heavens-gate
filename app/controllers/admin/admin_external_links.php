@@ -123,7 +123,7 @@ if ($hasTable) {
 
 $actions = "<span class='adm-flex-right-8'><a class='btn' href='/talim?s=admin_character_links'>Gestionar vínculos de personajes</a></span>";
 admin_panel_open('Enlaces Externos', $actions);
-echo "<style>.panel-wrap, .panel-wrap * { text-align: left !important; }</style>";
+echo "";
 ?>
 
 <?php if (!$hasTable): ?>
