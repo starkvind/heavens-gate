@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 import re
 
@@ -13,22 +13,14 @@ if (ROOT / 'index.php').exists():
     runtime_paths.append(ROOT / 'index.php')
 runtime_paths = sorted(set(runtime_paths))
 
-ci_paths = []
 ci_root = ROOT / '.github' / 'ci'
-if ci_root.exists():
-    ci_paths = sorted(
-        p for p in ci_root.rglob('*')
-        if p.is_file() and p.suffix.lower() in {'.php', '.py', '.js'}
-    )
+ci_paths = sorted(
+    p for p in ci_root.rglob('*')
+    if p.is_file() and p.suffix.lower() in {'.php', '.py', '.js'}
+) if ci_root.exists() else []
 
-runtime_text = {
-    p: p.read_text(encoding='utf-8', errors='replace')
-    for p in runtime_paths
-}
-ci_text = {
-    p: p.read_text(encoding='utf-8', errors='replace')
-    for p in ci_paths
-}
+runtime_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in runtime_paths}
+ci_text = {p: p.read_text(encoding='utf-8', errors='replace') for p in ci_paths}
 
 helper_files = sorted((ROOT / 'app' / 'helpers').glob('*.php'))
 partial_files = sorted((ROOT / 'app' / 'partials').rglob('*.php'))
@@ -38,33 +30,32 @@ owned_files = sorted(set(helper_files + partial_files + domain_files))
 def rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
 
-def file_refs(target: Path, haystack: dict[Path, str]) -> list[str]:
-    relative = rel(target)
-    basename = target.name
-    refs = []
-    for path, text in haystack.items():
-        if path == target:
+# File-level consumer map. Filename/path references are conservative:
+# zero references is strong evidence; positive references are not proof of liveness.
+file_targets = helper_files + partial_files
+runtime_file_refs = {p: [] for p in file_targets}
+ci_file_refs = {p: [] for p in file_targets}
+for source, text in runtime_text.items():
+    for target in file_targets:
+        if source == target:
             continue
-        if relative in text or basename in text:
-            refs.append(rel(path))
-    return sorted(refs)
+        if rel(target) in text or target.name in text:
+            runtime_file_refs[target].append(rel(source))
+for source, text in ci_text.items():
+    for target in file_targets:
+        if rel(target) in text or target.name in text:
+            ci_file_refs[target].append(rel(source))
 
-unreferenced_helpers = []
-unreferenced_partials = []
-ci_only_files = []
+unreferenced_helpers = [
+    (rel(p), sorted(set(ci_file_refs[p])))
+    for p in helper_files if not runtime_file_refs[p]
+]
+unreferenced_partials = [
+    (rel(p), sorted(set(ci_file_refs[p])))
+    for p in partial_files if not runtime_file_refs[p]
+]
 
-for target in helper_files + partial_files:
-    runtime_refs = file_refs(target, runtime_text)
-    ci_refs = file_refs(target, ci_text)
-    if not runtime_refs:
-        item = (rel(target), ci_refs)
-        if target in helper_files:
-            unreferenced_helpers.append(item)
-        else:
-            unreferenced_partials.append(item)
-        if ci_refs:
-            ci_only_files.append((rel(target), ci_refs))
-
+# Symbol declarations in helpers/partials/domains.
 decl_re = re.compile(r'(?m)^\s*(?:if\s*\([^\n]*\)\s*)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(')
 declarations = defaultdict(list)
 for path in owned_files:
@@ -73,42 +64,43 @@ for path in owned_files:
         line = text.count('\n', 0, match.start()) + 1
         declarations[match.group(1)].append((path, line))
 
-duplicates = {
-    name: locs for name, locs in declarations.items()
-    if len(locs) > 1
-}
+names = set(declarations)
+call_re = re.compile(r'\b([A-Za-z_][A-Za-z0-9_]*)\s*\(')
+quoted_re = re.compile(r'([\'"])([A-Za-z_][A-Za-z0-9_]*)\1')
+guard_re = re.compile(r'\b(?:function_exists|is_callable)\s*\(\s*([\'"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\)')
 
-def semantic_ref_count(name: str, corpus: dict[Path, str], declaration_locs=None) -> tuple[int, list[str]]:
-    direct = re.compile(r'\b' + re.escape(name) + r'\s*\(')
-    quoted = re.compile(r'([\'"])' + re.escape(name) + r'\1')
-    guard = re.compile(r'\b(?:function_exists|is_callable)\s*\(\s*([\'"])' + re.escape(name) + r'\1\s*\)')
-    count = 0
-    files = []
-    decl_by_path = defaultdict(int)
-    for path, _line in declaration_locs or []:
-        decl_by_path[path] += 1
+def build_symbol_index(corpus, subtract_declarations):
+    counts = Counter()
+    files = defaultdict(set)
     for path, text in corpus.items():
-        n = len(direct.findall(text)) + len(quoted.findall(text)) - len(guard.findall(text))
-        n -= decl_by_path.get(path, 0)
-        if n > 0:
-            count += n
-            files.append(rel(path))
-    return count, sorted(set(files))
+        local = Counter(m.group(1) for m in call_re.finditer(text) if m.group(1) in names)
+        local.update(m.group(2) for m in quoted_re.finditer(text) if m.group(2) in names)
+        for m in guard_re.finditer(text):
+            if m.group(2) in names:
+                local[m.group(2)] -= 1
+        if subtract_declarations:
+            for name, locs in declarations.items():
+                local[name] -= sum(1 for p, _ in locs if p == path)
+        for name, count in local.items():
+            if count > 0:
+                counts[name] += count
+                files[name].add(rel(path))
+    return counts, files
 
+runtime_counts, runtime_ref_files = build_symbol_index(runtime_text, True)
+ci_counts, ci_ref_files = build_symbol_index(ci_text, False)
+
+duplicates = {name: locs for name, locs in declarations.items() if len(locs) > 1}
 zero_runtime_symbols = []
-ci_only_symbols = []
 for name, locs in sorted(declarations.items()):
-    runtime_count, runtime_files = semantic_ref_count(name, runtime_text, locs)
-    ci_count, ci_files = semantic_ref_count(name, ci_text, [])
-    if runtime_count == 0:
-        item = {
+    if runtime_counts[name] == 0:
+        zero_runtime_symbols.append({
             'name': name,
             'decls': [f'{rel(p)}:{line}' for p, line in locs],
-            'ci_refs': ci_files,
-        }
-        zero_runtime_symbols.append(item)
-        if ci_count > 0:
-            ci_only_symbols.append(item)
+            'ci_refs': sorted(ci_ref_files.get(name, set())),
+        })
+
+ci_only_symbols = [item for item in zero_runtime_symbols if ci_counts[item['name']] > 0]
 
 print('# Phase 7.2 helper/partial/symbol consumer graph')
 print(f'Runtime PHP files scanned: {len(runtime_paths)}')
