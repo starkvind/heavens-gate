@@ -1,6 +1,6 @@
 # Diccionario de rutas — Heaven's Gate
 
-Última revisión: 2026-09-07.
+Última revisión: 2026-09-25.
 
 Este documento traduce los `route key` históricos de la web a lenguaje humano. Su objetivo es que una persona que no conozca la arqueología del proyecto pueda seguir una request sin tener que adivinar qué significan nombres como `muestrabio`, `busk`, `temp` o `vermyd`.
 
@@ -16,7 +16,6 @@ Este inventario se ha contrastado contra el árbol completo de `php-refactor` y,
 - `app/http/dispatcher.php`;
 - `app/mobile/mobile_routes.php`;
 - `app/mobile/mobile_index.php`;
-- `api/`;
 - `app/controllers/`, `app/partials/` y `app/tools/`.
 
 **El código manda.** Este fichero es documentación viva, no un segundo router.
@@ -99,7 +98,6 @@ Parámetros legacy frecuentes:
 | `inv` | `/inventory` | Inventario general. | `docs/item_table.php` |
 | `inv_type` | `/inventory/type/{slug}` | Inventario por tipo. | `docs/item_list.php` |
 | `verobj` | `/inventory/items/{slug}`, `/inventory/{type}/{slug}` | Detalle de objeto. | `docs/item_page.php` |
-| `imgz` | `?p=imgz` legacy-only | Tablero/herramienta histórica de imágenes. No tiene path canónico en `path_matcher.php`. | `tool/img_board.php` |
 
 ## Sistemas
 
@@ -215,8 +213,21 @@ La Fase 7.4B elimina los aliases históricos del dispatch activo. Los siguientes
 | `dones` | `/powers/gifts` |
 | `rites` | `/powers/rites` |
 | `totems` | `/powers/totems` |
+| `imgz` | `/gallery` |
 
 Los aliases administrativos antiguos (`admin_pjs`, `admin_epis`, `admin_temp`, `admin_plots` y el typo `admin_characters_conditions_brige`) se han retirado por completo: el backend es privado y no justifica mantener esa deuda de compatibilidad.
+
+### Frontera de compatibilidad tras 7.4C
+
+El runtime ya no genera enlaces, formularios ni peticiones AJAX con `?p=...`. La aplicación usa rutas canónicas también dentro de Admin.
+
+`imgz` se ha reducido a compatibilidad de entrada y canonicaliza a `/gallery`; su controlador duplicado ha sido eliminado.
+
+Un route key desconocido ya no cae accidentalmente en Noticias: el dispatch lo resuelve mediante el controlador 404.
+
+La única generación interna de `p=` permitida fuera de `legacy_query.php` es la de las reglas de seguridad de `.htaccess`, que fuerzan `p=error404` al bloquear árboles privados. No es una URL pública ni una ruta de navegación.
+
+Los POST legacy con `p` siguen aceptándose en la frontera mientras exista compatibilidad histórica; 7.4C elimina productores internos, no rompe peticiones antiguas entrantes.
 
 ## Vista móvil de compatibilidad
 
