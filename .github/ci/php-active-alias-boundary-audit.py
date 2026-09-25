@@ -12,6 +12,7 @@ PUBLIC_EDGE_ALIASES = {
     'dones': 'listadones',
     'rites': 'ritelist',
     'totems': 'listatotems',
+    'imgz': 'gallery',
 }
 
 ADMIN_RETIRED_ALIASES = [
@@ -23,6 +24,9 @@ ADMIN_RETIRED_ALIASES = [
 ]
 
 errors = []
+
+if (ROOT / 'app/controllers/tool/img_board.php').exists():
+    errors.append('retired imgz compatibility controller returned')
 
 routes = (ROOT / 'app/routing/routes.php').read_text(encoding='utf-8', errors='replace')
 route_keys = set(re.findall(r"^\s*'([^']+)'\s*=>\s*\[", routes, flags=re.MULTILINE))
@@ -52,6 +56,7 @@ for marker in [
     "'dones' => '/powers/gifts'",
     "'rites' => '/powers/rites'",
     "'totems' => '/powers/totems'",
+    "'imgz' => '/gallery'",
     "case 'bio_chronicles':",
     "case 'seeitem':",
 ]:
