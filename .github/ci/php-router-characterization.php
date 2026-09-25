@@ -78,6 +78,8 @@ foreach ($directRoutes as $legacy => $canonical) {
 
 hg_characterization_same('/search/results', hg_request_router_path_from_query($link, ['p' => 'busk']), 'search results legacy route target');
 hg_characterization_same('/talim', hg_request_router_path_from_query($link, ['p' => 'talim']), 'talim legacy route target');
+hg_characterization_same('/chronicles', hg_request_router_path_from_query($link, ['p' => 'bio_chronicles']), 'retired chronicle alias remains edge-compatible');
+hg_characterization_same('/inventory', hg_request_router_path_from_query($link, ['p' => 'listaobj']), 'retired inventory list alias remains edge-compatible');
 hg_characterization_same(null, hg_request_router_path_from_query($link, ['p' => '__unknown__']), 'unknown legacy route remains unresolved');
 hg_characterization_same(null, hg_request_router_path_from_query($link, []), 'missing legacy route remains unresolved');
 
