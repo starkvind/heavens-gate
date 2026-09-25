@@ -121,7 +121,7 @@ $route = hg_request_route($hgRequest);
 if ($route === '') $route = 'inv';
 $rawType = hg_request_param($hgRequest, 'item_type');
 $rawItem = hg_request_param($hgRequest, 'item');
-$isItem = in_array($route, ['seeitem', 'verobj'], true) || $rawItem !== '';
+$isItem = $route === 'verobj' || $rawItem !== '';
 $isType = !$isItem && in_array($route, ['inv_type'], true) && $rawType !== '';
 
 if ($isItem) {
