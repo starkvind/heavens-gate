@@ -173,12 +173,6 @@
 						case 'admin_characters':
 							echo " $pillSeparator Personajes";
 							break;
-						case 'admin_pjs_text':
-							echo " $pillSeparator Personajes (TEXT)";
-							break;
-						case 'admin_pjs_crud':
-							echo " $pillSeparator Personajes (CRUD)";
-							break;
 						case 'admin_groups':
 							echo " $pillSeparator Grupos (Manadas & Clanes)";
 							break;
