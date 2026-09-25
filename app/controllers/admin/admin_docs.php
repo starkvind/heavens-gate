@@ -340,7 +340,7 @@ function ui_short(string $s, int $n=120): string {
 
     <div class="tabs">
       <?php
-        $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_docs');
+        $baseTabs = "/talim?s=admin_docs";
         $baseTabs .= "&pp=".$perPage."&q=".urlencode($q);
       ?>
       <a class="tablnk <?= $tab==='docs'?'active':'' ?>" href="<?= $baseTabs ?>&tab=docs">Documentos</a>
@@ -350,7 +350,6 @@ function ui_short(string $s, int $n=120): string {
     <button class="btn btn-green" id="btnNew">Nuevo</button>
 
     <form method="get" class="adm-flex-right-8" id="docsFilterForm">
-      <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_docs') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
@@ -427,7 +426,7 @@ function ui_short(string $s, int $n=120): string {
 
   <div class="pager">
     <?php
-      $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_docs');
+      $base = "/talim?s=admin_docs";
       $base .= "&tab=".urlencode($tab)."&pp=".$perPage."&q=".urlencode($q);
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
