@@ -45,6 +45,9 @@ jobs:
       - name: Audit Phase 7 legacy purge
         run: python3 .github/ci/php-legacy-purge-audit.py
 
+      - name: Audit Phase 7.4B alias boundary
+        run: python3 .github/ci/php-active-alias-boundary-audit.py
+
       - name: Audit Phase 7.2 consumers
         run: python3 .github/ci/php-consumer-graph-audit.py
 
