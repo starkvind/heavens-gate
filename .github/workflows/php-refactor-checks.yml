@@ -48,6 +48,9 @@ jobs:
       - name: Audit Phase 7.4B alias boundary
         run: python3 .github/ci/php-active-alias-boundary-audit.py
 
+      - name: Audit Phase 7.4C compatibility residue
+        run: python3 .github/ci/php-compatibility-residue-audit.py
+
       - name: Audit Phase 7.2 consumers
         run: python3 .github/ci/php-consumer-graph-audit.py
 
