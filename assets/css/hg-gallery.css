@@ -25,6 +25,7 @@
 }
 
 .gallery-breadcrumbs a,
+.gallery-breadcrumbs a:visited,
 .gallery-breadcrumbs span {
     color: #a7c0ff;
     text-decoration: none;
@@ -54,10 +55,18 @@
     padding: 12px;
 }
 
-.gallery-folder {
+.gallery-folder,
+.gallery-folder:visited {
     width: 25%;
     text-align: center;
     cursor: pointer;
+    color: var(--hg-link);
+    border-color: #000088;
+    text-decoration: none;
+}
+
+.gallery-folder:hover {
+    color: var(--hg-link-hover);
 }
 
 .gallery-folder .cover {
