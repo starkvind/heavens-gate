@@ -447,17 +447,6 @@ if (!function_exists('hg_characters_fetch_mobile_page')) {
 if (!function_exists('hg_characters_fetch_table_rows')) {
     function hg_characters_fetch_table_rows(mysqli $link, $excludedChronicles = '2,7')
     {
-        $typeColumn = '';
-        foreach (['character_type_id', 'kind', 'tipo'] as $candidate) {
-            if (hg_characters_has_column($link, 'fact_characters', $candidate)) {
-                $typeColumn = $candidate;
-                break;
-            }
-        }
-        if ($typeColumn === '') {
-            return false;
-        }
-
         $whereChronicle = hg_characters_chronicle_condition('p', $excludedChronicles);
         $sql = "
             SELECT
@@ -497,7 +486,7 @@ if (!function_exists('hg_characters_fetch_table_rows')) {
                 ON hcg2.group_id = nm2.id
                AND (hcg2.is_active = 1 OR hcg2.is_active IS NULL)
             LEFT JOIN dim_organizations nc_from_pack ON nc_from_pack.id = hcg2.organization_id
-            LEFT JOIN dim_character_types a ON a.id = p.`{$typeColumn}`
+            LEFT JOIN dim_character_types a ON a.id = p.character_type_id
             LEFT JOIN dim_systems s ON s.id = p.system_id
             WHERE {$whereChronicle}
             ORDER BY p.name ASC
