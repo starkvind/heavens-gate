@@ -170,7 +170,7 @@ foreach ($groups as $groupKey => $group) {
     ];
 }
 
-$actions = '<span class="adm-flex-right-8"><form method="get" class="adm-inline-form"><input type="hidden" name="p" value="talim"><input type="hidden" name="s" value="admin_systems_extra_details"><label class="adm-text-left">Sistema <select class="select" name="system_id" onchange="this.form.submit()">';
+$actions = '<span class="adm-flex-right-8"><form method="get" action="/talim" class="adm-inline-form"><input type="hidden" name="s" value="admin_systems_extra_details"><label class="adm-text-left">Sistema <select class="select" name="system_id" onchange="this.form.submit()">';
 foreach ($systems as $systemRow) {
     $selected = ((int)$systemRow['id'] === $systemId) ? ' selected' : '';
     $actions .= '<option value="' . (int)$systemRow['id'] . '"' . $selected . '>' . ased_h((string)$systemRow['name']) . ' (#' . (int)$systemRow['id'] . ')</option>';
