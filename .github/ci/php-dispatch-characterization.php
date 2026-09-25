@@ -84,9 +84,9 @@ if (($homeFallback['file'] ?? null) !== 'app/controllers/main/main_home.php' || 
     hg_dispatch_fail('Empty-route home fallback changed');
 }
 
-$newsFallback = hg_dispatch_resolve($routes, '__unknown_route__');
-if (($newsFallback['file'] ?? null) !== 'app/controllers/main/main_news.php' || ($newsFallback['section'] ?? null) !== 'Noticias') {
-    hg_dispatch_fail('Unknown-route news fallback changed');
+$unknownFallback = hg_dispatch_resolve($routes, '__unknown_route__');
+if (($unknownFallback['file'] ?? null) !== 'app/controllers/main/error404.php' || ($unknownFallback['section'] ?? null) !== 'Error') {
+    hg_dispatch_fail('Unknown routes no longer resolve to the 404 controller');
 }
 
 $dispatcher = file_get_contents($dispatcherPath);
