@@ -39,9 +39,9 @@ unset($rule);
             <p>Material de consulta para interpretar personajes, resolver acciones y preparar el juego.</p>
         </div>
         <div class="chron-grid" aria-label="Secciones del reglamento">
-            <?php foreach ($rulesTypes as $rule): ?>
+            <?php foreach ($rulesTypes as $ruleIndex => $rule): ?>
                 <a class="chron-card" href="<?= hg_rules_home_h($rule['href']) ?>">
-                    <img src="<?= hg_rules_home_h($rule['image']) ?>" alt="" loading="lazy">
+                    <img src="<?= hg_rules_home_h($rule['image']) ?>" alt="" loading="<?= $ruleIndex < 2 ? 'eager' : 'lazy' ?>" decoding="async">
                     <div class="chron-card-body">
                         <h3><?= hg_rules_home_h($rule['name']) ?></h3>
                         <p><?= hg_rules_home_h($rule['desc']) ?></p>
