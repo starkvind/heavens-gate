@@ -564,7 +564,7 @@ admin_panel_open('Detalles de sistemas', $actions);
 
 <div class="tabs adm-m-6-0-10">
   <?php
-    $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_system_details');
+    $baseTabs = "/talim?s=admin_system_details";
     $baseTabs .= "&pp=".$perPage."&q=".urlencode($q)."&sys=".urlencode($sys);
   ?>
   <a class="tablnk <?= $tab==='breeds'?'active':'' ?>" href="<?= $baseTabs ?>&tab=breeds">Razas</a>
@@ -619,7 +619,7 @@ admin_panel_open('Detalles de sistemas', $actions);
 
 <div class="pager">
   <?php
-    $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_system_details');
+    $base = "/talim?s=admin_system_details";
     $base .= "&tab=".urlencode($tab)."&pp=".$perPage."&q=".urlencode($q)."&sys=".urlencode($sys);
     $prev = max(1, $page-1);
     $next = min($pages, $page+1);
