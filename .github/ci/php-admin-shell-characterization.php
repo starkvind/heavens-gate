@@ -86,27 +86,25 @@ foreach ($requiredSections as $section) {
     }
 }
 
-$legacyAliases = [
+$retiredAliases = [
     'admin_pjs',
     'admin_epis',
     'admin_temp',
     'admin_plots',
     'admin_characters_conditions_brige',
 ];
-foreach ($legacyAliases as $alias) {
-    if (strpos($sections, $alias) === false) {
-        hg_admin_contract_fail('Admin registry lost legacy alias: ' . $alias);
+foreach ($retiredAliases as $alias) {
+    if (strpos($sections, $alias) !== false || strpos($auth, $alias) !== false) {
+        hg_admin_contract_fail('Retired Admin alias returned: ' . $alias);
     }
+}
+if (hg_admin_section_aliases() !== []) {
+    hg_admin_contract_fail('Admin compatibility alias registry is no longer empty');
 }
 
 $registryContracts = [
     ['admin_characters', 'normal', 'admin_characters.php'],
     ['admin_characters', 'ajax', 'admin_characters.php'],
-    ['admin_pjs', 'normal', 'admin_characters.php'],
-    ['admin_epis', 'ajax', 'admin_chapters.php'],
-    ['admin_temp', 'normal', 'admin_seasons.php'],
-    ['admin_plots', 'ajax', 'admin_parties.php'],
-    ['admin_characters_conditions_brige', 'normal', 'admin_character_conditions_bridge.php'],
     ['admin_character_collision_audit', 'normal', 'admin_character_collision_audit.php'],
     ['admin_relations', 'normal', 'admin_relations.php'],
     ['admin_datatables', 'normal', 'admin_datatables.php'],
