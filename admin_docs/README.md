@@ -13,6 +13,7 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md) | Inventario de scripts y herramientas, cómo ejecutarlos y qué riesgos tienen. |
 | [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md) | Convenciones para crear o mantener módulos de `/talim`. |
 | [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md) | Cómo añadir una sección pública y cómo usar `tools/scaffold_section.py`. |
+| [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md) | Baseline arquitectónico al cierre de la Fase 7, deuda aceptada y techos de regresión. |
 
 ## Registros históricos
 
@@ -22,7 +23,7 @@ Los ficheros `migration_manifest_*` y `migration_manifest_worlds_20260901.csv` d
 
 Los antiguos `ADD_SECTION_GUIDE.html` y `admin_maintenance_guide.txt` se mantienen como puntos de entrada heredados y remiten a sus sustitutos en Markdown.
 
-La documentación específica del juego de cartas fue retirada junto con su implementación en septiembre de 2026. Su estado anterior sigue recuperable desde la rama de archivo `archive/legacy-tools-2026`.
+El Simulador de Combate y el Archivo de Mnemógeno fueron retirados por completo del runtime en septiembre de 2026. Sus últimas versiones vivas permanecen recuperables en `archive/combat-simulator-last-live` y `archive/game-cards-last-live`.
 
 ## Fuente de verdad
 
