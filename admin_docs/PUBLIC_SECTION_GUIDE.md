@@ -10,7 +10,7 @@ Una URL pública atraviesa:
 
 `.htaccess -> index.php -> request_runtime.php -> path_matcher.php -> page_dispatch.php -> routes.php -> dispatch_policy.php / dispatcher.php -> controlador`
 
-Las URLs históricas `?p=...` pasan por `app/routing/legacy_query.php` sólo para canonicalizarse hacia la URL moderna.
+Las URLs históricas `?p=...` pasan por `app/routing/legacy_query.php` sólo para canonicalizarse hacia la URL moderna. El runtime no debe generar URLs `?p=...`: esa sintaxis existe únicamente como frontera de entrada para compatibilidad.
 
 La traducción humana de los route keys existentes está en [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
@@ -46,7 +46,7 @@ Una sección pública debe tener propietarios claros:
 5. `app/mobile/mobile_routes.php` únicamente si necesita implementación móvil específica durante la compatibilidad `?view=mobile`;
 6. `ROUTE_DICTIONARY.md`.
 
-Si la sección sustituye un `?p=...` histórico, añadir conscientemente la canonicalización correspondiente en `app/routing/legacy_query.php`.
+Si la sección sustituye un `?p=...` histórico, añadir conscientemente la canonicalización correspondiente en `app/routing/legacy_query.php`. Menús, formularios, JavaScript, búsquedas y enlaces internos deben emitir siempre la URL canónica.
 
 Las páginas normales no deben añadir lógica nueva a `app/http/page_dispatch.php`: ese fichero coordina normalización + dispatch compartido. La política de respuestas bare/fallback vive en `app/http/dispatch_policy.php`.
 
