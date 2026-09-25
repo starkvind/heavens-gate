@@ -477,8 +477,8 @@ if ($rsEnc = $link->query("SELECT @@character_set_connection AS cs_conn, @@colla
 
 echo "<div class='inspect-db-wrap'>";
 echo "<div class='inspect-db-actions'>
-  <a class='inspect-db-btn ".($mode==='full'?'active':'')."' href='?p=talim&s=admin_inspect_db&mode=full'>Modo completo</a>
-  <a class='inspect-db-btn ".($mode==='schema'?'active':'')."' href='?p=talim&s=admin_inspect_db&mode=schema'>Solo tablas/columnas</a>
+  <a class='inspect-db-btn ".($mode==='full'?'active':'')."' href='/talim?s=admin_inspect_db&amp;mode=full'>Modo completo</a>
+  <a class='inspect-db-btn ".($mode==='schema'?'active':'')."' href='/talim?s=admin_inspect_db&amp;mode=schema'>Solo tablas/columnas</a>
   <button type='button' class='inspect-db-btn' id='inspectDbCopy'>Copiar</button>
   <span class='inspect-db-hint' id='inspectDbCopyHint'></span>
 </div>";
