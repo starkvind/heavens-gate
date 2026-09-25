@@ -151,7 +151,7 @@ if (!function_exists('hg_search_catalog')) {
                 'excerpt_expr' => 'src.description',
                 'secondary_expr' => "CASE WHEN COALESCE(it.name, '') <> '' THEN CONCAT('Tipo: ', it.name) ELSE CONCAT('Objeto #', src.id) END",
                 'search_fields' => ['src.name', 'src.description', 'it.name'],
-                'route' => 'seeitem',
+                'route' => 'verobj',
                 'order_sql' => 'src.name ASC, src.id DESC',
                 'all_limit' => 6,
                 'section_weight' => 8,
