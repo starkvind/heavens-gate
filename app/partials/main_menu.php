@@ -15,19 +15,6 @@
 		$path = strtok($uri, '?');
 		if ($path === false || $path === '') return '/';
 
-		// // Si hay rutas legacy (?p=...), usa esa info para mapear aunque el path no sea '/'
-		// if (isset($_GET['p'])) {
-		// 	$p = (string)$_GET['p'];
-		// 	if ($p === 'temp_analisis') return '/seasons/analysis';
-		// 	if ($p === 'temp') {
-		// 		if (isset($_GET['t']) && $_GET['t'] !== '') return '/seasons/' . (string)$_GET['t'];
-		// 		return '/seasons';
-		// 	}
-		// 	if ($p === 'seechapter') {
-		// 		if (isset($_GET['t']) && $_GET['t'] !== '') return '/chapters/' . (string)$_GET['t'];
-		// 		return '/chapters';
-		// 	}
-		// }
 
 		return $path;
 	}
@@ -340,9 +327,6 @@
 				echo "<a href='/characters/types'><div class='renglonMenu'>BiografÃ­as por tipo</div></a>";
 				echo "<a href='/organizations'><div class='renglonMenu'>Grupos y sociedades</div></a>";
 				echo "<a href='/relationship-map/characters'><div class='renglonMenu'>Nebulosa relaciones</div></a>";
-				//echo "<a href='?p=list_by_id'><div class='renglonMenu'>Lista por ID</div></a>";
-                //echo "<a href='?p=list_by_order'><div class='renglonMenu'>Listas organizadas</div></a>";
-				//echo "<a href='?p=list_avatar'><div class='renglonMenu'>Personajes sin avatar</div></a>";
             ?>
         </div>
         </td>
