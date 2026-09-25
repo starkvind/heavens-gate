@@ -114,7 +114,7 @@ function hg_search_result_url(mysqli $link, string $routeKey, int $id): string
         case 'temp': return pretty_url($link, 'dim_seasons', '/seasons', $id);
         case 'seechapter': return pretty_url($link, 'dim_chapters', '/chapters', $id);
         case 'verdoc': return pretty_url($link, 'fact_docs', '/documents', $id);
-        case 'seeitem': return hg_search_item_url($link, $id);
+        case 'verobj': return hg_search_item_url($link, $id);
         case 'muestradon': return pretty_url($link, 'fact_gifts', '/powers/gift', $id);
         case 'verrasgo': return pretty_url($link, 'dim_traits', '/rules/traits', $id);
         case 'sistemas': return pretty_url($link, 'dim_systems', '/systems', $id);
