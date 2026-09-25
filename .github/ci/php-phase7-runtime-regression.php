@@ -29,6 +29,10 @@ $contracts = [
         'bridge_characters_system_resources',
         'dim_character_status',
     ],
+    'app/domains/characters/queries.php' => [
+        'function hg_characters_fetch_table_rows',
+        'LEFT JOIN dim_character_types a ON a.id = p.character_type_id',
+    ],
     'app/helpers/maps.php' => [
         'function hg_maps_json',
         'JSON_HEX_TAG',
