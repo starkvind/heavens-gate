@@ -35,7 +35,6 @@ return [
     'seegroup'          => ['app/controllers/bio/bio_pack_page.php', null],
     'chronicles'        => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
     'chronicle_image'   => ['app/controllers/main/chronicle_image.php', null],
-    'bio_chronicles'    => ['app/controllers/main/main_chronicles.php', 'Crónicas'],
     'bio_worlds'        => ['app/controllers/bio/bio_worlds.php', null],
     'list_table'        => ['app/controllers/bio/bio_table.php', null],
     'nebula_clan'       => ['app/controllers/bio/bio_reltree_clans.php', 'Nebulosa de relaciones'],
@@ -51,9 +50,7 @@ return [
     // Inventario
     'inv'      => ['app/controllers/docs/item_table.php', null],
     'inv_type' => ['app/controllers/docs/item_list.php', null],
-    'seeitem'  => ['app/controllers/docs/item_page.php', null],
     'imgz'     => ['app/controllers/tool/img_board.php', null],
-    'listaobj' => ['app/controllers/docs/item_table.php', null],
     'verobj'   => ['app/controllers/docs/item_page.php', null],
 
     // Sistemas
@@ -82,7 +79,6 @@ return [
     'powers' => ['app/controllers/pwrs/powers_home.php', null],
 
     // Dones
-    'dones'      => ['app/controllers/pwrs/don_category_list.php', null],
     'tipodon'    => ['app/controllers/pwrs/don_group_list.php', null],
     'muestradon' => ['app/controllers/pwrs/don_page.php', null],
     'listadones' => ['app/controllers/pwrs/don_table.php', null],
@@ -90,7 +86,6 @@ return [
     'customdon'  => ['app/controllers/pwrs/don_custom_list.php', null],
 
     // Rituales
-    'rites'      => ['app/controllers/pwrs/rite_category_list.php', null],
     'tiporite'   => ['app/controllers/pwrs/rite_group_list.php', null],
     'seerite'    => ['app/controllers/pwrs/rite_page.php', null],
     'ritelist'   => ['app/controllers/pwrs/rite_table.php', null],
@@ -98,7 +93,6 @@ return [
     'customrite' => ['app/controllers/pwrs/rite_custom_list.php', null],
 
     // Totems
-    'totems'       => ['app/controllers/pwrs/totm_category_list.php', null],
     'tipototm'     => ['app/controllers/pwrs/totm_group_list.php', null],
     'listatotems'  => ['app/controllers/pwrs/totm_table.php', null],
     'fulltotem'    => ['app/controllers/pwrs/totm_full_list.php', null],
