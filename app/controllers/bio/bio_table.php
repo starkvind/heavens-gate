@@ -190,9 +190,10 @@ $(document).ready(function () {
         JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
     ) ?>;
 	// Construimos el array final para DataTables (más rápido que append por fila)
-	const data = personajes.map(p => {
+	const data = personajes.map((p, index) => {
 		const imgUrl = safeUrl(p.image_url) || fallbackAvatarByGender(p.gender);
-		const pj_img = imgUrl ? `<img src="${escapeAttr(imgUrl)}" height="12" alt="" loading="lazy" />` : '';
+		const avatarLoading = index < 25 ? 'eager' : 'lazy';
+		const pj_img = imgUrl ? `<img src="${escapeAttr(imgUrl)}" height="12" alt="" loading="${avatarLoading}" decoding="async" />` : '';
 		const charSlug = p.character_pretty_id || Number(p.id);
 		const packSlug = p.pack_pretty_id || Number(p.pack_id);
 		const clanSlug = p.clan_pretty_id || Number(p.organization_id);
