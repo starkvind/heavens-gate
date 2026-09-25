@@ -1,62 +1,60 @@
 <?php
 
-if (!function_exists('hg_home_query_count_table')) {
-    function hg_home_query_count_table(mysqli $link, string $table): ?int
-    {
-        static $allowed = [
-            'fact_characters',
-            'dim_chapters',
-            'fact_timeline_events',
-            'fact_docs',
-            'dim_chronicles',
-            'dim_seasons',
-            'fact_gifts',
-            'dim_organizations',
-            'dim_traits',
-            'dim_merits_flaws',
-            'dim_character_conditions',
-            'dim_archetypes',
-            'fact_combat_maneuvers',
-        ];
-
-        if (!in_array($table, $allowed, true)) {
-            return null;
-        }
-
-        $result = mysqli_query($link, "SELECT COUNT(*) AS total FROM `{$table}`");
-        if (!$result) {
-            return null;
-        }
-
-        $row = mysqli_fetch_assoc($result);
-        mysqli_free_result($result);
-        return isset($row['total']) ? (int)$row['total'] : 0;
-    }
-}
-
 if (!function_exists('hg_home_query_counts')) {
     function hg_home_query_counts(mysqli $link): array
     {
-        $counts = [
-            'characters' => hg_home_query_count_table($link, 'fact_characters'),
-            'chapters' => hg_home_query_count_table($link, 'dim_chapters'),
-            'events' => hg_home_query_count_table($link, 'fact_timeline_events'),
-            'documents' => hg_home_query_count_table($link, 'fact_docs'),
-            'chronicles' => hg_home_query_count_table($link, 'dim_chronicles'),
-            'seasons' => hg_home_query_count_table($link, 'dim_seasons'),
-            'powers' => hg_home_query_count_table($link, 'fact_gifts'),
-            'organizations' => hg_home_query_count_table($link, 'dim_organizations'),
-        ];
+        $sql = "
+            SELECT
+                (SELECT COUNT(*) FROM fact_characters) AS characters,
+                (SELECT COUNT(*) FROM dim_chapters) AS chapters,
+                (SELECT COUNT(*) FROM fact_timeline_events) AS events,
+                (SELECT COUNT(*) FROM fact_docs) AS documents,
+                (SELECT COUNT(*) FROM dim_chronicles) AS chronicles,
+                (SELECT COUNT(*) FROM dim_seasons) AS seasons,
+                (SELECT COUNT(*) FROM fact_gifts) AS powers,
+                (SELECT COUNT(*) FROM dim_organizations) AS organizations,
+                (
+                    (SELECT COUNT(*) FROM dim_traits)
+                    + (SELECT COUNT(*) FROM dim_merits_flaws)
+                    + (SELECT COUNT(*) FROM dim_character_conditions)
+                    + (SELECT COUNT(*) FROM dim_archetypes)
+                    + (SELECT COUNT(*) FROM fact_combat_maneuvers)
+                ) AS rules
+        ";
 
-        $ruleCounts = [
-            hg_home_query_count_table($link, 'dim_traits'),
-            hg_home_query_count_table($link, 'dim_merits_flaws'),
-            hg_home_query_count_table($link, 'dim_character_conditions'),
-            hg_home_query_count_table($link, 'dim_archetypes'),
-            hg_home_query_count_table($link, 'fact_combat_maneuvers'),
-        ];
+        $result = mysqli_query($link, $sql);
+        if (!$result) {
+            return [
+                'characters' => null,
+                'chapters' => null,
+                'events' => null,
+                'documents' => null,
+                'chronicles' => null,
+                'seasons' => null,
+                'powers' => null,
+                'organizations' => null,
+                'rules' => null,
+            ];
+        }
 
-        $counts['rules'] = in_array(null, $ruleCounts, true) ? null : array_sum($ruleCounts);
+        $row = mysqli_fetch_assoc($result) ?: [];
+        mysqli_free_result($result);
+
+        $keys = [
+            'characters',
+            'chapters',
+            'events',
+            'documents',
+            'chronicles',
+            'seasons',
+            'powers',
+            'organizations',
+            'rules',
+        ];
+        $counts = [];
+        foreach ($keys as $key) {
+            $counts[$key] = array_key_exists($key, $row) ? (int)$row[$key] : null;
+        }
         return $counts;
     }
 }
