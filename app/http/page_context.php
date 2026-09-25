@@ -121,7 +121,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
         case 'bios':
 		case 'biogroup':
 		case 'chronicles':
-		case 'bio_chronicles':
 		case 'muestrabio':
             $title = "Biografias - Heaven's Gate";
             $description = "Explora las biografias de los personajes clave de Heaven's Gate.";
@@ -134,8 +133,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             break;
         case 'inv':
         case 'verobj':
-		case 'seeitem':
-		case 'listaobj':
             $title = "Inventario - Heaven's Gate";
             $description = "Consulta los objetos y artefactos disponibles en la campana.";
 			$image = $baseURL . "/img/og/og_image_monster.webp";
@@ -149,7 +146,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Resumen y acceso a los poderes disponibles en Heaven's Gate.";
 			$image = $baseURL . "/img/og/og_image_power.webp";
             break;
-        case 'dones':
 		case 'tipodon':
 		case 'muestradon':
 		case 'listadones':
@@ -160,7 +156,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Listado de dones usados en Heaven's Gate.";
 			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
             break;
-        case 'rites':
 		case 'tiporite':
 		case 'seerite':
 		case 'ritelist':
@@ -171,7 +166,6 @@ function setMetaTags($route, $pageURL = '', $baseURL = 'https://naufragio-heaven
             $description = "Listado de ritos usados en Heaven's Gate.";
 			$image = $baseURL . "/img/og/og_image_power.webp"; // ahora correcto
             break;
-        case 'totems':
 		case 'tipototm':
 		case 'muestratotem':
 		case 'listatotems':
