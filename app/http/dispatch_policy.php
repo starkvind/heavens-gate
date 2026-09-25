@@ -37,8 +37,8 @@ function hg_dispatch_resolve(array $routes, string $routeKey): array
     }
 
     return [
-        'file' => 'app/controllers/main/main_news.php',
-        'section' => 'Noticias',
+        'file' => 'app/controllers/main/error404.php',
+        'section' => 'Error',
         'bare' => false,
     ];
 }
