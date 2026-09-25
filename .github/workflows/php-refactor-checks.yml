@@ -87,5 +87,8 @@ jobs:
       - name: Check dense Admin table JavaScript
         run: node --check assets/js/hg-admin-dense-tables.js
 
+      - name: Enforce Phase 7 final architecture baseline
+        run: python3 .github/ci/php-phase7-final-baseline-audit.py
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
