@@ -82,7 +82,6 @@ Parámetros legacy frecuentes:
 | `bio_worlds` | `/characters/worlds`, `/characters/worlds/{slug}` | Personajes por realidad/mundo. | `bio/bio_worlds.php` |
 | `chronicles` | `/chronicles`, `/chronicles/{slug}` | Hub o detalle de crónica. | `main/main_chronicles.php` |
 | `chronicle_image` | `/chronicles/{slug}/image` | Imagen de crónica; respuesta bare. | `main/chronicle_image.php` |
-| `bio_chronicles` | legacy -> `/chronicles` | Alias histórico de crónicas. | `main/main_chronicles.php` |
 | `listgroups` | `/organizations`, `/groups` | Hub de organizaciones y grupos. | `bio/bio_pack_list.php` |
 | `seegroup` | `/organizations/{slug}`, `/groups/{slug}`, `/groups/{org}/{group}` | Detalle de organización o grupo. | `bio/bio_pack_page.php` |
 | `org_chart` | `/organizations/{slug}/org-chart` | Organigrama de una organización. | `bio/bio_org_chart.php` |
@@ -100,8 +99,6 @@ Parámetros legacy frecuentes:
 | `inv` | `/inventory` | Inventario general. | `docs/item_table.php` |
 | `inv_type` | `/inventory/type/{slug}` | Inventario por tipo. | `docs/item_list.php` |
 | `verobj` | `/inventory/items/{slug}`, `/inventory/{type}/{slug}` | Detalle de objeto. | `docs/item_page.php` |
-| `seeitem` | legacy | Nombre histórico para detalle de objeto; GET legacy termina en la ruta canónica de `verobj`. | `docs/item_page.php` |
-| `listaobj` | legacy -> `/inventory` | Alias histórico del inventario. | `docs/item_table.php` |
 | `imgz` | `?p=imgz` legacy-only | Tablero/herramienta histórica de imágenes. No tiene path canónico en `path_matcher.php`. | `tool/img_board.php` |
 
 ## Sistemas
@@ -136,19 +133,16 @@ Parámetros legacy frecuentes:
 |---|---|---|---|
 | `powers` | `/powers` | Hub de poderes. | `pwrs/powers_home.php` |
 | `listadones` | `/powers/gifts` | Listado de Dones. | `pwrs/don_table.php` |
-| `dones` | legacy -> `/powers/gifts` | Nombre histórico de la portada/categorías de Dones. | `pwrs/don_category_list.php` |
 | `tipodon` | `/powers/gift/type/{slug}` | Dones por tipo. | `pwrs/don_group_list.php` |
 | `muestradon` | `/powers/gift/{slug}` | Detalle de Don. | `pwrs/don_page.php` |
 | `fulldon` | `/powers/gifts/full` | Listado completo de Dones. | `pwrs/don_full_list.php` |
 | `customdon` | `/powers/gifts/custom` | Dones personalizados. | `pwrs/don_custom_list.php` |
 | `ritelist` | `/powers/rites` | Listado de Rituales. | `pwrs/rite_table.php` |
-| `rites` | legacy -> `/powers/rites` | Nombre histórico de categorías de Rituales. | `pwrs/rite_category_list.php` |
 | `tiporite` | `/powers/rite/type/{slug}` | Rituales por tipo. | `pwrs/rite_group_list.php` |
 | `seerite` | `/powers/rite/{slug}` | Detalle de Ritual. | `pwrs/rite_page.php` |
 | `fullrite` | `/powers/rites/full` | Listado completo de Rituales. | `pwrs/rite_full_list.php` |
 | `customrite` | `/powers/rites/custom` | Rituales personalizados. | `pwrs/rite_custom_list.php` |
 | `listatotems` | `/powers/totems` | Listado de Tótems. | `pwrs/totm_table.php` |
-| `totems` | legacy -> `/powers/totems` | Nombre histórico de categorías de Tótems. | `pwrs/totm_category_list.php` |
 | `tipototm` | `/powers/totem/type/{slug}` | Tótems por tipo. | `pwrs/totm_group_list.php` |
 | `muestratotem` | `/powers/totem/{slug}` | Detalle de Tótem. | `pwrs/totm_page.php` |
 | `fulltotem` | `/powers/totems/full` | Listado completo de Tótems. | `pwrs/totm_full_list.php` |
@@ -191,56 +185,38 @@ Parámetros legacy frecuentes:
 | `forum_diceroll` | `/forum/diceroll` | Snippet de tirada de foro; bare. | `app/partials/forum_diceroll_snippet.php` |
 | `forum_item` | `/forum/item` | Snippet de objeto de foro; bare. | `app/partials/forum_item_snippet.php` |
 
-`dispatcher.php` conserva además `snippet_forum_a` dentro de la lista de respuestas bare, pero **no existe una entrada con ese route key en `routes.php`**. Debe tratarse como marcador legacy huérfano hasta que se demuestre que puede eliminarse.
+## Herramientas retiradas y archivadas
 
-## Herramientas retiradas: tombstones HTTP 410
+El Simulador de Combate y el Archivo de Mnemógeno **no forman parte del runtime de producción**. No conservan rutas, aliases, controladores 410, APIs, menú, vista móvil ni superficie Admin.
 
-El Simulador de Combate y el Archivo de Mnemógeno están retirados. Sus rutas permanecen únicamente para responder de forma explícita y predecible.
-
-### Simulador
-
-| Route key | URL histórica/canónica de retirada |
-|---|---|
-| `combat_simulator` | `/games/combat-simulator`, `/tools/combat-simulator` |
-| `combat_simulator_result` | `.../result` |
-| `combat_simulator_logs` | `.../log` |
-| `combat_simulator_log` | `.../log/{id}` |
-| `combat_simulator_scores` | `.../scores` |
-| `combat_simulator_weapons` | `.../weapons` |
-| `combat_simulator_tournament` | `.../tournament` |
-| `simulador` | alias histórico de `combat_simulator` |
-| `simulador2` | alias histórico de resultado |
-| `combtodo` | alias histórico de registro |
-| `vercombat` | alias histórico de detalle |
-| `punts` | alias histórico de puntuaciones |
-| `arms` | alias histórico de armas |
-| `sim_tournament` | alias histórico de torneo |
-
-Todas terminan en el stub `app/controllers/tool/combat_simulator.php` y deben seguir retiradas.
-
-### Archivo de Mnemógeno / Game Cards
-
-Los route keys `game_cards`, `game_cards_collection`, `game_cards_combat`, `game_cards_mobile`, `game_cards_explanation` y todas las variantes `game_cards_lab*` apuntan a stubs retirados. Las URLs `/games/card-game*`, `/games/hg-cardgame-dev-lab*`, `/game-cards` y `/tools/game-cards` no reactivan la herramienta.
-
-Existen además dos ficheros públicos directos bajo `api/`:
-
-- `api/game_cards.php`;
-- `api/game_card_rules.php`.
-
-Ambos responden `HTTP 410 Gone` y son la única excepción PHP directa relevante encontrada fuera del front controller en la superficie pública actual.
+Su código histórico permanece recuperable únicamente desde las ramas de archivo documentadas en el repositorio de continuidad. La producción está protegida por `.github/ci/php-retired-games-archive-audit.py`.
 
 ## Redirecciones históricas de path
 
 `path_matcher.php` conserva redirecciones 301 para:
 
 - `/index.php` -> `/`;
-- `/game_cards.php` -> `/games/card-game`;
 - `/crop.html` -> `/tools/crop`;
 - `/sep/snippet_forum_hg.php` -> `/forum/message`;
 - `/characters/chronicles[/...]` -> `/chronicles[/...]`;
 - formas antiguas de inventario -> paths canónicos actuales.
 
-Las URLs legacy `?p=...` se canonicalizan todavía mediante la capa temporal de compatibilidad de `app/bootstrap/request_router.php`.
+Las URLs legacy `?p=...` se canonicalizan todavía mediante la capa de compatibilidad de `app/routing/legacy_query.php`, orquestada por `app/routing/request_runtime.php`.
+
+### Aliases query-string conservados solo en la frontera
+
+La Fase 7.4B elimina los aliases históricos del dispatch activo. Los siguientes nombres **no existen ya en `routes.php`, request context, navbar ni tabla móvil**; solo se aceptan en peticiones GET/HEAD antiguas para redirigir hacia su URL canónica:
+
+| Alias histórico | Destino canónico |
+|---|---|
+| `bio_chronicles` | `/chronicles[/...]` |
+| `listaobj` | `/inventory` |
+| `seeitem` | ruta canónica actual del objeto |
+| `dones` | `/powers/gifts` |
+| `rites` | `/powers/rites` |
+| `totems` | `/powers/totems` |
+
+Los aliases administrativos antiguos (`admin_pjs`, `admin_epis`, `admin_temp`, `admin_plots` y el typo `admin_characters_conditions_brige`) se han retirado por completo: el backend es privado y no justifica mantener esa deuda de compatibilidad.
 
 ## Vista móvil de compatibilidad
 
@@ -269,6 +245,6 @@ Una feature pública normal debe poder rastrearse así sin documentación auxili
 
 `path_matcher.php -> route key legible -> routes.php -> controlador de dominio`
 
-Los route keys históricos **no se renombran todavía** porque son contrato interno/legacy durante el refactor. Este diccionario permite entenderlos ahora y prepara una futura migración controlada si se decide hacerla.
+Los aliases históricos que solo sirven para compatibilidad externa deben vivir en la frontera de canonicalización, no en el dispatch interno. Un route key activo debe corresponder a una ruta o función actual; los nombres retirados no deben reaparecer en `routes.php`, request context, móvil o Admin.
 
 Cuando se añada o retire una ruta, actualizar este documento en el mismo cambio.
