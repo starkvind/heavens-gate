@@ -678,11 +678,7 @@ function closeModal(id){ document.getElementById(id).style.display='none'; }
 function openModal(id){ document.getElementById(id).style.display='block'; }
 function toInt(v){ const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; }
 
-// Base URL (soporta /talim?s=admin_pois y ?p=admin_pois)
-const QS = new URLSearchParams(location.search);
-const BASE = (QS.get('s') === 'admin_pois')
-  ? `?p=${QS.get('p')||'talim'}&s=admin_pois`
-  : `?p=admin_pois`;
+const BASE = '/talim?s=admin_pois';
 
 // ------- Rellenar selects de filtro / formularios -------
 function fillMapSelect(sel, includeBlank=false){
