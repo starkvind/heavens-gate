@@ -93,7 +93,6 @@ $mainConfig = [
   <section class="chapter-block map-stage-block">
     <div class="map-shell" data-map-page="main">
       <form method="get" class="map-quickbar" id="mapControlsForm">
-        <input type="hidden" name="p" value="maps">
 
         <div class="map-quick-field map-quick-field-search">
           <label class="map-sr-only" for="poiSearch">Buscar POI</label>
