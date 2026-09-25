@@ -70,24 +70,32 @@ if (!function_exists('hg_rules_character_kind_sql')) {
 if (!function_exists('hg_rules_fetch_home_counts')) {
     function hg_rules_fetch_home_counts(mysqli $db): array
     {
-        $tables = [
-            'traits' => 'dim_traits',
-            'merits' => 'dim_merits_flaws',
-            'conditions' => 'dim_character_conditions',
-            'actions' => 'fact_actions',
-            'archetypes' => 'dim_archetypes',
-            'maneuvers' => 'fact_combat_maneuvers',
-        ];
+        $result = $db->query("
+            SELECT
+                (SELECT COUNT(*) FROM dim_traits) AS traits,
+                (SELECT COUNT(*) FROM dim_merits_flaws) AS merits,
+                (SELECT COUNT(*) FROM dim_character_conditions) AS conditions,
+                (SELECT COUNT(*) FROM fact_actions) AS actions,
+                (SELECT COUNT(*) FROM dim_archetypes) AS archetypes,
+                (SELECT COUNT(*) FROM fact_combat_maneuvers) AS maneuvers
+        ");
+        if (!$result) {
+            return [
+                'traits' => null,
+                'merits' => null,
+                'conditions' => null,
+                'actions' => null,
+                'archetypes' => null,
+                'maneuvers' => null,
+            ];
+        }
+
+        $row = $result->fetch_assoc() ?: [];
+        $result->free();
+
         $counts = [];
-        foreach ($tables as $key => $table) {
-            $result = $db->query("SELECT COUNT(*) AS total FROM `{$table}`");
-            if (!$result) {
-                $counts[$key] = null;
-                continue;
-            }
-            $row = $result->fetch_assoc();
-            $result->free();
-            $counts[$key] = isset($row['total']) ? (int)$row['total'] : 0;
+        foreach (['traits', 'merits', 'conditions', 'actions', 'archetypes', 'maneuvers'] as $key) {
+            $counts[$key] = array_key_exists($key, $row) ? (int)$row[$key] : null;
         }
         return $counts;
     }
