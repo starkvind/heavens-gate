@@ -96,7 +96,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
   <?php if ($relDir === ''): ?>
     <div class="gallery-section-title">Carpetas</div>
     <div class="gallery-grid">
-      <?php foreach ($subdirs as $dirName):
+      <?php foreach ($subdirs as $dirIndex => $dirName):
         $childRel = $dirName;
         $childAbs = fsPathJoin($absDir, $dirName);
         $link = '/gallery?dir=' . urlencode($childRel);
@@ -104,7 +104,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
       ?>
       <a class="gallery-folder gallery-card" href="<?= $link ?>" title="Abrir carpeta">
         <?php if ($cover): ?>
-          <img class="cover" src="<?= htmlspecialchars($cover) ?>" alt="">
+          <img class="cover" src="<?= htmlspecialchars($cover) ?>" alt="" width="100" height="120" loading="<?= $dirIndex < 4 ? 'eager' : 'lazy' ?>" decoding="async">
         <?php else: ?>
           <span class="icon">📁</span>
         <?php endif; ?>
@@ -120,7 +120,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
     <?php if ($subdirs): ?>
       <div class="gallery-section-title gallery-section-title-sub">Subcarpetas</div>
       <div class="gallery-grid">
-        <?php foreach ($subdirs as $dirName):
+        <?php foreach ($subdirs as $dirIndex => $dirName):
           $childRel = $relDir . '/' . $dirName;
           $childAbs = fsPathJoin($absDir, $dirName);
           $link = '/gallery?dir=' . urlencode($childRel);
@@ -128,7 +128,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
         ?>
         <a class="gallery-folder gallery-card" href="<?= $link ?>" title="Abrir carpeta">
           <?php if ($cover): ?>
-            <img class="cover" src="<?= htmlspecialchars($cover) ?>" alt="">
+            <img class="cover" src="<?= htmlspecialchars($cover) ?>" alt="" width="100" height="120" loading="<?= $dirIndex < 4 ? 'eager' : 'lazy' ?>" decoding="async">
           <?php else: ?>
             <span class="icon">📁</span>
           <?php endif; ?>
@@ -151,7 +151,11 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
              data-full="<?= htmlspecialchars($imgWeb) ?>"
              data-title="<?= htmlspecialchars($title) ?>"
              data-index="<?= $idx ?>"
-             alt="<?= htmlspecialchars($title) ?>">
+             alt="<?= htmlspecialchars($title) ?>"
+             width="125"
+             height="125"
+             loading="<?= $idx < 12 ? 'eager' : 'lazy' ?>"
+             decoding="async">
         <div class="gallery-img-title"><?= htmlspecialchars($title) ?></div>
       </div>
       <?php endforeach; ?>
@@ -198,6 +202,7 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
       const title = img.dataset.title;
       lightboxImg.src = src;
       lightboxTitle.textContent = title;
+      preloadAround(index);
       const fullForEmbed = /^https?:\/\//i.test(src) ? src : `${baseUrl}${src}`;
       embedCode.textContent = `[img width=700]${fullForEmbed}[/img]`;
       lightbox.style.display = 'flex';
@@ -215,7 +220,22 @@ function firstThumbWeb(string $baseWeb, string $absDir, string $relDir, array $a
       }
     });
 
-    const preload = [];
-    thumbs.forEach(img => { const i = new Image(); i.src = img.dataset.full; preload.push(i); });
+    const preloadedFullImages = new Set();
+
+    function preloadFull(index) {
+      if (thumbs.length < 2) return;
+      const normalized = (index + thumbs.length) % thumbs.length;
+      const src = thumbs[normalized]?.dataset.full;
+      if (!src || preloadedFullImages.has(src)) return;
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = src;
+      preloadedFullImages.add(src);
+    }
+
+    function preloadAround(index) {
+      preloadFull(index - 1);
+      preloadFull(index + 1);
+    }
 </script>
 <?php endif; ?>
