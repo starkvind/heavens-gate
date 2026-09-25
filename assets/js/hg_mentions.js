@@ -22,26 +22,17 @@
   function fetchMentions(type, q) {
     var query = encodeURIComponent(q || '');
     var kind = encodeURIComponent(type || '');
-    var endpoints = [
-      '/ajax/mentions?type=' + kind + '&q=' + query,
-      '/index.php?p=mentions&type=' + kind + '&q=' + query
-    ];
+    var endpoint = '/ajax/mentions?type=' + kind + '&q=' + query;
 
-    function tryFetch(idx) {
-      if (idx >= endpoints.length) return Promise.resolve([]);
-      return fetch(endpoints[idx], { credentials: 'same-origin' })
-        .then(function(r){
-          if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 0));
-          return r.json();
-        })
-        .then(function(data){
-          if (data && data.ok && Array.isArray(data.items)) return data.items;
-          throw new Error('Invalid payload');
-        })
-        .catch(function(){ return tryFetch(idx + 1); });
-    }
-
-    return tryFetch(0);
+    return fetch(endpoint, { credentials: 'same-origin' })
+      .then(function(r){
+        if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 0));
+        return r.json();
+      })
+      .then(function(data){
+        return data && data.ok && Array.isArray(data.items) ? data.items : [];
+      })
+      .catch(function(){ return []; });
   }
 
   function renderList(box, items, onPick) {
