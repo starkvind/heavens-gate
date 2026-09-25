@@ -67,13 +67,7 @@ if (!function_exists('hg_admin_section_registry')) {
 if (!function_exists('hg_admin_section_aliases')) {
     function hg_admin_section_aliases(): array
     {
-        return [
-            'admin_pjs' => 'admin_characters',
-            'admin_epis' => 'admin_chapters',
-            'admin_temp' => 'admin_seasons',
-            'admin_plots' => 'admin_parties',
-            'admin_characters_conditions_brige' => 'admin_character_conditions_bridge',
-        ];
+        return [];
     }
 }
 
