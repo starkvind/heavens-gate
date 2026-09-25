@@ -56,6 +56,7 @@ $directRoutes = [
     'disciplinas' => '/powers/disciplines',
     'ost' => '/music',
     'gallery' => '/gallery',
+    'imgz' => '/gallery',
     'maps' => '/maps',
     'dados' => '/tools/dice',
     'forum_avatar_tool' => '/tools/forum-avatar',
