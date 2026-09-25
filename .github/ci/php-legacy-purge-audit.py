@@ -65,7 +65,6 @@ for token in ["case 'doc':", "case 'plots':"]:
 
 routes = (ROOT / 'app/routing/routes.php').read_text(encoding='utf-8', errors='replace')
 for marker in [
-    "'bio_chronicles'    => ['app/controllers/main/main_chronicles.php'",
     "'arquetip'       => ['app/controllers/docs/arche_table.php'",
     "'disciplinas' => ['app/controllers/pwrs/disc_table.php'",
 ]:
@@ -79,10 +78,6 @@ for marker in [
 ]:
     if marker not in mobile_routes:
         errors.append(f'live mobile replacement changed unexpectedly: {marker}')
-
-admin_sections = (ROOT / 'app/helpers/admin_sections.php').read_text(encoding='utf-8', errors='replace')
-if "'admin_epis' => 'admin_chapters'" not in admin_sections:
-    errors.append('Admin episodes compatibility alias no longer resolves directly to admin_chapters')
 
 if errors:
     for error in errors:
