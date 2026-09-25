@@ -138,7 +138,7 @@ Los ficheros reales bajo `/tools` y `/sql` también quedan bloqueados. Las URLs 
 
 `Options -Indexes` evita listados de directorio.
 
-Los dos PHP públicos directos relevantes bajo `api/` (`game_cards.php`, `game_card_rules.php`) son tombstones retirados y responden `HTTP 410 Gone`.
+No existen PHP públicos directos bajo `api/`. Las APIs activas se resuelven mediante el front controller y el routing canónico.
 
 ## 8. Routing canónico
 
@@ -269,11 +269,13 @@ No crear accesos directos a PHP bajo `app/`.
 
 Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
-## 14. Herramientas retiradas con compatibilidad de ruta
+## 14. Herramientas retiradas y archivadas
 
-El Simulador de Combate y el Archivo de Mnemógeno fueron retirados en septiembre de 2026. Sus rutas y endpoints históricos conservados responden `HTTP 410 Gone`.
+El Simulador de Combate y el Archivo de Mnemógeno fueron retirados por completo del runtime en septiembre de 2026: no conservan rutas, aliases, APIs, menú ni tombstones 410.
 
-Su implementación completa permanece únicamente en `archive/legacy-tools-2026`. No debe reintroducirse durante mantenimiento ordinario.
+Sus últimas versiones vivas permanecen recuperables en `archive/combat-simulator-last-live` y `archive/game-cards-last-live`. `.github/ci/php-retired-games-archive-audit.py` impide su reintroducción accidental.
+
+El baseline de cierre de la Fase 7 está documentado en [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md).
 
 ## 15. Política documental
 
