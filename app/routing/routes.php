@@ -50,7 +50,6 @@ return [
     // Inventario
     'inv'      => ['app/controllers/docs/item_table.php', null],
     'inv_type' => ['app/controllers/docs/item_list.php', null],
-    'imgz'     => ['app/controllers/tool/img_board.php', null],
     'verobj'   => ['app/controllers/docs/item_page.php', null],
 
     // Sistemas
@@ -115,7 +114,7 @@ return [
     'forum_topic_viewer'          => ['app/controllers/tool/forum_topic_viewer.php', 'Visor de temas foro'],
     'garou_name_gen'              => ['app/controllers/tool/garou_name_generator.php', 'Generador de nombres Garou'],
 
-    // Legacy aliases
+    // Herramientas autocontenidas
     'crop'           => ['app/tools/crop.html', 'Recortador de imágenes'],
 
     // Banda sonora
