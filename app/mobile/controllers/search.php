@@ -142,7 +142,7 @@ if (!function_exists('hg_mobile_search_result_url')) {
             case 'versistdetalle_tribe': return pretty_url($link, 'dim_tribes', '/systems/tribes', $id);
             case 'versistdetalle_misc': return pretty_url($link, 'fact_misc_systems', '/systems/misc', $id);
             case 'vermyd': return pretty_url($link, 'dim_merits_flaws', '/rules/merits-flaws', $id);
-            default: return '?p=' . rawurlencode($routeKey) . '&b=' . $id;
+            default: return '/search';
         }
     }
 }
