@@ -582,7 +582,7 @@ function ui_short(string $s, int $n=120): string {
 
     <div class="tabs">
       <?php
-        $baseTabs = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_powers');
+        $baseTabs = "/talim?s=admin_powers";
         $baseTabs .= "&pp=".$perPage."&q=".urlencode($q);
       ?>
       <a class="tablnk <?= $tab==='dones'?'active':'' ?>" href="<?= $baseTabs ?>&tab=dones">Dones</a>
@@ -594,7 +594,6 @@ function ui_short(string $s, int $n=120): string {
     <button class="btn btn-green" id="btnNew">&#x2795; Nuevo</button>
 
     <form method="get" id="powersFilterForm" class="adm-flex-right-8">
-      <input type="hidden" name="p" value="<?= h($_GET['p'] ?? 'talim') ?>">
       <input type="hidden" name="s" value="<?= h($_GET['s'] ?? 'admin_powers') ?>">
       <input type="hidden" name="tab" value="<?= h($tab) ?>">
       <label class="small">Búsqueda
@@ -660,7 +659,7 @@ function ui_short(string $s, int $n=120): string {
 
   <div class="pager" id="powersPager">
     <?php
-      $base = "?p=".urlencode($_GET['p'] ?? 'talim')."&s=".urlencode($_GET['s'] ?? 'admin_powers');
+      $base = "/talim?s=admin_powers";
       $base .= "&tab=".urlencode($tab)."&pp=".$perPage."&q=".urlencode($q);
       $prev = max(1, $page-1);
       $next = min($pages, $page+1);
@@ -1247,14 +1246,7 @@ function syncEditorsToTextarea(){
 
     if (pager) pager.style.display = 'none';
     var mySeq = ++reqSeq;
-    var pVal = 'talim';
-    try {
-      var usp = new URLSearchParams(window.location.search || '');
-      pVal = usp.get('p') || 'talim';
-    } catch(e){}
-
-    var url = '?p=' + encodeURIComponent(pVal)
-      + '&s=admin_powers'
+    var url = '/talim?s=admin_powers'
       + '&tab=' + encodeURIComponent(TAB)
       + '&ajax=1'
       + '&ajax_mode=search'
