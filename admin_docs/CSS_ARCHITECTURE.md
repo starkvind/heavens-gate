@@ -1,12 +1,12 @@
 # Arquitectura CSS de Heaven's Gate
 
-Última revisión: 2026-09-05.
+Última revisión: 2026-09-25.
 
 Este documento define la propiedad de los estilos públicos y la convención de nombres que debe seguir el código nuevo. El objetivo de la Fase 4 del refactor es que `hg-core.css` sea un núcleo pequeño y que cada regla tenga un propietario reconocible.
 
 ## Capas globales
 
-Los estilos globales se cargan en este orden desde `app/bootstrap/head_work.php`:
+Los estilos globales se cargan en este orden desde `app/views/layout/head.php`:
 
 1. `hg-tokens.css`: variables y tokens de diseño.
 2. `hg-base.css`: normalización y elementos HTML base.
