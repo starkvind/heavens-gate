@@ -19,7 +19,7 @@ function build_power_url(mysqli $link, string $linkBase, string $idPoder): strin
         case 'seerite':
             return pretty_url($link, 'fact_rites', '/powers/rite', $idPoder);
         default:
-            return "?p=$linkBase&b=$idPoder";
+            return '/powers';
     }
 }
 
