@@ -170,7 +170,6 @@
 					$seccion = htmlspecialchars((string)$navQuery['s']); // Sanear entrada
 					echo "<a href='/talim' title='Administraci&oacute;n'>Administraci&oacute;n</a>";
 					switch ($seccion) {
-						case 'admin_pjs':
 						case 'admin_characters':
 							echo " $pillSeparator Personajes";
 							break;
@@ -186,11 +185,9 @@
 						case 'admin_organizations':
 							echo " $pillSeparator Organizaciones";
 							break;
-						case 'admin_temp':
 						case 'admin_seasons':
 							echo " $pillSeparator Temporadas";
 							break;
-						case 'admin_epis':
 						case 'admin_chapters':
 							echo " $pillSeparator Capítulos";
 							break;
@@ -219,7 +216,6 @@
 						case 'admin_gallery':
 							echo " $pillSeparator Galeria";
 							break;
-						case 'admin_plots':
 						case 'admin_parties':
 							echo " $pillSeparator Tramas";
 							break;
@@ -293,7 +289,6 @@
 						echo " $pillSeparator Cat&aacute;logo de condiciones";
 						break;
 					case 'admin_character_conditions_bridge':
-					case 'admin_characters_conditions_brige':
 						echo " $pillSeparator Condiciones de personajes";
 						break;
 					case 'admin_character_misc_bridge':
@@ -350,7 +345,6 @@
 				echo " $pillSeparator Organigrama";
 				break;
 			case "chronicles":
-			case "bio_chronicles":
 				$chronNavId = (int)($navQuery['t'] ?? 0);
 				if ($chronNavId > 0) {
 					$chronNavName = '';
@@ -440,10 +434,6 @@
 			case "verobj":
 				$typeHref = pretty_url($link, 'dim_item_types', '/inventory', (int)$itemType);
 				echo "<a href='/inventory' title='Inventario'>Inventario</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
-				break;
-			case "seeitem":	// Ver Objeto
-							$typeHref = pretty_url($link, 'dim_item_types', '/inventory', (int)$itemType);
-			echo "<a href='" . htmlspecialchars($typeHref) . "' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
 				break;
 			case "inv_type":
 				echo "<a href='/inventory' title='Inventario'>Inventario</a> $pillSeparator $nameTypeBack";
