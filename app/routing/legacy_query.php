@@ -244,6 +244,7 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'customdisc' => '/powers/disciplines/custom',
         'ost' => '/music',
         'gallery' => '/gallery',
+        'imgz' => '/gallery',
         'maps' => '/maps',
         'dados' => '/tools/dice',
         'csp' => '/tools/csp',
