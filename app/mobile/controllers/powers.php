@@ -305,9 +305,9 @@ if ($route === 'powers') {
 }
 
 $routes = [
-    'gifts' => ['list' => ['dones', 'listadones', 'fulldon', 'customdon', 'tipodon'], 'detail' => ['muestradon'], 'type_route' => 'tipodon', 'type_table' => 'dim_gift_types'],
-    'rites' => ['list' => ['rites', 'ritelist', 'fullrite', 'customrite', 'tiporite'], 'detail' => ['seerite'], 'type_route' => 'tiporite', 'type_table' => 'dim_rite_types'],
-    'totems' => ['list' => ['totems', 'listatotems', 'fulltotem', 'customtotem', 'tipototm'], 'detail' => ['muestratotem'], 'type_route' => 'tipototm', 'type_table' => 'dim_totem_types'],
+    'gifts' => ['list' => ['listadones', 'fulldon', 'customdon', 'tipodon'], 'detail' => ['muestradon'], 'type_route' => 'tipodon', 'type_table' => 'dim_gift_types'],
+    'rites' => ['list' => ['ritelist', 'fullrite', 'customrite', 'tiporite'], 'detail' => ['seerite'], 'type_route' => 'tiporite', 'type_table' => 'dim_rite_types'],
+    'totems' => ['list' => ['listatotems', 'fulltotem', 'customtotem', 'tipototm'], 'detail' => ['muestratotem'], 'type_route' => 'tipototm', 'type_table' => 'dim_totem_types'],
     'disciplines' => ['list' => ['disciplinas', 'fulldisc', 'customdisc', 'tipodisc'], 'detail' => ['muestradisc'], 'type_route' => 'tipodisc', 'type_table' => 'dim_discipline_types'],
 ];
 
