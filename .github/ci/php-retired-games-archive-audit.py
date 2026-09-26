@@ -26,6 +26,7 @@ strong_markers = [
     'admin_game_cards',
     'admin_sim_browser',
     'admin_sim_character_talk',
+    'fact_game_card_collection',
 ]
 
 runtime_roots = [ROOT / 'app', ROOT / 'api']
