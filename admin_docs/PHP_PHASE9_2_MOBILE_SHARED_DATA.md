@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI validation required at final branch HEAD — Raspberry smoke pending.**
+**IMPLEMENTED — CI PASS — Raspberry desktop/mobile parity smoke pending.**
 
 Website branch: `php-refactor`.
 
@@ -107,6 +107,10 @@ The existing explicit selector remains supported:
 - `hg_view=mobile` cookie.
 
 Automatic User-Agent splitting remains retired.
+
+## Validation
+
+At the implementation checkpoint, PHP Refactor Characterization and Project CI are green, including the Phase 9.2 shared-data audit.
 
 ## CI guard
 
