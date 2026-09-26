@@ -2,7 +2,7 @@
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
-include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 require_once(__DIR__ . '/../../domains/documents/queries.php');
 
 $metaTitle = "Documentos | Heaven's Gate";
