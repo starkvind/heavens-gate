@@ -2,7 +2,7 @@
 
 ## Status
 
-**RELEASE CANDIDATE — FROZEN FOR VALIDATION.**
+**RELEASE CANDIDATE — VALIDATED — READY FOR AUTHORIZATION.**
 
 Branch: `php-refactor`.
 
@@ -65,13 +65,15 @@ Classic remains the canonical desktop appearance for this release candidate.
 
 ## Validation gates
 
-The RC is accepted only after:
+The RC acceptance gates are:
 
 1. **Project CI** passes on the RC commit;
 2. **PHP Refactor Characterization** passes on the RC commit;
 3. Phase 11.2 Raspberry smoke passes;
 4. Phase 11.3 final integration/documentation audit passes;
 5. explicit authorization is received before modifying `master`.
+
+Gates 1–4 are complete and green. Gate 5 is now the only remaining precondition for Phase 11.5.
 
 ## Master safety
 
