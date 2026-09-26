@@ -22,7 +22,7 @@ BASELINE = {
     "raw_get_reads": 192,
     "raw_post_reads": 708,
     "raw_request_reads": 0,
-    "legacy_query_cases": 47,
+    "legacy_query_cases": 36,
 }
 
 errors = []
