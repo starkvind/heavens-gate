@@ -517,6 +517,13 @@ if (!function_exists('hg_characters_table_exists')) {
     function hg_characters_table_exists(mysqli $link, string $table): bool
     {
         static $tables = [
+            'bridge_forms_traits' => true,
+            'bridge_maneuvers_forms' => true,
+            'bridge_maneuvers_systems' => true,
+            'fact_actions' => true,
+            'fact_combat_maneuvers' => true,
+            'fact_power_rolls' => true,
+            'dim_forms' => true,
             'bridge_characters_conditions' => true,
             'bridge_characters_groups' => true,
             'bridge_characters_misc_systems' => true,
