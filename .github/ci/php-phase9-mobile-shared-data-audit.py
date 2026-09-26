@@ -36,6 +36,9 @@ for path in mobile_php:
     if "hg_mobile_chronicle_" in text or "hg_mobile_excluded_chronicles_csv" in text:
         errors.append(f"legacy mobile chronicle rule reference: {path.relative_to(ROOT)}")
 
+    if "helpers/chronicle_scope.php" in text:
+        errors.append(f"legacy mobile chronicle helper include: {path.relative_to(ROOT)}")
+
 mobile_index = read("app/mobile/mobile_index.php")
 if "../domains/chronicles/scope.php" not in mobile_index:
     errors.append("mobile shell does not load shared chronicle scope")
