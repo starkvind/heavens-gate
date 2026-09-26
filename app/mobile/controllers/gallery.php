@@ -12,6 +12,13 @@ $galleryBaseWeb = '/img/gallery';
 $galleryBaseFs = hg_gallery_base_fs();
 $allowedExt = hg_gallery_allowed_extensions();
 
+if (!function_exists('hg_mobile_gallery_h')) {
+    function hg_mobile_gallery_h($value): string
+    {
+        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+}
+
 if (!is_string($galleryBaseFs) || $galleryBaseFs === '' || !is_dir($galleryBaseFs)) {
     hg_public_log_error('mobile_gallery', 'missing gallery directory');
     hg_public_render_error('Galería no disponible', 'No se pudo localizar el directorio de imagenes.');
