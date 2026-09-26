@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI PASS — Raspberry smoke pending.**
+**CLOSED — CI PASS — Raspberry smoke accepted.**
 
 Branch: `php-refactor`.
 
@@ -91,8 +91,8 @@ Implementation checkpoint:
 - PHP Refactor Characterization: PASS;
 - Project CI: PASS.
 
-## Closure gate
+## Closure
 
-Raspberry smoke should verify that representative old query-string URLs still issue a redirect to their canonical destination and that canonical destinations load normally.
+The legacy alias compatibility surface was accepted and the refactor proceeded to Phase 10.5 without a reported redirect regression.
 
-No data mutation is required.
+Phase 10.4 is closed.
