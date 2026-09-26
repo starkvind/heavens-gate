@@ -234,6 +234,8 @@ El backend editorial entra por `talim` (`/talim` y alias `/admin`). Las subsecci
 
 Las mutaciones administrativas deben seguir usando helpers compartidos de autenticación, sesión y CSRF. Este refactor no cambia límites de seguridad.
 
+El request público se normaliza en `hgRequest`; los controladores públicos no deben recuperar acceso directo a GET/POST. En Admin, los controladores CRUD/formulario permanecen como borde HTTP explícito y pueden leer GET/POST directamente: no se reescriben solo para ocultar el transporte. `$_REQUEST` está prohibido por su precedencia implícita. Los únicos accesos directos a cookies de aplicación son preferencias de presentación (vista móvil/desktop y tema), nunca autenticación.
+
 ## 12. Herramientas y mantenimiento
 
 Herramientas internas existentes incluyen:
