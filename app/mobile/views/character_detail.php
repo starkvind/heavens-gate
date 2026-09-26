@@ -137,30 +137,7 @@
                 </div>
             </details>
         </section>
-        <script>
-        (() => {
-            const root = document.querySelector('[data-mobile-actions]');
-            if (!root) return;
-            const input = root.querySelector('[data-mobile-action-search]');
-            const empty = root.querySelector('[data-mobile-action-empty]');
-            const normalize = value => String(value || '').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            const filter = () => {
-                const query = normalize(input.value.trim());
-                let visible = 0;
-                root.querySelectorAll('[data-mobile-action-category]').forEach(category => {
-                    let categoryVisible = 0;
-                    category.querySelectorAll('[data-mobile-action-card]').forEach(card => {
-                        const match = !query || normalize(card.dataset.mobileActionSearchText).includes(query);
-                        card.hidden = !match;
-                        if (match) { categoryVisible++; visible++; }
-                    });
-                    category.hidden = categoryVisible === 0;
-                });
-                empty.hidden = visible > 0;
-            };
-            input.addEventListener('input', filter);
-        })();
-        </script>
+        
     <?php endif; ?>    <?php if ($hasCharacterSheet && array_filter($mobileResourcesByKind)): ?>
         <section class="hg-mobile-section">
             <h2>Recursos</h2>
@@ -243,35 +220,7 @@
             </label>
             <p data-hg-mobile-form-summary>Forma base: atributos originales.</p>
         </section>
-        <script>
-        (() => {
-            const root = document.querySelector('.hg-mobile-forms[data-hg-mobile-forms]');
-            if (!root) return;
-            const select = root.querySelector('[data-hg-mobile-form-select]');
-            const summary = root.querySelector('[data-hg-mobile-form-summary]');
-            let forms = [], baseManeuvers = [];
-            try {
-                forms = JSON.parse(root.dataset.hgMobileForms || '[]');
-                baseManeuvers = JSON.parse(root.dataset.hgMobileBaseManeuvers || '[]');
-            } catch (_) { return; }
-            const dots = value => '\u25cf'.repeat(Math.min(5, value)) + '\u25cb'.repeat(Math.max(0, 5 - value));
-            const render = () => {
-                const form = forms.find(item => String(item.id) === select.value) || null;
-                const modifiers = form && form.modifiers ? form.modifiers : {};
-                document.querySelectorAll('[data-hg-mobile-form-trait]').forEach(cell => {
-                    const traitId = cell.dataset.hgMobileFormTrait;
-                    const base = Number(cell.dataset.hgMobileFormBase || 0);
-                    const total = Math.max(1, base + Number(modifiers[traitId] || 0));
-                    cell.querySelector('[data-hg-mobile-form-value]').textContent = form ? total : base;
-                    cell.querySelector('[data-hg-mobile-form-dots]').textContent = dots(total);
-                });
-                summary.textContent = form ? form.name + ': cambios aplicados visualmente.' : 'Forma base: atributos originales.';
-                document.dispatchEvent(new CustomEvent('hg-mobile-form-change', { detail: { maneuvers: form ? (form.maneuvers || []) : baseManeuvers } }));
-            };
-            select.addEventListener('change', render);
-            render();
-        })();
-        </script>
+        
     <?php endif; ?>
 
     <?php if ($hasCharacterSheet && !empty($mobileForms)): ?>
@@ -280,32 +229,7 @@
             <h2>Maniobras</h2>
             <div class="hg-mobile-list" data-hg-mobile-maneuver-list></div>
         </section>
-        <script>
-        (() => {
-            const root = document.querySelector('.hg-mobile-maneuvers[data-hg-mobile-base-maneuvers]');
-            if (!root) return;
-            const list = root.querySelector('[data-hg-mobile-maneuver-list]');
-            let base = [];
-            try { base = JSON.parse(root.dataset.hgMobileBaseManeuvers || '[]'); } catch (_) { return; }
-            const render = maneuvers => {
-                list.innerHTML = '';
-                if (!maneuvers.length) {
-                    list.textContent = 'No hay maniobras disponibles para esta forma.';
-                    return;
-                }
-                maneuvers.forEach(item => {
-                    const row = document.createElement('div');
-                    const link = document.createElement('a');
-                    link.href = item.href;
-                    link.textContent = item.name;
-                    row.appendChild(link);
-                    list.appendChild(row);
-                });
-            };
-            document.addEventListener('hg-mobile-form-change', event => render((event.detail && event.detail.maneuvers) || []));
-            render(base);
-        })();
-        </script>
+        
     <?php endif; ?>
 
     <?php if ($hasCharacterSheet): ?>
