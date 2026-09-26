@@ -19,8 +19,8 @@ if ($routeKey === 'timeline_event') {
     $eventId = isset($link) && ($link instanceof mysqli)
         ? hg_timeline_resolve_event_id($link, $rawEvent)
         : 0;
-    $excludedIds = function_exists('hg_mobile_excluded_chronicles_csv')
-        ? hg_timeline_normalize_ids(hg_mobile_excluded_chronicles_csv())
+    $excludedIds = function_exists('hg_chronicle_scope_excluded_csv')
+        ? hg_timeline_normalize_ids(hg_chronicle_scope_excluded_csv())
         : [];
 
     if (
