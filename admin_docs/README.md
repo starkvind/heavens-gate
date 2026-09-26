@@ -18,6 +18,7 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | [PHP_PHASE11_RELEASE_CANDIDATE.md](./PHP_PHASE11_RELEASE_CANDIDATE.md) | Estado del Release Candidate, reconciliación de ramas, freeze de alcance y puertas de validación de Fase 11. |
 | [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md) | Smoke final de Raspberry: harness automatizado y comprobaciones manuales antes de consolidar en `master`. |
 | [PHP_PHASE11_INTEGRATION_AUDIT.md](./PHP_PHASE11_INTEGRATION_AUDIT.md) | Auditoría final de integración, contratos preservados y frontera de autorización antes de tocar `master`. |
+| [PHP_PHASE11_4_RELEASE_SIGNOFF.md](./PHP_PHASE11_4_RELEASE_SIGNOFF.md) | Sign-off del Release Candidate tras CI y smoke verdes; deja 11.5 preparado pero bloqueado por autorización expresa. |
 
 ## Registros históricos
 
