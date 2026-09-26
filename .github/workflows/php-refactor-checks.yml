@@ -54,7 +54,7 @@ jobs:
       - name: Audit Phase 7.2 consumers
         run: python3 .github/ci/php-consumer-graph-audit.py
 
-      - name: Audit Phase 7.3 schema contract
+      - name: Audit classified schema introspection
         run: python3 .github/ci/php-schema-contract-audit.py
 
       - name: Characterize Phase 7 runtime regressions
