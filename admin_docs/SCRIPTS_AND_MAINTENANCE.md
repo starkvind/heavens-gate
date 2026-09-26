@@ -1,6 +1,6 @@
 # Scripts y mantenimiento
 
-Última revisión: 2026-09-17.
+Última revisión: 2026-09-26.
 
 Este documento describe las herramientas que **existen realmente** en el repositorio en esta fecha. No presupone instaladores o migradores retirados.
 
@@ -77,6 +77,28 @@ Si se solicita CSS, el controlador generado lo registra mediante `hg_page_regist
 No sirve para rutas de detalle con `pretty_id`, CRUD complejos ni para decidir automáticamente compatibilidad histórica `?p=...`. Si una sección sustituye una URL legacy, la canonicalización debe añadirse conscientemente a `app/routing/legacy_query.php`.
 
 Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
+
+### `tools/phase11_smoke.sh`
+
+Smoke HTTP de solo lectura para el cierre de la Fase 11.
+
+Comprueba hubs públicos, compatibilidad móvil explícita, shell de Admin sin mutaciones, superficies PWA, embed de foro, canonicalización legacy, bloqueo de árboles privados y cabeceras de caché dinámica.
+
+Uso en Raspberry:
+
+~~~bash
+git switch php-refactor
+git pull --ff-only
+bash tools/phase11_smoke.sh
+~~~
+
+Puede apuntarse a otro host mediante `HG_BASE_URL`:
+
+~~~bash
+HG_BASE_URL=https://naufragio-heavensgate.duckdns.org bash tools/phase11_smoke.sh
+~~~
+
+El script no escribe en base de datos ni modifica canon. Es la parte automatizada del smoke; las comprobaciones visuales/manuales están documentadas en [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md).
 
 ## Herramientas administrativas
 
