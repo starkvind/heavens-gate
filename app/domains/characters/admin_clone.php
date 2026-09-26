@@ -12,17 +12,7 @@ if (!function_exists('hg_acc_ident')) {
 
 if (!function_exists('hg_acc_table_exists')) {
     function hg_acc_table_exists(mysqli $db, string $table): bool {
-        $table = trim($table);
-        if ($table === '') return false;
-        $count = 0;
-        if ($st = $db->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-            $st->bind_param('s', $table);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-        }
-        return ((int)$count > 0);
+        return hg_table_exists($db, $table);
     }
 }
 
