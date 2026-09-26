@@ -2,7 +2,7 @@
 
 ## Status
 
-**PREPARED — execution on the Raspberry is the production gate.**
+**PASS — automated and manual Raspberry smoke confirmed green by the operator on 2026-09-26.**
 
 Branch: `php-refactor`.
 
@@ -158,7 +158,7 @@ Confirm:
 
 ## Pass criteria
 
-Phase 11.2 passes only when:
+Phase 11.2 passed after the operator confirmed all checks green. The acceptance criteria were:
 
 1. `tools/phase11_smoke.sh` exits 0;
 2. Classic desktop looks correct;
@@ -168,4 +168,4 @@ Phase 11.2 passes only when:
 6. PWA/device behavior passes where a supporting device is available;
 7. Admin read-only navigation passes.
 
-Record any failure before changing code. Do not compensate for a failing smoke by weakening CI or broadening Phase 11 scope.
+Result recorded for Phase 11.4 sign-off: all automated and manual smoke checks reported green. No workaround, CI weakening or scope expansion was required.
