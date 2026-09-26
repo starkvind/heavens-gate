@@ -33,6 +33,17 @@ hg_characterization_same('?id=42', hg_request_router_forum_embed_query('forum_it
 
 $link = new mysqli();
 
+$expectedAliases = [
+    'bio_chronicles' => 'chronicles',
+    'listaobj' => 'inv',
+    'seeitem' => 'verobj',
+    'dones' => 'listadones',
+    'rites' => 'ritelist',
+    'totems' => 'listatotems',
+    'imgz' => 'gallery',
+];
+hg_characterization_same($expectedAliases, hg_request_router_public_aliases(), 'legacy public alias catalog is explicit');
+
 $directRoutes = [
     'home' => '/home',
     'news' => '/news',
@@ -46,17 +57,12 @@ $directRoutes = [
     'listgroups' => '/organizations',
     'players' => '/players',
     'listadocs' => '/documents',
-    'listaobj' => '/inventory',
     'listasistemas' => '/systems',
     'rules' => '/rules',
     'powers' => '/powers',
-    'dones' => '/powers/gifts',
-    'rites' => '/powers/rites',
-    'totems' => '/powers/totems',
     'disciplinas' => '/powers/disciplines',
     'ost' => '/music',
     'gallery' => '/gallery',
-    'imgz' => '/gallery',
     'maps' => '/maps',
     'dados' => '/tools/dice',
     'forum_avatar_tool' => '/tools/forum-avatar',
@@ -79,8 +85,22 @@ foreach ($directRoutes as $legacy => $canonical) {
 
 hg_characterization_same('/search/results', hg_request_router_path_from_query($link, ['p' => 'busk']), 'search results legacy route target');
 hg_characterization_same('/talim', hg_request_router_path_from_query($link, ['p' => 'talim']), 'talim legacy route target');
-hg_characterization_same('/chronicles', hg_request_router_path_from_query($link, ['p' => 'bio_chronicles']), 'retired chronicle alias remains edge-compatible');
-hg_characterization_same('/inventory', hg_request_router_path_from_query($link, ['p' => 'listaobj']), 'retired inventory list alias remains edge-compatible');
+$aliasTargets = [
+    'bio_chronicles' => '/chronicles',
+    'listaobj' => '/inventory',
+    'seeitem' => '/inventory',
+    'dones' => '/powers/gifts',
+    'rites' => '/powers/rites',
+    'totems' => '/powers/totems',
+    'imgz' => '/gallery',
+];
+foreach ($aliasTargets as $alias => $target) {
+    hg_characterization_same(
+        $target,
+        hg_request_router_path_from_query($link, ['p' => $alias]),
+        "retired alias {$alias} remains edge-compatible"
+    );
+}
 hg_characterization_same(null, hg_request_router_path_from_query($link, ['p' => '__unknown__']), 'unknown legacy route remains unresolved');
 hg_characterization_same(null, hg_request_router_path_from_query($link, []), 'missing legacy route remains unresolved');
 
