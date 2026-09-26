@@ -2,6 +2,7 @@
 	if (!isset($link) || !($link instanceof mysqli)) {
 		include(__DIR__ . '/../helpers/db_connection.php');
 	}
+	require_once __DIR__ . '/../domains/navigation/queries.php';
 ?>
 
 
@@ -68,37 +69,26 @@
 		if ($path === '/' || hg_starts_with($path, '/home')) {
 			return 'startMenu';
 		}
+
 		$bestMenuKey = null;
 		$bestLen = -1;
+		foreach (hg_navigation_fetch_route_candidates($link) as $row) {
+			$menuKey = (string)($row['menu_key'] ?? '');
+			$href = (string)($row['href'] ?? '');
+			$hrefPath = $href ? (string)parse_url($href, PHP_URL_PATH) : '';
+			$hrefPath = $hrefPath ? hg_normalize_path($hrefPath) : '';
 
-		$sql = "SELECT p.menu_key, c.href, c.item_type, c.dynamic_source
-			FROM dim_menu_items c
-			JOIN dim_menu_items p ON c.parent_id = p.id
-			WHERE c.enabled = 1 AND p.enabled = 1";
-		if ($res = $link->query($sql)) {
-			while ($row = $res->fetch_assoc()) {
-				$menuKey = (string)($row['menu_key'] ?? '');
-				$href = (string)($row['href'] ?? '');
-				$type = (string)($row['item_type'] ?? '');
-				$dyn = (string)($row['dynamic_source'] ?? '');
-
-				$hrefPath = $href ? parse_url($href, PHP_URL_PATH) : '';
-				$hrefPath = $hrefPath ? hg_normalize_path($hrefPath) : '';
-
-				if ($hrefPath !== '' && $hrefPath !== '#' && $hrefPath !== '/' && hg_starts_with($path, $hrefPath)) {
-					$len = strlen($hrefPath);
-					if ($len > $bestLen && $menuKey !== '') {
-						$bestLen = $len;
-						$bestMenuKey = $menuKey;
-					}
+			if ($hrefPath !== '' && $hrefPath !== '#' && $hrefPath !== '/' && hg_starts_with($path, $hrefPath)) {
+				$len = strlen($hrefPath);
+				if ($len > $bestLen && $menuKey !== '') {
+					$bestLen = $len;
+					$bestMenuKey = $menuKey;
 				}
 			}
-			$res->free();
 		}
 
 		return $bestMenuKey;
-	}
-?>
+	}?>
 
 <?php
 	// =========================
@@ -118,93 +108,36 @@
 
 	if ($useDbMenu) {
 		function hg_menu_get_children(mysqli $link, int $parentId): array {
-			$rows = [];
-			$sql = "SELECT id, label, href, target, item_type, dynamic_source, css_class
-					FROM dim_menu_items
-					WHERE parent_id = ? AND enabled = 1
-					ORDER BY sort_order, id";
-			if ($stmt = mysqli_prepare($link, $sql)) {
-				mysqli_stmt_bind_param($stmt, 'i', $parentId);
-				mysqli_stmt_execute($stmt);
-				$res = mysqli_stmt_get_result($stmt);
-				while ($row = mysqli_fetch_assoc($res)) {
-					$rows[] = $row;
-				}
-				mysqli_stmt_close($stmt);
-			}
-			return $rows;
+			return hg_navigation_fetch_children($link, $parentId);
 		}
 
 		function render_seasons(mysqli $link, string $seasonFlag): void {
-			if ($seasonFlag === '1') {
-				$consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind = 'historia_personal' ORDER BY sort_order, season_number";
-				$stmt = mysqli_prepare($link, $consulta);
-			} else {
-				$consulta = "SELECT id, name, season_number AS numero, finished, season_kind FROM dim_seasons WHERE season_kind IN ('temporada','inciso','especial') ORDER BY FIELD(season_kind, 'temporada','inciso','especial'), sort_order, season_number";
-				$stmt = mysqli_prepare($link, $consulta);
-			}
+			$lastGroup = '';
+			foreach (hg_navigation_season_items($link, $seasonFlag === '1') as $row) {
+				$tituloTemp = (string)($row['name'] ?? '');
+				$seasonKind = (string)($row['season_kind'] ?? 'temporada');
 
-			if ($stmt) {
-				mysqli_stmt_execute($stmt);
-				$result = mysqli_stmt_get_result($stmt);
-				$lastGroup = '';
-
-				while ($row = mysqli_fetch_assoc($result)) {
-					$idTemporada = (int)$row['id'];
-					$numeroTemp = (int)$row['numero'];
-					$tituloTemp = (string)$row['name'];
-					$tempFinalizada = (int)$row['finished'];
-					$seasonKind = trim((string)($row['season_kind'] ?? 'temporada'));
-					if ($seasonKind === '' || ($seasonKind !== 'temporada' && $seasonKind !== 'inciso' && $seasonKind !== 'historia_personal' && $seasonKind !== 'especial')) {
-						$seasonKind = 'temporada';
+				if ($seasonFlag === '0' && $seasonKind !== $lastGroup) {
+					if ($lastGroup !== '') {
+						echo "<div class='renglonMenu menuSeparator'>&nbsp;</div>";
 					}
-
-					if ($seasonFlag === '0' && $seasonKind !== $lastGroup) {
-						if ($lastGroup !== '') {
-							echo "<div class='renglonMenu menuSeparator'>&nbsp;</div>";
-						}
-						$lastGroup = $seasonKind;
-					}
-
-					$nombreTemporada = $tituloTemp;
-					$claseTemporada = '';
-					if ($seasonKind === 'historia_personal') {
-						$nombreTemporada = $tituloTemp;
-					} elseif ($seasonKind === 'inciso') {
-						$incisoNum = $numeroTemp;
-						if ($incisoNum >= 100 && $incisoNum < 200) $incisoNum -= 100;
-						$nombreTemporada = 'I' . $incisoNum . ' - ' . $tituloTemp;
-						$claseTemporada = 'renglonMenuInciso';
-					} elseif ($seasonKind === 'especial') {
-						$nombreTemporada = $tituloTemp;
-					} else {
-						$nombreTemporada = 'T' . $numeroTemp . ' - ' . $tituloTemp;
-					}
-
-					if ($tempFinalizada == 1) {
-						$historiaCheck = '&#10004;';
-					} elseif ($tempFinalizada == 2) {
-						$historiaCheck = '&#10006;';
-					} else {
-						$historiaCheck = '';
-					}
-
-					$hrefTemporada = function_exists('pretty_url')
-						? pretty_url($link, 'dim_seasons', '/seasons', (int)$idTemporada)
-						: ('/seasons/' . (int)$idTemporada);
-					$statusClass = ($historiaCheck === '') ? ' menu-season-row--nostatus' : '';
-					echo "<a href='" . h($hrefTemporada) . "' title='" . h($tituloTemp) . "'>";
-					echo "<div class='renglonMenu menu-season-row {$claseTemporada}{$statusClass}'>";
-					echo "<div class='menu-season-label'>" . h($nombreTemporada) . "</div>";
-					if ($historiaCheck !== '') {
-						echo "<div class='menu-season-status'>{$historiaCheck}</div>";
-					}
-					echo "</div></a>";
+					$lastGroup = $seasonKind;
 				}
-				mysqli_stmt_close($stmt);
+
+				$claseTemporada = $seasonKind === 'inciso' ? 'renglonMenuInciso' : '';
+				$tempFinalizada = (int)($row['finished'] ?? 0);
+				$historiaCheck = $tempFinalizada === 1 ? '&#10004;' : ($tempFinalizada === 2 ? '&#10006;' : '');
+				$statusClass = $historiaCheck === '' ? ' menu-season-row--nostatus' : '';
+
+				echo "<a href='" . h($row['href'] ?? '/seasons') . "' title='" . h($tituloTemp) . "'>";
+				echo "<div class='renglonMenu menu-season-row {$claseTemporada}{$statusClass}'>";
+				echo "<div class='menu-season-label'>" . h($row['label'] ?? $tituloTemp) . "</div>";
+				if ($historiaCheck !== '') {
+					echo "<div class='menu-season-status'>{$historiaCheck}</div>";
+				}
+				echo "</div></a>";
 			}
 		}
-
 		function render_menu_children(mysqli $link, int $parentId, string $parentMenuKey = '', ?array $rows = null): void {
 			$rows = $rows ?? hg_menu_get_children($link, $parentId);
 			if (!empty($rows)) {
@@ -250,16 +183,7 @@
 			}
 		}
 
-		$menuSql = "SELECT id, label, icon, icon_hover, menu_key
-					FROM dim_menu_items
-					WHERE parent_id IS NULL AND enabled = 1
-					ORDER BY sort_order, id";
-		$menuItems = [];
-		if ($res = $link->query($menuSql)) {
-			while ($row = $res->fetch_assoc()) { $menuItems[] = $row; }
-			$res->free();
-		}
-
+		$menuItems = hg_navigation_fetch_parents($link);
 		$menuOpenAttr = $menuOpenId ? " data-menu-open='" . h($menuOpenId) . "'" : "";
 		echo "<table class='tmenu'{$menuOpenAttr}>";
 		$idx = 0;
