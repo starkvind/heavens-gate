@@ -6,7 +6,7 @@ Este documento traduce los `route key` históricos de la web a lenguaje humano. 
 
 ## Fuentes de verdad
 
-Este inventario se ha contrastado contra el árbol completo de `php-refactor` y, en particular, contra:
+Este inventario se contrasta contra el árbol activo de la aplicación y, en particular, contra:
 
 - `index.php`;
 - `.htaccess`;
@@ -203,7 +203,7 @@ Las URLs legacy `?p=...` se canonicalizan todavía mediante la capa de compatibi
 
 ### Aliases query-string conservados solo en la frontera
 
-La Fase 7.4B elimina los aliases históricos del dispatch activo. Los siguientes nombres **no existen ya en `routes.php`, request context, navbar ni tabla móvil**; solo se aceptan en peticiones GET/HEAD antiguas para redirigir hacia su URL canónica:
+Los aliases históricos se mantienen fuera del dispatch activo. Los siguientes nombres **no existen en `routes.php`, request context, navbar ni tabla móvil**; solo se aceptan en peticiones GET/HEAD antiguas para redirigir hacia su URL canónica:
 
 | Alias histórico | Destino canónico |
 |---|---|
@@ -219,7 +219,7 @@ Los siete aliases públicos anteriores se definen en un único catálogo, `hg_re
 
 Los aliases administrativos antiguos (`admin_pjs`, `admin_epis`, `admin_temp`, `admin_plots` y el typo `admin_characters_conditions_brige`) se han retirado por completo: el backend es privado y no justifica mantener esa deuda de compatibilidad.
 
-### Frontera de compatibilidad tras 7.4C
+### Frontera de compatibilidad
 
 El runtime ya no genera enlaces, formularios ni peticiones AJAX con `?p=...`. La aplicación usa rutas canónicas también dentro de Admin.
 
@@ -229,7 +229,7 @@ Un route key desconocido ya no cae accidentalmente en Noticias: el dispatch lo r
 
 La única generación interna de `p=` permitida fuera de `legacy_query.php` es la de las reglas de seguridad de `.htaccess`, que fuerzan `p=error404` al bloquear árboles privados. No es una URL pública ni una ruta de navegación.
 
-Los POST legacy con `p` siguen aceptándose en la frontera mientras exista compatibilidad histórica; 7.4C elimina productores internos, no rompe peticiones antiguas entrantes.
+Los POST legacy con `p` siguen aceptándose en la frontera mientras exista compatibilidad histórica; La aplicación no genera esos productores internos, pero mantiene compatibilidad con peticiones antiguas entrantes.
 
 ## Vista móvil de compatibilidad
 
