@@ -84,6 +84,24 @@ El dominio puede especializar componentes globales, por ejemplo el tooltip, siem
 
 `hg-archive-panel.css` contiene el pequeño componente compartido por el gráfico de participación de temporadas y el listado de organizaciones/grupos. Sustituye los IDs históricos `archivosLegend`, `renglonArchivos` y `renglonArchivosTop`, que no deben volver a introducirse.
 
+## Temas de escritorio: trabajo diferido
+
+La apariencia **Classic** sigue siendo la identidad visual canónica del escritorio durante el refactor PHP. Parte de esa identidad depende de assets gráficos históricos —actualmente servidos principalmente como WebP— y de componentes cuya paleta todavía está acoplada al diseño clásico.
+
+El runtime conserva soporte técnico residual para las clases `theme-classic`, `theme-modern` y `theme-power-save` mediante `app/presentation/desktop_context.php` y la cookie `hg_theme`. Esto no implica que Modern y Power Save sean temas completos ni que formen parte de la UX pública actual: no existe un selector global de temas de escritorio y varios componentes mantienen deliberadamente la paleta clásica.
+
+Se deja como tarea **posterior al cierre del refactor PHP** diseñar un selector de temas para la web principal. Esa fase deberá tratarse como trabajo de diseño/presentación, no como deuda arquitectónica del refactor actual.
+
+Antes de exponer el selector deberán resolverse de forma consciente:
+
+- qué assets de identidad permanecen fijos y cuáles necesitan variantes por tema;
+- qué componentes deben pasar de colores clásicos fijos a tokens semánticos;
+- cómo conservar Classic como experiencia de referencia sin degradar la identidad histórica;
+- qué temas se mantienen, renombran o sustituyen en la interfaz definitiva;
+- contraste, accesibilidad y pruebas visuales de cada combinación.
+
+Hasta entonces no debe ampliarse ni eliminarse el soporte residual de temas desktop solo por razones cosméticas durante el refactor.
+
 ## Convención de nombres nueva
 
 Todo selector nuevo reutilizable debe comenzar por `hg-`.
