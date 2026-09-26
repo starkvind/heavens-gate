@@ -135,41 +135,57 @@ WHERE k.TABLE_SCHEMA = DATABASE()
   )
 ORDER BY k.TABLE_NAME, k.CONSTRAINT_NAME;
 
--- Views outside the retired set that still depend on retired tables. Must be empty.
+-- Views outside the retired set that still mention the retired surface. Must be empty.
 SELECT
-    v.VIEW_NAME,
-    v.TABLE_NAME
-FROM information_schema.VIEW_TABLE_USAGE v
-WHERE v.VIEW_SCHEMA = DATABASE()
-  AND v.TABLE_SCHEMA = DATABASE()
-  AND v.TABLE_NAME IN (
-    'dim_game_card_materials',
-    'dim_game_card_moves',
-    'dim_game_card_pack_types',
-    'dim_game_card_rarities',
-    'dim_game_card_settings',
-    'dim_game_card_shop_products',
-    'dim_game_card_types',
-    'dim_game_card_ui_texts',
-    'fact_game_card_collection',
-    'fact_game_card_move_learn_rules',
-    'fact_game_card_pack_rarity_weights',
-    'fact_game_card_pack_type_filters',
-    'fact_sim_battles',
-    'fact_sim_character_scores',
-    'fact_sim_characters_talk',
-    'fact_sim_item_usage',
-    'fact_sim_seasons',
-    'fact_sim_tournaments',
-    'bridge_battle_sim_characters_seasons'
-  )
-  AND v.VIEW_NAME NOT IN (
+    TABLE_NAME AS view_name
+FROM information_schema.VIEWS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME NOT IN (
     'vw_game_card_collection',
     'vw_sim_characters',
     'vw_sim_forms',
     'vw_sim_items'
   )
-ORDER BY v.VIEW_NAME, v.TABLE_NAME;
+  AND LOWER(COALESCE(VIEW_DEFINITION, '')) REGEXP 'game_card|fact_sim_|battle_sim|combat_sim|vw_sim_'
+ORDER BY TABLE_NAME;
+
+-- Known object names with an unexpected object type. Must be empty.
+SELECT TABLE_NAME, TABLE_TYPE
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND (
+    (TABLE_NAME IN (
+      'vw_game_card_collection',
+      'vw_sim_characters',
+      'vw_sim_forms',
+      'vw_sim_items'
+    ) AND TABLE_TYPE <> 'VIEW')
+    OR
+    (TABLE_NAME IN (
+      'dim_game_card_materials',
+      'dim_game_card_moves',
+      'dim_game_card_pack_types',
+      'dim_game_card_rarities',
+      'dim_game_card_settings',
+      'dim_game_card_shop_products',
+      'dim_game_card_types',
+      'dim_game_card_ui_texts',
+      'fact_game_card_collection',
+      'fact_game_card_move_learn_rules',
+      'fact_game_card_pack_rarity_weights',
+      'fact_game_card_pack_type_filters',
+      'fact_sim_battles',
+      'fact_sim_character_scores',
+      'fact_sim_characters_talk',
+      'fact_sim_item_usage',
+      'fact_sim_seasons',
+      'fact_sim_tournaments',
+      'bridge_battle_sim_characters_seasons',
+      'admin_webp_image_migration_backup',
+      '_id_unsigned_audit'
+    ) AND TABLE_TYPE <> 'BASE TABLE')
+  )
+ORDER BY TABLE_NAME;
 
 -- Triggers on live tables that mention the retired surface. Must be empty.
 SELECT
