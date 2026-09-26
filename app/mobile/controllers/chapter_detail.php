@@ -76,8 +76,8 @@ $code = $kind === 'temporada' ? sprintf('%dx%02d', $seasonNumber, $chapterNumber
 $metaTitle = $name . " | Capítulos | Heaven's Gate";
 $metaDescription = trim(strip_tags((string)($chapter['synopsis'] ?? '')));
 
-$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
-    ? hg_mobile_excluded_chronicles_csv()
+$excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv')
+    ? hg_chronicle_scope_excluded_csv()
     : '2,7';
 $participants = hg_chapters_fetch_chapter_participants($link, $chapterId, $excludedChronicles);
 if ($participants === null) {
