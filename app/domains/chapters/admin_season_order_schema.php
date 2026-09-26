@@ -1,17 +1,9 @@
 <?php
+require_once(__DIR__ . '/../../helpers/schema_introspection.php');
 
 function hg_asos_table_exists(mysqli $link, string $table): bool
 {
-    $stmt = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-    if (!$stmt) {
-        return false;
-    }
-    $stmt->bind_param('s', $table);
-    $stmt->execute();
-    $stmt->bind_result($count);
-    $stmt->fetch();
-    $stmt->close();
-    return (int)$count > 0;
+    return hg_table_exists($link, $table);
 }
 
 function hg_asos_count_rows(mysqli $link, string $table): int
