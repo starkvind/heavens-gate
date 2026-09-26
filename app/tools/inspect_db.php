@@ -87,26 +87,7 @@ function ends_with($haystack, $needle) {
 
 function table_exists(mysqli $link, string $table): bool
 {
-    if (function_exists('hg_table_exists')) {
-        return hg_table_exists($link, $table);
-    }
-
-    $stmt = $link->prepare("
-        SELECT COUNT(*)
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-    ");
-    if (!$stmt) return false;
-
-    $count = 0;
-    $stmt->bind_param('s', $table);
-    $stmt->execute();
-    $stmt->bind_result($count);
-    $stmt->fetch();
-    $stmt->close();
-
-    return ((int)$count > 0);
+    return hg_table_exists($link, $table);
 }
 
 function inspect_scalar(mysqli $link, string $sql): int
@@ -121,27 +102,7 @@ function inspect_scalar(mysqli $link, string $sql): int
 
 function table_has_column(mysqli $link, string $table, string $column): bool
 {
-    if (function_exists('hg_table_has_column')) {
-        return hg_table_has_column($link, $table, $column);
-    }
-
-    $stmt = $link->prepare("
-        SELECT COUNT(*)
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-    ");
-    if (!$stmt) return false;
-
-    $count = 0;
-    $stmt->bind_param('ss', $table, $column);
-    $stmt->execute();
-    $stmt->bind_result($count);
-    $stmt->fetch();
-    $stmt->close();
-
-    return ((int)$count > 0);
+    return hg_table_has_column($link, $table, $column);
 }
 
 function inspect_fk_count(mysqli $link, string $table): int
