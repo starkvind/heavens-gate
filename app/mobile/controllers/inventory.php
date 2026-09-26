@@ -153,7 +153,7 @@ if ($isItem) {
     $owners = hg_inventory_fetch_mobile_owners(
         $link,
         $itemId,
-        function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7'
+        function_exists('hg_chronicle_scope_excluded_csv') ? hg_chronicle_scope_excluded_csv() : '2,7'
     );
     ?>
     <section class="hg-mobile-section">
