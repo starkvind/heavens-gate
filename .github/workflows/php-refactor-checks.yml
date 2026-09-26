@@ -102,6 +102,9 @@ jobs:
       - name: Enforce Phase 9.4 PWA contract
         run: python3 .github/ci/php-phase9-pwa-audit.py
 
+      - name: Enforce Phase 10.1 public SQL boundary
+        run: python3 .github/ci/php-phase10-public-sql-audit.py
+
       - name: Check PWA JavaScript
         run: |
           node --check assets/js/hg-pwa.js
