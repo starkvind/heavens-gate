@@ -7,6 +7,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
 }
 require_once __DIR__ . '/../helpers/runtime_response.php';
 require_once __DIR__ . '/../helpers/character_avatar.php';
+require_once __DIR__ . '/../helpers/schema_introspection.php';
 
 if (!hg_runtime_require_db($link, 'forum_topic_viewer_tool', 'bootstrap', [
     'message' => 'No se pudo conectar a la base de datos.',
@@ -504,9 +505,7 @@ function parse_forum_body($link, $body)
 
 function hgfv_table_exists($link, $tableName)
 {
-    $safe = mysqli_real_escape_string($link, (string)$tableName);
-    $rs = mysqli_query($link, "SHOW TABLES LIKE '$safe'");
-    return ($rs && mysqli_num_rows($rs) > 0);
+    return hg_table_exists($link, (string)$tableName);
 }
 
 function hgfv_pick_smf_table($link, $tableBaseName)
