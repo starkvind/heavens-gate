@@ -2846,3 +2846,41 @@ html {
     font-size: 12px;
     line-height: 1.45;
 }
+
+/* Mobile relationship avatars */
+.hg-mobile-relation-card {
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+}
+
+.hg-mobile-relation-avatar {
+    display: block;
+    width: 44px;
+    height: 44px;
+    overflow: hidden;
+    border: 1px solid var(--hg-mobile-border);
+    border-radius: 50%;
+    background: var(--hg-mobile-surface);
+}
+
+.hg-mobile-relation-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hg-mobile-relation-copy {
+    min-width: 0;
+}
+
+.hg-mobile-relation-copy > strong,
+.hg-mobile-relation-copy > span {
+    display: block;
+}
+
+.hg-mobile-relation-copy p {
+    margin: 6px 0 0;
+}
