@@ -285,7 +285,15 @@ Sus últimas versiones vivas permanecen recuperables en `archive/combat-simulato
 
 El baseline de cierre de la Fase 7 está documentado en [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md).
 
-## 15. Política documental
+## 15. Baseline arquitectónico de Fase 10
+
+La Fase 10 deja un contrato final protegido por `.github/ci/php-phase10-final-audit.py` además de sus guards especializados.
+
+El runtime público mantiene cero SQL directo en controladores públicos/móviles y cero lectura directa de GET/POST/REQUEST en esos controladores. La introspección de esquema está limitada a cuatro propietarios clasificados. `$_REQUEST` está prohibido. Los siete aliases históricos de route key viven exclusivamente en la frontera legacy y no forman parte del dispatch activo.
+
+Los techos globales de request y los inventarios de compatibilidad son límites de regresión, no objetivos de permanencia: pueden reducirse en cambios futuros, pero cualquier cambio de baseline debe ser explícito y revisado.
+
+## 16. Política documental
 
 Cuando cambie routing/dispatch:
 
