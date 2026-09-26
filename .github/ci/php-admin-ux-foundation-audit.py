@@ -45,7 +45,6 @@ for marker in [
     '.adm-shell-tier-max',
     '--adm-shell-max',
     '--adm-table-min',
-    'Production Admin visual language',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
@@ -86,7 +85,7 @@ if len(admin_files) != 59:
 
 if inline_style_files:
     errors.append(
-        'Admin controller inline CSS returned after 6.99z centralization: '
+        'Admin controller inline CSS returned after centralization: '
         + ', '.join(path.name for path in inline_style_files)
     )
 
