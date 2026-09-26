@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI PASS — Raspberry re-smoke pending after theme fix.**
+**CLOSED — CI PASS — Raspberry smoke PASS.**
 
 Branch: `php-refactor`.
 
@@ -134,13 +134,15 @@ Implementation checkpoint:
 - retired-games runtime guard: PASS;
 - architecture inventory reports 0 public SQL owners / 0 public SQL calls.
 
-## Closure gate
+## Closure
 
-Raspberry smoke must verify:
+Raspberry smoke passed after the mobile-theme correction:
 
-- custom 404 suggestions in Classic and at least one light theme;
-- Dice roller list/detail and rolling in Classic and at least one light theme;
-- Forum Avatar Builder in Classic and at least one light theme;
-- Forum Topic Viewer in Classic and at least one light theme;
-- Status no longer shows retired card-game metrics;
-- no new PHP/SQL errors.
+- custom 404: PASS;
+- Dice roller: PASS;
+- Forum Avatar Builder: PASS;
+- Forum Topic Viewer: PASS;
+- Status retired-game metrics removed: PASS;
+- no new PHP/SQL errors reported.
+
+Phase 10.1 is closed.
