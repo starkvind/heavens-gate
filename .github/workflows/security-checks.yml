@@ -30,6 +30,12 @@ jobs:
           find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l index.php
 
+      - name: Validate Phase 11.7 database cleanup runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/phase11_7_database_cleanup.sh
+
       - name: Guard CSS architecture
         shell: bash
         run: |
