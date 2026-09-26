@@ -1,24 +1,11 @@
 <?php
 http_response_code(404);
+require_once __DIR__ . '/../../domains/errors/queries.php';
 
 if (!function_exists('hg404_h')) {
     function hg404_h($value): string
     {
         return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('hg404_table_exists')) {
-    function hg404_table_exists(mysqli $link, string $table): bool
-    {
-        return in_array($table, [
-            'fact_characters',
-            'dim_chapters',
-            'dim_seasons',
-            'fact_gifts',
-            'fact_items',
-            'dim_item_types',
-        ], true);
     }
 }
 
@@ -130,156 +117,63 @@ $suggestions = [
 if (!$isSensitiveRequest && isset($link) && $link instanceof mysqli) {
     $limit = 6;
 
-    if (hg404_table_exists($link, 'fact_characters')) {
-        if ($countRs = $link->query("SELECT COUNT(*) AS total FROM fact_characters WHERE COALESCE(pretty_id, '') <> '' AND COALESCE(name, '') <> ''")) {
-            $countRow = $countRs->fetch_assoc();
-            $total = (int)($countRow['total'] ?? 0);
-            $countRs->close();
-
-            if ($total > 0) {
-                $offset = hg404_pick_offset($total, $limit, $requestPath . ':characters');
-                $sql = "
-                    SELECT
-                        id,
-                        name,
-                        alias,
-                        pretty_id
-                    FROM fact_characters
-                    WHERE COALESCE(pretty_id, '') <> ''
-                      AND COALESCE(name, '') <> ''
-                    ORDER BY name ASC, id ASC
-                    LIMIT {$limit} OFFSET {$offset}
-                ";
-                if ($rs = $link->query($sql)) {
-                    while ($row = $rs->fetch_assoc()) {
-                        $id = (int)($row['id'] ?? 0);
-                        $slug = (string)($row['pretty_id'] ?? $id);
-                        $meta = trim((string)($row['alias'] ?? ''));
-                        $href = function_exists('pretty_url')
-                            ? pretty_url($link, 'fact_characters', '/characters', $id)
-                            : '/characters/' . rawurlencode($slug);
-                        hg404_add_group_item($suggestions, 'Personajes', (string)($row['name'] ?? ''), $href, $meta);
-                    }
-                    $rs->close();
-                }
-            }
+    $totalCharacters = hg_error404_count_rows($link, 'fact_characters');
+    if ($totalCharacters > 0) {
+        $offset = hg404_pick_offset($totalCharacters, $limit, $requestPath . ':characters');
+        foreach (hg_error404_fetch_characters($link, $limit, $offset) as $row) {
+            $id = (int)($row['id'] ?? 0);
+            $slug = (string)($row['pretty_id'] ?? $id);
+            $meta = trim((string)($row['alias'] ?? ''));
+            $href = function_exists('pretty_url')
+                ? pretty_url($link, 'fact_characters', '/characters', $id)
+                : '/characters/' . rawurlencode($slug);
+            hg404_add_group_item($suggestions, 'Personajes', (string)($row['name'] ?? ''), $href, $meta);
         }
     }
 
-    if (hg404_table_exists($link, 'dim_chapters') && hg404_table_exists($link, 'dim_seasons')) {
-        if ($countRs = $link->query("SELECT COUNT(*) AS total FROM dim_chapters WHERE COALESCE(pretty_id, '') <> '' AND COALESCE(name, '') <> ''")) {
-            $countRow = $countRs->fetch_assoc();
-            $total = (int)($countRow['total'] ?? 0);
-            $countRs->close();
-
-            if ($total > 0) {
-                $offset = hg404_pick_offset($total, $limit, $requestPath . ':chapters');
-                $sql = "
-                    SELECT
-                        ch.id,
-                        ch.name,
-                        ch.pretty_id,
-                        ch.chapter_number,
-                        COALESCE(se.name, '') AS season_name
-                    FROM dim_chapters ch
-                    LEFT JOIN dim_seasons se ON se.id = ch.season_id
-                    WHERE COALESCE(ch.pretty_id, '') <> ''
-                      AND COALESCE(ch.name, '') <> ''
-                    ORDER BY COALESCE(se.season_number, 9999) ASC, ch.chapter_number ASC, ch.name ASC, ch.id ASC
-                    LIMIT {$limit} OFFSET {$offset}
-                ";
-                if ($rs = $link->query($sql)) {
-                    while ($row = $rs->fetch_assoc()) {
-                        $id = (int)($row['id'] ?? 0);
-                        $slug = (string)($row['pretty_id'] ?? $id);
-                        $meta = trim((string)($row['season_name'] ?? ''));
-                        $chapterNo = (int)($row['chapter_number'] ?? 0);
-                        if ($chapterNo > 0) {
-                            $meta .= ($meta !== '' ? ' · ' : '') . '#' . $chapterNo;
-                        }
-                        $href = function_exists('pretty_url')
-                            ? pretty_url($link, 'dim_chapters', '/chapters', $id)
-                            : '/chapters/' . rawurlencode($slug);
-                        hg404_add_group_item($suggestions, 'Capítulos', (string)($row['name'] ?? ''), $href, $meta);
-                    }
-                    $rs->close();
-                }
+    $totalChapters = hg_error404_count_rows($link, 'dim_chapters');
+    if ($totalChapters > 0) {
+        $offset = hg404_pick_offset($totalChapters, $limit, $requestPath . ':chapters');
+        foreach (hg_error404_fetch_chapters($link, $limit, $offset) as $row) {
+            $id = (int)($row['id'] ?? 0);
+            $slug = (string)($row['pretty_id'] ?? $id);
+            $meta = trim((string)($row['season_name'] ?? ''));
+            $chapterNo = (int)($row['chapter_number'] ?? 0);
+            if ($chapterNo > 0) {
+                $meta .= ($meta !== '' ? ' · ' : '') . '#' . $chapterNo;
             }
+            $href = function_exists('pretty_url')
+                ? pretty_url($link, 'dim_chapters', '/chapters', $id)
+                : '/chapters/' . rawurlencode($slug);
+            hg404_add_group_item($suggestions, 'Capítulos', (string)($row['name'] ?? ''), $href, $meta);
         }
     }
 
-    if (hg404_table_exists($link, 'fact_gifts')) {
-        if ($countRs = $link->query("SELECT COUNT(*) AS total FROM fact_gifts WHERE COALESCE(pretty_id, '') <> '' AND COALESCE(name, '') <> ''")) {
-            $countRow = $countRs->fetch_assoc();
-            $total = (int)($countRow['total'] ?? 0);
-            $countRs->close();
-
-            if ($total > 0) {
-                $offset = hg404_pick_offset($total, $limit, $requestPath . ':gifts');
-                $sql = "
-                    SELECT
-                        id,
-                        name,
-                        pretty_id,
-                        gift_group,
-                        rank
-                    FROM fact_gifts
-                    WHERE COALESCE(pretty_id, '') <> ''
-                      AND COALESCE(name, '') <> ''
-                    ORDER BY name ASC, id ASC
-                    LIMIT {$limit} OFFSET {$offset}
-                ";
-                if ($rs = $link->query($sql)) {
-                    while ($row = $rs->fetch_assoc()) {
-                        $id = (int)($row['id'] ?? 0);
-                        $slug = (string)($row['pretty_id'] ?? $id);
-                        $meta = trim((string)($row['gift_group'] ?? ''));
-                        $rank = (int)($row['rank'] ?? 0);
-                        if ($rank > 0) {
-                            $meta .= ($meta !== '' ? ' · ' : '') . 'Rango ' . $rank;
-                        }
-                        $href = '/powers/gift/' . rawurlencode($slug);
-                        hg404_add_group_item($suggestions, 'Dones', (string)($row['name'] ?? ''), $href, $meta);
-                    }
-                    $rs->close();
-                }
+    $totalGifts = hg_error404_count_rows($link, 'fact_gifts');
+    if ($totalGifts > 0) {
+        $offset = hg404_pick_offset($totalGifts, $limit, $requestPath . ':gifts');
+        foreach (hg_error404_fetch_gifts($link, $limit, $offset) as $row) {
+            $id = (int)($row['id'] ?? 0);
+            $slug = (string)($row['pretty_id'] ?? $id);
+            $meta = trim((string)($row['gift_group'] ?? ''));
+            $rank = (int)($row['rank'] ?? 0);
+            if ($rank > 0) {
+                $meta .= ($meta !== '' ? ' · ' : '') . 'Rango ' . $rank;
             }
+            $href = '/powers/gift/' . rawurlencode($slug);
+            hg404_add_group_item($suggestions, 'Dones', (string)($row['name'] ?? ''), $href, $meta);
         }
     }
 
-    if (hg404_table_exists($link, 'fact_items') && hg404_table_exists($link, 'dim_item_types')) {
-        if ($countRs = $link->query("SELECT COUNT(*) AS total FROM fact_items WHERE COALESCE(pretty_id, '') <> '' AND COALESCE(name, '') <> ''")) {
-            $countRow = $countRs->fetch_assoc();
-            $total = (int)($countRow['total'] ?? 0);
-            $countRs->close();
-
-            if ($total > 0) {
-                $offset = hg404_pick_offset($total, $limit, $requestPath . ':items');
-                $sql = "
-                    SELECT
-                        i.id,
-                        i.name,
-                        i.pretty_id,
-                        COALESCE(t.name, '') AS type_name,
-                        COALESCE(t.pretty_id, t.id) AS type_slug
-                    FROM fact_items i
-                    LEFT JOIN dim_item_types t ON t.id = i.item_type_id
-                    WHERE COALESCE(i.pretty_id, '') <> ''
-                      AND COALESCE(i.name, '') <> ''
-                    ORDER BY i.name ASC, i.id ASC
-                    LIMIT {$limit} OFFSET {$offset}
-                ";
-                if ($rs = $link->query($sql)) {
-                    while ($row = $rs->fetch_assoc()) {
-                        $id = (int)($row['id'] ?? 0);
-                        $itemSlug = (string)($row['pretty_id'] ?? $id);
-                        $typeSlug = (string)($row['type_slug'] ?? 'items');
-                        $href = '/inventory/' . rawurlencode($typeSlug) . '/' . rawurlencode($itemSlug);
-                        hg404_add_group_item($suggestions, 'Inventario', (string)($row['name'] ?? ''), $href, (string)($row['type_name'] ?? ''));
-                    }
-                    $rs->close();
-                }
-            }
+    $totalItems = hg_error404_count_rows($link, 'fact_items');
+    if ($totalItems > 0) {
+        $offset = hg404_pick_offset($totalItems, $limit, $requestPath . ':items');
+        foreach (hg_error404_fetch_items($link, $limit, $offset) as $row) {
+            $id = (int)($row['id'] ?? 0);
+            $itemSlug = (string)($row['pretty_id'] ?? $id);
+            $typeSlug = (string)($row['type_slug'] ?? 'items');
+            $href = '/inventory/' . rawurlencode($typeSlug) . '/' . rawurlencode($itemSlug);
+            hg404_add_group_item($suggestions, 'Inventario', (string)($row['name'] ?? ''), $href, (string)($row['type_name'] ?? ''));
         }
     }
 }
