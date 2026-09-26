@@ -108,6 +108,8 @@ def main() -> None:
             totals[key] += row[key]
 
     legacy_count, legacy_cases = route_case_count(ROOT / "app/routing/legacy_query.php")
+    legacy_case_counts = Counter(legacy_cases)
+    legacy_duplicates = sorted(name for name, count in legacy_case_counts.items() if count > 1)
 
     print("# PHP architecture inventory")
     print()
@@ -125,6 +127,10 @@ def main() -> None:
 
     print("## Routing compatibility concentration")
     print(f"legacy_query.php case labels: {legacy_count}")
+    print(f"legacy_query.php unique case labels: {len(legacy_case_counts)}")
+    print(f"legacy_query.php duplicate case labels: {len(legacy_duplicates)}")
+    if legacy_duplicates:
+        print("duplicate legacy cases: " + ", ".join(legacy_duplicates))
     if legacy_cases:
         print("legacy cases: " + ", ".join(legacy_cases[:40]) + (" ..." if len(legacy_cases) > 40 else ""))
     print()
