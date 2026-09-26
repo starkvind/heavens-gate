@@ -15,12 +15,15 @@ mobile_php = sorted(mobile_root.rglob("*.php"))
 # Presentation behavior belongs in owned JS assets, not executable inline blocks.
 inline_script = re.compile(r"<script\b(?![^>]*\bsrc\s*=)(?![^>]*\btype\s*=\s*['\"]application/json['\"])[^>]*>", re.I)
 inline_handler = re.compile(r"\son[a-z]+\s*=", re.I)
+inline_style = re.compile(r"<style\b", re.I)
 for path in mobile_php:
     source = path.read_text(encoding="utf-8", errors="replace")
     if inline_script.search(source):
         errors.append(f"inline executable script in mobile PHP: {path.relative_to(ROOT)}")
     if inline_handler.search(source):
         errors.append(f"inline event handler in mobile PHP: {path.relative_to(ROOT)}")
+    if inline_style.search(source):
+        errors.append(f"inline style block in mobile PHP: {path.relative_to(ROOT)}")
 
 # The interaction-heavy pages now have explicit controller/view boundaries.
 view_pairs = {
@@ -68,6 +71,7 @@ print("# PHP Phase 9.3 mobile presentation contract")
 print(f"mobile_php_files: {len(mobile_php)}")
 print("inline_executable_scripts: 0")
 print("inline_event_handlers: 0")
+print("inline_style_blocks: 0")
 print("thin_mobile_controllers: gallery, search, soundtrack")
 print("mobile_interaction_asset: assets/js/hg-mobile.js")
 
