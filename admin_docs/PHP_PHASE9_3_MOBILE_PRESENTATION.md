@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI validation pending at final branch HEAD — Raspberry smoke pending.**
+**IMPLEMENTED — CI PASS — Raspberry smoke pending.**
 
 Branch: `php-refactor`.
 
@@ -82,3 +82,15 @@ Phase 9.3 does not:
 - add offline caching.
 
 PWA work remains the next Phase 9 step after production smoke closes 9.3.
+
+
+## Validation checkpoint
+
+Implementation CI is green:
+
+- PHP Refactor Characterization: PASS;
+- Project CI: PASS;
+- Phase 9.2 shared-data guard: PASS;
+- Phase 9.3 presentation guard: PASS.
+
+Raspberry smoke remains the production closure gate.
