@@ -34,7 +34,7 @@ Este documento es un **mapa mantenible**, no una copia literal del dump.
 
 ## Tabla auxiliar
 
-`admin_webp_image_migration_backup` conserva el histórico de la migración de rutas de imagen a WebP. No forma parte del modelo editorial normal.
+`admin_webp_image_migration_backup` conserva un histórico auxiliar de la conversión de rutas de imagen a WebP. No forma parte del modelo editorial normal.
 
 ## Vistas
 
@@ -158,7 +158,7 @@ Relaciones de personajes relevantes:
 - `bridge_characters_organizations`;
 - `bridge_characters_org`.
 
-La convivencia de más de una representación de afiliación es deliberadamente tratada como área de migración/compatibilidad; no eliminar una de ellas solo por el nombre.
+La convivencia de más de una representación de afiliación se trata como compatibilidad histórica; no eliminar una de ellas solo por el nombre.
 
 ## Pretty IDs
 
@@ -204,5 +204,4 @@ Antes de alterar el esquema:
 - generar un snapshot nuevo después del cambio;
 - actualizar este documento con la nueva fecha de producción.
 
-`admin_docs/bdd_structure.txt` no sustituye esta referencia.
 
