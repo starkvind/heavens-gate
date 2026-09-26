@@ -1,6 +1,6 @@
 # Documentación técnica de Heaven's Gate
 
-Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiembre de 2026 se distingue entre **documentación viva** y **registros históricos de migración** para evitar que notas de una fase antigua se interpreten como arquitectura vigente.
+Esta carpeta reúne la documentación vigente para mantener la aplicación web.
 
 ## Documentación viva
 
@@ -8,38 +8,20 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 |---|---|
 | [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) | Arquitectura actual, routing, modelo de datos y criterios de mantenimiento. |
 | [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md) | Diccionario humano de route keys, URLs canónicas, aliases legacy, controladores, APIs, embeds y compatibilidad móvil. |
-| [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Referencia del esquema de producción derivada del snapshot del 1 de septiembre de 2026. |
-| [CSS_ARCHITECTURE.md](./CSS_ARCHITECTURE.md) | Capas CSS, propiedad de estilos, convención `hg-*` y estrategia de migración de nombres legacy. |
+| [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Referencia del esquema de producción derivada del snapshot de producción vigente. |
+| [CSS_ARCHITECTURE.md](./CSS_ARCHITECTURE.md) | Capas CSS, propiedad de estilos y convención `hg-*`. |
 | [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md) | Inventario de scripts y herramientas, cómo ejecutarlos y qué riesgos tienen. |
 | [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md) | Convenciones para crear o mantener módulos de `/talim`. |
 | [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md) | Cómo añadir una sección pública y cómo usar `tools/scaffold_section.py`. |
-| [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md) | Baseline arquitectónico al cierre de la Fase 7, deuda aceptada y techos de regresión. |
-| [PHP_PHASE10_5_FINAL_GUARDS.md](./PHP_PHASE10_5_FINAL_GUARDS.md) | Contrato arquitectónico final de la Fase 10 y guards permanentes de SQL, esquema, request-state y aliases legacy. |
-| [PHP_PHASE11_RELEASE_CANDIDATE.md](./PHP_PHASE11_RELEASE_CANDIDATE.md) | Estado del Release Candidate, reconciliación de ramas, freeze de alcance y puertas de validación de Fase 11. |
-| [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md) | Smoke final de Raspberry: harness automatizado y comprobaciones manuales antes de consolidar en `master`. |
-| [PHP_PHASE11_INTEGRATION_AUDIT.md](./PHP_PHASE11_INTEGRATION_AUDIT.md) | Auditoría final de integración, contratos preservados y frontera de autorización antes de tocar `master`. |
-| [PHP_PHASE11_4_RELEASE_SIGNOFF.md](./PHP_PHASE11_4_RELEASE_SIGNOFF.md) | Sign-off del Release Candidate tras CI y smoke verdes; deja 11.5 preparado pero bloqueado por autorización expresa. |
 
-## Registros históricos
-
-Los ficheros `migration_manifest_*` y `migration_manifest_worlds_20260901.csv` documentan decisiones y operaciones de la migración de continuidad iniciada en septiembre de 2026. Son válidos como **registro de aquella migración**, no como descripción general del runtime.
-
-`bdd_structure.txt` se conserva por compatibilidad documental con esos manifiestos. Su contenido original refleja una instantánea antigua y no debe utilizarse para conocer el esquema actual. La referencia vigente es [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
-
-Los antiguos `ADD_SECTION_GUIDE.html` y `admin_maintenance_guide.txt` se mantienen como puntos de entrada heredados y remiten a sus sustitutos en Markdown.
-
-El Simulador de Combate y el Archivo de Mnemógeno fueron retirados por completo del runtime en septiembre de 2026. Sus últimas versiones vivas permanecen recuperables en `archive/combat-simulator-last-live` y `archive/game-cards-last-live`.
+Los antiguos `ADD_SECTION_GUIDE.html` y `admin_maintenance_guide.txt` se mantienen únicamente como puntos de entrada heredados hacia sus sustitutos actuales.
 
 ## Fuente de verdad
 
 Para arquitectura y comportamiento, manda el código de la rama activa.
 
-Para routing, `ROUTE_DICTIONARY.md` es el mapa humano, pero las fuentes ejecutables siguen siendo `app/routing/path_matcher.php`, `app/routing/routes.php`, `app/http/dispatcher.php` y la capa legacy que permanezca activa durante el refactor.
+Para routing, `ROUTE_DICTIONARY.md` es el mapa humano, pero las fuentes ejecutables siguen siendo `app/routing/path_matcher.php`, `app/routing/routes.php`, `app/http/dispatcher.php` y la capa de compatibilidad legacy.
 
-Para la estructura de producción, la referencia utilizada en esta revisión es:
+Para la estructura de producción, la referencia mantenida es [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md), contrastada con el snapshot de producción conservado fuera del runtime público.
 
-`starkvind/heavens-gate-continuity/snapshots/web/database/production-2026-09-01.sql`
-
-El snapshot fue completado el **1 de septiembre de 2026 a las 23:36:12** y corresponde a **MariaDB 10.5.29**.
-
-Cuando código, documentación histórica y snapshot discrepen, no se debe mezclar información: hay que comprobar primero qué capa se está documentando.
+Cuando código y documentación discrepen, debe comprobarse primero el código ejecutable y actualizar después la documentación viva.
