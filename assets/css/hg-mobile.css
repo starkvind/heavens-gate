@@ -847,6 +847,48 @@ html {
     gap: 8px !important;
 }
 
+/* Theme bridge for desktop-owned tools embedded in the mobile shell.
+ * Page styles are registered after hg-mobile.css, so these selectors stay
+ * deliberately more specific and keep the active mobile theme authoritative. */
+.hg-mobile-tool .hg-dice-title {
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-tool .hg-dice-label,
+.hg-mobile-tool .hg-dice-total,
+.hg-mobile-tool .hg-dice-check,
+.hg-mobile-tool .hg-roll-head,
+.hg-mobile-tool .hg-roll-result {
+    color: var(--hg-mobile-text) !important;
+}
+
+.hg-mobile-tool .hg-dice-help,
+.hg-mobile-tool .hg-dice-note,
+.hg-mobile-tool .hg-last-rolls-name {
+    color: var(--hg-mobile-muted) !important;
+}
+
+.hg-mobile-tool .hg-roll-link,
+.hg-mobile-tool .hg-dice-tab-btn {
+    color: var(--hg-mobile-link) !important;
+}
+
+.hg-mobile-tool .hg-dice-tab-btn.active {
+    background: var(--hg-mobile-bg) !important;
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-link) !important;
+}
+
+.hg-mobile-tool .hg-roll-code code,
+.hg-mobile-tool .hg-avatar-tool-code-wrap code {
+    color: var(--hg-mobile-text) !important;
+}
+
+.hg-mobile-tool .hg-avatar-tool-color-dot {
+    border-color: var(--hg-mobile-border) !important;
+}
+
 .hg-mobile-tool .hg-roll-code,
 .hg-mobile-tool .hg-avatar-tool-code-wrap,
 .hg-mobile-tool .hgfv-query-box {
@@ -936,62 +978,133 @@ html {
         grid-template-columns: minmax(0, 1fr) !important;
     }
 }
-/* Forum viewer keeps desktop white skin */
-.hg-mobile-forum-viewer-tool,
-.hg-mobile-forum-viewer-tool .hgfv-root,
+/* Forum viewer follows the active mobile theme. The embedded forum message
+ * and dice palettes keep their own contrast logic; only the viewer chrome is
+ * remapped here. */
+.hg-mobile-forum-viewer-tool {
+    color: var(--hg-mobile-text) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-root {
+    --bg: var(--hg-mobile-bg);
+    --card: var(--hg-mobile-surface);
+    --ink: var(--hg-mobile-text);
+    --muted: var(--hg-mobile-muted);
+    --line: var(--hg-mobile-border);
+    --accent: var(--hg-mobile-link);
+    --accent-2: var(--hg-mobile-link);
+    background: transparent !important;
+    color: var(--hg-mobile-text) !important;
+}
+
 .hg-mobile-forum-viewer-tool .hgfv-wrap {
-    background: #ffffff !important;
-    color: #1f2430 !important;
+    background: transparent !important;
+    color: var(--hg-mobile-text) !important;
 }
 
 .hg-mobile-forum-viewer-tool .hgfv-panel,
-.hg-mobile-forum-viewer-tool .hgfv-message,
-.hg-mobile-forum-viewer-tool .hgfv-toc {
-    background: #ffffff !important;
-    color: #1f2430 !important;
-    border-color: #d8dbe8 !important;
+.hg-mobile-forum-viewer-tool .hgfv-message {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-toc,
+.hg-mobile-forum-viewer-tool .hgfv-topic-browser,
+.hg-mobile-forum-viewer-tool .hgfv-select-block,
+.hg-mobile-forum-viewer-tool .hgfv-query-box,
+.hg-mobile-forum-viewer-tool .hgfv-body blockquote,
+.hg-mobile-forum-viewer-tool .hg-bb-spoiler,
+.hg-mobile-forum-viewer-tool .hg-bb-spoiler-body {
+    background: var(--hg-mobile-bg) !important;
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-topic-card,
+.hg-mobile-forum-viewer-tool .hgfv-toc-list a,
+.hg-mobile-forum-viewer-tool .hgfv-copy-btn,
+.hg-mobile-forum-viewer-tool .hgfv-forum-link,
+.hg-mobile-forum-viewer-tool .hgfv-toc-toggle,
+.hg-mobile-forum-viewer-tool .hgfv-jump-nav button {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-link) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-topic-card:hover,
+.hg-mobile-forum-viewer-tool .hgfv-topic-card:focus,
+.hg-mobile-forum-viewer-tool .hgfv-toc-list a:hover,
+.hg-mobile-forum-viewer-tool .hgfv-toc-list a:focus,
+.hg-mobile-forum-viewer-tool .hgfv-copy-btn:hover,
+.hg-mobile-forum-viewer-tool .hgfv-copy-btn:focus,
+.hg-mobile-forum-viewer-tool .hgfv-forum-link:hover,
+.hg-mobile-forum-viewer-tool .hgfv-forum-link:focus,
+.hg-mobile-forum-viewer-tool .hgfv-toc-toggle:hover,
+.hg-mobile-forum-viewer-tool .hgfv-toc-toggle:focus,
+.hg-mobile-forum-viewer-tool .hgfv-jump-nav button:hover,
+.hg-mobile-forum-viewer-tool .hgfv-jump-nav button:focus {
+    background: var(--hg-mobile-bg) !important;
+    border-color: var(--hg-mobile-link) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-topic-card.is-current {
+    background: var(--hg-mobile-bg) !important;
+    border-color: var(--hg-mobile-link) !important;
+    box-shadow: inset 0 0 0 1px var(--hg-mobile-link) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-top h1,
+.hg-mobile-forum-viewer-tool .hgfv-message h2,
+.hg-mobile-forum-viewer-tool .hgfv-toc h2,
+.hg-mobile-forum-viewer-tool .hgfv-body,
+.hg-mobile-forum-viewer-tool .hgfv-toc-title,
+.hg-mobile-forum-viewer-tool .hgfv-topic-card-title {
+    color: var(--hg-mobile-text) !important;
 }
 
 .hg-mobile-forum-viewer-tool .hgfv-thread-head,
-.hg-mobile-forum-viewer-tool .hgfv-body,
 .hg-mobile-forum-viewer-tool .hgfv-meta,
-.hg-mobile-forum-viewer-tool .hgfv-toc-list,
-.hg-mobile-forum-viewer-tool .hgfv-toc-title,
-.hg-mobile-forum-viewer-tool .hgfv-toc-meta {
-    color: #1f2430 !important;
+.hg-mobile-forum-viewer-tool .hgfv-toc-meta,
+.hg-mobile-forum-viewer-tool .hgfv-topic-card-meta,
+.hg-mobile-forum-viewer-tool .hgfv-topic-group-title,
+.hg-mobile-forum-viewer-tool .hgfv-select-help,
+.hg-mobile-forum-viewer-tool .hgfv-topic-empty,
+.hg-mobile-forum-viewer-tool .hgfv-copy-status,
+.hg-mobile-forum-viewer-tool .hgfv-root .bb-quote-head {
+    color: var(--hg-mobile-muted) !important;
 }
 
 .hg-mobile-forum-viewer-tool a,
 .hg-mobile-forum-viewer-tool .hgfv-body a {
-    color: #1840a4 !important;
+    color: var(--hg-mobile-link) !important;
 }
 
 .hg-mobile-forum-viewer-tool input[type="text"],
+.hg-mobile-forum-viewer-tool input[type="search"],
 .hg-mobile-forum-viewer-tool input[type="number"],
 .hg-mobile-forum-viewer-tool select,
 .hg-mobile-forum-viewer-tool .hgfv-form-row input,
-.hg-mobile-forum-viewer-tool .hgfv-form-row select {
-    background: #ffffff !important;
-    color: #1f2430 !important;
-    border-color: #b8bfd6 !important;
+.hg-mobile-forum-viewer-tool .hgfv-form-row select,
+.hg-mobile-forum-viewer-tool .hgfv-topic-search {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-border) !important;
 }
 
 .hg-mobile-forum-viewer-tool button,
 .hg-mobile-forum-viewer-tool .hgfv-form-row button,
 .hg-mobile-forum-viewer-tool .hgfv-copy-btn,
-.hg-mobile-forum-viewer-tool .hgfv-toc-toggle {
-    background: #f6f7fb !important;
-    color: #1840a4 !important;
-    border-color: #b8bfd6 !important;
+.hg-mobile-forum-viewer-tool .hgfv-toc-toggle,
+.hg-mobile-forum-viewer-tool .hgfv-jump-nav button {
+    color: var(--hg-mobile-link) !important;
+    border-color: var(--hg-mobile-border) !important;
 }
 
-.hg-mobile-forum-viewer-tool .hgfv-query-box,
-.hg-mobile-forum-viewer-tool .hgfv-body blockquote,
-.hg-mobile-forum-viewer-tool .hg-bb-spoiler,
-.hg-mobile-forum-viewer-tool .hg-bb-spoiler-body {
-    background: #f6f7fb !important;
-    color: #1f2430 !important;
-    border-color: #d8dbe8 !important;
+.hg-mobile-forum-viewer-tool .hgfv-root .hg-bb-spoiler > summary {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-link) !important;
+    border-color: var(--hg-mobile-border) !important;
 }
 
 .hg-mobile-back-top {
@@ -1014,6 +1127,108 @@ html {
 
 .hg-mobile-back-top.is-visible {
     display: grid;
+}
+
+/* The mobile fallback dispatches the desktop 404 controller. Rebind its
+ * classic-only presentation to mobile theme tokens instead of inheriting the
+ * archived dark palette. */
+.hg-mobile-content .hg404-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto 1.5rem !important;
+    padding: 0 !important;
+    color: var(--hg-mobile-text) !important;
+}
+
+.hg-mobile-content .hg404-hero {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-text) !important;
+    border: 1px solid var(--hg-mobile-border) !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+}
+
+.hg-mobile-content .hg404-hero::before,
+.hg-mobile-content .hg404-media::before {
+    display: none !important;
+}
+
+.hg-mobile-content .hg404-hero .power-card__banner {
+    margin-bottom: 10px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.hg-mobile-content .hg404-hero .power-card__title,
+.hg-mobile-content .hg404-lead,
+.hg-mobile-content .hg404-hero .power-stat__value {
+    color: var(--hg-mobile-text) !important;
+}
+
+.hg-mobile-content .hg404-media,
+.hg-mobile-content .hg404-hero .power-stat {
+    background: var(--hg-mobile-bg) !important;
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-border) !important;
+    box-shadow: none !important;
+}
+
+.hg-mobile-content .hg404-hero .power-stat {
+    padding: 8px 10px !important;
+    border: 1px solid var(--hg-mobile-border) !important;
+    border-radius: 6px !important;
+}
+
+.hg-mobile-content .hg404-code {
+    color: var(--hg-mobile-text) !important;
+    text-shadow: none !important;
+}
+
+.hg-mobile-content .hg404-hero .power-stat__label,
+.hg-mobile-content .hg404-item__meta {
+    color: var(--hg-mobile-muted) !important;
+}
+
+.hg-mobile-content .hg404-kicker,
+.hg-mobile-content .hg404-group-title {
+    color: var(--hg-mobile-link) !important;
+}
+
+.hg-mobile-content .hg404-kicker {
+    background: var(--hg-mobile-bg) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-content .hg404-links .boton2,
+.hg-mobile-content .hg404-item {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-link) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-content .hg404-links .boton2:hover,
+.hg-mobile-content .hg404-item:hover {
+    background: var(--hg-mobile-bg) !important;
+    color: var(--hg-mobile-link) !important;
+    border-color: var(--hg-mobile-link) !important;
+}
+
+.hg-mobile-content .hg404-sheet fieldset.bioSeccion {
+    background: var(--hg-mobile-surface) !important;
+    color: var(--hg-mobile-text) !important;
+    border: 1px solid var(--hg-mobile-border) !important;
+    border-radius: 7px !important;
+}
+
+.hg-mobile-content .hg404-sheet legend {
+    color: var(--hg-mobile-text) !important;
+    border-color: var(--hg-mobile-border) !important;
+}
+
+.hg-mobile-content .hg404-item__title {
+    color: var(--hg-mobile-text) !important;
 }
 /* Mobile global search */
 .hg-mobile-search-form {
