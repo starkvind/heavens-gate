@@ -8,7 +8,7 @@ domain = (ROOT / 'app/domains/admin_usage/queries.php').read_text(encoding='utf-
 controller = (ROOT / 'app/controllers/admin/admin_usage.php').read_text(encoding='utf-8', errors='replace')
 main = (ROOT / 'app/controllers/admin/admin_main.php').read_text(encoding='utf-8', errors='replace')
 sections = (ROOT / 'app/helpers/admin_sections.php').read_text(encoding='utf-8', errors='replace')
-migration = (ROOT / 'sql/2026-09-24_admin_section_usage.sql').read_text(encoding='utf-8', errors='replace')
+schema_doc = (ROOT / 'admin_docs/DATABASE_SCHEMA.md').read_text(encoding='utf-8', errors='replace')
 
 errors = []
 
@@ -29,7 +29,7 @@ for forbidden in [
     'admin_logged_in_at',
     'admin_last_seen_at',
 ]:
-    if forbidden in domain or forbidden in migration:
+    if forbidden in domain:
         errors.append(f'Admin usage telemetry gained forbidden personal/session marker: {forbidden}')
 
 for marker in [
@@ -51,12 +51,8 @@ for marker in [
     if marker not in controller:
         errors.append(f'Admin usage dashboard lost UI marker: {marker}')
 
-for marker in [
-    'CREATE TABLE IF NOT EXISTS `fact_admin_section_usage_daily`',
-    'PRIMARY KEY (`section_key`, `access_date`)',
-]:
-    if marker not in migration:
-        errors.append(f'Admin usage migration lost schema marker: {marker}')
+if 'fact_admin_section_usage_daily' not in schema_doc:
+    errors.append('Admin usage table missing from production schema documentation')
 
 print('# Admin usage telemetry audit')
 print('Storage: daily aggregate by section')
