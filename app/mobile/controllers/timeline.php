@@ -1,7 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
-include_once(__DIR__ . '/../helpers/chronicle_scope.php');
+require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 include_once(__DIR__ . '/../../domains/timeline/queries.php');
 
 $metaTitle = "Línea temporal | Heaven's Gate";
