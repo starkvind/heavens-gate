@@ -154,6 +154,7 @@ if ($type === 2) {
                 <?php endif; ?>
                 <span class="hg-mobile-copy-status" data-mobile-copy-organization-status aria-live="polite"></span>
             </div>
+            <textarea hidden data-mobile-organization-json><?= hg_mobile_ogd_h($markdownJson ?: '{}') ?></textarea>
         </section>
 
         <?php if (trim(strip_tags((string)($item['description'] ?? ''))) !== ''): ?>
@@ -190,79 +191,7 @@ if ($type === 2) {
             </section>
         <?php endif; ?>
     </article>
-    <script>
-    (function () {
-        var button = document.querySelector('[data-mobile-copy-organization]');
-        var status = document.querySelector('[data-mobile-copy-organization-status]');
-        var data = <?= $markdownJson ?: '{}' ?>;
-        if (!button || !data) return;
-
-        function text(html) {
-            var node = document.createElement('div');
-            node.innerHTML = html || '';
-            return node.innerText.replace(/\n{3,}/g, '\n\n').trim();
-        }
-
-        function characterLines(character) {
-            var lines = ['- **Nombre completo:** ' + String(character.name || '')];
-            var alias = String(character.alias || '').trim();
-            var garouName = String(character.garou_name || '').trim();
-            var description = text(character.description);
-            var state = String(character.status || '').trim();
-            if (alias) lines.push('  - **Alias:** ' + alias);
-            if (garouName) lines.push('  - **Nombre Garou:** ' + garouName);
-            if (description) lines.push('  - **Descripción:** ' + description.replace(/\n/g, '\n    '));
-            if (state && state.toLocaleLowerCase() !== 'en activo') lines.push('  - [' + state + ']');
-            return lines;
-        }
-
-        function build() {
-            var lines = ['# ' + data.name];
-            var description = text(data.description);
-            if (description) lines.push('', description);
-            if (data.members.length) {
-                lines.push('', '## Miembros sin grupo asociado', '');
-                data.members.forEach(function (character) { lines = lines.concat(characterLines(character)); });
-            }
-            if (data.groups.length) {
-                lines.push('', '## Grupos');
-                data.groups.forEach(function (group) {
-                    lines.push('', '### ' + group.name);
-                    var groupDescription = text(group.description);
-                    if (groupDescription) lines.push('', groupDescription);
-                    if (group.members.length) {
-                        lines.push('', '#### Miembros', '');
-                        group.members.forEach(function (character) { lines = lines.concat(characterLines(character)); });
-                    }
-                });
-            }
-            return lines.join('\n').trim();
-        }
-
-        function copy(value) {
-            if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(value);
-            var area = document.createElement('textarea');
-            area.value = value;
-            area.style.position = 'fixed';
-            area.style.left = '-9999px';
-            document.body.appendChild(area);
-            area.select();
-            var copied = document.execCommand('copy');
-            document.body.removeChild(area);
-            return copied ? Promise.resolve() : Promise.reject();
-        }
-
-        button.addEventListener('click', function () {
-            copy(build()).then(function () {
-                status.textContent = 'Markdown copiado al portapapeles.';
-                status.className = 'hg-mobile-copy-status is-ok';
-            }).catch(function () {
-                status.textContent = 'No se pudo copiar automáticamente.';
-                status.className = 'hg-mobile-copy-status is-error';
-            });
-        });
-    })();
-    </script>
+    
     <?php
     return;
 }
