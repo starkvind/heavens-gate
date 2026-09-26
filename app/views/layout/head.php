@@ -37,7 +37,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.webp">
     <link rel="icon" type="image/webp" sizes="32x32" href="/img/favicon/favicon-32x32.webp">
     <link rel="icon" type="image/webp" sizes="16x16" href="/img/favicon/favicon-16x16.webp">
-    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="manifest" href="/manifest.json">
 
     <?php
         $tokensCssVersion = @filemtime($hgAssetRoot . '/css/hg-tokens.css');
