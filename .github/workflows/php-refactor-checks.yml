@@ -39,6 +39,9 @@ jobs:
       - name: Audit public request globals
         run: python3 .github/ci/php-public-request-state-audit.py
 
+      - name: Audit Phase 10.3 classified request state
+        run: python3 .github/ci/php-phase10-request-state-audit.py
+
       - name: Audit extracted domain query boundaries
         run: python3 .github/ci/php-domain-query-boundary-audit.py
 
