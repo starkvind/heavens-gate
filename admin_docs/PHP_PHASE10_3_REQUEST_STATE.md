@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI PASS — Raspberry smoke pending.**
+**CLOSED — CI PASS — Raspberry smoke accepted.**
 
 Branch: `php-refactor`.
 
@@ -116,16 +116,10 @@ Implementation checkpoint:
 - PHP Refactor Characterization: PASS;
 - Project CI: PASS.
 
-## Closure gate
+## Closure
 
-Raspberry smoke should verify:
+The phase was accepted and the refactor proceeded to the next stage without a reported request-state regression.
 
-- Admin main page/login still works;
-- Maneuvers page loads and switching the selected maneuver works;
-- saving the currently displayed maneuver links still succeeds;
-- desktop theme preference still survives navigation/reload;
-- mobile view/theme preference still survives navigation/reload;
-- database inspector still loads through Admin;
-- no new PHP warnings/errors.
+The desktop-theme smoke also exposed that desktop theming is residual/incomplete rather than a current UX feature; that follow-up is documented separately as post-refactor design work.
 
-No broad Admin CRUD retest is required because the form controllers themselves were not rewritten.
+Phase 10.3 is closed.
