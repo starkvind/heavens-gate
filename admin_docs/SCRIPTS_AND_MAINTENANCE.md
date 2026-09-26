@@ -14,7 +14,7 @@ Antes de ejecutar una herramienta que escriba en base de datos:
 2. comprobar que `config.env` apunta al entorno correcto;
 3. usar `--dry-run` cuando la herramienta lo soporte;
 4. revisar el resultado con `/talim?s=admin_inspect_db` o con consultas de auditoría;
-5. no ejecutar herramientas de migración histórica por intuición.
+5. no ejecutar herramientas retiradas o históricas por intuición.
 
 ## Configuración compartida
 
@@ -49,7 +49,7 @@ php app/tools/backfill_content_updates.php 100 --dry-run
 
 El límite por defecto es 100 y el script acepta como máximo 1000 filas. `--dry-run` permite inspeccionar sin escribir.
 
-No es una migración de esquema.
+No cambia el esquema.
 
 ### `tools/scaffold_section.py`
 
@@ -78,28 +78,6 @@ No sirve para rutas de detalle con `pretty_id`, CRUD complejos ni para decidir a
 
 Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
-### `tools/phase11_smoke.sh`
-
-Smoke HTTP de solo lectura para el cierre de la Fase 11.
-
-Comprueba hubs públicos, compatibilidad móvil explícita, shell de Admin sin mutaciones, superficies PWA, embed de foro, canonicalización legacy, bloqueo de árboles privados y cabeceras de caché dinámica.
-
-Uso en Raspberry:
-
-~~~bash
-git switch php-refactor
-git pull --ff-only
-bash tools/phase11_smoke.sh
-~~~
-
-Puede apuntarse a otro host mediante `HG_BASE_URL`:
-
-~~~bash
-HG_BASE_URL=https://naufragio-heavensgate.duckdns.org bash tools/phase11_smoke.sh
-~~~
-
-El script no escribe en base de datos ni modifica canon. Es la parte automatizada del smoke; las comprobaciones visuales/manuales están documentadas en [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md).
-
 ## Herramientas administrativas
 
 Las herramientas internas de inspección y mantenimiento se ejecutan exclusivamente dentro del backend autenticado o mediante CLI. El repositorio público no documenta rutas privilegiadas concretas.
@@ -120,7 +98,7 @@ La existencia física de un fichero en `app/tools` **no implica** que tenga una 
 
 ### Operaciones de esquema
 
-Las operaciones que cambian estructura o realizan migraciones destructivas no se exponen como rutas web. Deben ejecutarse mediante un flujo de mantenimiento controlado y fuera del runtime público.
+Las operaciones que cambian estructura de datos no se exponen como rutas web. Deben ejecutarse mediante un flujo de mantenimiento controlado y fuera del runtime público.
 
 ## Herramientas auxiliares no enrutadas
 
