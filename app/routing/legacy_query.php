@@ -49,18 +49,36 @@ function hg_request_router_allowed_query(array $query, array $allowed): string
     return hg_request_router_query($filtered);
 }
 
+function hg_request_router_public_aliases(): array
+{
+    return [
+        'bio_chronicles' => 'chronicles',
+        'listaobj' => 'inv',
+        'seeitem' => 'verobj',
+        'dones' => 'listadones',
+        'rites' => 'ritelist',
+        'totems' => 'listatotems',
+        'imgz' => 'gallery',
+    ];
+}
+
+function hg_request_router_canonical_legacy_route(string $route): string
+{
+    $aliases = hg_request_router_public_aliases();
+    return $aliases[$route] ?? $route;
+}
+
 function hg_request_router_forum_embed_query(string $route, array $query): string
 {
-    switch ($route) {
-        case 'forum_message':
-            return hg_request_router_allowed_query($query, ['id', 'palette', 'msg']);
-        case 'forum_diceroll':
-            return hg_request_router_allowed_query($query, ['id', 'palette']);
-        case 'forum_item':
-            return hg_request_router_allowed_query($query, ['id']);
-        default:
-            return '';
-    }
+    $allowedByRoute = [
+        'forum_message' => ['id', 'palette', 'msg'],
+        'forum_diceroll' => ['id', 'palette'],
+        'forum_item' => ['id'],
+    ];
+
+    return isset($allowedByRoute[$route])
+        ? hg_request_router_allowed_query($query, $allowedByRoute[$route])
+        : '';
 }
 
 function hg_request_router_current_pretty_or_raw(mysqli $link, string $table, string $value): string
@@ -188,7 +206,7 @@ function hg_request_router_inventory_item_path(mysqli $link, string $itemValue):
 
 function hg_request_router_path_from_query(mysqli $link, array $query): ?string
 {
-    $route = trim((string)($query['p'] ?? ''));
+    $route = hg_request_router_canonical_legacy_route(trim((string)($query['p'] ?? '')));
     if ($route === '') {
         return null;
     }
@@ -217,7 +235,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'nebula_groups' => '/relationship-map/groups',
         'players' => '/players',
         'listadocs' => '/documents',
-        'listaobj' => '/inventory',
         'listasistemas' => '/systems',
         'rules' => '/rules',
         'listarasgos' => '/rules/traits',
@@ -227,15 +244,12 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'maneuver' => '/rules/maneuvers',
         'arquetip' => '/rules/archetypes',
         'powers' => '/powers',
-        'dones' => '/powers/gifts',
         'listadones' => '/powers/gifts',
         'fulldon' => '/powers/gifts/full',
         'customdon' => '/powers/gifts/custom',
-        'rites' => '/powers/rites',
         'ritelist' => '/powers/rites',
         'fullrite' => '/powers/rites/full',
         'customrite' => '/powers/rites/custom',
-        'totems' => '/powers/totems',
         'listatotems' => '/powers/totems',
         'fulltotem' => '/powers/totems/full',
         'customtotem' => '/powers/totems/custom',
@@ -244,7 +258,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         'customdisc' => '/powers/disciplines/custom',
         'ost' => '/music',
         'gallery' => '/gallery',
-        'imgz' => '/gallery',
         'maps' => '/maps',
         'dados' => '/tools/dice',
         'csp' => '/tools/csp',
@@ -286,7 +299,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
             $orgValue = isset($query['org']) ? (string)$query['org'] : (string)($query['b'] ?? 'justicia-metalica');
             return '/organizations/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'dim_organizations', $orgValue)) . '/org-chart';
         case 'chronicles':
-        case 'bio_chronicles':
             if (!isset($query['t'])) return '/chronicles';
             return '/chronicles/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'dim_chronicles', (string)$query['t']));
         case 'chronicle_image':
@@ -301,7 +313,6 @@ function hg_request_router_path_from_query(mysqli $link, array $query): ?string
         case 'verdoc':
             if (!isset($query['b'])) return '/documents';
             return '/documents/' . rawurlencode(hg_request_router_current_pretty_or_raw($link, 'fact_docs', (string)$query['b']));
-        case 'seeitem':
         case 'verobj':
             if (!isset($query['b'])) return '/inventory';
             return hg_request_router_inventory_item_path($link, (string)$query['b']);
@@ -384,22 +395,15 @@ function hg_request_router_legacy_query_result(mysqli $link, string $path, array
     $route = trim((string)($query['p'] ?? ''));
     $queryString = '';
 
-    switch ($route) {
-        case 'busk':
-        case 'talim':
-        case 'mentions':
-            if (trim((string)($query['type'] ?? '')) === 'episode') {
-                $legacyPath = '/ajax/epis';
-                $queryString = hg_request_router_query($query, ['p', 'type']);
-            } else {
-                $queryString = hg_request_router_query($query, ['p']);
-            }
-            break;
-        case 'forum_message':
-        case 'forum_diceroll':
-        case 'forum_item':
-            $queryString = hg_request_router_forum_embed_query($route, $query);
-            break;
+    if (in_array($route, ['busk', 'talim', 'mentions'], true)) {
+        if (trim((string)($query['type'] ?? '')) === 'episode') {
+            $legacyPath = '/ajax/epis';
+            $queryString = hg_request_router_query($query, ['p', 'type']);
+        } else {
+            $queryString = hg_request_router_query($query, ['p']);
+        }
+    } elseif (in_array($route, ['forum_message', 'forum_diceroll', 'forum_item'], true)) {
+        $queryString = hg_request_router_forum_embed_query($route, $query);
     }
 
     if ($path === '/index.php' || $path === '/' || $path === '') {
