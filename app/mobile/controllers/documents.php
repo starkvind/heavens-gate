@@ -103,7 +103,7 @@ $metaDescription = hg_mobile_doc_excerpt($content, 160);
 $characters = hg_documents_fetch_mobile_characters(
     $link,
     $docId,
-    function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7'
+    function_exists('hg_chronicle_scope_excluded_csv') ? hg_chronicle_scope_excluded_csv() : '2,7'
 );
 ?>
 <article class="hg-mobile-bio">
