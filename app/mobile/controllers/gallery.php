@@ -6,110 +6,11 @@ $metaTitle = "Galería | Heaven's Gate";
 $metaDescription = 'Galería móvil de imagenes de la campaña.';
 $pageSect = 'Galería';
 
+require_once __DIR__ . '/../../domains/gallery/catalog.php';
+
 $galleryBaseWeb = '/img/gallery';
-$galleryBaseFs = realpath(__DIR__ . '/../../../public/img/gallery');
-$allowedExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-if (!function_exists('hg_mobile_gallery_h')) {
-    function hg_mobile_gallery_h($value): string
-    {
-        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_valid_rel')) {
-    function hg_mobile_gallery_valid_rel(string $rel): bool
-    {
-        return $rel === '' || (bool)preg_match('#^(?!/)(?!.*\.\.)([A-Za-z0-9 _\.\-]+/)*[A-Za-z0-9 _\.\-]+$#', $rel);
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_fs_join')) {
-    function hg_mobile_gallery_fs_join(string $base, string $rel = ''): string
-    {
-        $rel = trim($rel, '/');
-        return $rel === '' ? $base : ($base . '/' . $rel);
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_web_join')) {
-    function hg_mobile_gallery_web_join(string $base, string $rel = ''): string
-    {
-        $rel = trim($rel, '/');
-        if ($rel === '') {
-            return $base;
-        }
-        $parts = array_map('rawurlencode', explode('/', $rel));
-        return rtrim($base, '/') . '/' . implode('/', $parts);
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_subdirs')) {
-    function hg_mobile_gallery_subdirs(string $abs): array
-    {
-        $dirs = [];
-        if (!is_dir($abs)) {
-            return $dirs;
-        }
-        foreach (array_diff(scandir($abs), ['.', '..']) as $item) {
-            $path = $abs . '/' . $item;
-            if (is_dir($path) && strtolower($item) !== 'thumbnails') {
-                $dirs[] = $item;
-            }
-        }
-        sort($dirs, SORT_NATURAL | SORT_FLAG_CASE);
-        return $dirs;
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_images')) {
-    function hg_mobile_gallery_images(string $abs, array $allowed): array
-    {
-        $images = [];
-        if (!is_dir($abs)) {
-            return $images;
-        }
-        foreach (array_diff(scandir($abs), ['.', '..', 'thumbnails']) as $item) {
-            $path = $abs . '/' . $item;
-            if (!is_file($path)) {
-                continue;
-            }
-            $ext = strtolower((string)pathinfo($item, PATHINFO_EXTENSION));
-            if (in_array($ext, $allowed, true)) {
-                $images[] = $item;
-            }
-        }
-        sort($images, SORT_NATURAL | SORT_FLAG_CASE);
-        return $images;
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_title')) {
-    function hg_mobile_gallery_title(string $filename): string
-    {
-        $name = (string)pathinfo($filename, PATHINFO_FILENAME);
-        $name = str_replace(['-', '_'], ' ', $name);
-        $name = trim(preg_replace('/\s+/', ' ', $name));
-        return $name !== '' ? ucfirst($name) : $filename;
-    }
-}
-
-if (!function_exists('hg_mobile_gallery_cover')) {
-    function hg_mobile_gallery_cover(string $baseWeb, string $absDir, string $relDir, array $allowed): string
-    {
-        $images = hg_mobile_gallery_images($absDir, $allowed);
-        if (empty($images)) {
-            return '';
-        }
-        $first = (string)$images[0];
-        $thumbFs = $absDir . '/thumbnails/' . $first;
-        $thumbRel = trim($relDir . '/thumbnails/' . $first, '/');
-        if (is_file($thumbFs)) {
-            return hg_mobile_gallery_web_join($baseWeb, $thumbRel);
-        }
-        return hg_mobile_gallery_web_join($baseWeb, trim($relDir . '/' . $first, '/'));
-    }
-}
+$galleryBaseFs = hg_gallery_base_fs();
+$allowedExt = hg_gallery_allowed_extensions();
 
 if (!is_string($galleryBaseFs) || $galleryBaseFs === '' || !is_dir($galleryBaseFs)) {
     hg_public_log_error('mobile_gallery', 'missing gallery directory');
@@ -119,20 +20,19 @@ if (!is_string($galleryBaseFs) || $galleryBaseFs === '' || !is_dir($galleryBaseF
 
 $relDir = trim(rawurldecode(hg_request_query_param($hgRequest, 'dir')));
 $relDir = trim($relDir, '/');
-if (!hg_mobile_gallery_valid_rel($relDir)) {
+if (!hg_gallery_valid_relative_path($relDir)) {
     $relDir = '';
 }
 
-$absDir = hg_mobile_gallery_fs_join($galleryBaseFs, $relDir);
-$realAbsDir = realpath($absDir);
-if (!is_string($realAbsDir) || strpos($realAbsDir, $galleryBaseFs) !== 0 || !is_dir($realAbsDir)) {
+$realAbsDir = hg_gallery_resolve_directory($galleryBaseFs, $relDir);
+if ($realAbsDir === null) {
     hg_public_render_not_found('Carpeta no encontrada', 'No se encontro la carpeta solicitada.');
     return;
 }
 
 $breadcrumbs = $relDir === '' ? [] : explode('/', $relDir);
-$subdirs = hg_mobile_gallery_subdirs($realAbsDir);
-$images = hg_mobile_gallery_images($realAbsDir, $allowedExt);
+$subdirs = hg_gallery_list_subdirectories($realAbsDir);
+$images = hg_gallery_list_images($realAbsDir, $allowedExt);
 $folderLabel = $relDir === '' ? 'Inicio' : basename($relDir);
 ?>
 
@@ -162,8 +62,8 @@ $folderLabel = $relDir === '' ? 'Inicio' : basename($relDir);
         <?php foreach ($subdirs as $dirName): ?>
             <?php
                 $childRel = trim($relDir . '/' . $dirName, '/');
-                $childAbs = hg_mobile_gallery_fs_join($realAbsDir, $dirName);
-                $cover = hg_mobile_gallery_cover($galleryBaseWeb, $childAbs, $childRel, $allowedExt);
+                $childAbs = hg_gallery_fs_join($realAbsDir, $dirName);
+                $cover = hg_gallery_folder_cover($galleryBaseWeb, $childAbs, $childRel, $allowedExt);
             ?>
             <a class="hg-mobile-gallery-folder" href="/gallery?dir=<?= hg_mobile_gallery_h(rawurlencode($childRel)) ?>" data-mobile-item data-mobile-search="<?= hg_mobile_gallery_h($dirName) ?>">
                 <?php if ($cover !== ''): ?>
@@ -189,12 +89,10 @@ $folderLabel = $relDir === '' ? 'Inicio' : basename($relDir);
         <div class="hg-mobile-gallery-grid" data-mobile-gallery-grid data-mobile-paginated data-mobile-search="1" data-page-size="24" data-search-placeholder="Buscar imagen" data-empty-text="No hay imagenes con ese filtro.">
             <?php foreach ($images as $idx => $img): ?>
                 <?php
-                    $title = hg_mobile_gallery_title($img);
-                    $thumbFs = $realAbsDir . '/thumbnails/' . $img;
-                    $thumbRel = trim($relDir . '/thumbnails/' . $img, '/');
-                    $fullRel = trim($relDir . '/' . $img, '/');
-                    $thumbWeb = is_file($thumbFs) ? hg_mobile_gallery_web_join($galleryBaseWeb, $thumbRel) : hg_mobile_gallery_web_join($galleryBaseWeb, $fullRel);
-                    $fullWeb = hg_mobile_gallery_web_join($galleryBaseWeb, $fullRel);
+                    $title = hg_gallery_title($img);
+                    $imageUrls = hg_gallery_image_urls($galleryBaseWeb, $realAbsDir, $relDir, $img);
+                    $thumbWeb = $imageUrls['thumb'];
+                    $fullWeb = $imageUrls['full'];
                 ?>
                 <button class="hg-mobile-gallery-image" type="button" data-mobile-item data-mobile-search="<?= hg_mobile_gallery_h($title) ?>" data-mobile-gallery-thumb data-full="<?= hg_mobile_gallery_h($fullWeb) ?>" data-title="<?= hg_mobile_gallery_h($title) ?>" data-index="<?= (int)$idx ?>">
                     <img src="<?= hg_mobile_gallery_h($thumbWeb) ?>" alt="<?= hg_mobile_gallery_h($title) ?>" loading="lazy">
