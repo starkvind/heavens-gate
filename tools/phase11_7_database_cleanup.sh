@@ -26,9 +26,9 @@ Usage:
   bash tools/phase11_7_database_cleanup.sh --apply
 
 --audit       Read-only production audit. No backup, no writes.
---backup-only Run audit, then create and verify a full compressed backup.
---apply       Run audit, create+verify backup, apply cleanup, verify, dump post-clean schema,
-              then run the Phase 11 HTTP smoke.
+--backup-only Preflight -> verified full backup -> live dependency audit. No writes.
+--apply       Preflight -> verified full backup -> live dependency audit -> explicit
+              confirmation -> cleanup -> post-audit -> full post-cleanup dump -> HTTP smoke.
 
 Environment:
   HG_DB_BACKUP_DIR  Backup directory. Default: ~/heavens-gate-db-backups
@@ -44,6 +44,8 @@ esac
 
 [ -f "$AUDIT_SQL" ] || die "Missing $AUDIT_SQL"
 [ -f "$CLEANUP_SQL" ] || die "Missing $CLEANUP_SQL"
+
+info "=== Phase 11.7 preflight ==="
 
 if command -v git >/dev/null 2>&1 && [ -d "$ROOT/.git" ]; then
     CURRENT_BRANCH="$(git -C "$ROOT" branch --show-current)"
@@ -65,16 +67,25 @@ done
 [ -n "$CONFIG_ENV" ] || die "config.env not found in expected locations."
 
 command -v php >/dev/null 2>&1 || die "php CLI is required."
-DB_NAME="$(
+
+DB_META="$(
     php -r '
         $env = @parse_ini_file($argv[1]);
-        if (!is_array($env) || empty($env["MYSQL_BDD"])) {
-            fwrite(STDERR, "MYSQL_BDD missing in config.env\n");
+        if (!is_array($env)) {
+            fwrite(STDERR, "Could not parse config.env\n");
             exit(2);
         }
-        echo $env["MYSQL_BDD"];
+        foreach (["MYSQL_HOST", "MYSQL_USER", "MYSQL_PWD", "MYSQL_BDD"] as $key) {
+            if (!array_key_exists($key, $env) || trim((string)$env[$key]) === "") {
+                fwrite(STDERR, "$key missing in config.env\n");
+                exit(3);
+            }
+        }
+        echo (string)$env["MYSQL_BDD"] . "\t" . (string)$env["MYSQL_HOST"] . "\t" . (string)$env["MYSQL_USER"];
     ' "$CONFIG_ENV"
 )"
+IFS=$'\t' read -r DB_NAME DB_HOST DB_USER <<< "$DB_META"
+
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || die "Unexpected database identifier: $DB_NAME"
 [ "$DB_NAME" = "$EXPECTED_DB" ] || die "Refusing database '$DB_NAME'; expected '$EXPECTED_DB'."
 
@@ -84,9 +95,15 @@ MARIADB_BIN="$(command -v mariadb || true)"
 DUMP_BIN="$(command -v mariadb-dump || command -v mysqldump || true)"
 [ -n "$DUMP_BIN" ] || die "mariadb-dump/mysqldump not found."
 
-command -v gzip >/dev/null 2>&1 || die "gzip is required."
-command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required."
-command -v python3 >/dev/null 2>&1 || die "python3 is required."
+for cmd in gzip sha256sum python3 stat sort comm awk; do
+    command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required."
+done
+
+info "config.env: $CONFIG_ENV"
+info "Database:   $DB_NAME"
+info "DB host:    $DB_HOST"
+info "Web DB user:$DB_USER"
+info "DDL access: local administrative socket via sudo"
 
 # DDL is intentionally impossible with the least-privilege web account.
 # Phase 11.7 therefore uses the local administrative socket through sudo.
@@ -99,7 +116,7 @@ db_scalar() {
 run_audit() {
     local log="$1"
     info ""
-    info "=== Phase 11.7 read-only audit ==="
+    info "=== Phase 11.7 read-only object/dependency audit ==="
     sudo "$MARIADB_BIN" --table "$DB_NAME" < "$AUDIT_SQL" | tee "$log"
 }
 
@@ -211,25 +228,13 @@ check_blockers() {
     fi
 }
 
-make_backup() {
-    local timestamp="$1"
-    local backup="$BACKUP_DIR/heavens-gate-pre-phase11-7-$timestamp.sql.gz"
-    local tmp="$backup.tmp"
+verify_dump() {
+    local dump_path="$1"
 
-    mkdir -p "$BACKUP_DIR"
-    chmod 700 "$BACKUP_DIR"
+    [ -s "$dump_path" ] || die "Dump file is empty: $dump_path"
+    gzip -t "$dump_path"
 
-    info ""
-    info "=== Full pre-cleanup backup ==="
-    info "Writing: $backup"
-
-    rm -f "$tmp"
-    sudo "$DUMP_BIN"         --single-transaction         --quick         --routines         --triggers         --events         --hex-blob         --default-character-set=utf8mb4         --databases "$DB_NAME"         | gzip -9 > "$tmp"
-
-    [ -s "$tmp" ] || die "Backup file is empty."
-    gzip -t "$tmp"
-
-    python3 - "$tmp" <<'PY'
+    python3 - "$dump_path" <<'PY'
 import gzip
 import sys
 
@@ -241,22 +246,139 @@ required = {
 }
 with gzip.open(path, "rt", encoding="utf-8", errors="ignore") as fh:
     for line in fh:
-        for table in list(required):
+        for table in tuple(required):
             if f"CREATE TABLE `{table}`" in line:
                 required[table] = True
 
 missing = [name for name, found in required.items() if not found]
 if missing:
-    raise SystemExit("Backup verification missing core tables: " + ", ".join(missing))
+    raise SystemExit("Dump verification missing core tables: " + ", ".join(missing))
 PY
+}
 
-    mv "$tmp" "$backup"
-    sha256sum "$backup" | tee "$backup.sha256"
-    chmod 600 "$backup" "$backup.sha256"
+print_dump_metadata() {
+    local dump_path="$1"
+    local bytes human checksum
 
-    BACKUP_PATH="$backup"
-    export BACKUP_PATH
-    info "Backup verified."
+    bytes="$(stat -c '%s' "$dump_path")"
+    human="$(python3 - "$bytes" <<'PY'
+import sys
+n = float(sys.argv[1])
+units = ["B", "KiB", "MiB", "GiB", "TiB"]
+i = 0
+while n >= 1024 and i < len(units) - 1:
+    n /= 1024
+    i += 1
+print(f"{n:.2f} {units[i]}")
+PY
+)"
+    checksum="$(sha256sum "$dump_path" | awk '{print $1}')"
+    printf '%s  %s\n' "$checksum" "$dump_path" > "$dump_path.sha256"
+    chmod 600 "$dump_path" "$dump_path.sha256"
+
+    info "Path:   $dump_path"
+    info "Size:   $human ($bytes bytes)"
+    info "SHA-256:$checksum"
+}
+
+make_full_dump() {
+    local label="$1"
+    local output="$2"
+    local tmp="$output.tmp"
+
+    mkdir -p "$BACKUP_DIR"
+    chmod 700 "$BACKUP_DIR"
+
+    info ""
+    info "=== $label ==="
+    info "Writing full database dump..."
+
+    rm -f "$tmp"
+    sudo "$DUMP_BIN" \
+        --single-transaction \
+        --quick \
+        --routines \
+        --triggers \
+        --events \
+        --hex-blob \
+        --default-character-set=utf8mb4 \
+        --databases "$DB_NAME" \
+        | gzip -9 > "$tmp"
+
+    verify_dump "$tmp"
+    mv "$tmp" "$output"
+    print_dump_metadata "$output"
+}
+
+capture_target_inventory() {
+    local output="$1"
+
+    db_scalar "
+        SELECT CONCAT('DB_OBJECT\t', TABLE_TYPE, '\t', TABLE_NAME)
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME IN (
+            $KNOWN_OBJECTS_SQL,
+            'admin_webp_image_migration_backup',
+            '_id_unsigned_audit'
+          )
+        UNION ALL
+        SELECT CONCAT('ROUTINE\t', ROUTINE_TYPE, '\t', ROUTINE_NAME)
+        FROM information_schema.ROUTINES
+        WHERE ROUTINE_SCHEMA = DATABASE()
+          AND ROUTINE_NAME = 'audit_signed_id_columns'
+        UNION ALL
+        SELECT CONCAT('CONFIG_ROW\t', id, '\t', config_name)
+        FROM dim_web_configuration
+        WHERE LEFT(config_name, 17) = 'combat_simulator_'
+        UNION ALL
+        SELECT CONCAT(
+            'MENU_ROW\t', id, '\t',
+            COALESCE(menu_key, ''), '\t',
+            COALESCE(href, '')
+        )
+        FROM dim_menu_items
+        WHERE href IN ('/games/card-game','/games/combat-simulator')
+           OR menu_key = 'gamesMenu';
+    " | LC_ALL=C sort -u > "$output"
+}
+
+print_inventory() {
+    local file="$1"
+    local title="$2"
+
+    info ""
+    info "$title"
+    if [ -s "$file" ]; then
+        sed 's/^/  /' "$file"
+    else
+        info "  (none)"
+    fi
+}
+
+print_inventory_delta() {
+    local before="$1"
+    local after="$2"
+    local removed remaining
+
+    removed="$(comm -23 "$before" "$after" || true)"
+    remaining="$(cat "$after")"
+
+    info ""
+    info "Objects/rows that disappeared:"
+    if [ -n "$removed" ]; then
+        printf '%s\n' "$removed" | sed 's/^/  /'
+    else
+        info "  (none)"
+    fi
+
+    info ""
+    info "Target objects/rows that remain:"
+    if [ -n "$remaining" ]; then
+        printf '%s\n' "$remaining" | sed 's/^/  /'
+    else
+        info "  (none)"
+    fi
 }
 
 post_verify() {
@@ -306,48 +428,73 @@ post_verify() {
     [ "$menu_count" = "0" ] || die "Retired Games menu rows remain."
 }
 
-make_post_schema_snapshot() {
-    local timestamp="$1"
-    local schema="$BACKUP_DIR/heavens-gate-post-phase11-7-schema-$timestamp.sql.gz"
+confirm_apply() {
+    local phrase="APPLY PHASE 11.7 TO $DB_NAME"
+
+    [ -t 0 ] || die "--apply requires an interactive terminal for explicit confirmation."
 
     info ""
-    info "=== Post-cleanup schema snapshot ==="
-    sudo "$DUMP_BIN"         --no-data         --routines         --triggers         --events         --default-character-set=utf8mb4         --databases "$DB_NAME"         | gzip -9 > "$schema"
-
-    [ -s "$schema" ] || die "Post-cleanup schema snapshot is empty."
-    gzip -t "$schema"
-    sha256sum "$schema" | tee "$schema.sha256"
-    chmod 600 "$schema" "$schema.sha256"
-    info "Schema snapshot: $schema"
+    info "=== Destructive confirmation ==="
+    info "A verified full backup exists."
+    info "The live dependency audit has zero blockers."
+    info "Type exactly:"
+    info "  $phrase"
+    printf '> '
+    read -r answer
+    [ "$answer" = "$phrase" ] || die "Confirmation did not match. No cleanup executed."
 }
 
 TIMESTAMP="$(date '+%Y%m%d-%H%M%S')"
 mkdir -p "$BACKUP_DIR"
-AUDIT_LOG="$BACKUP_DIR/phase11-7-audit-$TIMESTAMP.txt"
+chmod 700 "$BACKUP_DIR"
 
-run_audit "$AUDIT_LOG"
-check_blockers
+PRE_AUDIT_LOG="$BACKUP_DIR/phase11-7-pre-audit-$TIMESTAMP.txt"
+POST_AUDIT_LOG="$BACKUP_DIR/phase11-7-post-audit-$TIMESTAMP.txt"
+BEFORE_MANIFEST="$BACKUP_DIR/phase11-7-before-$TIMESTAMP.tsv"
+AFTER_MANIFEST="$BACKUP_DIR/phase11-7-after-$TIMESTAMP.tsv"
+PRE_BACKUP="$BACKUP_DIR/heavens-gate-pre-phase11-7-$TIMESTAMP.sql.gz"
+POST_BACKUP="$BACKUP_DIR/heavens-gate-post-phase11-7-$TIMESTAMP.sql.gz"
 
 if [ "$MODE" = "--audit" ]; then
+    run_audit "$PRE_AUDIT_LOG"
+    check_blockers
+    capture_target_inventory "$BEFORE_MANIFEST"
+    print_inventory "$BEFORE_MANIFEST" "Current Phase 11.7 targets:"
     info ""
     info "AUDIT PASS. No writes performed."
     exit 0
 fi
 
-make_backup "$TIMESTAMP"
+# Required order for any path that may lead to destructive SQL:
+# preflight -> verified full backup -> live audit -> (confirmation) -> cleanup.
+make_full_dump "Full pre-cleanup backup" "$PRE_BACKUP"
+
+run_audit "$PRE_AUDIT_LOG"
+check_blockers
+capture_target_inventory "$BEFORE_MANIFEST"
+print_inventory "$BEFORE_MANIFEST" "Reviewed targets present before cleanup:"
 
 if [ "$MODE" = "--backup-only" ]; then
     info ""
-    info "BACKUP PASS. No database changes performed."
-    info "Backup: $BACKUP_PATH"
+    info "BACKUP + AUDIT PASS. No database changes performed."
+    info "Backup: $PRE_BACKUP"
     exit 0
 fi
+
+confirm_apply
 
 info ""
 info "=== Applying Phase 11.7 cleanup ==="
 sudo "$MARIADB_BIN" "$DB_NAME" < "$CLEANUP_SQL"
+
+capture_target_inventory "$AFTER_MANIFEST"
+print_inventory_delta "$BEFORE_MANIFEST" "$AFTER_MANIFEST"
+
+run_audit "$POST_AUDIT_LOG"
+check_blockers
 post_verify
-make_post_schema_snapshot "$TIMESTAMP"
+
+make_full_dump "Full post-cleanup dump" "$POST_BACKUP"
 
 info ""
 info "=== HTTP smoke ==="
@@ -359,6 +506,11 @@ fi
 
 info ""
 info "PHASE 11.7 DATABASE CLEANUP PASS."
-info "Backup: $BACKUP_PATH"
-info "Restore command if ever required:"
-printf "  gzip -dc %q | sudo mariadb\n" "$BACKUP_PATH"
+info "Pre-cleanup backup:  $PRE_BACKUP"
+info "Post-cleanup dump:   $POST_BACKUP"
+info "Pre-clean audit:     $PRE_AUDIT_LOG"
+info "Post-clean audit:    $POST_AUDIT_LOG"
+info "Before inventory:    $BEFORE_MANIFEST"
+info "After inventory:     $AFTER_MANIFEST"
+info "Restore command if rollback is required:"
+printf "  gzip -dc %q | sudo mariadb\n" "$PRE_BACKUP"
