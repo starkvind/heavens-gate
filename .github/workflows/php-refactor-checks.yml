@@ -45,6 +45,9 @@ jobs:
       - name: Audit Phase 10.4 legacy alias boundary
         run: python3 .github/ci/php-phase10-legacy-alias-audit.py
 
+      - name: Enforce Phase 10 final architecture
+        run: python3 .github/ci/php-phase10-final-audit.py
+
       - name: Audit extracted domain query boundaries
         run: python3 .github/ci/php-domain-query-boundary-audit.py
 
