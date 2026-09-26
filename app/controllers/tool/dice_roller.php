@@ -42,35 +42,6 @@ function hg_strlen(string $value): int {
     return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
 }
 
-function hg_dice_form_attribute_modifier(mysqli $db, int $characterId, int $formId, int $traitId): int {
-    if ($characterId <= 0 || $formId <= 0 || $traitId <= 0) return 0;
-    $sql = "SELECT b.modifier, t.name AS trait_name, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus
-            FROM dim_forms f
-            JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
-            JOIN dim_traits t ON t.id = ?
-            LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
-            WHERE f.id = ? LIMIT 1";
-    $stmt = $db->prepare($sql);
-    if (!$stmt) return 0;
-    $stmt->bind_param('iii', $characterId, $traitId, $formId);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$row) return 0;
-    if ($row['modifier'] !== null) return (int)$row['modifier'];
-    // Compatibilidad con las formas antiguas, antes del bridge_forms_traits.
-    // PHP 7 compatible: `match` was introduced in PHP 8.
-    switch ((string)($row['trait_name'] ?? '')) {
-        case 'Fuerza':
-            return (int)($row['strength_bonus'] ?? 0);
-        case 'Destreza':
-            return (int)($row['dexterity_bonus'] ?? 0);
-        case 'Resistencia':
-            return (int)($row['stamina_bonus'] ?? 0);
-        default:
-            return 0;
-    }
-}
 function render_roll_card(array $tirada, int $id): void {
     $resultados = explode(',', (string)$tirada['roll_results']);
     $dificultad = (int)$tirada['difficulty'];
@@ -337,12 +308,7 @@ if (!isset($queryInput['see'])) {
 }
 
 if (!isset($queryInput['see'])) {
-    $rolls = [];
-    $query = "SELECT id, roll_name, name, successes, botch, willpower_spent, rolled_at FROM fact_dice_rolls ORDER BY rolled_at DESC";
-    if ($rs = mysqli_query($link, $query)) {
-        while ($r = mysqli_fetch_assoc($rs)) { $rolls[] = $r; }
-        mysqli_free_result($rs);
-    }
+    $rolls = hg_dice_fetch_roll_history($link);
 
     echo "<article class='hg-dice-card hg-table-wrap'>";
     echo "<h3 class='hg-dice-title'>Historial completo de tiradas</h3>";
@@ -367,15 +333,11 @@ if (!isset($queryInput['see'])) {
     echo "</article>";
 } else {
     echo "<div class='bioSheetPowers hg-last-rolls'><fieldset class='bioSeccion'><legend>Ultimas 10 tiradas</legend>";
-    $query = "SELECT id, roll_name, name FROM fact_dice_rolls ORDER BY rolled_at DESC LIMIT 10";
-    if ($rs = mysqli_query($link, $query)) {
-        while ($r = mysqli_fetch_assoc($rs)) {
-            $id = (int)$r['id'];
-            $title = htmlspecialchars((string)$r['roll_name'], ENT_QUOTES, 'UTF-8');
-            $name = htmlspecialchars((string)$r['name'], ENT_QUOTES, 'UTF-8');
-            echo "<a href='/tools/dice?see={$id}'><div class='bioSheetPower'><span class='hg-last-rolls-title'>{$title}</span><span class='hg-last-rolls-name'>{$name}</span></div></a>";
-        }
-        mysqli_free_result($rs);
+    foreach (hg_dice_fetch_recent_rolls($link, 10) as $r) {
+        $id = (int)$r['id'];
+        $title = htmlspecialchars((string)$r['roll_name'], ENT_QUOTES, 'UTF-8');
+        $name = htmlspecialchars((string)$r['name'], ENT_QUOTES, 'UTF-8');
+        echo "<a href='/tools/dice?see={$id}'><div class='bioSheetPower'><span class='hg-last-rolls-title'>{$title}</span><span class='hg-last-rolls-name'>{$name}</span></div></a>";
     }
     echo "</fieldset></div>";
 }
