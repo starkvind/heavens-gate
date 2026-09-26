@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI PASS — Raspberry smoke pending.**
+**CLOSED — CI PASS — Raspberry smoke PASS.**
 
 Branch: `php-refactor`.
 
@@ -126,18 +126,8 @@ Implementation checkpoint:
 - remaining introspection tokens: **10**;
 - unclassified schema debt: **0**.
 
-## Closure gate
+## Closure
 
-Raspberry smoke should verify:
+Raspberry smoke passed on the classified schema owners and dependent public/admin surfaces.
 
-- normal pretty-ID routing still resolves public entities;
-- mentions endpoint returns results;
-- season-order admin/status pages still load;
-- character collision audit still loads;
-- character clone page still loads and presents its selectors;
-- organization-chart admin page still loads;
-- forum topic viewer still resolves configured topics;
-- database inspector still renders schema/health output;
-- no new PHP/SQL errors.
-
-No destructive admin action is required for smoke testing.
+Phase 10.2 is closed.
