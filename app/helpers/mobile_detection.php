@@ -51,12 +51,11 @@ function hg_should_render_mobile(string $routeKey = '', string $requestedView = 
     }
 
     /*
-     * Phase 9 makes the normal public frontend adaptive. Automatic user-agent
-     * splitting is therefore retired: phones and tablets use the same public
-     * shell as desktop by default. The old mobile renderer remains available
-     * only as an explicit compatibility view through ?view=mobile or an
-     * existing hg_view=mobile cookie until its duplicated presentation can be
-     * retired deliberately.
+     * Phase 9 keeps the dedicated mobile presentation as an explicit,
+     * user-selected view while the normal responsive frontend remains the
+     * default. Automatic user-agent splitting stays retired. ?view=mobile
+     * and the hg_view cookie select presentation only; routes, data access
+     * and application rules remain canonical/shared.
      */
     return hg_mobile_view_override($requestedView) === 'mobile';
 }
