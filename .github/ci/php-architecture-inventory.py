@@ -10,7 +10,7 @@ PHP_ROOTS = [ROOT / "app", ROOT / "api"]
 
 PATTERNS = {
     "sql_calls": re.compile(r"\bmysqli_(?:query|prepare|real_query|multi_query)\b|->\s*(?:query|prepare)\s*\("),
-    "schema_probe": re.compile(r"\bSHOW\s+COLUMNS\b|\binformation_schema\b", re.I),
+    "schema_probe": re.compile(r"\binformation_schema\s*\.|\bSHOW\s+(?:TABLES|COLUMNS|INDEX|KEYS)\b", re.I),
     "get": re.compile(r"\$_GET\s*\["),
     "post": re.compile(r"\$_POST\s*\["),
     "cookie": re.compile(r"\$_COOKIE\s*\["),
@@ -151,6 +151,20 @@ def main() -> None:
             print(
                 f"{row['path']}: sql={row['sql_calls']}, schema={row['schema_probe']}, lines={row['lines']}"
             )
+    else:
+        print("none")
+    print()
+
+    schema_owners = sorted(
+        (row for row in per_file if row["schema_probe"] > 0),
+        key=lambda row: (-row["schema_probe"], row["path"]),
+    )
+    print("## Schema introspection owners")
+    print(f"files: {len(schema_owners)}")
+    print(f"probe tokens: {sum(row['schema_probe'] for row in schema_owners)}")
+    if schema_owners:
+        for row in schema_owners:
+            print(f"{row['path']}: schema={row['schema_probe']}, lines={row['lines']}")
     else:
         print("none")
     print()
