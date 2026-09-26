@@ -612,7 +612,7 @@ html {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+    padding: 18px 72px calc(18px + env(safe-area-inset-bottom)) 14px;
     border-top: 1px solid var(--hg-mobile-border);
     color: var(--hg-mobile-muted);
 }
