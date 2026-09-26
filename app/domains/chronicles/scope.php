@@ -47,11 +47,3 @@ if (!function_exists('hg_chronicle_scope_condition')) {
         return $column . ' NOT IN (' . $csv . ')';
     }
 }
-
-if (!function_exists('hg_chronicle_scope_and')) {
-    function hg_chronicle_scope_and(string $alias = 'p', ?string $configured = null): string
-    {
-        $condition = hg_chronicle_scope_condition($alias, $configured);
-        return $condition === '1=1' ? '' : (' AND ' . $condition . ' ');
-    }
-}
