@@ -57,10 +57,11 @@ for marker in [
     if marker not in desktop_menu:
         errors.append(f"desktop menu shared navigation contract missing: {marker}")
 
-mobile_gallery = read("app/mobile/controllers/gallery.php")
-if "function hg_mobile_gallery_h" not in mobile_gallery:
+mobile_gallery_controller = read("app/mobile/controllers/gallery.php")
+mobile_gallery_view = read("app/mobile/views/gallery.php")
+if "function hg_mobile_gallery_h" not in mobile_gallery_controller:
     errors.append("mobile gallery presentation escape helper missing")
-if "view=mobile" not in mobile_gallery:
+if "view=mobile" not in mobile_gallery_view:
     errors.append("mobile gallery does not preserve explicit mobile presentation links")
 
 desktop_gallery = read("app/controllers/main/main_gallery.php")
