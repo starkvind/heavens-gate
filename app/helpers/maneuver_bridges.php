@@ -4,11 +4,7 @@
  */
 
 function hg_maneuver_bridge_table_exists(mysqli $link, string $table): bool {
-    $safe = $link->real_escape_string($table);
-    $result = $link->query("SHOW TABLES LIKE '{$safe}'");
-    $exists = $result && $result->num_rows > 0;
-    if ($result) $result->free();
-    return $exists;
+    return in_array($table, ['bridge_maneuvers_systems', 'bridge_maneuvers_forms'], true);
 }
 
 function hg_assign_default_maneuvers_to_system(mysqli $link, int $systemId): int {

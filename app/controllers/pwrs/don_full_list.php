@@ -1,23 +1,18 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Dones | Heaven's Gate", "Listado completo de dones en formato extendido.", null, 'website');
-// =======================
-// Página: Todos los fact_gifts (corporativo)
-// Estilo mysqli / $link
-// =======================
 
 $pageSect = "Dones";
 $_SESSION['punk2'] = $pageSect;
-$printMode = isset($_GET['print']) && $_GET['print'] == '1';
-$markdownMode = isset($_GET['export']) && $_GET['export'] === 'md';
+$printMode = hg_request_query_param($hgRequest, 'print') === '1';
+$markdownMode = hg_request_query_param($hgRequest, 'export') === 'md';
 
-if (!$printMode) {
+if (!$printMode && !$markdownMode) {
     include("app/partials/main_nav_bar.php");
     include_once("app/partials/power_catalog_tabs.php");
 }
 
-// =======================
-// Helpers
-// =======================
 function h($s) {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
@@ -122,63 +117,19 @@ function hg_gifts_markdown_download(array $gifts): void {
     exit;
 }
 
-function gift_mechanics_col(mysqli $link): string {
-    $rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
-    if ($rs && mysqli_num_rows($rs) > 0) {
-        mysqli_free_result($rs);
-        return 'mechanics_text';
-    }
-    if ($rs) mysqli_free_result($rs);
-    return 'system_name';
-}
-$giftRulesCol = gift_mechanics_col($link);
 $pageHref = h(current_page_href());
 $printHref = h(current_page_href(['print' => '1']));
 $markdownHref = h(current_page_href(['export' => 'md', 'print' => null]));
 
-// =======================
-// 1) Query principal (LA TUYA)
-// =======================
-$consulta = "
-select
-    d.id as gift_id,
-    d.name as gift_name,
-    ntd.name as gift_type,
-    d.gift_group as gift_category,
-    d.rank as gift_level,
-    d.attribute_name as gift_roll_attribute,
-    d.ability_name as gift_roll_skill,
-    d.description as gift_description,
-    d.`$giftRulesCol` as gift_roll_description,
-    s.name as gift_fera_system,
-    d.system_id as gift_system_id,
-    nb.name as gift_origin
-from fact_gifts d
-    left join dim_gift_types ntd on d.kind = ntd.id
-    left join dim_bibliographies nb on d.bibliography_id = nb.id
-    left join dim_systems s on d.system_id = s.id
-order by d.bibliography_id, d.rank
-";
-
-$stmt = $link->prepare($consulta);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$gifts = [];
-while ($row = $result->fetch_assoc()) {
-    $gifts[] = $row;
-}
+$gifts = hg_powers_fetch_catalog($link, 'gifts');
+if ($gifts === false) $gifts = [];
 $total = count($gifts);
 
 if ($markdownMode) {
     hg_gifts_markdown_download($gifts);
 }
 
-// =======================
-// Agrupar dones por Origen (para el índice)
-// =======================
 $giftsByOrigin = [];
-
 foreach ($gifts as $g) {
     $origin = trim($g['gift_origin'] ?? '');
     if ($origin === '') {
@@ -187,7 +138,6 @@ foreach ($gifts as $g) {
     $giftsByOrigin[$origin][] = $g;
 }
 
-// =======================
 // 2) Render (CSS + HTML)
 // =======================
 ?>
@@ -204,8 +154,6 @@ if (function_exists('hg_page_register_stylesheet')) {
 <div class="hg-dones<?php echo $printMode ? ' hg-print' : ''; ?>">
   <div class="wrap">
     <?php if (!$printMode) { hg_render_power_catalog_tabs('gifts', 'full'); } ?>
-
-    <a id="top"></a>
 
     <div class="hero">
       <div class="title">
@@ -275,7 +223,6 @@ if (function_exists('hg_page_register_stylesheet')) {
           $fera = h($g['gift_fera_system'] ?? '');
           $orig = h($g['gift_origin'] ?? '');
 
-          // CAMPOS LARGOS: no usar htmlspecialchars()
           $desc = $g['gift_description'] ?: "<p>Descripción no disponible</p>";
           $roll = $g['gift_roll_description'] ?: "<p><i>Sistema no disponible</i></p>";
 
@@ -285,7 +232,6 @@ if (function_exists('hg_page_register_stylesheet')) {
         <article class="card" id="<?php echo h($anchor); ?>">
           <div class="topline">
             <h3 class="name"><?php echo $name; ?></h3>
-            <a class="back" href="<?php echo $pageHref; ?>#top">&uarr; Arriba</a>
           </div>
 
           <div class="chips">

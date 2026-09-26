@@ -8,6 +8,7 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_catalog_utils.php');
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
+include_once(__DIR__ . '/../../domains/chronicles/admin.php');
 
 $isAjaxRequest = (((string)($_GET['ajax'] ?? '') === '1') || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest'));
 $csrfKey = 'csrf_admin_chronicles';
@@ -55,6 +56,17 @@ $hasTimelineChronicleId = hg_table_has_column($link, 'bridge_timeline_events_chr
 $actions = '<span class="adm-flex-right-8"><button class="btn btn-green" type="button" onclick="openChronicleModal()">+ Nueva cronica</button><label class="adm-text-left">Filtro rapido <input class="inp" type="text" id="quickFilterChronicles" placeholder="En esta pagina..."></label></span>';
 if (!$isAjaxRequest) admin_panel_open('Cronicas', $actions);
 
+$chronicleSchema = [
+    'pretty_id' => $hasPrettyId,
+    'sort_order' => $hasSortOrder,
+    'image_url' => $hasImageUrl,
+    'created_at' => $hasCreatedAt,
+    'updated_at' => $hasUpdatedAt,
+    'season_chronicle' => $hasSeasonChronicleId,
+    'character_chronicle' => $hasCharacterChronicleId,
+    'timeline_chronicle' => $hasTimelineChronicleId,
+];
+
 $flash = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     if ($isAjaxRequest && function_exists('hg_admin_require_session')) hg_admin_require_session(true);
@@ -65,19 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $id = (int)($_POST['id'] ?? 0);
         $currentImage = '';
         $chronicleExists = false;
+
         if ($hasImageUrl && ($action === 'update' || $action === 'delete') && $id > 0) {
-            if ($st = $link->prepare('SELECT image_url FROM dim_chronicles WHERE id = ? LIMIT 1')) {
-                $st->bind_param('i', $id);
-                $st->execute();
-                if ($rs = $st->get_result()) {
-                    if ($row = $rs->fetch_assoc()) {
-                        $chronicleExists = true;
-                        $currentImage = (string)($row['image_url'] ?? '');
-                    }
-                }
-                $st->close();
-            }
+            $current = hg_chronicles_admin_fetch_current_image($link, $id);
+            $chronicleExists = !empty($current['exists']);
+            $currentImage = (string)($current['image_url'] ?? '');
         }
+
         if ($action === 'delete') {
             if ($id <= 0) {
                 $flash[] = ['type' => 'error', 'msg' => 'ID invalido para eliminar.'];
@@ -87,22 +93,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                 $deps = hg_admin_catalog_get_chronicle_dependencies($link, $id);
                 if (hg_admin_catalog_dependencies_total($deps) > 0) {
                     $flash[] = ['type' => 'error', 'msg' => 'No se puede borrar la cronica porque tiene dependencias: ' . hg_admin_catalog_dependencies_summary($deps) . '.'];
-                } elseif ($st = $link->prepare('DELETE FROM dim_chronicles WHERE id = ?')) {
-                    $st->bind_param('i', $id);
-                    if ($st->execute()) {
-                        if ($hasImageUrl && $currentImage !== '') {
-                            hg_admin_safe_unlink_upload($currentImage, $CHRONICLE_UPLOADDIR);
-                        }
-                        $flash[] = ['type' => 'ok', 'msg' => 'Cronica eliminada.'];
-                    }
-                    else { hg_runtime_log_error('admin_chronicles.delete', $st->error); $flash[] = ['type' => 'error', 'msg' => 'No se pudo eliminar la cronica.']; }
-                    $st->close();
                 } else {
-                    hg_runtime_log_error('admin_chronicles.delete.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el borrado de la cronica.'];
+                    $result = hg_chronicles_admin_delete($link, $id);
+                    if (!empty($result['ok']) && $hasImageUrl && $currentImage !== '') {
+                        hg_admin_safe_unlink_upload($currentImage, $CHRONICLE_UPLOADDIR);
+                    }
+                    $flash[] = [
+                        'type' => !empty($result['ok']) ? 'ok' : 'error',
+                        'msg' => (string)($result['message'] ?? 'No se pudo eliminar la cronica.'),
+                    ];
                 }
             }
         }
+
         if ($action === 'create' || $action === 'update') {
             $name = trim((string)($_POST['name'] ?? ''));
             $description = (string)($_POST['description'] ?? '');
@@ -113,95 +116,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             if ($removeImage) {
                 $imageUrl = '';
             }
+
             if ($name === '') {
                 $flash[] = ['type' => 'error', 'msg' => 'El nombre es obligatorio.'];
             } elseif (hg_admin_catalog_name_exists($link, 'dim_chronicles', $name, $id)) {
                 $flash[] = ['type' => 'error', 'msg' => 'Ya existe otra cronica con ese nombre.'];
             } elseif ($action === 'create') {
-                $cols = ['name', 'description'];
-                $vals = [$name, $description];
-                $types = 'ss';
-                if ($hasSortOrder) { $cols[] = 'sort_order'; $vals[] = $sortOrder; $types .= 'i'; }
-                if ($hasImageUrl) { $cols[] = 'image_url'; $vals[] = $imageUrl; $types .= 's'; }
-                if ($hasCreatedAt) $cols[] = 'created_at';
-                if ($hasUpdatedAt) $cols[] = 'updated_at';
-                $ph = [];
-                foreach ($cols as $col) $ph[] = ($col === 'created_at' || $col === 'updated_at') ? 'NOW()' : '?';
-                $sql = "INSERT INTO dim_chronicles (`" . implode('`,`', $cols) . "`) VALUES (" . implode(',', $ph) . ")";
-                if ($st = $link->prepare($sql)) {
-                    $st->bind_param($types, ...$vals);
-                    if ($st->execute()) {
-                        $newId = (int)$link->insert_id;
-                        $prettyOk = hg_admin_catalog_persist_pretty_id($link, 'dim_chronicles', $newId, $name);
-                        if ($hasImageUpload) {
-                            $res = hg_admin_save_image_upload($_FILES['image_upload'], 'chronicle', $newId, $name, $CHRONICLE_UPLOADDIR, $CHRONICLE_URLBASE);
-                            if (!empty($res['ok'])) {
-                                if ($st2 = $link->prepare('UPDATE dim_chronicles SET image_url = ? WHERE id = ?')) {
-                                    $st2->bind_param('si', $res['url'], $newId);
-                                    $st2->execute();
-                                    $st2->close();
-                                }
-                                $imageUrl = (string)$res['url'];
-                                $flash[] = ['type' => 'ok', 'msg' => 'Imagen de la cronica subida.'];
-                            } elseif (($res['msg'] ?? '') !== 'no_file') {
-                                $flash[] = ['type' => 'error', 'msg' => 'Imagen no guardada: ' . (string)$res['msg']];
-                            }
+                $result = hg_chronicles_admin_create($link, $chronicleSchema, $name, $description, $sortOrder, $imageUrl);
+                if (!empty($result['ok'])) {
+                    $newId = (int)($result['id'] ?? 0);
+                    if ($hasImageUpload) {
+                        $res = hg_admin_save_image_upload($_FILES['image_upload'], 'chronicle', $newId, $name, $CHRONICLE_UPLOADDIR, $CHRONICLE_URLBASE);
+                        if (!empty($res['ok'])) {
+                            hg_chronicles_admin_set_image($link, $newId, (string)$res['url']);
+                            $imageUrl = (string)$res['url'];
+                            $flash[] = ['type' => 'ok', 'msg' => 'Imagen de la cronica subida.'];
+                        } elseif (($res['msg'] ?? '') !== 'no_file') {
+                            $flash[] = ['type' => 'error', 'msg' => 'Imagen no guardada: ' . (string)$res['msg']];
                         }
-                        $flash[] = ['type' => $prettyOk ? 'ok' : 'error', 'msg' => $prettyOk ? 'Cronica creada.' : 'Cronica creada, pero no se pudo guardar pretty_id.'];
-                    } else {
-                        hg_runtime_log_error('admin_chronicles.create', $st->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo crear la cronica.'];
                     }
-                    $st->close();
+                    $flash[] = [
+                        'type' => !empty($result['pretty_ok']) ? 'ok' : 'error',
+                        'msg' => (string)($result['message'] ?? 'Cronica creada.'),
+                    ];
                 } else {
-                    hg_runtime_log_error('admin_chronicles.create.prepare', $link->error);
-                    $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar el alta de la cronica.'];
+                    $flash[] = ['type' => 'error', 'msg' => (string)($result['message'] ?? 'No se pudo crear la cronica.')];
                 }
             } else {
                 if ($id <= 0) {
                     $flash[] = ['type' => 'error', 'msg' => 'ID invalido para actualizar.'];
                 } else {
-                    $sets = ['`name` = ?', '`description` = ?'];
-                    $vals = [$name, $description];
-                    $types = 'ss';
-                    if ($hasSortOrder) { $sets[] = '`sort_order` = ?'; $vals[] = $sortOrder; $types .= 'i'; }
-                    if ($hasImageUrl) { $sets[] = '`image_url` = ?'; $vals[] = $imageUrl; $types .= 's'; }
-                    if ($hasUpdatedAt) $sets[] = '`updated_at` = NOW()';
-                    $vals[] = $id;
-                    $types .= 'i';
-                    $sql = "UPDATE dim_chronicles SET " . implode(', ', $sets) . " WHERE id = ?";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param($types, ...$vals);
-                        if ($st->execute()) {
-                            $prettyOk = hg_admin_catalog_persist_pretty_id($link, 'dim_chronicles', $id, $name);
-                            if ($hasImageUpload) {
-                                $res = hg_admin_save_image_upload($_FILES['image_upload'], 'chronicle', $id, $name, $CHRONICLE_UPLOADDIR, $CHRONICLE_URLBASE);
-                                if (!empty($res['ok'])) {
-                                    if ($currentImage !== '') {
-                                        hg_admin_safe_unlink_upload($currentImage, $CHRONICLE_UPLOADDIR);
-                                    }
-                                    if ($st2 = $link->prepare('UPDATE dim_chronicles SET image_url = ? WHERE id = ?')) {
-                                        $st2->bind_param('si', $res['url'], $id);
-                                        $st2->execute();
-                                        $st2->close();
-                                    }
-                                    $imageUrl = (string)$res['url'];
-                                    $flash[] = ['type' => 'ok', 'msg' => 'Imagen de la cronica actualizada.'];
-                                } elseif (($res['msg'] ?? '') !== 'no_file') {
-                                    $flash[] = ['type' => 'error', 'msg' => 'Imagen no guardada: ' . (string)$res['msg']];
+                    $result = hg_chronicles_admin_update($link, $chronicleSchema, $id, $name, $description, $sortOrder, $imageUrl);
+                    if (!empty($result['ok'])) {
+                        if ($hasImageUpload) {
+                            $res = hg_admin_save_image_upload($_FILES['image_upload'], 'chronicle', $id, $name, $CHRONICLE_UPLOADDIR, $CHRONICLE_URLBASE);
+                            if (!empty($res['ok'])) {
+                                if ($currentImage !== '') {
+                                    hg_admin_safe_unlink_upload($currentImage, $CHRONICLE_UPLOADDIR);
                                 }
-                            } elseif ($hasImageUrl && $currentImage !== '' && $currentImage !== $imageUrl) {
-                                hg_admin_safe_unlink_upload($currentImage, $CHRONICLE_UPLOADDIR);
+                                hg_chronicles_admin_set_image($link, $id, (string)$res['url']);
+                                $imageUrl = (string)$res['url'];
+                                $flash[] = ['type' => 'ok', 'msg' => 'Imagen de la cronica actualizada.'];
+                            } elseif (($res['msg'] ?? '') !== 'no_file') {
+                                $flash[] = ['type' => 'error', 'msg' => 'Imagen no guardada: ' . (string)$res['msg']];
                             }
-                            $flash[] = ['type' => $prettyOk ? 'ok' : 'error', 'msg' => $prettyOk ? 'Cronica actualizada.' : 'Cronica actualizada, pero no se pudo guardar pretty_id.'];
-                        } else {
-                            hg_runtime_log_error('admin_chronicles.update', $st->error);
-                            $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar la cronica.'];
+                        } elseif ($hasImageUrl && $currentImage !== '' && $currentImage !== $imageUrl) {
+                            hg_admin_safe_unlink_upload($currentImage, $CHRONICLE_UPLOADDIR);
                         }
-                        $st->close();
+                        $flash[] = [
+                            'type' => !empty($result['pretty_ok']) ? 'ok' : 'error',
+                            'msg' => (string)($result['message'] ?? 'Cronica actualizada.'),
+                        ];
                     } else {
-                        hg_runtime_log_error('admin_chronicles.update.prepare', $link->error);
-                        $flash[] = ['type' => 'error', 'msg' => 'No se pudo preparar la actualizacion de la cronica.'];
+                        $flash[] = ['type' => 'error', 'msg' => (string)($result['message'] ?? 'No se pudo actualizar la cronica.')];
                     }
                 }
             }
@@ -209,15 +176,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 }
 
-$select = ['c.id', $hasPrettyId ? "COALESCE(c.pretty_id, '') AS pretty_id" : "'' AS pretty_id", 'c.name', $hasSortOrder ? 'COALESCE(c.sort_order, 0) AS sort_order' : '0 AS sort_order', "COALESCE(c.description, '') AS description", $hasImageUrl ? "COALESCE(c.image_url, '') AS image_url" : "'' AS image_url", $hasCharacterChronicleId ? '(SELECT COUNT(*) FROM fact_characters fc WHERE fc.chronicle_id = c.id) AS characters_count' : '0 AS characters_count', $hasTimelineChronicleId ? '(SELECT COUNT(*) FROM bridge_timeline_events_chronicles bt WHERE bt.chronicle_id = c.id) AS timeline_count' : '0 AS timeline_count', $hasSeasonChronicleId ? '(SELECT COUNT(*) FROM dim_seasons s WHERE s.chronicle_id = c.id) AS seasons_count' : '0 AS seasons_count'];
-$rows = [];
-$rowsFull = [];
-$orderBy = $hasSortOrder ? 'COALESCE(c.sort_order, 999999) ASC, c.name ASC, c.id ASC' : 'c.name ASC, c.id ASC';
-$rs = $link->query('SELECT ' . implode(', ', $select) . ' FROM dim_chronicles c ORDER BY ' . $orderBy);
-if ($rs) {
-    while ($row = $rs->fetch_assoc()) { $row['dependency_summary'] = hg_ach_dep_summary($row); $rows[] = $row; $rowsFull[] = $row; }
-    $rs->close();
+$rows = hg_chronicles_admin_fetch_rows($link, $chronicleSchema);
+foreach ($rows as &$row) {
+    $row['dependency_summary'] = hg_ach_dep_summary($row);
 }
+unset($row);
+$rowsFull = $rows;
 
 $ajaxWrite = $isAjaxRequest && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']);
 if ($ajaxWrite) {
@@ -243,7 +207,7 @@ if ($ajaxWrite) {
 ?>
 <?php if (!empty($flash)): ?><div class="flash"><?php foreach ($flash as $m): $cl = $m['type'] === 'ok' ? 'ok' : (($m['type'] ?? '') === 'error' ? 'err' : 'info'); ?><div class="<?= $cl ?>"><?= hg_ach_h($m['msg'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
 <?php if (!$hasImageUrl): ?><div class="flash"><div class="info">El esquema actual de <code>dim_chronicles</code> no incluye <code>image_url</code>; la subida de imagenes en cronicas depende de esa columna.</div></div><?php endif; ?>
-<style>.adm-dep-badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1b4aa0;background:#00135a;color:#dff7ff;font-size:10px;line-height:1.2}.adm-dep-badge.off{background:#2a2a2a;border-color:#555;color:#ddd}.adm-table-wrap{max-height:72vh;overflow:auto;border:1px solid #000088;border-radius:8px}.adm-thumb-hint{font-size:10px;color:#9db5d3}</style>
+
 <div class="modal-back" id="chronicleModal"><div class="modal"><h3 id="chronicleModalTitle">Nueva cronica</h3><form method="post" id="chronicleForm" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?= hg_ach_h($csrf) ?>"><input type="hidden" name="crud_action" id="chronicle_action" value="create"><input type="hidden" name="id" id="chronicle_id" value="0"><div class="modal-body"><div class="adm-grid-1-2"><label>Nombre</label><input class="inp" type="text" name="name" id="chronicle_name" maxlength="100" required><?php if ($hasSortOrder): ?><label>Orden</label><input class="inp" type="number" name="sort_order" id="chronicle_sort_order" value="0"><?php endif; ?><?php if ($hasImageUrl): ?><label>Imagen</label><input class="inp" type="text" name="image_url" id="chronicle_image_url" maxlength="600" placeholder="/img/chronicles/... o URL completa"><div class="adm-thumb-hint">Puedes escribir una ruta manual o subir un fichero.</div><label>Subir imagen</label><input class="inp" type="file" name="image_upload" id="chronicle_image_upload" accept="image/*"><label class="adm-thumb-hint"><input type="checkbox" name="image_remove" id="chronicle_image_remove" value="1"> Quitar imagen actual</label><?php endif; ?><label>Descripcion</label><textarea class="ta adm-w-full-resize-v" name="description" id="chronicle_description" rows="12"></textarea></div></div><div class="modal-actions"><button class="btn btn-green" type="submit">Guardar</button><button class="btn" type="button" onclick="closeChronicleModal()">Cancelar</button></div></form></div></div>
 <div class="modal-back" id="chronicleDeleteModal"><div class="modal adm-modal-sm"><h3>Confirmar borrado</h3><div class="adm-help-text" id="chronicleDeleteHelp">Se eliminara la cronica seleccionada.</div><form method="post" id="chronicleDeleteForm" class="adm-m-0"><input type="hidden" name="csrf" value="<?= hg_ach_h($csrf) ?>"><input type="hidden" name="crud_action" value="delete"><input type="hidden" name="id" id="chronicle_delete_id" value="0"><div class="modal-actions"><button type="button" class="btn" onclick="closeChronicleDeleteModal()">Cancelar</button><button type="submit" class="btn btn-red">Borrar</button></div></form></div></div>
 <div class="adm-table-wrap"><table class="table" id="tablaChronicles"><thead><tr><th class="adm-w-60">ID</th><th class="adm-w-220">Nombre</th><?php if ($hasSortOrder): ?><th class="adm-w-80">Orden</th><?php endif; ?><?php if ($hasPrettyId): ?><th class="adm-w-220">Pretty ID</th><?php endif; ?><?php if ($hasImageUrl): ?><th class="adm-w-220">Imagen</th><?php endif; ?><th class="adm-w-220">Dependencias</th><th>Descripcion</th><th class="adm-w-160">Acciones</th></tr></thead><tbody id="chroniclesTbody"><?php foreach ($rows as $row): $search = trim((string)($row['name'] ?? '') . ' ' . (string)($row['pretty_id'] ?? '') . ' ' . (string)($row['image_url'] ?? '') . ' ' . (string)($row['description'] ?? '') . ' ' . (string)($row['dependency_summary'] ?? '')); if (function_exists('mb_strtolower')) $search = mb_strtolower($search, 'UTF-8'); else $search = strtolower($search); $totalDeps = (int)($row['characters_count'] ?? 0) + (int)($row['timeline_count'] ?? 0) + (int)($row['seasons_count'] ?? 0); ?><tr data-search="<?= hg_ach_h($search) ?>"><td><?= (int)$row['id'] ?></td><td><?= hg_ach_h((string)($row['name'] ?? '')) ?></td><?php if ($hasSortOrder): ?><td><?= (int)($row['sort_order'] ?? 0) ?></td><?php endif; ?><?php if ($hasPrettyId): ?><td><?= hg_ach_h((string)($row['pretty_id'] ?? '')) ?></td><?php endif; ?><?php if ($hasImageUrl): ?><td><?= hg_ach_h(hg_ach_short((string)($row['image_url'] ?? ''), 70)) ?></td><?php endif; ?><td><span class="adm-dep-badge <?= $totalDeps <= 0 ? 'off' : '' ?>"><?= hg_ach_h((string)($row['dependency_summary'] ?? 'Sin dependencias')) ?></span></td><td><?= hg_ach_h(hg_ach_short((string)($row['description'] ?? ''), 110)) ?></td><td><button class="btn" type="button" data-edit="<?= (int)$row['id'] ?>">Editar</button> <button class="btn btn-red" type="button" data-del="<?= (int)$row['id'] ?>">Borrar</button></td></tr><?php endforeach; ?><?php if (empty($rows)): ?><tr><td colspan="<?= 5 + ($hasSortOrder ? 1 : 0) + ($hasPrettyId ? 1 : 0) + ($hasImageUrl ? 1 : 0) ?>" class="adm-color-muted">(Sin cronicas)</td></tr><?php endif; ?></tbody></table></div>

@@ -35,34 +35,6 @@ if (!function_exists('hg_content_touch')) {
     }
 }
 
-if (!function_exists('hg_content_touch_at')) {
-    /** Preserve a content item's original update time while backfilling. */
-    function hg_content_touch_at(mysqli $link, string $entityType, int $entityId, string $updatedAt): bool
-    {
-        static $statement = null;
-
-        $entityType = strtolower(trim($entityType));
-        $updatedAt = trim($updatedAt);
-        if ($entityId <= 0 || $updatedAt === '' || !preg_match('/^[a-z][a-z0-9_]{0,49}$/', $entityType)) {
-            return false;
-        }
-
-        if ($statement === null) {
-            $statement = $link->prepare(
-                'INSERT INTO fact_content_updates (entity_type, entity_id, updated_at) '
-                . 'VALUES (?, ?, ?) '
-                . 'ON DUPLICATE KEY UPDATE updated_at = GREATEST(updated_at, VALUES(updated_at))'
-            );
-        }
-
-        if (!$statement) {
-            return false;
-        }
-
-        $statement->bind_param('sis', $entityType, $entityId, $updatedAt);
-        return (bool)@$statement->execute();
-    }
-}
 if (!function_exists('hg_content_touch_many')) {
     function hg_content_touch_many(mysqli $link, string $entityType, array $entityIds): void
     {

@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/runtime_response.php');
 include_once(__DIR__ . '/../../helpers/content_image.php');
+include_once(__DIR__ . '/../../domains/chapters/queries.php');
 
 if (!function_exists('hg_sh_h')) {
     function hg_sh_h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -28,27 +29,6 @@ if (!function_exists('hg_sh_kind_badge')) {
             return 'Inciso ' . ($incisoNum > 0 ? $incisoNum : '?');
         }
         return 'Temporada ' . ($number > 0 ? $number : '?');
-    }
-}
-
-if (!function_exists('hg_sh_col_exists')) {
-    function hg_sh_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
-
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
-
-        $cache[$key] = $ok;
-        return $ok;
     }
 }
 
@@ -130,11 +110,7 @@ setMetaFromPage($routeConfig['meta_title'], $routeConfig['meta_desc'], null, 'we
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-seasons.css');
 } else {
-    if (function_exists('hg_page_register_stylesheet')) {
-        hg_page_register_stylesheet('/assets/css/hg-seasons.css');
-    } else {
-        echo '<link rel="stylesheet" href="/assets/css/hg-seasons.css">';
-    }
+    echo '<link rel="stylesheet" href="/assets/css/hg-seasons.css">';
 }
 
 if (!hg_runtime_require_db($link, 'seasons_home', 'public', [
@@ -147,48 +123,7 @@ if (!hg_runtime_require_db($link, 'seasons_home', 'public', [
 
 include("app/partials/main_nav_bar.php");
 
-$rows = [];
-$hasSeasonImageUrl = hg_sh_col_exists($link, 'dim_seasons', 'image_url');
-$seasonImageSelect = $hasSeasonImageUrl ? "s.image_url," : "'' AS image_url,";
-$seasonImageGroup = $hasSeasonImageUrl ? "s.image_url," : "";
-$sql = "
-    SELECT
-        s.id,
-        s.name,
-        s.pretty_id,
-        s.description,
-        {$seasonImageSelect}
-        s.season_number,
-        COALESCE(s.season_kind, 'temporada') AS season_kind,
-        COALESCE(s.finished, 0) AS finished,
-        COALESCE(s.sort_order, 999999) AS sort_order,
-        COUNT(c.id) AS chapter_count
-    FROM dim_seasons s
-    LEFT JOIN dim_chapters c ON c.season_id = s.id
-    GROUP BY
-        s.id, s.name, s.pretty_id, s.description, s.season_number,
-        {$seasonImageGroup}
-        s.season_kind, s.finished, s.sort_order
-    ORDER BY
-        CASE
-            WHEN COALESCE(s.season_kind, 'temporada') = 'temporada' THEN 1
-            WHEN COALESCE(s.season_kind, 'temporada') = 'inciso' THEN 2
-            WHEN COALESCE(s.season_kind, 'temporada') = 'historia_personal' THEN 3
-            WHEN COALESCE(s.season_kind, 'temporada') = 'especial' THEN 4
-            ELSE 99
-        END ASC,
-        COALESCE(s.sort_order, 999999) ASC,
-        s.season_number ASC,
-        s.name ASC
-";
-
-if ($rs = mysqli_query($link, $sql)) {
-    while ($row = mysqli_fetch_assoc($rs)) {
-        $rows[] = $row;
-    }
-    mysqli_free_result($rs);
-}
-
+$rows = hg_chapters_fetch_season_catalog($link) ?? [];
 $rowsByKind = [
     'temporada' => [],
     'inciso' => [],
@@ -216,24 +151,6 @@ foreach ($seasonSectionDefs as $kind => $sectionDef) {
         'chapters' => $chapterTotal,
     ];
 }
-
-/*
-    <!-- <div class="season-home-head">
-        <h2><?= hg_sh_h($routeConfig['heading']) ?></h2>
-        <p><?= hg_sh_h($routeConfig['intro']) ?></p>
-        <?php if ($routeKey === 'seasons_home'): ?>
-            <div class="season-home-nav">
-                <a class="season-home-nav-link" href="/seasons/complete">Temporadas completas</a>
-                <a class="season-home-nav-link" href="/seasons/interludes">Incisos</a>
-                <a class="season-home-nav-link" href="/seasons/personal-stories">Historias personales</a>
-                <a class="season-home-nav-link" href="/seasons/specials">Especiales</a>
-                <a class="season-home-nav-link" href="/chapters">Tabla de episodios</a>
-            </div>
-            <p>Cada puerta de entrada te lleva a un handler distinto del archivo, para no mezclar todas las temporadas en una sola pagina.</p>
-        <?php endif; ?>
-    </div> -->
-
-*/
 ?>
 
 <div class="season-home">

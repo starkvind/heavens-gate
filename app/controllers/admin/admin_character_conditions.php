@@ -6,22 +6,10 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/rules/admin.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function fetchPairsCharacterConditions(mysqli $link, string $sql): array {
-    $out = [];
-    $q = @$link->query($sql);
-    if (!$q) return $out;
-    while ($r = $q->fetch_assoc()) {
-        $id = isset($r['id']) ? (int)$r['id'] : 0;
-        $nm = (string)($r['name'] ?? '');
-        if ($id > 0) $out[$id] = $nm;
-    }
-    $q->close();
-    return $out;
-}
-
 $ADMIN_CSRF_SESSION_KEY = 'csrf_admin_character_conditions';
 if (function_exists('hg_admin_ensure_csrf_token')) {
     $CSRF = hg_admin_ensure_csrf_token($ADMIN_CSRF_SESSION_KEY);
@@ -56,7 +44,7 @@ $page    = isset($_GET['pg']) ? max(1, (int)$_GET['pg']) : 1;
 $q       = trim((string)($_GET['q'] ?? ''));
 $offset  = ($page - 1) * $perPage;
 $flash = [];
-$optsOrigins = fetchPairsCharacterConditions($link, "SELECT id, name FROM dim_bibliographies ORDER BY name ASC");
+$optsOrigins = hg_rules_admin_conditions_origins($link);
 
 $isAjaxCrudRequest = (
     $_SERVER['REQUEST_METHOD'] === 'POST'
@@ -110,61 +98,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         }
 
         if (!$hasErr) {
+            $data = [
+                'name' => $name,
+                'category' => $category,
+                'description' => $description,
+                'max_instances' => $max_instances,
+                'bibliography_id' => $bibliography_id,
+            ];
             if ($action === 'create') {
-                $sql = "INSERT INTO dim_character_conditions
-                        (name, category, description, max_instances, bibliography_id, created_at, updated_at)
-                        VALUES (?, ?, ?, NULLIF(?, 0), NULLIF(?, 0), NOW(), NOW())";
-                $st = $link->prepare($sql);
-                if (!$st) {
-                    $flash[] = ['type' => 'error', 'msg' => 'Error al preparar INSERT: ' . $link->error];
+                $result = hg_rules_admin_conditions_create($link, $data);
+                if (!empty($result['ok'])) {
+                    hg_update_pretty_id_if_exists($link, 'dim_character_conditions', (int)$result['id'], $name);
+                    $flash[] = ['type' => 'ok', 'msg' => 'Condicion creada correctamente.'];
                 } else {
-                    $st->bind_param('sssii', $name, $category, $description, $max_instances, $bibliography_id);
-                    if ($st->execute()) {
-                        $newId = (int)$link->insert_id;
-                        hg_update_pretty_id_if_exists($link, 'dim_character_conditions', $newId, $name);
-                        $flash[] = ['type' => 'ok', 'msg' => 'Condicion creada correctamente.'];
-                    } else {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al crear: ' . $st->error];
-                    }
-                    $st->close();
+                    $flash[] = ['type' => 'error', 'msg' => 'Error al crear: ' . (string)($result['error'] ?? '')];
                 }
             } elseif ($action === 'update') {
                 if ($id <= 0) {
                     $flash[] = ['type' => 'error', 'msg' => 'ID invalido para actualizar.'];
                 } else {
-                    $sql = "UPDATE dim_character_conditions
-                            SET name=?, category=?, description=?, max_instances=NULLIF(?, 0), bibliography_id=NULLIF(?, 0), updated_at=NOW()
-                            WHERE id=?";
-                    $st = $link->prepare($sql);
-                    if (!$st) {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar UPDATE: ' . $link->error];
+                    $result = hg_rules_admin_conditions_update($link, $id, $data);
+                    if (!empty($result['ok'])) {
+                        hg_update_pretty_id_if_exists($link, 'dim_character_conditions', $id, $name);
+                        $flash[] = ['type' => 'ok', 'msg' => 'Condicion actualizada.'];
                     } else {
-                        $st->bind_param('sssiii', $name, $category, $description, $max_instances, $bibliography_id, $id);
-                        if ($st->execute()) {
-                            hg_update_pretty_id_if_exists($link, 'dim_character_conditions', $id, $name);
-                            $flash[] = ['type' => 'ok', 'msg' => 'Condicion actualizada.'];
-                        } else {
-                            $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar: ' . $st->error];
-                        }
-                        $st->close();
+                        $flash[] = ['type' => 'error', 'msg' => 'Error al actualizar: ' . (string)($result['error'] ?? '')];
                     }
                 }
             } elseif ($action === 'delete') {
                 if ($id <= 0) {
                     $flash[] = ['type' => 'error', 'msg' => 'ID invalido para borrar.'];
                 } else {
-                    $st = $link->prepare("DELETE FROM dim_character_conditions WHERE id=?");
-                    if (!$st) {
-                        $flash[] = ['type' => 'error', 'msg' => 'Error al preparar DELETE: ' . $link->error];
-                    } else {
-                        $st->bind_param('i', $id);
-                        if ($st->execute()) {
-                            $flash[] = ['type' => 'ok', 'msg' => 'Condicion eliminada.'];
-                        } else {
-                            $flash[] = ['type' => 'error', 'msg' => 'Error al borrar: ' . $st->error];
-                        }
-                        $st->close();
-                    }
+                    $result = hg_rules_admin_conditions_delete($link, $id);
+                    $flash[] = !empty($result['ok'])
+                        ? ['type' => 'ok', 'msg' => 'Condicion eliminada.']
+                        : ['type' => 'error', 'msg' => 'Error al borrar: ' . (string)($result['error'] ?? '')];
                 }
             }
         }
@@ -219,37 +187,11 @@ if ($ajaxMode === 'search' || $ajaxMode === '1') {
         hg_admin_require_session(true);
     }
     $qAjax = trim((string)($_GET['q'] ?? ''));
-    $whereAjax = "WHERE 1=1";
-    $typesAjax = "";
-    $paramsAjax = [];
-    if ($qAjax !== '') {
-        $whereAjax .= " AND (cc.name LIKE ? OR cc.category LIKE ? OR COALESCE(b.name, '') LIKE ? OR cc.description LIKE ?)";
-        $typesAjax = "ssss";
-        $needleAjax = "%".$qAjax."%";
-        $paramsAjax[] = $needleAjax;
-        $paramsAjax[] = $needleAjax;
-        $paramsAjax[] = $needleAjax;
-        $paramsAjax[] = $needleAjax;
-    }
-
-    $sqlAjax = "SELECT cc.id, cc.pretty_id, cc.name, cc.category, cc.description, cc.max_instances, cc.bibliography_id,
-                       COALESCE(b.name, '') AS origin_name
-                FROM dim_character_conditions cc
-                LEFT JOIN dim_bibliographies b ON b.id = cc.bibliography_id
-                ".$whereAjax."
-                ORDER BY cc.id DESC";
-    $stAjax = $link->prepare($sqlAjax);
-    if ($typesAjax !== '') $stAjax->bind_param($typesAjax, ...$paramsAjax);
-    $stAjax->execute();
-    $rsAjax = $stAjax->get_result();
-
-    $rowsAjax = [];
+    $rowsAjax = hg_rules_admin_conditions_search($link, $qAjax);
     $rowMapAjax = [];
-    while ($r = $rsAjax->fetch_assoc()) {
-        $rowsAjax[] = $r;
+    foreach ($rowsAjax as $r) {
         $rowMapAjax[(int)$r['id']] = $r;
     }
-    $stAjax->close();
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -266,57 +208,16 @@ if ($ajaxMode === 'search' || $ajaxMode === '1') {
     exit;
 }
 
-$where = "WHERE 1=1";
-$types = "";
-$params = [];
-if ($q !== '') {
-    $where .= " AND (cc.name LIKE ? OR cc.category LIKE ? OR COALESCE(b.name, '') LIKE ? OR cc.description LIKE ?)";
-    $types .= "ssss";
-    $needle = "%".$q."%";
-    $params[] = $needle;
-    $params[] = $needle;
-    $params[] = $needle;
-    $params[] = $needle;
-}
-
-$sqlCnt = "SELECT COUNT(*) AS c
-           FROM dim_character_conditions cc
-           LEFT JOIN dim_bibliographies b ON b.id = cc.bibliography_id
-           ".$where;
-$stC = $link->prepare($sqlCnt);
-if ($types !== '') $stC->bind_param($types, ...$params);
-$stC->execute();
-$rsC = $stC->get_result();
-$total = ($rsC && ($rowC = $rsC->fetch_assoc())) ? (int)$rowC['c'] : 0;
-$stC->close();
-
+$total = hg_rules_admin_conditions_count($link, $q);
 $pages = max(1, (int)ceil($total / $perPage));
 $page  = min($page, $pages);
 $offset= ($page - 1) * $perPage;
 
-$sqlList = "SELECT cc.id, cc.pretty_id, cc.name, cc.category, cc.description, cc.max_instances, cc.bibliography_id,
-                   COALESCE(b.name, '') AS origin_name
-            FROM dim_character_conditions cc
-            LEFT JOIN dim_bibliographies b ON b.id = cc.bibliography_id
-            ".$where."
-            ORDER BY cc.id DESC
-            LIMIT ?, ?";
-$types2 = $types . "ii";
-$params2 = $params;
-$params2[] = $offset;
-$params2[] = $perPage;
-
-$rows = [];
+$rows = hg_rules_admin_conditions_page($link, $q, $offset, $perPage);
 $rowMap = [];
-$stL = $link->prepare($sqlList);
-$stL->bind_param($types2, ...$params2);
-$stL->execute();
-$rsL = $stL->get_result();
-while ($r = $rsL->fetch_assoc()) {
-    $rows[] = $r;
+foreach ($rows as $r) {
     $rowMap[(int)$r['id']] = $r;
 }
-$stL->close();
 
 $actions = '<span class="adm-flex-right-8">'
     . '<button class="btn btn-green" type="button" id="btnNewCondition">+ Nueva condicion</button>'
@@ -348,16 +249,16 @@ admin_panel_open('Condiciones de Personaje', $actions);
     <button class="btn" type="button" id="btnApplyConditionFilter">Aplicar</button>
 </form>
 
-<table class="table" id="tablaConditions">
+<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de condiciones"><table class="table adm-wide-table" id="tablaConditions">
     <thead>
         <tr>
             <th class="adm-w-70">ID</th>
-            <th class="adm-w-260">Nombre</th>
+            <th class="adm-w-260 adm-col-name">Nombre</th>
             <th class="adm-w-180">Categoria</th>
             <th class="adm-w-120">Repeticiones</th>
             <th class="adm-w-220">Origen</th>
-            <th>Descripcion</th>
-            <th class="adm-w-170">Acciones</th>
+            <th class="adm-col-text">Descripcion</th>
+            <th class="adm-th-actions" title="Acciones">Acc.</th>
         </tr>
     </thead>
     <tbody id="conditionsTbody">
@@ -373,17 +274,17 @@ admin_panel_open('Condiciones de Personaje', $actions);
             <td><?= $r['max_instances'] === null ? 'Sin limite' : (int)$r['max_instances'] ?></td>
             <td><?= h((string)$r['origin_name']) ?></td>
             <td class="adm-cell-wrap"><?= h((string)$r['description']) ?></td>
-            <td>
-                <button class="btn" type="button" data-edit="<?= (int)$r['id'] ?>">Editar</button>
-                <button class="btn btn-red" type="button" data-del="<?= (int)$r['id'] ?>">Borrar</button>
-            </td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
+                <button class="btn adm-icon-btn" type="button" data-edit="<?= (int)$r['id'] ?>" aria-label="Editar" title="Editar">✏</button>
+                <button class="btn btn-red adm-icon-btn" type="button" data-del="<?= (int)$r['id'] ?>" aria-label="Borrar" title="Borrar">🗑</button>
+                </div></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($rows)): ?>
         <tr><td colspan="7" class="adm-color-muted">(Sin resultados)</td></tr>
         <?php endif; ?>
     </tbody>
-</table>
+</table></div>
 
 <div class="pager" id="conditionsPager">
     <?php
@@ -605,8 +506,8 @@ var CONDITION_ROWS = <?= json_encode($rowMap, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HE
                 + '<td>'+esc(r.origin_name)+'</td>'
                 + '<td class="adm-cell-wrap">'+esc(r.description)+'</td>'
                 + '<td>'
-                + '<button class="btn" type="button" data-edit="'+(parseInt(r.id || 0, 10) || 0)+'">Editar</button> '
-                + '<button class="btn btn-red" type="button" data-del="'+(parseInt(r.id || 0, 10) || 0)+'">Borrar</button>'
+                + '<button class="btn adm-icon-btn" type="button" data-edit="'+(parseInt(r.id || 0, 10) || 0)+'" aria-label="Editar" title="Editar">✏</button> '
+                + '<button class="btn btn-red adm-icon-btn" type="button" data-del="'+(parseInt(r.id || 0, 10) || 0)+'" aria-label="Borrar" title="Borrar">🗑</button>'
                 + '</td>'
                 + '</tr>';
         });

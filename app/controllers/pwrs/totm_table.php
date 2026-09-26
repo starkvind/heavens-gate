@@ -1,28 +1,11 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Tótems | Heaven's Gate", "Listado completo de tótems.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
-// Cargar tótems con la query indicada
-$query = "
-	select 
-		nt.id as totem_id,
-		nt.pretty_id as totem_pretty_id,
-		nt.name as totem_name,
-		ntt.name as totem_type,
-		nt.cost as totem_cost,
-		nb.name as totem_origin
-	from dim_totems nt
-		left join dim_totem_types ntt on ntt.id = nt.totem_type_id
-		left join dim_bibliographies nb on nt.bibliography_id = nb.id
-	order by nt.bibliography_id, nt.cost
-";
-$result = mysqli_query($link, $query);
-
-$totems = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$totems[] = $row;
-}
-mysqli_free_result($result);
+$totems = hg_powers_fetch_catalog($link, 'totems');
+if ($totems === false) $totems = [];
 
 function ensure_utf8($value) {
     if (is_string($value)) {
@@ -163,7 +146,6 @@ $(document).ready(function () {
 
 	});
 
-	// ========= Generar opciones =========
 	const typeSet = new Set();
 	const costSet = new Set();
 	const originSet = new Set();
@@ -263,4 +245,3 @@ function sortValues(values){
 	});
 }
 </script>
-

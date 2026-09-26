@@ -1,0 +1,142 @@
+name: PHP Refactor Characterization
+
+on:
+  push:
+    branches:
+      - php-refactor
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  characterization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Characterize router contract
+        run: php .github/ci/php-router-characterization.php
+
+      - name: Characterize path matcher seam
+        run: php .github/ci/php-path-matcher-characterization.php
+
+      - name: Characterize dispatch contract
+        run: php .github/ci/php-dispatch-characterization.php
+
+      - name: Characterize explicit request context
+        run: php .github/ci/php-request-context-characterization.php
+
+      - name: Audit public request globals
+        run: python3 .github/ci/php-public-request-state-audit.py
+
+      - name: Audit Phase 10.3 classified request state
+        run: python3 .github/ci/php-phase10-request-state-audit.py
+
+      - name: Audit Phase 10.4 legacy alias boundary
+        run: python3 .github/ci/php-phase10-legacy-alias-audit.py
+
+      - name: Enforce Phase 10 final architecture
+        run: python3 .github/ci/php-phase10-final-audit.py
+
+      - name: Audit extracted domain query boundaries
+        run: python3 .github/ci/php-domain-query-boundary-audit.py
+
+      - name: Audit Phase 7 legacy purge
+        run: python3 .github/ci/php-legacy-purge-audit.py
+
+      - name: Audit Phase 7.4B alias boundary
+        run: python3 .github/ci/php-active-alias-boundary-audit.py
+
+      - name: Audit Phase 7.4C compatibility residue
+        run: python3 .github/ci/php-compatibility-residue-audit.py
+
+      - name: Audit Phase 7.2 consumers
+        run: python3 .github/ci/php-consumer-graph-audit.py
+
+      - name: Audit classified schema introspection
+        run: python3 .github/ci/php-schema-contract-audit.py
+
+      - name: Characterize Phase 7 runtime regressions
+        run: php .github/ci/php-phase7-runtime-regression.php
+
+      - name: Audit archived games stay out of production
+        run: python3 .github/ci/php-retired-games-archive-audit.py
+
+      - name: Characterize public monolith seams
+        run: php .github/ci/php-public-monolith-characterization.php
+
+      - name: Characterize Admin shell and security
+        run: php .github/ci/php-admin-shell-characterization.php
+
+      - name: Audit Admin procedural debt baseline
+        run: python3 .github/ci/php-admin-debt-audit.py
+
+      - name: Audit Admin domain boundaries
+        run: python3 .github/ci/php-admin-domain-boundary-audit.py
+
+      - name: Audit final Admin structure
+        run: python3 .github/ci/php-admin-final-structural-audit.py
+
+      - name: Audit Admin UX foundation
+        run: python3 .github/ci/php-admin-ux-foundation-audit.py
+
+      - name: Audit Admin usage telemetry
+        run: python3 .github/ci/php-admin-usage-audit.py
+
+      - name: Check dense Admin table JavaScript
+        run: node --check assets/js/hg-admin-dense-tables.js
+
+      - name: Enforce Phase 7 final architecture baseline
+        run: python3 .github/ci/php-phase7-final-baseline-audit.py
+
+      - name: Enforce Phase 8 performance contracts
+        run: python3 .github/ci/php-phase8-performance-audit.py
+
+      - name: Enforce Phase 9.2 mobile shared-data boundary
+        run: python3 .github/ci/php-phase9-mobile-shared-data-audit.py
+
+      - name: Enforce Phase 9.3 mobile presentation boundary
+        run: python3 .github/ci/php-phase9-mobile-presentation-audit.py
+
+      - name: Enforce Phase 9.4 PWA contract
+        run: python3 .github/ci/php-phase9-pwa-audit.py
+
+      - name: Enforce Phase 10.1 public SQL boundary
+        run: python3 .github/ci/php-phase10-public-sql-audit.py
+
+      - name: Check PWA JavaScript
+        run: |
+          node --check assets/js/hg-pwa.js
+          node --check service-worker.js
+
+      - name: Inventory PHP architecture debt
+        run: python3 .github/ci/php-architecture-inventory.py
+
+      - name: Report PHP Refactor Characterization status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HG_JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=failure
+          if [ "$HG_JOB_STATUS" = "success" ]; then state=success; fi
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"${state}\",\"context\":\"PHP Refactor Characterization\",\"description\":\"PHP refactor CI ${state}\"}"

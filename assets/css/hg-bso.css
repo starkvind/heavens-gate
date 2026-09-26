@@ -1,9 +1,81 @@
-/* Soundtrack cards ------------------------------------------------------- */
+/* Soundtrack carousel ---------------------------------------------------- */
+
+.bso-carousel {
+    float: none;
+    width: auto;
+    max-width: 610px;
+    margin: 2px auto;
+}
+
+.bso-carousel__viewport {
+    width: 100%;
+}
+
+.bso-carousel__slide[hidden] {
+    display: none;
+}
+
+.bso-card {
+    min-width: 0;
+}
+
+.bso-card .video-wrapper {
+    width: min(100%, 560px);
+    aspect-ratio: 16 / 9;
+    margin: 0 auto;
+    overflow: hidden;
+}
 
 .bso-card-iframe {
+    display: block;
     clear: both;
+    width: 100%;
+    height: 100%;
+    border: 0;
 }
 
 .bso-card-caption {
+    margin: 8px 0 2px;
     text-align: center;
+}
+
+.bso-carousel__nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 20px;
+    margin: 8px 0 2px;
+}
+
+.bso-carousel__dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 1px solid #66ccff;
+    border-radius: 50%;
+    background: #00115a;
+    cursor: pointer;
+    transform: scale(1);
+    transition: transform .15s ease, background-color .15s ease;
+}
+
+.bso-carousel__dot:hover,
+.bso-carousel__dot:focus-visible {
+    background: #2f7fc4;
+    outline: none;
+}
+
+.bso-carousel__dot.is-active {
+    background: #9fe7ff;
+    transform: scale(1.55);
+}
+
+@media (max-width: 720px) {
+    .bso-carousel {
+        width: auto;
+        max-width: none;
+        margin: 2px 8px;
+        padding: 6px 0;
+    }
 }

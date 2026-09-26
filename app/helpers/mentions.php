@@ -3,26 +3,6 @@
 
 require_once(__DIR__ . '/pretty.php');
 
-function hg_mentions_table_columns(mysqli $link, string $table): array {
-    static $cache = [];
-    $key = strtolower(trim($table));
-    if ($key === '') return [];
-    if (isset($cache[$key])) return $cache[$key];
-
-    $cols = [];
-    if ($st = $link->prepare("SHOW COLUMNS FROM `$table`")) {
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $field = strtolower((string)($row['Field'] ?? ''));
-            if ($field !== '') $cols[$field] = true;
-        }
-        $st->close();
-    }
-    $cache[$key] = $cols;
-    return $cols;
-}
-
 function hg_mentions_config(): array {
     return [
         'character' => [
@@ -198,18 +178,16 @@ function hg_mentions_search(mysqli $link, string $type, string $q, int $limit = 
     $table = $c['table'];
     $labelCol = $c['label'];
     $prettyCol = $c['pretty'];
-    $columns = hg_mentions_table_columns($link, $table);
-    $hasLabel = isset($columns[strtolower($labelCol)]);
-    $hasPretty = isset($columns[strtolower($prettyCol)]);
-    if (!$hasLabel) return [];
+    $hasLabel = true;
+    $hasPretty = true;
     $where = $c['where'] ?? '';
     $searchCols = $c['search'] ?? [];
     if (empty($searchCols)) $searchCols = [$labelCol, $prettyCol];
     if ($hasPretty && !in_array($prettyCol, $searchCols, true)) $searchCols[] = $prettyCol;
     if (!in_array($labelCol, $searchCols, true)) $searchCols[] = $labelCol;
-    $searchCols = array_values(array_filter($searchCols, function($col) use ($columns) {
-        return isset($columns[strtolower((string)$col)]);
-    }));
+    $searchCols = array_values(array_unique(array_filter($searchCols, static function($col) {
+        return preg_match('/^[a-zA-Z0-9_]+$/', (string)$col) === 1;
+    })));
     if (empty($searchCols)) $searchCols = [$labelCol];
 
     $params = [];
@@ -288,10 +266,8 @@ function hg_mentions_lookup(mysqli $link, string $type, string $value): ?array {
     $table = $c['table'];
     $labelCol = $c['label'];
     $prettyCol = $c['pretty'];
-    $columns = hg_mentions_table_columns($link, $table);
-    $hasLabel = isset($columns[strtolower($labelCol)]);
-    $hasPretty = isset($columns[strtolower($prettyCol)]);
-    if (!$hasLabel) return null;
+    $hasLabel = true;
+    $hasPretty = true;
     $where = $c['where'] ?? '';
 
     $id = null;

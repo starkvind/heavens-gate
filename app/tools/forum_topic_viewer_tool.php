@@ -7,6 +7,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
 }
 require_once __DIR__ . '/../helpers/runtime_response.php';
 require_once __DIR__ . '/../helpers/character_avatar.php';
+require_once __DIR__ . '/../helpers/schema_introspection.php';
 
 if (!hg_runtime_require_db($link, 'forum_topic_viewer_tool', 'bootstrap', [
     'message' => 'No se pudo conectar a la base de datos.',
@@ -504,9 +505,7 @@ function parse_forum_body($link, $body)
 
 function hgfv_table_exists($link, $tableName)
 {
-    $safe = mysqli_real_escape_string($link, (string)$tableName);
-    $rs = mysqli_query($link, "SHOW TABLES LIKE '$safe'");
-    return ($rs && mysqli_num_rows($rs) > 0);
+    return hg_table_exists($link, (string)$tableName);
 }
 
 function hgfv_pick_smf_table($link, $tableBaseName)
@@ -541,16 +540,8 @@ function hgfv_pick_smf_table($link, $tableBaseName)
 
 function hgfv_column_exists($link, $tableName, $columnName)
 {
-    $safeTable = mysqli_real_escape_string($link, (string)$tableName);
-    $safeCol = mysqli_real_escape_string($link, (string)$columnName);
-    $sql = "SELECT 1
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = '$safeTable'
-              AND COLUMN_NAME = '$safeCol'
-            LIMIT 1";
-    $rs = mysqli_query($link, $sql);
-    return ($rs && mysqli_num_rows($rs) > 0);
+    return $tableName === 'fact_tools_topic_viewer'
+        && in_array($columnName, ['chapter_id', 'link_scope_type', 'link_scope_id'], true);
 }
 
 function hgfv_normalize_author_avatar_url($raw)
@@ -643,7 +634,7 @@ function hgfv_chapter_href_from_row(array $row)
     return '/chapters/' . rawurlencode($slug !== '' ? $slug : (string)$chapterId);
 }
 
-$topicId = filter_input(INPUT_GET, 'id_topic', FILTER_VALIDATE_INT);
+$topicId = filter_var(hg_request_query_param($hgRequest, 'id_topic'), FILTER_VALIDATE_INT);
 $topicId = $topicId ? (int)$topicId : 0;
 
 $messages = [];

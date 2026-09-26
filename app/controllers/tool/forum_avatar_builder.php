@@ -8,6 +8,7 @@ if (!$hgForumAvatarMobileEmbed) {
 }
 include_once("app/helpers/runtime_response.php");
 include_once("app/helpers/character_avatar.php");
+require_once("app/domains/forum/queries.php");
 ?>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-tools.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-tools.css"><?php } ?>
 
@@ -19,27 +20,7 @@ if (!hg_runtime_require_db($link, 'forum_avatar_builder', 'public', [
     return;
 }
 
-function sanitize_int_csv($csv) {
-    $csv = (string)$csv;
-    if (trim($csv) === '') {
-        return '';
-    }
-    $parts = preg_split('/\s*,\s*/', trim($csv));
-    $ints = [];
-    foreach ($parts as $p) {
-        if ($p === '') {
-            continue;
-        }
-        if (preg_match('/^\d+$/', $p)) {
-            $ints[] = (string)(int)$p;
-        }
-    }
-    $ints = array_values(array_unique($ints));
-    return implode(',', $ints);
-}
-
-$excludeChroniclesCsv = isset($excludeChronicles) ? sanitize_int_csv($excludeChronicles) : '2,7';
-$whereChron = ($excludeChroniclesCsv !== '') ? "chronicle_id NOT IN ($excludeChroniclesCsv)" : "1=1";
+$excludedChronicles = isset($excludeChronicles) ? (string)$excludeChronicles : '2,7';
 
 $defaultAvatars = [
     ['id' => -1, 'name' => 'Hombre (default)'],
@@ -48,56 +29,9 @@ $defaultAvatars = [
     ['id' => -4, 'name' => 'Espiritu (default)'],
 ];
 
-$characters = [];
-$sql = "SELECT id, name FROM fact_characters WHERE $whereChron ORDER BY name ASC";
-if ($rs = mysqli_query($link, $sql)) {
-    while ($row = mysqli_fetch_assoc($rs)) {
-        $characters[] = [
-            'id' => (int)$row['id'],
-            'name' => (string)$row['name'],
-        ];
-    }
-    mysqli_free_result($rs);
-}
-
-$avatarVariantsByCharacter = [];
-if (hg_character_avatar_variants_table_exists($link, true)) {
-    $sqlVariants = "
-        SELECT character_id, variant_code
-        FROM fact_character_avatar_variants
-        WHERE is_active = 1
-        ORDER BY character_id ASC, variant_code ASC
-    ";
-    if ($rsVariants = mysqli_query($link, $sqlVariants)) {
-        while ($rowVariant = mysqli_fetch_assoc($rsVariants)) {
-            $charId = (int)($rowVariant['character_id'] ?? 0);
-            $variantCode = hg_character_avatar_variant_code($rowVariant['variant_code'] ?? '');
-            if ($charId <= 0 || $variantCode === '') {
-                continue;
-            }
-            if (!isset($avatarVariantsByCharacter[$charId])) {
-                $avatarVariantsByCharacter[$charId] = [];
-            }
-            if (!in_array($variantCode, $avatarVariantsByCharacter[$charId], true)) {
-                $avatarVariantsByCharacter[$charId][] = $variantCode;
-            }
-        }
-        mysqli_free_result($rsVariants);
-    }
-}
-
-$dbColors = [];
-$sqlColors = "SELECT text_color FROM fact_characters WHERE text_color <> '' AND $whereChron GROUP BY 1 ORDER BY 1";
-if ($rsColors = mysqli_query($link, $sqlColors)) {
-    while ($rowColor = mysqli_fetch_assoc($rsColors)) {
-        $value = trim((string)($rowColor['text_color'] ?? ''));
-        if ($value === '') {
-            continue;
-        }
-        $dbColors[] = $value;
-    }
-    mysqli_free_result($rsColors);
-}
+$characters = hg_forum_avatar_fetch_characters($link, $excludedChronicles);
+$avatarVariantsByCharacter = hg_forum_avatar_fetch_variants($link);
+$dbColors = hg_forum_avatar_fetch_text_colors($link, $excludedChronicles);
 ?>
 
 <div class="hg-avatar-tool-wrap">

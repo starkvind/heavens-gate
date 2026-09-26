@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
+include_once(__DIR__ . '/../../domains/systems/admin.php');
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 $isAjaxRequest = (
@@ -59,76 +60,6 @@ function ase_meta(string $tab): array
     return ['tab' => 'breeds', 'title' => 'Razas', 'table' => 'dim_breeds'];
 }
 
-function ase_load_systems(mysqli $link): array
-{
-    $rows = [];
-    if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC")) {
-        while ($row = $rs->fetch_assoc()) {
-            $rows[] = ['id' => (int)($row['id'] ?? 0), 'name' => (string)($row['name'] ?? '')];
-        }
-        $rs->close();
-    }
-    return $rows;
-}
-
-function ase_load_rows(mysqli $link, string $tab, int $systemId, string $q): array
-{
-    $meta = ase_meta($tab);
-    $table = $meta['table'];
-    $where = 'WHERE 1=1';
-    $types = '';
-    $params = [];
-
-    if ($systemId > 0) {
-        $where .= ' AND t.system_id = ?';
-        $types .= 'i';
-        $params[] = $systemId;
-    }
-    if ($q !== '') {
-        $where .= ' AND t.name LIKE ?';
-        $types .= 's';
-        $params[] = '%' . $q . '%';
-    }
-
-    $energySql = hg_ser_energy_sql_parts($link, $table, 't', 'er');
-    $sql = "
-        SELECT
-            t.id,
-            t.name,
-            COALESCE(t.system_id, 0) AS system_id,
-            COALESCE(s.name, t.system_name, '') AS system_name,
-            " . hg_ser_energy_value_sql_expr($link, $table, 't') . " AS energy
-            {$energySql['select']}
-        FROM `$table` t
-        LEFT JOIN dim_systems s ON s.id = t.system_id
-        {$energySql['join']}
-        {$where}
-        ORDER BY s.name ASC, t.name ASC
-    ";
-
-    $rows = [];
-    if ($st = $link->prepare($sql)) {
-        ase_bind_params($st, $types, $params);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $rows[] = [
-                'id' => (int)($row['id'] ?? 0),
-                'name' => (string)($row['name'] ?? ''),
-                'system_id' => (int)($row['system_id'] ?? 0),
-                'system_name' => (string)($row['system_name'] ?? ''),
-                'energy' => (int)($row['energy'] ?? 0),
-                'energy_resource_id' => (int)($row['energy_resource_id'] ?? 0),
-                'energy_resource_name' => (string)($row['energy_resource_name'] ?? ''),
-                'energy_resource_pretty_id' => (string)($row['energy_resource_pretty_id'] ?? ''),
-            ];
-        }
-        $st->close();
-    }
-
-    return hg_ser_attach_energy_summary($link, $table, $rows);
-}
-
 function ase_load_legacy_pending_rows(mysqli $link): array
 {
     $rows = [];
@@ -158,66 +89,6 @@ function ase_state(mysqli $link, string $tab, int $systemId, string $q, array $r
         'legacy_pending_rows' => ase_load_legacy_pending_rows($link),
         'schema_ready' => !empty($schema[$table]['bridge_table']) && !empty($schema[$table]['config_column']),
     ];
-}
-
-function ase_save_assignments(mysqli $link, string $tab, array $updates, array $resourcesBySystem, array $resourcesAll, bool $allowAllStateResources = false): array
-{
-    $meta = ase_meta($tab);
-    $table = $meta['table'];
-    if (!hg_ser_has_energy_bridge_table($link, $table)) {
-        return ['ok' => false, 'message' => 'El schema aún no está preparado para esta tabla.'];
-    }
-
-    $rowsById = [];
-    $ids = [];
-    foreach ($updates as $rawId => $payload) {
-        $detailId = (int)$rawId;
-        if ($detailId <= 0) continue;
-        $ids[$detailId] = $detailId;
-        $rowsById[$detailId] = hg_ser_normalize_posted_energy_assignments($payload);
-    }
-    if (empty($ids)) {
-        return ['ok' => true, 'message' => 'No había cambios que guardar.'];
-    }
-
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $sql = "SELECT id, COALESCE(system_id, 0) AS system_id FROM `$table` WHERE id IN ($placeholders)";
-    $detailSystems = [];
-    if ($st = $link->prepare($sql)) {
-        $params = array_values($ids);
-        ase_bind_params($st, str_repeat('i', count($params)), $params);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $detailSystems[(int)$row['id']] = (int)($row['system_id'] ?? 0);
-        }
-        $st->close();
-    }
-
-    foreach ($rowsById as $detailId => $assignments) {
-        if (!isset($detailSystems[$detailId])) {
-            return ['ok' => false, 'message' => 'Hay filas que ya no existen. Recarga la página.'];
-        }
-        $energyError = hg_ser_validate_energy_assignments($assignments, (int)$detailSystems[$detailId], $resourcesBySystem, $resourcesAll, $allowAllStateResources);
-        if ($energyError !== null) {
-            return ['ok' => false, 'message' => $energyError];
-        }
-    }
-
-    $link->begin_transaction();
-    try {
-        foreach ($rowsById as $detailId => $assignments) {
-            $save = hg_ser_save_energy_assignments($link, $table, $detailId, $assignments);
-            if (empty($save['ok'])) {
-                throw new RuntimeException((string)($save['message'] ?? 'No se pudieron guardar los recursos de energía.'));
-            }
-        }
-        $link->commit();
-        return ['ok' => true, 'message' => 'Recursos de energía actualizados.'];
-    } catch (Throwable $e) {
-        $link->rollback();
-        return ['ok' => false, 'message' => 'No se pudieron guardar los cambios: ' . $e->getMessage()];
-    }
 }
 
 $allowedTabs = ['breeds', 'auspices', 'tribes', 'misc'];
@@ -252,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = (string)($_POST['action'] ?? '');
     if ($action === 'save_assignments') {
         $updatesRaw = isset($_POST['updates']) && is_array($_POST['updates']) ? $_POST['updates'] : [];
-        $allowAllStateResources = ((int)($_POST['allow_all_state_resources'] ?? 0) === 1);
+        $allowAllStateResources = ($tab === 'misc') || ((int)($_POST['allow_all_state_resources'] ?? 0) === 1);
         $save = ase_save_assignments($link, $tab, $updatesRaw, $resourcesBySystem, $resourcesAll, $allowAllStateResources);
         $state = ase_state($link, $tab, $systemId, $q, $resourcesAll, $resourcesBySystem);
         if (!empty($save['ok'])) {
@@ -291,23 +162,7 @@ $actions = '<span class="adm-flex-right-8">'
 admin_panel_open('Vincular energías a recursos', $actions);
 ?>
 
-<style>
-.ase-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px 0}
-.ase-tab{padding:7px 12px;border:1px solid #17366e;border-radius:999px;background:#071b4a;color:#dfefff;cursor:pointer}
-.ase-tab.active{background:#0d356f;color:#fff}
-.ase-status{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px 0}
-.ase-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-.ase-note{margin:0 0 12px 0;color:#d7e7ff}
-.ase-muted{color:#9fb6dc}
-.ase-energy-cell{min-width:340px}
-.ase-energy-list{display:flex;flex-direction:column;gap:6px}
-.ase-energy-row{display:grid;grid-template-columns:minmax(160px,2fr) 84px 78px 78px;gap:6px;align-items:center}
-.ase-energy-head{display:grid;grid-template-columns:minmax(160px,2fr) 84px 78px 78px;gap:6px;font-size:12px;color:#9fb6dc;margin:0 0 6px 0}
-.ase-energy-actions{margin-top:6px}
-@media (max-width: 920px){
-  .ase-energy-head,.ase-energy-row{grid-template-columns:1fr}
-}
-</style>
+
 
 <div class="ase-tabs" id="aseTabs">
   <button class="ase-tab<?= $tab === 'breeds' ? ' active' : '' ?>" type="button" data-tab="breeds">Razas</button>
@@ -374,7 +229,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
   }
 
   function useAllStateResources(){
-    return !!(allowAllStateResources && allowAllStateResources.checked);
+    return state.tab === 'misc' || !!(allowAllStateResources && allowAllStateResources.checked);
   }
 
   function resourcesForSystem(systemId){

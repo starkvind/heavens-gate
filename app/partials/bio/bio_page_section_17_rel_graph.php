@@ -17,6 +17,7 @@ $nodes[$characterId] = [
     'id' => (int)$characterId,
     'label' => $mainName,
     'image' => $mainPhoto,
+    'url' => pretty_url($link, 'fact_characters', '/characters', (int)$characterId),
     'size' => 24,
     'fontSize' => 16,
 ];
@@ -30,6 +31,7 @@ foreach ($relaciones as $r) {
             'id' => $relatedId,
             'label' => (string)($r['nombre'] ?? ''),
             'image' => (string)($r['image_url'] ?? ($r['img'] ?? '/img/ui/icons/default.webp')),
+            'url' => pretty_url($link, 'fact_characters', '/characters', $relatedId),
             'size' => 20,
             'fontSize' => 12,
         ];
@@ -72,6 +74,7 @@ foreach ($relaciones as $r) {
             label: <?= json_encode((string)$n['label']) ?>,
             shape: 'circularImage',
             image: <?= json_encode((string)$n['image']) ?>,
+            url: <?= json_encode((string)$n['url']) ?>,
             size: <?= (int)$n['size'] ?>,
             font: { color: '#fff', size: <?= (int)$n['fontSize'] ?>, strokeWidth: 3, strokeColor: '#000' }
         },
@@ -164,7 +167,8 @@ foreach ($relaciones as $r) {
         if (params.nodes.length === 1) {
             var nodeId = String(params.nodes[0]);
             if (nodeId !== <?= json_encode((string)$characterId) ?>) {
-                window.open('?p=muestrabio&b=' + nodeId, '_blank');
+                var node = nodes.get(params.nodes[0]);
+                if (node && node.url) window.open(node.url, '_blank');
             }
         }
     });

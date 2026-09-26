@@ -2,6 +2,7 @@
 <?php if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php"); ?>
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <?php include_once("app/helpers/runtime_response.php"); ?>
+<?php require_once("app/domains/dice/queries.php"); ?>
 
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-tools.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-tools.css"><?php } ?>
 
@@ -13,10 +14,14 @@ if (!hg_runtime_require_db($link, 'dice_roller', 'public', [
     return;
 }
 
+$queryInput = is_array($hgRequest['query'] ?? null) ? $hgRequest['query'] : [];
+$bodyInput = is_array($hgRequest['body'] ?? null) ? $hgRequest['body'] : [];
+
 echo "<h2>Tiradados</h2>";
 
-$pjList = fetch_pj_list($link);
-$pjProfiles = fetch_pj_roll_profiles($link, $pjList);
+$diceExcludedChronicles = isset($excludeChronicles) ? (string)$excludeChronicles : '2,7';
+$pjList = hg_dice_fetch_pj_list($link, $diceExcludedChronicles);
+$pjProfiles = hg_dice_fetch_pj_roll_profiles($link, $pjList);
 $pjProfilesJson = htmlspecialchars(json_encode($pjProfiles, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8');
 
 function parse_debug_rolls(string $raw): array {
@@ -33,185 +38,10 @@ function parse_debug_rolls(string $raw): array {
     return $out;
 }
 
-function roll_d10_pool(int $dados, int $dificultad, array $forced = []): array {
-    $resultados = [];
-    $exitosBrutos = 0;
-    $unoDetectado = false;
-
-    for ($i = 0; $i < $dados; $i++) {
-        $dado = !empty($forced) ? (int)$forced[$i] : rand(1, 10);
-        $resultados[] = $dado;
-        if ($dado >= $dificultad) $exitosBrutos++;
-        if ($dado === 1) $unoDetectado = true;
-    }
-
-    $exitos = $exitosBrutos;
-    if ($unoDetectado) {
-        $exitos--;
-        if ($exitos < 0) $exitos = 0;
-    }
-
-    // Pifia solo si hay "1" y no hubo ningun exito bruto.
-    // Si hubo al menos un exito bruto y queda en 0 netos, es fallo, no pifia.
-    $pifia = ($unoDetectado && $exitosBrutos === 0);
-    return [$resultados, $exitos, $pifia];
-}
-
-function normalize_kind_key(string $kind): string {
-    $k = function_exists('mb_strtolower') ? mb_strtolower(trim($kind), 'UTF-8') : strtolower(trim($kind));
-    if (function_exists('iconv')) {
-        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $k);
-        if ($converted !== false) {
-            $k = $converted;
-        }
-    }
-    return strtolower($k);
-}
-
-function sanitize_int_csv(string $csv): string {
-    if (trim($csv) === '') return '';
-    $parts = preg_split('/\s*,\s*/', trim($csv));
-    $ints = [];
-    foreach ($parts as $p) {
-        if ($p === '') continue;
-        if (preg_match('/^\d+$/', $p)) $ints[] = (string)(int)$p;
-    }
-    $ints = array_values(array_unique($ints));
-    return implode(',', $ints);
-}
-
 function hg_strlen(string $value): int {
     return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
 }
 
-function fetch_pj_list(mysqli $link): array {
-    $out = [];
-    global $excludeChronicles;
-    $excludeChroniclesCsv = isset($excludeChronicles) ? sanitize_int_csv((string)$excludeChronicles) : '2,7';
-    $whereChron = ($excludeChroniclesCsv !== '') ? " AND c.chronicle_id NOT IN ($excludeChroniclesCsv) " : "";
-    $sql = "SELECT c.id, c.name, c.chronicle_id, ch.name AS chronicle_name
-            FROM fact_characters c
-            LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id
-            WHERE LOWER(c.character_kind) = 'pj' {$whereChron}
-            ORDER BY c.name ASC";
-    if ($rs = mysqli_query($link, $sql)) {
-        while ($r = mysqli_fetch_assoc($rs)) {
-            $out[] = [
-                'id' => (int)$r['id'],
-                'name' => (string)$r['name'],
-                'chronicle_name' => (string)($r['chronicle_name'] ?? '')
-            ];
-        }
-        mysqli_free_result($rs);
-    }
-    return $out;
-}
-
-function fetch_pj_roll_profiles(mysqli $link, array $pjs): array {
-    $profiles = [];
-    if (empty($pjs)) return $profiles;
-
-    $ids = [];
-    foreach ($pjs as $pj) {
-        $id = (int)$pj['id'];
-        $ids[] = $id;
-        $profiles[$id] = [
-            'name' => (string)$pj['name'],
-            'chronicle' => (string)($pj['chronicle_name'] ?? ''),
-            'attributes' => [],
-            'skills' => [],
-            'resources' => [],
-            'attribute_map' => [],
-            'skill_map' => [],
-            'skill_kind_map' => [],
-            'resource_map' => []
-        ];
-    }
-    $idSql = implode(',', $ids);
-
-    $sqlTraits = "SELECT b.character_id, t.id AS trait_id, t.name, t.kind, b.value
-                  FROM bridge_characters_traits b
-                  JOIN dim_traits t ON t.id = b.trait_id
-                  WHERE b.character_id IN ($idSql)
-                    AND t.kind IN ('Atributos','Talentos','Técnicas','Tecnicas','Conocimientos','Trasfondos')
-                  ORDER BY t.name";
-    if ($rs = mysqli_query($link, $sqlTraits)) {
-        while ($r = mysqli_fetch_assoc($rs)) {
-            $cid = (int)$r['character_id'];
-            if (!isset($profiles[$cid])) continue;
-            $traitId = (int)$r['trait_id'];
-            $value = (int)$r['value'];
-            if ($value <= 0) continue;
-            $item = ['id' => $traitId, 'name' => (string)$r['name'], 'value' => $value];
-            $kindKey = normalize_kind_key((string)$r['kind']);
-            if ($kindKey === 'atributos') {
-                $profiles[$cid]['attributes'][] = $item;
-                $profiles[$cid]['attribute_map'][$traitId] = $value;
-            } elseif (in_array($kindKey, ['talentos','tecnicas','conocimientos','trasfondos'], true)) {
-                $skillKind = ($kindKey === 'trasfondos') ? 'trasfondo' : 'habilidad';
-                $item['skill_kind'] = $skillKind;
-                $profiles[$cid]['skills'][] = $item;
-                $profiles[$cid]['skill_map'][$traitId] = $value;
-                $profiles[$cid]['skill_kind_map'][$traitId] = $skillKind;
-            }
-        }
-        mysqli_free_result($rs);
-    }
-
-    $sqlResources = "SELECT r.character_id, d.id AS resource_id, d.name, d.kind, r.value_permanent, r.value_temporary
-                     FROM bridge_characters_system_resources r
-                     JOIN dim_systems_resources d ON d.id = r.resource_id
-                     WHERE r.character_id IN ($idSql)
-                       AND LOWER(d.kind) = 'estado'
-                     ORDER BY d.sort_order, d.name";
-    if ($rs = mysqli_query($link, $sqlResources)) {
-        while ($r = mysqli_fetch_assoc($rs)) {
-            $cid = (int)$r['character_id'];
-            if (!isset($profiles[$cid])) continue;
-            $resourceId = (int)$r['resource_id'];
-            $valuePerm = (int)$r['value_permanent'];
-            $valueTemp = (int)$r['value_temporary'];
-            $value = ($valueTemp > 0) ? $valueTemp : $valuePerm;
-            if ($value <= 0) continue;
-            $item = ['id' => $resourceId, 'name' => (string)$r['name'], 'value' => $value];
-            $profiles[$cid]['resources'][] = $item;
-            $profiles[$cid]['resource_map'][$resourceId] = $value;
-        }
-        mysqli_free_result($rs);
-    }
-
-    return $profiles;
-}
-
-function hg_dice_form_attribute_modifier(mysqli $db, int $characterId, int $formId, int $traitId): int {
-    if ($characterId <= 0 || $formId <= 0 || $traitId <= 0) return 0;
-    $sql = "SELECT b.modifier, t.name AS trait_name, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus
-            FROM dim_forms f
-            JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
-            JOIN dim_traits t ON t.id = ?
-            LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
-            WHERE f.id = ? LIMIT 1";
-    $stmt = $db->prepare($sql);
-    if (!$stmt) return 0;
-    $stmt->bind_param('iii', $characterId, $traitId, $formId);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$row) return 0;
-    if ($row['modifier'] !== null) return (int)$row['modifier'];
-    // Compatibilidad con las formas antiguas, antes del bridge_forms_traits.
-    // PHP 7 compatible: `match` was introduced in PHP 8.
-    switch ((string)($row['trait_name'] ?? '')) {
-        case 'Fuerza':
-            return (int)($row['strength_bonus'] ?? 0);
-        case 'Destreza':
-            return (int)($row['dexterity_bonus'] ?? 0);
-        case 'Resistencia':
-            return (int)($row['stamina_bonus'] ?? 0);
-        default:
-            return 0;
-    }
-}
 function render_roll_card(array $tirada, int $id): void {
     $resultados = explode(',', (string)$tirada['roll_results']);
     $dificultad = (int)$tirada['difficulty'];
@@ -261,12 +91,12 @@ $prefillName = '';
 $prefillRollName = '';
 $prefillDifficulty = 6;
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['character_id'], $_GET['attr_trait_id'], $_GET['skill_trait_id'])) {
-    $prefillCharacterId = (int)$_GET['character_id'];
-    $prefillAttributeId = (int)$_GET['attr_trait_id'];
-    $prefillSkillId = (int)$_GET['skill_trait_id'];
-    $form_active_form_id = (int)($_GET['form_id'] ?? 0);
-    $prefillDifficulty = (int)($_GET['dificultad'] ?? 6);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($queryInput['character_id'], $queryInput['attr_trait_id'], $queryInput['skill_trait_id'])) {
+    $prefillCharacterId = (int)$queryInput['character_id'];
+    $prefillAttributeId = (int)$queryInput['attr_trait_id'];
+    $prefillSkillId = (int)$queryInput['skill_trait_id'];
+    $form_active_form_id = (int)($queryInput['form_id'] ?? 0);
+    $prefillDifficulty = (int)($queryInput['dificultad'] ?? 6);
     if ($prefillDifficulty < 2 || $prefillDifficulty > 10) $prefillDifficulty = 6;
     if (isset($pjProfiles[$prefillCharacterId])) {
         $roll_mode = 'pj';
@@ -275,29 +105,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['character_id'], $_GET[
         $form_skill_trait_id = $prefillSkillId;
         $prefill_form_modifier = hg_dice_form_attribute_modifier($link, $prefillCharacterId, $form_active_form_id, $prefillAttributeId);
         $prefillName = (string)($pjProfiles[$prefillCharacterId]['name'] ?? '');
-        $actionName = trim((string)($_GET['action_name'] ?? 'Acción'));
+        $actionName = trim((string)($queryInput['action_name'] ?? 'Acción'));
         $prefillRollName = trim($actionName . ' · ' . $prefillName . ' · ' . date('Ymd-His'));
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $roll_mode = ((string)($_POST['roll_mode'] ?? 'free') === 'pj') ? 'pj' : 'free';
-    $nombre_jugador = trim((string)($_POST['nombre'] ?? ''));
-    $tirada_nombre = trim((string)($_POST['tirada_nombre'] ?? ''));
+    $roll_mode = ((string)($bodyInput['roll_mode'] ?? 'free') === 'pj') ? 'pj' : 'free';
+    $nombre_jugador = trim((string)($bodyInput['nombre'] ?? ''));
+    $tirada_nombre = trim((string)($bodyInput['tirada_nombre'] ?? ''));
     $dados = 0;
-    $dificultad = (int)($_POST['dificultad'] ?? 0);
+    $dificultad = (int)($bodyInput['dificultad'] ?? 0);
     $debug_forced_rolls = [];
-    $form_willpower_spent = isset($_POST['willpower_spent']) ? 1 : 0;
+    $form_willpower_spent = isset($bodyInput['willpower_spent']) ? 1 : 0;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     $maxDados = 20;
 
     if ($roll_mode === 'pj') {
-        $form_character_id = (int)($_POST['character_id'] ?? 0);
-        $form_attr_trait_id = (int)($_POST['attr_trait_id'] ?? 0);
-        $form_skill_trait_id = (int)($_POST['skill_trait_id'] ?? 0);
-        $form_resource_id = (int)($_POST['resource_id'] ?? 0);
-        $form_extra_dice = (int)($_POST['extra_dice'] ?? 0);
-        $form_active_form_id = (int)($_POST['form_id'] ?? 0);
+        $form_character_id = (int)($bodyInput['character_id'] ?? 0);
+        $form_attr_trait_id = (int)($bodyInput['attr_trait_id'] ?? 0);
+        $form_skill_trait_id = (int)($bodyInput['skill_trait_id'] ?? 0);
+        $form_resource_id = (int)($bodyInput['resource_id'] ?? 0);
+        $form_extra_dice = (int)($bodyInput['extra_dice'] ?? 0);
+        $form_active_form_id = (int)($bodyInput['form_id'] ?? 0);
 
         if (!isset($pjProfiles[$form_character_id])) {
             $mensaje_error = 'Debes elegir un protagonista valido.';
@@ -330,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $maxDados = 50;
     } else {
-        $dados = (int)($_POST['dados'] ?? 0);
+        $dados = (int)($bodyInput['dados'] ?? 0);
     }
 
     if ($mensaje_error === '' && ($nombre_jugador === '' || $tirada_nombre === '' || $dados < 1 || $dados > $maxDados || $dificultad < 2 || $dificultad > 10)) {
@@ -342,86 +172,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($mensaje_error === '') {
-        $query = "SELECT rolled_at FROM fact_dice_rolls WHERE ip = ? ORDER BY rolled_at DESC LIMIT 1";
-        $stmt = mysqli_prepare($link, $query);
-        mysqli_stmt_bind_param($stmt, 's', $ip);
-        mysqli_stmt_execute($stmt);
-        $res = mysqli_stmt_get_result($stmt);
-        if ($row = mysqli_fetch_assoc($res)) {
-            if (strtotime((string)$row['rolled_at']) > time() - 10) {
-                $mensaje_error = 'Has tirado hace menos de 10 segundos.';
-            }
+        $lastRollAt = hg_dice_last_roll_at_for_ip($link, $ip);
+        if ($lastRollAt !== null && $lastRollAt !== '' && strtotime($lastRollAt) > time() - 10) {
+            $mensaje_error = 'Has tirado hace menos de 10 segundos.';
         }
     }
 
-    if ($mensaje_error === '') {
-        $query = "SELECT COUNT(*) as total FROM fact_dice_rolls WHERE roll_name = ?";
-        $stmt = mysqli_prepare($link, $query);
-        mysqli_stmt_bind_param($stmt, 's', $tirada_nombre);
-        mysqli_stmt_execute($stmt);
-        $res = mysqli_stmt_get_result($stmt);
-        $row = mysqli_fetch_assoc($res);
-        if ((int)($row['total'] ?? 0) > 0) {
-            $mensaje_error = 'Ese nombre de tirada ya existe.';
-        }
+    if ($mensaje_error === '' && hg_dice_roll_name_exists($link, $tirada_nombre)) {
+        $mensaje_error = 'Ese nombre de tirada ya existe.';
     }
 
     if ($mensaje_error === '') {
-        [$resultados, $exitos, $pifia] = roll_d10_pool($dados, $dificultad, $debug_forced_rolls);
+        [$resultados, $exitos, $pifia] = hg_dice_roll_d10_pool($dados, $dificultad, $debug_forced_rolls);
         if ($form_willpower_spent === 1) {
             $exitos++;
             $pifia = false;
         }
-        $pifia_valor = $pifia ? 1 : 0;
         $str_resultados = implode(',', $resultados);
-
-        $query = "INSERT INTO fact_dice_rolls (name, roll_name, dice_pool, difficulty, roll_results, successes, botch, willpower_spent, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        $stmt = mysqli_prepare($link, $query);
-        if (!$stmt) {
-            $mensaje_error = 'No se pudo preparar el guardado de la tirada: ' . mysqli_error($link);
-        } else {
-            mysqli_stmt_bind_param($stmt, 'ssiisiiis', $nombre_jugador, $tirada_nombre, $dados, $dificultad, $str_resultados, $exitos, $pifia_valor, $form_willpower_spent, $ip);
-            if (!mysqli_stmt_execute($stmt)) {
-                $mensaje_error = 'No se pudo guardar la tirada: ' . mysqli_stmt_error($stmt);
-            } else {
-                $last_id = mysqli_insert_id($link);
-                if ($last_id > 0) {
-                    header("Location: /tools/dice?see=$last_id");
-                    exit;
-                }
-                $mensaje_error = 'La tirada no devolvio un identificador valido al guardarse.';
-            }
-            mysqli_stmt_close($stmt);
+        $insertError = null;
+        $last_id = hg_dice_insert_roll(
+            $link,
+            $nombre_jugador,
+            $tirada_nombre,
+            $dados,
+            $dificultad,
+            $str_resultados,
+            $exitos,
+            $pifia,
+            $form_willpower_spent,
+            $ip,
+            $insertError
+        );
+        if ($last_id > 0) {
+            header("Location: /tools/dice?see=$last_id");
+            exit;
         }
+        $mensaje_error = 'No se pudo guardar la tirada'
+            . (($insertError !== null && $insertError !== '') ? ': ' . $insertError : '.');
     }
 }
 
 echo "<div class='hg-dice-wrap'><div class='hg-dice-grid'>";
 
-if (isset($_GET['see'])) {
-    $id_ver = (int)$_GET['see'];
-    $stmt = mysqli_prepare($link, "SELECT * FROM fact_dice_rolls WHERE id = ? LIMIT 1");
-    mysqli_stmt_bind_param($stmt, 'i', $id_ver);
-    mysqli_stmt_execute($stmt);
-    $res = mysqli_stmt_get_result($stmt);
-    if ($row = mysqli_fetch_assoc($res)) {
+if (isset($queryInput['see'])) {
+    $id_ver = (int)$queryInput['see'];
+    $row = hg_dice_fetch_roll($link, $id_ver);
+    if ($row) {
         render_roll_card($row, $id_ver);
     } else {
         echo "<article class='hg-dice-card'><p>No se ha encontrado la tirada solicitada.</p></article>";
     }
 }
 
-if (!isset($_GET['see'])) {
+if (!isset($queryInput['see'])) {
     echo "<article class='hg-dice-card'>";
     echo "<h3 class='hg-dice-title'>Nueva tirada</h3>";
     if ($mensaje_error !== '') echo "<p class='hg-dice-error'>{$mensaje_error}</p>";
 
     echo "<form method='post' class='hg-dice-form'>";
     $selectedMode = htmlspecialchars($roll_mode, ENT_QUOTES, 'UTF-8');
-    $selectedName = htmlspecialchars((string)($_POST['nombre'] ?? $prefillName), ENT_QUOTES, 'UTF-8');
-    $selectedRollName = htmlspecialchars((string)($_POST['tirada_nombre'] ?? $prefillRollName), ENT_QUOTES, 'UTF-8');
-    $selectedDiff = (int)($_POST['dificultad'] ?? $prefillDifficulty);
-    $selectedDados = (int)($_POST['dados'] ?? 6);
+    $selectedName = htmlspecialchars((string)($bodyInput['nombre'] ?? $prefillName), ENT_QUOTES, 'UTF-8');
+    $selectedRollName = htmlspecialchars((string)($bodyInput['tirada_nombre'] ?? $prefillRollName), ENT_QUOTES, 'UTF-8');
+    $selectedDiff = (int)($bodyInput['dificultad'] ?? $prefillDifficulty);
+    $selectedDados = (int)($bodyInput['dados'] ?? 6);
     if ($selectedDados < 1 || $selectedDados > 20) $selectedDados = 6;
     if ($selectedDiff < 2 || $selectedDiff > 10) $selectedDiff = 6;
 
@@ -494,13 +307,8 @@ if (!isset($_GET['see'])) {
     echo "</article>";
 }
 
-if (!isset($_GET['see'])) {
-    $rolls = [];
-    $query = "SELECT id, roll_name, name, successes, botch, willpower_spent, rolled_at FROM fact_dice_rolls ORDER BY rolled_at DESC";
-    if ($rs = mysqli_query($link, $query)) {
-        while ($r = mysqli_fetch_assoc($rs)) { $rolls[] = $r; }
-        mysqli_free_result($rs);
-    }
+if (!isset($queryInput['see'])) {
+    $rolls = hg_dice_fetch_roll_history($link);
 
     echo "<article class='hg-dice-card hg-table-wrap'>";
     echo "<h3 class='hg-dice-title'>Historial completo de tiradas</h3>";
@@ -525,15 +333,11 @@ if (!isset($_GET['see'])) {
     echo "</article>";
 } else {
     echo "<div class='bioSheetPowers hg-last-rolls'><fieldset class='bioSeccion'><legend>Ultimas 10 tiradas</legend>";
-    $query = "SELECT id, roll_name, name FROM fact_dice_rolls ORDER BY rolled_at DESC LIMIT 10";
-    if ($rs = mysqli_query($link, $query)) {
-        while ($r = mysqli_fetch_assoc($rs)) {
-            $id = (int)$r['id'];
-            $title = htmlspecialchars((string)$r['roll_name'], ENT_QUOTES, 'UTF-8');
-            $name = htmlspecialchars((string)$r['name'], ENT_QUOTES, 'UTF-8');
-            echo "<a href='/tools/dice?see={$id}'><div class='bioSheetPower'><span class='hg-last-rolls-title'>{$title}</span><span class='hg-last-rolls-name'>{$name}</span></div></a>";
-        }
-        mysqli_free_result($rs);
+    foreach (hg_dice_fetch_recent_rolls($link, 10) as $r) {
+        $id = (int)$r['id'];
+        $title = htmlspecialchars((string)$r['roll_name'], ENT_QUOTES, 'UTF-8');
+        $name = htmlspecialchars((string)$r['name'], ENT_QUOTES, 'UTF-8');
+        echo "<a href='/tools/dice?see={$id}'><div class='bioSheetPower'><span class='hg-last-rolls-title'>{$title}</span><span class='hg-last-rolls-name'>{$name}</span></div></a>";
     }
     echo "</fieldset></div>";
 }

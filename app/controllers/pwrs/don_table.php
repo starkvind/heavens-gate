@@ -1,47 +1,11 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Dones | Heaven's Gate", "Listado completo de dones.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
-function gift_mechanics_col(mysqli $link): string {
-	$rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
-	if ($rs && mysqli_num_rows($rs) > 0) {
-		mysqli_free_result($rs);
-		return 'mechanics_text';
-	}
-	if ($rs) mysqli_free_result($rs);
-	return 'system_name';
-}
-$giftRulesCol = gift_mechanics_col($link);
-
-// Cargar dones con la query indicada
-$query = "
-	select
-		d.id as gift_id,
-		d.pretty_id as gift_pretty_id,
-		d.name as gift_name,
-		ntd.name as gift_type,
-		d.gift_group as gift_category,
-		d.rank as gift_level,
-		d.attribute_name as gift_roll_attribute,
-		d.ability_name as gift_roll_skill,
-		d.description as gift_description,
-		d.`$giftRulesCol` as gift_roll_description,
-		s.name as gift_fera_system,
-		d.system_id as gift_system_id,
-		nb.name as gift_origin
-	from fact_gifts d
-		left join dim_gift_types ntd on d.kind = ntd.id
-		left join dim_bibliographies nb on d.bibliography_id = nb.id
-        left join dim_systems s on d.system_id = s.id
-	order by d.bibliography_id, d.rank
-";
-$result = mysqli_query($link, $query);
-
-$dones = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$dones[] = $row;
-}
-mysqli_free_result($result);
+$dones = hg_powers_fetch_catalog($link, 'gifts');
+if ($dones === false) $dones = [];
 
 function ensure_utf8($value) {
     if (is_string($value)) {
@@ -334,6 +298,5 @@ function sortValues(values){
 	});
 }
 </script>
-
 
 

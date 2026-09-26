@@ -6,6 +6,7 @@ if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
+include_once(__DIR__ . '/../../domains/characters/admin_avatars.php');
 
 $isAjaxRequest = (
     (isset($_GET['ajax']) && (string)$_GET['ajax'] === '1')
@@ -135,23 +136,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
         $jsonExit(['ok'=>false, 'msg'=>'Invalid character id']);
     }
 
-    $charName = '';
-    $currentImg = '';
-    if ($st = $link->prepare("SELECT name, image_url FROM fact_characters WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $charId);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($rs && ($row = $rs->fetch_assoc())) {
-            $charName = (string)($row['name'] ?? '');
-            $currentImg = (string)($row['image_url'] ?? '');
-        } else {
-            $jsonExit(['ok'=>false, 'msg'=>'Character not found']);
-            $st->close();
-        }
-        $st->close();
-    } else {
-        $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
+    $character = hg_avatar_admin_get_character($link, $charId);
+    if (!$character) {
+        $jsonExit(['ok'=>false, 'msg'=>'Character not found']);
     }
+    $charName = (string)($character['name'] ?? '');
+    $currentImg = (string)($character['image_url'] ?? '');
 
     if (!isset($_FILES['avatar'])) {
         $jsonExit(['ok'=>false, 'msg'=>'Missing file']);
@@ -162,23 +152,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
         $jsonExit(['ok'=>false, 'msg'=>$res['msg']]);
     }
 
-    if ($st = $link->prepare("UPDATE fact_characters SET image_url=? WHERE id=?")) {
-        $newUrl = (string)$res['url'];
-        $st->bind_param('si', $newUrl, $charId);
-        if (!$st->execute()) {
-            $st->close();
-            $jsonExit(['ok'=>false, 'msg'=>'Could not update DB: '.$link->error]);
-        }
-        $st->close();
-
-        if ($currentImg !== '' && $currentImg !== $newUrl) {
-            safe_unlink_avatar($currentImg, $AV_UPLOADDIR);
-        }
-
-        $jsonExit(['ok'=>true, 'msg'=>'Avatar updated', 'url'=>$newUrl]);
+    $newUrl = (string)$res['url'];
+    if (!hg_avatar_admin_update_base($link, $charId, $newUrl)) {
+        $jsonExit(['ok'=>false, 'msg'=>'Could not update DB: '.$link->error]);
     }
-
-    $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
+    if ($currentImg !== '' && $currentImg !== $newUrl) {
+        safe_unlink_avatar($currentImg, $AV_UPLOADDIR);
+    }
+    $jsonExit(['ok'=>true, 'msg'=>'Avatar updated', 'url'=>$newUrl]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload_avatar_variant')) {
@@ -218,22 +199,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
         $jsonExit(['ok'=>false, 'msg'=>'La etiqueta es obligatoria']);
     }
 
-    $charName = '';
-    $currentVariantImg = '';
-    if ($st = $link->prepare("SELECT name FROM fact_characters WHERE id=? LIMIT 1")) {
-        $st->bind_param('i', $charId);
-        $st->execute();
-        $rs = $st->get_result();
-        if ($rs && ($row = $rs->fetch_assoc())) {
-            $charName = (string)($row['name'] ?? '');
-        } else {
-            $jsonExit(['ok'=>false, 'msg'=>'Character not found']);
-            $st->close();
-        }
-        $st->close();
-    } else {
-        $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
+    $character = hg_avatar_admin_get_character($link, $charId);
+    if (!$character) {
+        $jsonExit(['ok'=>false, 'msg'=>'Character not found']);
     }
+    $charName = (string)($character['name'] ?? '');
+    $currentVariantImg = '';
 
     if (!hg_character_avatar_variants_table_exists($link, true)) {
         $jsonExit(['ok'=>false, 'msg'=>'La tabla de variantes no está disponible']);
@@ -250,93 +221,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['ajax'] ?? '') === 'upload
     }
 
     $newUrl = (string)$res['url'];
-    if ($st = $link->prepare("
-        INSERT INTO fact_character_avatar_variants (character_id, variant_code, image_url, is_active)
-        VALUES (?, ?, ?, 1)
-        ON DUPLICATE KEY UPDATE image_url = VALUES(image_url), is_active = 1
-    ")) {
-        $st->bind_param('iss', $charId, $variantCode, $newUrl);
-        if (!$st->execute()) {
-            $st->close();
-            $jsonExit(['ok'=>false, 'msg'=>'Could not update DB: '.$link->error]);
-        }
-        $st->close();
-
-        if ($currentVariantImg !== '' && $currentVariantImg !== $newUrl) {
-            safe_unlink_avatar($currentVariantImg, $AV_UPLOADDIR);
-        }
-
-        $jsonExit([
-            'ok'=>true,
-            'msg'=>'Variante actualizada',
-            'url'=>$newUrl,
-            'variant_code'=>$variantCode
-        ]);
+    if (!hg_avatar_admin_upsert_variant($link, $charId, $variantCode, $newUrl)) {
+        $jsonExit(['ok'=>false, 'msg'=>'Could not update DB: '.$link->error]);
     }
+    if ($currentVariantImg !== '' && $currentVariantImg !== $newUrl) {
+        safe_unlink_avatar($currentVariantImg, $AV_UPLOADDIR);
+    }
+    $jsonExit([
+        'ok'=>true,
+        'msg'=>'Variante actualizada',
+        'url'=>$newUrl,
+        'variant_code'=>$variantCode
+    ]);
 
-    $jsonExit(['ok'=>false, 'msg'=>'SQL prepare error: '.$link->error]);
 }
 
-$characters = [];
-$sql = "
-SELECT
-    p.id,
-    p.pretty_id,
-    p.name,
-    p.image_url,
-    p.chronicle_id,
-    COALESCE(ch.name, '') AS chronicle_name,
-    COALESCE(bg.group_id, 0) AS group_id,
-    COALESCE(g.name, '') AS group_name,
-    COALESCE(bo.organization_id, 0) AS org_id,
-    COALESCE(o.name, '') AS org_name
-FROM fact_characters p
-LEFT JOIN (
-    SELECT character_id, MIN(group_id) AS group_id
-    FROM bridge_characters_groups
-    WHERE (is_active=1 OR is_active IS NULL)
-    GROUP BY character_id
-) bg ON bg.character_id = p.id
-LEFT JOIN dim_groups g ON g.id = bg.group_id
-LEFT JOIN (
-    SELECT character_id, MIN(organization_id) AS organization_id
-    FROM bridge_characters_organizations
-    WHERE (is_active=1 OR is_active IS NULL)
-    GROUP BY character_id
-) bo ON bo.character_id = p.id
-LEFT JOIN dim_organizations o ON o.id = bo.organization_id
-LEFT JOIN dim_chronicles ch ON ch.id = p.chronicle_id
-ORDER BY p.name ASC
-";
-
-if ($rs = $link->query($sql)) {
-    while ($r = $rs->fetch_assoc()) {
-        $characters[] = $r;
-    }
-    $rs->close();
-}
-
-$characterVariants = [];
-if (hg_character_avatar_variants_table_exists($link, true)) {
-    $sqlVariants = "
-    SELECT character_id, variant_code, image_url
-    FROM fact_character_avatar_variants
-    WHERE is_active = 1
-    ORDER BY variant_code ASC, id ASC
-    ";
-    if ($rsv = $link->query($sqlVariants)) {
-        while ($rv = $rsv->fetch_assoc()) {
-            $cid = (int)($rv['character_id'] ?? 0);
-            if ($cid <= 0) continue;
-            if (!isset($characterVariants[$cid])) $characterVariants[$cid] = [];
-            $characterVariants[$cid][] = [
-                'variant_code' => (string)($rv['variant_code'] ?? ''),
-                'image_url' => (string)($rv['image_url'] ?? ''),
-            ];
-        }
-        $rsv->close();
-    }
-}
+$state = hg_avatar_admin_load_state($link);
+$characters = $state['characters'];
+$characterVariants = $state['variants'];
 
 $groupOpts = [];
 $orgOpts = [];

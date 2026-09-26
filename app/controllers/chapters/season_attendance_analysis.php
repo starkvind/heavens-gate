@@ -1,74 +1,42 @@
 <?php setMetaFromPage("Temporadas | Analisis | Heaven's Gate", "Analisis de asistencia y actividad por temporada.", null, 'website'); ?>
 <?php
-if (!function_exists('hg_saa_col_exists')) {
-    function hg_saa_col_exists(mysqli $link, string $table, string $column): bool {
-        static $cache = [];
-        $key = $table . ':' . $column;
-        if (isset($cache[$key])) return $cache[$key];
+require_once(__DIR__ . '/../../domains/chapters/queries.php');
 
-        $ok = false;
-        if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-            $st->bind_param('ss', $table, $column);
-            $st->execute();
-            $st->bind_result($count);
-            $st->fetch();
-            $st->close();
-            $ok = ((int)$count > 0);
-        }
+$analysis = hg_chapters_fetch_attendance_analysis($link) ?? [
+    'chapters' => [],
+    'appearances' => [],
+    'players' => [],
+];
 
-        $cache[$key] = $ok;
-        return $ok;
-    }
-}
-
-// 1. Obtener todos los capitulos validos con nombre y numero de temporada
-$seasonJoin = 'ac.season_id = at.id';
-$query = "SELECT
-                ac.id, at.season_number AS num_temporada, at.name AS nombre_temporada, ac.played_date
-            FROM dim_chapters ac
-            LEFT JOIN dim_seasons at ON {$seasonJoin}
-            WHERE ac.played_date != '0000-00-00'";
-$result = $link->query($query);
+// 1. Preparar capitulos validos con nombre y numero de temporada
 $capitulos = [];
 $capitulos_por_temporada = [];
 $nombre_temporadas = [];
 
-while ($row = $result->fetch_assoc()) {
+foreach (($analysis['chapters'] ?? []) as $row) {
     $capitulos[$row['id']] = $row;
-    $num = (int)($row['num_temporada'] ?? 0);
+    $num = (int)($row['season_number'] ?? 0);
     if ($num <= 0) continue;
     $capitulos_por_temporada[$num][] = $row['id'];
-    $nombre_temporadas[$num] = $row['nombre_temporada'];
+    $nombre_temporadas[$num] = $row['season_name'];
 }
 
-// 2. Obtener participaciones
-$query = "SELECT character_id, chapter_id FROM bridge_chapters_characters";
-$result = $link->query($query);
+// 2. Preparar participaciones
 $apariciones = [];
-
-while ($row = $result->fetch_assoc()) {
+foreach (($analysis['appearances'] ?? []) as $row) {
     $pj = $row['character_id'];
     $cap = $row['chapter_id'];
 
     if (!isset($capitulos[$cap])) continue;
-    $temporada = (int)($capitulos[$cap]['num_temporada'] ?? 0);
+    $temporada = (int)($capitulos[$cap]['season_number'] ?? 0);
     if ($temporada <= 0) continue;
     $apariciones[$pj][$temporada][] = $cap;
 }
 
-// 3. Obtener nombres de personajes y orden fijo
-$query = "SELECT p.id, p.name
-  FROM fact_characters p
-  JOIN bridge_chapters_characters acp ON p.id = acp.character_id
-  WHERE p.character_kind = 'pj' AND p.character_type_id = 1 AND p.player_id > 0
-  GROUP BY p.id, p.name
-  ORDER BY COUNT(acp.id) DESC";
-
-$result = $link->query($query);
+// 3. Preparar nombres de personajes y orden fijo
 $labels = [];
 $pj_order = [];
-
-while ($row = $result->fetch_assoc()) {
+foreach (($analysis['players'] ?? []) as $row) {
     $id = $row['id'];
     $labels[$id] = $row['name'];
     $pj_order[] = $id;

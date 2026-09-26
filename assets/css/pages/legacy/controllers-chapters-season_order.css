@@ -16,6 +16,10 @@
     margin-bottom: 12px;
 }
 
+.season-order-page .org-quickbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
 .org-quick-field {
     display: grid;
     gap: 6px;
@@ -33,6 +37,12 @@
     flex-wrap: nowrap;
     justify-content: flex-end;
     gap: 8px;
+}
+
+.season-order-page .org-actions {
+    grid-column: 1 / -1;
+    min-width: 0;
+    flex-wrap: wrap;
 }
 
 .org-btn,
@@ -125,6 +135,15 @@
     .org-actions {
         justify-content: flex-start;
         overflow-x: auto;
+    }
+
+    .season-order-page .org-quickbar {
+        grid-template-columns: 1fr;
+    }
+
+    .season-order-page .org-actions {
+        grid-column: 1;
+        overflow-x: visible;
     }
 
     .season-order-page .chart-container {

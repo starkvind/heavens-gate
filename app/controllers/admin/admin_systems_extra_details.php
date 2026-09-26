@@ -5,34 +5,11 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
+include_once(__DIR__ . '/../../domains/systems/admin.php');
 
 function ased_h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
-
-function ased_table_exists(mysqli $link, string $table): bool
-{
-    $st = $link->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
-    if (!$st) return false;
-    $st->bind_param('s', $table);
-    $st->execute();
-    $st->bind_result($count);
-    $st->fetch();
-    $st->close();
-    return ((int)$count > 0);
-}
-
-function ased_column_exists(mysqli $link, string $table, string $column): bool
-{
-    $st = $link->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
-    if (!$st) return false;
-    $st->bind_param('ss', $table, $column);
-    $st->execute();
-    $st->bind_result($count);
-    $st->fetch();
-    $st->close();
-    return ((int)$count > 0);
 }
 
 function ased_csrf_ok(string $key): bool
@@ -41,122 +18,6 @@ function ased_csrf_ok(string $key): bool
     return function_exists('hg_admin_csrf_valid')
         ? hg_admin_csrf_valid($token, $key)
         : (is_string($token) && $token !== '' && isset($_SESSION[$key]) && hash_equals((string)$_SESSION[$key], $token));
-}
-
-function ased_systems(mysqli $link): array
-{
-    $rows = [];
-    if ($rs = $link->query("SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC, id ASC")) {
-        while ($row = $rs->fetch_assoc()) {
-            $rows[] = ['id' => (int)$row['id'], 'name' => (string)$row['name']];
-        }
-        $rs->close();
-    }
-    return $rows;
-}
-
-function ased_catalog(mysqli $link, string $table): array
-{
-    $rows = [];
-    $hasSystemId = ased_column_exists($link, $table, 'system_id');
-    $sql = "
-        SELECT
-            e.id,
-            e.name,
-            " . ($hasSystemId ? "COALESCE(e.system_id, 0)" : "0") . " AS system_id,
-            " . ($hasSystemId ? "COALESCE(ds.name, '')" : "''") . " AS system_name
-        FROM `{$table}` e
-        " . ($hasSystemId ? "LEFT JOIN dim_systems ds ON ds.id = e.system_id" : "") . "
-        ORDER BY " . ($hasSystemId ? "ds.name ASC, " : "") . "e.name ASC, e.id ASC
-    ";
-    if ($rs = $link->query($sql)) {
-        while ($row = $rs->fetch_assoc()) {
-            $rows[] = [
-                'id' => (int)$row['id'],
-                'name' => (string)$row['name'],
-                'origin_system_id' => (int)($row['system_id'] ?? 0),
-                'origin_system_name' => trim((string)($row['system_name'] ?? '')),
-            ];
-        }
-        $rs->close();
-    }
-    return $rows;
-}
-
-function ased_existing_assignments(mysqli $link, string $bridgeTable, string $detailFk, int $systemId): array
-{
-    $rows = [];
-    $hasActive = ased_column_exists($link, $bridgeTable, 'is_active');
-    $sql = "
-        SELECT {$detailFk} AS detail_id, " . ($hasActive ? 'is_active' : '1') . " AS is_active
-        FROM `{$bridgeTable}`
-        WHERE system_id = ?
-        ORDER BY id ASC
-    ";
-    if ($st = $link->prepare($sql)) {
-        $st->bind_param('i', $systemId);
-        $st->execute();
-        $rs = $st->get_result();
-        while ($rs && ($row = $rs->fetch_assoc())) {
-            $rows[(int)$row['detail_id']] = ['is_active' => (int)($row['is_active'] ?? 1)];
-        }
-        $st->close();
-    }
-    return $rows;
-}
-
-function ased_save_group(mysqli $link, int $systemId, array $group, array $selectedIds, array $activeIds): void
-{
-    $bridgeTable = (string)$group['bridge_table'];
-    $detailFk = (string)$group['detail_fk'];
-    $hasActive = (bool)$group['has_active'];
-
-    $delete = $link->prepare("DELETE FROM `{$bridgeTable}` WHERE system_id = ?");
-    if (!$delete) {
-        throw new RuntimeException('No se pudo preparar el borrado de ' . $bridgeTable . '.');
-    }
-    $delete->bind_param('i', $systemId);
-    $delete->execute();
-    $delete->close();
-
-    $selectedMap = [];
-    foreach ($selectedIds as $id) {
-        $detailId = (int)$id;
-        if ($detailId > 0) {
-            $selectedMap[$detailId] = true;
-        }
-    }
-    if (empty($selectedMap)) {
-        return;
-    }
-
-    $activeMap = [];
-    foreach ($activeIds as $id) {
-        $detailId = (int)$id;
-        if ($detailId > 0) {
-            $activeMap[$detailId] = true;
-        }
-    }
-
-    $insertSql = $hasActive
-        ? "INSERT INTO `{$bridgeTable}` (system_id, `{$detailFk}`, is_active) VALUES (?, ?, ?)"
-        : "INSERT INTO `{$bridgeTable}` (system_id, `{$detailFk}`) VALUES (?, ?)";
-    $insert = $link->prepare($insertSql);
-    if (!$insert) {
-        throw new RuntimeException('No se pudo preparar el alta en ' . $bridgeTable . '.');
-    }
-
-    foreach (array_keys($selectedMap) as $detailId) {
-        if ($hasActive) {
-            $isActive = empty($activeMap) || isset($activeMap[$detailId]) ? 1 : 0;
-            $insert->bind_param('iii', $systemId, $detailId, $isActive);
-        } else {
-            $insert->bind_param('ii', $systemId, $detailId);
-        }
-        $insert->execute();
-    }
-
-    $insert->close();
 }
 
 $csrfKey = 'csrf_admin_systems_extra_details';
@@ -309,7 +170,7 @@ foreach ($groups as $groupKey => $group) {
     ];
 }
 
-$actions = '<span class="adm-flex-right-8"><form method="get" class="adm-inline-form"><input type="hidden" name="p" value="talim"><input type="hidden" name="s" value="admin_systems_extra_details"><label class="adm-text-left">Sistema <select class="select" name="system_id" onchange="this.form.submit()">';
+$actions = '<span class="adm-flex-right-8"><form method="get" action="/talim" class="adm-inline-form"><input type="hidden" name="s" value="admin_systems_extra_details"><label class="adm-text-left">Sistema <select class="select" name="system_id" onchange="this.form.submit()">';
 foreach ($systems as $systemRow) {
     $selected = ((int)$systemRow['id'] === $systemId) ? ' selected' : '';
     $actions .= '<option value="' . (int)$systemRow['id'] . '"' . $selected . '>' . ased_h((string)$systemRow['name']) . ' (#' . (int)$systemRow['id'] . ')</option>';
@@ -319,23 +180,7 @@ $actions .= '</select></label></form></span>';
 admin_panel_open('Extra Details to System', $actions);
 ?>
 <?php if (!empty($flash)): ?><div class="flash"><?php foreach ($flash as $m): $cl = ($m['type'] ?? '') === 'ok' ? 'ok' : 'err'; ?><div class="<?= $cl ?>"><?= ased_h($m['msg'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
-<style>
-.ased-wrap{max-width:600px;margin:0 auto}
-.ased-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px 0}
-.ased-pill{padding:6px 10px;border-radius:999px;border:1px solid #17366e;background:#071b4a;color:#dfefff}
-.ased-card{border:1px solid #000088;border-radius:10px;padding:14px;background:rgba(0,0,40,.22)}
-.ased-block + .ased-block{margin-top:18px;padding-top:18px;border-top:1px solid rgba(130,160,255,.18)}
-.ased-block h3{margin:0 0 10px 0}
-.ased-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.ased-select{min-width:260px;max-width:100%}
-.ased-chiplist{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.ased-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0c2454;border:1px solid #274c99;color:#eef4ff;max-width:100%}
-.ased-chip-text{display:flex;flex-direction:column;min-width:0}
-.ased-chip-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
-.ased-chip-origin{font-size:10px;line-height:1.2;color:#b9cbff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
-.ased-chip-remove{border:0;background:transparent;color:#ffd9d9;font-weight:700;cursor:pointer;padding:0 2px}
-.ased-empty{color:#cfd8ff;font-style:italic}
-</style>
+
 
 <div class="ased-wrap">
   <div class="ased-summary">

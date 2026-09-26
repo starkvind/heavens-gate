@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 include_once(__DIR__ . '/../../helpers/admin_auth.php');
+include_once(__DIR__ . '/../../domains/relationships/admin.php');
 hg_admin_session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -31,9 +32,7 @@ $tags  = ['amistad','conflicto','familia','alianza','otro'];
 $arrows = ["to" => "Origen -> Destino","from" => "Destino -> Origen","to,from" => "Doble direccion","" => "Sin flechas"];
 
 // Datos
-$personajes = [];
-$rs = $link->query("SELECT id, name FROM fact_characters WHERE chronicle_id NOT IN (2, 7) ORDER BY name ASC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $personajes[] = $r; } $rs->close(); }
+$personajes = hg_relationships_admin_fetch_characters($link);
 $personajesById = [];
 foreach ($personajes as $p) { $personajesById[(int)$p['id']] = (string)$p['name']; }
 
@@ -73,10 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['crud_action'] ?? '
 			if (relations_is_ajax()) { relations_error('ID de relacion invalido.', 422, ['id' => 'invalid']); }
 			$flash[] = ['type'=>'error','msg'=>'ID de relacion invalido.'];
 		}
-		if ($id > 0 && ($st = $link->prepare("DELETE FROM bridge_characters_relations WHERE id = ?"))) {
-			$st->bind_param("i", $id);
-			$st->execute();
-			$st->close();
+		if ($id > 0 && hg_relationships_admin_delete($link, $id)) {
 			if (relations_is_ajax()) { relations_success('Relacion eliminada.', ['id' => $id]); }
 			$flash[] = ['type'=>'ok','msg'=>'Relacion eliminada.'];
 		}
@@ -113,12 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 			$flash[] = ['type'=>'error','msg'=>'Origen y destino no pueden ser el mismo personaje.'];
 		} else {
 			if ($mode === 'create') {
-				$st = $link->prepare("INSERT INTO bridge_characters_relations (source_id, target_id, relation_type, tag, importance, description, arrows) VALUES (?,?,?,?,?,?,?)");
-				if ($st) {
-					$st->bind_param("iississ", $source, $target, $type, $tag, $importance, $description, $ar);
-					$st->execute();
-					$newId = (int)$st->insert_id;
-					$st->close();
+				$newId = hg_relationships_admin_create($link, $source, $target, $type, $tag, $importance, $description, $ar);
+				if ($newId !== null) {
                     hg_content_touch_many($link, 'character', [$source, $target]);
 					if (relations_is_ajax()) { relations_success('Relacion creada.', ['id' => $newId]); }
 					$flash[] = ['type'=>'ok','msg'=>'Relacion creada.'];
@@ -126,11 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 					relations_error('No se pudo crear la relacion.', 500, ['db' => 'insert_prepare_failed']);
 				}
 			} elseif ($mode === 'edit' && $id > 0) {
-				$st = $link->prepare("UPDATE bridge_characters_relations SET source_id=?, target_id=?, relation_type=?, tag=?, importance=?, description=?, arrows=? WHERE id=?");
-				if ($st) {
-					$st->bind_param("iississi", $source, $target, $type, $tag, $importance, $description, $ar, $id);
-					$st->execute();
-					$st->close();
+				if (hg_relationships_admin_update($link, $id, $source, $target, $type, $tag, $importance, $description, $ar)) {
                     hg_content_touch_many($link, 'character', [$source, $target]);
 					if (relations_is_ajax()) { relations_success('Relacion actualizada.', ['id' => $id]); }
 					$flash[] = ['type'=>'ok','msg'=>'Relacion actualizada.'];
@@ -147,9 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rel']) && is_array($_
 
 // Paginacion simple
 // Relaciones completas (paginaci?n en cliente)
-$relaciones = [];
-$rs = $link->query("SELECT * FROM bridge_characters_relations ORDER BY id DESC");
-if ($rs) { while ($r = $rs->fetch_assoc()) { $relaciones[] = $r; } $rs->close(); }
+$relaciones = hg_relationships_admin_fetch_rows($link);
 
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" onclick="openRelModal()">+ Nueva relacion</button>');
@@ -158,111 +144,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
-<style>
-#relModal{
-	--adm-s2-bg: #000033;
-	--adm-s2-color: #ffffff;
-	--adm-s2-border: #333333;
-	--adm-s2-hover: #001199;
-	--adm-s2-selected: #00105f;
-}
-#relModal .select2-dropdown{
-	background: var(--adm-s2-bg) !important;
-	border: 1px solid var(--adm-s2-border) !important;
-	color: var(--adm-s2-color) !important;
-}
-#relModal .select2-results__option{
-	background: transparent !important;
-	color: var(--adm-s2-color) !important;
-}
-#relModal .select2-container--default .select2-results__option--selected{
-	background: var(--adm-s2-selected) !important;
-	color: var(--adm-s2-color) !important;
-}
-#relModal .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
-	background: var(--adm-s2-hover) !important;
-	color: #ffffff !important;
-}
-#relModal .select2-container--default .select2-selection--single .select2-selection__arrow b{
-	border-color: #9fd8ff transparent transparent transparent !important;
-}
-#relModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b{
-	border-color: transparent transparent #9fd8ff transparent !important;
-}
-#relModal .select2-container{
-	width: 100% !important;
-}
-.relations-toolbar{
-	display:flex;
-	flex-wrap:wrap;
-	gap:10px;
-	align-items:flex-end;
-	margin-bottom:12px;
-}
-.relations-stats{
-	display:flex;
-	flex-wrap:wrap;
-	gap:8px;
-}
-.relations-stat{
-	padding:8px 12px;
-	border:1px solid rgba(255,255,255,.14);
-	border-radius:10px;
-	background:rgba(255,255,255,.04);
-	min-width:120px;
-}
-.relations-stat strong{
-	display:block;
-	font-size:18px;
-	line-height:1.1;
-}
-.relations-stat span{
-	opacity:.75;
-	font-size:12px;
-}
-.relations-swap{
-	display:flex;
-	align-items:flex-end;
-	justify-content:center;
-}
-.relations-swap .btn{
-	width:100%;
-}
-.arrow-picker{
-	display:grid;
-	grid-template-columns:repeat(4, minmax(0, 1fr));
-	gap:8px;
-	margin-top:6px;
-}
-.arrow-choice{
-	display:flex;
-	align-items:center;
-	justify-content:center;
-	min-height:44px;
-	border:1px solid rgba(255,255,255,.18);
-	border-radius:10px;
-	background:rgba(255,255,255,.05);
-	color:#ffffff;
-	cursor:pointer;
-	font-size:22px;
-	line-height:1;
-	transition:background .15s ease, border-color .15s ease, transform .15s ease;
-}
-.arrow-choice:hover{
-	background:rgba(255,255,255,.1);
-	border-color:rgba(159,216,255,.45);
-}
-.arrow-choice.is-active{
-	background:rgba(0,17,153,.42);
-	border-color:#9fd8ff;
-	transform:translateY(-1px);
-}
-.arrow-choice small{
-	font-size:11px;
-	opacity:.8;
-	margin-left:6px;
-}
-</style>
+
 
 <div id="relationsFlash">
 <?php if (!empty($flash)): ?>
@@ -277,7 +159,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 
 <div class="relations-toolbar">
 	<div class="bar adm-u-021">
-		<input class="inp" id="quickFilterRelations" type="text" placeholder="Buscar por ID, personaje, tipo o tag...">
+		<input class="inp" id="quickFilterRelations" type="text" placeholder="Buscar por ID, personaje o tag...">
 	</div>
 	<div class="relations-stats">
 		<div class="relations-stat">
@@ -297,9 +179,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 			<th class="adm-w-60">ID</th>
 			<th>Origen</th>
 			<th>Destino</th>
-			<th>Tipo</th>
 			<th>Tag</th>
-			<th>Flechas</th>
 			<th class="adm-w-160">Acciones</th>
 		</tr>
 	</thead>
@@ -322,9 +202,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 			<td><?= (int)$r['id'] ?></td>
 			<td><?= h($srcName) ?></td>
 			<td><?= h($dstName) ?></td>
-			<td><?= h($relName) ?></td>
 			<td><?= h(ucfirst($relTag)) ?></td>
-			<td><?= h($arrows[$r['arrows'] ?? ''] ?? '') ?></td>
 			<td>
 				<button
 					class="btn"
@@ -340,7 +218,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 					data-description="<?= h((string)($r['description'] ?? '')) ?>"
 					onclick="openRelModal(this)"
 				>Editar</button>
-				<form method="post" class="rel-delete-form" data-id="<?= (int)$r['id'] ?>" style="display:inline">
+				<form method="post" class="rel-delete-form adm-inline" data-id="<?= (int)$r['id'] ?>">
 					<input type="hidden" name="csrf" value="<?= h($CSRF) ?>">
 					<input type="hidden" name="crud_action" value="delete">
 					<input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
@@ -350,7 +228,7 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 		</tr>
 	<?php endforeach; ?>
 	<?php if (empty($relaciones)): ?>
-		<tr><td colspan="7" class="adm-color-muted">(Sin relaciones)</td></tr>
+		<tr><td colspan="5" class="adm-color-muted">(Sin relaciones)</td></tr>
 	<?php endif; ?>
 	</tbody>
 </table>

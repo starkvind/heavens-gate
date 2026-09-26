@@ -1,47 +1,129 @@
 # Technical Documentation — Heaven's Gate
 
-Última revisión: 2026-09-05.
+Última revisión: 2026-09-26.
 
 ## 1. Alcance y fuentes
 
-Este documento describe el **runtime actual** del repositorio `starkvind/heavens-gate`. Se ha contrastado con el código de la rama activa y con el snapshot de producción del 1 de septiembre de 2026 conservado en `starkvind/heavens-gate-continuity`.
+Este documento describe el **runtime actual** de `starkvind/heavens-gate`. Se contrasta con el código ejecutable y con la referencia de esquema de producción mantenida para el proyecto.
 
 Fuentes principales:
 
 - `index.php`
 - `.htaccess`
-- `app/bootstrap/request_router.php`
-- `app/bootstrap/body_work.php`
+- `app/bootstrap/runtime.php`
+- `app/routing/request_runtime.php`
+- `app/routing/path_normalization.php`
+- `app/routing/path_matcher.php`
+- `app/routing/legacy_query.php`
+- `app/routing/routes.php`
+- `app/http/page_dispatch.php`
+- `app/http/dispatch_policy.php`
+- `app/http/dispatcher.php`
+- `app/http/page_context.php`
+- `app/http/request_context.php`
+- `app/http/pretty_request.php`
+- `app/http/output.php`
+- `app/presentation/desktop_context.php`
+- `app/views/layout/desktop.php`
+- `app/views/layout/head.php`
+- `app/mobile/mobile_routes.php`
 - `app/helpers/db_connection.php`
 - `app/helpers/pretty.php`
-- `app/helpers/admin_auth.php`
-- `app/helpers/admin_ajax.php`
+- `app/domains/configuration/queries.php`
 - `app/controllers/admin/admin_main.php`
 - `production-2026-09-01.sql`
 
-La documentación anterior a esta revisión contenía referencias a herramientas ya retiradas. No deben considerarse parte del sistema actual.
+Para el inventario humano completo de route keys, aliases, URLs y controladores, véase [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
 ## 2. Arquitectura de request
 
-Flujo público:
+Flujo público normal:
 
 1. Apache aplica `.htaccess`.
 2. Los ficheros y directorios existentes se sirven directamente, salvo zonas bloqueadas.
 3. El resto entra en `index.php`.
-4. `index.php` abre la conexión y ejecuta `hg_request_router_bootstrap()`.
-5. `app/bootstrap/request_router.php`:
-   - normaliza la URL;
-   - redirige rutas legacy;
-   - convierte rutas amigables en parámetros internos;
-   - resuelve slugs mediante `pretty_id`.
-6. `index.php` decide si debe usarse la presentación móvil.
-7. `app/bootstrap/body_work.php` asigna el route key a un controlador.
-8. El controlador renderiza contenido completo o salida bare.
-9. Si la página no es bare, `index.php` la integra en el layout común.
+4. `index.php` inicializa output, conexión y `app/bootstrap/runtime.php`.
+5. El bootstrap carga únicamente la pequeña configuración global previa al dispatch; su SQL vive en `app/domains/configuration/queries.php`.
+6. `index.php` pasa URI, query y método HTTP explícitos a `app/routing/request_runtime.php`.
+7. `request_runtime.php` normaliza el path mediante `path_normalization.php` y decide entre path canónico y compatibilidad legacy.
+8. Las URLs canónicas pasan a `app/routing/path_matcher.php`, que **no usa MySQL ni request globals**.
+9. Las URLs históricas `?p=...` pasan a `app/routing/legacy_query.php`, que conserva sólo canonicalización/compatibilidad y resolución de IDs/aliases necesaria para construir la URL moderna.
+10. `index.php` construye `hgRequest` y decide si debe usarse la presentación móvil de compatibilidad.
+11. Las páginas normales pasan por `app/http/page_dispatch.php`, compartido también por el fallback móvil.
+12. `page_dispatch.php` aplica normalización pretty explícita, refresca el request context y carga `app/routing/routes.php`.
+13. `app/http/dispatch_policy.php` resuelve controlador, sección, fallback y condición bare.
+14. `app/http/dispatcher.php` aplica esa decisión e incluye el controlador.
+15. Si la respuesta no es bare, `index.php` prepara el contexto de presentación y delega el HTML desktop en `app/views/layout/desktop.php`; el `<head>` vive en `app/views/layout/head.php`.
 
-`app/` no es una superficie web pública. Las herramientas accesibles desde navegador deben tener una ruta explícita.
+Ruta conceptual:
 
-## 3. Configuración y conexión
+`URL -> request runtime -> path matcher/legacy compatibility -> request context -> page dispatch -> route registry -> dispatch policy -> dispatcher -> domain controller -> presentation`
+
+Ejemplo:
+
+`/characters/{slug} -> muestrabio -> app/controllers/bio/bio_page.php`
+
+`app/` no es superficie web pública.
+
+`app/bootstrap/body_work.php`, `app/bootstrap/request_router.php`, `app/bootstrap/head_work.php` y `app/bootstrap/error_reporting.php` han sido retirados. Bootstrap queda reducido a startup.
+
+## 3. Compatibilidad legacy del router
+
+`app/routing/legacy_query.php` es el único propietario de la canonicalización histórica `?p=...`.
+
+Conserva:
+
+- conversión de route keys históricos a URLs canónicas;
+- resolución de `pretty_id` necesaria para convertir IDs/aliases antiguos en slugs actuales;
+- query strings permitidas en búsquedas, Admin, embeds y algunos endpoints históricos.
+
+No contiene el matcher de paths canónicos y no lee `$_GET`, `$_POST` ni `$_REQUEST`. El transporte llega como argumentos explícitos desde `index.php` / `request_runtime.php`.
+
+`app/helpers/pretty.php` mantiene la resolución de aliases históricos mediante `fact_pretty_id_aliases`.
+
+Los aliases históricos de **route key** son otra capa distinta: los siete que todavía se aceptan en URLs `?p=...` viven exclusivamente en `hg_request_router_public_aliases()` dentro de `app/routing/legacy_query.php`. Se normalizan a su route key canónico antes de construir la redirección y no forman parte del dispatch activo.
+
+`app/helpers/schema_introspection.php` es el único propietario compartido de las comprobaciones cacheadas de existencia de tablas y columnas en la base actual. La introspección especializada restante queda limitada al clonado dinámico de bridges de personajes, al adaptador del esquema externo SMF y a la herramienta explícita de inspección de BDD; cualquier propietario nuevo debe quedar clasificado por CI.
+
+La presencia puntual de MySQL en esta capa responde a la necesidad histórica de resolver ID/alias -> slug antes de emitir el redirect. No convierte esta capa en el router canónico.
+
+## 4. Registro y dispatch
+
+`app/routing/routes.php` contiene el registro `route key -> controlador + sección`.
+
+`app/http/dispatch_policy.php` contiene la política pura de fallback y respuesta bare.
+
+`app/http/dispatcher.php` ya no decide rutas por su cuenta: recibe la resolución, aplica sección/bare e incluye el controlador.
+
+Rutas bare activas incluyen embeds de foro, APIs de mapas/dados/avatar, AJAX de tooltip/menciones, imagen de crónica y crop.
+
+El contrato todavía conserva el token `snippet_forum_a` como bare legacy, aunque no existe route key correspondiente en el registro. Está documentado como marcador huérfano hasta que se demuestre eliminable.
+
+## 5. Front controller y presentaciones
+
+`index.php` se mantiene como front controller único. No contiene el shell HTML desktop, helpers de output/UTF-8, lógica de configuración de aplicación ni lógica interna del router.
+
+Responsabilidades actuales:
+
+- bootstrap mínimo de output y conexión;
+- lectura de los transportes HTTP en el borde (`$_SERVER`, `$_GET`, `$_POST`);
+- entrega explícita de método/URI/query al runtime de routing;
+- construcción del request context explícito;
+- decisión desktop/móvil;
+- captura de la salida del page dispatch;
+- entrega de respuesta bare o delegación a presentación.
+
+El shell desktop vive en `app/views/layout/desktop.php`; su `<head>` vive en `app/views/layout/head.php`. El tema y la URL de cambio a vista móvil se preparan en `app/presentation/desktop_context.php`.
+
+En escritorio, `desktop_context.php` conserva soporte técnico para `classic`, `modern` y `power-save`, pero **Classic es la apariencia canónica**. Modern y Power Save son variantes residuales incompletas y no se ofrecen mediante un selector global. Un selector completo de temas se considera trabajo de diseño/presentación independiente.
+
+`?view=mobile` usa la misma resolución de URL y el mismo `route key`, pero `app/mobile/mobile_index.php` selecciona un controlador desde `app/mobile/mobile_routes.php`.
+
+No es un segundo router público. Si un route key no tiene controlador móvil específico se usa `app/mobile/controllers/fallback.php`, que delega en el mismo `app/http/page_dispatch.php` que desktop.
+
+Esta arquitectura móvil permanece sólo por compatibilidad hasta que el menú responsive clásico sea reconstruido con SVG + CSS y aprobado visualmente.
+
+## 6. Configuración y conexión
 
 `app/helpers/db_connection.php` requiere:
 
@@ -50,43 +132,25 @@ Flujo público:
 - `MYSQL_PWD`
 - `MYSQL_BDD`
 
-Busca `config.env` en:
+Busca `config.env` en el padre de la raíz, raíz del proyecto y ubicación legacy bajo `app/`. La conexión se reutiliza durante la request y fuerza `utf8mb4`.
 
-1. padre de la raíz del proyecto;
-2. raíz del proyecto;
-3. ubicación legacy bajo `app/`.
+La configuración global previa al dispatch se carga mediante `app/bootstrap/runtime.php`, que delega las consultas en `app/domains/configuration/queries.php`. Actualmente sólo se cargan aquí los valores necesarios antes de despachar (`error_reporting` y `exclude_chronicles`).
 
-La conexión se reutiliza dentro de la request si sigue viva y fuerza `utf8mb4`.
+## 7. Seguridad web
 
-El acceso administrativo usa hashes de contraseña y no mantiene compatibilidad con credenciales reversiblemente cifradas.
+`.htaccess` bloquea expresamente repositorios ocultos, ficheros de entorno, `/app`, `/admin_docs`, dumps SQL y artefactos internos.
 
-## 4. Seguridad web
-
-`.htaccess` bloquea expresamente:
-
-- repositorios ocultos;
-- `config.env` y ficheros de entorno;
-- `/app`;
-- `/admin_docs`;
-- dumps SQL;
-- documentación técnica servida directamente;
-- otros artefactos de desarrollo.
+Los ficheros reales bajo `/tools` y `/sql` también quedan bloqueados. Las URLs virtuales `/tools/...` siguen llegando al front controller.
 
 `Options -Indexes` evita listados de directorio.
 
-Los errores de conexión y runtime pasan por `app/helpers/runtime_response.php`. La capa pública debe evitar SQL y stack traces crudos.
+No existen PHP públicos directos bajo `api/`. Las APIs activas se resuelven mediante el front controller y el routing canónico.
 
-## 5. Routing
+## 8. Routing canónico
 
-`request_router.php` contiene:
+Las formas principales están definidas en `app/routing/path_matcher.php`.
 
-- mapeo de route keys legacy a URLs canónicas;
-- rutas estáticas;
-- rutas regex para entidades con slug;
-- redirecciones históricas;
-- resolución de `pretty_id`.
-
-Ejemplos canónicos:
+Ejemplos:
 
 - `/characters/{slug}`
 - `/characters/worlds/{slug}`
@@ -94,21 +158,24 @@ Ejemplos canónicos:
 - `/seasons/{slug}`
 - `/chapters/{slug}`
 - `/organizations/{slug}`
-- `/groups/{slug}`
+- `/groups/{slug}` y `/groups/{org}/{group}`
 - `/players/{slug}`
+- `/documents/{slug}`
+- `/inventory/{type}/{slug}`
 - `/timeline/event/{slug}`
 - `/maps/poi/{slug}`
 - `/systems/{slug}`
+- `/rules/.../{slug}`
 - `/powers/gift/{slug}`
 - `/powers/rite/{slug}`
 - `/powers/totem/{slug}`
 - `/powers/discipline/{slug}`
 
-Los joins internos deben usar `id`. `pretty_id` es la identidad pública de URL.
+Los joins internos deben usar `id`. `pretty_id` es identidad pública de URL.
 
-`app/helpers/pretty.php` mantiene resolución de aliases históricos mediante `fact_pretty_id_aliases`.
+La traducción completa de nombres internos históricos está en [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
-## 6. Modelo de datos
+## 9. Modelo de datos
 
 La base de producción revisada contiene **119 tablas**:
 
@@ -117,41 +184,22 @@ La base de producción revisada contiene **119 tablas**:
 - 39 `bridge_*`;
 - `admin_webp_image_migration_backup`.
 
-Además contiene:
-
-- `vw_game_card_collection`;
-- `vw_sim_characters`;
-- `vw_sim_forms`;
-- `vw_sim_items`;
-- procedimiento `audit_signed_id_columns()`.
-
-Las vistas y tablas relacionadas con el antiguo juego de cartas y el simulador siguen formando parte del snapshot de producción del 1 de septiembre. Su presencia en el esquema no implica que exista runtime web activo para esas herramientas.
+Además contiene vistas legacy relacionadas con herramientas retiradas y el procedimiento `audit_signed_id_columns()`. La presencia de objetos de datos del antiguo juego de cartas o simulador no implica runtime activo.
 
 Convención general:
 
 - `dim_*`: catálogos y entidades maestras;
 - `fact_*`: contenido o hechos;
 - `bridge_*`: relaciones N:M;
-- tablas `admin_*`: auxiliares operativas/migración.
+- `admin_*`: auxiliares operativas e históricas.
 
 Véase [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
 
-## 7. Hubs narrativos
+## 10. Hubs narrativos
 
 ### Personajes
 
-`fact_characters` es el hub principal.
-
-FK directas relevantes:
-
-- `chronicle_id` → `dim_chronicles`;
-- `reality_id` → `dim_realities`;
-- `player_id` → `dim_players`;
-- `system_id` → `dim_systems`;
-- `totem_id` → `dim_totems`;
-- `status_id` → `dim_character_status`.
-
-El personaje conserva muchos vínculos N:M en `bridge_characters_*`.
+`fact_characters` es el hub principal. Conserva FK directas a crónica, realidad, jugador, sistema, tótem y estado, además de relaciones N:M en `bridge_characters_*`.
 
 ### Crónicas, temporadas y capítulos
 
@@ -159,44 +207,15 @@ El personaje conserva muchos vínculos N:M en `bridge_characters_*`.
 - `dim_seasons.chronicle_id`
 - `dim_chapters.season_id`
 
-Una temporada no guarda una columna de realidad. Las realidades de temporada se derivan de los eventos asociados a sus capítulos.
-
-Una crónica tampoco debe asumirse unívocamente ligada a una sola realidad por columna propia; el análisis multiversal debe derivarse del contenido/eventos asociados.
+Las realidades de temporada/crónica no deben inferirse de una columna inexistente; se derivan del contenido/eventos asociados.
 
 ### Realidades
 
-`dim_realities` contiene el catálogo.
-
-Los personajes tienen `reality_id` directo.
-
-Los eventos se relacionan mediante `bridge_timeline_events_realities`.
+`dim_realities` contiene el catálogo. Personajes usan `reality_id`; eventos se relacionan mediante `bridge_timeline_events_realities`.
 
 ### Timeline
 
-Hub:
-
-`fact_timeline_events`
-
-Campos importantes:
-
-- `event_date`;
-- `date_precision`;
-- `date_note`;
-- `sort_date`;
-- `event_type_id`;
-- `location`;
-- `source`;
-- `timeline`, marcado como legacy.
-
-Bridges:
-
-- `bridge_timeline_events_characters`;
-- `bridge_timeline_events_chapters`;
-- `bridge_timeline_events_chronicles`;
-- `bridge_timeline_events_realities`;
-- `bridge_timeline_links`.
-
-Los bridges usan `event_id`.
+Hub: `fact_timeline_events`, con bridges a personajes, capítulos, crónicas, realidades y links.
 
 ### Organizaciones y grupos
 
@@ -207,78 +226,79 @@ Los bridges usan `event_id`.
 - `bridge_characters_organizations`
 - `bridge_characters_org`
 
-Existen capas históricas/canónicas que conviven en afiliaciones. Antes de consolidar tablas o eliminar un bridge, revisar consumidores reales y los manifiestos de migración.
+Antes de consolidar afiliaciones históricas, revisar consumidores reales y la fuente editorial vigente.
 
 ### Sistemas y reglas
 
-Catálogos:
+Catálogos principales: `dim_systems`, `dim_breeds`, `dim_auspices`, `dim_tribes`, `dim_forms`, `dim_traits`, `dim_systems_resources`, más bridges especializados.
 
-- `dim_systems`
-- `dim_breeds`
-- `dim_auspices`
-- `dim_tribes`
-- `dim_forms`
-- `dim_traits`
-- `dim_systems_resources`
+## 11. Backend administrativo
 
-Relaciones extra:
+El backend editorial entra por `talim` (`/talim` y alias `/admin`). Las subsecciones usan el parámetro interno `s`.
 
-- `bridge_systems_ex_races`
-- `bridge_systems_ex_auspices`
-- `bridge_systems_ex_tribes`
-- `bridge_systems_detail_labels`
-- `bridge_systems_resources_to_system`
-- `bridge_systems_form_icons`
+Las mutaciones administrativas deben seguir usando helpers compartidos de autenticación, sesión y CSRF. Estos límites de seguridad forman parte del contrato operativo.
 
-Estas tablas permiten reutilizar detalles entre sistemas sin duplicar catálogos.
+El request público se normaliza en `hgRequest`; los controladores públicos no deben recuperar acceso directo a GET/POST. En Admin, los controladores CRUD/formulario permanecen como borde HTTP explícito y pueden leer GET/POST directamente: no se reescriben solo para ocultar el transporte. `$_REQUEST` está prohibido por su precedencia implícita. Los únicos accesos directos a cookies de aplicación son preferencias de presentación (vista móvil/desktop y tema), nunca autenticación.
 
-## 8. Backend administrativo
+## 12. Herramientas y mantenimiento
 
-La aplicación dispone de un backend editorial autenticado. Las rutas privilegiadas, el inventario completo de módulos y los procedimientos operativos no se documentan en detalle en el repositorio público.
-
-Las mutaciones administrativas deben utilizar los helpers compartidos de autenticación y CSRF. El acceso administrativo usa sesiones endurecidas, caducidad y limitación de intentos de login.
-
-## 9. Herramientas y mantenimiento
-
-No existe actualmente un flujo canónico de “instalar el esquema desde un dump” dentro de este repo.
-
-Herramientas existentes:
+Herramientas internas existentes incluyen:
 
 - `tools/scaffold_section.py`;
 - `app/tools/backfill_content_updates.php`;
+- `app/tools/inspect_db.php`;
 - `sql/audit_gaia0_content.sql`.
 
-Las antiguas referencias a `install_schema_from_dump.php`, `schema_definition.php`, `schema_initializer.php` y `admin_schema_initializer` están retiradas.
+`tools/scaffold_section.py` vuelve a estar operativo para **secciones públicas simples**: crea el controlador y cablea `app/routing/path_matcher.php` + `app/routing/routes.php`. Si se solicita CSS, el controlador generado lo registra mediante `hg_page_register_stylesheet()` para mantener la carga en `<head>`.
+
+No sirve para rutas de detalle con `pretty_id`, CRUD complejo ni para decidir automáticamente compatibilidad histórica `?p=...`.
 
 Véase [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md).
 
-## 10. Añadir secciones
+## 13. Añadir secciones
 
-Para páginas públicas simples usar `tools/scaffold_section.py` con `--dry-run`.
+Para una sección pública simple puede usarse:
 
-El script modifica router y dispatcher, y opcionalmente CSS y menú fallback.
+~~~bash
+python tools/scaffold_section.py --route-key example --slug example --title "Example" --dry-run
+~~~
 
-No sirve para rutas de entidad o APIs.
+El flujo que debe quedar claro desde el árbol es:
+
+1. `app/routing/path_matcher.php` — URL -> route key;
+2. `app/routing/routes.php` — route key -> controlador;
+3. controlador del dominio correcto;
+4. `app/mobile/mobile_routes.php` sólo si necesita implementación móvil específica durante el periodo de compatibilidad;
+5. [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
+
+Si la nueva sección sustituye una URL histórica `?p=...`, la canonicalización correspondiente se añade conscientemente a `app/routing/legacy_query.php`; no es responsabilidad del scaffold por defecto.
+
+No crear accesos directos a PHP bajo `app/`.
 
 Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
-## 11. Herramientas retiradas con compatibilidad de ruta
+## 14. Herramientas retiradas y archivadas
 
-El Simulador de Combate y el Archivo de Mnemógeno fueron retirados del runtime en septiembre de 2026. Sus motores PHP, parciales, CSS y JavaScript específicos ya no forman parte de la rama activa.
+El Simulador de Combate y el Archivo de Mnemógeno fueron retirados por completo del runtime en septiembre de 2026: no conservan rutas, aliases, APIs, menú ni tombstones 410.
 
-Se conservan únicamente controladores mínimos y endpoints históricos que responden **HTTP 410 Gone**. Su función es mantener una retirada explícita y predecible para URLs antiguas, no proporcionar compatibilidad funcional con las herramientas eliminadas.
+Sus últimas versiones vivas permanecen recuperables en `archive/combat-simulator-last-live` y `archive/game-cards-last-live`. `.github/ci/php-retired-games-archive-audit.py` impide su reintroducción accidental.
 
-La implementación completa anterior permanece recuperable desde la rama de archivo `archive/legacy-tools-2026`.
+## 15. Invariantes arquitectónicas vigentes
 
-## 12. Política documental
+El runtime público mantiene cero SQL directo en controladores públicos/móviles y cero lectura directa de GET/POST/REQUEST en esos controladores. La introspección de esquema está limitada a propietarios clasificados. `$_REQUEST` está prohibido. Los aliases históricos de route key viven exclusivamente en la frontera legacy y no forman parte del dispatch activo.
 
-Cuando cambie código o esquema:
+Los techos globales de request y los inventarios de compatibilidad son límites de regresión, no objetivos de permanencia: pueden reducirse en cambios futuros, pero cualquier cambio de baseline debe ser explícito y revisado.
 
-1. actualizar primero el documento especializado;
-2. actualizar este mapa si cambia arquitectura general;
-3. no convertir informes fechados en documentación viva;
-4. marcar expresamente las notas históricas;
-5. no copiar dumps completos dentro de `admin_docs`;
-6. registrar la fecha y la fuente de cualquier recuento de tablas.
+Los guards especializados bajo `.github/ci/` y los workflows de CI son la fuente ejecutable de estos contratos.
 
-La referencia de esquema actual está fechada. Si producción cambia, debe regenerarse [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) desde un snapshot nuevo.
+## 16. Política documental
+
+Cuando cambie routing/dispatch:
+
+1. cambiar primero el código ejecutable;
+2. actualizar `ROUTE_DICTIONARY.md` si cambia el contrato de rutas;
+3. actualizar este documento si cambia la arquitectura general;
+4. no convertir registros históricos de implementación en documentación viva;
+5. mantener separada la documentación histórica de la vigente.
+
+Cuando cambie esquema, regenerar la referencia desde un snapshot nuevo en lugar de editar recuentos por intuición.

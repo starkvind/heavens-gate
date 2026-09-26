@@ -1,53 +1,13 @@
 <?php
-if (!table_exists($link, 'bridge_characters_conditions') || !table_exists($link, 'dim_character_conditions')) {
-    return;
-}
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 
-$hasConditionInstanceNo = column_exists($link, 'bridge_characters_conditions', 'instance_no');
-$hasConditionLocation = column_exists($link, 'bridge_characters_conditions', 'location');
-$hasConditionActive = column_exists($link, 'bridge_characters_conditions', 'is_active');
-$conditionInstanceSelect = $hasConditionInstanceNo ? 'bcc.instance_no' : '1';
-$conditionLocationSelect = $hasConditionLocation ? 'bcc.location' : 'NULL';
-$conditionActiveWhere = $hasConditionActive ? "AND (bcc.is_active = 1 OR bcc.is_active IS NULL)" : "";
+$conditions = hg_characters_fetch_conditions($link, (int)$characterId);
 
-$sql = "
-    SELECT
-        c.id,
-        c.pretty_id,
-        c.name,
-        c.category,
-        {$conditionInstanceSelect} AS instance_no,
-        {$conditionLocationSelect} AS condition_location
-    FROM bridge_characters_conditions bcc
-    JOIN dim_character_conditions c ON c.id = bcc.condition_id
-    WHERE bcc.character_id = ?
-      {$conditionActiveWhere}
-    ORDER BY
-        CASE
-            WHEN c.category = 'Deformidad Metis' THEN 0
-            WHEN c.category = 'Herida de Guerra' THEN 1
-            WHEN c.category LIKE '%Cicatrices%' THEN 1
-            WHEN c.category = 'Trastorno Mental' THEN 2
-            ELSE 9999
-        END ASC,
-        c.name ASC,
-        instance_no ASC
-";
-
-$stmt = $link->prepare($sql);
-if (!$stmt) {
-    return;
-}
-
-$stmt->bind_param('i', $characterId);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result && $result->num_rows > 0) {
+if (!empty($conditions)) {
     echo "<div class='bioSheetPowers'>";
     echo "<fieldset class='bioSeccion'><legend>{$titleConditions}</legend>";
 
-    while ($row = $result->fetch_assoc()) {
+    foreach ($conditions as $row) {
         $conditionId = (int)($row['id'] ?? 0);
         $conditionName = (string)($row['name'] ?? '');
         $conditionCategory = (string)($row['category'] ?? '');
@@ -98,6 +58,4 @@ if ($result && $result->num_rows > 0) {
     echo "</fieldset>";
     echo "</div>";
 }
-
-$stmt->close();
 ?>

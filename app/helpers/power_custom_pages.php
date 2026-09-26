@@ -141,51 +141,6 @@ if (!function_exists('hg_power_custom_markdown_download')) {
     }
 }
 
-if (!function_exists('hg_power_custom_fetch_rows')) {
-    function hg_power_custom_fetch_rows(mysqli $link, string $query): array
-    {
-        $stmt = $link->prepare($query);
-        if (!$stmt) {
-            return [];
-        }
-
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $rows = [];
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-
-        $stmt->close();
-        return $rows;
-    }
-}
-
-if (!function_exists('hg_power_custom_build_items')) {
-    function hg_power_custom_build_items(mysqli $link, array $config): array
-    {
-        $rows = hg_power_custom_fetch_rows($link, (string)($config['query'] ?? ''));
-        $mapper = $config['map_row'] ?? null;
-        $items = [];
-
-        foreach ($rows as $row) {
-            $item = is_callable($mapper) ? $mapper($row, $link) : $row;
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $item = hg_power_custom_ensure_utf8($item);
-            $item['fields'] = is_array($item['fields'] ?? null) ? $item['fields'] : [];
-            $item['chips'] = is_array($item['chips'] ?? null) ? $item['chips'] : [];
-            $item['sections'] = is_array($item['sections'] ?? null) ? $item['sections'] : [];
-            $items[] = $item;
-        }
-
-        return $items;
-    }
-}
-
 if (!function_exists('hg_power_custom_make_chip_list')) {
     function hg_power_custom_make_chip_list(array $values): array
     {
@@ -217,41 +172,6 @@ if (!function_exists('hg_power_custom_sections')) {
             ];
         }
         return $normalized;
-    }
-}
-
-if (!function_exists('hg_power_custom_gift_rules_col')) {
-    function hg_power_custom_gift_rules_col(mysqli $link): string
-    {
-        $rs = mysqli_query($link, "SHOW COLUMNS FROM `fact_gifts` LIKE 'mechanics_text'");
-        if ($rs && mysqli_num_rows($rs) > 0) {
-            mysqli_free_result($rs);
-            return 'mechanics_text';
-        }
-        if ($rs) {
-            mysqli_free_result($rs);
-        }
-        return 'system_name';
-    }
-}
-
-if (!function_exists('hg_power_custom_asset_image')) {
-    function hg_power_custom_asset_image(string $value, string $fallback, string $baseDir = ''): string
-    {
-        $img = trim($value);
-        if ($img === '') {
-            return $fallback;
-        }
-        if (preg_match('#^https?://#i', $img) || strncmp($img, '/', 1) === 0) {
-            return $img;
-        }
-        if (strpos($img, '/') !== false) {
-            return '/' . ltrim($img, '/');
-        }
-        if ($baseDir !== '') {
-            return rtrim($baseDir, '/') . '/' . ltrim($img, '/');
-        }
-        return '/' . ltrim($img, '/');
     }
 }
 
@@ -593,7 +513,7 @@ if (!function_exists('hg_power_custom_catalog_disciplines')) {
 }
 
 if (!function_exists('hg_power_custom_render')) {
-    function hg_power_custom_render(mysqli $link, array $config): void
+    function hg_power_custom_render(mysqli $link, array $config, array $hgRequest): void
     {
         $pageSect = (string)($config['page_section'] ?? ($config['catalog_title'] ?? 'Poderes'));
         $_SESSION['punk2'] = $pageSect;
@@ -604,7 +524,7 @@ if (!function_exists('hg_power_custom_render')) {
             'website'
         );
 
-        $printMode = isset($_GET['print']) && $_GET['print'] === '1';
+        $printMode = hg_request_query_param($hgRequest, 'print') === '1';
         if (!$printMode) {
             include("app/partials/main_nav_bar.php");
         }
@@ -736,7 +656,7 @@ if (!function_exists('hg_power_custom_render')) {
 }
 
 if (!function_exists('hg_power_custom_render_full_catalog')) {
-    function hg_power_custom_render_full_catalog(mysqli $link, array $config): void
+    function hg_power_custom_render_full_catalog(mysqli $link, array $config, array $hgRequest): void
     {
         $pageSect = (string)($config['page_section'] ?? ($config['catalog_title'] ?? 'Poderes'));
         $_SESSION['punk2'] = $pageSect;
@@ -747,13 +667,13 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
             'website'
         );
 
-        $printMode = isset($_GET['print']) && $_GET['print'] === '1';
+        $printMode = hg_request_query_param($hgRequest, 'print') === '1';
         if (!$printMode) {
             include("app/partials/main_nav_bar.php");
         }
 
         $items = hg_power_custom_build_items($link, $config);
-        $markdownMode = isset($_GET['export']) && $_GET['export'] === 'md';
+        $markdownMode = hg_request_query_param($hgRequest, 'export') === 'md';
         if ($markdownMode) {
             hg_power_custom_markdown_download($config, $items);
         }
@@ -794,9 +714,6 @@ if (!function_exists('hg_power_custom_render_full_catalog')) {
                             <article class="hgpc-card">
                                 <div class="hgpc-card__top">
                                     <h3><?= hg_power_custom_h($item['name'] ?? ''); ?></h3>
-                                    <?php if (!$printMode): ?>
-                                        <a class="hgpc-card__back" href="#hgpc-root">Volver arriba</a>
-                                    <?php endif; ?>
                                 </div>
 
                                 <?php if (!empty($item['image']['src'])): ?>

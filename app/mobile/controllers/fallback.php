@@ -1,5 +1,5 @@
 <?php
 
-$hgMobileFallbackRoute = trim((string)($_GET['p'] ?? ''));
-include(__DIR__ . '/../../bootstrap/body_work.php');
+$hgMobileFallbackRoute = hg_request_route($hgRequest);
+include(__DIR__ . '/../../http/page_dispatch.php');
 

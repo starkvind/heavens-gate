@@ -83,8 +83,9 @@
 }
 
 .org-shell-root .chart-container {
-    min-height: 78vh;
-    height: 78vh;
+    min-height: 420px;
+    height: clamp(420px, 78vh, 820px);
+    max-height: 820px;
     width: 100%;
     border: 1px solid rgba(0, 0, 153, .9);
     border-radius: 12px;
@@ -104,6 +105,7 @@
     width: 100vw;
     min-height: 100vh;
     height: 100vh;
+    max-height: none;
     border-radius: 0;
 }
 
@@ -212,6 +214,15 @@
 
     .org-shell-root .chart-container {
         min-height: 560px;
-        height: 68vh;
+        height: clamp(560px, 68vh, 720px);
+        max-height: 720px;
+    }
+
+    .org-shell-root .chart-container.is-org-fullscreen,
+    .org-shell-root .chart-container:fullscreen,
+    .org-shell-root .chart-container:-webkit-full-screen {
+        min-height: 100vh;
+        height: 100vh;
+        max-height: none;
     }
 }

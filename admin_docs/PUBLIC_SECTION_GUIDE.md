@@ -1,6 +1,6 @@
 # Añadir una sección pública
 
-Última revisión: 2026-09-02.
+Última revisión: 2026-09-17.
 
 La web usa un front controller. Una página nueva no debe enlazarse directamente a un PHP bajo `app/`.
 
@@ -8,15 +8,15 @@ La web usa un front controller. Una página nueva no debe enlazarse directamente
 
 Una URL pública atraviesa:
 
-`.htaccess` → `index.php` → `app/bootstrap/request_router.php` → `app/bootstrap/body_work.php` → controlador.
+`.htaccess -> index.php -> request_runtime.php -> path_matcher.php -> page_dispatch.php -> routes.php -> dispatch_policy.php / dispatcher.php -> controlador`
 
-`request_router.php` resuelve URLs canónicas y redirecciones legacy. `body_work.php` asigna el `route key` al controlador que renderiza la página.
+Las URLs históricas `?p=...` pasan por `app/routing/legacy_query.php` sólo para canonicalizarse hacia la URL moderna. El runtime no debe generar URLs `?p=...`: esa sintaxis existe únicamente como frontera de entrada para compatibilidad.
 
-## Opción recomendada para páginas simples
+La traducción humana de los route keys existentes está en [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
-Existe `tools/scaffold_section.py`.
+## Alta simple con scaffold
 
-Primero ejecutar un dry-run:
+Para una sección pública simple puede usarse:
 
 ~~~bash
 python tools/scaffold_section.py \
@@ -26,42 +26,29 @@ python tools/scaffold_section.py \
   --dry-run
 ~~~
 
-Si el plan es correcto:
+El scaffold crea el controlador y cablea:
 
-~~~bash
-python tools/scaffold_section.py \
-  --route-key codex_guide \
-  --slug codex-guide \
-  --title "Guía del códice"
-~~~
+- `app/routing/path_matcher.php`: URL canónica -> route key;
+- `app/routing/routes.php`: route key -> controlador + sección.
 
-El script crea un controlador y añade la ruta al router y al dispatcher.
+Opcionalmente puede crear CSS y añadir una entrada al menú fallback. Si se genera CSS, el controlador lo registra mediante `hg_page_register_stylesheet()` para mantener la carga dentro de `<head>`.
 
-Opciones útiles:
+El scaffold **no** crea rutas de detalle con `pretty_id`, CRUD complejos ni compatibilidad histórica `?p=...`.
 
-- `--controller-group`: subdirectorio de `app/controllers`; por defecto `main`;
-- `--controller-file`: nombre del fichero a crear;
-- `--section-label`: etiqueta de sección usada por el layout;
-- `--description`: descripción/meta de la página;
-- `--css-file`: CSS bajo `assets/css`;
-- `--create-css`: crea ese CSS;
-- `--menu-label` + `--menu-block`: añade una entrada al menú fallback;
-- `--dry-run`: no escribe cambios.
+## Alta manual vigente
 
-Bloques de menú soportados por el scaffold: `startMenu`, `bioMenu`, `archivoMenu`, `loreMenu`, `systemMenu`, `powersMenu` y `toolsMenu`.
+Una sección pública debe tener propietarios claros:
 
-## Límites del scaffold
+1. `app/routing/path_matcher.php`: URL canónica -> route key;
+2. `app/routing/routes.php`: route key -> controlador + sección;
+3. controlador bajo el dominio correcto en `app/controllers/`;
+4. menú/activos sólo si corresponde;
+5. `app/mobile/mobile_routes.php` únicamente si necesita implementación móvil específica durante la compatibilidad `?view=mobile`;
+6. `ROUTE_DICTIONARY.md`.
 
-No usarlo para:
+Si la sección sustituye un `?p=...` histórico, añadir conscientemente la canonicalización correspondiente en `app/routing/legacy_query.php`. Menús, formularios, JavaScript, búsquedas y enlaces internos deben emitir siempre la URL canónica.
 
-- detalles con `pretty_id`;
-- rutas con varios segmentos dinámicos;
-- APIs;
-- módulos administrativos;
-- páginas que necesiten lógica de autorización;
-- nuevas familias completas de entidades.
-
-En esos casos se debe editar el router conscientemente y seguir el patrón de una sección equivalente ya existente.
+Las páginas normales no deben añadir lógica nueva a `app/http/page_dispatch.php`: ese fichero coordina normalización + dispatch compartido. La política de respuestas bare/fallback vive en `app/http/dispatch_policy.php`.
 
 ## Rutas con entidades
 
@@ -69,10 +56,17 @@ Para una entidad con slug:
 
 - la URL pública debe usar `pretty_id`;
 - los joins internos deben usar `id`;
-- si se cambia un slug que ya fue público, valorar un alias en `fact_pretty_id_aliases`;
-- la resolución legacy debe pasar por `app/helpers/pretty.php`.
+- si cambia un slug ya público, valorar alias en `fact_pretty_id_aliases`;
+- la compatibilidad legacy que necesite resolver IDs/slugs debe pasar por `app/routing/legacy_query.php` y los helpers de `app/helpers/pretty.php`;
+- `path_matcher.php` debe seguir siendo independiente de MySQL.
 
-No generar enlaces públicos con IDs numéricos salvo que la ruta esté diseñada expresamente para ello.
+No generar enlaces públicos con IDs numéricos salvo diseño explícito de esa ruta.
+
+## Route keys
+
+Los nombres históricos (`muestrabio`, `busk`, `temp`, `vermyd`, etc.) se conservan por compatibilidad y para evitar renombrados innecesarios en el routing interno.
+
+Para nuevas rutas, preferir nombres legibles en inglés o vocabulario de dominio claro. No introducir abreviaturas crípticas nuevas.
 
 ## Menú
 
@@ -81,16 +75,22 @@ El menú real puede venir de `dim_menu_items`. La entrada fallback en `app/parti
 Después de crear una sección, comprobar:
 
 - URL canónica;
-- redirección desde el antiguo `?p=...` si existía;
-- menú desktop;
-- menú móvil;
+- redirección desde `?p=...` si procede;
+- desktop;
+- móvil/fallback;
 - título y metadatos;
 - 404 para slugs inexistentes;
-- comportamiento con `view=mobile`.
+- `view=mobile` mientras exista compatibilidad;
+- actualización del diccionario de rutas.
+
+## APIs, embeds y respuestas bare
+
+No copiar el patrón de una página HTML normal para una API o embed. La política de respuestas bare se controla en `app/http/dispatch_policy.php`; `app/http/dispatcher.php` aplica la resolución.
+
+Si se añade una respuesta bare, documentarla expresamente en `ROUTE_DICTIONARY.md` y añadir caracterización/CI cuando sea razonable.
 
 ## Seguridad
 
 `.htaccess` bloquea `/app` y `/admin_docs`. No se debe desactivar ese bloqueo para “hacer funcionar” un controlador.
 
 Si una herramienta necesita ser accesible desde navegador, debe tener una ruta explícita en el front controller.
-

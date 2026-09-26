@@ -1,18 +1,19 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/maps.php');
+require_once(__DIR__ . '/../../domains/maps/queries.php');
 
 hg_maps_require_connection($link);
 
-$schema = hg_maps_schema_info($link);
-$maps = hg_maps_fetch_maps($link);
+$schema = hg_maps_query_schema_info($link);
+$maps = hg_maps_query_fetch_maps($link);
 
 if (!$maps) {
     echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>Mapas</legend>No hay mapas definidos en <code>dim_maps</code>.</fieldset></div>";
     return;
 }
 
-$selectedMap = hg_maps_find_map($maps, (string)($_GET['map'] ?? ''));
+$selectedMap = hg_maps_find_map($maps, hg_request_query_param($hgRequest, 'map'));
 if (!$selectedMap) {
     $selectedMap = $maps[0];
 }
@@ -46,9 +47,9 @@ $defaultFilters = [
     'from_map_slug' => (string)$selectedMap['slug'],
 ];
 
-$categories = hg_maps_fetch_categories($link, $schema, $defaultFilters, $mapNamesById);
-$initialPois = hg_maps_fetch_pois($link, $schema, $defaultFilters, $mapNamesById);
-$initialAreas = hg_maps_fetch_areas($link, (int)$selectedMap['id'], 0);
+$categories = hg_maps_query_fetch_categories($link, $schema, $defaultFilters, $mapNamesById);
+$initialPois = hg_maps_query_fetch_pois($link, $schema, $defaultFilters, $mapNamesById);
+$initialAreas = hg_maps_query_fetch_areas($link, (int)$selectedMap['id'], 0);
 $tile = hg_maps_tile_for_map($selectedMap);
 $bounds = hg_maps_map_bounds($selectedMap);
 
@@ -92,7 +93,6 @@ $mainConfig = [
   <section class="chapter-block map-stage-block">
     <div class="map-shell" data-map-page="main">
       <form method="get" class="map-quickbar" id="mapControlsForm">
-        <input type="hidden" name="p" value="maps">
 
         <div class="map-quick-field map-quick-field-search">
           <label class="map-sr-only" for="poiSearch">Buscar POI</label>

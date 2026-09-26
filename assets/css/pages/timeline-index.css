@@ -1,0 +1,27 @@
+/* Timeline index layout adjustments. */
+
+.events-wrap.events-wrap-compact .events-filters {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.events-wrap.events-wrap-compact .events-filter-block.is-search {
+    grid-column: span 2;
+}
+
+.events-wrap.events-wrap-compact .events-filter-block:has(.events-filter-input[type="date"]) {
+    grid-column: span 2;
+}
+
+@media (max-width: 580px) {
+    .events-wrap.events-wrap-compact .events-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .events-wrap.events-wrap-compact .events-filter-block.is-search {
+        grid-column: span 2;
+    }
+
+    .events-wrap.events-wrap-compact .events-filter-block:has(.events-filter-input[type="date"]) {
+        grid-column: span 1;
+    }
+}

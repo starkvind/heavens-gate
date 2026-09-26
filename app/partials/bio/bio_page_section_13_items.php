@@ -1,71 +1,55 @@
 <?php
-    $tablaDeItem = "fact_items";
-    $linkItem = "verobj";
+require_once(__DIR__ . '/../../domains/characters/queries.php');
 
-    // Consulta directa al bridge
-    $sql = "
-        SELECT
-            o.id,
-            o.name,
-            o.item_type_id, t.pretty_id AS tipo_pretty
-        FROM bridge_characters_items b
-        JOIN fact_items o ON o.id = b.item_id
-        LEFT JOIN dim_item_types t ON t.id = o.item_type_id
-        WHERE b.character_id = ?
-        ORDER BY o.item_type_id, o.name
-    ";
+$items = hg_characters_fetch_items($link, (int)$characterId);
 
-    $stmt = $link->prepare($sql);
-    $stmt->bind_param('i', $characterId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    // SI HAY OBJETOS
-    if ($result->num_rows > 0) {
-        echo "<div class='bioSheetPowers'>"; // Objetos y Fetiches de la Hoja ~~ #SEC13
-		echo "<fieldset class='bioSeccion'><legend>$titleItems</legend>";
-        while ($row = $result->fetch_assoc()) {
-            $itemIdSelect      = (int)$row['id'];
-            $nombreItemSelect  = htmlspecialchars($row['name']);
-            $tipoItemSelect    = (int)$row['item_type_id'];
+if (!empty($items)) {
+    echo "<div class='bioSheetPowers'>";
+    echo "<fieldset class='bioSeccion'><legend>$titleItems</legend>";
 
-            // ================================================= //
-            // Eleccion de icono
-            switch ($tipoItemSelect) {
-                case 1:
-                    $iconoItemSelect = "img/ui/icons/icon_machete.webp";
-                    break;
-                case 2:
-                    $iconoItemSelect = "img/ui/icons/icon_kevlar.webp";
-                    break;
-                case 3:
-                    $iconoItemSelect = "img/ui/icons/icon_magic_orb.webp";
-                    break;
-                case 4:
-                    $iconoItemSelect = "img/ui/icons/icon_crate.webp";
-                    break;
-                case 5:
-                    $iconoItemSelect = "img/ui/icons/icon_amulet.webp";
-                    break;
-                default:
-                    $iconoItemSelect = "img/ui/icons/default.webp";
-                    break;
-            }
-            // ================================================= //
+    foreach ($items as $row) {
+        $itemIdSelect = (int)($row['id'] ?? 0);
+        $nombreItemSelect = htmlspecialchars((string)($row['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $tipoItemSelect = (int)($row['item_type_id'] ?? 0);
 
-            echo "
-                <a href='" . htmlspecialchars(('/inventory/' . ($row['tipo_pretty'] ?? $tipoItemSelect) . '/' . (get_pretty_id($link, 'fact_items', (int)$itemIdSelect) ?: $itemIdSelect))) . "' target='_blank' class='hg-tooltip' data-tip='item' data-id='{$itemIdSelect}'>
-                    <div class='bioSheetPower'>
-                        <img class='valign bio-inline-icon' src='{$iconoItemSelect}'>
-                        {$nombreItemSelect}
-                    </div>
-                </a>
-            ";
+        switch ($tipoItemSelect) {
+            case 1:
+                $iconoItemSelect = 'img/ui/icons/icon_machete.webp';
+                break;
+            case 2:
+                $iconoItemSelect = 'img/ui/icons/icon_kevlar.webp';
+                break;
+            case 3:
+                $iconoItemSelect = 'img/ui/icons/icon_magic_orb.webp';
+                break;
+            case 4:
+                $iconoItemSelect = 'img/ui/icons/icon_crate.webp';
+                break;
+            case 5:
+                $iconoItemSelect = 'img/ui/icons/icon_amulet.webp';
+                break;
+            default:
+                $iconoItemSelect = 'img/ui/icons/default.webp';
+                break;
         }
-        echo "</fieldset>";
-		echo "</div>"; // Cerramos Objetos y Fetiches ~~
-    // Si el personaje no tiene Objetos, no mostramos nada.
+
+        $typeSlug = trim((string)($row['type_pretty'] ?? ''));
+        if ($typeSlug === '') $typeSlug = (string)$tipoItemSelect;
+        $itemSlug = trim((string)($row['item_pretty'] ?? ''));
+        if ($itemSlug === '') $itemSlug = (string)$itemIdSelect;
+        $href = '/inventory/' . rawurlencode($typeSlug) . '/' . rawurlencode($itemSlug);
+
+        echo "
+            <a href='" . h($href) . "' target='_blank' class='hg-tooltip' data-tip='item' data-id='{$itemIdSelect}'>
+                <div class='bioSheetPower'>
+                    <img class='valign bio-inline-icon' src='{$iconoItemSelect}'>
+                    {$nombreItemSelect}
+                </div>
+            </a>
+        ";
     }
-    $stmt->close();
+
+    echo "</fieldset>";
+    echo "</div>";
+}
 ?>
-
-

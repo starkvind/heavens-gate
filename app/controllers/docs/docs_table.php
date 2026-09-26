@@ -1,27 +1,9 @@
 <?php
 setMetaFromPage("Documentos | Heaven's Gate", "Listado de documentos de la campa?a.", null, 'website');
+require_once(__DIR__ . '/../../domains/documents/queries.php');
 include("app/partials/main_nav_bar.php");
 
-// Cargar documentos con la query indicada
-$query = "
-	select
-		d2.id as document_id, 
-		d2.pretty_id as document_pretty_id,
-		d2.title as document_name,
-		d.kind as document_category,
-		COALESCE(nb.name, '') as document_origin
-	from fact_docs d2
-		left join dim_doc_categories d on d2.section_id = d.id
-		left join dim_bibliographies nb on d2.bibliography_id = nb.id
-	order by d.sort_order
-";
-$result = mysqli_query($link, $query);
-
-$documentos = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$documentos[] = $row;
-}
-mysqli_free_result($result);
+$documentos = hg_documents_fetch_catalog($link) ?? [];
 
 $pageSect = "Documentación";
 ?>

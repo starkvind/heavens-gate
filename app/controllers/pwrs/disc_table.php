@@ -1,30 +1,11 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 setMetaFromPage("Disciplinas | Heaven's Gate", "Listado completo de disciplinas.", null, 'website');
 include("app/partials/main_nav_bar.php");
 
-// Cargar disciplinas con la query indicada
-$query = "
-	select
-		d.id as disc_id,
-		d.pretty_id as disc_pretty_id,
-		d.name as disc_name,
-		ddt.name as disc_type,
-		d.level as disc_level,
-		d.attribute as disc_roll_attribute,
-		d.skill as disc_roll_skill,
-		nb.name as disc_origin
-	from fact_discipline_powers d
-		left join dim_discipline_types ddt on d.disc = ddt.id
-		left join dim_bibliographies nb on d.bibliography_id = nb.id
-	order by d.bibliography_id, d.disc, d.level, d.name
-";
-$result = mysqli_query($link, $query);
-
-$disciplinas = [];
-while ($row = mysqli_fetch_assoc($result)) {
-	$disciplinas[] = $row;
-}
-mysqli_free_result($result);
+$disciplinas = hg_powers_fetch_catalog($link, 'disciplines');
+if ($disciplinas === false) $disciplinas = [];
 
 function ensure_utf8($value) {
     if (is_string($value)) {
@@ -171,7 +152,6 @@ $(document).ready(function () {
 
 	});
 
-	// ========= Generar opciones =========
 	const typeSet = new Set();
 	const levelSet = new Set();
 	const originSet = new Set();
@@ -271,6 +251,5 @@ function sortValues(values){
 	});
 }
 </script>
-
 
 

@@ -1,6 +1,6 @@
 # Scripts y mantenimiento
 
-Última revisión: 2026-09-05.
+Última revisión: 2026-09-26.
 
 Este documento describe las herramientas que **existen realmente** en el repositorio en esta fecha. No presupone instaladores o migradores retirados.
 
@@ -14,7 +14,7 @@ Antes de ejecutar una herramienta que escriba en base de datos:
 2. comprobar que `config.env` apunta al entorno correcto;
 3. usar `--dry-run` cuando la herramienta lo soporte;
 4. revisar el resultado con `/talim?s=admin_inspect_db` o con consultas de auditoría;
-5. no ejecutar herramientas de migración histórica por intuición.
+5. no ejecutar herramientas retiradas o históricas por intuición.
 
 ## Configuración compartida
 
@@ -30,6 +30,8 @@ Claves obligatorias para conexión:
 - `MYSQL_USER`
 - `MYSQL_PWD`
 - `MYSQL_BDD`
+
+La configuración global necesaria antes del dispatch se carga desde `app/bootstrap/runtime.php`, mientras que su acceso a datos vive en `app/domains/configuration/queries.php`.
 
 ## Herramientas CLI
 
@@ -47,14 +49,14 @@ php app/tools/backfill_content_updates.php 100 --dry-run
 
 El límite por defecto es 100 y el script acepta como máximo 1000 filas. `--dry-run` permite inspeccionar sin escribir.
 
-No es una migración de esquema.
+No cambia el esquema.
 
 ### `tools/scaffold_section.py`
 
 Genera el esqueleto de una sección pública sencilla y cablea:
 
-- `app/bootstrap/request_router.php`;
-- `app/bootstrap/body_work.php`;
+- `app/routing/path_matcher.php`;
+- `app/routing/routes.php`;
 - opcionalmente un CSS en `assets/css`;
 - opcionalmente una entrada del menú fallback.
 
@@ -70,7 +72,11 @@ python tools/scaffold_section.py \
 
 Después del dry-run, repetir sin `--dry-run` si el plan es correcto.
 
-No sirve para rutas de detalle con `pretty_id` ni para CRUD complejos. Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
+Si se solicita CSS, el controlador generado lo registra mediante `hg_page_register_stylesheet()`; no inyecta un `<link>` en el cuerpo.
+
+No sirve para rutas de detalle con `pretty_id`, CRUD complejos ni para decidir automáticamente compatibilidad histórica `?p=...`. Si una sección sustituye una URL legacy, la canonicalización debe añadirse conscientemente a `app/routing/legacy_query.php`.
+
+Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
 
 ## Herramientas administrativas
 
@@ -92,7 +98,7 @@ La existencia física de un fichero en `app/tools` **no implica** que tenga una 
 
 ### Operaciones de esquema
 
-Las operaciones que cambian estructura o realizan migraciones destructivas no se exponen como rutas web. Deben ejecutarse mediante un flujo de mantenimiento controlado y fuera del runtime público.
+Las operaciones que cambian estructura de datos no se exponen como rutas web. Deben ejecutarse mediante un flujo de mantenimiento controlado y fuera del runtime público.
 
 ## Herramientas auxiliares no enrutadas
 
@@ -135,5 +141,5 @@ Antes de tocar base de datos o scripts:
 - comprobar que la tabla y columnas existen en [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md);
 - ejecutar dry-run cuando exista;
 - revisar logs y respuesta;
-- verificar rutas públicas a través de `request_router.php`;
+- verificar rutas públicas a través de `app/routing/request_runtime.php` y del propietario correspondiente (`path_matcher.php` o `legacy_query.php`);
 - actualizar esta documentación cuando cambie el comportamiento operativo.

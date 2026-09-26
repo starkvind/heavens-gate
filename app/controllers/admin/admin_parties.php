@@ -16,29 +16,14 @@
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 include_once(__DIR__ . '/../../helpers/pretty.php');
-include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+include_once(__DIR__ . '/../../domains/parties/admin.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function is_post(){ return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'; }
-function has_table(mysqli $db, string $table): bool {
-    $table = str_replace('`', '', $table);
-    $rs = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
-function has_column(mysqli $db, string $table, string $column): bool {
-    $table = str_replace('`', '', $table);
-    $column = str_replace('`', '', $column);
-    $rs = $db->query("SHOW COLUMNS FROM `".$db->real_escape_string($table)."` LIKE '".$db->real_escape_string($column)."'");
-    if (!$rs) return false;
-    $ok = ($rs->num_rows > 0);
-    $rs->close();
-    return $ok;
-}
+
+
 function cur_url(): string {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     return $uri ?: '';
@@ -81,25 +66,6 @@ function csrf_check(): bool {
         : (string)($_POST['csrf'] ?? '');
     return is_string($t) && hash_equals($_SESSION['csrf'] ?? '', $t);
 }
-
-/* -----------------------------
-   Compatibilidad de esquema
------------------------------ */
-$partyMembersTable = '';
-foreach (['fact_party_members', 'party_members'] as $t) {
-    if (has_table($link, $t)) { $partyMembersTable = $t; break; }
-}
-$partyChangesTable = '';
-foreach (['fact_party_members_changes', 'party_members_changes'] as $t) {
-    if (has_table($link, $t)) { $partyChangesTable = $t; break; }
-}
-$partyFkCol = ($partyMembersTable !== '' && has_column($link, $partyMembersTable, 'plot_id'))
-    ? 'plot_id'
-    : (($partyMembersTable !== '' && has_column($link, $partyMembersTable, 'party_id')) ? 'party_id' : '');
-$changesFkCol = ($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'plot_char_id'))
-    ? 'plot_char_id'
-    : (($partyChangesTable !== '' && has_column($link, $partyChangesTable, 'party_member_id')) ? 'party_member_id' : '');
-$hasPartiesSchema = ($partyMembersTable !== '' && $partyFkCol !== '' && $partyChangesTable !== '' && $changesFkCol !== '');
 
 $isAjaxRequest = is_post() && (
     ((string)($_POST['ajax'] ?? '') === '1')
@@ -161,37 +127,16 @@ if ($action === 'save_plot') {
         parties_fail('El nombre de la trama es obligatorio.', ['open_plot'=>$id ?: 1]);
     }
 
-    if ($id === 0) {
-        $st = $link->prepare("\n            INSERT INTO dim_parties (name, description, active, sort_order, created_at, updated_at)\n            VALUES (?, ?, ?, ?, NOW(), NOW())\n        ");
-        if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-        $st->bind_param('ssii', $name, $desc, $act, $ord);
-        if ($st->execute()) {
-            $newId = (int)$st->insert_id;
-            hg_update_pretty_id_if_exists($link, 'dim_parties', $newId, $name);
-            $st->close();
-            parties_ok('Trama creada (#'.$newId.').', ['open_plot'=>null, 'focus_plot'=>$newId], ['id'=>$newId, 'focus_plot'=>$newId]);
-        }
-        $errCreate = 'Error al crear: '.$st->error;
-        $st->close();
-        parties_fail($errCreate, ['open_plot'=>1]);
-    }
-
-    $st = $link->prepare("\n        UPDATE dim_parties\n           SET name=?, description=?, active=?, sort_order=?, updated_at=NOW()\n        WHERE id=?\n    ");
-    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-    $st->bind_param('ssiii', $name, $desc, $act, $ord, $id);
-    if ($st->execute()) {
-        hg_update_pretty_id_if_exists($link, 'dim_parties', $id, $name);
-        $st->close();
-        parties_ok('Trama actualizada (#'.$id.').', ['open_plot'=>null, 'focus_plot'=>$id], ['id'=>$id, 'focus_plot'=>$id]);
-    }
-    $errUpdate = 'Error al actualizar: '.$st->error;
-    $st->close();
-    parties_fail($errUpdate, ['open_plot'=>$id ?: 1]);
+    $result = hg_parties_admin_save_plot($link,$id,$name,$desc,$act,$ord);
+    if (empty($result['ok'])) parties_fail((string)$result['error'], ['open_plot'=>$id ?: 1]);
+    $savedId = (int)$result['id'];
+    parties_ok(
+        !empty($result['created']) ? 'Trama creada (#'.$savedId.').' : 'Trama actualizada (#'.$savedId.').',
+        ['open_plot'=>null, 'focus_plot'=>$savedId],
+        ['id'=>$savedId, 'focus_plot'=>$savedId]
+    );
 }
 if ($action === 'save_plot_char') {
-    if (!$hasPartiesSchema) {
-        parties_fail('Esquema de tramas/personajes no compatible.');
-    }
     $id     = (int)($_POST['id'] ?? 0);
     $plot   = (int)($_POST['plot_id'] ?? 0);
     $base   = (int)($_POST['base_char_id'] ?? 0);
@@ -207,49 +152,16 @@ if ($action === 'save_plot_char') {
     foreach ($stats as $s) $vals[$s] = (int)($_POST["m_$s"] ?? 0);
     if ($vals['hp'] < 0) $vals['hp'] = 0;
 
-    if ($id === 0) {
-        $st = $link->prepare("\n            INSERT INTO `{$partyMembersTable}`\n            (`{$partyFkCol}`, base_char_id, alias, m_hp, m_rage, m_gnosis, m_glamour, m_mana, m_blood, m_wp, notes, active, updated_at)\n            VALUES (?,?,?,?,?,?,?,?,?,?,?, ?, NOW())\n        ");
-        if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-
-        $st->bind_param(
-            'iisiiiiiiisi',
-            $plot,$base,$alias,
-            $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
-            $notes,$act
-        );
-
-        if ($st->execute()) {
-            $newId = (int)$st->insert_id;
-            $st->close();
-            parties_ok('Personaje anadido a trama (#'.$newId.').', ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null], ['id'=>$newId, 'plot_id'=>$plot]);
-        }
-        $errIns = 'Error al insertar: '.$st->error;
-        $st->close();
-        parties_fail($errIns, ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
-    }
-
-    $st = $link->prepare("\n        UPDATE `{$partyMembersTable}` SET\n        `{$partyFkCol}`=?, base_char_id=?, alias=?,\n        m_hp=?, m_rage=?, m_gnosis=?, m_glamour=?, m_mana=?, m_blood=?, m_wp=?,\n        notes=?, active=?, updated_at=NOW()\n        WHERE id=?\n    ");
-    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-
-    $st->bind_param(
-        'iisiiiiiiisii',
-        $plot,$base,$alias,
-        $vals['hp'],$vals['rage'],$vals['gnosis'],$vals['glamour'],$vals['mana'],$vals['blood'],$vals['wp'],
-        $notes,$act,$id
+    $result = hg_parties_admin_save_member($link,$id,$plot,$base,$alias,$vals,$notes,$act);
+    if (empty($result['ok'])) parties_fail((string)$result['error'], ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
+    $savedId=(int)$result['id'];
+    parties_ok(
+        !empty($result['created']) ? 'Personaje anadido a trama (#'.$savedId.').' : 'Personaje en trama actualizado (#'.$savedId.').',
+        ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null],
+        ['id'=>$savedId, 'plot_id'=>$plot]
     );
-
-    if ($st->execute()) {
-        $st->close();
-        parties_ok('Personaje en trama actualizado (#'.$id.').', ['focus_plot'=>$plot, 'open_char'=>null, 'plot'=>null], ['id'=>$id, 'plot_id'=>$plot]);
-    }
-    $errUp = 'Error al actualizar: '.$st->error;
-    $st->close();
-    parties_fail($errUp, ['focus_plot'=>$plot, 'open_char'=>1, 'plot'=>$plot]);
 }
 if ($action === 'add_change') {
-    if (!$hasPartiesSchema) {
-        parties_fail('Esquema de cambios no compatible.');
-    }
     $cid  = (int)($_POST['plot_char_id'] ?? 0);
     $res  = (string)($_POST['resource'] ?? '');
     $val  = (int)($_POST['value'] ?? 0);
@@ -263,88 +175,20 @@ if ($action === 'add_change') {
         parties_fail('Recurso invalido.', ['open_changes'=>$cid]);
     }
 
-    $st = $link->prepare("\n        INSERT INTO `{$partyChangesTable}`\n        (`{$changesFkCol}`, resource, value, notes, created_at)\n        VALUES (?, ?, ?, ?, NOW())\n    ");
-    if (!$st) { parties_fail('Prepare failed: '.$link->error); }
-    $st->bind_param('isis', $cid, $res, $val, $note);
-    if ($st->execute()) {
-        $newId = (int)$st->insert_id;
-        $st->close();
-        parties_ok('Cambio registrado.', ['open_changes'=>$cid], ['id'=>$newId, 'plot_char_id'=>$cid]);
-    }
-    $errChg = 'Error al registrar cambio: '.$st->error;
-    $st->close();
-    parties_fail($errChg, ['open_changes'=>$cid]);
+    $result = hg_parties_admin_add_change($link,$cid,$res,$val,$note);
+    if (empty($result['ok'])) parties_fail((string)$result['error'], ['open_changes'=>$cid]);
+    parties_ok('Cambio registrado.', ['open_changes'=>$cid], ['id'=>(int)$result['id'], 'plot_char_id'=>$cid]);
 }
 /* -----------------------------
    Cargas de datos
 ----------------------------- */
 
-// Plots
-$plots = [];
-$q = $link->query("SELECT * FROM dim_parties ORDER BY sort_order DESC, created_at DESC");
-if ($q) { while ($r = $q->fetch_assoc()) $plots[] = $r; $q->close(); }
-
-// Personajes base (fact_characters)
-$baseChars = [];
-$hasStatusId = has_column($link, 'fact_characters', 'status_id');
-$hasStatusDim = has_table($link, 'dim_character_status');
-$baseCharsSql = "SELECT fc.id, fc.name AS nombre, fc.alias FROM fact_characters fc";
-if ($hasStatusId && $hasStatusDim) {
-    $baseCharsSql .= " LEFT JOIN dim_character_status dcs ON dcs.id = fc.status_id";
-    $baseCharsSql .= " WHERE COALESCE(dcs.is_active, 0) = 1";
-}
-$baseCharsSql .= " ORDER BY fc.name ASC";
-$q = $link->query($baseCharsSql);
-if ($q) { while ($r = $q->fetch_assoc()) $baseChars[] = $r; $q->close(); }
-
-// Plot characters (bridge)
-$plotCharsByPlot = [];
-$plotCharsFlat   = []; // por id
-$q = null;
-if ($hasPartiesSchema) {
-    $q = $link->query("
-        SELECT pc.*,
-               pc.`{$partyFkCol}` AS plot_id,
-               p.name AS plot_name,
-               p.sort_order AS plot_sort_order,
-               b.name AS base_nombre,
-               b.alias  AS base_alias
-        FROM `{$partyMembersTable}` pc
-        JOIN dim_parties p ON p.id = pc.`{$partyFkCol}`
-        LEFT JOIN fact_characters b ON b.id = pc.base_char_id
-        ORDER BY p.sort_order DESC, p.id DESC, pc.active DESC, COALESCE(pc.alias,b.name) ASC
-    ");
-}
-$plotCharIds = [];
-if ($q) {
-    while ($r = $q->fetch_assoc()) {
-        $pid = (int)$r['plot_id'];
-        $cid = (int)$r['id'];
-        $plotCharsByPlot[$pid][] = $r;
-        $plotCharsFlat[$cid] = $r;
-        $plotCharIds[] = $cid;
-    }
-    $q->close();
-}
-
-// Cambios agrupados para todos los plot_char en la página
-$changesByPlotChar = [];
-if (!empty($plotCharIds)) {
-    $in = implode(',', array_map('intval', $plotCharIds));
-    $q = $link->query("
-        SELECT id, `{$changesFkCol}` AS plot_char_id, resource, value, notes, created_at
-        FROM `{$partyChangesTable}`
-        WHERE `{$changesFkCol}` IN ($in)
-        ORDER BY created_at DESC
-    ");
-    if ($q) {
-        while ($r = $q->fetch_assoc()) {
-            $cid = (int)$r['plot_char_id'];
-            $changesByPlotChar[$cid][] = $r;
-        }
-        $q->close();
-    }
-}
+$state = hg_parties_admin_load_state($link);
+$plots = $state['plots'];
+$baseChars = $state['baseChars'];
+$plotCharsByPlot = $state['plotCharsByPlot'];
+$plotCharsFlat = $state['plotCharsFlat'];
+$changesByPlotChar = $state['changesByPlotChar'];
 
 if (($_GET['ajax'] ?? '') === 'state') {
     if (function_exists('hg_admin_require_session')) {
@@ -432,15 +276,7 @@ $csrf = $_SESSION['csrf'];
     </div>
   <?php endif; ?>
 
-  <?php if (!$hasPartiesSchema): ?>
-    <div class="flash">
-      <div class="err">
-        ❌ Esquema no compatible para miembros/cambios de trama.
-        Se esperaba `fact_party_members.plot_id` o `party_members.party_id`,
-        y `fact_party_members_changes.plot_char_id` o `party_members_changes.party_member_id`.
-      </div>
-    </div>
-  <?php endif; ?>
+
 
   <div class="toolbar adm-mb-8">
     <input class="inp" type="text" id="filterPlots" placeholder="Filtrar tramas (nombre, activa, orden...)">
@@ -448,14 +284,14 @@ $csrf = $_SESSION['csrf'];
   </div>
 
   <!-- LISTADO DE TRAMAS -->
-  <table class="table" id="plotsTable">
+  <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Tabla de tramas"><table class="table adm-wide-table" id="plotsTable">
     <thead>
       <tr>
         <th class="adm-w-60">ID</th>
-        <th>Nombre</th>
+        <th class="adm-col-name">Nombre</th>
         <th class="adm-w-90">Activa</th>
         <th class="adm-w-80">Orden</th>
-        <th class="adm-w-260">Acciones</th>
+        <th class="adm-th-actions" title="Acciones">Acc.</th>
       </tr>
     </thead>
     <tbody>
@@ -466,18 +302,18 @@ $csrf = $_SESSION['csrf'];
         <td><?= h($p['name']) ?></td>
         <td><?= ((int)$p['active']===1) ? '<span class="badge">Sí</span>' : '<span class="badge off">No</span>' ?></td>
         <td><?= (int)($p['sort_order'] ?? 0) ?></td>
-        <td>
-          <button class="btn" type="button" onclick='openPlotEdit(<?= json_encode($p, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
-          <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
-          <button class="btn btn-ghost" type="button" onclick="scrollToPlot(<?= $pid ?>)">⬇ Ver personajes</button>
-        </td>
+        <td class="adm-cell-actions"><div class="adm-actions-inline">
+          <button class="btn adm-icon-btn" type="button" onclick='openPlotEdit(<?= json_encode($p, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)' aria-label="Editar trama" title="Editar trama">✏</button>
+          <button class="btn btn-green adm-icon-btn" type="button" onclick="openCharCreate(<?= $pid ?>)" aria-label="Añadir personaje" title="Añadir personaje">＋</button>
+          <button class="btn btn-ghost adm-icon-btn" type="button" onclick="scrollToPlot(<?= $pid ?>)" aria-label="Ver personajes" title="Ver personajes">↓</button>
+          </div></td>
       </tr>
     <?php endforeach; ?>
     <?php if (empty($plots)): ?>
       <tr><td colspan="5" class="adm-color-muted">(No hay tramas aún)</td></tr>
     <?php endif; ?>
     </tbody>
-  </table>
+  </table></div>
 
   <!-- PERSONAJES POR TRAMA -->
   <div class="section" id="charsSection">
@@ -493,15 +329,15 @@ $csrf = $_SESSION['csrf'];
         <button class="btn btn-green" type="button" onclick="openCharCreate(<?= $pid ?>)">➕ Añadir personaje</button>
       </div>
 
-      <table class="table">
+      <div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Personajes de la trama"><table class="table adm-wide-table">
         <thead>
           <tr>
             <th class="adm-w-60">ID</th>
-            <th>Alias</th>
-            <th>Base</th>
+            <th class="adm-col-name">Alias</th>
+            <th class="adm-col-name">Base</th>
             <th class="adm-w-80">Act.</th>
             <th class="adm-w-420">Stats (base)</th>
-            <th class="adm-w-220">Acciones</th>
+            <th class="adm-th-actions" title="Acciones">Acc.</th>
           </tr>
         </thead>
         <tbody>
@@ -527,17 +363,17 @@ $csrf = $_SESSION['csrf'];
               <span class="badge">Sangre <?= (int)$pc['m_blood'] ?></span>
               <span class="badge">FV <?= (int)$pc['m_wp'] ?></span>
             </td>
-            <td>
-              <button class="btn" type="button" onclick='openCharEdit(<?= json_encode($pc, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)'>✏ Editar</button>
-              <button class="btn" type="button" onclick="openChanges(<?= $cid ?>)">📜 Cambios</button>
-            </td>
+            <td class="adm-cell-actions"><div class="adm-actions-inline">
+              <button class="btn adm-icon-btn" type="button" onclick='openCharEdit(<?= json_encode($pc, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE) ?>)' aria-label="Editar personaje" title="Editar personaje">✏</button>
+              <button class="btn adm-icon-btn" type="button" onclick="openChanges(<?= $cid ?>)" aria-label="Cambios" title="Cambios">📜</button>
+              </div></td>
           </tr>
         <?php endforeach; ?>
         <?php if (empty($pcs)): ?>
           <tr><td colspan="6" class="adm-color-muted">(No hay personajes en esta trama)</td></tr>
         <?php endif; ?>
         </tbody>
-      </table>
+      </table></div>
     <?php endforeach; ?>
   </div>
 </div>
@@ -1080,11 +916,11 @@ function openChanges(plotCharId){
       html += '<td>'+esc(p.name || '')+'</td>';
       html += '<td>'+(active ? '<span class="badge">Si</span>' : '<span class="badge off">No</span>')+'</td>';
       html += '<td>'+esc(p.sort_order || 0)+'</td>';
-      html += '<td>';
-      html += '<button class="btn js-plot-edit" type="button" data-id="'+id+'">Editar</button> ';
-      html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+id+'">Añadir personaje</button> ';
-      html += '<button class="btn btn-ghost js-plot-scroll" type="button" data-id="'+id+'">Ver personajes</button>';
-      html += '</td></tr>';
+      html += '<td class="adm-cell-actions"><div class="adm-actions-inline">';
+      html += '<button class="btn adm-icon-btn js-plot-edit" type="button" data-id="'+id+'" aria-label="Editar trama" title="Editar trama">✏</button>';
+      html += '<button class="btn btn-green adm-icon-btn js-plot-add-char" type="button" data-id="'+id+'" aria-label="Añadir personaje" title="Añadir personaje">＋</button>';
+      html += '<button class="btn btn-ghost adm-icon-btn js-plot-scroll" type="button" data-id="'+id+'" aria-label="Ver personajes" title="Ver personajes">↓</button>';
+      html += '</div></td></tr>';
     });
     plotsTbody.innerHTML = html;
   }
@@ -1101,8 +937,8 @@ function openChanges(plotCharId){
       html += '<span class="badge">Orden: '+esc(p.sort_order || 0)+'</span>';
       html += '<button class="btn btn-green js-plot-add-char" type="button" data-id="'+pid+'">Añadir personaje</button>';
       html += '</div>';
-      html += '<table class="table"><thead><tr>'
-        + '<th class="adm-w-60">ID</th><th>Alias</th><th>Base</th><th class="adm-w-80">Act.</th><th class="adm-w-420">Stats (base)</th><th class="adm-w-220">Acciones</th>'
+      html += '<div class="adm-table-scroll adm-sticky-actions" tabindex="0" aria-label="Personajes de la trama"><table class="table adm-wide-table"><thead><tr>'
+        + '<th class="adm-w-60">ID</th><th class="adm-col-name">Alias</th><th class="adm-col-name">Base</th><th class="adm-w-80">Act.</th><th class="adm-w-420">Stats (base)</th><th class="adm-th-actions" title="Acciones">Acc.</th>'
         + '</tr></thead><tbody>';
       if (!pcs.length) {
         html += '<tr><td colspan="6" class="adm-color-muted">(No hay personajes en esta trama)</td></tr>';
@@ -1127,11 +963,11 @@ function openChanges(plotCharId){
             + '<span class="badge">Sangre '+(parseInt(pc.m_blood||0,10)||0)+'</span> '
             + '<span class="badge">FV '+(parseInt(pc.m_wp||0,10)||0)+'</span>'
             + '</td>';
-          html += '<td><button class="btn js-char-edit" type="button" data-id="'+cid+'">Editar</button> <button class="btn js-char-changes" type="button" data-id="'+cid+'">Cambios</button></td>';
+          html += '<td class="adm-cell-actions"><div class="adm-actions-inline"><button class="btn adm-icon-btn js-char-edit" type="button" data-id="'+cid+'" aria-label="Editar personaje" title="Editar personaje">✏</button><button class="btn adm-icon-btn js-char-changes" type="button" data-id="'+cid+'" aria-label="Cambios" title="Cambios">📜</button></div></td>';
           html += '</tr>';
         });
       }
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
     });
     charsSection.innerHTML = html;
   }

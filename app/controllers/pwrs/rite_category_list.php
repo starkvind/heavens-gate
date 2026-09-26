@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../domains/powers/queries.php';
+
 include("app/partials/main_nav_bar.php");
 setMetaFromPage("Rituales | Heaven's Gate", "Categorias de rituales.", null, 'website');
 if (function_exists('hg_page_register_stylesheet')) {
@@ -12,14 +14,10 @@ if (function_exists('hg_page_register_stylesheet')) {
 <?php
 $pageSect = "Rituales";
 $sustantivo = "Ritos";
+$types = hg_powers_fetch_types($link, 'rites');
+if ($types === false) $types = [];
 
-$consulta = "SELECT id, name, determinant FROM dim_rite_types ORDER BY sort_order";
-$stmt = $link->prepare($consulta);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$NFilas = $result->num_rows;
-while ($ResultQuery = $result->fetch_assoc()) {
+foreach ($types as $ResultQuery) {
     $typeId = (int)$ResultQuery["id"];
     $typeName = htmlspecialchars($ResultQuery["name"]);
     $determinant = htmlspecialchars($ResultQuery["determinant"]);
@@ -33,7 +31,7 @@ while ($ResultQuery = $result->fetch_assoc()) {
     ");
 }
 
-$totalCategorias = $NFilas;
+$totalCategorias = count($types);
 ?>
 </fieldset>
 <?php print ("<p align='right'>Categorías: $totalCategorias</p>"); ?>

@@ -1,6 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/public_response.php');
+require_once(__DIR__ . '/../../domains/csp/queries.php');
 
 $metaTitle = "Tablón CSP | Heaven's Gate";
 $metaDescription = 'Tablón móvil de mensajes CSP.';
@@ -26,17 +27,9 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$posts = [];
-$sql = "SELECT author, title, message, posted_at FROM fact_csp_posts ORDER BY id DESC";
-if ($stmt = mysqli_prepare($link, $sql)) {
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    while ($result && ($row = mysqli_fetch_assoc($result))) {
-        $posts[] = $row;
-    }
-    mysqli_stmt_close($stmt);
-} else {
-    hg_public_log_error('mobile_csp', 'query prepare failed: ' . mysqli_error($link));
+$posts = hg_csp_fetch_posts($link);
+if ($posts === null) {
+    hg_public_log_error('mobile_csp', 'query failed: ' . mysqli_error($link));
     hg_public_render_error('Tablón no disponible', 'No se pudo cargar el tablon de mensajes.');
     return;
 }

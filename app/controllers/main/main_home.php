@@ -2,6 +2,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/recent_content.php');
+require_once(__DIR__ . '/../../domains/home/queries.php');
 if (!$link) {
     hg_public_log_error('main_home', 'missing DB connection');
     hg_public_render_error('Inicio no disponible', 'No se pudo cargar la página de inicio en este momento.');
@@ -20,45 +21,8 @@ if (!function_exists('hg_home_h')) {
     }
 }
 
-if (!function_exists('hg_home_count_table')) {
-    function hg_home_count_table(mysqli $link, string $table): ?int
-    {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        if ($table === '') {
-            return null;
-        }
-
-        $result = mysqli_query($link, "SELECT COUNT(*) AS total FROM `{$table}`");
-        if (!$result) {
-            return null;
-        }
-
-        $row = mysqli_fetch_assoc($result);
-        mysqli_free_result($result);
-
-        return isset($row['total']) ? (int)$row['total'] : 0;
-    }
-}
-
-$counts = [
-    'characters' => hg_home_count_table($link, 'fact_characters'),
-    'chapters' => hg_home_count_table($link, 'dim_chapters'),
-    'events' => hg_home_count_table($link, 'fact_timeline_events'),
-    'documents' => hg_home_count_table($link, 'fact_docs'),
-    'chronicles' => hg_home_count_table($link, 'dim_chronicles'),
-    'seasons' => hg_home_count_table($link, 'dim_seasons'),
-    'powers' => hg_home_count_table($link, 'fact_gifts'),
-    'organizations' => hg_home_count_table($link, 'dim_organizations'),
-];
-
-$ruleCounts = [
-    hg_home_count_table($link, 'dim_traits'),
-    hg_home_count_table($link, 'dim_merits_flaws'),
-    hg_home_count_table($link, 'dim_character_conditions'),
-    hg_home_count_table($link, 'dim_archetypes'),
-    hg_home_count_table($link, 'fact_combat_maneuvers'),
-];
-$rulesCount = in_array(null, $ruleCounts, true) ? null : array_sum($ruleCounts);
+$counts = hg_home_query_counts($link);
+$rulesCount = $counts['rules'] ?? null;
 
 $categories = [
     ['title' => 'Personajes', 'description' => 'Biografías, relaciones y destinos de protagonistas y figuras secundarias.', 'href' => '/characters', 'count' => $counts['characters']],
@@ -76,14 +40,7 @@ $stats = [
     ['label' => 'Documentos', 'value' => $counts['documents']],
 ];
 
-$latestNews = null;
-if ($stmt = $link->prepare('SELECT title, message, author, posted_at FROM fact_admin_posts ORDER BY posted_at DESC, id DESC LIMIT 1')) {
-    if ($stmt->execute() && ($result = $stmt->get_result())) {
-        $latestNews = $result->fetch_assoc() ?: null;
-        $result->free();
-    }
-    $stmt->close();
-}
+$latestNews = hg_home_query_latest_news($link);
 $recentContent = hg_recent_content_feed($link);
 ?>
 

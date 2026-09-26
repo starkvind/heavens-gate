@@ -149,7 +149,7 @@ for path in CSS_ROOT.rglob('*.css'):
 
 
 # 5) Global shell order and stable file-version cache busting are architectural contracts.
-head_path = Path('app/bootstrap/head_work.php')
+head_path = Path('app/views/layout/head.php')
 head = read(head_path)
 global_css = [
     ('hg-tokens.css', 'tokensCssVersion'),
@@ -162,7 +162,7 @@ global_css = [
 ]
 positions = []
 for filename, variable in global_css:
-    filemtime = f"@filemtime(__DIR__ . '/../../assets/css/{filename}')"
+    filemtime = f"@filemtime($hgAssetRoot . '/css/{filename}')"
     href = f'assets/css/{filename}?v=<?= ${variable} ?>'
     if filemtime not in head:
         fail(f'{head_path}: missing stable filemtime versioning for {filename}')

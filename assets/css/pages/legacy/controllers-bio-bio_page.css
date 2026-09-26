@@ -88,3 +88,37 @@
     font-size: 12px;
     min-height: 18px;
 }
+
+/* Biography linked documents. */
+.bio-doc-link-card {
+    display: grid;
+    grid-template-columns: 13px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: auto;
+    min-height: 24px;
+}
+
+.bio-doc-link-card .bio-inline-icon {
+    display: block;
+    margin: 0;
+}
+
+.bio-doc-link-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bio-doc-link-card .bio-inline-type {
+    float: none;
+    justify-self: end;
+    max-width: 180px;
+    padding-top: 0;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

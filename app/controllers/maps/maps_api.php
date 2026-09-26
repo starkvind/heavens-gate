@@ -1,6 +1,7 @@
 <?php
 
 include_once(__DIR__ . '/../../helpers/maps.php');
+require_once(__DIR__ . '/../../domains/maps/queries.php');
 
 hg_maps_require_connection($link, true);
 
@@ -16,13 +17,13 @@ $jsonResponse = static function (array $payload, int $status = 200): void {
     exit;
 };
 
-$action = trim((string)($_GET['ajax'] ?? ''));
+$action = hg_request_query_param($hgRequest, 'ajax');
 if ($action === '') {
     $jsonResponse(['ok' => false, 'error' => 'Accion no indicada.'], 400);
 }
 
-$schema = hg_maps_schema_info($link);
-$maps = hg_maps_fetch_maps($link);
+$schema = hg_maps_query_schema_info($link);
+$maps = hg_maps_query_fetch_maps($link);
 
 if (!$maps) {
     $jsonResponse(['ok' => false, 'error' => 'No hay mapas configurados.'], 404);
@@ -35,7 +36,7 @@ foreach ($maps as $map) {
     $mapNamesById[(int)$map['id']] = (string)$map['name'];
 }
 
-$selectedMapId = isset($_GET['map_id']) ? (int)$_GET['map_id'] : 0;
+$selectedMapId = (int)hg_request_query_param($hgRequest, 'map_id');
 $selectedMap = $mapsById[$selectedMapId] ?? null;
 
 if (!$selectedMap) {
@@ -44,10 +45,10 @@ if (!$selectedMap) {
 
 $allowGlobalPoiScope = hg_maps_is_global_map($selectedMap);
 $includeAllMaps = $allowGlobalPoiScope
-    && in_array(strtolower((string)($_GET['include_all_maps'] ?? '0')), ['1', 'true', 'yes'], true);
+    && in_array(strtolower(hg_request_query_param($hgRequest, 'include_all_maps', '0')), ['1', 'true', 'yes'], true);
 $excludedGlobalMapIds = hg_maps_global_scope_excluded_ids($maps, $selectedMap);
 
-$sourceMapId = isset($_GET['source_map_id']) ? (int)$_GET['source_map_id'] : 0;
+$sourceMapId = (int)hg_request_query_param($hgRequest, 'source_map_id');
 if ($sourceMapId > 0 && !isset($mapsById[$sourceMapId])) {
     $sourceMapId = 0;
 }
@@ -58,17 +59,17 @@ $filters = [
     'include_all_maps' => $includeAllMaps,
     'source_map_id' => $sourceMapId,
     'excluded_map_ids' => $excludedGlobalMapIds,
-    'category_id' => isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0,
-    'category_name' => trim((string)($_GET['category_name'] ?? '')),
-    'q' => trim((string)($_GET['q'] ?? '')),
-    'limit' => isset($_GET['limit']) ? (int)$_GET['limit'] : 250,
-    'offset' => isset($_GET['offset']) ? (int)$_GET['offset'] : 0,
+    'category_id' => (int)hg_request_query_param($hgRequest, 'category_id'),
+    'category_name' => hg_request_query_param($hgRequest, 'category_name'),
+    'q' => hg_request_query_param($hgRequest, 'q'),
+    'limit' => (int)hg_request_query_param($hgRequest, 'limit', '250'),
+    'offset' => (int)hg_request_query_param($hgRequest, 'offset', '0'),
     'from_map_slug' => (string)$selectedMap['slug'],
 ];
 
 switch ($action) {
     case 'search':
-        $items = hg_maps_fetch_pois($link, $schema, $filters, $mapNamesById);
+        $items = hg_maps_query_fetch_pois($link, $schema, $filters, $mapNamesById);
         $jsonResponse([
             'ok' => true,
             'count' => count($items),
@@ -84,8 +85,8 @@ switch ($action) {
         break;
 
     case 'areas':
-        $categoryId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
-        $items = hg_maps_fetch_areas($link, (int)$selectedMap['id'], $categoryId);
+        $categoryId = (int)hg_request_query_param($hgRequest, 'category_id');
+        $items = hg_maps_query_fetch_areas($link, (int)$selectedMap['id'], $categoryId);
         $jsonResponse([
             'ok' => true,
             'count' => count($items),

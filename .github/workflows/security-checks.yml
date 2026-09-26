@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   php-lint:
@@ -26,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          find app api -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l index.php
 
       - name: Guard CSS architecture
@@ -113,8 +114,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          head = Path("app/bootstrap/head_work.php").read_text(encoding="utf-8", errors="ignore")
-          index = Path("index.php").read_text(encoding="utf-8", errors="ignore")
+          head = Path("app/views/layout/head.php").read_text(encoding="utf-8", errors="ignore")
+          output = Path("app/http/output.php").read_text(encoding="utf-8", errors="ignore")
 
           required_head = [
               "assets/css/hg-core.css?v=<?= $coreCssVersion ?>",
@@ -123,12 +124,12 @@ jobs:
               "assets/js/permutloading.js?v=<?= $permutScriptVersion ?>",
               "assets/js/hg-tabs.js?v=<?= $tabsScriptVersion ?>",
               "assets/js/hg-tooltip.js?v=<?= $tooltipScriptVersion ?>",
-              "@filemtime(__DIR__ . '/../../assets/css/hg-core.css')",
-              "@filemtime(__DIR__ . '/../../assets/css/hg-layout.css')",
-              "@filemtime(__DIR__ . '/../../assets/css/hg-menu.css')",
-              "@filemtime(__DIR__ . '/../../assets/js/permutloading.js')",
-              "@filemtime(__DIR__ . '/../../assets/js/hg-tabs.js')",
-              "@filemtime(__DIR__ . '/../../assets/js/hg-tooltip.js')",
+              "$hgAssetRoot . '/css/hg-core.css'",
+              "$hgAssetRoot . '/css/hg-layout.css'",
+              "$hgAssetRoot . '/css/hg-menu.css'",
+              "$hgAssetRoot . '/js/permutloading.js'",
+              "$hgAssetRoot . '/js/hg-tabs.js'",
+              "$hgAssetRoot . '/js/hg-tooltip.js'",
           ]
           missing = [item for item in required_head if item not in head]
           if missing:
@@ -138,9 +139,9 @@ jobs:
               raise SystemExit("Do not use time() as the global asset-version fallback; it defeats browser caching.")
 
           cache_header = "Cache-Control: no-cache, max-age=0, must-revalidate"
-          if cache_header not in index:
+          if cache_header not in output:
               raise SystemExit("Dynamic HTML must remain cacheable only with mandatory revalidation.")
-          if "Cache-Control: no-store" in index:
+          if "Cache-Control: no-store" in output:
               raise SystemExit("Do not disable dynamic HTML storage globally; revalidate it instead.")
           PY
 
@@ -161,7 +162,7 @@ jobs:
               source = path.read_text(encoding="utf-8", errors="ignore")
               if "$_GET['token']" in source or '$_GET["token"]' in source:
                   failures.append(f"{path}: API token must not be read directly from the query string")
-              if "hg_tool_api_require_request_token()" not in source:
+              if re.search(r'hg_tool_api_require_request_token\s*\(', source) is None:
                   failures.append(f"{path}: shared request-token authentication is missing")
 
           helper = Path("app/helpers/tool_api.php").read_text(encoding="utf-8", errors="ignore")
@@ -221,3 +222,21 @@ jobs:
                   + "\n".join(failures)
               )
           PY
+
+      - name: Report Project CI commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HG_JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=failure
+          if [ "$HG_JOB_STATUS" = "success" ]; then state=success; fi
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"${state}\",\"context\":\"Project CI\",\"description\":\"Project CI ${state}\"}"

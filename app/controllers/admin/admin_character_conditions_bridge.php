@@ -6,74 +6,10 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
+include_once(__DIR__ . '/../../domains/characters/admin_conditions_bridge.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function accb_table_exists(mysqli $link, string $table): bool {
-    static $cache = [];
-    if (isset($cache[$table])) return $cache[$table];
-    $ok = false;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?")) {
-        $st->bind_param('s', $table);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$table] = $ok;
-    return $ok;
-}
-function accb_column_exists(mysqli $link, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-    $ok = false;
-    if ($st = $link->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $st->close();
-        $ok = ((int)$count > 0);
-    }
-    $cache[$key] = $ok;
-    return $ok;
-}
-function accb_character_options(mysqli $link): array {
-    $hasChronicles = accb_table_exists($link, 'dim_chronicles') && accb_column_exists($link, 'fact_characters', 'chronicle_id');
-    $hasRealities = accb_table_exists($link, 'dim_realities') && accb_column_exists($link, 'fact_characters', 'reality_id');
-    $chronicleSelect = $hasChronicles ? "COALESCE(NULLIF(TRIM(ch.name), ''), 'Sin cronica')" : "'Sin cronica'";
-    $realitySelect = $hasRealities ? "COALESCE(NULLIF(TRIM(r.name), ''), 'Sin realidad')" : "'Sin realidad'";
-    $sql = "
-        SELECT
-            c.id,
-            COALESCE(NULLIF(TRIM(c.name), ''), CONCAT('Personaje #', c.id)) AS character_name,
-            {$chronicleSelect} AS chronicle_name,
-            {$realitySelect} AS reality_name
-        FROM fact_characters c
-    ";
-    if ($hasChronicles) $sql .= " LEFT JOIN dim_chronicles ch ON ch.id = c.chronicle_id";
-    if ($hasRealities) $sql .= " LEFT JOIN dim_realities r ON r.id = c.reality_id";
-    $sql .= " ORDER BY c.name ASC, c.id ASC";
-
-    $out = [];
-    if ($rs = $link->query($sql)) {
-        while ($r = $rs->fetch_assoc()) {
-            $id = (int)($r['id'] ?? 0);
-            if ($id <= 0) continue;
-            $name = trim((string)($r['character_name'] ?? ''));
-            $chronicleName = trim((string)($r['chronicle_name'] ?? 'Sin cronica'));
-            $realityName = trim((string)($r['reality_name'] ?? 'Sin realidad'));
-            if ($name === '') $name = 'Personaje #' . $id;
-            if ($chronicleName === '') $chronicleName = 'Sin cronica';
-            if ($realityName === '') $realityName = 'Sin realidad';
-            $out[$id] = $name . ' (#' . $id . ') [Cr: ' . $chronicleName . '] [Real: ' . $realityName . ']';
-        }
-        $rs->close();
-    }
-    return $out;
-}
 function accb_dt(?string $raw): ?string {
     $s = trim((string)$raw);
     if ($s === '') return null;
@@ -99,29 +35,16 @@ function accb_csrf_ok(): bool {
 }
 
 $bridgeColumns = ['instance_no', 'location', 'notes', 'source', 'acquired_at', 'healed_at', 'is_active', 'created_at', 'updated_at'];
-$bridgeReady = accb_table_exists($link, 'bridge_characters_conditions') && accb_table_exists($link, 'dim_character_conditions');
+$bridgeReady = hg_accb_table_exists($link, 'bridge_characters_conditions') && hg_accb_table_exists($link, 'dim_character_conditions');
 foreach ($bridgeColumns as $bridgeColumn) {
-    $bridgeReady = $bridgeReady && accb_column_exists($link, 'bridge_characters_conditions', $bridgeColumn);
+    $bridgeReady = $bridgeReady && hg_accb_column_exists($link, 'bridge_characters_conditions', $bridgeColumn);
 }
 
 $flash = [];
-$characterOptions = accb_character_options($link);
-$conditionOptions = [];
-$conditionMeta = [];
-if ($rs = $link->query("SELECT id, name, category, max_instances FROM dim_character_conditions ORDER BY category ASC, name ASC")) {
-    while ($r = $rs->fetch_assoc()) {
-        $id = (int)($r['id'] ?? 0);
-        if ($id <= 0) continue;
-        $conditionOptions[$id] = (string)($r['name'] ?? '');
-        $conditionMeta[$id] = [
-            'id' => $id,
-            'name' => (string)($r['name'] ?? ''),
-            'category' => (string)($r['category'] ?? ''),
-            'max_instances' => $r['max_instances'] === null ? null : (int)$r['max_instances'],
-        ];
-    }
-    $rs->close();
-}
+$characterOptions = hg_accb_character_options($link);
+$conditionCatalog = hg_accb_condition_catalog($link);
+$conditionOptions = $conditionCatalog['options'];
+$conditionMeta = $conditionCatalog['meta'];
 
 if (!$bridgeReady) {
     $flash[] = ['type' => 'error', 'msg' => 'La tabla de condiciones de personaje no esta disponible con la estructura esperada en esta base de datos.'];
@@ -138,11 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($action === 'delete') {
             if ($id <= 0) {
                 $flash[] = ['type' => 'error', 'msg' => 'ID invalido para borrar.'];
-            } elseif ($st = $link->prepare("DELETE FROM bridge_characters_conditions WHERE id = ?")) {
-                $st->bind_param('i', $id);
-                if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Condicion desvinculada.'];
-                else $flash[] = ['type' => 'error', 'msg' => 'No se pudo borrar: ' . $st->error];
-                $st->close();
+            } else {
+                $result = hg_accb_delete($link, $id);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
         } elseif ($action === 'create' || $action === 'update') {
             $characterId = (int)($_POST['character_id'] ?? 0);
@@ -169,71 +90,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             $hasErr = false;
             foreach ($flash as $m) { if (($m['type'] ?? '') === 'error') { $hasErr = true; break; } }
 
-            if (!$hasErr && $action === 'create') {
-                $sql = "INSERT INTO bridge_characters_conditions
-                        (character_id, condition_id, instance_no, location, notes, source, acquired_at, healed_at, is_active, created_at, updated_at)
-                        VALUES (?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, NOW(), NOW())";
-                if ($st = $link->prepare($sql)) {
-                    $st->bind_param('iiisssssi', $characterId, $conditionId, $instanceNo, $location, $notes, $source, $acquiredAt, $healedAt, $isActive);
-                    if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Condicion asignada.'];
-                    else $flash[] = ['type' => 'error', 'msg' => 'No se pudo asignar. Revisa si esa instancia ya existe. ' . $st->error];
-                    $st->close();
-                }
-            } elseif (!$hasErr && $action === 'update') {
-                if ($id <= 0) {
-                    $flash[] = ['type' => 'error', 'msg' => 'ID invalido para actualizar.'];
-                } else {
-                    $sql = "UPDATE bridge_characters_conditions
-                            SET character_id = ?, condition_id = ?, instance_no = ?, location = NULLIF(?, ''), notes = NULLIF(?, ''),
-                                source = NULLIF(?, ''), acquired_at = ?, healed_at = ?, is_active = ?, updated_at = NOW()
-                            WHERE id = ?";
-                    if ($st = $link->prepare($sql)) {
-                        $st->bind_param('iiisssssii', $characterId, $conditionId, $instanceNo, $location, $notes, $source, $acquiredAt, $healedAt, $isActive, $id);
-                        if ($st->execute()) $flash[] = ['type' => 'ok', 'msg' => 'Asignacion actualizada.'];
-                        else $flash[] = ['type' => 'error', 'msg' => 'No se pudo actualizar. Revisa si esa instancia ya existe. ' . $st->error];
-                        $st->close();
-                    }
-                }
+            if (!$hasErr) {
+                $result = hg_accb_save($link, $action, $id, [
+                    'character_id'=>$characterId,
+                    'condition_id'=>$conditionId,
+                    'instance_no'=>$instanceNo,
+                    'location'=>$location,
+                    'notes'=>$notes,
+                    'source'=>$source,
+                    'acquired_at'=>$acquiredAt,
+                    'healed_at'=>$healedAt,
+                    'is_active'=>$isActive,
+                ]);
+                $flash[] = ['type'=>!empty($result['ok'])?'ok':'error','msg'=>(string)$result['message']];
             }
         }
     }
 }
 
 $selectedCharacter = isset($_GET['character_id']) ? max(0, (int)$_GET['character_id']) : 0;
-$where = "WHERE 1=1";
-if ($selectedCharacter > 0) $where .= " AND bcc.character_id = " . (int)$selectedCharacter;
-
-$assignments = [];
-if ($bridgeReady) {
-    $sql = "
-        SELECT
-            bcc.id,
-            bcc.character_id,
-            bcc.condition_id,
-            bcc.instance_no,
-            COALESCE(bcc.location, '') AS location,
-            COALESCE(bcc.notes, '') AS notes,
-            COALESCE(bcc.source, '') AS source,
-            bcc.acquired_at,
-            bcc.healed_at,
-            bcc.is_active,
-            c.name AS condition_name,
-            c.category,
-            c.max_instances,
-            fc.name AS character_name
-        FROM bridge_characters_conditions bcc
-        JOIN dim_character_conditions c ON c.id = bcc.condition_id
-        JOIN fact_characters fc ON fc.id = bcc.character_id
-        {$where}
-        ORDER BY fc.name ASC, bcc.is_active DESC, c.category ASC, c.name ASC, bcc.instance_no ASC
-    ";
-    if ($rs = $link->query($sql)) {
-        while ($r = $rs->fetch_assoc()) {
-            $assignments[] = $r;
-        }
-        $rs->close();
-    }
-}
+$assignments = $bridgeReady ? hg_accb_fetch_assignments($link, $selectedCharacter) : [];
 
 $byCharacter = [];
 foreach ($assignments as $row) {

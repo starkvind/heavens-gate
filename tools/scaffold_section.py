@@ -3,8 +3,8 @@
 Scaffold for simple public sections in Heaven's Gate.
 
 Creates a controller file and wires a static friendly route into:
-- app/bootstrap/request_router.php
-- app/bootstrap/body_work.php
+- app/routing/path_matcher.php
+- app/routing/routes.php
 
 Optionally:
 - creates a CSS file under assets/css
@@ -14,6 +14,7 @@ Optionally:
 Intended scope:
 - simple public pages such as /codex-guide
 - not entity-detail routes with pretty_id / slug normalization
+- not legacy ?p=... canonicalization rules
 """
 
 from __future__ import annotations
@@ -25,8 +26,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-REQUEST_ROUTER = ROOT / "app" / "bootstrap" / "request_router.php"
-BODY_WORK = ROOT / "app" / "bootstrap" / "body_work.php"
+PATH_MATCHER = ROOT / "app" / "routing" / "path_matcher.php"
+ROUTES = ROOT / "app" / "routing" / "routes.php"
 MAIN_MENU = ROOT / "app" / "partials" / "main_menu.php"
 ASSETS_CSS = ROOT / "assets" / "css"
 CONTROLLERS = ROOT / "app" / "controllers"
@@ -62,7 +63,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--section-label",
         default=None,
-        help="Section label used by body_work.php. Default: same as title",
+        help="Section label stored in app/routing/routes.php. Default: same as title",
     )
     parser.add_argument(
         "--description",
@@ -127,17 +128,25 @@ def default_controller_filename(group: str, route_key: str) -> str:
 
 def controller_template(title: str, description: str, css_href: str | None) -> str:
     lines = [
-        "<?php setMetaFromPage(",
+        "<?php",
+        "setMetaFromPage(",
         f'    "{php_string_escape(title)} | Heaven\'s Gate",',
         f'    "{php_string_escape(description)}",',
-        '    null,',
-        '    "website"',
-        "); ?>",
+        "    null,",
+        "    'website'",
+        ");",
     ]
     if css_href:
-        lines.append(f'<link rel="stylesheet" href="{css_href}">')
+        lines.extend(
+            [
+                "if (function_exists('hg_page_register_stylesheet')) {",
+                f"    hg_page_register_stylesheet('{php_string_escape(css_href)}');",
+                "}",
+            ]
+        )
     lines.extend(
         [
+            "?>",
             "",
             f"<h2>{html_escape(title)}</h2>",
             f"<p>{html_escape(description)}</p>",
@@ -170,7 +179,7 @@ def html_escape(value: str) -> str:
 
 
 def php_string_escape(value: str) -> str:
-    return value.replace("\\", "\\\\").replace('"', '\\"')
+    return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 def read_text(path: Path) -> str:
@@ -192,48 +201,30 @@ def insert_before_marker(text: str, marker: str, snippet: str, label: str) -> tu
     return text[:index] + snippet + text[index:], True
 
 
-def patch_request_router(route_key: str, slug: str, dry_run: bool) -> list[str]:
-    content = read_text(REQUEST_ROUTER)
-    changes: list[str] = []
-
-    direct_snippet = f"        '{route_key}' => '/{slug}',\n"
-    content, changed = insert_before_marker(
-        content,
-        "    ];\n\n    if (isset($direct[$route])) {",
-        direct_snippet,
-        "request_router direct routes",
-    )
-    if changed:
-        changes.append(f"request_router.php: alta legacy -> /{slug}")
-
-    static_snippet = f"        '/{slug}' => ['p' => '{route_key}'],\n"
+def patch_path_matcher(route_key: str, slug: str, dry_run: bool) -> list[str]:
+    content = read_text(PATH_MATCHER)
+    snippet = f"        '/{slug}' => ['p' => '{route_key}'],\n"
     content, changed = insert_before_marker(
         content,
         "    ];\n\n    if (isset($static[$path])) {",
-        static_snippet,
-        "request_router static routes",
+        snippet,
+        "path matcher static routes",
     )
-    if changed:
-        changes.append(f"request_router.php: alta /{slug} -> p={route_key}")
-
-    write_text(REQUEST_ROUTER, content, dry_run)
-    return changes
+    write_text(PATH_MATCHER, content, dry_run)
+    return [f"path_matcher.php: alta /{slug} -> p={route_key}"] if changed else []
 
 
-def patch_body_work(route_key: str, controller_rel: str, section_label: str, dry_run: bool) -> list[str]:
-    content = read_text(BODY_WORK)
-    changes: list[str] = []
-    snippet = f"\t'{route_key}' => ['{controller_rel}', '{php_string_escape(section_label)}'],\n"
+def patch_routes(route_key: str, controller_rel: str, section_label: str, dry_run: bool) -> list[str]:
+    content = read_text(ROUTES)
+    snippet = f"    '{route_key}' => ['{controller_rel}', '{php_string_escape(section_label)}'],\n"
     content, changed = insert_before_marker(
         content,
-        "\n\t// Legacy aliases\n",
+        "\n    // Temporadas\n",
         snippet,
-        "body_work routes",
+        "route registry",
     )
-    if changed:
-        changes.append(f"body_work.php: alta route key {route_key}")
-    write_text(BODY_WORK, content, dry_run)
-    return changes
+    write_text(ROUTES, content, dry_run)
+    return [f"routes.php: alta route key {route_key}"] if changed else []
 
 
 def find_matching_div_end(text: str, div_id: str) -> int:
@@ -356,8 +347,8 @@ def main() -> None:
             fail("--create-css requires --css-file")
         planned_changes.extend(create_css(css_path, slug, args.dry_run))
 
-    planned_changes.extend(patch_request_router(route_key, slug, args.dry_run))
-    planned_changes.extend(patch_body_work(route_key, controller_rel, section_label, args.dry_run))
+    planned_changes.extend(patch_path_matcher(route_key, slug, args.dry_run))
+    planned_changes.extend(patch_routes(route_key, controller_rel, section_label, args.dry_run))
 
     if args.menu_label or args.menu_block:
         if not args.menu_label or not args.menu_block:
@@ -373,6 +364,8 @@ def main() -> None:
     print("")
     print("Recuerda:")
     print("- Este script resuelve solo secciones simples, no detalles con pretty_id.")
+    print("- Si sustituye una URL legacy ?p=..., añade la canonicalización a app/routing/legacy_query.php conscientemente.")
+    print("- Actualiza admin_docs/ROUTE_DICTIONARY.md.")
     print("- Si el menu real sale de dim_menu_items, tendras que dar de alta la entrada tambien en BD.")
     print("- Revisa el controlador generado y ajusta HTML, consultas y CSS antes de publicar.")
 

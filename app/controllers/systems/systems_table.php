@@ -1,34 +1,15 @@
 <?php
 if (function_exists("setMetaFromPage")) setMetaFromPage("Sistemas | Heaven's Gate", "Listado de sistemas y categorias disponibles.", null, 'website');
-include_once(__DIR__ . '/../../helpers/pretty.php');
+require_once __DIR__ . '/../../domains/systems/queries.php';
 if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("app/partials/main_nav_bar.php");
 if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 
-/*
-	Listado de Sistemas (dim_systems) con DataTables + filtros multiselect (Sistema / Origen)
-	- Link a la ficha: /systems/<id>  (ajusta el parámetro p a tu ruta real)
-*/
-
-$query = "
-	SELECT
-		s.id AS system_id,
-		s.sort_order AS system_order,
-		s.name AS system_name,
-		s.image_url AS system_img,
-		s.forms AS system_forms,
-		COALESCE(nb.name, '') AS system_origin
-	FROM dim_systems s
-		LEFT JOIN dim_bibliographies nb ON s.bibliography_id = nb.id
-	ORDER BY s.sort_order, s.name
-";
-$result = mysqli_query($link, $query);
-
-$systems = [];
-while ($row = mysqli_fetch_assoc($result)) {
+$systems = hg_systems_fetch_catalog($link);
+if ($systems === false) $systems = [];
+foreach ($systems as &$row) {
 	$row['system_href'] = pretty_url($link, 'dim_systems', '/systems', (int)($row['system_id'] ?? 0));
-	$systems[] = $row;
 }
-mysqli_free_result($result);
+unset($row);
 
 $pageSect   = null;
 $pageTitle2 = "Sistemas";
@@ -121,7 +102,6 @@ $(document).ready(function () {
 	// Pintamos filas
 	systems.forEach(s => {
 		const sysName = escapeHtml(s.system_name);
-		// AJUSTA p=... a tu página real (esto es un ejemplo)
 		const href = s.system_href ? String(s.system_href) : `/systems/${s.system_id}`;
 		const titulo = `<a href="${escapeHtml(href)}">${sysName}</a>`;
 		const formas = ynBadge(s.system_forms);
@@ -149,17 +129,13 @@ $(document).ready(function () {
 			paginate: { first: "Primero", last: "Último", next: "▶", previous: "◀" }
 		},
 		columnDefs: [
-			{ targets: [1], searchable: false } // badge
+			{ targets: [1], searchable: false }
 		],
 		initComplete: function(){
-			// mover buscador
 			$('#dt-search-slot').append($('#tabla-systems_filter'));
 		}
 	});
 
-	/* =========================================================
-	   MULTISELECT SISTEMA (col 0)
-	   ========================================================= */
 	const $panelName   = $('#ms-panel-name');
 	const $toggleName  = $('#ms-toggle-name');
 	const $optsName    = $('#ms-options-name');
@@ -199,10 +175,6 @@ $(document).ready(function () {
 		else $summaryName.text(selected.length + ' selecc.');
 	}
 
-	/* =========================================================
-	/* =========================================================
-	   MULTISELECT ORIGEN (col 2)
-	   ========================================================= */
 	const $panelOrigin   = $('#ms-panel-origin');
 	const $toggleOrigin  = $('#ms-toggle-origin');
 	const $optsOrigin    = $('#ms-options-origin');
@@ -242,12 +214,7 @@ $(document).ready(function () {
 		else $summaryOrigin.text(selected.length + ' selecc.');
 	}
 
-	/* =========================================================
-	   APLICAR FILTROS COMBINADOS (Sistema + Origen)
-	   ========================================================= */
 	function applyFilters(){
-		// Sistema (col 0) => OJO: la columna 0 contiene HTML (<a>),
-		// así que filtramos por texto exacto con regex "contiene"
 		const selNames = getSelectedNames();
 		updateSummaryNames(selNames);
 
@@ -258,7 +225,6 @@ $(document).ready(function () {
 			dt.column(0).search(pat, true, false);
 		}
 
-		// Origen (col 2)
 		const selOrigins = getSelectedOrigins();
 		updateSummaryOrigins(selOrigins);
 
@@ -272,13 +238,9 @@ $(document).ready(function () {
 		dt.draw();
 	}
 
-	// Eventos
-
-	// Eventos: checks
 	$optsName.on('change', '.name-item', applyFilters);
 	$optsOrigin.on('change', '.origin-item', applyFilters);
 
-	// Botones
 	$('#ms-select-all-name').on('click', function(){
 		$('#ms-options-name .name-item').prop('checked', true);
 		applyFilters();
@@ -296,17 +258,12 @@ $(document).ready(function () {
 		applyFilters();
 	});
 
-	// Cierre al click fuera
 	$(document).on('click', function(e){
 		if (!$(e.target).closest('#name-filter').length) closeName();
 		if (!$(e.target).closest('#origin-filter').length) closeOrigin();
 	});
 
-	// Estado inicial
 	updateSummaryNames(null);
 	updateSummaryOrigins(null);
 });
 </script>
-
-
-

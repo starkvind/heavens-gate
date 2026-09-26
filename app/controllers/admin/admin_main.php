@@ -6,6 +6,8 @@
 
 	// Verificar la conexión a la base de datos
 	include_once(__DIR__ . '/../../helpers/admin_ajax.php');
+	include_once(__DIR__ . '/../../helpers/admin_sections.php');
+include_once(__DIR__ . '/../../domains/admin_usage/queries.php');
 if (!hg_admin_require_db($link)) { return; }
 
 if (!function_exists('hg_admin_menu_attr')) {
@@ -64,174 +66,36 @@ if (!function_exists('hg_admin_render_menu_section')) {
 		}
 		include("admin_login.php");
 	} else {
+        // Telemetria minima: solo cargas completas GET. Nunca AJAX/POST ni datos personales.
+        if (!$isAjaxAdminRequest && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET') {
+            $usageSection = null;
+            $usageRequestedRaw = filter_input(INPUT_GET, 's', FILTER_UNSAFE_RAW);
+            $usageRequested = is_string($usageRequestedRaw) ? trim($usageRequestedRaw) : '';
+            if ($usageRequested === '') {
+                $usageSection = 'admin_main';
+            } else {
+                $usageResolved = hg_admin_section_resolve($usageRequested, 'normal');
+                if ($usageResolved !== null && (string)($usageResolved['section'] ?? '') !== 'logout') {
+                    $usageSection = (string)$usageResolved['section'];
+                }
+            }
+            if (is_string($usageSection) && $usageSection !== '') {
+                hg_admin_usage_record($link, $usageSection);
+            }
+        }
+
 		// Modo AJAX: responder sin navbar/layout para no romper JSON.
 		if ($isAjaxAdminRequest) {
-			$seccionAjax = htmlspecialchars($_GET['s']);
-			switch ($seccionAjax) {
-				case 'admin_pjs': // legacy alias
-				case 'admin_characters':
-					include("admin_characters.php");
-					break;
-				case 'admin_epis': // legacy alias
-				case 'admin_chapters':
-					include("admin_chapters.php");
-					break;
-				case 'admin_temp': // legacy alias
-				case 'admin_seasons':
-					include("admin_seasons.php");
-					break;
-				case 'admin_season_order':
-					include("admin_season_order.php");
-					break;
-				case 'admin_season_order_schema':
-					include("admin_season_order_schema.php");
-					break;
-				case 'admin_menu':
-					include("admin_menu.php");
-					break;
-				case 'admin_groups':
-					include("admin_groups.php");
-					break;
-				case 'admin_organizations':
-					include("admin_organizations.php");
-					break;
-				case 'admin_pois':
-					include("admin_pois.php");
-					break;
-				case 'admin_players':
-					include("admin_players.php");
-					break;
-				case 'admin_chronicles':
-					include("admin_chronicles.php");
-					break;
-				case 'admin_realities':
-					include("admin_realities.php");
-					break;
-				case 'admin_plots': // legacy alias
-				case 'admin_parties':
-					include("admin_parties.php");
-					break;
-				case 'admin_system_details':
-					include("admin_system_details.php");
-					break;
-				case 'admin_systems_extra_details':
-					include("admin_systems_extra_details.php");
-					break;
-				case 'admin_systems_energy':
-					include("admin_systems_energy.php");
-					break;
-				case 'admin_traits':
-					include("admin_traits.php");
-					break;
-                case 'admin_actions':
-                    include('admin_actions.php');
-                    break;
-				case 'admin_merits_flaws':
-					include("admin_merits_flaws.php");
-					break;
-				case 'admin_character_conditions':
-					include("admin_character_conditions.php");
-					break;
-				case 'admin_character_conditions_bridge':
-				case 'admin_characters_conditions_brige':
-					include("admin_character_conditions_bridge.php");
-					break;
-				case 'admin_character_misc_bridge':
-					include("admin_character_misc_bridge.php");
-					break;
-				case 'admin_character_affiliations_canonical':
-					include("admin_character_affiliations_canonical.php");
-					break;
-				case 'admin_powers':
-					include("admin_powers.php");
-					break;
-				case 'admin_gift_image_mass':
-					include("admin_gift_image_mass.php");
-					break;
-				case 'admin_game_cards':
-					include("admin_game_cards.php");
-					break;
-				case 'admin_docs':
-					include("admin_docs.php");
-					break;
-				case 'admin_external_links':
-					include("admin_external_links.php");
-					break;
-				case 'admin_character_links':
-					include("admin_character_links.php");
-					break;
-				case 'admin_doc_links':
-					include("admin_doc_links.php");
-					break;
-				case 'admin_topic_viewer':
-					include("admin_topic_viewer.php");
-					break;
-				case 'admin_gallery':
-					include("admin_gallery.php");
-					break;
-				case 'admin_items':
-					include("admin_items.php");
-					break;
-				case 'admin_news':
-					include("admin_news.php");
-					break;
-				case 'admin_systems':
-					include("admin_systems.php");
-					break;
-				case 'admin_resources':
-					include("admin_resources.php");
-					break;
-				case 'admin_forms':
-					include("admin_forms.php");
-					break;
-				case 'admin_maneuvers':
-					include("admin_maneuvers.php");
-					break;
-				case 'admin_timelines':
-					include("admin_timelines.php");
-					break;
-				case 'admin_birthdays_quick':
-					include("admin_birthdays_quick.php");
-					break;
-				case 'admin_bso':
-					include("admin_bso.php");
-					break;
-				case 'admin_bso_link':
-					include("admin_bso_link.php");
-					break;
-				case 'admin_bridges':
-					include("admin_bridges.php");
-					break;
-				case 'admin_trait_sets':
-					include("admin_trait_sets.php");
-					break;
-				case 'admin_systems_resources':
-					include("admin_systems_resources.php");
-					break;
-				case 'admin_avatar_mass':
-					include("admin_avatar_mass.php");
-					break;
-				case 'admin_characters_worlds':
-					include("admin_characters_worlds.php");
-					break;
-				case 'admin_character_deaths':
-					include("admin_character_deaths.php");
-					break;
-				case 'admin_characters_clone':
-					include("admin_characters_clone.php");
-					break;
-				case 'admin_sim_character_talk':
-					include("admin_sim_character_talk.php");
-					break;
-				case 'admin_sim_browser':
-					include("admin_sim_browser.php");
-					break;
-				default:
-					http_response_code(400);
-					header('Content-Type: application/json; charset=UTF-8');
-					echo json_encode(['ok' => false, 'error' => 'Sección AJAX no soportada']);
-					break;
+			$seccionAjax = htmlspecialchars((string)$_GET['s']);
+			$adminSection = hg_admin_section_resolve($seccionAjax, 'ajax');
+			if ($adminSection === null) {
+				http_response_code(400);
+				header('Content-Type: application/json; charset=UTF-8');
+				echo json_encode(['ok' => false, 'error' => 'Sección AJAX no soportada']);
+				return;
 			}
+
+			include(__DIR__ . '/' . $adminSection['target']);
 			return;
 		}
 
@@ -242,193 +106,14 @@ if (!function_exists('hg_admin_render_menu_section')) {
 		}
 		// Si hay parámetro "s", incluimos la sección correspondiente
 		if (isset($_GET['s'])) {
-			$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
+			$seccion = htmlspecialchars((string)$_GET['s']);
+			$adminSection = hg_admin_section_resolve($seccion, 'normal');
 
-			switch ($seccion) {
-				case 'admin_pjs': // legacy alias
-				case 'admin_characters':
-					include("admin_characters.php");
-					break;
-				case 'admin_avatar_mass':
-					include("admin_avatar_mass.php");
-					break;
-				case 'admin_characters_worlds':
-					include("admin_characters_worlds.php");
-					break;
-				case 'admin_character_collision_audit':
-					include("admin_character_collision_audit.php");
-					break;
-				case 'admin_character_deaths':
-					include("admin_character_deaths.php");
-					break;
-				case 'admin_characters_clone':
-					include("admin_characters_clone.php");
-					break;
-				case 'admin_sim_character_talk':
-					include("admin_sim_character_talk.php");
-					break;
-				case 'admin_sim_browser':
-					include("admin_sim_browser.php");
-					break;
-				case 'admin_groups':
-					include("admin_groups.php");
-					break;
-				case 'admin_organizations':
-					include("admin_organizations.php");
-					break;
-				case 'admin_temp': // legacy alias
-				case 'admin_seasons':
-					include("admin_seasons.php");
-					break;
-				case 'admin_season_order':
-					include("admin_season_order.php");
-					break;
-				case 'admin_season_order_schema':
-					include("admin_season_order_schema.php");
-					break;
-				case 'admin_epis': // legacy alias
-				case 'admin_chapters':
-					include("admin_chapters.php");
-					break;
-				case 'admin_pois':
-					include("admin_pois.php");
-					break;
-				case 'admin_players':
-					include("admin_players.php");
-					break;
-				case 'admin_chronicles':
-					include("admin_chronicles.php");
-					break;
-				case 'admin_realities':
-					include("admin_realities.php");
-					break;
-				case 'admin_bso':
-					include("admin_bso.php");
-					break;
-				case 'admin_bso_link':
-					include("admin_bso_link.php");
-					break;
-				case 'admin_timelines':
-					include("admin_timelines.php");
-					break;
-				case 'admin_birthdays_quick':
-					include("admin_birthdays_quick.php");
-					break;
-				case 'admin_gallery':
-					include("admin_gallery.php");
-					break;
-				case 'admin_plots': // legacy alias
-				case 'admin_parties':
-					include("admin_parties.php");
-					break;
-				case 'admin_powers':
-					include("admin_powers.php");
-					break;
-				case 'admin_gift_image_mass':
-					include("admin_gift_image_mass.php");
-					break;
-				case 'admin_game_cards':
-					include("admin_game_cards.php");
-					break;
-				case 'admin_docs':
-					include("admin_docs.php");
-					break;
-				case 'admin_external_links':
-					include("admin_external_links.php");
-					break;
-				case 'admin_character_links':
-					include("admin_character_links.php");
-					break;
-				case 'admin_doc_links':
-					include("admin_doc_links.php");
-					break;
-				case 'admin_topic_viewer':
-					include("admin_topic_viewer.php");
-					break;
-				case 'admin_bridges':
-					include("admin_bridges.php");
-					break;
-				case 'admin_items':
-					include("admin_items.php");
-					break;
-				case 'admin_menu':
-					include("admin_menu.php");
-					break;
-				case 'admin_relations':
-					include("admin_relations.php");
-					break;
-				case 'admin_news':
-					include("admin_news.php");
-					break;
-				case 'admin_systems':
-					include("admin_systems.php");
-					break;
-				case 'admin_forms':
-					include("admin_forms.php");
-					break;
-				case 'admin_maneuvers':
-					include("admin_maneuvers.php");
-					break;
-				case 'admin_system_details':
-					include("admin_system_details.php");
-					break;
-				case 'admin_systems_extra_details':
-					include("admin_systems_extra_details.php");
-					break;
-				case 'admin_systems_energy':
-					include("admin_systems_energy.php");
-					break;
-				case 'admin_trait_sets':
-					include("admin_trait_sets.php");
-					break;
-				case 'admin_traits':
-					include("admin_traits.php");
-					break;
-                case 'admin_actions':
-                    include('admin_actions.php');
-                    break;
-				case 'admin_merits_flaws':
-					include("admin_merits_flaws.php");
-					break;
-				case 'admin_character_conditions':
-					include("admin_character_conditions.php");
-					break;
-				case 'admin_character_conditions_bridge':
-				case 'admin_characters_conditions_brige':
-					include("admin_character_conditions_bridge.php");
-					break;
-				case 'admin_character_misc_bridge':
-					include("admin_character_misc_bridge.php");
-					break;
-				case 'admin_character_affiliations_canonical':
-					include("admin_character_affiliations_canonical.php");
-					break;
-				case 'admin_systems_resources':
-					include("admin_systems_resources.php");
-					break;
-				case 'admin_resources':
-					include("admin_resources.php");
-					break;
-				case 'admin_datatables':
-					include("admin_datatables.php");
-					break;
-				case 'admin_inspect_db':
-					include(__DIR__ . "/../../tools/inspect_db.php");
-					break;
-				case 'admin_mentions_help':
-					include("mentions_help.html");
-					break;
-				case 'admin_org_chart_schema':
-					include("admin_org_chart_schema.php");
-					break;
-				case 'logout':
-					include("admin_logout.php");
-					break;
-				default:
-					echo "<p class='adm-admin-error'>Sección no reconocida.</p>";
-					break;
+			if ($adminSection === null) {
+				echo "<p class='adm-admin-error'>Sección no reconocida.</p>";
+			} else {
+				include(__DIR__ . '/' . $adminSection['target']);
 			}
-
 		} else {
 			// Menú principal si no hay sección específica
 			$pageSect = "Panel de Administración";
@@ -441,7 +126,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 						['href' => '/talim?s=admin_players', 'label' => 'Gestionar Jugadores', 'keywords' => ['usuarios', 'player']],
 						['href' => '/talim?s=admin_avatar_mass', 'label' => 'Editar avatares de forma masiva', 'keywords' => ['imagenes', 'avatar']],
 						['href' => '/talim?s=admin_character_deaths', 'label' => 'Editar muertes de personajes', 'keywords' => ['estado', 'fallecidos']],
-						['href' => '/talim?s=admin_birthdays_quick', 'label' => 'Editar Cumpleaños', 'keywords' => ['fechas', 'birthday']],
+						['href' => '/talim?s=admin_birthdays_quick', 'label' => 'Editar fechas de nacimiento', 'keywords' => ['fechas', 'birthday', 'birthdate']],
 						['href' => '/talim?s=admin_characters_clone', 'label' => 'Copiar Personajes', 'keywords' => ['duplicar', 'clonar']],
 					],
 				],
@@ -523,27 +208,12 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					],
 				],
 				[
-					'title' => 'Juego de cartas',
-					'summary' => 'Todo lo relacionado con el gacha queda aislado aquí para encontrarlo rápido.',
-					'items' => [
-						['href' => '/talim?s=admin_game_cards', 'label' => 'Gestionar Cartas del Gacha', 'keywords' => ['cartas', 'gacha', 'deck', 'cards']],
-						['href' => '/admin/game-cards/seed', 'label' => 'Sembrar Cartas del Gacha', 'keywords' => ['seed', 'cartas', 'gacha']],
-					],
-				],
-				[
-					'title' => 'Simulador',
-					'summary' => 'Paneles propios del simulador, separados del resto de contenido.',
-					'items' => [
-						['href' => '/talim?s=admin_sim_browser', 'label' => 'Temporadas Simulador', 'keywords' => ['sim', 'browser', 'temporadas']],
-						['href' => '/talim?s=admin_sim_character_talk', 'label' => 'Frases PJs Simulador', 'keywords' => ['sim', 'talk', 'dialogos']],
-					],
-				],
-				[
 					'title' => 'Sistema',
 					'summary' => 'Herramientas internas, auditorías y utilidades de administración.',
 					'items' => [
 						['href' => '/talim?s=admin_menu', 'label' => 'Editar Menú', 'keywords' => ['menu']],
 						['href' => '/talim?s=admin_datatables', 'label' => 'Columnas DataTables', 'keywords' => ['datatable', 'columnas', 'frontend', 'visibilidad']],
+						['href' => '/talim?s=admin_usage', 'label' => 'Uso del Admin', 'hint' => 'Accesos por sección, sin datos personales', 'keywords' => ['uso', 'telemetria', 'estadisticas', 'accesos']],
 						['href' => '/talim?s=admin_inspect_db', 'label' => 'Inspeccionar BDD', 'keywords' => ['db', 'bdd']],
 						['href' => '/talim?s=admin_mentions_help', 'label' => 'Ayuda Mentions', 'keywords' => ['mentions', 'ayuda']],
 						['href' => '/talim?s=admin_season_order_schema', 'label' => 'Schema orden temporadas', 'keywords' => ['schema', 'temporadas']],
@@ -623,5 +293,8 @@ if (!function_exists('hg_admin_render_menu_section')) {
 </script>
 HTML;
 		}
+	}
+	if (hg_admin_is_authenticated()) {
+		echo '<script src="/assets/js/hg-admin-dense-tables.js?v=699z-homogeneous-4"></script>';
 	}
 ?>

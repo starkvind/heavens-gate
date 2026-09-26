@@ -3,9 +3,11 @@
 	<?php
 		// <p class="navegacion_secciones">
 		// include("app/partials/main_nav_bar.php");	// Barra Navegacion
-		$routeKey = isset($routeKey)
-			? (string)$routeKey
-			: (isset($GLOBALS['routeKey']) ? (string)$GLOBALS['routeKey'] : trim((string)($_GET['p'] ?? '')));
+		$navRequest = (isset($hgRequest) && is_array($hgRequest))
+			? $hgRequest
+			: ((isset($GLOBALS['hgRequest']) && is_array($GLOBALS['hgRequest'])) ? $GLOBALS['hgRequest'] : []);
+		$navQuery = is_array($navRequest['query'] ?? null) ? $navRequest['query'] : [];
+		$routeKey = isset($routeKey) ? (string)$routeKey : hg_request_route($navRequest);
 		$pillSeparator = "&raquo;";
 		$systemSeresSobrenaturales = "<a href='/systems'> Seres sobrenaturales</a> $pillSeparator ";
 		$namePJ = isset($namePJ) ? (string)$namePJ : '';
@@ -59,7 +61,7 @@
 		}
 
 		if (!function_exists('hg_main_nav_seegroup_links')) {
-			function hg_main_nav_seegroup_links(mysqli $link, int $typePack, int $packId, string $fallback): string
+			function hg_main_nav_seegroup_links(mysqli $link, int $typePack, int $packId, string $fallback, string $orgRaw = ''): string
 			{
 				if ($packId <= 0) {
 					return $fallback;
@@ -86,8 +88,8 @@
 				}
 
 				$preferredOrganizationId = 0;
-				if (isset($_GET['org'])) {
-					$orgRaw = trim((string)$_GET['org']);
+				$orgRaw = trim($orgRaw);
+				if ($orgRaw !== '') {
 					if (preg_match('/^\d+$/', $orgRaw)) {
 						$preferredOrganizationId = (int)$orgRaw;
 					} elseif (function_exists('resolve_pretty_id')) {
@@ -164,19 +166,12 @@
 			// Administracion
 			// ========================================== //
 			case "talim": // 
-				if (isset($_GET['s'])) {
-					$seccion = htmlspecialchars($_GET['s']); // Sanear entrada
+				if (isset($navQuery['s'])) {
+					$seccion = htmlspecialchars((string)$navQuery['s']); // Sanear entrada
 					echo "<a href='/talim' title='Administraci&oacute;n'>Administraci&oacute;n</a>";
 					switch ($seccion) {
-						case 'admin_pjs':
 						case 'admin_characters':
 							echo " $pillSeparator Personajes";
-							break;
-						case 'admin_pjs_text':
-							echo " $pillSeparator Personajes (TEXT)";
-							break;
-						case 'admin_pjs_crud':
-							echo " $pillSeparator Personajes (CRUD)";
 							break;
 						case 'admin_groups':
 							echo " $pillSeparator Grupos (Manadas & Clanes)";
@@ -184,11 +179,9 @@
 						case 'admin_organizations':
 							echo " $pillSeparator Organizaciones";
 							break;
-						case 'admin_temp':
 						case 'admin_seasons':
 							echo " $pillSeparator Temporadas";
 							break;
-						case 'admin_epis':
 						case 'admin_chapters':
 							echo " $pillSeparator Capítulos";
 							break;
@@ -208,7 +201,7 @@
 							echo " $pillSeparator L&iacute;nea temporal";
 							break;
 						case 'admin_birthdays_quick':
-							echo " $pillSeparator Cumplea&ntilde;os r&aacute;pidos";
+							echo " $pillSeparator Fechas de nacimiento";
 							break;
 						case 'admin_bso':
 						case 'admin_bso_link':
@@ -217,7 +210,6 @@
 						case 'admin_gallery':
 							echo " $pillSeparator Galeria";
 							break;
-						case 'admin_plots':
 						case 'admin_parties':
 							echo " $pillSeparator Tramas";
 							break;
@@ -291,7 +283,6 @@
 						echo " $pillSeparator Cat&aacute;logo de condiciones";
 						break;
 					case 'admin_character_conditions_bridge':
-					case 'admin_characters_conditions_brige':
 						echo " $pillSeparator Condiciones de personajes";
 						break;
 					case 'admin_character_misc_bridge':
@@ -311,12 +302,6 @@
 						break;
 					case 'admin_doc_links':
 						echo " $pillSeparator Documentos vinculados a personajes";
-						break;
-					case 'admin_sim_browser':
-						echo " $pillSeparator Temporadas simulador";
-						break;
-					case 'admin_sim_character_talk':
-						echo " $pillSeparator Frases de simulador";
 						break;
 					case 'admin_org_chart_schema':
 						echo " $pillSeparator Organigramas";
@@ -354,9 +339,8 @@
 				echo " $pillSeparator Organigrama";
 				break;
 			case "chronicles":
-			case "bio_chronicles":
-				if (isset($_GET['t']) && (int)$_GET['t'] > 0) {
-					$chronNavId = (int)$_GET['t'];
+				$chronNavId = (int)($navQuery['t'] ?? 0);
+				if ($chronNavId > 0) {
 					$chronNavName = '';
 					if ($stChronNav = $link->prepare("SELECT name FROM dim_chronicles WHERE id = ? LIMIT 1")) {
 						$stChronNav->bind_param('i', $chronNavId);
@@ -381,9 +365,10 @@
 					<a href='" . htmlspecialchars($typeHref) . "'>$nameTipo</a> $pillSeparator $bioName";
 				break;
 			case "seegroup":	// Ver organizacion o grupo
-				$seegroupTypeNav = isset($_GET['t']) ? (int)$_GET['t'] : 0;
-				$seegroupIdNav = isset($_GET['b']) ? (int)$_GET['b'] : 0;
-				$seegroupLinks = hg_main_nav_seegroup_links($link, $seegroupTypeNav, $seegroupIdNav, $packNavLinks);
+				$seegroupTypeNav = (int)($navQuery['t'] ?? 0);
+				$seegroupIdNav = (int)($navQuery['b'] ?? 0);
+				$seegroupOrgNav = (string)($navQuery['org'] ?? '');
+				$seegroupLinks = hg_main_nav_seegroup_links($link, $seegroupTypeNav, $seegroupIdNav, $packNavLinks, $seegroupOrgNav);
 				echo "<a href='/organizations' title='Grupos y Sociedades'>Grupos y Sociedades</a>";
 				if (trim($seegroupLinks) !== '') {
 					echo " $pillSeparator $seegroupLinks";
@@ -443,10 +428,6 @@
 			case "verobj":
 				$typeHref = pretty_url($link, 'dim_item_types', '/inventory', (int)$itemType);
 				echo "<a href='/inventory' title='Inventario'>Inventario</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
-				break;
-			case "seeitem":	// Ver Objeto
-							$typeHref = pretty_url($link, 'dim_item_types', '/inventory', (int)$itemType);
-			echo "<a href='" . htmlspecialchars($typeHref) . "' title='Inventario ($nameTypeBack)'>$nameTypeBack</a> $pillSeparator $itemName";
 				break;
 			case "inv_type":
 				echo "<a href='/inventory' title='Inventario'>Inventario</a> $pillSeparator $nameTypeBack";
@@ -556,7 +537,7 @@
 			// ========================================== //
 			// Tótems
 			// ========================================== //
-			case "tipototm":	// Lista de Tótems
+			case "tipototm":		// Lista de Tótems
 				echo "<a href='/powers/totems' title='Tótems'>Tótems</a> $pillSeparator $totemName";
 				break;
 			case "muestratotem":// Ver Tótem
@@ -574,8 +555,8 @@
 				echo "<a href='/powers/disciplines' title='Disciplinas'>Disciplinas</a> $pillSeparator <a href='" . htmlspecialchars($typeHref) . "' title='$nombreTipo'>$nombreTipo</a> $pillSeparator $donName";
 				break;
 			case "dados":		// Tiradados
-				if (isset($_GET['see']) && (int)$_GET['see'] > 0) {
-					$rollIdNav = (int)$_GET['see'];
+				$rollIdNav = (int)($navQuery['see'] ?? 0);
+				if ($rollIdNav > 0) {
 					$stmt = mysqli_prepare($link, "SELECT roll_name FROM fact_dice_rolls WHERE id = ? LIMIT 1");
 					if ($stmt) {
 						mysqli_stmt_bind_param($stmt, "i", $rollIdNav);
