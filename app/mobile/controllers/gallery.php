@@ -52,12 +52,12 @@ $folderLabel = $relDir === '' ? 'Inicio' : basename($relDir);
     <?php if ($relDir === ''): ?>
         <span>Inicio</span>
     <?php else: ?>
-        <a href="/gallery">Inicio</a>
+        <a href="/gallery?view=mobile">Inicio</a>
         <?php $acc = []; ?>
         <?php foreach ($breadcrumbs as $seg): ?>
             <?php $acc[] = $seg; ?>
             <span>/</span>
-            <a href="/gallery?dir=<?= hg_mobile_gallery_h(rawurlencode(implode('/', $acc))) ?>"><?= hg_mobile_gallery_h($seg) ?></a>
+            <a href="/gallery?dir=<?= hg_mobile_gallery_h(rawurlencode(implode('/', $acc))) ?>&amp;view=mobile"><?= hg_mobile_gallery_h($seg) ?></a>
         <?php endforeach; ?>
     <?php endif; ?>
 </nav>
@@ -72,7 +72,7 @@ $folderLabel = $relDir === '' ? 'Inicio' : basename($relDir);
                 $childAbs = hg_gallery_fs_join($realAbsDir, $dirName);
                 $cover = hg_gallery_folder_cover($galleryBaseWeb, $childAbs, $childRel, $allowedExt);
             ?>
-            <a class="hg-mobile-gallery-folder" href="/gallery?dir=<?= hg_mobile_gallery_h(rawurlencode($childRel)) ?>" data-mobile-item data-mobile-search="<?= hg_mobile_gallery_h($dirName) ?>">
+            <a class="hg-mobile-gallery-folder" href="/gallery?dir=<?= hg_mobile_gallery_h(rawurlencode($childRel)) ?>&amp;view=mobile" data-mobile-item data-mobile-search="<?= hg_mobile_gallery_h($dirName) ?>">
                 <?php if ($cover !== ''): ?>
                     <img src="<?= hg_mobile_gallery_h($cover) ?>" alt="">
                 <?php else: ?>
