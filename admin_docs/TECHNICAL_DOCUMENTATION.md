@@ -81,6 +81,8 @@ No contiene el matcher de paths canónicos y no lee `$_GET`, `$_POST` ni `$_REQU
 
 `app/helpers/pretty.php` mantiene la resolución de aliases históricos mediante `fact_pretty_id_aliases`.
 
+Los aliases históricos de **route key** son otra capa distinta: los siete que todavía se aceptan en URLs `?p=...` viven exclusivamente en `hg_request_router_public_aliases()` dentro de `app/routing/legacy_query.php`. Se normalizan a su route key canónico antes de construir la redirección y no forman parte del dispatch activo.
+
 `app/helpers/schema_introspection.php` es el único propietario compartido de las comprobaciones cacheadas de existencia de tablas y columnas en la base actual. La introspección especializada restante queda limitada al clonado dinámico de bridges de personajes, al adaptador del esquema externo SMF y a la herramienta explícita de inspección de BDD; cualquier propietario nuevo debe quedar clasificado por CI.
 
 La presencia puntual de MySQL en esta capa responde a la necesidad histórica de resolver ID/alias -> slug antes de emitir el redirect. No convierte esta capa en el router canónico.
