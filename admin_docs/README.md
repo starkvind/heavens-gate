@@ -15,6 +15,8 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md) | Cómo añadir una sección pública y cómo usar `tools/scaffold_section.py`. |
 | [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md) | Baseline arquitectónico al cierre de la Fase 7, deuda aceptada y techos de regresión. |
 | [PHP_PHASE10_5_FINAL_GUARDS.md](./PHP_PHASE10_5_FINAL_GUARDS.md) | Contrato arquitectónico final de la Fase 10 y guards permanentes de SQL, esquema, request-state y aliases legacy. |
+| [PHP_PHASE11_RELEASE_CANDIDATE.md](./PHP_PHASE11_RELEASE_CANDIDATE.md) | Estado del Release Candidate, reconciliación de ramas, freeze de alcance y puertas de validación de Fase 11. |
+| [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md) | Smoke final de Raspberry: harness automatizado y comprobaciones manuales antes de consolidar en `master`. |
 
 ## Registros históricos
 
