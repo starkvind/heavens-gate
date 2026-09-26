@@ -4,7 +4,7 @@
 
 ## 1. Alcance y fuentes
 
-Este documento describe el **runtime actual** de `starkvind/heavens-gate` durante el refactor PHP. Se ha contrastado con el código de `php-refactor` y con el snapshot de producción del 1 de septiembre de 2026 conservado en `starkvind/heavens-gate-continuity`.
+Este documento describe el **runtime actual** de `starkvind/heavens-gate`. Se contrasta con el código ejecutable y con la referencia de esquema de producción mantenida para el proyecto.
 
 Fuentes principales:
 
@@ -101,7 +101,7 @@ El contrato todavía conserva el token `snippet_forum_a` como bare legacy, aunqu
 
 ## 5. Front controller y presentaciones
 
-`index.php` se mantiene como front controller único. Tras Phase 4.1/4.2 ya no contiene el shell HTML desktop, helpers de output/UTF-8, lógica de configuración de aplicación ni lógica interna del router.
+`index.php` se mantiene como front controller único. No contiene el shell HTML desktop, helpers de output/UTF-8, lógica de configuración de aplicación ni lógica interna del router.
 
 Responsabilidades actuales:
 
@@ -115,7 +115,7 @@ Responsabilidades actuales:
 
 El shell desktop vive en `app/views/layout/desktop.php`; su `<head>` vive en `app/views/layout/head.php`. El tema y la URL de cambio a vista móvil se preparan en `app/presentation/desktop_context.php`.
 
-En escritorio, `desktop_context.php` conserva soporte técnico para `classic`, `modern` y `power-save`, pero **Classic es la apariencia canónica durante el refactor**. Modern y Power Save son variantes residuales incompletas y no se ofrecen mediante un selector global. La tematización completa del escritorio queda expresamente diferida a una fase de diseño posterior al refactor PHP, porque debe resolver también assets gráficos históricos y componentes todavía ligados a la paleta clásica.
+En escritorio, `desktop_context.php` conserva soporte técnico para `classic`, `modern` y `power-save`, pero **Classic es la apariencia canónica**. Modern y Power Save son variantes residuales incompletas y no se ofrecen mediante un selector global. Un selector completo de temas se considera trabajo de diseño/presentación independiente.
 
 `?view=mobile` usa la misma resolución de URL y el mismo `route key`, pero `app/mobile/mobile_index.php` selecciona un controlador desde `app/mobile/mobile_routes.php`.
 
@@ -226,7 +226,7 @@ Hub: `fact_timeline_events`, con bridges a personajes, capítulos, crónicas, re
 - `bridge_characters_organizations`
 - `bridge_characters_org`
 
-Antes de consolidar afiliaciones históricas, revisar consumidores reales y manifiestos de migración.
+Antes de consolidar afiliaciones históricas, revisar consumidores reales y la fuente editorial vigente.
 
 ### Sistemas y reglas
 
@@ -236,7 +236,7 @@ Catálogos principales: `dim_systems`, `dim_breeds`, `dim_auspices`, `dim_tribes
 
 El backend editorial entra por `talim` (`/talim` y alias `/admin`). Las subsecciones usan el parámetro interno `s`.
 
-Las mutaciones administrativas deben seguir usando helpers compartidos de autenticación, sesión y CSRF. Este refactor no cambia límites de seguridad.
+Las mutaciones administrativas deben seguir usando helpers compartidos de autenticación, sesión y CSRF. Estos límites de seguridad forman parte del contrato operativo.
 
 El request público se normaliza en `hgRequest`; los controladores públicos no deben recuperar acceso directo a GET/POST. En Admin, los controladores CRUD/formulario permanecen como borde HTTP explícito y pueden leer GET/POST directamente: no se reescriben solo para ocultar el transporte. `$_REQUEST` está prohibido por su precedencia implícita. Los únicos accesos directos a cookies de aplicación son preferencias de presentación (vista móvil/desktop y tema), nunca autenticación.
 
@@ -245,7 +245,6 @@ El request público se normaliza en `hgRequest`; los controladores públicos no 
 Herramientas internas existentes incluyen:
 
 - `tools/scaffold_section.py`;
-- `tools/phase11_smoke.sh`;
 - `app/tools/backfill_content_updates.php`;
 - `app/tools/inspect_db.php`;
 - `sql/audit_gaia0_content.sql`.
@@ -284,41 +283,22 @@ El Simulador de Combate y el Archivo de Mnemógeno fueron retirados por completo
 
 Sus últimas versiones vivas permanecen recuperables en `archive/combat-simulator-last-live` y `archive/game-cards-last-live`. `.github/ci/php-retired-games-archive-audit.py` impide su reintroducción accidental.
 
-El baseline de cierre de la Fase 7 está documentado en [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md).
+## 15. Invariantes arquitectónicas vigentes
 
-## 15. Baseline arquitectónico de Fase 10
-
-La Fase 10 deja un contrato final protegido por `.github/ci/php-phase10-final-audit.py` además de sus guards especializados.
-
-El runtime público mantiene cero SQL directo en controladores públicos/móviles y cero lectura directa de GET/POST/REQUEST en esos controladores. La introspección de esquema está limitada a cuatro propietarios clasificados. `$_REQUEST` está prohibido. Los siete aliases históricos de route key viven exclusivamente en la frontera legacy y no forman parte del dispatch activo.
+El runtime público mantiene cero SQL directo en controladores públicos/móviles y cero lectura directa de GET/POST/REQUEST en esos controladores. La introspección de esquema está limitada a propietarios clasificados. `$_REQUEST` está prohibido. Los aliases históricos de route key viven exclusivamente en la frontera legacy y no forman parte del dispatch activo.
 
 Los techos globales de request y los inventarios de compatibilidad son límites de regresión, no objetivos de permanencia: pueden reducirse en cambios futuros, pero cualquier cambio de baseline debe ser explícito y revisado.
 
-## 16. Release Candidate y consolidación
+Los guards especializados bajo `.github/ci/` y los workflows de CI son la fuente ejecutable de estos contratos.
 
-La Fase 11 congela `php-refactor` como Release Candidate y separa expresamente validación de consolidación.
-
-Estado de integración al entrar en el RC:
-
-- `master` conserva como baseline `e614e6bacff25f6d6f7bfe04fc815e8112fd83e3`;
-- los cinco hotfixes de `hg_avatar` exclusivos de `master` fueron reconciliados en la genealogía de `php-refactor` después de comprobar que su comportamiento ya estaba integrado;
-- `php-refactor` queda por delante de `master` y a cero commits por detrás;
-- el PR de integración `#15` permanece draft hasta autorización expresa;
-- Project CI y PHP Refactor Characterization son puertas obligatorias;
-- el smoke final de Raspberry está definido en [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md) y su harness de solo lectura es `tools/phase11_smoke.sh`.
-
-Durante este cierre no se rediseña el escritorio, no se retira `?view=mobile`, no se reconstruye el menú responsive y no se añaden features. Classic sigue siendo la apariencia desktop canónica.
-
-`master` no debe modificarse como parte de la preparación del RC. La consolidación solo puede comenzar tras superar las puertas de validación y recibir autorización expresa.
-
-## 17. Política documental
+## 16. Política documental
 
 Cuando cambie routing/dispatch:
 
 1. cambiar primero el código ejecutable;
 2. actualizar `ROUTE_DICTIONARY.md` si cambia el contrato de rutas;
 3. actualizar este documento si cambia la arquitectura general;
-4. no convertir logs de refactor en documentación viva;
+4. no convertir registros históricos de implementación en documentación viva;
 5. mantener separada la documentación histórica de la vigente.
 
 Cuando cambie esquema, regenerar la referencia desde un snapshot nuevo en lugar de editar recuentos por intuición.
