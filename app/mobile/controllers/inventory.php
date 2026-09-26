@@ -222,17 +222,7 @@ if ($isItem) {
             </div>
         <?php endif; ?>
     </section>
-    <script>
-    document.addEventListener('click', function (event) {
-        var btn = event.target.closest('[data-mobile-copy]');
-        if (!btn) return;
-        var text = btn.getAttribute('data-mobile-copy') || '';
-        if (!text) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(function () {});
-        btn.textContent = 'Copiado';
-        setTimeout(function () { btn.textContent = 'Copiar'; }, 1200);
-    });
-    </script>
+    
     <?php
     return;
 }
