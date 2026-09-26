@@ -69,12 +69,24 @@
                         $direction = (string)($relation['direction'] ?? '') === 'incoming' ? 'Entrante' : 'Saliente';
                         $otherHref = hg_mobile_bio_pretty_href($link, 'fact_characters', '/characters', $otherId);
                     ?>
-                    <div>
-                        <strong><?= hg_mobile_bio_link($otherHref, $otherName !== '' ? $otherName : ('Personaje #' . $otherId)) ?></strong>
-                        <span><?= hg_mobile_bio_h($relationType) ?> · <?= hg_mobile_bio_h($direction) ?><?= $relationTag !== '' ? ' · ' . hg_mobile_bio_h($relationTag) : '' ?><?= $otherAlias !== '' ? ' · ' . hg_mobile_bio_h($otherAlias) : '' ?></span>
-                        <?php if ($relationDesc !== ''): ?>
-                            <p><?= nl2br(hg_mobile_bio_h($relationDesc)) ?></p>
-                        <?php endif; ?>
+                    <?php
+                        $otherAvatar = hg_character_avatar_url(
+                            (string)($relation['image_url'] ?? ''),
+                            (string)($relation['gender'] ?? '')
+                        );
+                        $otherLabel = $otherName !== '' ? $otherName : ('Personaje #' . $otherId);
+                    ?>
+                    <div class="hg-mobile-relation-card">
+                        <a class="hg-mobile-relation-avatar" href="<?= hg_mobile_bio_h($otherHref) ?>" aria-label="<?= hg_mobile_bio_h($otherLabel) ?>">
+                            <img src="<?= hg_mobile_bio_h($otherAvatar) ?>" alt="" width="44" height="44" loading="lazy">
+                        </a>
+                        <div class="hg-mobile-relation-copy">
+                            <strong><?= hg_mobile_bio_link($otherHref, $otherLabel) ?></strong>
+                            <span><?= hg_mobile_bio_h($relationType) ?> · <?= hg_mobile_bio_h($direction) ?><?= $relationTag !== '' ? ' · ' . hg_mobile_bio_h($relationTag) : '' ?><?= $otherAlias !== '' ? ' · ' . hg_mobile_bio_h($otherAlias) : '' ?></span>
+                            <?php if ($relationDesc !== ''): ?>
+                                <p><?= nl2br(hg_mobile_bio_h($relationDesc)) ?></p>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
