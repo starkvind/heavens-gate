@@ -107,7 +107,7 @@ KNOWN_OBJECTS_SQL="'dim_game_card_materials','dim_game_card_moves','dim_game_car
 RETIRED_TABLES_SQL="'dim_game_card_materials','dim_game_card_moves','dim_game_card_pack_types','dim_game_card_rarities','dim_game_card_settings','dim_game_card_shop_products','dim_game_card_types','dim_game_card_ui_texts','fact_game_card_collection','fact_game_card_move_learn_rules','fact_game_card_pack_rarity_weights','fact_game_card_pack_type_filters','fact_sim_battles','fact_sim_character_scores','fact_sim_characters_talk','fact_sim_item_usage','fact_sim_seasons','fact_sim_tournaments','bridge_battle_sim_characters_seasons'"
 
 check_blockers() {
-    local unknown_objects inbound_fks live_views live_triggers live_events live_routines unknown_game_menu
+    local unknown_objects type_mismatches inbound_fks live_views live_triggers live_events live_routines unknown_game_menu
 
     unknown_objects="$(db_scalar "
         SELECT COUNT(*)
@@ -123,6 +123,19 @@ check_blockers() {
           AND TABLE_NAME NOT IN ($KNOWN_OBJECTS_SQL);
     ")"
 
+    type_mismatches="$(db_scalar "
+        SELECT COUNT(*)
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND (
+            (TABLE_NAME IN ('vw_game_card_collection','vw_sim_characters','vw_sim_forms','vw_sim_items')
+             AND TABLE_TYPE <> 'VIEW')
+            OR
+            (TABLE_NAME IN ($RETIRED_TABLES_SQL,'admin_webp_image_migration_backup','_id_unsigned_audit')
+             AND TABLE_TYPE <> 'BASE TABLE')
+          );
+    ")"
+
     inbound_fks="$(db_scalar "
         SELECT COUNT(*)
         FROM information_schema.KEY_COLUMN_USAGE
@@ -134,11 +147,10 @@ check_blockers() {
 
     live_views="$(db_scalar "
         SELECT COUNT(*)
-        FROM information_schema.VIEW_TABLE_USAGE
-        WHERE VIEW_SCHEMA = DATABASE()
-          AND TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME IN ($RETIRED_TABLES_SQL)
-          AND VIEW_NAME NOT IN ('vw_game_card_collection','vw_sim_characters','vw_sim_forms','vw_sim_items');
+        FROM information_schema.VIEWS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME NOT IN ('vw_game_card_collection','vw_sim_characters','vw_sim_forms','vw_sim_items')
+          AND LOWER(COALESCE(VIEW_DEFINITION, '')) REGEXP 'game_card|fact_sim_|battle_sim|combat_sim|vw_sim_';
     ")"
 
     live_triggers="$(db_scalar "
@@ -179,6 +191,7 @@ check_blockers() {
     info ""
     info "Preflight blockers:"
     info "  unknown retired-looking objects : $unknown_objects"
+    info "  unexpected object types         : $type_mismatches"
     info "  live inbound foreign keys       : $inbound_fks"
     info "  live dependent views            : $live_views"
     info "  live dependent triggers         : $live_triggers"
@@ -187,6 +200,7 @@ check_blockers() {
     info "  unknown /games menu entries     : $unknown_game_menu"
 
     if [ "$unknown_objects" != "0" ] ||
+       [ "$type_mismatches" != "0" ] ||
        [ "$inbound_fks" != "0" ] ||
        [ "$live_views" != "0" ] ||
        [ "$live_triggers" != "0" ] ||
