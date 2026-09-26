@@ -3,6 +3,7 @@ name: PHP Refactor Characterization
 on:
   push:
     branches:
+      - master
       - php-refactor
   pull_request:
     branches:
