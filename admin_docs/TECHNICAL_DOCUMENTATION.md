@@ -1,6 +1,6 @@
 # Technical Documentation — Heaven's Gate
 
-Última revisión: 2026-09-17.
+Última revisión: 2026-09-26.
 
 ## 1. Alcance y fuentes
 
@@ -245,6 +245,7 @@ El request público se normaliza en `hgRequest`; los controladores públicos no 
 Herramientas internas existentes incluyen:
 
 - `tools/scaffold_section.py`;
+- `tools/phase11_smoke.sh`;
 - `app/tools/backfill_content_updates.php`;
 - `app/tools/inspect_db.php`;
 - `sql/audit_gaia0_content.sql`.
@@ -293,7 +294,24 @@ El runtime público mantiene cero SQL directo en controladores públicos/móvile
 
 Los techos globales de request y los inventarios de compatibilidad son límites de regresión, no objetivos de permanencia: pueden reducirse en cambios futuros, pero cualquier cambio de baseline debe ser explícito y revisado.
 
-## 16. Política documental
+## 16. Release Candidate y consolidación
+
+La Fase 11 congela `php-refactor` como Release Candidate y separa expresamente validación de consolidación.
+
+Estado de integración al entrar en el RC:
+
+- `master` conserva como baseline `e614e6bacff25f6d6f7bfe04fc815e8112fd83e3`;
+- los cinco hotfixes de `hg_avatar` exclusivos de `master` fueron reconciliados en la genealogía de `php-refactor` después de comprobar que su comportamiento ya estaba integrado;
+- `php-refactor` queda por delante de `master` y a cero commits por detrás;
+- el PR de integración `#15` permanece draft hasta autorización expresa;
+- Project CI y PHP Refactor Characterization son puertas obligatorias;
+- el smoke final de Raspberry está definido en [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md) y su harness de solo lectura es `tools/phase11_smoke.sh`.
+
+Durante este cierre no se rediseña el escritorio, no se retira `?view=mobile`, no se reconstruye el menú responsive y no se añaden features. Classic sigue siendo la apariencia desktop canónica.
+
+`master` no debe modificarse como parte de la preparación del RC. La consolidación solo puede comenzar tras superar las puertas de validación y recibir autorización expresa.
+
+## 17. Política documental
 
 Cuando cambie routing/dispatch:
 
