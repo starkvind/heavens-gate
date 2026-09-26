@@ -57,6 +57,16 @@ for marker in [
     if marker not in desktop_menu:
         errors.append(f"desktop menu shared navigation contract missing: {marker}")
 
+mobile_gallery = read("app/mobile/controllers/gallery.php")
+if "function hg_mobile_gallery_h" not in mobile_gallery:
+    errors.append("mobile gallery presentation escape helper missing")
+if "view=mobile" not in mobile_gallery:
+    errors.append("mobile gallery does not preserve explicit mobile presentation links")
+
+desktop_gallery = read("app/controllers/main/main_gallery.php")
+if "galleryViewQuery" not in desktop_gallery:
+    errors.append("desktop gallery does not preserve explicit desktop presentation links")
+
 # Gallery filesystem/catalog rules are shared; only HTML/JS presentation differs.
 for path in [
     "app/mobile/controllers/gallery.php",
