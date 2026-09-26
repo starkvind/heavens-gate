@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../domains/navigation/queries.php';
+
 if (!function_exists('hg_mobile_menu_h')) {
     function hg_mobile_menu_h($value): string
     {
@@ -45,116 +47,33 @@ if (!function_exists('hg_mobile_menu_is_desktop_only_href')) {
             'org_chart',
         ];
 
-        if (in_array($path, $desktopOnlyPaths, true)) return true;
-        if (strpos($path, '/relationship-map/') === 0) return true;
-        if (preg_match('#^/organizations/[^/]+/org-chart$#', $path)) return true;
+        if (in_array($path, $desktopOnlyPaths, true)) {
+            return true;
+        }
+        if (strpos($path, '/relationship-map/') === 0) {
+            return true;
+        }
+        if (preg_match('#^/organizations/[^/]+/org-chart$#', $path)) {
+            return true;
+        }
         return in_array($route, $desktopOnlyRoutes, true);
-    }
-}
-if (!function_exists('hg_mobile_menu_table_exists')) {
-    function hg_mobile_menu_table_exists(mysqli $link): bool
-    {
-        return true;
-    }
-}
-
-if (!function_exists('hg_mobile_menu_children')) {
-    function hg_mobile_menu_children(mysqli $link, int $parentId): array
-    {
-        $rows = [];
-        $sql = "SELECT id, label, href, target, item_type, dynamic_source
-                FROM dim_menu_items
-                WHERE parent_id = ? AND enabled = 1
-                ORDER BY sort_order, id";
-        if ($stmt = mysqli_prepare($link, $sql)) {
-            mysqli_stmt_bind_param($stmt, 'i', $parentId);
-            mysqli_stmt_execute($stmt);
-            $res = mysqli_stmt_get_result($stmt);
-            while ($row = mysqli_fetch_assoc($res)) {
-                $rows[] = $row;
-            }
-            mysqli_stmt_close($stmt);
-        }
-        return $rows;
-    }
-}
-
-if (!function_exists('hg_mobile_menu_seasons')) {
-    function hg_mobile_menu_seasons(mysqli $link, string $seasonFlag): array
-    {
-        $items = [];
-        if ($seasonFlag === '1') {
-            $sql = "SELECT id, name, season_number, finished, season_kind
-                    FROM dim_seasons
-                    WHERE season_kind = 'historia_personal'
-                    ORDER BY sort_order, season_number";
-        } else {
-            $sql = "SELECT id, name, season_number, finished, season_kind
-                    FROM dim_seasons
-                    WHERE season_kind IN ('temporada','inciso','especial')
-                    ORDER BY FIELD(season_kind, 'temporada','inciso','especial'), sort_order, season_number";
-        }
-
-        if ($res = $link->query($sql)) {
-            while ($row = $res->fetch_assoc()) {
-                $id = (int)($row['id'] ?? 0);
-                $name = (string)($row['name'] ?? '');
-                $number = (int)($row['season_number'] ?? 0);
-                $kind = (string)($row['season_kind'] ?? 'temporada');
-
-                if ($kind === 'historia_personal' || $kind === 'especial') {
-                    $label = $name;
-                } elseif ($kind === 'inciso') {
-                    $incisoNum = ($number >= 100 && $number < 200) ? ($number - 100) : $number;
-                    $label = 'I' . $incisoNum . ' - ' . $name;
-                } else {
-                    $label = 'T' . $number . ' - ' . $name;
-                }
-
-                $href = function_exists('pretty_url')
-                    ? pretty_url($link, 'dim_seasons', '/seasons', $id)
-                    : ('/seasons/' . $id);
-
-                $items[] = ['label' => $label, 'href' => $href, 'target' => '_self'];
-            }
-            $res->free();
-        }
-
-        return $items;
     }
 }
 
 if (!function_exists('hg_mobile_menu_from_db')) {
     function hg_mobile_menu_from_db(mysqli $link): array
     {
-        if (!hg_mobile_menu_table_exists($link)) {
-            return [];
-        }
-
         $groups = [];
-        $sql = "SELECT id, label, menu_key
-                FROM dim_menu_items
-                WHERE parent_id IS NULL AND enabled = 1
-                ORDER BY sort_order, id";
-        $parents = [];
-        if ($res = $link->query($sql)) {
-            while ($row = $res->fetch_assoc()) {
-                $parents[] = $row;
-            }
-            $res->free();
-        }
 
-        foreach ($parents as $parent) {
+        foreach (hg_navigation_fetch_parents($link) as $parent) {
             $label = trim((string)($parent['label'] ?? ''));
             if ($label === '') {
                 continue;
             }
 
             $items = [];
-            foreach (hg_mobile_menu_children($link, (int)$parent['id']) as $child) {
+            foreach (hg_navigation_fetch_children($link, (int)($parent['id'] ?? 0)) as $child) {
                 $type = (string)($child['item_type'] ?? 'static');
-                $href = (string)($child['href'] ?? '#');
-                $target = (string)($child['target'] ?? '_self');
 
                 if ($type === 'separator') {
                     continue;
@@ -163,25 +82,29 @@ if (!function_exists('hg_mobile_menu_from_db')) {
                 if ($type === 'dynamic') {
                     $source = (string)($child['dynamic_source'] ?? '');
                     if ($source === 'seasons_0') {
-                        $items = array_merge($items, hg_mobile_menu_seasons($link, '0'));
+                        $items = array_merge($items, hg_navigation_season_items($link, false));
                     } elseif ($source === 'seasons_1') {
-                        $items = array_merge($items, hg_mobile_menu_seasons($link, '1'));
+                        $items = array_merge($items, hg_navigation_season_items($link, true));
                     }
                     continue;
                 }
 
-                if ($href === '' || $href === '#' || hg_mobile_menu_is_admin_href($href) || hg_mobile_menu_is_desktop_only_href($href)) {
+                $href = (string)($child['href'] ?? '#');
+                if ($href === ''
+                    || $href === '#'
+                    || hg_mobile_menu_is_admin_href($href)
+                    || hg_mobile_menu_is_desktop_only_href($href)) {
                     continue;
                 }
 
                 $items[] = [
                     'label' => (string)($child['label'] ?? ''),
                     'href' => $href,
-                    'target' => $target,
+                    'target' => (string)($child['target'] ?? '_self'),
                 ];
             }
 
-            if (!empty($items)) {
+            if ($items) {
                 $groups[] = [
                     'label' => $label,
                     'items' => $items,
@@ -228,7 +151,6 @@ if (!function_exists('hg_mobile_menu_fallback')) {
     }
 }
 
-
 if (!function_exists('hg_mobile_menu_ensure_tool_links')) {
     function hg_mobile_menu_ensure_tool_links(array $groups): array
     {
@@ -245,6 +167,7 @@ if (!function_exists('hg_mobile_menu_ensure_tool_links')) {
                 if ($href === '') {
                     continue;
                 }
+
                 $path = rtrim((string)(parse_url($href, PHP_URL_PATH) ?? ''), '/');
                 $query = [];
                 parse_str((string)(parse_url($href, PHP_URL_QUERY) ?? ''), $query);
@@ -270,7 +193,7 @@ if (!function_exists('hg_mobile_menu_ensure_tool_links')) {
                 $missing[] = $item;
             }
         }
-        if (empty($missing)) {
+        if (!$missing) {
             return $groups;
         }
 
@@ -288,13 +211,13 @@ if (!function_exists('hg_mobile_menu_ensure_tool_links')) {
         return $groups;
     }
 }
+
 $hgMobileMenuGroups = [];
 if (isset($link) && ($link instanceof mysqli)) {
     $hgMobileMenuGroups = hg_mobile_menu_from_db($link);
 }
-if (empty($hgMobileMenuGroups)) {
+if (!$hgMobileMenuGroups) {
     $hgMobileMenuGroups = hg_mobile_menu_fallback();
 }
-
 
 $hgMobileMenuGroups = hg_mobile_menu_ensure_tool_links($hgMobileMenuGroups);
