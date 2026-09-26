@@ -83,8 +83,8 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
-    ? hg_mobile_excluded_chronicles_csv()
+$excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv')
+    ? hg_chronicle_scope_excluded_csv()
     : '2,7';
 $type = (int)hg_request_param($hgRequest, 'group_type');
 if ($type === 2) {
