@@ -42,8 +42,8 @@ if (ROOT / 'app/controllers/tool/img_board.php').exists():
     errors.append('retired image board controller returned')
 
 legacy_query = (ROOT / 'app/routing/legacy_query.php').read_text(encoding='utf-8', errors='replace')
-if "'imgz' => '/gallery'" not in legacy_query:
-    errors.append('imgz no longer canonicalizes to /gallery at the compatibility edge')
+if "'imgz' => 'gallery'" not in legacy_query:
+    errors.append('imgz no longer normalizes to gallery at the compatibility edge')
 
 dispatch = (ROOT / 'app/http/dispatch_policy.php').read_text(encoding='utf-8', errors='replace')
 for marker in [
