@@ -2,7 +2,7 @@
 
 Última revisión: 2026-09-25.
 
-Este documento define la propiedad de los estilos públicos y la convención de nombres que debe seguir el código nuevo. El objetivo de la Fase 4 del refactor es que `hg-core.css` sea un núcleo pequeño y que cada regla tenga un propietario reconocible.
+Este documento define la propiedad de los estilos públicos y la convención de nombres que debe seguir el código nuevo. `hg-core.css` debe mantenerse como un núcleo pequeño y cada regla debe tener un propietario reconocible.
 
 ## Capas globales
 
@@ -21,7 +21,7 @@ El orden es deliberado. Los estilos de dominio deben poder especializar componen
 
 ## Propiedad por dominio
 
-Los estilos que pertenecen a una sección concreta deben vivir en un fichero de dominio reconocible. La Fase 4 deja como propietarios explícitos, entre otros:
+Los estilos que pertenecen a una sección concreta deben vivir en un fichero de dominio reconocible. Entre los propietarios explícitos están:
 
 - `hg-bio.css`: personajes y ficha de personaje.
 - `hg-docs.css`: documentación y reglas documentales compartidas.
@@ -42,7 +42,7 @@ Los estilos que pertenecen a una sección concreta deben vivir en un fichero de 
 - `hg-bso.css`: tarjetas de banda sonora embebidas.
 - `hg-archive-panel.css`: fieldset compartido de apariencia archivística usado por páginas de capítulos y organizaciones.
 
-Los estilos exclusivos de una sola página pueden vivir bajo `assets/css/pages/<dominio>/`. La carpeta `assets/css/pages/legacy/` es transitoria: contiene CSS extraído durante la Fase 1 cuya propiedad definitiva todavía no se ha resuelto o cuya recolocación exige tocar controladores grandes sin beneficio funcional inmediato.
+Los estilos exclusivos de una sola página pueden vivir bajo `assets/css/pages/<dominio>/`. La carpeta `assets/css/pages/legacy/` es transitoria: contiene CSS legacy cuya propiedad definitiva todavía no se ha resuelto o cuya recolocación exige tocar controladores grandes sin beneficio funcional inmediato.
 
 La presencia de un fichero en `pages/legacy/` no autoriza a reutilizar sus clases en código nuevo. Si la propiedad del fichero ya es clara y el consumidor puede migrarse con bajo riesgo, debe moverse a `assets/css/pages/<dominio>/`.
 
@@ -86,11 +86,11 @@ El dominio puede especializar componentes globales, por ejemplo el tooltip, siem
 
 ## Temas de escritorio: trabajo diferido
 
-La apariencia **Classic** sigue siendo la identidad visual canónica del escritorio durante el refactor PHP. Parte de esa identidad depende de assets gráficos históricos —actualmente servidos principalmente como WebP— y de componentes cuya paleta todavía está acoplada al diseño clásico.
+La apariencia **Classic** es la identidad visual canónica del escritorio. Parte de esa identidad depende de assets gráficos históricos —actualmente servidos principalmente como WebP— y de componentes cuya paleta todavía está acoplada al diseño clásico.
 
 El runtime conserva soporte técnico residual para las clases `theme-classic`, `theme-modern` y `theme-power-save` mediante `app/presentation/desktop_context.php` y la cookie `hg_theme`. Esto no implica que Modern y Power Save sean temas completos ni que formen parte de la UX pública actual: no existe un selector global de temas de escritorio y varios componentes mantienen deliberadamente la paleta clásica.
 
-Se deja como tarea **posterior al cierre del refactor PHP** diseñar un selector de temas para la web principal. Esa fase deberá tratarse como trabajo de diseño/presentación, no como deuda arquitectónica del refactor actual.
+El diseño de un selector completo de temas para la web principal queda como trabajo independiente de diseño/presentación.
 
 Antes de exponer el selector deberán resolverse de forma consciente:
 
@@ -100,7 +100,7 @@ Antes de exponer el selector deberán resolverse de forma consciente:
 - qué temas se mantienen, renombran o sustituyen en la interfaz definitiva;
 - contraste, accesibilidad y pruebas visuales de cada combinación.
 
-Hasta entonces no debe ampliarse ni eliminarse el soporte residual de temas desktop solo por razones cosméticas durante el refactor.
+Hasta entonces no debe ampliarse ni eliminarse el soporte residual de temas desktop solo por razones cosméticas.
 
 ## Convención de nombres nueva
 
@@ -140,14 +140,14 @@ Para comportamiento nuevo, preferir:
 
 Si JavaScript depende de una clase legacy existente, documentar esa dependencia antes de renombrarla.
 
-## Migración de nombres legacy
+## Renombrado de nombres legacy
 
 No se deben renombrar selectores históricos mediante sustitución masiva.
 
-La migración correcta es:
+El proceso correcto es:
 
 1. identificar todos los consumidores reales;
-2. crear el nombre `hg-*` nuevo junto al selector antiguo cuando la migración no pueda ser atómica;
+2. crear el nombre `hg-*` nuevo junto al selector antiguo cuando el cambio no pueda ser atómico;
 3. añadir la clase nueva al markup sin retirar la antigua;
 4. migrar consumidores por dominios;
 5. comprobar que el selector antiguo ya no aparece en runtime;
@@ -155,7 +155,7 @@ La migración correcta es:
 
 Mientras una clase histórica sea usada por varios dominios, debe permanecer en `hg-legacy-components.css` y llevarse como deuda explícita. Un nombre como `bioSeccion` no implica propiedad de biografías si otros dominios aún lo consumen.
 
-Cuando un dominio puede migrarse por completo en una sola operación controlada, como Inventory, Powers, Traits o Systems en la Fase 4, puede pasar directamente al nombre semántico nuevo siempre que las reglas legacy permanezcan disponibles para los demás consumidores reales.
+Cuando un dominio puede renombrarse por completo en una sola operación controlada, puede pasar directamente al nombre semántico nuevo siempre que las reglas legacy permanezcan disponibles para los demás consumidores reales.
 
 ## Criterio para `hg-core.css`
 
