@@ -20,7 +20,12 @@ $bridgesReady = hg_maneuver_bridge_table_exists($link, 'bridge_maneuvers_systems
     && hg_maneuver_bridge_table_exists($link, 'bridge_maneuvers_forms');
 
 $flash = [];
-$selectedId = (int)($_REQUEST['maneuver_id'] ?? 0);
+$selectedIdInput = filter_input(INPUT_POST, 'maneuver_id', FILTER_VALIDATE_INT);
+if ($selectedIdInput === null || $selectedIdInput === false) {
+    $selectedIdInput = filter_input(INPUT_GET, 'maneuver_id', FILTER_VALIDATE_INT);
+}
+$selectedId = ($selectedIdInput === null || $selectedIdInput === false) ? 0 : (int)$selectedIdInput;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_maneuver_links'])) {
     $token = (string)($_POST['csrf'] ?? '');
     $valid = function_exists('hg_admin_csrf_valid')
