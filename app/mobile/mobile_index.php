@@ -2,7 +2,7 @@
     $routeKey = hg_request_route($hgRequest);
     $mobileTitle = "Heaven's Gate";
 
-    include_once(__DIR__ . '/helpers/chronicle_scope.php');
+    require_once __DIR__ . '/../domains/chronicles/scope.php';
     include(__DIR__ . '/mobile_routes.php');
 
     $mobileRouteKey = $routeKey;
