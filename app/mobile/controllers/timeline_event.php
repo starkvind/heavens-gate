@@ -55,8 +55,8 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$excludedIds = function_exists('hg_mobile_excluded_chronicles_csv')
-    ? hg_timeline_normalize_ids(hg_mobile_excluded_chronicles_csv())
+$excludedIds = function_exists('hg_chronicle_scope_excluded_csv')
+    ? hg_timeline_normalize_ids(hg_chronicle_scope_excluded_csv())
     : [];
 $rawEvent = hg_request_param($hgRequest, 'event');
 $eventId = hg_timeline_resolve_event_id($link, $rawEvent);
