@@ -43,8 +43,8 @@ if (!isset($link) || !($link instanceof mysqli)) {
 
 $requestPath = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? '');
 $isGroupIndex = rtrim($requestPath, '/') === '/groups';
-$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
-    ? hg_mobile_excluded_chronicles_csv()
+$excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv')
+    ? hg_chronicle_scope_excluded_csv()
     : '2,7';
 
 $organizations = hg_relationship_mobile_fetch_organizations($link);
