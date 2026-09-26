@@ -1,0 +1,43 @@
+{
+  "id": "/",
+  "name": "Heaven's Gate",
+  "short_name": "HG",
+  "description": "Archivo digital de la campaña de rol Heaven's Gate.",
+  "lang": "es",
+  "start_url": "/home?view=mobile",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050150",
+  "theme_color": "#050150",
+  "icons": [
+    {
+      "src": "/img/favicon/android-chrome-192x192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/favicon/android-chrome-512x512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Personajes",
+      "short_name": "Personajes",
+      "url": "/characters?view=mobile"
+    },
+    {
+      "name": "Temporadas",
+      "short_name": "Temporadas",
+      "url": "/seasons?view=mobile"
+    },
+    {
+      "name": "Buscar",
+      "short_name": "Buscar",
+      "url": "/search?view=mobile"
+    }
+  ]
+}
