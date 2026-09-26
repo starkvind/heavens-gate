@@ -96,5 +96,8 @@ jobs:
       - name: Enforce Phase 9.2 mobile shared-data boundary
         run: python3 .github/ci/php-phase9-mobile-shared-data-audit.py
 
+      - name: Enforce Phase 9.3 mobile presentation boundary
+        run: python3 .github/ci/php-phase9-mobile-presentation-audit.py
+
       - name: Inventory PHP architecture debt
         run: python3 .github/ci/php-architecture-inventory.py
