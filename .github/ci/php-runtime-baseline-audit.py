@@ -101,7 +101,7 @@ current = {
 for key in ["php_files", "active_routes"]:
     pass
 
-# Architectural debt must not grow after Phase 7 closure.
+# Architectural debt must not grow after production baseline closure.
 for key in [
     "mobile_routes",
     "public_controller_sql_owners",
@@ -122,7 +122,7 @@ if current["admin_controllers"] != BASELINE["admin_controllers"]:
         f"found {current['admin_controllers']}"
     )
 
-print("# Phase 7 final architecture baseline")
+print("# Production architecture baseline")
 for key, value in current.items():
     print(f"{key}: {value}")
 print("bootstrap_php: " + ", ".join(bootstrap_files))
@@ -133,4 +133,4 @@ if errors:
         print(f"ERROR: {error}", file=sys.stderr)
     sys.exit(1)
 
-print("Phase 7 final architecture baseline: PASS")
+print("Production architecture baseline: PASS")

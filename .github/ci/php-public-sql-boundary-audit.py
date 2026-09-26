@@ -27,7 +27,7 @@ for path in sorted((ROOT / "app/mobile/controllers").glob("*.php")):
         owners.append((rel, count))
         errors.append(f"mobile controller owns direct SQL: {rel}: {count}")
 
-print("# PHP Phase 10.1 public SQL boundary")
+print("# Public SQL boundary")
 print("public_controller_sql_owners:", len(owners))
 print("public_controller_sql_calls:", sum(count for _, count in owners))
 
@@ -36,4 +36,4 @@ if errors:
         print("ERROR:", error, file=sys.stderr)
     raise SystemExit(1)
 
-print("PHP Phase 10.1 public SQL boundary: PASS")
+print("Public SQL boundary: PASS")

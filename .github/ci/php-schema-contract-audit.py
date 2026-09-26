@@ -72,9 +72,9 @@ if errors:
         print('ERROR:', error, file=sys.stderr)
     raise SystemExit(1)
 
-print('# Phase 10.2 classified schema introspection audit')
+print('# Schema introspection audit')
 print('Intentional introspection files:', len(found))
 for rel in sorted(found):
     meta = allowed[rel]
     print(f"KEEP [{meta['class']}]: {rel} -- {meta['reason']}")
-print('Phase 10.2 classified schema introspection audit: PASS')
+print('Schema introspection audit: PASS')

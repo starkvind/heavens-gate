@@ -113,7 +113,7 @@ for path in runtime_php_files():
 
 for key, ceiling in ADMIN_RAW_CEILINGS.items():
     if admin_raw[key] > ceiling:
-        errors.append(f'admin raw {key} reads regressed above Phase 10.3 ceiling {ceiling}: {admin_raw[key]}')
+        errors.append(f'admin raw {key} reads regressed above production ceiling {ceiling}: {admin_raw[key]}')
 
 if totals['REQUEST'] != 0:
     errors.append(f'raw $_REQUEST reads must remain zero: {totals["REQUEST"]}')
@@ -135,7 +135,7 @@ if cookie_owners != expected_cookie_owners:
         + ', '.join(sorted(cookie_owners))
     )
 
-print('# Phase 10.3 request-state classification')
+print('# Request-state classification')
 print(f'Admin raw GET reads: {admin_raw["GET"]}')
 print(f'Admin raw POST reads: {admin_raw["POST"]}')
 print(f'Raw $_REQUEST reads: {totals["REQUEST"]}')
@@ -150,4 +150,4 @@ if errors:
         print('ERROR:', error, file=sys.stderr)
     raise SystemExit(1)
 
-print('Phase 10.3 request-state classification: PASS')
+print('Request-state classification: PASS')

@@ -62,7 +62,7 @@ for source, marker, label in [
     if marker not in source:
         errors.append(f"{label} image priority contract missing")
 
-print("# PHP Phase 8 performance contract")
+print("# Performance contract")
 print("home_count_round_trips: 1 (was 13)")
 print("rules_count_round_trips: 1 (was 6)")
 print("recent_content_full_union: 0 (was 10 entity branches)")
@@ -75,4 +75,4 @@ if errors:
         print(f"ERROR: {error}", file=sys.stderr)
     sys.exit(1)
 
-print("PHP Phase 8 performance contract: PASS")
+print("Performance contract: PASS")

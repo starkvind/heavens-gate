@@ -41,7 +41,7 @@ errors = []
 for rel in REMOVED:
     path = ROOT / rel
     if path.exists():
-        errors.append(f'removed Phase 7.1 file returned: {rel}')
+        errors.append(f'retired runtime file returned: {rel}')
 
 this_file = Path(__file__).resolve()
 for root in SCAN_ROOTS:
@@ -56,7 +56,7 @@ for root in SCAN_ROOTS:
         rel = path.relative_to(ROOT).as_posix()
         for token in FORBIDDEN_TOKENS:
             if token in text:
-                errors.append(f'stale Phase 7.1 consumer/token {token!r}: {rel}')
+                errors.append(f'stale retired-runtime consumer/token {token!r}: {rel}')
 
 page_context = (ROOT / 'app/http/page_context.php').read_text(encoding='utf-8', errors='replace')
 for token in ["case 'doc':", "case 'plots':"]:
@@ -84,9 +84,9 @@ if errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
-print('# Phase 7.1 legacy purge audit')
+print('# Retired runtime audit')
 print(f'Removed files guarded: {len(REMOVED)}')
 print('Stale runtime/CI consumers: 0')
 print('Dead dispatch/metadata branches: 0')
 print('Live replacement routes: PASS')
-print('Phase 7.1 legacy purge audit: PASS')
+print('Retired runtime audit: PASS')

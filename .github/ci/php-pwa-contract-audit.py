@@ -106,7 +106,7 @@ if "Sin conexión" not in offline:
 if "/home?view=mobile" not in offline:
     errors.append("offline fallback must retry into mobile shell")
 
-print("# PHP Phase 9.4 PWA contract")
+print("# PWA contract")
 print("manifest: manifest.json")
 print("start_url:", manifest.get("start_url", ""))
 print("service_worker: service-worker.js")
@@ -118,4 +118,4 @@ if errors:
         print("ERROR:", error, file=sys.stderr)
     raise SystemExit(1)
 
-print("PHP Phase 9.4 PWA contract: PASS")
+print("PWA contract: PASS")

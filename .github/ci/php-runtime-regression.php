@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $root = dirname(__DIR__, 2);
 
-function hg_phase7_runtime_fail(string $message): never
+function hg_runtime_regression_fail(string $message): never
 {
     fwrite(STDERR, $message . PHP_EOL);
     exit(1);
@@ -45,18 +45,18 @@ $contracts = [
 foreach ($contracts as $relative => $needles) {
     $source = file_get_contents($root . '/' . $relative);
     if ($source === false) {
-        hg_phase7_runtime_fail("Cannot read {$relative}");
+        hg_runtime_regression_fail("Cannot read {$relative}");
     }
     foreach ($needles as $needle) {
         if (strpos($source, $needle) === false) {
-            hg_phase7_runtime_fail("Phase 7 runtime contract missing in {$relative}: {$needle}");
+            hg_runtime_regression_fail("Runtime contract missing in {$relative}: {$needle}");
         }
     }
 }
 
 $consumerAudit = file_get_contents($root . '/.github/ci/php-consumer-graph-audit.py');
 if ($consumerAudit === false || strpos($consumerAudit, "(?:php|=)") === false) {
-    hg_phase7_runtime_fail('Consumer graph no longer parses short echo PHP blocks');
+    hg_runtime_regression_fail('Consumer graph no longer parses short echo PHP blocks');
 }
 
 $removedPhase72Symbols = [
@@ -103,10 +103,10 @@ foreach (['app', 'api'] as $runtimeRoot) {
         foreach ($removedPhase72Symbols as $symbol) {
             if (preg_match('/\\b' . preg_quote($symbol, '/') . '\\s*\\(/', $source)) {
                 $relative = str_replace($root . '/', '', $file->getPathname());
-                hg_phase7_runtime_fail("Removed Phase 7.2 symbol still called in {$relative}: {$symbol}");
+                hg_runtime_regression_fail("Removed runtime symbol still called in {$relative}: {$symbol}");
             }
         }
     }
 }
 
-fwrite(STDOUT, "Phase 7 runtime regression characterization: OK\n");
+fwrite(STDOUT, "Runtime regression characterization: OK\n");

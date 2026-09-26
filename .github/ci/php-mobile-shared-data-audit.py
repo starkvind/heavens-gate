@@ -94,7 +94,7 @@ unknown = sorted(mobile_routes - desktop_routes)
 if unknown:
     errors.append("mobile-only route keys without canonical desktop route: " + ", ".join(unknown))
 
-print("# PHP Phase 9.2 mobile shared-data contract")
+print("# Mobile shared-data contract")
 print(f"mobile_php_files: {len(mobile_php)}")
 print("mobile_direct_db_execution: 0")
 print("chronicle_scope_owner: app/domains/chronicles/scope.php")
@@ -107,4 +107,4 @@ if errors:
         print(f"ERROR: {error}", file=sys.stderr)
     sys.exit(1)
 
-print("PHP Phase 9.2 mobile shared-data contract: PASS")
+print("Mobile shared-data contract: PASS")
