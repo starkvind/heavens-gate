@@ -32,11 +32,12 @@
     ?>
     <title><?= htmlspecialchars($fullTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></title>
 
-    <link rel="shortcut icon" href="img/ui/branding/infinidice.ico" type="image/x-icon">
-    <link rel="apple-touch-icon" sizes="180x180" href="img/favicon/apple-touch-icon.webp">
-    <link rel="icon" type="image/webp" sizes="32x32" href="img/favicon/favicon-32x32.webp">
-    <link rel="icon" type="image/webp" sizes="16x16" href="img/favicon/favicon-16x16.webp">
-    <link rel="manifest" href="img/favicon/site.webmanifest">
+    <meta name="theme-color" content="#050150">
+    <link rel="shortcut icon" href="/img/ui/branding/infinidice.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.webp">
+    <link rel="icon" type="image/webp" sizes="32x32" href="/img/favicon/favicon-32x32.webp">
+    <link rel="icon" type="image/webp" sizes="16x16" href="/img/favicon/favicon-16x16.webp">
+    <link rel="manifest" href="/manifest.webmanifest">
 
     <?php
         $tokensCssVersion = @filemtime($hgAssetRoot . '/css/hg-tokens.css');
@@ -49,6 +50,7 @@
         $permutScriptVersion = @filemtime($hgAssetRoot . '/js/permutloading.js');
         $tabsScriptVersion = @filemtime($hgAssetRoot . '/js/hg-tabs.js');
         $tooltipScriptVersion = @filemtime($hgAssetRoot . '/js/hg-tooltip.js');
+        $pwaScriptVersion = @filemtime($hgAssetRoot . '/js/hg-pwa.js');
 
         $tokensCssVersion = ($tokensCssVersion !== false) ? (int)$tokensCssVersion : 1;
         $baseCssVersion = ($baseCssVersion !== false) ? (int)$baseCssVersion : 1;
@@ -60,6 +62,7 @@
         $permutScriptVersion = ($permutScriptVersion !== false) ? (int)$permutScriptVersion : 1;
         $tabsScriptVersion = ($tabsScriptVersion !== false) ? (int)$tabsScriptVersion : 1;
         $tooltipScriptVersion = ($tooltipScriptVersion !== false) ? (int)$tooltipScriptVersion : 1;
+        $pwaScriptVersion = ($pwaScriptVersion !== false) ? (int)$pwaScriptVersion : 1;
     ?>
 
     <link rel="stylesheet" href="assets/css/hg-tokens.css?v=<?= $tokensCssVersion ?>">
@@ -81,4 +84,5 @@
     <script type="text/javascript" src="assets/js/permutloading.js?v=<?= $permutScriptVersion ?>"></script>
     <script type="text/javascript" src="assets/js/hg-tabs.js?v=<?= $tabsScriptVersion ?>"></script>
     <script type="text/javascript" src="assets/js/hg-tooltip.js?v=<?= $tooltipScriptVersion ?>" defer></script>
+    <script type="text/javascript" src="assets/js/hg-pwa.js?v=<?= $pwaScriptVersion ?>" defer></script>
 </head>
