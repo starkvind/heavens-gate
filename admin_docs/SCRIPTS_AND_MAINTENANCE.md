@@ -59,7 +59,6 @@ app/tools no es una carpeta pública. .htaccess bloquea /app.
 - crop.html: implementación física usada por la ruta pública /tools/crop.
 - forum_topic_viewer_tool.php: adaptador de lectura del foro para la herramienta enrutada.
 - inspect_db.php: diagnóstico de esquema usado desde la superficie administrativa autorizada.
-- forum_resumee_builder.html: auxiliar interno sin ruta pública propia.
 
 No enlaces nunca directamente a /app/tools/....
 

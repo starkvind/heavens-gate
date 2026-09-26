@@ -8,8 +8,6 @@
 - assets/js/hg-pwa.js: instalación y registro.
 - public/: imágenes y sonidos públicos.
 
-manifest.webmanifest existe por compatibilidad; manifest.json es el contrato canónico usado por CI.
-
 ## Reglas
 
 El service worker no debe cachear Admin ni endpoints dinámicos sensibles. Mantén el fallback offline pequeño y estable.
