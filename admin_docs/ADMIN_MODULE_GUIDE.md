@@ -88,5 +88,5 @@ Si una operación modifica estructura:
 - documentar expresamente que escribe DDL;
 - exigir backup;
 - limitarla a un caso concreto y repetible;
-- preferir una migración versionada y auditable antes que DDL escondido dentro de un CRUD.
+- preferir un cambio de esquema versionado y auditable antes que DDL escondido dentro de un CRUD.
 
