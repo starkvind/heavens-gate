@@ -21,7 +21,7 @@ BASELINE = {
     "schema_probes": 20,
     "raw_get_reads": 192,
     "raw_post_reads": 708,
-    "raw_request_reads": 1,
+    "raw_request_reads": 0,
     "legacy_query_cases": 47,
 }
 
