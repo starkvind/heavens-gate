@@ -343,3 +343,96 @@ if (!function_exists('hg_dice_insert_roll')) {
         return $id;
     }
 }
+
+if (!function_exists('hg_dice_form_attribute_modifier')) {
+    function hg_dice_form_attribute_modifier(mysqli $db, int $characterId, int $formId, int $traitId): int
+    {
+        if ($characterId <= 0 || $formId <= 0 || $traitId <= 0) {
+            return 0;
+        }
+
+        $sql = "SELECT b.modifier, t.name AS trait_name, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus
+                FROM dim_forms f
+                JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
+                JOIN dim_traits t ON t.id = ?
+                LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
+                WHERE f.id = ? LIMIT 1";
+        $stmt = mysqli_prepare($db, $sql);
+        if (!$stmt) {
+            return 0;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'iii', $characterId, $traitId, $formId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        if ($result) {
+            mysqli_free_result($result);
+        }
+        mysqli_stmt_close($stmt);
+
+        if (!$row) {
+            return 0;
+        }
+        if ($row['modifier'] !== null) {
+            return (int)$row['modifier'];
+        }
+
+        switch ((string)($row['trait_name'] ?? '')) {
+            case 'Fuerza':
+                return (int)($row['strength_bonus'] ?? 0);
+            case 'Destreza':
+                return (int)($row['dexterity_bonus'] ?? 0);
+            case 'Resistencia':
+                return (int)($row['stamina_bonus'] ?? 0);
+            default:
+                return 0;
+        }
+    }
+}
+
+if (!function_exists('hg_dice_fetch_roll_history')) {
+    function hg_dice_fetch_roll_history(mysqli $link): array
+    {
+        $result = mysqli_query(
+            $link,
+            'SELECT id, roll_name, name, successes, botch, willpower_spent, rolled_at
+             FROM fact_dice_rolls
+             ORDER BY rolled_at DESC'
+        );
+        if (!$result) {
+            return [];
+        }
+
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rows[] = $row;
+        }
+        mysqli_free_result($result);
+        return $rows;
+    }
+}
+
+if (!function_exists('hg_dice_fetch_recent_rolls')) {
+    function hg_dice_fetch_recent_rolls(mysqli $link, int $limit = 10): array
+    {
+        $limit = max(1, min(100, $limit));
+        $result = mysqli_query(
+            $link,
+            "SELECT id, roll_name, name
+             FROM fact_dice_rolls
+             ORDER BY rolled_at DESC
+             LIMIT {$limit}"
+        );
+        if (!$result) {
+            return [];
+        }
+
+        $rows = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rows[] = $row;
+        }
+        mysqli_free_result($result);
+        return $rows;
+    }
+}
