@@ -1,111 +1,104 @@
 # Heaven's Gate
 
-Heaven's Gate is the live PHP web application used to publish and maintain the Heaven's Gate RPG setting: characters, chronicles, seasons, chapters, timeline events, organizations, groups, rules, systems, maps, documents, soundtrack and tools.
+Heaven's Gate is the production PHP application for publishing and maintaining the Heaven's Gate campaign archive.
 
-The project is intentionally database-driven. Public URLs use readable slugs while the editorial backend under `/talim` maintains the relational data behind them.
+The repository is intentionally a production repository: runtime code, permanent regression checks, operational documentation and a small set of reusable maintenance tools. Historical migrations, one-use SQL and refactor scaffolding belong in starkvind/heavens-gate-continuity, not here.
 
-## Runtime at a glance
+## Production architecture
 
-- PHP application with a single public front controller: `index.php`.
-- Canonical routing under `app/routing/`; historical `?p=...` compatibility is isolated in `app/routing/legacy_query.php`.
-- Shared page dispatch under `app/http/page_dispatch.php`, with pure dispatch policy in `app/http/dispatch_policy.php` and controller inclusion in `app/http/dispatcher.php`.
-- Bootstrap is startup-only: `app/bootstrap/runtime.php` loads the small set of global runtime configuration values.
-- MySQL/MariaDB through `mysqli`.
-- Production snapshot reviewed on 2026-09-02: MariaDB 10.5.29.
-- 119 production tables, 4 views and 1 stored procedure in the 2026-09-01 snapshot.
-- Desktop and mobile presentation layers share the same underlying content.
-- Administrative maintenance lives under `/talim`.
+- Single public front controller: index.php.
+- Canonical routing: app/routing/.
+- Dispatch/runtime HTTP layer: app/http/.
+- Domain queries and data access: app/domains/.
+- Public/Admin/tool controllers: app/controllers/.
+- Desktop presentation: app/views/ and app/presentation/.
+- Mobile compatibility presentation: app/mobile/.
+- Shared helpers: app/helpers/.
+- Frontend assets: assets/.
+- Public media: public/.
+- Operational CLI tools: tools/.
+- Technical manuals: admin_docs/.
 
-## Repository map
+Normal request flow:
 
-| Path | Purpose |
-|---|---|
-| `app/bootstrap/` | Minimal application startup/runtime configuration. |
-| `app/routing/` | Canonical path matching, legacy URL compatibility, request routing runtime and route registry. |
-| `app/http/` | Request context, pretty normalization, page dispatch, dispatch policy and output helpers. |
-| `app/presentation/` | Presentation context that should not live in the front controller. |
-| `app/views/` | Presentation/layout views, including the desktop document head. |
-| `app/controllers/` | Public, admin and tool controllers. |
-| `app/domains/` | Domain-local query/data helpers extracted from controllers. |
-| `app/helpers/` | Shared database, security and reusable helpers. |
-| `app/modules/` | Larger domain-specific modules. |
-| `app/mobile/` | Mobile compatibility presentation layer. |
-| `app/partials/` | Shared layout fragments. |
-| `api/` | JSON endpoints. |
-| `assets/` | CSS, JavaScript and vendored frontend assets. |
-| `public/` | Public images and sounds. |
-| `tools/` | Repository-level CLI/developer tools. |
-| `sql/` | Focused SQL audits; not a schema installer. |
-| `reports/` | Dated editorial reports. |
-| `admin_docs/` | Maintained technical documentation. |
-
-## Local/runtime requirements
-
-The current runtime expects:
-
-- PHP 8.x;
-- `mysqli`;
-- MariaDB/MySQL compatible with the production schema;
-- a web server serving the repository root;
-- `config.env` with:
-  - `MYSQL_HOST`
-  - `MYSQL_USER`
-  - `MYSQL_PWD`
-  - `MYSQL_BDD`
-
-`app/helpers/db_connection.php` searches `config.env` outside the project root first, then in the root, then in the legacy `app/` location.
-
-There is **no current full-schema installer in this repository**. Old documentation that referred to `install_schema_from_dump.php` or `schema_definition.php` is obsolete. The current production structure is documented from the continuity snapshot instead.
-
-## Routing
-
-A normal canonical request flows conceptually through:
-
-`.htaccess` → `index.php` → `request_runtime.php` → `path_matcher.php` → `page_dispatch.php` → `routes.php` → `dispatch_policy.php` / `dispatcher.php` → controller → presentation.
-
-Historical `?p=...` requests pass through `app/routing/legacy_query.php` only long enough to resolve their canonical destination. Canonical path matching remains database-free.
-
-`app/http/page_dispatch.php` is shared by desktop requests and the mobile fallback path. The retired `app/bootstrap/body_work.php` and `app/bootstrap/request_router.php` coordinators must not be reintroduced.
-
-Do not expose PHP files under `app/` directly. `.htaccess` deliberately blocks `/app` and `/admin_docs`.
-
-For a new simple public section, `tools/scaffold_section.py` wires the canonical path matcher and route registry and creates the controller. Entity-detail routes and historical `?p=...` compatibility still require deliberate manual work.
-
-See [PUBLIC_SECTION_GUIDE.md](./admin_docs/PUBLIC_SECTION_GUIDE.md).
+    .htaccess
+      -> index.php
+      -> app/routing/request_runtime.php
+      -> app/routing/path_matcher.php or legacy_query.php
+      -> app/http/page_dispatch.php
+      -> app/routing/routes.php
+      -> app/http/dispatch_policy.php
+      -> app/http/dispatcher.php
+      -> controller
+      -> view/presentation
 
 ## Database
 
-The authoritative reference used for this documentation refresh is the production snapshot:
+Production is MariaDB 10.5.x through mysqli.
 
-`starkvind/heavens-gate-continuity/snapshots/web/database/production-2026-09-01.sql`
+Current documented production surface after the September 2026 cleanup:
 
-The snapshot contains:
+- 36 dim_* tables;
+- 27 fact_* tables;
+- 38 bridge_* tables;
+- 101 tables total;
+- 0 views;
+- 0 stored procedures.
 
-- 43 `dim_*` tables;
-- 36 `fact_*` tables;
-- 39 `bridge_*` tables;
-- 1 admin/migration backup table;
-- 4 views;
-- 1 stored procedure.
+There is no schema installer or one-use SQL directory in the production repository. Schema history and historical SQL live in continuity.
 
-See [DATABASE_SCHEMA.md](./admin_docs/DATABASE_SCHEMA.md) for the maintained map.
+See [admin_docs/DATABASE_SCHEMA.md](./admin_docs/DATABASE_SCHEMA.md).
 
+## Configuration
 
-## Maintenance
+The runtime expects config.env with:
 
-Start here:
+- MYSQL_HOST
+- MYSQL_USER
+- MYSQL_PWD
+- MYSQL_BDD
+
+app/helpers/db_connection.php checks the parent of the project root first, then the project root, then the legacy app location.
+
+Never commit config.env or credentials.
+
+## How to modify the site safely
+
+Start with [admin_docs/manuals/README.md](./admin_docs/manuals/README.md).
+
+It contains operational manuals for routing, public pages, Admin, database, CSS, JavaScript, mobile, PWA, tools/APIs, security, deployment, CI and the domain map.
+
+Useful quick references:
 
 - [Technical architecture](./admin_docs/TECHNICAL_DOCUMENTATION.md)
+- [Route dictionary](./admin_docs/ROUTE_DICTIONARY.md)
 - [Database schema](./admin_docs/DATABASE_SCHEMA.md)
 - [Scripts and maintenance](./admin_docs/SCRIPTS_AND_MAINTENANCE.md)
-- [Admin module guide](./admin_docs/ADMIN_MODULE_GUIDE.md)
 - [Public section guide](./admin_docs/PUBLIC_SECTION_GUIDE.md)
-- [Documentation index](./admin_docs/README.md)
+- [Admin module guide](./admin_docs/ADMIN_MODULE_GUIDE.md)
 
+## Production checks
 
-## Administration
+Full live HTTP smoke:
 
-The application includes an authenticated editorial backend for maintaining campaign content. Operational details, privileged routes and production procedures are intentionally not documented in the public README.
+    bash tools/production_smoke.sh
+
+Read-only architecture inventory:
+
+    python3 tools/architecture_inventory.py
+
+For creating a simple public section, always inspect a dry-run first:
+
+    python3 tools/scaffold_section.py --route-key example --slug example --title "Example" --dry-run
+
+## CI
+
+Two permanent workflows protect production:
+
+- Project CI: PHP lint, security, private-tree guards, CSS ownership, cache/versioning, API auth and repository hygiene.
+- Architecture Regression Checks: routing, request-state, query boundaries, mobile/PWA, performance, Admin structure and retired-feature guards.
+
+Historical phase workflows are not part of production anymore.
 
 ## License
 

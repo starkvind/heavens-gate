@@ -1,6 +1,6 @@
 # Arquitectura CSS de Heaven's Gate
 
-Última revisión: 2026-09-25.
+Última revisión: 2026-09-27.
 
 Este documento define la propiedad de los estilos públicos y la convención de nombres que debe seguir el código nuevo. `hg-core.css` debe mantenerse como un núcleo pequeño y cada regla debe tener un propietario reconocible.
 
@@ -171,9 +171,9 @@ Tarjetas, tabs, tooltips, breadcrumbs y otros widgets reutilizables pertenecen a
 
 ## CI
 
-`.github/workflows/security-checks.yml` funciona como CI general del proyecto. Se ejecuta en cualquier `push`, en pull requests hacia `master` y mediante `workflow_dispatch`.
+Los contratos CSS se ejecutan desde `.github/workflows/security-checks.yml` y `.github/workflows/architecture-checks.yml`. El guard principal es `.github/ci/css-architecture-guard.py`.
 
-Además del lint PHP y los guards de seguridad, verifica referencias a stylesheets locales y protege la propiedad del core frente a regresiones conocidas. El guard debe evolucionar con la arquitectura, pero no sustituye las pruebas visuales o HTTP de una instalación real.
+CI protege referencias a stylesheets locales, propiedad del core y regresiones estructurales, pero no sustituye las pruebas visuales ni `tools/production_smoke.sh`.
 
 ## Regla para código nuevo
 

@@ -1,145 +1,125 @@
 # Scripts y mantenimiento
 
-Última revisión: 2026-09-26.
+Última revisión: 2026-09-27.
 
-Este documento describe las herramientas que **existen realmente** en el repositorio en esta fecha. No presupone instaladores o migradores retirados.
+Este documento enumera herramientas que siguen teniendo utilidad operativa. Si un script no aparece aquí ni está llamado por CI, no debe asumirse que sea seguro ejecutarlo.
 
-## Regla general
+## Política
 
-No hay actualmente un instalador canónico que reconstruya toda la base de datos desde el repositorio web. El repositorio contiene runtime, utilidades concretas y scripts editoriales, pero el esquema de producción completo se conserva como snapshot en el repositorio de continuidad.
+heavens-gate es producción. No contiene migraciones SQL históricas ni scripts de una sola ejecución. Ese material se archiva en heavens-gate-continuity.
 
-Antes de ejecutar una herramienta que escriba en base de datos:
+Antes de cualquier operación con escritura:
 
-1. disponer de un backup reciente;
-2. comprobar que `config.env` apunta al entorno correcto;
-3. usar `--dry-run` cuando la herramienta lo soporte;
-4. revisar el resultado con `/talim?s=admin_inspect_db` o con consultas de auditoría;
-5. no ejecutar herramientas retiradas o históricas por intuición.
+1. confirmar master y working tree limpio;
+2. comprobar el entorno y config.env;
+3. obtener backup si se toca BDD o contenido crítico;
+4. usar dry-run cuando exista;
+5. ejecutar las verificaciones indicadas en este documento.
 
-## Configuración compartida
+## Herramientas de tools/
 
-`app/helpers/db_connection.php` busca `config.env`, por este orden:
+### production_smoke.sh
 
-1. directorio padre de la raíz del proyecto;
-2. raíz del proyecto;
-3. ubicación legacy bajo `app/`.
+Objetivo: verificar la instalación web real después de despliegues o cambios sensibles.
 
-Claves obligatorias para conexión:
+Ejecutar:
 
-- `MYSQL_HOST`
-- `MYSQL_USER`
-- `MYSQL_PWD`
-- `MYSQL_BDD`
+    bash tools/production_smoke.sh
 
-La configuración global necesaria antes del dispatch se carga desde `app/bootstrap/runtime.php`, mientras que su acceso a datos vive en `app/domains/configuration/queries.php`.
+Comprueba hubs públicos, vista móvil, Admin shell, PWA, embeds, redirects legacy, árboles privados y cabeceras de caché.
 
-## Herramientas CLI
+No modifica la base de datos.
 
-### `app/tools/backfill_content_updates.php`
+### scaffold_section.py
 
-Puebla `fact_content_updates` a partir del contenido público más reciente.
+Objetivo: crear el esqueleto de una sección pública simple sin editar a mano las piezas básicas de routing.
 
-Uso:
+Primero:
 
-~~~bash
-php app/tools/backfill_content_updates.php
-php app/tools/backfill_content_updates.php 250
-php app/tools/backfill_content_updates.php 100 --dry-run
-~~~
+    python3 tools/scaffold_section.py --route-key example --slug example --title "Example" --dry-run
 
-El límite por defecto es 100 y el script acepta como máximo 1000 filas. `--dry-run` permite inspeccionar sin escribir.
+Solo después de revisar el plan se ejecuta sin --dry-run.
 
-No cambia el esquema.
+Puede tocar path_matcher.php, routes.php, crear controlador, CSS opcional y menú fallback. No resuelve rutas de detalle, pretty_id, CRUD ni compatibilidad ?p=... por sí solo.
 
-### `tools/scaffold_section.py`
+### architecture_inventory.py
 
-Genera el esqueleto de una sección pública sencilla y cablea:
+Objetivo: fotografía read-only de la arquitectura PHP: tamaño, SQL directo, request globals, schema probes y concentración de compatibilidad.
 
-- `app/routing/path_matcher.php`;
-- `app/routing/routes.php`;
-- opcionalmente un CSS en `assets/css`;
-- opcionalmente una entrada del menú fallback.
+Ejecutar:
 
-Ejemplo seguro:
+    python3 tools/architecture_inventory.py
 
-~~~bash
-python tools/scaffold_section.py \
-  --route-key codex_guide \
-  --slug codex-guide \
-  --title "Guía del códice" \
-  --dry-run
-~~~
+No modifica código ni BDD. Sirve para investigar antes de una refactorización o para comparar deuda.
 
-Después del dry-run, repetir sin `--dry-run` si el plan es correcto.
+## Herramientas internas bajo app/tools/
 
-Si se solicita CSS, el controlador generado lo registra mediante `hg_page_register_stylesheet()`; no inyecta un `<link>` en el cuerpo.
+app/tools no es una carpeta pública. .htaccess bloquea /app.
 
-No sirve para rutas de detalle con `pretty_id`, CRUD complejos ni para decidir automáticamente compatibilidad histórica `?p=...`. Si una sección sustituye una URL legacy, la canonicalización debe añadirse conscientemente a `app/routing/legacy_query.php`.
+- crop.html: implementación física usada por la ruta pública /tools/crop.
+- forum_topic_viewer_tool.php: adaptador de lectura del foro para la herramienta enrutada.
+- inspect_db.php: diagnóstico de esquema usado desde la superficie administrativa autorizada.
+- forum_resumee_builder.html: auxiliar interno sin ruta pública propia.
 
-Véase [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md).
+No enlaces nunca directamente a /app/tools/....
 
-## Herramientas administrativas
+## Pruebas locales útiles
 
-Las herramientas internas de inspección y mantenimiento se ejecutan exclusivamente dentro del backend autenticado o mediante CLI. El repositorio público no documenta rutas privilegiadas concretas.
+Lint PHP:
 
-## Herramientas públicas enrutadas
+    find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+    php -l index.php
 
-Los ficheros bajo `app/` no son accesibles directamente: `.htaccess` bloquea `/app/...`. Cuando una herramienta es pública, debe pasar por el front controller.
+Guard CSS:
 
-Rutas vigentes:
+    python3 .github/ci/css-architecture-guard.py
 
-| Ruta | Route key | Implementación |
-|---|---|---|
-| `/tools/crop` | `crop` | `app/tools/crop.html` |
-| `/tools/forum-topic-viewer` | `forum_topic_viewer` | controlador público + `app/tools/forum_topic_viewer_tool.php` |
-| `/tools/forum-avatar` | `forum_avatar_tool` | `app/controllers/tool/forum_avatar_builder.php` |
+Contrato arquitectónico principal:
 
-La existencia física de un fichero en `app/tools` **no implica** que tenga una URL pública.
+    python3 .github/ci/php-architecture-contract-audit.py
 
-### Operaciones de esquema
+Límites de dominio/SQL:
 
-Las operaciones que cambian estructura de datos no se exponen como rutas web. Deben ejecutarse mediante un flujo de mantenimiento controlado y fuera del runtime público.
+    python3 .github/ci/php-domain-query-boundary-audit.py
+    python3 .github/ci/php-public-sql-boundary-audit.py
+    python3 .github/ci/php-schema-contract-audit.py
 
-## Herramientas auxiliares no enrutadas
+Routing:
 
-`app/tools/forum_resumee_builder.html` existe como fichero auxiliar, pero no posee una ruta pública válida por sí mismo porque `/app` está bloqueado. Si aparece enlazado directamente desde alguna interfaz, ese enlace es un residuo de implementación y no debe documentarse como ruta funcional.
+    php .github/ci/php-router-characterization.php
+    php .github/ci/php-path-matcher-characterization.php
+    php .github/ci/php-dispatch-characterization.php
 
-## SQL y reportes editoriales
+PWA y móvil:
 
-### `sql/audit_gaia0_content.sql`
+    python3 .github/ci/php-pwa-contract-audit.py
+    python3 .github/ci/php-mobile-shared-data-audit.py
+    python3 .github/ci/php-mobile-presentation-audit.py
 
-Consulta de **solo lectura** para medir huecos editoriales de Gaia0: biografías vacías, episodios sin sinopsis, eventos sin realidad, duplicados de `pretty_id` y puentes huérfanos.
+Admin:
 
-No crea tablas, no migra el esquema y no debe confundirse con un instalador.
+    php .github/ci/php-admin-shell-characterization.php
+    python3 .github/ci/php-admin-domain-boundary-audit.py
+    python3 .github/ci/php-admin-structural-audit.py
 
-### `reports/gaia0_gap_analysis_20260901.md`
+La ejecución normal de todos estos contratos se deja a GitHub Actions.
 
-Informe derivado de la auditoría anterior. Es una fotografía editorial fechada, no documentación de runtime.
+## Base de datos
 
-## Herramientas retiradas
+No hay directorio SQL operativo en producción.
 
-La documentación antigua mencionaba herramientas que ya no existen en el repositorio actual, entre ellas:
+Si una operación futura necesita DDL o una auditoría SQL puntual:
 
-- `app/tools/install_schema_from_dump.php`;
-- `app/tools/schema_definition.php`;
-- `app/tools/schema_initializer.php`;
-- `app/controllers/admin/admin_schema_initializer.php`;
-- `app/tools/generate_pretty_ids.php`;
-- `app/controllers/admin/admin_map_kmz_import.php`;
-- `app/tools/seed_game_cards.php`;
-- `tools/seed_game_cards.php`.
+- se prepara fuera de master;
+- se revisa contra DATABASE_SCHEMA.md;
+- se ejecuta con backup y cuenta adecuada;
+- una vez terminada se archiva en continuity;
+- no se deja como residuo permanente en heavens-gate.
 
-No deben recrearse ni invocarse siguiendo documentación vieja. Si una tarea futura necesita esa capacidad, debe diseñarse contra el esquema vigente y no resucitar automáticamente el flujo anterior.
+## Después de un despliegue
 
-## Checklist de mantenimiento
+Ejecutar:
 
-Antes de tocar base de datos o scripts:
+    bash tools/production_smoke.sh
 
-- confirmar entorno y rama;
-- obtener backup/snapshot;
-- identificar si la herramienta es lectura, escritura o destructiva;
-- comprobar que la tabla y columnas existen en [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md);
-- ejecutar dry-run cuando exista;
-- revisar logs y respuesta;
-- verificar rutas públicas a través de `app/routing/request_runtime.php` y del propietario correspondiente (`path_matcher.php` o `legacy_query.php`);
-- actualizar esta documentación cuando cambie el comportamiento operativo.
+Después comprobar manualmente al menos una página pública compleja, una ficha de personaje, una pantalla de /talim y cualquier área modificada.

@@ -1,6 +1,6 @@
 # Technical Documentation — Heaven's Gate
 
-Última revisión: 2026-09-26.
+Última revisión: 2026-09-27.
 
 ## 1. Alcance y fuentes
 
@@ -31,7 +31,7 @@ Fuentes principales:
 - `app/helpers/pretty.php`
 - `app/domains/configuration/queries.php`
 - `app/controllers/admin/admin_main.php`
-- `production-2026-09-01.sql`
+- dump de producción 2026-09-24 conservado en continuity + verificación post-limpieza 2026-09-27
 
 Para el inventario humano completo de route keys, aliases, URLs y controladores, véase [ROUTE_DICTIONARY.md](./ROUTE_DICTIONARY.md).
 
@@ -177,23 +177,15 @@ La traducción completa de nombres internos históricos está en [ROUTE_DICTIONA
 
 ## 9. Modelo de datos
 
-La base de producción revisada contiene **119 tablas**:
+La base de producción documentada contiene **101 tablas**:
 
-- 43 `dim_*`;
-- 36 `fact_*`;
-- 39 `bridge_*`;
-- `admin_webp_image_migration_backup`.
+- 36 dim_*;
+- 27 fact_*;
+- 38 bridge_*;
+- 0 vistas;
+- 0 procedimientos almacenados.
 
-Además contiene vistas legacy relacionadas con herramientas retiradas y el procedimiento `audit_signed_id_columns()`. La presencia de objetos de datos del antiguo juego de cartas o simulador no implica runtime activo.
-
-Convención general:
-
-- `dim_*`: catálogos y entidades maestras;
-- `fact_*`: contenido o hechos;
-- `bridge_*`: relaciones N:M;
-- `admin_*`: auxiliares operativas e históricas.
-
-Véase [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
+Los objetos del antiguo juego de cartas, simulador y la tabla auxiliar de migración WebP fueron retirados de producción. Véase [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
 
 ## 10. Hubs narrativos
 
@@ -242,18 +234,15 @@ El request público se normaliza en `hgRequest`; los controladores públicos no 
 
 ## 12. Herramientas y mantenimiento
 
-Herramientas internas existentes incluyen:
+Herramientas operativas permanentes:
 
-- `tools/scaffold_section.py`;
-- `app/tools/backfill_content_updates.php`;
-- `app/tools/inspect_db.php`;
-- `sql/audit_gaia0_content.sql`.
+- tools/production_smoke.sh — smoke HTTP de la instalación real;
+- tools/scaffold_section.py — scaffold de secciones públicas simples;
+- tools/architecture_inventory.py — inventario read-only de arquitectura.
 
-`tools/scaffold_section.py` vuelve a estar operativo para **secciones públicas simples**: crea el controlador y cablea `app/routing/path_matcher.php` + `app/routing/routes.php`. Si se solicita CSS, el controlador generado lo registra mediante `hg_page_register_stylesheet()` para mantener la carga en `<head>`.
+No hay SQL de una sola ejecución en el repositorio de producción. Migraciones, auditorías editoriales y scripts históricos se conservan en continuity.
 
-No sirve para rutas de detalle con `pretty_id`, CRUD complejo ni para decidir automáticamente compatibilidad histórica `?p=...`.
-
-Véase [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md).
+Véase [SCRIPTS_AND_MAINTENANCE.md](./SCRIPTS_AND_MAINTENANCE.md) y [manuals/README.md](./manuals/README.md).
 
 ## 13. Añadir secciones
 
