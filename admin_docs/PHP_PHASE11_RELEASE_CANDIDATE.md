@@ -10,6 +10,8 @@ Master baseline at RC entry: `e614e6bacff25f6d6f7bfe04fc815e8112fd83e3`.
 
 Reconciled refactor baseline: `612c86545f8b4e17a2c60a09fc05e747a5cea0db`.
 
+Validation PR: `#15` (`php-refactor -> master`), draft and non-mergeable by policy until explicit authorization.
+
 ## Purpose
 
 Freeze the PHP refactor as a release candidate before the final Raspberry smoke, integration audit and explicit authorization to consolidate into `master`.
@@ -75,4 +77,4 @@ The RC is accepted only after:
 
 Phase 11.0 and 11.1 must not modify `master`.
 
-A draft pull request may be used as a CI surface, but it must not be merged before explicit authorization.
+The draft validation pull request must not be merged before explicit authorization.
