@@ -64,7 +64,7 @@ if (!isset($hgRequest) || !is_array($hgRequest)) {
 
 $rawPlayer = hg_request_param($hgRequest, 'player');
 $playerId = $rawPlayer !== '' ? hg_mobile_player_resolve_id($link, $rawPlayer) : 0;
-$chronicleScope = hg_mobile_excluded_chronicles_csv();
+$chronicleScope = hg_chronicle_scope_excluded_csv();
 
 if ($playerId <= 0) {
     $players = hg_players_fetch_catalog($link, $chronicleScope, true);
