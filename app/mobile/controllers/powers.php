@@ -190,7 +190,7 @@ function hg_mpw_character_card(mysqli $db, array $character): void
 
 function hg_mpw_excluded_chronicles(): string
 {
-    if (function_exists('hg_mobile_excluded_chronicles_csv')) return hg_mobile_excluded_chronicles_csv();
+    if (function_exists('hg_chronicle_scope_excluded_csv')) return hg_chronicle_scope_excluded_csv();
     return '2,7';
 }
 
