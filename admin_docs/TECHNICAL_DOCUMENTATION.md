@@ -113,6 +113,8 @@ Responsabilidades actuales:
 
 El shell desktop vive en `app/views/layout/desktop.php`; su `<head>` vive en `app/views/layout/head.php`. El tema y la URL de cambio a vista móvil se preparan en `app/presentation/desktop_context.php`.
 
+En escritorio, `desktop_context.php` conserva soporte técnico para `classic`, `modern` y `power-save`, pero **Classic es la apariencia canónica durante el refactor**. Modern y Power Save son variantes residuales incompletas y no se ofrecen mediante un selector global. La tematización completa del escritorio queda expresamente diferida a una fase de diseño posterior al refactor PHP, porque debe resolver también assets gráficos históricos y componentes todavía ligados a la paleta clásica.
+
 `?view=mobile` usa la misma resolución de URL y el mismo `route key`, pero `app/mobile/mobile_index.php` selecciona un controlador desde `app/mobile/mobile_routes.php`.
 
 No es un segundo router público. Si un route key no tiene controlador móvil específico se usa `app/mobile/controllers/fallback.php`, que delega en el mismo `app/http/page_dispatch.php` que desktop.
