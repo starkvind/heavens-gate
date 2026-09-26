@@ -215,6 +215,8 @@ La Fase 7.4B elimina los aliases históricos del dispatch activo. Los siguientes
 | `totems` | `/powers/totems` |
 | `imgz` | `/gallery` |
 
+Los siete aliases públicos anteriores se definen en un único catálogo, `hg_request_router_public_aliases()`, y se normalizan una sola vez antes de resolver el destino canónico. No poseen ya entradas propias en el mapa directo ni ramas `case` duplicadas.
+
 Los aliases administrativos antiguos (`admin_pjs`, `admin_epis`, `admin_temp`, `admin_plots` y el typo `admin_characters_conditions_brige`) se han retirado por completo: el backend es privado y no justifica mantener esa deuda de compatibilidad.
 
 ### Frontera de compatibilidad tras 7.4C
