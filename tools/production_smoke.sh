@@ -67,7 +67,7 @@ check_redirect() {
   fi
 }
 
-printf 'Heaven\x27s Gate Phase 11 Raspberry smoke\n'
+printf 'Heaven\x27s Gate production smoke\n'
 printf 'Base URL: %s\n\n' "$BASE_URL"
 
 printf '%s\n' '--- Public hubs ---'
@@ -94,8 +94,8 @@ check_contains /manifest.json '/home?view=mobile'
 check_contains /service-worker.js '/offline.html'
 
 printf '\n%s\n' '--- Forum embed contract ---'
-check_status '/forum/message?id=-1&msg=Phase11Smoke' 200
-check_contains '/forum/message?id=-1&msg=Phase11Smoke' 'Phase11Smoke'
+check_status '/forum/message?id=-1&msg=ProductionSmoke' 200
+check_contains '/forum/message?id=-1&msg=ProductionSmoke' 'ProductionSmoke'
 check_status /assets/js/forum-avatar-embed.js 200
 check_contains /assets/js/forum-avatar-embed.js '__hgAvatarResizeInstalled'
 check_contains /assets/js/forum-avatar-embed.js 'LEGACY_HEIGHT_PADDING'
@@ -114,7 +114,6 @@ check_status '/app/routing/routes.php' 404
 check_status_any '/admin_docs/TECHNICAL_DOCUMENTATION.md' 403 404
 check_status '/.github/workflows/security-checks.yml' 404
 check_status '/tools/scaffold_section.py' 404
-check_status '/sql/audit_gaia0_content.sql' 404
 
 printf '\n%s\n' '--- Dynamic response cache contract ---'
 check_header_contains /home 'Cache-Control: no-cache, max-age=0, must-revalidate'
@@ -124,4 +123,4 @@ if (( failures > 0 )); then
   exit 1
 fi
 
-printf 'Automated Raspberry smoke PASS. Complete the manual checks in admin_docs/PHP_PHASE11_SMOKE.md.\n'
+printf 'Automated production smoke PASS. See admin_docs/manuals/11_DEPLOYMENT_AND_SMOKE.md for manual checks.\n'

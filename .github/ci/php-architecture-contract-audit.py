@@ -48,17 +48,17 @@ EXPECTED_COOKIE_OWNERS = {
 }
 
 REQUIRED_GUARDS = [
-    '.github/ci/php-phase10-public-sql-audit.py',
+    '.github/ci/php-public-sql-boundary-audit.py',
     '.github/ci/php-schema-contract-audit.py',
-    '.github/ci/php-phase10-request-state-audit.py',
-    '.github/ci/php-phase10-legacy-alias-audit.py',
+    '.github/ci/php-request-state-boundary-audit.py',
+    '.github/ci/php-legacy-alias-audit.py',
 ]
 REQUIRED_WORKFLOW_MARKERS = [
-    'php-phase10-public-sql-audit.py',
+    'php-public-sql-boundary-audit.py',
     'php-schema-contract-audit.py',
-    'php-phase10-request-state-audit.py',
-    'php-phase10-legacy-alias-audit.py',
-    'php-phase10-final-audit.py',
+    'php-request-state-boundary-audit.py',
+    'php-legacy-alias-audit.py',
+    'php-architecture-contract-audit.py',
 ]
 
 
@@ -144,7 +144,7 @@ for path in files:
 
 for key, ceiling in REQUEST_CEILINGS.items():
     if request_totals[key] > ceiling:
-        errors.append(f'raw {key} request reads regressed above Phase 10 ceiling {ceiling}: {request_totals[key]}')
+        errors.append(f'raw {key} request reads regressed above production ceiling {ceiling}: {request_totals[key]}')
 if request_totals['REQUEST'] != 0:
     errors.append(f'raw $_REQUEST must remain zero: {request_totals["REQUEST"]}')
 if cookie_owners != EXPECTED_COOKIE_OWNERS:
@@ -183,14 +183,14 @@ for rel in (
 # 10.5: the individual guards themselves remain installed in CI.
 for rel in REQUIRED_GUARDS:
     if not (ROOT / rel).is_file():
-        errors.append(f'required Phase 10 guard missing: {rel}')
+        errors.append(f'required production architecture guard missing: {rel}')
 
-workflow = (ROOT / '.github/workflows/php-refactor-checks.yml').read_text(encoding='utf-8', errors='replace')
+workflow = (ROOT / '.github/workflows/architecture-checks.yml').read_text(encoding='utf-8', errors='replace')
 for marker in REQUIRED_WORKFLOW_MARKERS:
     if marker not in workflow:
-        errors.append(f'Phase 10 workflow guard missing: {marker}')
+        errors.append(f'production architecture workflow guard missing: {marker}')
 
-print('# PHP Phase 10 final architecture audit')
+print('# PHP production architecture final architecture audit')
 print(f'Public SQL owners: {len(public_sql_owners)}')
 print(f'Public SQL calls: {sum(count for _, count in public_sql_owners)}')
 print(f'Schema introspection owners: {len(schema_owners)}')
@@ -202,11 +202,11 @@ print(f"Cookie owners: {len(cookie_owners)}")
 print(f'Edge-only legacy aliases: {len(EXPECTED_PUBLIC_ALIASES)}')
 print(f'Legacy switch labels: {len(legacy_cases)}')
 print(f'Duplicate legacy switch labels: {len(duplicate_cases)}')
-print(f'Phase 10 subguards installed: {len(REQUIRED_GUARDS)}')
+print(f'production architecture subguards installed: {len(REQUIRED_GUARDS)}')
 
 if errors:
     for error in errors:
         print('ERROR:', error, file=sys.stderr)
     raise SystemExit(1)
 
-print('PHP Phase 10 final architecture audit: PASS')
+print('PHP production architecture final architecture audit: PASS')

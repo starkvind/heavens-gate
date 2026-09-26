@@ -78,8 +78,7 @@ retired_schema_objects = [
     'vw_sim_items',
 ]
 
-# Permanent repository guard: retired DB objects may be named by the audited
-# Phase 11.7 maintenance files, but no SQL migration may CREATE them again.
+# Permanent repository guard: retired DB objects must not be recreated by production runtime or future repository SQL.
 sql_root = ROOT / 'sql'
 if sql_root.exists():
     for path in sql_root.rglob('*.sql'):

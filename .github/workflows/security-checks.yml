@@ -30,11 +30,39 @@ jobs:
           find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l index.php
 
-      - name: Validate Phase 11.7 database cleanup runner
+      - name: Validate production smoke runner
         shell: bash
         run: |
           set -euo pipefail
-          bash -n tools/phase11_7_database_cleanup.sh
+          bash -n tools/production_smoke.sh
+
+      - name: Guard production-repository hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          failures = []
+          if Path("sql").exists() and any(Path("sql").rglob("*")):
+              failures.append("One-use SQL does not belong in the production repository; archive it in continuity.")
+
+          for path in Path(".github/ci").glob("*"):
+              if re.search(r"php-phase\d", path.name):
+                  failures.append(f"Historical phase-named CI file returned: {path}")
+
+          for path in Path(".github/workflows").glob("*"):
+              if "refactor" in path.name.lower():
+                  failures.append(f"Historical refactor workflow returned: {path}")
+
+          for path in Path("tools").glob("*"):
+              if re.search(r"phase\d", path.name.lower()):
+                  failures.append(f"One-use phase tool returned: {path}")
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
 
       - name: Guard CSS architecture
         shell: bash
