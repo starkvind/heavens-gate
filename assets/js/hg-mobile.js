@@ -427,3 +427,113 @@
         });
     });
 })();
+
+(function () {
+    const root = document.querySelector('[data-mobile-actions]');
+    if (!root) return;
+    const input = root.querySelector('[data-mobile-action-search]');
+    const empty = root.querySelector('[data-mobile-action-empty]');
+    if (!input || !empty) return;
+
+    const normalize = value => String(value || '')
+        .toLocaleLowerCase('es')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const filter = () => {
+        const query = normalize(input.value.trim());
+        let visible = 0;
+        root.querySelectorAll('[data-mobile-action-category]').forEach(category => {
+            let categoryVisible = 0;
+            category.querySelectorAll('[data-mobile-action-card]').forEach(card => {
+                const match = !query || normalize(card.dataset.mobileActionSearchText).includes(query);
+                card.hidden = !match;
+                if (match) {
+                    categoryVisible++;
+                    visible++;
+                }
+            });
+            category.hidden = categoryVisible === 0;
+        });
+        empty.hidden = visible > 0;
+    };
+
+    input.addEventListener('input', filter);
+})();
+
+(function () {
+    const root = document.querySelector('.hg-mobile-forms[data-hg-mobile-forms]');
+    if (!root) return;
+    const select = root.querySelector('[data-hg-mobile-form-select]');
+    const summary = root.querySelector('[data-hg-mobile-form-summary]');
+    if (!select || !summary) return;
+
+    let forms = [];
+    let baseManeuvers = [];
+    try {
+        forms = JSON.parse(root.dataset.hgMobileForms || '[]');
+        baseManeuvers = JSON.parse(root.dataset.hgMobileBaseManeuvers || '[]');
+    } catch (error) {
+        return;
+    }
+
+    const dots = value => '●'.repeat(Math.min(5, value)) + '○'.repeat(Math.max(0, 5 - value));
+
+    const render = () => {
+        const form = forms.find(item => String(item.id) === select.value) || null;
+        const modifiers = form && form.modifiers ? form.modifiers : {};
+        document.querySelectorAll('[data-hg-mobile-form-trait]').forEach(cell => {
+            const traitId = cell.dataset.hgMobileFormTrait;
+            const base = Number(cell.dataset.hgMobileFormBase || 0);
+            const total = Math.max(1, base + Number(modifiers[traitId] || 0));
+            const value = cell.querySelector('[data-hg-mobile-form-value]');
+            const dotNode = cell.querySelector('[data-hg-mobile-form-dots]');
+            if (value) value.textContent = form ? total : base;
+            if (dotNode) dotNode.textContent = dots(total);
+        });
+        summary.textContent = form
+            ? form.name + ': cambios aplicados visualmente.'
+            : 'Forma base: atributos originales.';
+        document.dispatchEvent(new CustomEvent('hg-mobile-form-change', {
+            detail: { maneuvers: form ? (form.maneuvers || []) : baseManeuvers }
+        }));
+    };
+
+    select.addEventListener('change', render);
+    render();
+})();
+
+(function () {
+    const root = document.querySelector('.hg-mobile-maneuvers[data-hg-mobile-base-maneuvers]');
+    if (!root) return;
+    const list = root.querySelector('[data-hg-mobile-maneuver-list]');
+    if (!list) return;
+
+    let base = [];
+    try {
+        base = JSON.parse(root.dataset.hgMobileBaseManeuvers || '[]');
+    } catch (error) {
+        return;
+    }
+
+    const render = maneuvers => {
+        list.innerHTML = '';
+        if (!maneuvers.length) {
+            list.textContent = 'No hay maniobras disponibles para esta forma.';
+            return;
+        }
+        maneuvers.forEach(item => {
+            const row = document.createElement('div');
+            const link = document.createElement('a');
+            link.href = item.href;
+            link.textContent = item.name;
+            row.appendChild(link);
+            list.appendChild(row);
+        });
+    };
+
+    document.addEventListener('hg-mobile-form-change', event => {
+        render((event.detail && event.detail.maneuvers) || []);
+    });
+    render(base);
+})();
