@@ -150,7 +150,7 @@ if (!function_exists('hg_mobile_search_result_url')) {
 if (!function_exists('hg_mobile_search_base_where')) {
     function hg_mobile_search_base_where(mysqli $link, string $sectionKey): string
     {
-        $csv = hg_mobile_excluded_chronicles_csv();
+        $csv = hg_chronicle_scope_excluded_csv();
         if ($csv === '') return '';
         if ($sectionKey === 'biografías') return 'src.chronicle_id NOT IN (' . $csv . ')';
         if ($sectionKey === 'crónicas') return 'src.id NOT IN (' . $csv . ')';
