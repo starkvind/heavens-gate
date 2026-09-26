@@ -1,19 +1,14 @@
 <?php
+require_once(__DIR__ . '/../../helpers/schema_introspection.php');
 
 if (!function_exists('hg_cca_table')) {
     function hg_cca_table(mysqli $db, string $t): bool {
-        if ($st=$db->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?")) {
-            $st->bind_param('s',$t);$st->execute();$st->bind_result($n);$st->fetch();$st->close();return (int)$n>0;
-        }
-        return false;
+        return hg_table_exists($db, $t);
     }
 }
 if (!function_exists('hg_cca_col')) {
     function hg_cca_col(mysqli $db, string $t, string $c): bool {
-        if ($st=$db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?")) {
-            $st->bind_param('ss',$t,$c);$st->execute();$st->bind_result($n);$st->fetch();$st->close();return (int)$n>0;
-        }
-        return false;
+        return hg_table_has_column($db, $t, $c);
     }
 }
 if (!function_exists('hg_cca_load_state')) {
