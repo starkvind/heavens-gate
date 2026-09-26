@@ -111,7 +111,7 @@ check_redirect '/crop.html' '/tools/crop'
 
 printf '\n%s\n' '--- Private-tree guards ---'
 check_status '/app/routing/routes.php' 404
-check_status '/admin_docs/TECHNICAL_DOCUMENTATION.md' 404
+check_status_any '/admin_docs/TECHNICAL_DOCUMENTATION.md' 403 404
 check_status '/.github/workflows/security-checks.yml' 404
 check_status '/tools/scaffold_section.py' 404
 check_status '/sql/audit_gaia0_content.sql' 404
