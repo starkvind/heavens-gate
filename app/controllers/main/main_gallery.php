@@ -20,6 +20,14 @@ $relDir = trim($relDir);
 if (!hg_gallery_valid_relative_path($relDir)) $relDir = '';
 $absDir = hg_gallery_fs_join($GALLERY_BASE_FS, $relDir);
 
+$galleryRequestedView = strtolower(hg_request_query_param($hgRequest, 'view'));
+$galleryViewQuery = in_array($galleryRequestedView, ['desktop', 'auto'], true)
+    ? ('&view=' . rawurlencode($galleryRequestedView))
+    : '';
+$galleryRootQuery = $galleryViewQuery !== ''
+    ? ('?view=' . rawurlencode($galleryRequestedView))
+    : '';
+
 $breadcrumbs = ($relDir === '') ? [] : explode('/', $relDir);
 $subdirs     = hg_gallery_list_subdirectories($absDir);
 $images      = hg_gallery_list_images($absDir, $ALLOWED_EXT);
@@ -29,14 +37,14 @@ $images      = hg_gallery_list_images($absDir, $ALLOWED_EXT);
 <h2>Galería</h2>
 
 <div class="gallery-breadcrumbs">
-    <?php if ($relDir != ''): ?><a href="/gallery"><?php endif; ?>
+    <?php if ($relDir != ''): ?><a href="/gallery<?= htmlspecialchars($galleryRootQuery) ?>"><?php endif; ?>
     📁 Inicio
     <?php if ($relDir != ''): ?></a><?php endif; ?>
     <?php
       $acc = [];
       foreach ($breadcrumbs as $i => $seg) {
           $acc[] = $seg;
-          $link = '/gallery?dir=' . urlencode(implode('/', $acc));
+          $link = '/gallery?dir=' . urlencode(implode('/', $acc)) . $galleryViewQuery;
           echo "/ <a href=\"{$link}\">" . htmlspecialchars($seg) . "</a>";
       }
     ?>
@@ -50,7 +58,7 @@ $images      = hg_gallery_list_images($absDir, $ALLOWED_EXT);
       <?php foreach ($subdirs as $dirIndex => $dirName):
         $childRel = $dirName;
         $childAbs = hg_gallery_fs_join($absDir, $dirName);
-        $link = '/gallery?dir=' . urlencode($childRel);
+        $link = '/gallery?dir=' . urlencode($childRel) . $galleryViewQuery;
         $cover = hg_gallery_folder_cover($GALLERY_BASE_WEB, $childAbs, $childRel, $ALLOWED_EXT);
       ?>
       <a class="gallery-folder gallery-card" href="<?= $link ?>" title="Abrir carpeta">
