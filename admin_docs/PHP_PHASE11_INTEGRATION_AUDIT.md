@@ -2,7 +2,7 @@
 
 ## Status
 
-**INTEGRATION READY — RASPBERRY SMOKE STILL REQUIRED — MASTER UNTOUCHED.**
+**INTEGRATION READY — RASPBERRY SMOKE PASS — MASTER UNTOUCHED.**
 
 Branch under validation: `php-refactor`.
 
@@ -96,12 +96,12 @@ bash tools/phase11_smoke.sh
 
 The automated harness is read-only. The remaining manual checks cover Classic desktop, real-forum `hg_avatar` behavior, mobile compatibility, Gallery, PWA/device behavior and authenticated Admin read-only navigation.
 
-Phase 11.2 is not considered passed until those Raspberry/manual checks are completed.
+Phase 11.2 is recorded as PASS: the operator confirmed the automated and manual Raspberry smoke green on 2026-09-26.
 
 ## Master authorization boundary
 
 `master` must remain unchanged until explicit authorization.
 
-Do not merge PR `#15`, update the `master` ref, deploy from `master` or retire `php-refactor` before the Raspberry gate is green and authorization is given.
+The Raspberry gate is green. Do not merge PR `#15`, update the `master` ref, deploy from `master` or retire `php-refactor` until explicit authorization for Phase 11.5 is given.
 
 After authorization, Phase 11.5 may consolidate the already-reviewed Release Candidate into `master`, run CI again and deploy from `master`. Phase 11.6 then performs the short post-consolidation smoke and only afterwards may `php-refactor` be retired.
