@@ -35,15 +35,13 @@ if (!function_exists('pjs_table_has_column')) {
 
 if (!function_exists('pjs_column_char_maxlen')) {
     function pjs_column_char_maxlen(mysqli $link, string $table, string $column): int {
-        $t = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-        $c = preg_replace('/[^a-zA-Z0-9_]/', '', $column);
-        if ($t === '' || $c === '') return 0;
-        $sql = "SELECT COALESCE(CHARACTER_MAXIMUM_LENGTH, 0) AS m FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . mysqli_real_escape_string($link, $t) . "' AND COLUMN_NAME = '" . mysqli_real_escape_string($link, $c) . "' LIMIT 1";
-        $rs = $link->query($sql);
-        if (!$rs) return 0;
-        $row = $rs->fetch_assoc();
-        $rs->close();
-        return (int)($row['m'] ?? 0);
+        static $maxLengths = [
+            'fact_characters' => [
+                'character_kind' => 3,
+                'kind' => 3,
+            ],
+        ];
+        return (int)($maxLengths[$table][$column] ?? 0);
     }
 }
 if (!function_exists('pjs_fetch_id_lookup')) {
