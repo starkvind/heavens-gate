@@ -276,7 +276,7 @@ if ($route === 'versistdetalle') {
         ];
     }
 
-    $excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv') ? hg_mobile_excluded_chronicles_csv() : '2,7';
+    $excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv') ? hg_chronicle_scope_excluded_csv() : '2,7';
     $members = hg_systems_fetch_members($link, $type, $detailId, $excludedChronicles, true);
     if ($members === false) $members = [];
     ?>
