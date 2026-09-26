@@ -64,7 +64,7 @@ No generar enlaces públicos con IDs numéricos salvo diseño explícito de esa 
 
 ## Route keys
 
-Los nombres históricos (`muestrabio`, `busk`, `temp`, `vermyd`, etc.) se conservan durante el refactor para no mezclar una migración nominal con cambios de arquitectura.
+Los nombres históricos (`muestrabio`, `busk`, `temp`, `vermyd`, etc.) se conservan por compatibilidad y para evitar renombrados innecesarios en el routing interno.
 
 Para nuevas rutas, preferir nombres legibles en inglés o vocabulario de dominio claro. No introducir abreviaturas crípticas nuevas.
 
