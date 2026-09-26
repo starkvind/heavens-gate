@@ -33,17 +33,3 @@ if (!function_exists('hg_chronicle_scope_excluded_csv')) {
         return hg_chronicle_scope_sanitize_int_csv($fallback);
     }
 }
-
-if (!function_exists('hg_chronicle_scope_condition')) {
-    function hg_chronicle_scope_condition(string $alias = 'p', ?string $configured = null): string
-    {
-        $csv = hg_chronicle_scope_excluded_csv($configured);
-        if ($csv === '') {
-            return '1=1';
-        }
-
-        $alias = trim($alias);
-        $column = $alias !== '' ? ($alias . '.chronicle_id') : 'chronicle_id';
-        return $column . ' NOT IN (' . $csv . ')';
-    }
-}
