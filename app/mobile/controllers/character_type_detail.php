@@ -53,8 +53,8 @@ $metaTitle = $typeName . " | Biografías | Heaven's Gate";
 $metaDescription = "Personajes del tipo " . $typeName . " en version móvil.";
 $pageSect = $typeName;
 
-$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
-    ? hg_mobile_excluded_chronicles_csv()
+$excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv')
+    ? hg_chronicle_scope_excluded_csv()
     : '2,7';
 $characters = hg_character_types_fetch_characters($link, $typeId, $excludedChronicles);
 if ($characters === null) {
