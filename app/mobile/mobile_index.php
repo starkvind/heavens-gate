@@ -99,7 +99,7 @@
     <link rel="shortcut icon" href="/img/ui/branding/infinidice.ico" type="image/x-icon">
     <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.webp">
     <link rel="icon" type="image/webp" sizes="32x32" href="/img/favicon/favicon-32x32.webp">
-    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="assets/css/hg-mobile.css?v=<?= hg_mobile_h($mobileCssVersion) ?>">
     <?php
         // Mobile controllers are buffered before <head>, so embedded tools can
