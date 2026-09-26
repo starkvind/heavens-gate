@@ -21,7 +21,6 @@ if (!function_exists('hg_public_status_count')) {
             'dim_systems' => true,
             'dim_maps' => true,
             'fact_map_pois' => true,
-            'fact_game_card_collection' => true,
         ];
         if (!isset($allowed[$table])) {
             return null;
@@ -63,7 +62,6 @@ if (!function_exists('hg_public_status_metrics')) {
             'Sistemas de juego' => hg_public_status_count($link, 'dim_systems'),
             'Mapas' => hg_public_status_count($link, 'dim_maps'),
             'Puntos de interés' => hg_public_status_count($link, 'fact_map_pois'),
-            'Cartas activas' => hg_public_status_count($link, 'fact_game_card_collection', 'is_active = 1'),
         ];
     }
 }
