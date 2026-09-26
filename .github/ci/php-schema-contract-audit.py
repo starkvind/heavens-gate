@@ -28,6 +28,23 @@ tokens = (
 found = set()
 errors = []
 
+# Static current-schema registries must include tables consumed by shared
+# character-sheet queries. These are canonical production tables, not probes.
+character_queries = (ROOT / 'app/domains/characters/queries.php').read_text(encoding='utf-8', errors='replace')
+required_character_sheet_tables = (
+    'bridge_forms_traits',
+    'bridge_maneuvers_forms',
+    'bridge_maneuvers_systems',
+    'dim_forms',
+    'fact_actions',
+    'fact_combat_maneuvers',
+    'fact_power_rolls',
+)
+for table in required_character_sheet_tables:
+    token = f"'{table}' => true"
+    if token not in character_queries:
+        errors.append(f'character sheet schema contract missing canonical table: {table}')
+
 for root_name in ('app', 'api'):
     root = ROOT / root_name
     if not root.exists():
