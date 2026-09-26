@@ -51,17 +51,12 @@ if "'route' => 'verobj'" not in search_catalog:
     errors.append('search catalog lost canonical verobj route')
 
 legacy_query = (ROOT / 'app/routing/legacy_query.php').read_text(encoding='utf-8', errors='replace')
-for marker in [
-    "'listaobj' => '/inventory'",
-    "'dones' => '/powers/gifts'",
-    "'rites' => '/powers/rites'",
-    "'totems' => '/powers/totems'",
-    "'imgz' => '/gallery'",
-    "case 'bio_chronicles':",
-    "case 'seeitem':",
-]:
+for alias, canonical in PUBLIC_EDGE_ALIASES.items():
+    marker = f"'{alias}' => '{canonical}'"
     if marker not in legacy_query:
         errors.append(f'edge compatibility alias disappeared unexpectedly: {marker}')
+    if re.search(rf"\\bcase\\s+['\"]{re.escape(alias)}['\"]\\s*:", legacy_query):
+        errors.append(f'edge alias regained its own switch branch instead of centralized normalization: {alias}')
 
 for rel in [
     'app/helpers/admin_sections.php',
