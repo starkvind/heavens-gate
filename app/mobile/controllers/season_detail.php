@@ -95,8 +95,8 @@ foreach ($chapters as $chapter) {
     if (hg_mobile_sd_date($chapter['played_date'] ?? '') !== '') $totalPlayed++;
 }
 
-$excludedChronicles = function_exists('hg_mobile_excluded_chronicles_csv')
-    ? hg_mobile_excluded_chronicles_csv()
+$excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv')
+    ? hg_chronicle_scope_excluded_csv()
     : '2,7';
 $seasonCharacters = hg_chapters_fetch_season_players($link, $seasonId, $excludedChronicles);
 if ($seasonCharacters === null) {
