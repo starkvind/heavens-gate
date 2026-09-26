@@ -299,7 +299,17 @@ $metaTitle = $isResults ? "Resultados de busqueda | Heaven's Gate" : "Busqueda |
     </form>
     <?php if (!$isResults): ?>
         <p class="hg-mobile-muted">Busca en personajes, crónicas, temporadas, capítulos, documentos, reglas, poderes y sistemas. Mínimo 3 letras.</p>
-        <div class="hg-mobile-search-recent" id="search-recent"><span>Recientes</span><div id="search-recent-items"></div></div>
+        <div class="hg-mobile-search-recent"
+             id="search-recent"
+             data-mobile-search-recent
+             data-current-q="<?= hg_mobile_search_h($query) ?>"
+             data-current-section="<?= hg_mobile_search_h($sectionKey) ?>"
+             data-current-label="<?= hg_mobile_search_h(hg_mobile_search_text_label($sectionConfig)) ?>"
+             data-store-current="<?= ($isResults && $query !== '' && $queryLength > 2) ? '1' : '0' ?>"
+             data-skip-current="<?= $isResults ? '1' : '0' ?>">
+            <span>Recientes</span>
+            <div data-mobile-search-recent-items></div>
+        </div>
     <?php endif; ?>
 </section>
 
@@ -315,7 +325,17 @@ $metaTitle = $isResults ? "Resultados de busqueda | Heaven's Gate" : "Busqueda |
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
-        <div class="hg-mobile-search-recent" id="search-recent"><span>Recientes</span><div id="search-recent-items"></div></div>
+        <div class="hg-mobile-search-recent"
+             id="search-recent"
+             data-mobile-search-recent
+             data-current-q="<?= hg_mobile_search_h($query) ?>"
+             data-current-section="<?= hg_mobile_search_h($sectionKey) ?>"
+             data-current-label="<?= hg_mobile_search_h(hg_mobile_search_text_label($sectionConfig)) ?>"
+             data-store-current="<?= ($isResults && $query !== '' && $queryLength > 2) ? '1' : '0' ?>"
+             data-skip-current="<?= $isResults ? '1' : '0' ?>">
+            <span>Recientes</span>
+            <div data-mobile-search-recent-items></div>
+        </div>
         <?php if (!empty($rows)): ?>
             <div class="hg-mobile-card-list">
                 <?php foreach ($rows as $row): ?>
@@ -339,36 +359,3 @@ $metaTitle = $isResults ? "Resultados de busqueda | Heaven's Gate" : "Busqueda |
 </section>
 <?php endif; ?>
 
-<script>
-(function () {
-    const STORAGE_KEY = 'hg-search-recent';
-    const current = {
-        q: <?= json_encode($query, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-        section: <?= json_encode($sectionKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
-        label: <?= json_encode(hg_mobile_search_text_label($sectionConfig), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
-    };
-    let recent = [];
-    try { recent = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (err) { recent = []; }
-    if (!Array.isArray(recent)) recent = [];
-
-    <?php if ($isResults && $query !== '' && $queryLength > 2): ?>
-    recent = recent.filter(function (entry) { return !(entry && entry.q === current.q && entry.section === current.section); });
-    recent.unshift(current);
-    recent = recent.slice(0, 6);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recent));
-    <?php endif; ?>
-
-    const root = document.getElementById('search-recent');
-    const items = document.getElementById('search-recent-items');
-    if (!root || !items || recent.length === 0) return;
-    const list = <?= $isResults ? 'recent.slice(1, 6)' : 'recent.slice(0, 5)' ?>;
-    list.forEach(function (entry) {
-        if (!entry || !entry.q || !entry.section) return;
-        const a = document.createElement('a');
-        a.href = '/search/results?q=' + encodeURIComponent(entry.q) + '&section=' + encodeURIComponent(entry.section);
-        a.textContent = entry.q + ' - ' + (entry.label || entry.section);
-        items.appendChild(a);
-    });
-    if (items.children.length > 0) root.classList.add('is-ready');
-})();
-</script>
