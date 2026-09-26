@@ -3,7 +3,7 @@ const OFFLINE_URL = '/offline.html';
 
 const PRECACHE = [
   OFFLINE_URL,
-  '/manifest.webmanifest',
+  '/manifest.json',
   '/assets/css/hg-mobile.css',
   '/assets/js/hg-mobile.js',
   '/assets/js/hg-pwa.js',
@@ -20,7 +20,7 @@ const STATIC_PREFIXES = [
 
 const STATIC_EXACT = new Set([
   '/img/ui/branding/infinidice.ico',
-  '/manifest.webmanifest'
+  '/manifest.json'
 ]);
 
 self.addEventListener('install', event => {
@@ -61,18 +61,8 @@ async function networkFirstStatic(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    const withoutSearch = new Request(new URL(request.url).origin + new URL(request.url).pathname, {
-      method: 'GET',
-      headers: request.headers,
-      mode: request.mode,
-      credentials: request.credentials,
-      cache: 'default',
-      redirect: request.redirect,
-      referrer: request.referrer,
-      referrerPolicy: request.referrerPolicy,
-      integrity: request.integrity
-    });
-    const fallback = await cache.match(withoutSearch);
+    const url = new URL(request.url);
+    const fallback = await cache.match(url.pathname);
     if (fallback) return fallback;
     throw error;
   }
