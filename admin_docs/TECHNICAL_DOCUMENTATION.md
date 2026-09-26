@@ -191,7 +191,7 @@ Convención general:
 - `dim_*`: catálogos y entidades maestras;
 - `fact_*`: contenido o hechos;
 - `bridge_*`: relaciones N:M;
-- `admin_*`: auxiliares operativas/migración.
+- `admin_*`: auxiliares operativas e históricas.
 
 Véase [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
 
