@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — CI PASS — Raspberry smoke pending.**
+**IMPLEMENTED — CI PASS — Raspberry re-smoke pending after theme fix.**
 
 Branch: `php-refactor`.
 
@@ -91,6 +91,26 @@ This metric was removed from:
 
 The retired-games runtime audit now also rejects `fact_game_card_collection` references under active PHP runtime code, while the historical database/archive remains untouched.
 
+## Raspberry smoke regression: mobile themes
+
+The first Raspberry smoke exposed a presentation regression in four public surfaces when using a light mobile theme:
+
+- custom 404;
+- Dice roller;
+- Forum Avatar Builder;
+- Forum Topic Viewer.
+
+Cause: these routes reuse desktop/page styles containing fixed classic-theme colors. Mobile already remapped the parent surfaces and form controls, but child labels, help text, 404 suggestion cards and the forum viewer chrome could still keep their original palette because page styles are emitted after `hg-mobile.css`.
+
+Remediation:
+
+- `assets/css/hg-mobile.css` now provides explicit theme bridges based on `--hg-mobile-*` tokens for the affected shared tools;
+- the 404 fallback is rebound to the active mobile theme without changing controller behavior;
+- the forum viewer chrome follows the active mobile theme while forum message/dice embeds retain their own palette/contrast logic;
+- `.github/ci/php-phase9-mobile-presentation-audit.py` guards the bridge markers and rejects restoration of the deprecated fixed white forum-viewer skin.
+
+No database, query or request behavior changed in this correction.
+
 ## Permanent guard
 
 Added:
@@ -118,9 +138,9 @@ Implementation checkpoint:
 
 Raspberry smoke must verify:
 
-- custom 404 suggestions;
-- Dice roller list/detail and rolling;
-- Forum Avatar Builder;
-- Forum Topic Viewer;
+- custom 404 suggestions in Classic and at least one light theme;
+- Dice roller list/detail and rolling in Classic and at least one light theme;
+- Forum Avatar Builder in Classic and at least one light theme;
+- Forum Topic Viewer in Classic and at least one light theme;
 - Status no longer shows retired card-game metrics;
 - no new PHP/SQL errors.
