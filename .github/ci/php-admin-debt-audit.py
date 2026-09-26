@@ -17,9 +17,9 @@ PATTERNS = {
 CEILINGS = {
     'sql': 0,
     'schema': 0,
-    'get': 203,
-    'post': 714,
-    'request': 1,
+    'get': 189,
+    'post': 706,
+    'request': 0,
 }
 
 RESIDUAL_SQL_CEILINGS = {}
@@ -70,7 +70,7 @@ for metric, title in [
 errors = []
 for metric, ceiling in CEILINGS.items():
     if totals[metric] > ceiling:
-        errors.append(f'{metric} regressed above Phase 6.12 exit baseline {ceiling}: {totals[metric]}')
+        errors.append(f'{metric} regressed above Phase 10.3 classified baseline {ceiling}: {totals[metric]}')
 
 row_by_path = {path: counts for path, _lines, counts in rows}
 for path, ceiling in RESIDUAL_SQL_CEILINGS.items():
