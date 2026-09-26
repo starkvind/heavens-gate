@@ -41,6 +41,20 @@ for controller, view in view_pairs.items():
     if not (ROOT / view).exists():
         errors.append(f"mobile view missing: {view}")
 
+mobile_css = read("assets/css/hg-mobile.css")
+for marker in [
+    "Theme bridge for desktop-owned tools embedded in the mobile shell",
+    ".hg-mobile-tool .hg-dice-title",
+    ".hg-mobile-content .hg404-item",
+    "Forum viewer follows the active mobile theme",
+    ".hg-mobile-forum-viewer-tool .hgfv-topic-card",
+]:
+    if marker not in mobile_css:
+        errors.append(f"mobile theme bridge missing marker: {marker}")
+
+if "Forum viewer keeps desktop white skin" in mobile_css:
+    errors.append("forum viewer still pins the deprecated white mobile skin")
+
 mobile_js = read("assets/js/hg-mobile.js")
 for marker in [
     "data-mobile-gallery-lightbox",
