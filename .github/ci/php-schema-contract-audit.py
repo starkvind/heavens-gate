@@ -5,16 +5,22 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 
 allowed = {
-    'app/domains/chapters/admin_season_order.php',
-    'app/domains/chapters/admin_season_order_schema.php',
-    'app/domains/characters/admin_clone.php',
-    'app/domains/characters/admin_collision_audit.php',
-    'app/domains/characters/admin_service.php',
-    'app/domains/organizations/admin_chart_schema.php',
-    'app/helpers/mentions.php',
-    'app/helpers/pretty.php',
-    'app/tools/forum_topic_viewer_tool.php',
-    'app/tools/inspect_db.php',
+    'app/helpers/schema_introspection.php': {
+        'class': 'compatibility-boundary',
+        'reason': 'single cached owner for ordinary current-database table/column existence checks',
+    },
+    'app/domains/characters/admin_clone.php': {
+        'class': 'dynamic-admin-operation',
+        'reason': 'character cloning must discover bridge tables and copyable columns dynamically',
+    },
+    'app/tools/forum_topic_viewer_tool.php': {
+        'class': 'external-schema-adapter',
+        'reason': 'forum deployment may expose SMF tables in the external smf schema',
+    },
+    'app/tools/inspect_db.php': {
+        'class': 'diagnostic-tool',
+        'reason': 'the schema inspector intentionally enumerates live database metadata',
+    },
 }
 
 tokens = (
@@ -57,7 +63,7 @@ for root_name in ('app', 'api'):
             if rel not in allowed:
                 errors.append(f'unapproved schema introspection: {rel}')
 
-extra = sorted(allowed - found)
+extra = sorted(set(allowed) - found)
 if extra:
     errors.append('allowlist entries without schema introspection: ' + ', '.join(extra))
 
@@ -66,8 +72,9 @@ if errors:
         print('ERROR:', error, file=sys.stderr)
     raise SystemExit(1)
 
-print('# Phase 7.3 schema contract audit')
+print('# Phase 10.2 classified schema introspection audit')
 print('Intentional introspection files:', len(found))
 for rel in sorted(found):
-    print('KEEP:', rel)
-print('Phase 7.3 schema contract audit: PASS')
+    meta = allowed[rel]
+    print(f"KEEP [{meta['class']}]: {rel} -- {meta['reason']}")
+print('Phase 10.2 classified schema introspection audit: PASS')
