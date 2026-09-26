@@ -77,8 +77,10 @@
 
     $mobileCssPath = __DIR__ . '/../../assets/css/hg-mobile.css';
     $mobileJsPath = __DIR__ . '/../../assets/js/hg-mobile.js';
+    $pwaJsPath = __DIR__ . '/../../assets/js/hg-pwa.js';
     $mobileCssVersion = is_file($mobileCssPath) ? (string)filemtime($mobileCssPath) : '1';
     $mobileJsVersion = is_file($mobileJsPath) ? (string)filemtime($mobileJsPath) : '1';
+    $pwaJsVersion = is_file($pwaJsPath) ? (string)filemtime($pwaJsPath) : '1';
 
     include(__DIR__ . '/mobile_menu.php');
 ?>
@@ -89,9 +91,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="<?= hg_mobile_h($activeThemeColor) ?>" data-mobile-theme-color>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Heaven's Gate">
     <base href="/">
     <title><?= hg_mobile_h($mobileTitle) ?></title>
-    <link rel="shortcut icon" href="img/ui/branding/infinidice.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/img/ui/branding/infinidice.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.webp">
+    <link rel="icon" type="image/webp" sizes="32x32" href="/img/favicon/favicon-32x32.webp">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="stylesheet" href="assets/css/hg-mobile.css?v=<?= hg_mobile_h($mobileCssVersion) ?>">
     <?php
         // Mobile controllers are buffered before <head>, so embedded tools can
@@ -101,6 +109,7 @@
         }
     ?>
     <script src="assets/js/hg-mobile.js?v=<?= hg_mobile_h($mobileJsVersion) ?>" defer></script>
+    <script src="assets/js/hg-pwa.js?v=<?= hg_mobile_h($pwaJsVersion) ?>" defer></script>
 </head>
 <body class="hg-mobile-body <?= hg_mobile_h($bodyThemeClass) ?>">
     <div class="hg-mobile-shell">
@@ -136,6 +145,14 @@
                     <button type="button" data-mobile-theme="light"<?= $activeTheme === 'light' ? ' class="is-active" aria-current="true"' : '' ?>>Claro</button>
                     <button type="button" data-mobile-theme="power-save"<?= $activeTheme === 'power-save' ? ' class="is-active" aria-current="true"' : '' ?>>Ahorro energía</button>
                 </div>
+            </section>
+
+            <section class="hg-mobile-menu-group hg-mobile-pwa-section" data-hg-pwa-section hidden>
+                <h2>Aplicación</h2>
+                <div class="hg-mobile-menu-links hg-mobile-pwa-links">
+                    <button type="button" data-hg-pwa-install hidden>Instalar Heaven's Gate</button>
+                </div>
+                <p class="hg-mobile-pwa-help" data-hg-pwa-ios-help hidden>En iPhone o iPad: pulsa Compartir y después “Añadir a pantalla de inicio”.</p>
             </section>
         </nav>
 
