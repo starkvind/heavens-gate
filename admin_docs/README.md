@@ -17,6 +17,7 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | [PHP_PHASE10_5_FINAL_GUARDS.md](./PHP_PHASE10_5_FINAL_GUARDS.md) | Contrato arquitectónico final de la Fase 10 y guards permanentes de SQL, esquema, request-state y aliases legacy. |
 | [PHP_PHASE11_RELEASE_CANDIDATE.md](./PHP_PHASE11_RELEASE_CANDIDATE.md) | Estado del Release Candidate, reconciliación de ramas, freeze de alcance y puertas de validación de Fase 11. |
 | [PHP_PHASE11_SMOKE.md](./PHP_PHASE11_SMOKE.md) | Smoke final de Raspberry: harness automatizado y comprobaciones manuales antes de consolidar en `master`. |
+| [PHP_PHASE11_INTEGRATION_AUDIT.md](./PHP_PHASE11_INTEGRATION_AUDIT.md) | Auditoría final de integración, contratos preservados y frontera de autorización antes de tocar `master`. |
 
 ## Registros históricos
 
