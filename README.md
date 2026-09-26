@@ -37,7 +37,7 @@ The project is intentionally database-driven. Public URLs use readable slugs whi
 | `tools/` | Repository-level CLI/developer tools. |
 | `sql/` | Focused SQL audits; not a schema installer. |
 | `reports/` | Dated editorial reports. |
-| `admin_docs/` | Maintained technical documentation and historical migration notes. |
+| `admin_docs/` | Maintained technical documentation. |
 
 ## Local/runtime requirements
 
@@ -90,7 +90,6 @@ The snapshot contains:
 
 See [DATABASE_SCHEMA.md](./admin_docs/DATABASE_SCHEMA.md) for the maintained map.
 
-Do not use `admin_docs/bdd_structure.txt` as the current schema. It is a retained historical snapshot because migration manifests still reference it.
 
 ## Maintenance
 
@@ -103,7 +102,6 @@ Start here:
 - [Public section guide](./admin_docs/PUBLIC_SECTION_GUIDE.md)
 - [Documentation index](./admin_docs/README.md)
 
-Historical migration manifests under `admin_docs/migration_manifest_*` remain useful as dated records, but they are not runtime documentation.
 
 ## Administration
 
