@@ -182,7 +182,7 @@ for name, locs in sorted(declarations.items()):
 
 ci_only_symbols = [item for item in zero_runtime_symbols if ci_counts[item['name']] > 0]
 
-print('# Phase 7.2 helper/partial/symbol consumer graph')
+print('# Helper/partial/symbol consumer graph')
 print(f'Runtime PHP files scanned: {len(runtime_paths)}')
 print(f'Helpers scanned: {len(helper_files)}')
 print(f'Partials scanned: {len(partial_files)}')
@@ -228,4 +228,4 @@ if errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
-print('Phase 7.2 consumer graph audit: PASS')
+print('Consumer graph audit: PASS')

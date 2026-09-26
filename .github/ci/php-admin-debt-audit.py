@@ -70,13 +70,13 @@ for metric, title in [
 errors = []
 for metric, ceiling in CEILINGS.items():
     if totals[metric] > ceiling:
-        errors.append(f'{metric} regressed above Phase 10.3 classified baseline {ceiling}: {totals[metric]}')
+        errors.append(f'{metric} regressed above production classified baseline {ceiling}: {totals[metric]}')
 
 row_by_path = {path: counts for path, _lines, counts in rows}
 for path, ceiling in RESIDUAL_SQL_CEILINGS.items():
     current = row_by_path.get(path, {}).get('sql', 0)
     if current > ceiling:
-        errors.append(f'{path} SQL regressed above Phase 6.12 residual ceiling {ceiling}: {current}')
+        errors.append(f'{path} SQL regressed above production residual ceiling {ceiling}: {current}')
 
 if errors:
     for error in errors:

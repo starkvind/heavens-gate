@@ -64,7 +64,7 @@ for path in active_surfaces:
         if re.search(rf"^\s*['\"]{re.escape(alias)}['\"]\s*=>", text, flags=re.M):
             errors.append(f'legacy alias returned to active route ownership in {rel}: {alias}')
 
-print('# Phase 10.4 legacy alias audit')
+print('# Legacy alias audit')
 print(f'Edge-only aliases: {len(EXPECTED_ALIASES)}')
 print(f'Legacy switch case labels: {len(cases)}')
 print(f'Unique legacy switch labels: {len(set(cases))}')
@@ -76,4 +76,4 @@ if errors:
         print('ERROR:', error, file=sys.stderr)
     raise SystemExit(1)
 
-print('Phase 10.4 legacy alias audit: PASS')
+print('Legacy alias audit: PASS')

@@ -31,7 +31,7 @@ line_total = 0
 if len(files) != EXPECTED_CONTROLLER_COUNT:
     errors.append(
         f'Admin controller inventory changed: expected {EXPECTED_CONTROLLER_COUNT}, found {len(files)}. '
-        'Review ownership before updating the Phase 6.13 baseline.'
+        'Review ownership before updating the production Admin baseline.'
     )
 
 for path in files:
@@ -60,7 +60,7 @@ for name, rule in WRAPPERS.items():
         if marker not in text:
             errors.append(f'{path.relative_to(ROOT)} lost wrapper marker: {marker}')
 
-print('# Phase 6.13 final Admin structural audit')
+print('# Admin structural audit')
 print(f'Controllers: {len(files)}')
 print(f'Controller lines: {line_total}')
 print(f'Direct SQL call sites: {sql_total}')
@@ -72,4 +72,4 @@ if errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
-print('Phase 6.13 final Admin structural audit: PASS')
+print('Admin structural audit: PASS')

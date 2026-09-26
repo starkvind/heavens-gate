@@ -86,7 +86,7 @@ bare_allowed = {
     'assets/css/hg-tools.css',
     'assets/css/tools/csp-board.css',
 }
-# Reviewed legacy exceptions present at Phase 11 baseline. New bare selector families remain blocked.
+# Reviewed legacy exceptions present at production baseline. New bare selector families remain blocked.
 bare_legacy_allowed = {
     ('assets/css/hg-layout.css', 'select'),
     ('assets/css/hg-home.css', 'h2'),
@@ -114,7 +114,7 @@ for path in CSS_ROOT.rglob('*.css'):
                 continue
             if (selector in bare_elements and rel not in bare_allowed
                     and (rel, selector) not in bare_legacy_allowed):
-                fail(f'{rel}: bare global selector {selector!r} is outside the Phase 11 baseline')
+                fail(f'{rel}: bare global selector {selector!r} is outside the production baseline')
             owner = shared_owners.get(selector)
             if owner and rel != owner:
                 fail(f'{rel}: duplicate ownership of {selector}; canonical owner is {owner}')

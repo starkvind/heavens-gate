@@ -87,9 +87,9 @@ if errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
-print('# Phase 7.4B active alias boundary')
+print('# Active alias boundary')
 print(f'Edge-only public aliases: {len(PUBLIC_EDGE_ALIASES)}')
 print(f'Retired Admin aliases: {len(ADMIN_RETIRED_ALIASES)}')
 print('Public path compatibility redirects: PRESERVED')
 print('Internal legacy dispatch aliases: 0')
-print('Phase 7.4B alias boundary: PASS')
+print('Active alias boundary: PASS')

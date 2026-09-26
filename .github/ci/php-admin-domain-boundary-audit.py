@@ -618,7 +618,7 @@ if "if ($action === 'create' || $action === 'update')" not in characters_control
     sys.exit(1)
 
 
-# Phase 6.11 smoke regressions: optional bibliography FKs must map 0 -> NULL,
+# Production smoke regressions: optional bibliography FKs must map 0 -> NULL,
 # item type is required, and Misc energy rows may deliberately use resources
 # owned by another System.
 systems_domain = (ROOT / 'app/domains/systems/admin.php').read_text(encoding='utf-8', errors='replace')

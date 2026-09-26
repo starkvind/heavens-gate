@@ -76,11 +76,11 @@ if errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
-print('# Phase 7.4C compatibility residue audit')
+print('# Compatibility residue audit')
 print('Runtime legacy URL producers: 0')
 print('Direct runtime $_GET[p] readers: 0')
 print('Retired imgz runtime: 0')
 print('Unknown dispatch fallback: 404')
 print('Security p=error404 rewrite boundary: PRESERVED')
 print('Intentional public compatibility redirects: PRESERVED')
-print('Phase 7.4C compatibility residue audit: PASS')
+print('Compatibility residue audit: PASS')

@@ -45,7 +45,7 @@ for marker in [
     '.adm-shell-tier-max',
     '--adm-shell-max',
     '--adm-table-min',
-    'Phase 6.99z: global Admin visual language',
+    'Production Admin visual language',
 ]:
     if marker not in css:
         errors.append(f'hg-admin.css lost UX foundation marker: {marker}')
@@ -147,7 +147,7 @@ for rel, marker in birthdates.items():
     if marker not in text:
         errors.append(f'{rel} lost Birthdates label: {marker}')
 
-print('# Phase 6.99z Admin UX foundation audit')
+print('# Admin UX foundation audit')
 print(f'Admin controllers scanned: {len(admin_files)}')
 print(f'Controllers emitting tables: {len(table_files)}')
 print(f'Controllers with inline style blocks: {len(inline_style_files)} (required: 0)')
@@ -159,4 +159,4 @@ if errors:
         print(f'ERROR: {error}', file=sys.stderr)
     sys.exit(1)
 
-print('Phase 6.99z Admin UX foundation audit: PASS')
+print('Admin UX foundation audit: PASS')

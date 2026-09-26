@@ -81,7 +81,7 @@ organization = read("app/mobile/controllers/organization_group_detail.php")
 if "data-mobile-organization-json" not in organization:
     errors.append("mobile organization copy data contract missing")
 
-print("# PHP Phase 9.3 mobile presentation contract")
+print("# Mobile presentation contract")
 print(f"mobile_php_files: {len(mobile_php)}")
 print("inline_executable_scripts: 0")
 print("inline_event_handlers: 0")
@@ -94,4 +94,4 @@ if errors:
         print(f"ERROR: {error}", file=sys.stderr)
     sys.exit(1)
 
-print("PHP Phase 9.3 mobile presentation contract: PASS")
+print("Mobile presentation contract: PASS")
