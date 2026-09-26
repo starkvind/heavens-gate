@@ -1,5 +1,6 @@
 <?php
 include_once(__DIR__ . '/content_updates.php');
+include_once(__DIR__ . '/schema_introspection.php');
 // Pretty ID helpers
 
 function hg_pretty_normalize_source(string $text): string {
@@ -174,58 +175,6 @@ function pretty_url(mysqli $link, string $table, string $base, int $id): string 
     $pretty = get_pretty_id($link, $table, $id);
     if ($pretty) return rtrim($base, '/') . '/' . rawurlencode($pretty);
     return rtrim($base, '/') . '/' . $id;
-}
-
-function hg_table_has_column(mysqli $link, string $table, string $column): bool {
-    static $cache = [];
-    $key = $table . ':' . $column;
-    if (isset($cache[$key])) return $cache[$key];
-
-    $ok = false;
-    // MariaDB/MySQL can fail preparing SHOW ... LIKE ? with placeholders.
-    // Use information_schema with bind params for full compatibility.
-    if ($st = $link->prepare("
-        SELECT COUNT(*)
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-    ")) {
-        $st->bind_param('ss', $table, $column);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $ok = ((int)$count > 0);
-        $st->close();
-    }
-
-    $cache[$key] = $ok;
-    return $ok;
-}
-
-function hg_table_exists(mysqli $link, string $table): bool {
-    static $cache = [];
-    $table = trim($table);
-    if ($table === '') return false;
-    if (isset($cache[$table])) return $cache[$table];
-
-    $ok = false;
-    if ($st = $link->prepare("
-        SELECT COUNT(*)
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-    ")) {
-        $st->bind_param('s', $table);
-        $st->execute();
-        $st->bind_result($count);
-        $st->fetch();
-        $ok = ((int)$count > 0);
-        $st->close();
-    }
-
-    $cache[$table] = $ok;
-    return $ok;
 }
 
 function hg_update_pretty_id_if_exists(mysqli $link, string $table, int $id, string $source): void {
