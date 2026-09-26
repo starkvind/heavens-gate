@@ -2812,3 +2812,37 @@ html {
 .hg-mobile-actions__search input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--hg-mobile-border); border-radius: 6px; background: var(--hg-mobile-surface); color: var(--hg-mobile-text); font: inherit; }
 .hg-mobile-actions__category { margin: 8px 0 0; }
 .hg-mobile-actions__category .hg-mobile-list { padding: 0 8px 8px; }
+
+/* PWA install controls */
+.hg-mobile-pwa-section[hidden],
+.hg-mobile-pwa-links [hidden],
+.hg-mobile-pwa-help[hidden] {
+    display: none;
+}
+
+.hg-mobile-pwa-links {
+    grid-template-columns: 1fr;
+}
+
+.hg-mobile-pwa-links button {
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--hg-mobile-border);
+    border-radius: 6px;
+    background: var(--hg-mobile-surface);
+    color: var(--hg-mobile-link);
+    font: inherit;
+    font-weight: 700;
+    text-align: center;
+}
+
+.hg-mobile-pwa-links button:disabled {
+    opacity: 0.65;
+}
+
+.hg-mobile-pwa-help {
+    margin: 9px 0 0;
+    color: var(--hg-mobile-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
