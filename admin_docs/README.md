@@ -14,6 +14,7 @@ Esta carpeta reúne la documentación de mantenimiento de la web. Desde septiemb
 | [ADMIN_MODULE_GUIDE.md](./ADMIN_MODULE_GUIDE.md) | Convenciones para crear o mantener módulos de `/talim`. |
 | [PUBLIC_SECTION_GUIDE.md](./PUBLIC_SECTION_GUIDE.md) | Cómo añadir una sección pública y cómo usar `tools/scaffold_section.py`. |
 | [PHP_PHASE7_BASELINE.md](./PHP_PHASE7_BASELINE.md) | Baseline arquitectónico al cierre de la Fase 7, deuda aceptada y techos de regresión. |
+| [PHP_PHASE10_5_FINAL_GUARDS.md](./PHP_PHASE10_5_FINAL_GUARDS.md) | Contrato arquitectónico final de la Fase 10 y guards permanentes de SQL, esquema, request-state y aliases legacy. |
 
 ## Registros históricos
 
