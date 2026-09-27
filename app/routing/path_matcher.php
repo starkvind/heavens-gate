@@ -15,8 +15,6 @@ function hg_request_path_matcher_match(string $path): array
         '/status' => ['p' => 'status'],
         '/about' => ['p' => 'about'],
         '/help' => ['p' => 'help'],
-        '/help/getting-started' => ['p' => 'help_getting_started'],
-        '/help/forum-viewer' => ['p' => 'help_forum_viewer'],
         '/bibliography' => ['p' => 'biblio'],
         '/search' => ['p' => 'busq'],
         '/search/results' => ['p' => 'busk'],
@@ -126,6 +124,9 @@ function hg_request_path_matcher_match(string $path): array
     }
 
     $regexRoutes = [
+        '#^/help/([^/]+)$#' => static function (array $m): array {
+            return ['p' => 'help_page', 'slug' => $m[1]];
+        },
         '#^/timeline/event/([^/]+)$#' => static function (array $m): array {
             return ['p' => 'timeline_event', 't' => $m[1]];
         },
