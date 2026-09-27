@@ -146,7 +146,7 @@ if (!function_exists('hg_admin_login_return_path')) {
             'admin_chapters', 'admin_pois', 'admin_players', 'admin_chronicles', 'admin_realities',
             'admin_bso', 'admin_bso_link', 'admin_timelines', 'admin_birthdays_quick',
             'admin_gallery', 'admin_parties', 'admin_powers', 'admin_gift_image_mass',
-'admin_docs', 'admin_external_links',
+'admin_docs', 'admin_help', 'admin_external_links',
             'admin_character_links', 'admin_doc_links', 'admin_topic_viewer', 'admin_bridges',
             'admin_items', 'admin_menu', 'admin_relations', 'admin_news', 'admin_systems',
             'admin_forms', 'admin_maneuvers', 'admin_system_details', 'admin_systems_extra_details',
