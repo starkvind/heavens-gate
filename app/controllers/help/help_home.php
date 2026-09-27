@@ -1,10 +1,15 @@
 <?php
+require_once __DIR__ . '/../../domains/help/queries.php';
+
 setMetaFromPage(
     "Ayuda | Heaven's Gate",
     "Guías de uso y consulta para navegar por el archivo de Heaven's Gate.",
     null,
     'website'
 );
+
+$helpPages = hg_help_fetch_published_pages($link);
+
 include("app/partials/main_nav_bar.php");
 if (function_exists('hg_page_register_stylesheet')) {
     hg_page_register_stylesheet('/assets/css/hg-help.css');
@@ -25,34 +30,18 @@ if (function_exists('hg_page_register_stylesheet')) {
         </div>
 
         <div class="hg-help-card-grid">
-            <a class="hg-help-card" href="/help/getting-started">
-                <span class="hg-help-card-label">Manual básico</span>
-                <strong>Empezar a usar Heaven's Gate</strong>
-                <span>Portada, navegación, búsqueda, personajes, temporadas, cronología, reglas, poderes y herramientas.</span>
-                <span class="hg-help-card-link">Abrir guía &rarr;</span>
-            </a>
-
-            <a class="hg-help-card" href="/help/forum-viewer">
-                <span class="hg-help-card-label">Partidas por foro</span>
-                <strong>Visor de partidas por foro</strong>
-                <span>Elegir capítulo, leer hilos largos, saltar entre mensajes, usar la tabla de contenidos y volver al foro.</span>
-                <span class="hg-help-card-link">Abrir guía &rarr;</span>
-            </a>
-        </div>
-    </section>
-
-    <section class="hg-help-section" aria-labelledby="help-shortcuts-title">
-        <div class="hg-help-section-head">
-            <h2 id="help-shortcuts-title">Accesos rápidos</h2>
-        </div>
-        <div class="hg-help-shortcuts">
-            <a href="/search">Buscar</a>
-            <a href="/characters">Personajes</a>
-            <a href="/seasons">Temporadas</a>
-            <a href="/timeline">Línea temporal</a>
-            <a href="/rules">Reglas</a>
-            <a href="/powers">Poderes</a>
-            <a href="/tools/forum-topic-viewer">Visor del foro</a>
+            <?php if (!$helpPages): ?>
+                <p>No hay manuales publicados todavía.</p>
+            <?php else: ?>
+                <?php foreach ($helpPages as $page): ?>
+                    <a class="hg-help-card" href="/help/<?= rawurlencode((string)$page['slug']) ?>">
+                        <span class="hg-help-card-label"><?= htmlspecialchars((string)$page['nav_label'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></span>
+                        <strong><?= htmlspecialchars((string)$page['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></strong>
+                        <span><?= htmlspecialchars((string)$page['summary'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></span>
+                        <span class="hg-help-card-link">Abrir guía &rarr;</span>
+                    </a>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </section>
 
