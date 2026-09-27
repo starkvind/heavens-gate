@@ -231,6 +231,9 @@
 						case 'admin_docs':
 							echo " $pillSeparator Documentacion";
 							break;
+						case 'admin_help':
+							echo " $pillSeparator Ayuda";
+							break;
 						case 'admin_topic_viewer':
 							echo " $pillSeparator Temas Visor Foro";
 							break;
@@ -320,13 +323,13 @@
 			// Ayuda
 			// ========================================== //
 			case "help":
-				echo "Ayuda";
+				// Portada de Ayuda: sin breadcrumb de un solo nivel.
 				break;
-			case "help_getting_started":
-				echo "<a href='/help' title='Ayuda'>Ayuda</a> $pillSeparator Manual básico de uso";
-				break;
-			case "help_forum_viewer":
-				echo "<a href='/help' title='Ayuda'>Ayuda</a> $pillSeparator Visor de partidas por foro";
+			case "help_page":
+				echo "<a href='/help' title='Ayuda'>Ayuda</a>";
+				if (isset($helpBreadcrumbTitle) && trim((string)$helpBreadcrumbTitle) !== '') {
+					echo " $pillSeparator " . htmlspecialchars((string)$helpBreadcrumbTitle, ENT_QUOTES, 'UTF-8');
+				}
 				break;
 			// ========================================== //
 			// Jugadores
