@@ -6,6 +6,16 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 
 PILOTS = {
+    'help': {
+        'controller': ROOT / 'app/controllers/admin/admin_help.php',
+        'domain': ROOT / 'app/domains/help/admin.php',
+        'markers': [
+            'hg_help_admin_fetch_rows(',
+            'hg_help_admin_fetch_one(',
+            'hg_help_admin_save(',
+            'hg_help_admin_delete(',
+        ],
+    },
     'news': {
         'controller': ROOT / 'app/controllers/admin/admin_news.php',
         'domain': ROOT / 'app/domains/news/admin.php',
