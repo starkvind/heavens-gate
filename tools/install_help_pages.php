@@ -7,30 +7,13 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../app/helpers/db_connection.php';
 mysqli_set_charset($link, 'utf8mb4');
 
-$ddl = <<<'SQL'
-CREATE TABLE IF NOT EXISTS fact_help_pages (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    slug VARCHAR(160) NOT NULL,
-    nav_label VARCHAR(80) NOT NULL DEFAULT 'Guía',
-    title VARCHAR(255) NOT NULL,
-    summary VARCHAR(500) NOT NULL DEFAULT '',
-    lead TEXT NOT NULL,
-    meta_description VARCHAR(255) NOT NULL DEFAULT '',
-    content_html LONGTEXT NOT NULL,
-    sort_order INT NOT NULL DEFAULT 0,
-    is_published TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_fact_help_pages_slug (slug),
-    KEY idx_fact_help_pages_public (is_published, sort_order, id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL;
-
-if (!$link->query($ddl)) {
-    fwrite(STDERR, "Error creando fact_help_pages: " . $link->error . "\n");
-    exit(1);
+$tableCheck = $link->query("SELECT 1 FROM fact_help_pages LIMIT 1");
+if ($tableCheck === false) {
+    fwrite(STDERR, "Falta la tabla fact_help_pages o la cuenta de aplicación no puede leerla.\n");
+    fwrite(STDERR, "El esquema debe crearse con una cuenta de mantenimiento; heavensgate_app no tiene permisos DDL.\n");
+    exit(2);
 }
+$tableCheck->free();
 
 $pages = [
     [
