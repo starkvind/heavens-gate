@@ -10,7 +10,7 @@ app/helpers/db_connection.php es el propietario de la conexión mysqli. config.e
 - fact_*: contenido, hechos y registros.
 - bridge_*: relaciones N:M.
 
-Estado documentado: 101 tablas, sin vistas ni procedimientos.
+Estado documentado: 102 tablas, sin vistas ni procedimientos.
 
 ## Acceso desde PHP
 
