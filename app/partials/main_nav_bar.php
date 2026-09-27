@@ -317,6 +317,18 @@
 				}
 				break;
 			// ========================================== //
+			// Ayuda
+			// ========================================== //
+			case "help":
+				echo "Ayuda";
+				break;
+			case "help_getting_started":
+				echo "<a href='/help' title='Ayuda'>Ayuda</a> $pillSeparator Manual básico de uso";
+				break;
+			case "help_forum_viewer":
+				echo "<a href='/help' title='Ayuda'>Ayuda</a> $pillSeparator Visor de partidas por foro";
+				break;
+			// ========================================== //
 			// Jugadores
 			// ========================================== //
 			case "seeplayer":	// Ver Jugador
