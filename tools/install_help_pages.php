@@ -366,30 +366,28 @@ HTML
     ],
 ];
 
-$check = $link->prepare("SELECT id FROM fact_help_pages WHERE slug = ? LIMIT 1");
-$insert = $link->prepare(
+$upsert = $link->prepare(
     "INSERT INTO fact_help_pages
      (slug, nav_label, title, summary, lead, meta_description, content_html, sort_order, is_published)
-     VALUES (?,?,?,?,?,?,?,?,1)"
+     VALUES (?,?,?,?,?,?,?,?,1)
+     ON DUPLICATE KEY UPDATE
+        nav_label = VALUES(nav_label),
+        title = VALUES(title),
+        summary = VALUES(summary),
+        lead = VALUES(lead),
+        meta_description = VALUES(meta_description),
+        content_html = VALUES(content_html),
+        sort_order = VALUES(sort_order),
+        is_published = VALUES(is_published)"
 );
-if (!$check || !$insert) {
-    fwrite(STDERR, "No se pudieron preparar las consultas de seed.\n");
+if (!$upsert) {
+    fwrite(STDERR, "No se pudo preparar el seed de ayuda.\n");
     exit(1);
 }
 
-$created = 0;
-$kept = 0;
+$seeded = 0;
 foreach ($pages as $page) {
-    $slug = $page['slug'];
-    $check->bind_param('s', $slug);
-    $check->execute();
-    $existing = $check->get_result()->fetch_assoc();
-    if ($existing) {
-        $kept++;
-        continue;
-    }
-
-    $insert->bind_param(
+    $upsert->bind_param(
         'sssssssi',
         $page['slug'],
         $page['nav_label'],
@@ -400,14 +398,14 @@ foreach ($pages as $page) {
         $page['content_html'],
         $page['sort_order']
     );
-    if (!$insert->execute()) {
-        fwrite(STDERR, "Error creando {$page['slug']}: " . $insert->error . "\n");
+    if (!$upsert->execute()) {
+        fwrite(STDERR, "Error sincronizando {$page['slug']}: " . $upsert->error . "\n");
         exit(1);
     }
-    $created++;
+    $seeded++;
 }
-$check->close();
-$insert->close();
+$upsert->close();
 
-echo "fact_help_pages lista. Creadas: {$created}. Ya existentes: {$kept}.\n";
+echo "fact_help_pages lista. Manuales base sincronizados: {$seeded}.\n";
+echo "Las páginas nuevas se crean y editan desde /talim?s=admin_help.\n";
 echo "/help/getting-started\n/help/forum-viewer\n";
