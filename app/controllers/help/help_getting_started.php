@@ -19,14 +19,14 @@ if (function_exists('hg_page_register_stylesheet')) {
     </header>
 
     <nav class="hg-help-toc" aria-label="Contenido de la guía">
-        <a href="#inicio">Inicio</a>
-        <a href="#menu">Menú</a>
-        <a href="#buscar">Buscar</a>
-        <a href="#archivo">Consultar el archivo</a>
-        <a href="#reglas">Reglas y poderes</a>
-        <a href="#herramientas">Herramientas</a>
-        <a href="#movil">Móvil</a>
-        <a href="#preguntas">Preguntas rápidas</a>
+        <a href="/help/getting-started#inicio">Inicio</a>
+        <a href="/help/getting-started#menu">Menú</a>
+        <a href="/help/getting-started#buscar">Buscar</a>
+        <a href="/help/getting-started#archivo">Consultar el archivo</a>
+        <a href="/help/getting-started#reglas">Reglas y poderes</a>
+        <a href="/help/getting-started#herramientas">Herramientas</a>
+        <a href="/help/getting-started#movil">Móvil</a>
+        <a href="/help/getting-started#preguntas">Preguntas rápidas</a>
     </nav>
 
     <section class="hg-help-section" id="inicio">
