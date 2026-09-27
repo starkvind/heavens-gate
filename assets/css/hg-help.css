@@ -320,6 +320,23 @@
     background: var(--hg-bg);
 }
 
+.hg-help-figure-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+    margin: 16px 0;
+}
+
+.hg-help-figure-grid .hg-help-figure {
+    margin: 0;
+}
+
+.hg-help-figure--narrow {
+    max-width: 460px;
+    margin-inline: auto;
+}
+
 .hg-help-figure img {
     display: block;
     width: 100%;
@@ -349,7 +366,8 @@
     .hg-help-card-grid,
     .hg-help-definition-grid,
     .hg-help-actions,
-    .hg-help-flow-grid {
+    .hg-help-flow-grid,
+    .hg-help-figure-grid {
         grid-template-columns: 1fr;
     }
 
