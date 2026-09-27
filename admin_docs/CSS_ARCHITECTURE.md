@@ -37,6 +37,7 @@ Los estilos que pertenecen a una sección concreta deben vivir en un fichero de 
 - `hg-gallery.css`: galería pública y lightbox.
 - `hg-news.css`: listado público de noticias.
 - `hg-status.css`: página de estado público.
+- `hg-help.css`: centro de ayuda y manuales HTML de usuario.
 - `hg-bibliography.css`: bibliografía pública.
 - `hg-maneuvers.css`: listado de maniobras de combate.
 - `hg-bso.css`: tarjetas de banda sonora embebidas.
