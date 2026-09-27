@@ -333,7 +333,7 @@
 }
 
 .hg-help-figure--narrow {
-    max-width: 460px;
+    max-width: 280px;
     margin-inline: auto;
 }
 
@@ -342,6 +342,59 @@
     width: 100%;
     height: auto;
     border-radius: 6px;
+}
+
+.hg-help-figure--narrow img {
+    width: auto;
+    max-width: 100%;
+    margin-inline: auto;
+}
+
+.hg-help-zoomable {
+    cursor: zoom-in;
+}
+
+.hg-help-lightbox[hidden] {
+    display: none;
+}
+
+.hg-help-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 3vw;
+    background: rgba(0, 0, 0, .88);
+}
+
+.hg-help-lightbox__image {
+    display: block;
+    max-width: 94vw;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .45);
+}
+
+.hg-help-lightbox__close {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, .5);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .75);
+    color: #fff;
+    font: 700 30px/1 sans-serif;
+    cursor: pointer;
+}
+
+body.hg-help-lightbox-open {
+    overflow: hidden;
 }
 
 .hg-help-figure figcaption {
