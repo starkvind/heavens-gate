@@ -17,6 +17,7 @@ app/domains es la capa de acceso a datos y lógica compartida. Estos son los pro
 | forum | Integraciones de foro. |
 | gallery | Galería. |
 | home | Datos de portada. |
+| help | Centro de ayuda público, páginas editoriales en BDD y CRUD de Admin. |
 | inventory | Objetos e inventario. |
 | maps | Mapas, áreas y POI. |
 | navigation | Navegación/menú. |
