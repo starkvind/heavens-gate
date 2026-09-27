@@ -35,7 +35,7 @@
 	function hg_menu_open_id_static(string $path, $link): ?string {
 		$path = hg_normalize_path($path);
 
-		if ($path === '/' || hg_starts_with($path, '/home') || hg_starts_with($path, '/news') || hg_starts_with($path, '/search') || hg_starts_with($path, '/status') || hg_starts_with($path, '/about') || hg_starts_with($path, '/help')) {
+		if ($path === '/' || hg_starts_with($path, '/home') || hg_starts_with($path, '/news') || hg_starts_with($path, '/search') || hg_starts_with($path, '/status') || hg_starts_with($path, '/about')) {
 			return 'startMenu';
 		}
 		if (hg_starts_with($path, '/characters') || hg_starts_with($path, '/organizations') || hg_starts_with($path, '/groups') || hg_starts_with($path, '/relationship-map')) {
@@ -66,7 +66,7 @@
 		if (!$link) return null;
 		$path = hg_normalize_path($path);
 
-		if ($path === '/' || hg_starts_with($path, '/home') || hg_starts_with($path, '/help')) {
+		if ($path === '/' || hg_starts_with($path, '/home')) {
 			return 'startMenu';
 		}
 
@@ -143,7 +143,6 @@
 			if (!empty($rows)) {
 				if ($parentMenuKey === 'startMenu') {
 					$hasHomeLink = false;
-					$hasHelpLink = false;
 					foreach ($rows as $row) {
 						$href = (string)($row['href'] ?? '');
 						$hrefPath = $href ? (string)parse_url($href, PHP_URL_PATH) : '';
@@ -151,16 +150,10 @@
 						if ($hrefPath === '/' || $hrefPath === '/home') {
 							$hasHomeLink = true;
 						}
-						if ($hrefPath === '/help') {
-							$hasHelpLink = true;
-						}
 					}
 
 					if (!$hasHomeLink) {
 						echo "<a href='/'><div class='renglonMenu'>Inicio</div></a>";
-					}
-					if (!$hasHelpLink) {
-						echo "<a href='/help'><div class='renglonMenu'>Ayuda</div></a>";
 					}
 				}
 
@@ -236,7 +229,6 @@
 				<a href="/search"><div class="renglonMenu">Buscar</div></a>
 				<a href="/status"><div class="renglonMenu">Estado</div></a>
 				<a href="/about"><div class="renglonMenu">Sobre la web</div></a>
-				<a href="/help"><div class="renglonMenu">Ayuda</div></a>
 				<a href="https://naufragio-foros.duckdns.org/" target="_blank"><div class="renglonMenu">Foros</div></a>
 			</div>
 		</td>
