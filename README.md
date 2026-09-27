@@ -39,9 +39,9 @@ Production is MariaDB 10.5.x through mysqli.
 Current documented production surface after the September 2026 cleanup:
 
 - 36 dim_* tables;
-- 27 fact_* tables;
+- 28 fact_* tables;
 - 38 bridge_* tables;
-- 101 tables total;
+- 102 tables total;
 - 0 views;
 - 0 stored procedures.
 
