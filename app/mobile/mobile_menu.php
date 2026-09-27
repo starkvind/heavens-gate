@@ -125,7 +125,6 @@ if (!function_exists('hg_mobile_menu_fallback')) {
                 ['label' => 'Noticias', 'href' => '/news', 'target' => '_self'],
                 ['label' => 'Buscar', 'href' => '/search', 'target' => '_self'],
                 ['label' => 'Estado', 'href' => '/status', 'target' => '_self'],
-                ['label' => 'Ayuda', 'href' => '/help', 'target' => '_self'],
             ]],
             ['label' => 'Archivo', 'items' => [
                 ['label' => 'Personajes', 'href' => '/characters', 'target' => '_self'],
@@ -149,35 +148,6 @@ if (!function_exists('hg_mobile_menu_fallback')) {
                 ['label' => 'Tablón CSP', 'href' => '/tools/csp', 'target' => '_self'],
             ]],
         ];
-    }
-}
-
-if (!function_exists('hg_mobile_menu_ensure_help_link')) {
-    function hg_mobile_menu_ensure_help_link(array $groups): array
-    {
-        foreach ($groups as $group) {
-            foreach (($group['items'] ?? []) as $item) {
-                $path = rtrim((string)(parse_url((string)($item['href'] ?? ''), PHP_URL_PATH) ?? ''), '/');
-                if ($path === '/help') {
-                    return $groups;
-                }
-            }
-        }
-
-        foreach ($groups as &$group) {
-            if (strtolower(trim((string)($group['label'] ?? ''))) === 'inicio') {
-                $group['items'][] = ['label' => 'Ayuda', 'href' => '/help', 'target' => '_self'];
-                unset($group);
-                return $groups;
-            }
-        }
-        unset($group);
-
-        array_unshift($groups, [
-            'label' => 'Inicio',
-            'items' => [['label' => 'Ayuda', 'href' => '/help', 'target' => '_self']],
-        ]);
-        return $groups;
     }
 }
 
@@ -250,5 +220,4 @@ if (!$hgMobileMenuGroups) {
     $hgMobileMenuGroups = hg_mobile_menu_fallback();
 }
 
-$hgMobileMenuGroups = hg_mobile_menu_ensure_help_link($hgMobileMenuGroups);
 $hgMobileMenuGroups = hg_mobile_menu_ensure_tool_links($hgMobileMenuGroups);
