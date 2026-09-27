@@ -127,6 +127,7 @@ important_caps = {
     'assets/css/hg-components.css': 1,    # print-only catalog navigation hide
     'assets/css/hg-power-custom.css': 12, # print-only custom power sheet
     'assets/css/hg-maps.css': 1,          # [hidden] must override component display modes
+    'assets/css/pages/forum-topic-viewer.css': 3, # floating reader/TOC visibility contract
 }
 important_exempt_prefixes = (
     'assets/css/hg-admin.css',
