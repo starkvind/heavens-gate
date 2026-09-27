@@ -1,6 +1,6 @@
 # Diccionario de rutas — Heaven's Gate
 
-Última revisión: 2026-09-25.
+Última revisión: 2026-09-27.
 
 Este documento traduce los `route key` históricos de la web a lenguaje humano. Su objetivo es que una persona que no conozca la arqueología del proyecto pueda seguir una request sin tener que adivinar qué significan nombres como `muestrabio`, `busk`, `temp` o `vermyd`.
 
@@ -48,6 +48,9 @@ Parámetros legacy frecuentes:
 | `news` | `/news` | Noticias. | `app/controllers/main/main_news.php` |
 | `status` | `/status` | Estado general del proyecto/web. | `app/controllers/main/main_status.php` |
 | `about` | `/about` | Página acerca de Heaven's Gate. | `app/controllers/main/main_about.php` |
+| `help` | `/help` | Centro de ayuda y manuales de usuario. | `help/help_home.php` |
+| `help_getting_started` | `/help/getting-started` | Manual básico de uso de la web. | `help/help_getting_started.php` |
+| `help_forum_viewer` | `/help/forum-viewer` | Manual HTML del visor de partidas por foro. | `help/help_forum_viewer.php` |
 | `biblio` | `/bibliography` | Bibliografía y referencias. | `app/controllers/main/main_biblio.php` |
 | `busq` | `/search` | Formulario de búsqueda. | `app/controllers/main/main_search_form.php` |
 | `busk` | `/search/results` | Resultados de búsqueda. | `app/controllers/main/main_search_result.php` |
