@@ -1072,11 +1072,7 @@ if (!$hgfvEmbedded) {
 
         <?php if (!empty($messages)): ?>
         <div class="hgfv-reader-layout">
-            <aside class="hgfv-reader-sidebar" id="hgfv-reader-sidebar" aria-label="Navegación del hilo">
-                <div class="hgfv-sidebar-head">
-                    <strong>Mensajes</strong>
-                    <button type="button" class="hgfv-sidebar-close" id="hgfv-sidebar-close" aria-label="Cerrar índice">×</button>
-                </div>
+            <div class="hgfv-toc-popover" id="hgfv-toc-popover" hidden>
                 <nav class="hgfv-toc<?= $tocCompact ? ' is-collapsed' : '' ?>" aria-label="Tabla de contenidos del hilo">
                     <div class="hgfv-toc-head">
                         <h2>Tabla de contenidos</h2>
@@ -1105,8 +1101,7 @@ if (!$hgfvEmbedded) {
                         <?php endforeach; ?>
                     </ul>
                 </nav>
-            </aside>
-            <div class="hgfv-sidebar-backdrop" id="hgfv-sidebar-backdrop" hidden></div>
+            </div>
 
             <div id="hgfv-messages-root">
             <?php foreach ($messages as $msg): ?>
@@ -1158,10 +1153,9 @@ if (!$hgfvEmbedded) {
     </div>
 </section>
         <?php if (!empty($messages)): ?>
-        <button type="button" class="hgfv-toc-fab" id="hgfv-toc-fab" aria-label="Abrir índice de mensajes">Mensajes · <?= count($messages) ?></button>
         <nav class="hgfv-jump-nav" aria-label="Navegación entre mensajes">
             <button type="button" id="hgfv-prev-message" title="Mensaje anterior" aria-label="Mensaje anterior">&#8592;</button>
-            <span class="hgfv-jump-status" id="hgfv-jump-status">1 / <?= count($messages) ?></span>
+            <button type="button" class="hgfv-jump-status" id="hgfv-jump-status" aria-expanded="false" aria-controls="hgfv-toc-popover" title="Abrir índice de mensajes">1 / <?= count($messages) ?></button>
             <button type="button" id="hgfv-next-message" title="Mensaje siguiente" aria-label="Mensaje siguiente">&#8594;</button>
         </nav>
         <?php endif; ?><script>
@@ -1297,10 +1291,8 @@ window.addEventListener('load', detectAndApplyTextColor);
 (function(){
     var toc = document.querySelector('.hgfv-toc');
     var toggle = toc ? toc.querySelector('.hgfv-toc-toggle') : null;
-    var sidebar = document.getElementById('hgfv-reader-sidebar');
-    var openButton = document.getElementById('hgfv-toc-fab');
-    var closeButton = document.getElementById('hgfv-sidebar-close');
-    var backdrop = document.getElementById('hgfv-sidebar-backdrop');
+    var popover = document.getElementById('hgfv-toc-popover');
+    var trigger = document.getElementById('hgfv-jump-status');
 
     if (toc && toggle) {
         toggle.addEventListener('click', function(){
@@ -1310,20 +1302,47 @@ window.addEventListener('load', detectAndApplyTextColor);
         });
     }
 
-    function setDrawer(open) {
-        if (!sidebar) return;
-        sidebar.classList.toggle('is-open', open);
-        document.body.classList.toggle('hgfv-drawer-open', open);
-        if (backdrop) backdrop.hidden = !open;
-        if (openButton) openButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+    function setPopover(open) {
+        if (!popover || !trigger) return;
+        popover.hidden = !open;
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+            var active = popover.querySelector('[data-hgfv-toc-link].is-active');
+            if (active && active.scrollIntoView) {
+                window.setTimeout(function(){
+                    active.scrollIntoView({ block: 'nearest' });
+                }, 0);
+            }
+        }
     }
 
-    if (openButton) openButton.addEventListener('click', function(){ setDrawer(true); });
-    if (closeButton) closeButton.addEventListener('click', function(){ setDrawer(false); });
-    if (backdrop) backdrop.addEventListener('click', function(){ setDrawer(false); });
-    document.querySelectorAll('[data-hgfv-toc-link]').forEach(function(link){
-        link.addEventListener('click', function(){ setDrawer(false); });
-    });
+    if (trigger && popover) {
+        trigger.addEventListener('click', function(event){
+            event.stopPropagation();
+            setPopover(popover.hidden);
+        });
+
+        popover.addEventListener('click', function(event){
+            event.stopPropagation();
+        });
+
+        document.addEventListener('click', function(){
+            if (!popover.hidden) setPopover(false);
+        });
+
+        document.addEventListener('keydown', function(event){
+            if (event.key === 'Escape' && !popover.hidden) {
+                setPopover(false);
+                trigger.focus();
+            }
+        });
+
+        document.querySelectorAll('[data-hgfv-toc-link]').forEach(function(link){
+            link.addEventListener('click', function(){
+                setPopover(false);
+            });
+        });
+    }
 })();
 
 (function(){
