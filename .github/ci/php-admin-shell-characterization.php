@@ -60,6 +60,7 @@ $requiredSections = [
     'admin_gallery',
     'admin_bso',
     'admin_docs',
+    'admin_help',
     'admin_external_links',
     'admin_character_links',
     'admin_doc_links',
@@ -107,6 +108,7 @@ $registryContracts = [
     ['admin_characters', 'ajax', 'admin_characters.php'],
     ['admin_character_collision_audit', 'normal', 'admin_character_collision_audit.php'],
     ['admin_relations', 'normal', 'admin_relations.php'],
+    ['admin_help', 'normal', 'admin_help.php'],
     ['admin_datatables', 'normal', 'admin_datatables.php'],
     ['admin_inspect_db', 'normal', '../../tools/inspect_db.php'],
     ['admin_mentions_help', 'normal', 'mentions_help.html'],
@@ -122,6 +124,7 @@ foreach ($registryContracts as [$section, $mode, $target]) {
 $ajaxForbidden = [
     'admin_character_collision_audit',
     'admin_relations',
+    'admin_help',
     'admin_datatables',
     'admin_inspect_db',
     'admin_mentions_help',
