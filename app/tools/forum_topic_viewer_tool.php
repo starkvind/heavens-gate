@@ -964,7 +964,7 @@ if (!$hgfvEmbedded) {
             <?php endif; ?>
 
             <?php if (!empty($savedTopics)): ?>
-                <div class="hgfv-topic-browser is-collapsed" id="hgfv-topic-browser">
+                <div class="hgfv-topic-browser<?= $topicId > 0 ? ' is-collapsed' : '' ?>" id="hgfv-topic-browser">
                     <div class="hgfv-topic-browser-head">
                         <div class="hgfv-topic-browser-summary">
                             <strong>Cambiar capítulo</strong>
@@ -1267,10 +1267,6 @@ window.addEventListener('load', detectAndApplyTextColor);
     var search = document.getElementById('hgfv-topic-search');
     var empty = document.getElementById('hgfv-topic-empty');
     if (!browser || !search) return;
-
-    if (!<?= $topicId > 0 ? 'true' : 'false' ?>) {
-        browser.classList.remove('is-collapsed');
-    }
 
     if (toggle) {
         toggle.addEventListener('click', function(){
