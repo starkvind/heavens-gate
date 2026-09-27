@@ -51,7 +51,10 @@ if (function_exists('hg_page_register_stylesheet')) {
         <div class="hg-help-section-head">
             <h2>Elegir un capítulo</h2>
         </div>
-        <!-- Captura futura: cabecera del visor con Cambiar capítulo e Ir al último mensaje. -->
+        <figure class="hg-help-figure">
+            <img src="/img/help/help-forum-01-selector.webp" alt="Selector de capítulos del visor de partidas por foro" loading="lazy" decoding="async">
+            <figcaption>«Cambiar capítulo» abre el catálogo de temas registrados para el visor.</figcaption>
+        </figure>
         <div class="hg-help-steps">
             <div class="hg-help-step"><span>1</span><div><strong>Pulsa «Cambiar capítulo».</strong><p>El catálogo permanece plegado mientras lees para no robar espacio al hilo.</p></div></div>
             <div class="hg-help-step"><span>2</span><div><strong>Busca el capítulo.</strong><p>Puedes localizarlo por título, episodio o agrupación. Solo aparecen los capítulos registrados por Dirección.</p></div></div>
@@ -69,6 +72,10 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Leer y moverse por un hilo</h2>
             <p>El control flotante permanece visible mientras lees y actúa como centro de navegación.</p>
         </div>
+        <figure class="hg-help-figure">
+            <img src="/img/help/help-forum-02-reader.webp" alt="Mensaje del visor de partidas con controles de navegación" loading="lazy" decoding="async">
+            <figcaption>La lectura mantiene visibles las acciones del mensaje y el navegador inferior.</figcaption>
+        </figure>
         <div class="hg-help-definition-grid">
             <div><strong>Flecha izquierda</strong><span>Salta al mensaje anterior.</span></div>
             <div><strong>Indicador central</strong><span>Muestra tu posición actual y el autor del mensaje visible. Al pulsarlo abre la tabla de contenidos.</span></div>
@@ -87,7 +94,10 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Tabla de contenidos flotante</h2>
             <p>Pulsa el indicador central del navegador para abrir la tabla sin reducir el ancho del texto.</p>
         </div>
-        <!-- Captura futura: tabla de contenidos flotante abierta sobre un hilo largo. -->
+        <figure class="hg-help-figure">
+            <img src="/img/help/help-forum-03-toc.webp" alt="Tabla de contenidos flotante del visor de partidas por foro" loading="lazy" decoding="async">
+            <figcaption>La tabla de contenidos permite saltar a una intervención concreta sin perder el hilo.</figcaption>
+        </figure>
         <div class="hg-help-steps">
             <div class="hg-help-step"><span>1</span><div><strong>Se abre sobre la lectura.</strong><p>El texto permanece debajo y conserva todo su ancho.</p></div></div>
             <div class="hg-help-step"><span>2</span><div><strong>Empieza por lo reciente.</strong><p>En hilos largos, la vista compacta muestra primero los últimos mensajes.</p></div></div>
