@@ -24,6 +24,9 @@ if (!is_array($routes) || count($routes) < 70) {
 $expected = [
     'home' => 'app/controllers/main/main_home.php',
     'news' => 'app/controllers/main/main_news.php',
+    'help' => 'app/controllers/help/help_home.php',
+    'help_getting_started' => 'app/controllers/help/help_getting_started.php',
+    'help_forum_viewer' => 'app/controllers/help/help_forum_viewer.php',
     'biblio' => 'app/controllers/main/main_biblio.php',
     'talim' => 'app/controllers/admin/admin_main.php',
     'seasons_home' => 'app/controllers/chapters/seasons_home.php',
