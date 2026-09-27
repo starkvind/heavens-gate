@@ -24,7 +24,7 @@ Este documento describe el estado resultante.
 | Tablas fact_* | 27 |
 | Tablas bridge_* | 38 |
 | Otras tablas | 0 |
-| Total tablas | 101 |
+| Total tablas | 102 |
 | Vistas | 0 |
 | Procedimientos | 0 |
 
@@ -34,7 +34,11 @@ dim_archetypes, dim_auspices, dim_bibliographies, dim_breeds, dim_chapters, dim_
 
 ## Tablas fact_*
 
-fact_actions, fact_admin_posts, fact_admin_section_usage_daily, fact_character_avatar_variants, fact_characters, fact_characters_comments, fact_characters_deaths, fact_combat_maneuvers, fact_content_updates, fact_csp_posts, fact_dice_rolls, fact_discipline_powers, fact_docs, fact_external_links, fact_gifts, fact_items, fact_map_areas, fact_map_pois, fact_misc_systems, fact_party_members, fact_party_members_changes, fact_power_rolls, fact_pretty_id_aliases, fact_rites, fact_timeline_events, fact_tools_topic_viewer, fact_trait_sets.
+fact_actions, fact_admin_posts, fact_admin_section_usage_daily, fact_help_pages, fact_character_avatar_variants, fact_characters, fact_characters_comments, fact_characters_deaths, fact_combat_maneuvers, fact_content_updates, fact_csp_posts, fact_dice_rolls, fact_discipline_powers, fact_docs, fact_external_links, fact_gifts, fact_items, fact_map_areas, fact_map_pois, fact_misc_systems, fact_party_members, fact_party_members_changes, fact_power_rolls, fact_pretty_id_aliases, fact_rites, fact_timeline_events, fact_tools_topic_viewer, fact_trait_sets.
+
+### Ayuda pública
+
+`fact_help_pages` almacena las páginas editoriales de `/help/{slug}`: título, etiqueta, resumen, entradilla, HTML, orden y estado de publicación. El catálogo `/help` se genera directamente desde las filas publicadas.
 
 ## Tablas bridge_*
 
