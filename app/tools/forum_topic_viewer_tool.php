@@ -964,11 +964,22 @@ if (!$hgfvEmbedded) {
             <?php endif; ?>
 
             <?php if (!empty($savedTopics)): ?>
-                <div class="hgfv-topic-browser" id="hgfv-topic-browser">
+                <div class="hgfv-topic-browser is-collapsed" id="hgfv-topic-browser">
                     <div class="hgfv-topic-browser-head">
-                        <label for="hgfv-topic-search"><strong>Explorar temas</strong></label>
-                        <input class="hgfv-topic-search" id="hgfv-topic-search" type="search" placeholder="Buscar por título, episodio o agrupación">
+                        <div class="hgfv-topic-browser-summary">
+                            <strong>Cambiar capítulo</strong>
+                            <?php if ($topicId > 0): ?>
+                                <span>Abre el catálogo solo cuando lo necesites.</span>
+                            <?php else: ?>
+                                <span>Busca y selecciona un capítulo para empezar.</span>
+                            <?php endif; ?>
+                        </div>
+                        <button type="button" class="hgfv-topic-browser-toggle" id="hgfv-topic-browser-toggle" aria-expanded="<?= $topicId > 0 ? 'false' : 'true' ?>">
+                            <?= $topicId > 0 ? 'Cambiar capítulo' : 'Ver capítulos' ?>
+                        </button>
                     </div>
+                    <div class="hgfv-topic-browser-body">
+                        <input class="hgfv-topic-search" id="hgfv-topic-search" type="search" placeholder="Buscar por título, episodio o agrupación">
                     <div class="hgfv-topic-groups" id="hgfv-topic-groups">
                         <?php foreach ($savedTopicsGrouped as $scopeGroup): ?>
                             <section class="hgfv-topic-group">
@@ -992,7 +1003,8 @@ if (!$hgfvEmbedded) {
                             </section>
                         <?php endforeach; ?>
                     </div>
-                    <p class="hgfv-topic-empty" id="hgfv-topic-empty" hidden>No hay temas que coincidan con la búsqueda.</p>
+                        <p class="hgfv-topic-empty" id="hgfv-topic-empty" hidden>No hay temas que coincidan con la búsqueda.</p>
+                    </div>
                 </div>
             <?php elseif ($hasSavedTopicsTable): ?>
                 <div class="hgfv-thread-head">No hay temas activos en `fact_tools_topic_viewer`.</div>
@@ -1046,34 +1058,10 @@ if (!$hgfvEmbedded) {
                         $tocCompact = $tocCount > 8;
                         $tocHiddenCount = max(0, $tocCount - 8);
                     ?>
-                    <nav class="hgfv-toc<?= $tocCompact ? ' is-collapsed' : '' ?>" aria-label="Tabla de contenidos del hilo">
-                        <div class="hgfv-toc-head">
-                            <h2>Tabla de contenidos</h2>
-                            <?php if ($tocCompact): ?>
-                                <button type="button" class="hgfv-toc-toggle" aria-expanded="false" data-hidden-count="<?= $tocHiddenCount ?>">
-                                    Mostrar <?= $tocHiddenCount ?> más
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                        <ul class="hgfv-toc-list">
-                            <?php foreach ($messages as $tocMsg): ?>
-                                <?php
-                                    $tocMessageId = (int)($tocMsg['message_id'] ?? 0);
-                                    if ($tocMessageId <= 0) { continue; }
-                                    $tocSubject = trim((string)($tocMsg['subject'] ?? ''));
-                                    $tocPoster = trim((string)($tocMsg['poster_name'] ?? ''));
-                                    $tocPosterTime = (int)($tocMsg['poster_time'] ?? 0);
-                                    $tocHumanTime = $tocPosterTime > 0 ? date('Y-m-d H:i:s', $tocPosterTime) : 'Sin fecha';
-                                ?>
-                                <li>
-                                    <a href="<?= h($currentTopicUrl !== '' ? ($currentTopicUrl . '#msg-' . $tocMessageId) : ('#msg-' . $tocMessageId)) ?>">
-                                        <span class="hgfv-toc-title">#<?= $tocMessageId ?> | <?= h($tocSubject !== '' ? $tocSubject : '(Sin asunto)') ?></span>
-                                        <span class="hgfv-toc-meta"><?= h($tocPoster !== '' ? $tocPoster : 'Desconocido') ?> | <?= h($tocHumanTime) ?></span>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </nav>
+                    <div class="hgfv-reader-tools">
+                        <a class="hgfv-last-message-link" href="<?= h($currentTopicUrl !== '' ? ($currentTopicUrl . '#msg-' . (int)($messages[count($messages) - 1]['message_id'] ?? 0)) : ('#msg-' . (int)($messages[count($messages) - 1]['message_id'] ?? 0))) ?>">Ir al último mensaje</a>
+                        <span><?= $tocCount ?> mensajes</span>
+                    </div>
                     <div class="hgfv-copy-row">
                         <button type="button" class="hgfv-copy-btn" id="hgfv-copy-all-btn" title="Copiar todo el hilo" aria-label="Copiar todo el hilo">📑</button>
                         <span class="hgfv-copy-status" id="hgfv-copy-status"></span>
@@ -1082,7 +1070,45 @@ if (!$hgfvEmbedded) {
             <?php endif; ?>
         </section>
 
-        <div id="hgfv-messages-root">
+        <?php if (!empty($messages)): ?>
+        <div class="hgfv-reader-layout">
+            <aside class="hgfv-reader-sidebar" id="hgfv-reader-sidebar" aria-label="Navegación del hilo">
+                <div class="hgfv-sidebar-head">
+                    <strong>Mensajes</strong>
+                    <button type="button" class="hgfv-sidebar-close" id="hgfv-sidebar-close" aria-label="Cerrar índice">×</button>
+                </div>
+                <nav class="hgfv-toc<?= $tocCompact ? ' is-collapsed' : '' ?>" aria-label="Tabla de contenidos del hilo">
+                    <div class="hgfv-toc-head">
+                        <h2>Tabla de contenidos</h2>
+                        <?php if ($tocCompact): ?>
+                            <button type="button" class="hgfv-toc-toggle" aria-expanded="false" data-hidden-count="<?= $tocHiddenCount ?>">
+                                Ver todos
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    <ul class="hgfv-toc-list">
+                        <?php foreach ($messages as $tocIndex => $tocMsg): ?>
+                            <?php
+                                $tocMessageId = (int)($tocMsg['message_id'] ?? 0);
+                                if ($tocMessageId <= 0) { continue; }
+                                $tocSubject = trim((string)($tocMsg['subject'] ?? ''));
+                                $tocPoster = trim((string)($tocMsg['poster_name'] ?? ''));
+                                $tocPosterTime = (int)($tocMsg['poster_time'] ?? 0);
+                                $tocHumanTime = $tocPosterTime > 0 ? date('Y-m-d H:i', $tocPosterTime) : 'Sin fecha';
+                            ?>
+                            <li>
+                                <a href="<?= h($currentTopicUrl !== '' ? ($currentTopicUrl . '#msg-' . $tocMessageId) : ('#msg-' . $tocMessageId)) ?>" data-hgfv-toc-link>
+                                    <span class="hgfv-toc-title"><?= ($tocIndex + 1) ?>. <?= h($tocSubject !== '' ? $tocSubject : '(Sin asunto)') ?></span>
+                                    <span class="hgfv-toc-meta"><?= h($tocPoster !== '' ? $tocPoster : 'Desconocido') ?> · <?= h($tocHumanTime) ?></span>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </nav>
+            </aside>
+            <div class="hgfv-sidebar-backdrop" id="hgfv-sidebar-backdrop" hidden></div>
+
+            <div id="hgfv-messages-root">
             <?php foreach ($messages as $msg): ?>
                 <?php
                     $messageId = (int)($msg['message_id'] ?? 0);
@@ -1101,7 +1127,7 @@ if (!$hgfvEmbedded) {
                 <?php if ($messageId > 0): ?>
                     <span class="hgfv-message-anchor" id="<?= $messageId ?>" aria-hidden="true"></span>
                 <?php endif; ?>
-                <article class="hgfv-message" data-copy-scope="message"<?= $messageDomId !== '' ? ' id="' . h($messageDomId) . '" data-message-id="' . $messageId . '"' : '' ?>>
+                <article class="hgfv-message" data-copy-scope="message" data-author="<?= h($poster !== '' ? $poster : 'Desconocido') ?>" data-date="<?= h($humanTime) ?>"<?= $messageDomId !== '' ? ' id="' . h($messageDomId) . '" data-message-id="' . $messageId . '"' : '' ?>>
                     <div class="hgfv-message-head">
                         <h2><?= h($subject !== '' ? $subject : '(Sin asunto)') ?></h2>
                         <div class="hgfv-message-actions">
@@ -1126,13 +1152,19 @@ if (!$hgfvEmbedded) {
                     <div class="hgfv-body"><?= $parsedBody ?></div>
                 </article>
             <?php endforeach; ?>
+            </div>
         </div>
+        <?php endif; ?>
     </div>
 </section>
+        <?php if (!empty($messages)): ?>
+        <button type="button" class="hgfv-toc-fab" id="hgfv-toc-fab" aria-label="Abrir índice de mensajes">Mensajes · <?= count($messages) ?></button>
         <nav class="hgfv-jump-nav" aria-label="Navegación entre mensajes">
-            <button type="button" id="hgfv-prev-message" title="Mensaje anterior" aria-label="Mensaje anterior">&#8593;</button>
-            <button type="button" id="hgfv-next-message" title="Mensaje siguiente" aria-label="Mensaje siguiente">&#8595;</button>
-        </nav><script>
+            <button type="button" id="hgfv-prev-message" title="Mensaje anterior" aria-label="Mensaje anterior">&#8592;</button>
+            <span class="hgfv-jump-status" id="hgfv-jump-status">1 / <?= count($messages) ?></span>
+            <button type="button" id="hgfv-next-message" title="Mensaje siguiente" aria-label="Mensaje siguiente">&#8594;</button>
+        </nav>
+        <?php endif; ?><script>
 var hgfvMetaTitle = <?= json_encode((string)$metaTitle, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 var hgfvMetaDescription = <?= json_encode((string)$metaDescription, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
 (function(){
@@ -1182,15 +1214,15 @@ window.addEventListener('load', detectAndApplyTextColor);
 (function(){
     var previous = document.getElementById('hgfv-prev-message');
     var next = document.getElementById('hgfv-next-message');
+    var status = document.getElementById('hgfv-jump-status');
     var messages = Array.prototype.slice.call(document.querySelectorAll('.hgfv-message'));
-    if (!previous || !next) return;
+    if (!previous || !next || !messages.length) return;
 
     function activeIndex() {
-        if (!messages.length) return -1;
         var best = 0;
         var bestDistance = Infinity;
         for (var i = 0; i < messages.length; i++) {
-            var distance = Math.abs(messages[i].getBoundingClientRect().top - 90);
+            var distance = Math.abs(messages[i].getBoundingClientRect().top - 110);
             if (distance < bestDistance) {
                 bestDistance = distance;
                 best = i;
@@ -1199,23 +1231,58 @@ window.addEventListener('load', detectAndApplyTextColor);
         return best;
     }
 
+    function updateNav() {
+        var index = activeIndex();
+        previous.disabled = index <= 0;
+        next.disabled = index >= messages.length - 1;
+        if (status) {
+            var current = messages[index];
+            var author = current ? String(current.getAttribute('data-author') || '') : '';
+            status.textContent = (index + 1) + ' / ' + messages.length + (author ? ' · ' + author : '');
+        }
+        document.querySelectorAll('[data-hgfv-toc-link]').forEach(function(link){ link.classList.remove('is-active'); });
+        var currentId = messages[index] ? messages[index].id : '';
+        if (currentId) {
+            var activeLink = document.querySelector('[data-hgfv-toc-link][href$="#' + currentId + '"]');
+            if (activeLink) activeLink.classList.add('is-active');
+        }
+    }
+
     function move(step) {
         var index = activeIndex();
-        if (index < 0) return;
         var target = Math.max(0, Math.min(messages.length - 1, index + step));
         messages[target].scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    previous.disabled = messages.length < 2;
-    next.disabled = messages.length < 2;
     previous.addEventListener('click', function(){ move(-1); });
     next.addEventListener('click', function(){ move(1); });
+    window.addEventListener('scroll', updateNav, { passive: true });
+    window.addEventListener('resize', updateNav);
+    updateNav();
 })();
+
 (function(){
     var browser = document.getElementById('hgfv-topic-browser');
+    var toggle = document.getElementById('hgfv-topic-browser-toggle');
     var search = document.getElementById('hgfv-topic-search');
     var empty = document.getElementById('hgfv-topic-empty');
     if (!browser || !search) return;
+
+    if (!<?= $topicId > 0 ? 'true' : 'false' ?>) {
+        browser.classList.remove('is-collapsed');
+    }
+
+    if (toggle) {
+        toggle.addEventListener('click', function(){
+            var collapsed = browser.classList.toggle('is-collapsed');
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            toggle.textContent = collapsed ? 'Cambiar capítulo' : 'Cerrar capítulos';
+            if (!collapsed) {
+                window.setTimeout(function(){ search.focus(); }, 50);
+            }
+        });
+    }
+
     search.addEventListener('input', function(){
         var query = String(search.value || '').toLowerCase().trim();
         var visible = 0;
@@ -1229,18 +1296,37 @@ window.addEventListener('load', detectAndApplyTextColor);
         });
         if (empty) empty.hidden = visible !== 0;
     });
-})();;
+})();
 
 (function(){
     var toc = document.querySelector('.hgfv-toc');
     var toggle = toc ? toc.querySelector('.hgfv-toc-toggle') : null;
-    if (!toc || !toggle) return;
+    var sidebar = document.getElementById('hgfv-reader-sidebar');
+    var openButton = document.getElementById('hgfv-toc-fab');
+    var closeButton = document.getElementById('hgfv-sidebar-close');
+    var backdrop = document.getElementById('hgfv-sidebar-backdrop');
 
-    toggle.addEventListener('click', function(){
-        var collapsed = toc.classList.toggle('is-collapsed');
-        var hiddenCount = parseInt(toggle.getAttribute('data-hidden-count') || '0', 10);
-        toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-        toggle.textContent = collapsed ? ('Mostrar ' + hiddenCount + ' más') : 'Mostrar menos';
+    if (toc && toggle) {
+        toggle.addEventListener('click', function(){
+            var collapsed = toc.classList.toggle('is-collapsed');
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            toggle.textContent = collapsed ? 'Ver todos' : 'Ver recientes';
+        });
+    }
+
+    function setDrawer(open) {
+        if (!sidebar) return;
+        sidebar.classList.toggle('is-open', open);
+        document.body.classList.toggle('hgfv-drawer-open', open);
+        if (backdrop) backdrop.hidden = !open;
+        if (openButton) openButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    if (openButton) openButton.addEventListener('click', function(){ setDrawer(true); });
+    if (closeButton) closeButton.addEventListener('click', function(){ setDrawer(false); });
+    if (backdrop) backdrop.addEventListener('click', function(){ setDrawer(false); });
+    document.querySelectorAll('[data-hgfv-toc-link]').forEach(function(link){
+        link.addEventListener('click', function(){ setDrawer(false); });
     });
 })();
 
