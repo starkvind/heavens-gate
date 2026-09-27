@@ -17,35 +17,36 @@ $csrf = function_exists('hg_admin_ensure_csrf_token')
     : ($_SESSION[$csrfKey] ?? ($_SESSION[$csrfKey] = bin2hex(random_bytes(16))));
 $flash = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = (string)($_POST['csrf'] ?? '');
+$crudAction = hg_request_body_param($hgRequest, 'crud_action');
+if ($crudAction !== '') {
+    $token = hg_request_body_value($hgRequest, 'csrf');
     $csrfOk = function_exists('hg_admin_csrf_valid')
         ? hg_admin_csrf_valid($token, $csrfKey)
         : ($token !== '' && isset($_SESSION[$csrfKey]) && hash_equals((string)$_SESSION[$csrfKey], $token));
 
     if (!$csrfOk) {
         $flash[] = ['type' => 'error', 'msg' => 'CSRF inválido. Recarga la página.'];
-    } elseif ((string)($_POST['crud_action'] ?? '') === 'delete') {
-        $result = hg_help_admin_delete($link, (int)($_POST['id'] ?? 0));
+    } elseif ($crudAction === 'delete') {
+        $result = hg_help_admin_delete($link, (int)hg_request_body_param($hgRequest, 'id'));
         $flash[] = ['type' => !empty($result['ok']) ? 'ok' : 'error', 'msg' => (string)$result['message']];
-    } elseif ((string)($_POST['crud_action'] ?? '') === 'save') {
+    } elseif ($crudAction === 'save') {
         $result = hg_help_admin_save($link, [
-            'id' => (int)($_POST['id'] ?? 0),
-            'slug' => (string)($_POST['slug'] ?? ''),
-            'nav_label' => (string)($_POST['nav_label'] ?? ''),
-            'title' => (string)($_POST['title'] ?? ''),
-            'summary' => (string)($_POST['summary'] ?? ''),
-            'lead' => (string)($_POST['lead'] ?? ''),
-            'meta_description' => (string)($_POST['meta_description'] ?? ''),
-            'content_html' => (string)($_POST['content_html'] ?? ''),
-            'sort_order' => (int)($_POST['sort_order'] ?? 0),
-            'is_published' => isset($_POST['is_published']) ? 1 : 0,
+            'id' => (int)hg_request_body_param($hgRequest, 'id'),
+            'slug' => hg_request_body_value($hgRequest, 'slug'),
+            'nav_label' => hg_request_body_value($hgRequest, 'nav_label'),
+            'title' => hg_request_body_value($hgRequest, 'title'),
+            'summary' => hg_request_body_value($hgRequest, 'summary'),
+            'lead' => hg_request_body_value($hgRequest, 'lead'),
+            'meta_description' => hg_request_body_value($hgRequest, 'meta_description'),
+            'content_html' => hg_request_body_value($hgRequest, 'content_html'),
+            'sort_order' => (int)hg_request_body_param($hgRequest, 'sort_order'),
+            'is_published' => hg_request_body_has($hgRequest, 'is_published') ? 1 : 0,
         ]);
         $flash[] = ['type' => !empty($result['ok']) ? 'ok' : 'error', 'msg' => (string)$result['message']];
     }
 }
 
-$editId = max(0, (int)($_GET['edit'] ?? 0));
+$editId = max(0, (int)hg_request_query_param($hgRequest, 'edit'));
 $editing = $editId > 0 ? hg_help_admin_fetch_one($link, $editId) : null;
 $rows = hg_help_admin_fetch_rows($link);
 
