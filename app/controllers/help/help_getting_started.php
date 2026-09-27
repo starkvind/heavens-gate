@@ -35,7 +35,10 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Empieza por la portada</h2>
             <p>La portada funciona como punto de entrada al archivo. El buscador principal consulta todas las secciones y los bloques de Explora llevan directamente a los grandes dominios de contenido.</p>
         </div>
-        <!-- Captura futura: portada completa con buscador y bloque Explora. -->
+        <figure class="hg-help-figure">
+            <img src="/img/help/help-basic-01-home.webp" alt="Portada de Heaven's Gate con buscador y tarjetas de exploración" loading="lazy" decoding="async">
+            <figcaption>La portada reúne accesos rápidos a los grandes bloques del archivo.</figcaption>
+        </figure>
         <div class="hg-help-note">
             <strong>Atajo útil.</strong>
             <p>Si ya sabes qué buscas, escribe el nombre de un personaje, capítulo, lugar, poder o documento en el buscador de portada. Para búsquedas más controladas utiliza la página <a href="/search">Buscar</a>.</p>
@@ -48,7 +51,10 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Usa el menú como mapa de la web</h2>
             <p>El menú agrupa el contenido por función. No necesitas memorizar la estructura: abre la categoría que se parezca más a lo que estás intentando localizar.</p>
         </div>
-        <!-- Captura futura: menú lateral con varias categorías desplegadas. -->
+        <figure class="hg-help-figure hg-help-figure--narrow">
+            <img src="/img/help/help-basic-02-menu.webp" alt="Menú lateral de Heaven's Gate desplegado" loading="lazy" decoding="async">
+            <figcaption>El menú lateral agrupa las secciones principales de Heaven's Gate.</figcaption>
+        </figure>
         <div class="hg-help-definition-grid">
             <div><strong>Inicio</strong><span>Portada, noticias, búsqueda, estado de la web, ayuda y acceso al foro.</span></div>
             <div><strong>Biografías</strong><span>Personajes, tipos, grupos, sociedades y relaciones.</span></div>
@@ -66,7 +72,10 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Buscar contenido</h2>
             <p>La búsqueda acepta un mínimo de tres caracteres. Puedes consultar todo el archivo o limitar los resultados a una sección concreta. La web conserva en tu navegador las búsquedas recientes para que puedas repetirlas rápidamente.</p>
         </div>
-        <!-- Captura futura: buscador avanzado con selector de sección y búsquedas recientes. -->
+        <figure class="hg-help-figure">
+            <img src="/img/help/help-basic-03-search.webp" alt="Buscador de Heaven's Gate con selector de sección" loading="lazy" decoding="async">
+            <figcaption>La búsqueda permite limitar los resultados a una sección concreta y recuperar consultas recientes.</figcaption>
+        </figure>
         <div class="hg-help-steps">
             <div class="hg-help-step"><span>1</span><div><strong>Escribe el término.</strong><p>Prueba primero con el nombre propio o concepto más específico.</p></div></div>
             <div class="hg-help-step"><span>2</span><div><strong>Elige una sección.</strong><p>Usa la búsqueda global si no sabes dónde vive la información.</p></div></div>
@@ -80,7 +89,16 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Consultar la historia y sus personajes</h2>
             <p>Heaven's Gate relaciona personajes, capítulos, eventos, organizaciones y crónicas. Puedes entrar por cualquiera de esas puertas y continuar desde los enlaces internos.</p>
         </div>
-        <!-- Captura futura: una biografía completa y un capítulo con participantes/eventos. -->
+        <div class="hg-help-figure-grid">
+            <figure class="hg-help-figure">
+                <img src="/img/help/help-basic-04-character.webp" alt="Biografía de Brisa del Sur" loading="lazy" decoding="async">
+                <figcaption>Las biografías concentran identidad, trasfondo y enlaces relacionados del personaje.</figcaption>
+            </figure>
+            <figure class="hg-help-figure">
+                <img src="/img/help/help-basic-05-chapter.webp" alt="Capítulo Armas de fuego con participantes, eventos y resumen" loading="lazy" decoding="async">
+                <figcaption>Los capítulos reúnen participantes, eventos relacionados y el resumen de la sesión.</figcaption>
+            </figure>
+        </div>
         <div class="hg-help-definition-grid">
             <div><strong>Personajes</strong><span>La ficha reúne biografía, datos, afiliaciones y conexiones disponibles para cada figura.</span></div>
             <div><strong>Temporadas y capítulos</strong><span>Las temporadas ordenan los arcos. Los capítulos muestran participantes, eventos relacionados, resumen y navegación entre episodios.</span></div>
@@ -126,7 +144,16 @@ if (function_exists('hg_page_register_stylesheet')) {
             <h2>Usar Heaven's Gate en móvil</h2>
             <p>La vista móvil utiliza las mismas rutas y el mismo contenido. El botón Menú concentra la navegación y permite cambiar la apariencia. Cuando el navegador lo permite, Heaven's Gate también puede instalarse como aplicación web.</p>
         </div>
-        <!-- Captura futura: menú móvil y bloque de instalación PWA. -->
+        <div class="hg-help-figure-grid">
+            <figure class="hg-help-figure">
+                <img src="/img/help/help-basic-06-mobile-menu.webp" alt="Menú de Heaven's Gate en móvil" loading="lazy" decoding="async">
+                <figcaption>En móvil, las mismas áreas quedan agrupadas en un menú compacto.</figcaption>
+            </figure>
+            <figure class="hg-help-figure">
+                <img src="/img/help/help-basic-07-mobile-pwa.webp" alt="Diálogo para añadir Heaven's Gate a la pantalla de inicio" loading="lazy" decoding="async">
+                <figcaption>En navegadores compatibles, Heaven's Gate puede añadirse a la pantalla de inicio.</figcaption>
+            </figure>
+        </div>
         <div class="hg-help-note">
             <strong>iPhone y iPad.</strong>
             <p>Si no aparece un diálogo de instalación, utiliza Compartir y después «Añadir a pantalla de inicio».</p>
