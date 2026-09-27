@@ -24,12 +24,12 @@ if (function_exists('hg_page_register_stylesheet')) {
     </aside>
 
     <nav class="hg-help-toc" aria-label="Contenido de la guía">
-        <a href="#antes">Antes de empezar</a>
-        <a href="#capitulo">Elegir capítulo</a>
-        <a href="#leer">Leer y moverse</a>
-        <a href="#toc">Tabla de contenidos</a>
-        <a href="#flujo">Flujo recomendado</a>
-        <a href="#faq">Preguntas rápidas</a>
+        <a href="/help/forum-viewer#antes">Antes de empezar</a>
+        <a href="/help/forum-viewer#capitulo">Elegir capítulo</a>
+        <a href="/help/forum-viewer#leer">Leer y moverse</a>
+        <a href="/help/forum-viewer#toc">Tabla de contenidos</a>
+        <a href="/help/forum-viewer#flujo">Flujo recomendado</a>
+        <a href="/help/forum-viewer#faq">Preguntas rápidas</a>
     </nav>
 
     <section class="hg-help-section" id="antes">
