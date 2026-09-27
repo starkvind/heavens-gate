@@ -333,7 +333,8 @@
 }
 
 .hg-help-figure--narrow {
-    max-width: 280px;
+    width: fit-content;
+    max-width: min(100%, 230px);
     margin-inline: auto;
 }
 
@@ -352,6 +353,10 @@
 
 .hg-help-zoomable {
     cursor: zoom-in;
+}
+
+.hg-help-zoomable:hover {
+    opacity: .96;
 }
 
 .hg-help-lightbox[hidden] {
