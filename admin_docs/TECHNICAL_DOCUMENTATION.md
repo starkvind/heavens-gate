@@ -177,7 +177,7 @@ La traducción completa de nombres internos históricos está en [ROUTE_DICTIONA
 
 ## 9. Modelo de datos
 
-La base de producción documentada contiene **101 tablas**:
+La base de producción documentada contiene **102 tablas**:
 
 - 36 dim_*;
 - 27 fact_*;
