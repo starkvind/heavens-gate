@@ -985,3 +985,101 @@
         max-width: 130px;
     }
 }
+
+
+/* Floating TOC: opened from the central message navigator. */
+.hgfv-reader-layout {
+    display: block !important;
+}
+
+.hgfv-reader-layout > #hgfv-messages-root {
+    min-width: 0;
+    width: 100%;
+}
+
+.hgfv-toc-popover[hidden] {
+    display: none !important;
+}
+
+.hgfv-toc-popover {
+    position: fixed;
+    left: 50%;
+    bottom: 72px;
+    transform: translateX(-50%);
+    z-index: 1003;
+    width: min(560px, calc(100vw - 28px));
+    max-height: min(70vh, 680px);
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #b8c8ec;
+    border-radius: 16px;
+    background: #f6f9ff;
+    box-shadow: 0 14px 44px rgba(8, 22, 58, .28);
+}
+
+.hgfv-toc-popover .hgfv-toc {
+    margin: 0;
+    border: 0;
+    border-radius: 16px;
+    box-shadow: none;
+}
+
+.hgfv-toc-popover .hgfv-toc-list {
+    max-height: calc(min(70vh, 680px) - 72px);
+    overflow-y: auto;
+    padding-right: 3px;
+    scrollbar-gutter: stable;
+}
+
+.hgfv-jump-nav {
+    z-index: 1004;
+}
+
+.hgfv-jump-nav .hgfv-jump-status {
+    width: auto;
+    height: 38px;
+    min-width: 112px;
+    max-width: 220px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #243b76;
+    box-shadow: none;
+    cursor: pointer;
+    font: 800 .83rem/1 sans-serif;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hgfv-jump-nav .hgfv-jump-status:hover,
+.hgfv-jump-nav .hgfv-jump-status:focus,
+.hgfv-jump-nav .hgfv-jump-status[aria-expanded="true"] {
+    background: #e8efff;
+}
+
+.hgfv-reader-sidebar,
+.hgfv-sidebar-backdrop,
+.hgfv-toc-fab {
+    display: none !important;
+}
+
+@media (max-width: 560px) {
+    .hgfv-toc-popover {
+        bottom: calc(70px + env(safe-area-inset-bottom));
+        width: calc(100vw - 18px);
+        max-height: min(72vh, 620px);
+        border-radius: 14px;
+    }
+
+    .hgfv-toc-popover .hgfv-toc-list {
+        max-height: calc(min(72vh, 620px) - 72px);
+    }
+
+    .hgfv-jump-nav .hgfv-jump-status {
+        min-width: 92px;
+        max-width: 150px;
+    }
+}
