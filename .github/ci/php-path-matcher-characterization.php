@@ -26,8 +26,8 @@ $link = new mysqli();
 $routeCases = [
     '/home' => ['p' => 'home'],
     '/help' => ['p' => 'help'],
-    '/help/getting-started' => ['p' => 'help_getting_started'],
-    '/help/forum-viewer' => ['p' => 'help_forum_viewer'],
+    '/help/getting-started' => ['p' => 'help_page', 'slug' => 'getting-started'],
+    '/help/forum-viewer' => ['p' => 'help_page', 'slug' => 'forum-viewer'],
     '/seasons/season-one' => ['p' => 'temp', 't' => 'season-one'],
     '/chapters/chapter-one' => ['p' => 'seechapter', 't' => 'chapter-one'],
     '/characters/bruma-nocturna' => ['p' => 'muestrabio', 'b' => 'bruma-nocturna'],
