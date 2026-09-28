@@ -1087,3 +1087,17 @@
         max-width: 150px;
     }
 }
+
+
+/* Mobile forum reader: keep the navigator at the viewport edge and the TOC
+ * exactly 30px above it. Target the mobile shell instead of viewport width so
+ * device CSS widths cannot bypass the positioning rules. */
+.hg-mobile-forum-viewer-tool .hgfv-jump-nav {
+    box-sizing: border-box;
+    height: 50px;
+    bottom: env(safe-area-inset-bottom) !important;
+}
+
+.hg-mobile-forum-viewer-tool .hgfv-toc-popover {
+    bottom: calc(env(safe-area-inset-bottom) + 80px) !important;
+}
