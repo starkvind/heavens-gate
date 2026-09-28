@@ -1004,7 +1004,7 @@
 .hgfv-toc-popover {
     position: fixed;
     left: 50%;
-    bottom: 72px;
+    bottom: 92px;
     transform: translateX(-50%);
     z-index: 1003;
     width: min(560px, calc(100vw - 28px));
@@ -1068,7 +1068,7 @@
 
 @media (max-width: 560px) {
     .hgfv-toc-popover {
-        bottom: calc(70px + env(safe-area-inset-bottom));
+        bottom: calc(94px + env(safe-area-inset-bottom));
         width: calc(100vw - 18px);
         max-height: min(72vh, 620px);
         border-radius: 14px;
