@@ -1095,9 +1095,9 @@
 .hg-mobile-forum-viewer-tool .hgfv-jump-nav {
     box-sizing: border-box;
     height: 50px;
-    bottom: env(safe-area-inset-bottom) !important;
+    bottom: calc(env(safe-area-inset-bottom) + 8px) !important;
 }
 
 .hg-mobile-forum-viewer-tool .hgfv-toc-popover {
-    bottom: calc(env(safe-area-inset-bottom) + 80px) !important;
+    bottom: calc(env(safe-area-inset-bottom) + 88px) !important;
 }
