@@ -1068,7 +1068,7 @@
 
 @media (max-width: 560px) {
     .hgfv-toc-popover {
-        bottom: calc(132px + env(safe-area-inset-bottom));
+        bottom: calc(152px + env(safe-area-inset-bottom));
         width: calc(100vw - 18px);
         max-height: min(72vh, 620px);
         border-radius: 14px;
