@@ -6,9 +6,49 @@
     }
     window.__hgForumItemViewerEmbedInstalled = true;
 
-    const selector = '.hg-inline-item-frame';
+    const itemFrameSelector = '.hg-inline-item-frame';
+    const flowEmbedSelector = '.hgfv-body .hg-inline-message, .hgfv-body .hg-inline-roll, .hgfv-body .hg-inline-item-frame';
     const frameByWindow = new Map();
     const boundFrames = new WeakSet();
+
+    function isWhitespaceText(node) {
+        return node && node.nodeType === Node.TEXT_NODE && node.textContent.trim() === '';
+    }
+
+    function trimAdjacentBreaks(element, direction) {
+        let node = element[direction];
+
+        while (node) {
+            if (isWhitespaceText(node)) {
+                const removable = node;
+                node = removable[direction];
+                removable.remove();
+                continue;
+            }
+
+            if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
+                const removable = node;
+                node = removable[direction];
+                removable.remove();
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    function normalizeEmbedSpacing(element) {
+        if (!(element instanceof Element) || !element.matches(flowEmbedSelector)) return;
+        trimAdjacentBreaks(element, 'previousSibling');
+        trimAdjacentBreaks(element, 'nextSibling');
+    }
+
+    function normalizeEmbeds(root = document) {
+        if (root instanceof Element) {
+            normalizeEmbedSpacing(root);
+        }
+        root.querySelectorAll(flowEmbedSelector).forEach(normalizeEmbedSpacing);
+    }
 
     function resizeFromDocument(frame) {
         try {
@@ -23,6 +63,7 @@
 
     function registerFrame(frame) {
         if (!(frame instanceof HTMLIFrameElement)) return;
+        normalizeEmbedSpacing(frame);
         if (frame.contentWindow) frameByWindow.set(frame.contentWindow, frame);
 
         if (!boundFrames.has(frame)) {
@@ -37,7 +78,15 @@
     }
 
     function registerFrames(root = document) {
-        root.querySelectorAll(selector).forEach(registerFrame);
+        if (root instanceof HTMLIFrameElement && root.matches(itemFrameSelector)) {
+            registerFrame(root);
+        }
+        root.querySelectorAll(itemFrameSelector).forEach(registerFrame);
+    }
+
+    function initialize(root = document) {
+        normalizeEmbeds(root);
+        registerFrames(root);
     }
 
     window.addEventListener('message', (event) => {
@@ -47,7 +96,7 @@
 
         let frame = frameByWindow.get(event.source);
         if (!frame) {
-            frame = Array.from(document.querySelectorAll(selector))
+            frame = Array.from(document.querySelectorAll(itemFrameSelector))
                 .find((candidate) => candidate.contentWindow === event.source);
             if (frame) registerFrame(frame);
         }
@@ -60,17 +109,16 @@
     });
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => registerFrames(), { once: true });
+        document.addEventListener('DOMContentLoaded', () => initialize(), { once: true });
     } else {
-        registerFrames();
+        initialize();
     }
 
     const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
                 if (!(node instanceof Element)) continue;
-                if (node.matches(selector)) registerFrame(node);
-                registerFrames(node);
+                initialize(node);
             }
         }
     });
