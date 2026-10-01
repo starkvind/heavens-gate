@@ -11,6 +11,7 @@ if (!defined('HG_FORUM_TOPIC_VIEWER_EMBED')) {
 }
 ?>
 <link rel="stylesheet" href="/assets/css/hg-forum-item-embed.css">
+<script src="/assets/js/forum-item-viewer-embed.js" defer></script>
 <section class="hg-mobile-section hg-mobile-tool-heading">
     <h1>Lector del foro</h1>
 </section>
@@ -20,7 +21,7 @@ if (!defined('HG_FORUM_TOPIC_VIEWER_EMBED')) {
 ob_start();
 include(__DIR__ . '/../../tools/forum_topic_viewer_tool.php');
 $forumViewerHtml = (string)ob_get_clean();
-echo hg_forum_expand_item_bbcode($link, $forumViewerHtml);
+echo hg_forum_expand_item_bbcode($forumViewerHtml);
 ?>
 </section>
 
