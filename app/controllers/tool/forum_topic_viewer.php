@@ -5,6 +5,7 @@ $metaTitle = "Foro | Heaven's Gate";
 $metaDescription = "Visualizador de temas de foro.";
 
 require_once __DIR__ . '/../../domains/forum/queries.php';
+require_once __DIR__ . '/../../helpers/forum_item_embed.php';
 
 $topicId = filter_var(hg_request_query_param($hgRequest, 'id_topic'), FILTER_VALIDATE_INT);
 $topicId = $topicId ? (int)$topicId : 0;
@@ -51,6 +52,10 @@ if (!defined('HG_FORUM_TOPIC_VIEWER_EMBED')) {
     define('HG_FORUM_TOPIC_VIEWER_EMBED', true);
 }
 
+echo '<link rel="stylesheet" href="/assets/css/hg-forum-item-embed.css">';
+ob_start();
 include(__DIR__ . '/../../tools/forum_topic_viewer_tool.php');
+$forumViewerHtml = (string)ob_get_clean();
+echo hg_forum_expand_item_bbcode($link, $forumViewerHtml);
 
 
