@@ -1,0 +1,8 @@
+.hg-inline-item-frame {
+    display: block;
+    width: min(900px, 100%);
+    min-height: 260px;
+    margin: 0.9em 0 1.1em;
+    border: 0;
+    background: transparent;
+}
