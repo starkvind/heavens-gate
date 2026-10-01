@@ -1,37 +1,28 @@
 /* Forum topic viewer embed spacing.
  *
- * The SMF body already carries intentional line breaks around custom BBCodes.
- * The viewer keeps one of those separators and owns only a small amount of
- * additional block spacing here. Outer wrappers carry the margins so spacing
- * does not depend on collapsed child margins against anonymous text nodes.
+ * The HTML emitted from the SMF-backed post body already carries the intended
+ * vertical rhythm as <br><br> around custom BBCode blocks. Do not reconstruct
+ * that rhythm with viewer-only margins and do not mutate those breaks in JS.
+ * This stylesheet only neutralizes margins inherited from the reusable embed
+ * components so the source formatting remains the single spacing authority.
  * The canonical item card inside /forum/item remains untouched.
  */
 .hg-inline-item-frame {
     display: block;
     width: min(900px, 100%);
     min-height: 260px;
-    margin: 0.25em 0 0.4em;
+    margin: 0;
     border: 0;
     background: transparent;
 }
 
 .hgfv-root .hg-inline-message,
 .hgfv-root .hg-inline-roll {
-    display: flow-root;
-}
-
-.hgfv-root .hg-inline-message {
-    margin: 0.25em 0 0.4em;
-}
-
-.hgfv-root .hg-inline-message .msg_main_box {
+    display: block;
     margin: 0;
 }
 
-.hgfv-root .hg-inline-roll {
-    margin: 0.25em 0 0.4em;
-}
-
+.hgfv-root .hg-inline-message .msg_main_box,
 .hgfv-root .hg-inline-roll .roll-main-box {
     margin: 0;
 }
