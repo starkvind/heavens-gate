@@ -16,7 +16,7 @@ if (!function_exists('hg_forum_expand_item_bbcode')) {
     function hg_forum_expand_item_bbcode(string $html): string
     {
         return (string)preg_replace_callback(
-            '/\[hg_item\]\s*(\d+)\s*\[\/hg_item\]/i',
+            '/(?:<br\s*\/?>\s*)*\[hg_item\]\s*(\d+)\s*\[\/hg_item\](?:\s*<br\s*\/?>)*/i',
             static function ($matches) {
                 return hg_forum_render_item_embed((int)$matches[1]);
             },
