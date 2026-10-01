@@ -53,9 +53,10 @@ if (!defined('HG_FORUM_TOPIC_VIEWER_EMBED')) {
 }
 
 echo '<link rel="stylesheet" href="/assets/css/hg-forum-item-embed.css">';
+echo '<script src="/assets/js/forum-item-viewer-embed.js" defer></script>';
 ob_start();
 include(__DIR__ . '/../../tools/forum_topic_viewer_tool.php');
 $forumViewerHtml = (string)ob_get_clean();
-echo hg_forum_expand_item_bbcode($link, $forumViewerHtml);
+echo hg_forum_expand_item_bbcode($forumViewerHtml);
 
 
