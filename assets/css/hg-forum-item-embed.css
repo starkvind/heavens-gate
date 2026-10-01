@@ -1,8 +1,22 @@
+/* Forum topic viewer embed spacing.
+ *
+ * This stylesheet is loaded only by the forum topic viewer surfaces. It keeps
+ * custom embeds visually close to the surrounding prose while preserving the
+ * canonical item card presentation inside /forum/item.
+ */
 .hg-inline-item-frame {
     display: block;
     width: min(900px, 100%);
     min-height: 260px;
-    margin: 0.9em 0 1.1em;
+    margin: 0.35em 0 0.45em;
     border: 0;
     background: transparent;
+}
+
+.hgfv-root .hg-inline-message .msg_main_box {
+    margin: 0.8em 0 0.28em;
+}
+
+.hgfv-root .hg-inline-roll .roll-main-box {
+    margin: 0.8em 0 0.45em;
 }
