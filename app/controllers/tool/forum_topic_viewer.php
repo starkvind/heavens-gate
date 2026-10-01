@@ -52,8 +52,14 @@ if (!defined('HG_FORUM_TOPIC_VIEWER_EMBED')) {
     define('HG_FORUM_TOPIC_VIEWER_EMBED', true);
 }
 
-echo '<link rel="stylesheet" href="/assets/css/hg-forum-item-embed.css">';
-echo '<script src="/assets/js/forum-item-viewer-embed.js" defer></script>';
+$hgForumViewerRoot = dirname(__DIR__, 3);
+$hgForumViewerCss = '/assets/css/hg-forum-item-embed.css';
+$hgForumViewerJs = '/assets/js/forum-item-viewer-embed.js';
+$hgForumViewerCssVersion = @filemtime($hgForumViewerRoot . $hgForumViewerCss) ?: 1;
+$hgForumViewerJsVersion = @filemtime($hgForumViewerRoot . $hgForumViewerJs) ?: 1;
+
+echo '<link rel="stylesheet" href="' . $hgForumViewerCss . '?v=' . rawurlencode((string)$hgForumViewerCssVersion) . '">';
+echo '<script src="' . $hgForumViewerJs . '?v=' . rawurlencode((string)$hgForumViewerJsVersion) . '" defer></script>';
 ob_start();
 include(__DIR__ . '/../../tools/forum_topic_viewer_tool.php');
 $forumViewerHtml = (string)ob_get_clean();

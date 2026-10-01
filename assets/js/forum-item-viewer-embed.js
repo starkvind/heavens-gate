@@ -15,21 +15,26 @@
         return node && node.nodeType === Node.TEXT_NODE && node.textContent.trim() === '';
     }
 
-    function trimAdjacentBreaks(element, direction) {
+    function collapseAdjacentBreaks(element, direction) {
         let node = element[direction];
+        let keptBreak = false;
 
         while (node) {
+            const next = node[direction];
+
             if (isWhitespaceText(node)) {
-                const removable = node;
-                node = removable[direction];
-                removable.remove();
+                node.remove();
+                node = next;
                 continue;
             }
 
             if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
-                const removable = node;
-                node = removable[direction];
-                removable.remove();
+                if (keptBreak) {
+                    node.remove();
+                } else {
+                    keptBreak = true;
+                }
+                node = next;
                 continue;
             }
 
@@ -39,8 +44,8 @@
 
     function normalizeEmbedSpacing(element) {
         if (!(element instanceof Element) || !element.matches(flowEmbedSelector)) return;
-        trimAdjacentBreaks(element, 'previousSibling');
-        trimAdjacentBreaks(element, 'nextSibling');
+        collapseAdjacentBreaks(element, 'previousSibling');
+        collapseAdjacentBreaks(element, 'nextSibling');
     }
 
     function normalizeEmbeds(root = document) {
