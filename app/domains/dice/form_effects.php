@@ -17,7 +17,8 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
             $db,
             "SELECT b.override_value
              FROM dim_forms f
-             JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
+             JOIN fact_characters c ON c.id = ?
+             JOIN dim_breeds br ON br.id = c.breed_id AND br.form_system_id = f.system_id
              LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = ?
              WHERE f.id = ?
              LIMIT 1"
