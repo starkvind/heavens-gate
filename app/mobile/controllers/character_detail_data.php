@@ -112,6 +112,7 @@ $systemId = (int)($character['system_id'] ?? 0);
 $chronicleId = (int)($character['chronicle_id'] ?? 0);
 $playerId = (int)($character['player_id'] ?? 0);
 $breedId = (int)($character['breed_id'] ?? 0);
+$formSystemId = hg_characters_fetch_form_system_id_for_breed($link, $breedId);
 $auspiceId = (int)($character['auspice_id'] ?? 0);
 $tribeId = (int)($character['tribe_id'] ?? 0);
 $totemId = (int)($character['totem_id'] ?? 0);
@@ -245,8 +246,8 @@ $mobileResourcesByKind = $hasCharacterSheet
 
 $mobileForms = [];
 $mobileBaseManeuvers = [];
-if ($hasCharacterSheet && $systemId > 0) {
-    $forms = hg_characters_fetch_forms_for_system($link, $systemId);
+if ($hasCharacterSheet && $formSystemId > 0) {
+    $forms = hg_characters_fetch_forms_for_system($link, $formSystemId);
     $races = [];
     foreach ($forms as $form) {
         $race = trim((string)($form['race'] ?? ''));
