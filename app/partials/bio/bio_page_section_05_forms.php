@@ -55,7 +55,20 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         return decoder.value.trim();
     };
 
-    const resolvedTraitValue = (base, modifier) => Math.max(0, Number(base || 0) + Number(modifier || 0));
+    const hasOverride = (form, traitId) => {
+        if (!form || !form.overrides) return false;
+        return Object.prototype.hasOwnProperty.call(form.overrides, String(traitId))
+            && form.overrides[String(traitId)] !== null
+            && form.overrides[String(traitId)] !== '';
+    };
+
+    const resolvedTraitValue = (base, form, traitId) => {
+        if (hasOverride(form, traitId)) {
+            return Math.max(0, Number(form.overrides[String(traitId)] || 0));
+        }
+        const modifier = form && form.modifiers ? Number(form.modifiers[String(traitId)] || 0) : 0;
+        return Math.max(0, Number(base || 0) + modifier);
+    };
 
     const renderDetail = (form) => {
         if (!detailUi) return;
@@ -72,7 +85,8 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             const traitId = String(cell.dataset.bioFormTraitId || '');
             const base = Number(cell.dataset.bioFormBase || 0);
             const modifier = form && form.modifiers ? Number(form.modifiers[traitId] || 0) : 0;
-            const total = resolvedTraitValue(base, modifier);
+            const overridden = hasOverride(form, traitId);
+            const total = resolvedTraitValue(base, form, traitId);
 
             const item = document.createElement('div');
             item.className = 'bio-forms-detail__attribute';
@@ -85,7 +99,12 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             value.className = 'bio-forms-detail__attribute-value';
             value.textContent = form ? (base + ' → ' + total) : String(base);
 
-            if (form && modifier !== 0) {
+            if (form && overridden) {
+                const fixed = document.createElement('span');
+                fixed.className = 'bio-forms-detail__delta';
+                fixed.textContent = '(valor fijo)';
+                value.appendChild(fixed);
+            } else if (form && modifier !== 0) {
                 const delta = document.createElement('span');
                 delta.className = 'bio-forms-detail__delta';
                 delta.textContent = '(' + (modifier > 0 ? '+' : '') + modifier + ')';
@@ -220,11 +239,10 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
 
     const render = () => {
         const form = forms.find(item => String(item.id) === select.value) || null;
-        const modifiers = form && form.modifiers ? form.modifiers : {};
         traitCells.forEach(cell => {
-            const traitId = cell.dataset.bioFormTraitId;
+            const traitId = String(cell.dataset.bioFormTraitId || '');
             const base = Number(cell.dataset.bioFormBase || 0);
-            const total = resolvedTraitValue(base, Number(modifiers[traitId] || 0));
+            const total = resolvedTraitValue(base, form, traitId);
             const value = cell.querySelector('.bio-form-attribute-value');
             const gem = cell.querySelector('img.bioAttCircle');
             if (value) value.textContent = form ? String(total) : '';
@@ -238,10 +256,15 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         if (!form) {
             summary.textContent = 'Homínido: se muestran los atributos originales del personaje.';
         } else {
-            const changes = Object.keys(modifiers)
-                .filter(id => Number(modifiers[id]) !== 0)
-                .map(id => (labels[id] || ('Rasgo #' + id)) + ' ' + (Number(modifiers[id]) > 0 ? '+' : '') + modifiers[id])
-                .join(' | ');
+            const changes = traitCells.map(cell => {
+                const traitId = String(cell.dataset.bioFormTraitId || '');
+                if (hasOverride(form, traitId)) {
+                    return (labels[traitId] || ('Rasgo #' + traitId)) + ' = ' + resolvedTraitValue(cell.dataset.bioFormBase || 0, form, traitId);
+                }
+                const modifier = form.modifiers ? Number(form.modifiers[traitId] || 0) : 0;
+                if (modifier === 0) return '';
+                return (labels[traitId] || ('Rasgo #' + traitId)) + ' ' + (modifier > 0 ? '+' : '') + modifier;
+            }).filter(Boolean).join(' | ');
             summary.textContent = form.name + ': ' + (changes || 'sin cambios de atributos') + '.';
         }
 

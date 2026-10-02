@@ -3,6 +3,7 @@
 <?php include_once("app/partials/datatable_assets.php"); ?>
 <?php include_once("app/helpers/runtime_response.php"); ?>
 <?php require_once("app/domains/dice/queries.php"); ?>
+<?php require_once("app/domains/dice/form_effects.php"); ?>
 
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-tools.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-tools.css"><?php } ?>
 
@@ -103,7 +104,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($queryInput['character_id'], 
         $form_character_id = $prefillCharacterId;
         $form_attr_trait_id = $prefillAttributeId;
         $form_skill_trait_id = $prefillSkillId;
-        $prefill_form_modifier = hg_dice_form_attribute_modifier($link, $prefillCharacterId, $form_active_form_id, $prefillAttributeId);
+        $prefillBaseValue = (int)($pjProfiles[$prefillCharacterId]['attribute_map'][$prefillAttributeId] ?? 0);
+        $prefillResolvedValue = hg_dice_resolve_form_attribute_value(
+            $link,
+            $prefillCharacterId,
+            $form_active_form_id,
+            $prefillAttributeId,
+            $prefillBaseValue
+        );
+        $prefill_form_modifier = $prefillResolvedValue - $prefillBaseValue;
         $prefillName = (string)($pjProfiles[$prefillCharacterId]['name'] ?? '');
         $actionName = trim((string)($queryInput['action_name'] ?? 'Acción'));
         $prefillRollName = trim($actionName . ' · ' . $prefillName . ' · ' . date('Ymd-His'));
@@ -137,7 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $skillVal = ($form_skill_trait_id > 0 && isset($profile['skill_map'][$form_skill_trait_id])) ? (int)$profile['skill_map'][$form_skill_trait_id] : 0;
             $skillKind = ($form_skill_trait_id > 0 && isset($profile['skill_kind_map'][$form_skill_trait_id])) ? (string)$profile['skill_kind_map'][$form_skill_trait_id] : '';
             $resourceVal = ($form_resource_id > 0 && isset($profile['resource_map'][$form_resource_id])) ? (int)$profile['resource_map'][$form_resource_id] : 0;
-            if ($attrVal > 0) $attrVal = max(1, $attrVal + hg_dice_form_attribute_modifier($link, $form_character_id, $form_active_form_id, $form_attr_trait_id));
+            if ($attrVal > 0) {
+                $attrVal = hg_dice_resolve_form_attribute_value(
+                    $link,
+                    $form_character_id,
+                    $form_active_form_id,
+                    $form_attr_trait_id,
+                    $attrVal
+                );
+            }
             if ($form_extra_dice < 0 || $form_extra_dice > 20) {
                 $mensaje_error = 'Los dados extra deben estar entre 0 y 20.';
             } else {
@@ -414,7 +431,7 @@ $(function(){
         const skillMap = p.skill_map || {};
         const resMap = p.resource_map || {};
         const selectedAttr = parseInt($attr.val() || '0', 10);
-        const av = parseInt(attrMap[selectedAttr] || 0, 10) + (selectedAttr === selectedAttrId ? selectedFormAttrModifier : 0);
+        const av = Math.max(0, parseInt(attrMap[selectedAttr] || 0, 10) + (selectedAttr === selectedAttrId ? selectedFormAttrModifier : 0));
         const sv = parseInt(skillMap[parseInt($skill.val() || '0', 10)] || 0, 10);
         const rv = parseInt(resMap[parseInt($res.val() || '0', 10)] || 0, 10);
         const ev = parseInt($extra.val() || '0', 10);
@@ -431,7 +448,7 @@ $(function(){
         const skillMap = p.skill_map || {};
         const skillKindMap = p.skill_kind_map || {};
         const resMap = p.resource_map || {};
-        const attrVal = parseInt(attrMap[attrId] || 0, 10);
+        const attrVal = Math.max(0, parseInt(attrMap[attrId] || 0, 10) + (attrId === selectedAttrId ? selectedFormAttrModifier : 0));
         const skillVal = parseInt(skillMap[skillId] || 0, 10);
         const resourceVal = parseInt(resMap[resourceId] || 0, 10);
         const skillKind = String(skillKindMap[skillId] || '');
@@ -557,6 +574,5 @@ $(function(){
     });
 });
 </script>
-
 
 

@@ -30,10 +30,9 @@ $bioIsAdminFlag = bio_page_is_admin_flag_enabled();
 include __DIR__ . '/bio_page_prepare.php';
 
 if (!empty($bioForms)) {
-    $formPresentationById = hg_characters_fetch_form_presentation_by_ids(
-        $link,
-        array_column($bioForms, 'id')
-    );
+    $bioFormIds = array_column($bioForms, 'id');
+    $formPresentationById = hg_characters_fetch_form_presentation_by_ids($link, $bioFormIds);
+    $formOverridesById = hg_characters_fetch_form_trait_overrides($link, $bioFormIds);
 
     foreach ($bioForms as &$bioForm) {
         $formId = (int)($bioForm['id'] ?? 0);
@@ -44,6 +43,7 @@ if (!empty($bioForms)) {
         $bioForm['firearms'] = (int)($presentation['firearms'] ?? 0);
         $bioForm['regeneration'] = (int)($presentation['regeneration'] ?? 0);
         $bioForm['hpregen'] = (int)($presentation['hpregen'] ?? 0);
+        $bioForm['overrides'] = $formOverridesById[$formId] ?? [];
     }
     unset($bioForm);
 
