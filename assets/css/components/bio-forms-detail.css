@@ -104,10 +104,10 @@
 
 .bio-forms-detail__attribute-row {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 8px;
-    min-height: 36px;
+    min-height: 26px;
 }
 
 .bio-forms-detail__attribute-row.is-base {
@@ -121,9 +121,10 @@
 
 .bio-forms-detail__attribute-gem {
     display: block;
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
+    width: auto;
+    height: auto;
+    max-width: none;
+    padding: 2px;
 }
 
 .bio-forms-detail__attribute-number {
