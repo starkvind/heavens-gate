@@ -13,7 +13,7 @@
 }
 
 .bio-forms-detail__card {
-    flex: 0 0 calc((100% - 32px) / 5);
+    flex: 1 0 calc((100% - 32px) / 5);
     min-width: 96px;
     max-width: none;
     padding: 6px;
@@ -132,7 +132,7 @@
 
 @media (max-width: 720px) {
     .bio-forms-detail__card {
-        flex-basis: 102px;
+        flex: 0 0 102px;
         min-width: 102px;
     }
 
