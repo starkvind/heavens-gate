@@ -6,6 +6,10 @@
  * Spacing is then deterministic CSS instead of a mixture of source breaks,
  * reusable embed margins and browser margin-collapsing behaviour.
  *
+ * Message and roll labels are absolutely positioned above their inner card.
+ * The viewer reserves that overhang inside the outer flow block so the visual
+ * gap before and after an embed is symmetrical.
+ *
  * The canonical item card inside /forum/item remains untouched.
  */
 .hg-inline-item-frame {
@@ -47,6 +51,21 @@
 
 .hgfv-root .hgfv-prose {
     line-height: inherit;
+}
+
+/*
+ * hg-embeds.css positions the message label at top:-1em with a 14px inner
+ * font size, and the roll label at top:-0.9em. Without reserving that space,
+ * the label visually consumes almost the whole semantic flow gap that follows
+ * a prose paragraph. Padding the outer wrapper makes its visual bounds match
+ * its layout bounds without changing the canonical embed itself.
+ */
+.hgfv-root .hgfv-flow-ready > .hg-inline-message {
+    padding-block-start: 14px;
+}
+
+.hgfv-root .hgfv-flow-ready > .hg-inline-roll {
+    padding-block-start: 13px;
 }
 
 .hgfv-root .hgfv-flow-ready > .hg-inline-message,
