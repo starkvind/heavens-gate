@@ -81,7 +81,7 @@
 .bio-forms-detail__capability {
     border: 1px solid rgba(51, 153, 255, .45);
     background: rgba(0, 26, 85, .42);
-    padding: 6px 8px;
+    padding: 7px 9px;
 }
 
 .bio-forms-detail__attribute.is-zero {
@@ -94,38 +94,67 @@
     display: block;
     font-size: 11px;
     color: #9fc9ff;
-    margin-bottom: 3px;
+    margin-bottom: 5px;
 }
 
-.bio-forms-detail__attribute-readout {
-    display: flex;
+.bio-forms-detail__attribute-rows {
+    display: grid;
+    gap: 3px;
+}
+
+.bio-forms-detail__attribute-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 7px;
-    min-height: 30px;
+    column-gap: 8px;
+    min-height: 36px;
+}
+
+.bio-forms-detail__attribute-row.is-base {
+    opacity: .72;
+}
+
+.bio-forms-detail__attribute-row.is-transformed {
+    padding-top: 3px;
+    border-top: 1px solid rgba(51, 153, 255, .18);
 }
 
 .bio-forms-detail__attribute-gem {
     display: block;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
 }
 
-.bio-forms-detail__attribute-value,
-.bio-forms-detail__capability-value {
+.bio-forms-detail__attribute-number {
     display: block;
+    font-size: 14px;
     font-weight: 700;
+    line-height: 1;
 }
 
-.bio-forms-detail__attribute.is-zero .bio-forms-detail__attribute-value {
+.bio-forms-detail__attribute-delta {
+    min-width: 36px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 700;
+    color: #9fc9ff;
+}
+
+.bio-forms-detail__attribute-delta.is-positive,
+.bio-forms-detail__attribute-delta.is-negative,
+.bio-forms-detail__attribute-delta.is-fixed {
     color: #ffffff;
 }
 
-.bio-forms-detail__delta {
-    margin-left: 5px;
-    font-size: 12px;
-    color: #9fc9ff;
+.bio-forms-detail__attribute.is-zero .bio-forms-detail__attribute-number,
+.bio-forms-detail__attribute.is-zero .bio-forms-detail__attribute-delta {
+    color: #ffffff;
+}
+
+.bio-forms-detail__capability-value {
+    display: block;
+    font-weight: 700;
 }
 
 .bio-forms-detail__capabilities {
