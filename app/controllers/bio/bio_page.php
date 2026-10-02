@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../helpers/character_avatar.php';
 require_once __DIR__ . '/../../domains/characters/detail_queries.php';
 require_once __DIR__ . '/../../domains/characters/sheet_queries.php';
+require_once __DIR__ . '/../../domains/characters/form_presentation_queries.php';
 require_once __DIR__ . '/../../presentation/characters/biography_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -27,5 +28,29 @@ if (!is_array($dataResult)) {
 $bioIsAdminFlag = bio_page_is_admin_flag_enabled();
 
 include __DIR__ . '/bio_page_prepare.php';
+
+if (!empty($bioForms)) {
+    $formPresentationById = hg_characters_fetch_form_presentation_by_ids(
+        $link,
+        array_column($bioForms, 'id')
+    );
+
+    foreach ($bioForms as &$bioForm) {
+        $formId = (int)($bioForm['id'] ?? 0);
+        $presentation = $formPresentationById[$formId] ?? [];
+        $bioForm['description'] = trim((string)($presentation['description'] ?? ''));
+        $bioForm['silhouette_image_url'] = trim((string)($presentation['silhouette_image_url'] ?? ''));
+        $bioForm['weapons'] = (int)($presentation['weapons'] ?? 0);
+        $bioForm['firearms'] = (int)($presentation['firearms'] ?? 0);
+        $bioForm['regeneration'] = (int)($presentation['regeneration'] ?? 0);
+        $bioForm['hpregen'] = (int)($presentation['hpregen'] ?? 0);
+    }
+    unset($bioForm);
+
+    if (function_exists('hg_page_register_stylesheet')) {
+        hg_page_register_stylesheet('/assets/css/components/bio-forms-detail.css');
+    }
+}
+
 include __DIR__ . '/../../presentation/characters/biography_export.php';
 include __DIR__ . '/../../views/characters/biography.php';
