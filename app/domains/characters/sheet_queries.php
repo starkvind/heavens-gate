@@ -5,12 +5,14 @@ require_once __DIR__ . '/detail_queries.php';
 if (!function_exists('hg_characters_fetch_form_system_id_for_breed')) {
     function hg_characters_fetch_form_system_id_for_breed(mysqli $link, int $breedId): int
     {
-        if ($breedId <= 0
-            || !hg_characters_table_exists($link, 'dim_breeds')
-            || !hg_characters_has_column($link, 'dim_breeds', 'form_system_id')) {
+        if ($breedId <= 0) {
             return 0;
         }
 
+        // form_system_id is part of the production dim_breeds schema. Do not
+        // route this through the legacy static schema whitelist: that helper
+        // intentionally knows only a limited set of optional columns and was
+        // causing every breed to resolve to form system 0.
         $stmt = $link->prepare('SELECT form_system_id FROM dim_breeds WHERE id = ? LIMIT 1');
         if (!$stmt) return 0;
         $stmt->bind_param('i', $breedId);
