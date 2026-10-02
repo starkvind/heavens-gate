@@ -70,6 +70,11 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         return Math.max(0, Number(base || 0) + modifier);
     };
 
+    const attributeGemUrl = (value) => {
+        const gemValue = Math.min(9, Math.max(0, Number(value || 0)));
+        return '/img/ui/gems/attr/gem-attr-0' + gemValue + '.webp';
+    };
+
     const renderDetail = (form) => {
         if (!detailUi) return;
 
@@ -95,6 +100,17 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             name.className = 'bio-forms-detail__attribute-name';
             name.textContent = labels[traitId] || ('Rasgo #' + traitId);
 
+            const readout = document.createElement('span');
+            readout.className = 'bio-forms-detail__attribute-readout';
+
+            const gem = document.createElement('img');
+            gem.className = 'bio-forms-detail__attribute-gem';
+            gem.src = attributeGemUrl(total);
+            gem.alt = '';
+            gem.setAttribute('aria-hidden', 'true');
+            gem.loading = 'lazy';
+            gem.decoding = 'async';
+
             const value = document.createElement('span');
             value.className = 'bio-forms-detail__attribute-value';
             value.textContent = form ? (base + ' → ' + total) : String(base);
@@ -115,7 +131,8 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
                 item.classList.add('is-zero');
             }
 
-            item.append(name, value);
+            readout.append(gem, value);
+            item.append(name, readout);
             detailUi.attributes.appendChild(item);
         });
 
@@ -247,8 +264,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             const gem = cell.querySelector('img.bioAttCircle');
             if (value) value.textContent = form ? String(total) : '';
             if (gem) {
-                const gemValue = Math.min(9, Math.max(0, total));
-                gem.src = '/img/ui/gems/attr/gem-attr-0' + gemValue + '.webp';
+                gem.src = attributeGemUrl(total);
                 gem.alt = (labels[traitId] || 'Atributo') + ': ' + total;
             }
         });
