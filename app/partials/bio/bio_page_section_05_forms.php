@@ -39,14 +39,6 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         labels[cell.dataset.bioFormTraitId] = label ? label.textContent.replace(':', '').trim() : 'Atributo';
     });
 
-    const affectedTraitIds = new Set();
-    forms.forEach(form => {
-        Object.entries(form && form.modifiers ? form.modifiers : {}).forEach(([traitId, modifier]) => {
-            if (Number(modifier) !== 0) affectedTraitIds.add(String(traitId));
-        });
-    });
-    const affectedTraitCells = traitCells.filter(cell => affectedTraitIds.has(String(cell.dataset.bioFormTraitId || '')));
-
     const publicImageUrl = (value) => {
         const path = String(value || '').trim();
         if (!path) return '';
@@ -63,6 +55,8 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         return decoder.value.trim();
     };
 
+    const resolvedTraitValue = (base, modifier) => Math.max(0, Number(base || 0) + Number(modifier || 0));
+
     const renderDetail = (form) => {
         if (!detailUi) return;
 
@@ -71,14 +65,14 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             card.classList.toggle('is-active', card.dataset.formId === formId);
         });
 
-        detailUi.title.textContent = form ? String(form.name || 'Forma') : 'Forma base';
+        detailUi.title.textContent = form ? String(form.name || 'Forma') : 'Homínido';
         detailUi.attributes.replaceChildren();
 
-        affectedTraitCells.forEach(cell => {
+        traitCells.forEach(cell => {
             const traitId = String(cell.dataset.bioFormTraitId || '');
             const base = Number(cell.dataset.bioFormBase || 0);
             const modifier = form && form.modifiers ? Number(form.modifiers[traitId] || 0) : 0;
-            const total = Math.max(1, base + modifier);
+            const total = resolvedTraitValue(base, modifier);
 
             const item = document.createElement('div');
             item.className = 'bio-forms-detail__attribute';
@@ -96,6 +90,10 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
                 delta.className = 'bio-forms-detail__delta';
                 delta.textContent = '(' + (modifier > 0 ? '+' : '') + modifier + ')';
                 value.appendChild(delta);
+            }
+
+            if (total === 0) {
+                item.classList.add('is-zero');
             }
 
             item.append(name, value);
@@ -138,7 +136,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
 
         const label = document.createElement('span');
         label.className = 'bio-forms-detail__card-label';
-        label.textContent = form ? String(form.name || 'Forma') : 'Forma base';
+        label.textContent = form ? String(form.name || 'Forma') : 'Homínido';
 
         card.append(silhouette, label);
         card.addEventListener('click', () => {
@@ -226,12 +224,12 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         traitCells.forEach(cell => {
             const traitId = cell.dataset.bioFormTraitId;
             const base = Number(cell.dataset.bioFormBase || 0);
-            const total = Math.max(1, base + Number(modifiers[traitId] || 0));
+            const total = resolvedTraitValue(base, Number(modifiers[traitId] || 0));
             const value = cell.querySelector('.bio-form-attribute-value');
             const gem = cell.querySelector('img.bioAttCircle');
             if (value) value.textContent = form ? String(total) : '';
             if (gem) {
-                const gemValue = Math.min(9, total);
+                const gemValue = Math.min(9, Math.max(0, total));
                 gem.src = '/img/ui/gems/attr/gem-attr-0' + gemValue + '.webp';
                 gem.alt = (labels[traitId] || 'Atributo') + ': ' + total;
             }
