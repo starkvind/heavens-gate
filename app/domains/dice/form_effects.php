@@ -16,7 +16,8 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
         $stmt = mysqli_prepare(
             $db,
             "SELECT b.override_value, b.modifier, t.name AS trait_name,
-                    f.strength_bonus, f.dexterity_bonus, f.stamina_bonus
+                    f.strength_bonus, f.dexterity_bonus, f.stamina_bonus,
+                    c.system_id AS character_system_id, f.system_id AS form_system_id
              FROM dim_forms f
              JOIN fact_characters c ON c.id = ?
              JOIN dim_breeds br ON br.id = c.breed_id AND br.form_system_id = f.system_id
@@ -52,8 +53,13 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
             return max(0, $baseValue + (int)$row['modifier']);
         }
 
-        // Legacy fallback while the remaining physical modifiers are moved
-        // from dim_forms to bridge_forms_traits.
+        // Reuse the legacy helper when character system and form family still
+        // coincide. Cross-system families use the local legacy-column fallback
+        // below so Hengeyokai-style contexts remain valid during migration.
+        if ((int)($row['character_system_id'] ?? 0) === (int)($row['form_system_id'] ?? 0)) {
+            return max(0, $baseValue + hg_dice_form_attribute_modifier($db, $characterId, $formId, $traitId));
+        }
+
         $modifier = 0;
         switch ((string)($row['trait_name'] ?? '')) {
             case 'Fuerza':
