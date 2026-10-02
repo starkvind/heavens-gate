@@ -8,6 +8,7 @@
 
     const itemFrameSelector = '.hg-inline-item-frame';
     const forumBodySelector = '.hgfv-body';
+    const nestedFlowSelector = 'blockquote, .hg-bb-align-left, .hg-bb-align-center, .hg-bb-align-right, .hg-bb-align-justify, .hg-bb-spoiler-body';
     const frameByWindow = new Map();
     const boundFrames = new WeakSet();
     const structuredFlows = new WeakSet();
@@ -26,6 +27,18 @@
         if (!(paragraph instanceof HTMLParagraphElement)) return false;
         if (paragraph.textContent.trim() !== '') return true;
         return paragraph.querySelector('img, svg, iframe, video, audio, input, button') !== null;
+    }
+
+    function structureNestedFlow(node) {
+        if (!(node instanceof Element)) return;
+        if (node.matches(nestedFlowSelector)) {
+            structureFlow(node);
+        }
+        node.querySelectorAll(nestedFlowSelector).forEach((nested) => {
+            if (!nested.closest('.hg-inline-message, .hg-inline-roll')) {
+                structureFlow(nested);
+            }
+        });
     }
 
     function structureFlow(container) {
@@ -71,10 +84,14 @@
             }
 
             if (node.nodeType === Node.TEXT_NODE) {
-                if (node.textContent.trim() === '' && !paragraph) {
-                    pendingBreaks = 0;
+                if (node.textContent.trim() === '') {
+                    if (pendingBreaks > 0 || !paragraph) {
+                        continue;
+                    }
+                    paragraph.appendChild(node);
                     continue;
                 }
+
                 applySinglePendingBreak();
                 ensureParagraph().appendChild(node);
                 continue;
@@ -83,11 +100,7 @@
             if (isFlowBlock(node)) {
                 flushParagraph();
                 pendingBreaks = 0;
-
-                if (node instanceof HTMLQuoteElement || node.tagName === 'BLOCKQUOTE') {
-                    structureFlow(node);
-                }
-
+                structureNestedFlow(node);
                 fragment.appendChild(node);
                 continue;
             }
