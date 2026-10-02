@@ -2,6 +2,28 @@
 
 require_once __DIR__ . '/detail_queries.php';
 
+if (!function_exists('hg_characters_fetch_form_system_id_for_breed')) {
+    function hg_characters_fetch_form_system_id_for_breed(mysqli $link, int $breedId): int
+    {
+        if ($breedId <= 0
+            || !hg_characters_table_exists($link, 'dim_breeds')
+            || !hg_characters_has_column($link, 'dim_breeds', 'form_system_id')) {
+            return 0;
+        }
+
+        $stmt = $link->prepare('SELECT form_system_id FROM dim_breeds WHERE id = ? LIMIT 1');
+        if (!$stmt) return 0;
+        $stmt->bind_param('i', $breedId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result ? $result->fetch_assoc() : null;
+        if ($result) $result->free();
+        $stmt->close();
+
+        return max(0, (int)($row['form_system_id'] ?? 0));
+    }
+}
+
 if (!function_exists('hg_characters_fetch_forms_for_system')) {
     function hg_characters_fetch_forms_for_system(mysqli $link, int $systemId): array
     {
@@ -122,7 +144,7 @@ if (!function_exists('hg_characters_fetch_actions_for_sheet')) {
 }
 
 if (!function_exists('hg_characters_fetch_maneuver_actions_for_sheet')) {
-    function hg_characters_fetch_maneuver_actions_for_sheet(mysqli $link, int $characterId, int $systemId): array
+    function hg_characters_fetch_maneuver_actions_for_sheet(mysqli $link, int $characterId, int $systemId, int $formSystemId = 0): array
     {
         if ($characterId <= 0 || $systemId <= 0
             || !hg_characters_table_exists($link, 'fact_power_rolls')
@@ -154,7 +176,7 @@ if (!function_exists('hg_characters_fetch_maneuver_actions_for_sheet')) {
                                  AND pr.status IN ('verified', 'manual')
                                ORDER BY m.name ASC, pr.roll_order ASC");
         if (!$stmt) return [];
-        $stmt->bind_param('iiii', $systemId, $systemId, $characterId, $characterId);
+        $stmt->bind_param('iiii', $systemId, $formSystemId, $characterId, $characterId);
         $stmt->execute();
         $result = $stmt->get_result();
         $rows = [];

@@ -65,6 +65,7 @@
 		// Sistema, para nombres de detalles y tal.
 			$bioSystem 	= (string)($dataResult["system_label"] ?? "");
 			$bioSystemId = (int)($dataResult["system_id"] ?? 0);
+			$bioFormSystemId = hg_characters_fetch_form_system_id_for_breed($link, (int)$bioRace);
 			$systemDetailLabels = hg_characters_fetch_system_detail_labels($link, $bioSystemId);
 		// Nombres de conceptos
 			// ================================================================== //
@@ -173,8 +174,8 @@
 
 
 			$bioForms = [];
-			if ($bioSheetRaw === 'pj' && $bioSystemId > 0) {
-				$formCandidates = hg_characters_fetch_forms_for_system($link, $bioSystemId);
+			if ($bioSheetRaw === 'pj' && $bioFormSystemId > 0) {
+				$formCandidates = hg_characters_fetch_forms_for_system($link, $bioFormSystemId);
 				$formRaces = [];
 				foreach ($formCandidates as $formRow) {
 					$race = trim((string)($formRow['race'] ?? ''));
@@ -239,7 +240,7 @@
 				$actionRow['href'] = pretty_url($link, 'fact_actions', '/rules/actions', (int)$actionRow['id']);
 				$bioActions[] = $actionRow;
 			}
-			foreach (hg_characters_fetch_maneuver_actions_for_sheet($link, $characterId, $bioSystemId) as $maneuverRow) {
+			foreach (hg_characters_fetch_maneuver_actions_for_sheet($link, $characterId, $bioSystemId, $bioFormSystemId) as $maneuverRow) {
 				$maneuverRow['source_type'] = 'maneuver';
 				$maneuverRow['source_id'] = (int)$maneuverRow['id'];
 				$maneuverRow['href'] = pretty_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuverRow['id']);

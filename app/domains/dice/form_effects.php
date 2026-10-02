@@ -15,18 +15,19 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
 
         $stmt = mysqli_prepare(
             $db,
-            "SELECT b.override_value
+            "SELECT b.override_value, b.modifier, t.name AS trait_name,
+                    f.strength_bonus, f.dexterity_bonus, f.stamina_bonus,
+                    c.system_id AS character_system_id, f.system_id AS form_system_id
              FROM dim_forms f
-             JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
-             LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = ?
+             JOIN fact_characters c ON c.id = ?
+             JOIN dim_breeds br ON br.id = c.breed_id AND br.form_system_id = f.system_id
+             JOIN dim_traits t ON t.id = ?
+             LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
              WHERE f.id = ?
              LIMIT 1"
         );
-
-        // During a rolling deployment the column may not exist yet. Preserve
-        // the legacy additive behavior until the schema change has landed.
         if (!$stmt) {
-            return max(0, $baseValue + hg_dice_form_attribute_modifier($db, $characterId, $formId, $traitId));
+            return $baseValue;
         }
 
         mysqli_stmt_bind_param($stmt, 'iii', $characterId, $traitId, $formId);
@@ -38,10 +39,40 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
         }
         mysqli_stmt_close($stmt);
 
-        if (is_array($row) && array_key_exists('override_value', $row) && $row['override_value'] !== null) {
+        // No row means the selected form does not belong to the character's
+        // breed form family (or the character has no form family at all).
+        if (!$row) {
+            return $baseValue;
+        }
+
+        if ($row['override_value'] !== null) {
             return max(0, (int)$row['override_value']);
         }
 
-        return max(0, $baseValue + hg_dice_form_attribute_modifier($db, $characterId, $formId, $traitId));
+        if ($row['modifier'] !== null) {
+            return max(0, $baseValue + (int)$row['modifier']);
+        }
+
+        // Reuse the legacy helper when character system and form family still
+        // coincide. Cross-system families use the local legacy-column fallback
+        // below so Hengeyokai-style contexts remain valid during migration.
+        if ((int)($row['character_system_id'] ?? 0) === (int)($row['form_system_id'] ?? 0)) {
+            return max(0, $baseValue + hg_dice_form_attribute_modifier($db, $characterId, $formId, $traitId));
+        }
+
+        $modifier = 0;
+        switch ((string)($row['trait_name'] ?? '')) {
+            case 'Fuerza':
+                $modifier = (int)($row['strength_bonus'] ?? 0);
+                break;
+            case 'Destreza':
+                $modifier = (int)($row['dexterity_bonus'] ?? 0);
+                break;
+            case 'Resistencia':
+                $modifier = (int)($row['stamina_bonus'] ?? 0);
+                break;
+        }
+
+        return max(0, $baseValue + $modifier);
     }
 }
