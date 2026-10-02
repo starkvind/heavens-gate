@@ -1,10 +1,11 @@
-/* Forum topic viewer embed spacing.
+/* Forum topic viewer semantic flow.
  *
- * The HTML emitted from the SMF-backed post body already carries the intended
- * vertical rhythm as <br><br> around custom BBCode blocks. Do not reconstruct
- * that rhythm with viewer-only margins and do not mutate those breaks in JS.
- * This stylesheet only neutralizes margins inherited from the reusable embed
- * components so the source formatting remains the single spacing authority.
+ * SMF stores message bodies as a flat stream where paragraph boundaries are
+ * represented by <br><br>. The viewer upgrades that stream into semantic
+ * .hgfv-prose paragraphs and keeps custom embeds as independent blocks.
+ * Spacing is then deterministic CSS instead of a mixture of source breaks,
+ * reusable embed margins and browser margin-collapsing behaviour.
+ *
  * The canonical item card inside /forum/item remains untouched.
  */
 .hg-inline-item-frame {
@@ -25,4 +26,31 @@
 .hgfv-root .hg-inline-message .msg_main_box,
 .hgfv-root .hg-inline-roll .roll-main-box {
     margin: 0;
+}
+
+.hgfv-root .hgfv-flow-ready {
+    --hgfv-flow-gap: 0.9rem;
+}
+
+.hgfv-root blockquote.hgfv-flow-ready {
+    --hgfv-flow-gap: 0.65rem;
+}
+
+.hgfv-root .hgfv-flow-ready > * {
+    margin-block-start: 0;
+    margin-block-end: 0;
+}
+
+.hgfv-root .hgfv-flow-ready > * + * {
+    margin-block-start: var(--hgfv-flow-gap);
+}
+
+.hgfv-root .hgfv-prose {
+    line-height: inherit;
+}
+
+.hgfv-root .hgfv-flow-ready > .hg-inline-message,
+.hgfv-root .hgfv-flow-ready > .hg-inline-roll,
+.hgfv-root .hgfv-flow-ready > .hg-inline-item-frame {
+    margin-inline: 0;
 }
