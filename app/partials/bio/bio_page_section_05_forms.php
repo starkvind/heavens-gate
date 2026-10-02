@@ -75,6 +75,27 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         return '/img/ui/gems/attr/gem-attr-0' + gemValue + '.webp';
     };
 
+    const createAttributeRow = (value, className, ariaLabel) => {
+        const row = document.createElement('div');
+        row.className = 'bio-forms-detail__attribute-row ' + className;
+        row.setAttribute('aria-label', ariaLabel);
+
+        const gem = document.createElement('img');
+        gem.className = 'bio-forms-detail__attribute-gem';
+        gem.src = attributeGemUrl(value);
+        gem.alt = '';
+        gem.setAttribute('aria-hidden', 'true');
+        gem.loading = 'lazy';
+        gem.decoding = 'async';
+
+        const number = document.createElement('span');
+        number.className = 'bio-forms-detail__attribute-number';
+        number.textContent = String(value);
+
+        row.append(gem, number);
+        return row;
+    };
+
     const renderDetail = (form) => {
         if (!detailUi) return;
 
@@ -92,47 +113,40 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             const modifier = form && form.modifiers ? Number(form.modifiers[traitId] || 0) : 0;
             const overridden = hasOverride(form, traitId);
             const total = resolvedTraitValue(base, form, traitId);
+            const attributeLabel = labels[traitId] || ('Rasgo #' + traitId);
 
             const item = document.createElement('div');
             item.className = 'bio-forms-detail__attribute';
 
             const name = document.createElement('span');
             name.className = 'bio-forms-detail__attribute-name';
-            name.textContent = labels[traitId] || ('Rasgo #' + traitId);
+            name.textContent = attributeLabel;
 
-            const readout = document.createElement('span');
-            readout.className = 'bio-forms-detail__attribute-readout';
+            const rows = document.createElement('div');
+            rows.className = 'bio-forms-detail__attribute-rows';
 
-            const gem = document.createElement('img');
-            gem.className = 'bio-forms-detail__attribute-gem';
-            gem.src = attributeGemUrl(total);
-            gem.alt = '';
-            gem.setAttribute('aria-hidden', 'true');
-            gem.loading = 'lazy';
-            gem.decoding = 'async';
+            const baseRow = createAttributeRow(base, 'is-base', attributeLabel + ', valor original: ' + base);
+            const transformedRow = createAttributeRow(total, 'is-transformed', attributeLabel + ', valor transformado: ' + total);
 
-            const value = document.createElement('span');
-            value.className = 'bio-forms-detail__attribute-value';
-            value.textContent = form ? (base + ' → ' + total) : String(base);
-
+            const delta = document.createElement('span');
+            delta.className = 'bio-forms-detail__attribute-delta';
             if (form && overridden) {
-                const fixed = document.createElement('span');
-                fixed.className = 'bio-forms-detail__delta';
-                fixed.textContent = '(valor fijo)';
-                value.appendChild(fixed);
+                delta.textContent = 'FIJO';
+                delta.classList.add('is-fixed');
             } else if (form && modifier !== 0) {
-                const delta = document.createElement('span');
-                delta.className = 'bio-forms-detail__delta';
-                delta.textContent = '(' + (modifier > 0 ? '+' : '') + modifier + ')';
-                value.appendChild(delta);
+                delta.textContent = (modifier > 0 ? '+' : '') + modifier;
+                delta.classList.add(modifier > 0 ? 'is-positive' : 'is-negative');
+            } else {
+                delta.textContent = '—';
             }
+            transformedRow.appendChild(delta);
 
             if (total === 0) {
                 item.classList.add('is-zero');
             }
 
-            readout.append(gem, value);
-            item.append(name, readout);
+            rows.append(baseRow, transformedRow);
+            item.append(name, rows);
             detailUi.attributes.appendChild(item);
         });
 
