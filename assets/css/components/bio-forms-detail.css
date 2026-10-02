@@ -97,6 +97,21 @@
     margin-bottom: 3px;
 }
 
+.bio-forms-detail__attribute-readout {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 30px;
+}
+
+.bio-forms-detail__attribute-gem {
+    display: block;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    object-fit: contain;
+}
+
 .bio-forms-detail__attribute-value,
 .bio-forms-detail__capability-value {
     display: block;
