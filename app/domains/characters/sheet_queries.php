@@ -6,9 +6,7 @@ if (!function_exists('hg_characters_fetch_forms_for_system')) {
     function hg_characters_fetch_forms_for_system(mysqli $link, int $systemId): array
     {
         if ($systemId <= 0 || !hg_characters_table_exists($link, 'dim_forms')) return [];
-        $sortSelect = hg_characters_has_column($link, 'dim_forms', 'sort_order')
-            ? 'COALESCE(sort_order, 999) AS sort_order'
-            : '999 AS sort_order';
+        $sortSelect = 'COALESCE(sort_order, 999) AS sort_order';
         $stmt = $link->prepare("SELECT id, form, race, strength_bonus, dexterity_bonus, stamina_bonus, {$sortSelect}
                                 FROM dim_forms
                                 WHERE system_id = ? AND TRIM(COALESCE(form, '')) <> ''
