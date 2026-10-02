@@ -32,6 +32,7 @@ $bioActionsLegend = '&nbsp;Acciones de ' . h((string)($bioName ?? 'este personaj
     let baseManeuvers = [];
     let activeFormId = 0;
     let activeModifiers = {};
+    let activeOverrides = {};
     let activeManeuverIds = new Set();
     try {
         actions = JSON.parse(root.dataset.bioActions || '[]');
@@ -42,7 +43,21 @@ $bioActionsLegend = '&nbsp;Acciones de ' . h((string)($bioName ?? 'este personaj
     const normalizeSearch = value => String(value || '').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const matchesSearch = (action, query) => !query || normalizeSearch([action.name, action.roll_label, action.category, action.text, action.attribute_name, action.skill_name].join(' ')).includes(query);
     const isManeuverVisible = action => action.source_type !== 'maneuver' || forms.length === 0 || activeManeuverIds.has(Number(action.source_id || action.id));
-    const diceFor = action => Math.max(1, Number(action.attribute_value || 0) + Number(activeModifiers[String(action.attribute_trait_id)] || activeModifiers[action.attribute_trait_id] || 0)) + Number(action.skill_value || 0);
+
+    const attributeValueFor = action => {
+        const traitId = String(action.attribute_trait_id || '');
+        if (Object.prototype.hasOwnProperty.call(activeOverrides, traitId)
+            && activeOverrides[traitId] !== null
+            && activeOverrides[traitId] !== '') {
+            return Math.max(0, Number(activeOverrides[traitId] || 0));
+        }
+        const base = Number(action.attribute_value || 0);
+        const modifier = Number(activeModifiers[traitId] || activeModifiers[action.attribute_trait_id] || 0);
+        return Math.max(0, base + modifier);
+    };
+
+    const isActionUsable = action => attributeValueFor(action) > 0;
+    const diceFor = action => attributeValueFor(action) + Number(action.skill_value || 0);
 
     const buildRollHref = (action, difficulty) => {
         const url = new URL('/tools/dice', window.location.origin);
@@ -130,7 +145,7 @@ $bioActionsLegend = '&nbsp;Acciones de ' . h((string)($bioName ?? 'este personaj
         const query = normalizeSearch(search.value.trim());
         const categories = new Map();
         actions.forEach(action => {
-            if (!isManeuverVisible(action) || !matchesSearch(action, query)) return;
+            if (!isManeuverVisible(action) || !isActionUsable(action) || !matchesSearch(action, query)) return;
             const category = String(action.category || '').trim() || 'Sin categoría';
             if (!categories.has(category)) categories.set(category, []);
             categories.get(category).push(action);
@@ -163,6 +178,7 @@ $bioActionsLegend = '&nbsp;Acciones de ' . h((string)($bioName ?? 'este personaj
     const setActiveForm = (form, maneuvers) => {
         activeFormId = form ? Number(form.id || 0) : 0;
         activeModifiers = form && form.modifiers ? form.modifiers : {};
+        activeOverrides = form && form.overrides ? form.overrides : {};
         activeManeuverIds = new Set((Array.isArray(maneuvers) ? maneuvers : []).map(item => Number(item.id || 0)).filter(Boolean));
         render();
     };
