@@ -197,18 +197,10 @@
 					}
 				}
 				$bioBaseManeuvers = array_values($bioBaseManeuvers);
-				$legacyModifierColumns = [];
-				foreach (($bioTraitsByType['Atributos'] ?? []) as $attribute) {
-					$legacyColumn = ['Fuerza' => 'strength_bonus', 'Destreza' => 'dexterity_bonus', 'Resistencia' => 'stamina_bonus'][(string)($attribute['name'] ?? '')] ?? null;
-					if ($legacyColumn !== null) $legacyModifierColumns[(int)($attribute['id'] ?? 0)] = $legacyColumn;
-				}
 				foreach ($formCandidates as $formRow) {
 					$formId = (int)($formRow['id'] ?? 0);
 					$formName = trim((string)($formRow['form'] ?? ''));
 					$modifiers = $formModifiers[$formId] ?? [];
-					foreach ($legacyModifierColumns as $traitId => $legacyColumn) {
-						if (!array_key_exists($traitId, $modifiers)) $modifiers[$traitId] = (int)($formRow[$legacyColumn] ?? 0);
-					}
 					if (array_key_exists($formId, $formManeuversByForm)) {
 						$formManeuvers = $formManeuversByForm[$formId];
 					} else {
