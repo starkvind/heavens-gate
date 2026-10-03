@@ -16,7 +16,7 @@ if (!function_exists('hg_characters_fetch_form_presentation_by_ids')) {
         }
 
         // IDs are explicitly cast to int above, so the IN list is safe.
-        $sql = 'SELECT id, description, silhouette_image_url, weapons, firearms, regeneration, hpregen '
+        $sql = 'SELECT id, description, silhouette_image_url, weapons, firearms, hpregen '
             . 'FROM dim_forms WHERE id IN (' . implode(',', array_values($ids)) . ')';
         $rs = $link->query($sql);
         if (!$rs) {
@@ -25,6 +25,7 @@ if (!function_exists('hg_characters_fetch_form_presentation_by_ids')) {
 
         $rows = [];
         while ($row = $rs->fetch_assoc()) {
+            $row['regeneration'] = ((int)($row['hpregen'] ?? 0) > 0) ? 1 : 0;
             $rows[(int)$row['id']] = $row;
         }
         $rs->free();
