@@ -2,6 +2,7 @@
 // admin_maneuvers.php -- assignments for bridge_maneuvers_systems and bridge_maneuvers_forms
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/maneuver_bridges.php');
+include_once(__DIR__ . '/../../domains/rules/admin_maneuver_state.php');
 include_once(__DIR__ . '/../../domains/rules/admin.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
@@ -108,7 +109,8 @@ admin_panel_open('Maniobras: sistemas y formas');
     <p class="adm-color-muted">La maniobra se suma solo al elegir las formas marcadas.</p>
     <div class="adm-grid-1-2">
         <?php foreach ($forms as $form): ?>
-            <label><input type="checkbox" name="form_ids[]" value="<?= (int)$form['id'] ?>"<?= isset($selectedForms[(int)$form['id']]) ? ' checked' : '' ?>> <?= admin_maneuver_h($form['system_name'] . ' / ' . $form['race'] . ' / ' . $form['form']) ?></label>
+            <?php $scope = trim((string)($form['applicability_name'] ?? '')); ?>
+            <label><input type="checkbox" name="form_ids[]" value="<?= (int)$form['id'] ?>"<?= isset($selectedForms[(int)$form['id']]) ? ' checked' : '' ?>> <?= admin_maneuver_h($form['system_name'] . ' / ' . ($scope !== '' ? $scope : 'General') . ' / ' . $form['form']) ?></label>
         <?php endforeach; ?>
     </div>
 
