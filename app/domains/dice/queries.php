@@ -344,53 +344,6 @@ if (!function_exists('hg_dice_insert_roll')) {
     }
 }
 
-if (!function_exists('hg_dice_form_attribute_modifier')) {
-    function hg_dice_form_attribute_modifier(mysqli $db, int $characterId, int $formId, int $traitId): int
-    {
-        if ($characterId <= 0 || $formId <= 0 || $traitId <= 0) {
-            return 0;
-        }
-
-        $sql = "SELECT b.modifier, t.name AS trait_name, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus
-                FROM dim_forms f
-                JOIN fact_characters c ON c.id = ? AND c.system_id = f.system_id
-                JOIN dim_traits t ON t.id = ?
-                LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
-                WHERE f.id = ? LIMIT 1";
-        $stmt = mysqli_prepare($db, $sql);
-        if (!$stmt) {
-            return 0;
-        }
-
-        mysqli_stmt_bind_param($stmt, 'iii', $characterId, $traitId, $formId);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $row = $result ? mysqli_fetch_assoc($result) : null;
-        if ($result) {
-            mysqli_free_result($result);
-        }
-        mysqli_stmt_close($stmt);
-
-        if (!$row) {
-            return 0;
-        }
-        if ($row['modifier'] !== null) {
-            return (int)$row['modifier'];
-        }
-
-        switch ((string)($row['trait_name'] ?? '')) {
-            case 'Fuerza':
-                return (int)($row['strength_bonus'] ?? 0);
-            case 'Destreza':
-                return (int)($row['dexterity_bonus'] ?? 0);
-            case 'Resistencia':
-                return (int)($row['stamina_bonus'] ?? 0);
-            default:
-                return 0;
-        }
-    }
-}
-
 if (!function_exists('hg_dice_fetch_roll_history')) {
     function hg_dice_fetch_roll_history(mysqli $link): array
     {
