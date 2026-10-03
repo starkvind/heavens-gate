@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
 $metaTitle = "Sistemas | Heaven's Gate";
 $metaDescription = 'Sistemas móviles de Heaven\'s Gate.';
@@ -344,8 +345,7 @@ if ($route === 'verforma') {
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
     $systemId = (int)($form['system_id'] ?? 0);
 
-    $maneuvers = hg_systems_fetch_form_maneuvers($link, $systemId, $name);
-    if ($maneuvers === false) $maneuvers = [];
+    $maneuvers = hg_systems_fetch_form_maneuvers_normalized($link, $systemId, $formId);
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="<?= $systemId > 0 ? hg_mobile_sys_h(hg_mobile_sys_url($link, 'dim_systems', '/systems', $systemId)) : '/systems' ?>">Volver al sistema</a>
