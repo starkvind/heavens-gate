@@ -295,10 +295,91 @@ function hg_systems_fetch_detail(mysqli $link, int $type, int $detailId)
     return $row ?: null;
 }
 
-function hg_systems_fetch_gifts(mysqli $link, string $groupName, int $systemId)
+function hg_systems_gift_availability_table_exists(mysqli $link): bool
+{
+    static $cache = [];
+    $key = spl_object_id($link);
+    if (array_key_exists($key, $cache)) return $cache[$key];
+
+    $sql = "SELECT 1
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'bridge_gifts_availability'
+            LIMIT 1";
+    $rs = $link->query($sql);
+    $exists = $rs && $rs->num_rows > 0;
+    if ($rs) $rs->free();
+    $cache[$key] = $exists;
+    return $exists;
+}
+
+function hg_systems_gift_scope_candidates(mysqli $link, string $groupName, int $systemId): array
 {
     if ($groupName === '' || $systemId <= 0) return [];
-    $stmt = $link->prepare("SELECT id, name, rank FROM fact_gifts WHERE gift_group = ? AND system_id = ? ORDER BY rank ASC, name ASC");
+
+    $defs = [
+        ['table' => 'dim_breeds', 'scope_type' => 'race'],
+        ['table' => 'dim_auspices', 'scope_type' => 'auspice'],
+        ['table' => 'dim_tribes', 'scope_type' => 'tribe'],
+    ];
+
+    $scopes = [];
+    foreach ($defs as $def) {
+        $table = $def['table'];
+        $stmt = $link->prepare("SELECT id FROM `$table` WHERE system_id = ? AND name = ? ORDER BY id");
+        if (!$stmt) continue;
+        $stmt->bind_param('is', $systemId, $groupName);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $scopeId = (int)($row['id'] ?? 0);
+            if ($scopeId <= 0) continue;
+            $scopes[] = [
+                'scope_type' => $def['scope_type'],
+                'scope_id' => $scopeId,
+            ];
+        }
+        $stmt->close();
+    }
+
+    return $scopes;
+}
+
+function hg_systems_fetch_gift_availability_rows(mysqli $link, int $systemId, string $scopeType, int $scopeId): array
+{
+    if ($systemId <= 0 || $scopeId <= 0) return [];
+    if (!in_array($scopeType, ['system', 'race', 'auspice', 'tribe'], true)) return [];
+
+    $sql = "SELECT
+                g.id,
+                g.pretty_id,
+                g.name,
+                g.rank AS canonical_rank,
+                a.rank_override,
+                a.scope_type AS availability_scope_type,
+                a.scope_id AS availability_scope_id
+            FROM bridge_gifts_availability a
+            INNER JOIN fact_gifts g ON g.id = a.gift_id
+            WHERE a.system_id = ?
+              AND a.scope_type = ?
+              AND a.scope_id = ?
+            ORDER BY g.id";
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return [];
+    $stmt->bind_param('isi', $systemId, $scopeType, $scopeId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+    return $rows;
+}
+
+function hg_systems_fetch_legacy_gifts(mysqli $link, string $groupName, int $systemId)
+{
+    if ($groupName === '' || $systemId <= 0) return [];
+    $stmt = $link->prepare("SELECT id, pretty_id, name, rank AS canonical_rank FROM fact_gifts WHERE gift_group = ? AND system_id = ? ORDER BY rank ASC, name ASC");
     if (!$stmt) return false;
     $stmt->bind_param('si', $groupName, $systemId);
     $stmt->execute();
@@ -306,6 +387,112 @@ function hg_systems_fetch_gifts(mysqli $link, string $groupName, int $systemId)
     $rows = [];
     while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
     $stmt->close();
+    return $rows;
+}
+
+function hg_systems_merge_gift_row(array &$giftMap, array $row, bool $isDirect, string $source): void
+{
+    $giftId = (int)($row['id'] ?? 0);
+    if ($giftId <= 0) return;
+
+    $canonicalRank = trim((string)($row['canonical_rank'] ?? $row['rank'] ?? ''));
+    $override = trim((string)($row['rank_override'] ?? ''));
+    $existing = $giftMap[$giftId] ?? null;
+
+    $effectiveRank = $override !== ''
+        ? $override
+        : ($existing !== null && trim((string)($existing['rank'] ?? '')) !== ''
+            ? (string)$existing['rank']
+            : $canonicalRank);
+
+    if ($existing !== null && !$isDirect) {
+        if (trim((string)($existing['rank'] ?? '')) === '' && $effectiveRank !== '') {
+            $giftMap[$giftId]['rank'] = $effectiveRank;
+        }
+        return;
+    }
+
+    $giftMap[$giftId] = [
+        'id' => $giftId,
+        'pretty_id' => (string)($row['pretty_id'] ?? ''),
+        'name' => (string)($row['name'] ?? ''),
+        'rank' => $effectiveRank,
+        'canonical_rank' => $canonicalRank,
+        'rank_override' => $override,
+        'availability_scope_type' => (string)($row['availability_scope_type'] ?? ($isDirect ? 'legacy' : 'system')),
+        'availability_scope_id' => (int)($row['availability_scope_id'] ?? 0),
+        'availability_source' => $source,
+    ];
+}
+
+function hg_systems_sort_gift_rows(array &$rows): void
+{
+    usort($rows, static function (array $a, array $b): int {
+        $rankA = trim((string)($a['rank'] ?? ''));
+        $rankB = trim((string)($b['rank'] ?? ''));
+        $numA = is_numeric($rankA) ? (float)$rankA : PHP_FLOAT_MAX;
+        $numB = is_numeric($rankB) ? (float)$rankB : PHP_FLOAT_MAX;
+        if ($numA < $numB) return -1;
+        if ($numA > $numB) return 1;
+        return strcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+    });
+}
+
+function hg_systems_fetch_gifts(mysqli $link, string $groupName, int $systemId)
+{
+    if ($groupName === '' || $systemId <= 0) return [];
+
+    if (!hg_systems_gift_availability_table_exists($link)) {
+        $legacy = hg_systems_fetch_legacy_gifts($link, $groupName, $systemId);
+        if ($legacy === false) return false;
+        foreach ($legacy as &$row) {
+            $row['rank'] = (string)($row['canonical_rank'] ?? '');
+            $row['rank_override'] = '';
+            $row['availability_scope_type'] = 'legacy';
+            $row['availability_scope_id'] = 0;
+            $row['availability_source'] = 'legacy';
+        }
+        unset($row);
+        return $legacy;
+    }
+
+    $giftMap = [];
+
+    /* Whole-system Gifts are the common base for every Race/Auspice/Tribe page. */
+    $systemRows = hg_systems_fetch_gift_availability_rows($link, $systemId, 'system', $systemId);
+    foreach ($systemRows as $row) {
+        hg_systems_merge_gift_row($giftMap, $row, false, 'bridge-system');
+    }
+
+    /* Resolve the canonical Werecreature axis from the detail name already used by callers. */
+    $scopes = hg_systems_gift_scope_candidates($link, $groupName, $systemId);
+    $directBridgeRows = 0;
+    foreach ($scopes as $scope) {
+        $scopeType = (string)$scope['scope_type'];
+        $scopeId = (int)$scope['scope_id'];
+        $rows = hg_systems_fetch_gift_availability_rows($link, $systemId, $scopeType, $scopeId);
+        $directBridgeRows += count($rows);
+        foreach ($rows as $row) {
+            hg_systems_merge_gift_row($giftMap, $row, true, 'bridge-direct');
+        }
+    }
+
+    /*
+     * Gradual migration compatibility:
+     * system-wide bridge rows must not make an unmigrated Race/Auspice/Tribe lose
+     * its old group-based Gifts. Once direct bridge rows exist for the detail,
+     * the bridge becomes authoritative and the legacy detail lookup disappears.
+     */
+    if ($directBridgeRows === 0) {
+        $legacy = hg_systems_fetch_legacy_gifts($link, $groupName, $systemId);
+        if ($legacy === false) return false;
+        foreach ($legacy as $row) {
+            hg_systems_merge_gift_row($giftMap, $row, true, 'legacy-fallback');
+        }
+    }
+
+    $rows = array_values($giftMap);
+    hg_systems_sort_gift_rows($rows);
     return $rows;
 }
 
