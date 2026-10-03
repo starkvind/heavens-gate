@@ -1,17 +1,20 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../domains/powers/gift_relationships.php';
 
 $donPageID = (int)hg_request_param($hgRequest, 'gift');
 $resultQueryDon = hg_powers_fetch_gift($link, $donPageID);
 
 if ($resultQueryDon) {
+    $resultQueryDon = hg_powers_resolve_gift_soft_mechanics($link, $resultQueryDon);
+
     $donId     = htmlspecialchars($resultQueryDon["id"]);
     $donName   = htmlspecialchars($resultQueryDon["name"]);
     $donType   = htmlspecialchars($resultQueryDon["kind"]);
     $donGroup  = htmlspecialchars($resultQueryDon["gift_group"]);
     $donRank   = htmlspecialchars($resultQueryDon["rank"]);
-    $donAttr   = htmlspecialchars($resultQueryDon["attribute_name"]);
-    $donSkill  = htmlspecialchars($resultQueryDon["ability_name"]);
+    $donAttr   = htmlspecialchars($resultQueryDon["attribute_resolved"] ?? $resultQueryDon["attribute_name"] ?? "");
+    $donSkill  = htmlspecialchars($resultQueryDon["ability_resolved"] ?? $resultQueryDon["ability_name"] ?? "");
     $donDesc   = $resultQueryDon["description"];
     $donRules  = $resultQueryDon["mechanics_resolved"];
     $donSystemName = htmlspecialchars($resultQueryDon["resolved_system_name"] ?? "");
@@ -23,6 +26,13 @@ if ($resultQueryDon) {
     if ($donOriginName === '') $donOriginName = '-';
     $nombreTipo = htmlspecialchars((string)($resultQueryDon['type_name'] ?? 'Desconocido'));
     if ($nombreTipo === '') $nombreTipo = 'Desconocido';
+
+    $mechanicsSourceId = (int)($resultQueryDon['mechanics_source_id'] ?? 0);
+    $mechanicsSourceName = trim((string)($resultQueryDon['mechanics_source_name'] ?? ''));
+    $mechanicsSourceHref = '';
+    if ($mechanicsSourceId > 0) {
+        $mechanicsSourceHref = pretty_url($link, 'fact_gifts', '/powers/gift', $mechanicsSourceId);
+    }
 
     $_SESSION['punk2'] = $nombreTipo;
 
@@ -82,6 +92,11 @@ if ($resultQueryDon) {
     }
     if ($donBreedLegacy !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>" . htmlspecialchars($donBreedLegacy) . "</div></div>";
+    }
+    if ($mechanicsSourceId > 0 && $mechanicsSourceName !== '') {
+        $sourceLabel = htmlspecialchars($mechanicsSourceName);
+        $sourceHref = htmlspecialchars($mechanicsSourceHref);
+        echo "<div class='power-stat'><div class='power-stat__label'>Mec&aacute;nica base</div><div class='power-stat__value'><a href='$sourceHref'>$sourceLabel</a></div></div>";
     }
     if ($donOriginName !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
