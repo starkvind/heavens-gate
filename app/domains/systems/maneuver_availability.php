@@ -4,8 +4,6 @@
  * Canonical Maneuver availability for System/Form public surfaces.
  *
  * fact_combat_maneuvers.system_id identifies editorial origin only.
- * fact_combat_maneuvers.user preserves the source/manual wording describing
- * which native Forms can physically perform the Maneuver.
  * Runtime availability is exclusively relational:
  *   - bridge_maneuvers_systems = all Forms in a System;
  *   - bridge_maneuvers_forms   = one explicit Form.
@@ -22,7 +20,6 @@ if (!function_exists('hg_systems_fetch_system_maneuvers_normalized')) {
                 m.pretty_id,
                 m.name,
                 m.image_url,
-                m.user,
                 m.roll,
                 m.difficulty,
                 m.damage,
@@ -61,7 +58,6 @@ if (!function_exists('hg_systems_fetch_form_maneuvers_normalized')) {
                 m.pretty_id,
                 m.name,
                 m.image_url,
-                m.user,
                 m.roll,
                 m.difficulty,
                 m.damage,
