@@ -32,6 +32,17 @@
             return;
         }
 
+        let normalizedSelection = false;
+        const legacyBaseOption = select.querySelector('option[value=""]');
+        if (legacyBaseOption) {
+            legacyBaseOption.remove();
+            normalizedSelection = true;
+        }
+        if (forms.length && !forms.some((item) => String(item.id) === String(select.value))) {
+            select.value = String(forms[0].id);
+            normalizedSelection = true;
+        }
+
         const cells = Array.from(document.querySelectorAll('[data-hg-mobile-form-trait]'));
         const labels = {};
         cells.forEach((cell) => {
@@ -63,7 +74,8 @@
         };
 
         const render = () => {
-            const form = forms.find((item) => String(item.id) === String(select.value)) || null;
+            const form = forms.find((item) => String(item.id) === String(select.value)) || forms[0] || null;
+            if (form && String(select.value) !== String(form.id)) select.value = String(form.id);
 
             cells.forEach((cell) => {
                 const traitId = String(cell.dataset.hgMobileFormTrait || '');
@@ -77,7 +89,7 @@
 
             if (!summary) return;
             if (!form) {
-                summary.textContent = 'Homínido: se muestran los atributos originales del personaje.';
+                summary.textContent = 'No hay una Forma activa disponible.';
                 return;
             }
 
@@ -95,6 +107,9 @@
 
         select.addEventListener('change', render);
         render();
+        if (normalizedSelection) {
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     };
 
     const init = () => {
