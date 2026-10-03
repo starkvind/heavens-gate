@@ -41,8 +41,8 @@ if (!empty($bioForms)) {
         $bioForm['silhouette_image_url'] = trim((string)($presentation['silhouette_image_url'] ?? ''));
         $bioForm['weapons'] = (int)($presentation['weapons'] ?? 0);
         $bioForm['firearms'] = (int)($presentation['firearms'] ?? 0);
-        $bioForm['regeneration'] = (int)($presentation['regeneration'] ?? 0);
         $bioForm['hpregen'] = (int)($presentation['hpregen'] ?? 0);
+        $bioForm['regeneration'] = $bioForm['hpregen'] > 0 ? 1 : 0;
         $bioForm['overrides'] = $formOverridesById[$formId] ?? [];
     }
     unset($bioForm);
