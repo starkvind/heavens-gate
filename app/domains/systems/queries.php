@@ -551,8 +551,16 @@ function hg_systems_fetch_form(mysqli $link, int $formId)
 {
     if ($formId <= 0) return null;
     $hasRace = hg_systems_column_exists($link, 'dim_forms', 'race');
-    $select = "f.*, COALESCE(NULLIF(ds.name, ''), '') AS system_name_resolved";
-    $joins = 'LEFT JOIN dim_systems ds ON ds.id = f.system_id';
+    $select = "f.*,
+        COALESCE(str.modifier, 0) AS strength_bonus,
+        COALESCE(dex.modifier, 0) AS dexterity_bonus,
+        COALESCE(sta.modifier, 0) AS stamina_bonus,
+        CASE WHEN f.hpregen > 0 THEN 1 ELSE 0 END AS regeneration,
+        COALESCE(NULLIF(ds.name, ''), '') AS system_name_resolved";
+    $joins = "LEFT JOIN dim_systems ds ON ds.id = f.system_id
+        LEFT JOIN bridge_forms_traits str ON str.form_id = f.id AND str.trait_id = 1
+        LEFT JOIN bridge_forms_traits dex ON dex.form_id = f.id AND dex.trait_id = 33
+        LEFT JOIN bridge_forms_traits sta ON sta.form_id = f.id AND sta.trait_id = 34";
     if ($hasRace) {
         $select .= ", COALESCE(NULLIF(db.name, ''), NULLIF(f.race, '')) AS breed_name_resolved";
         $joins .= ' LEFT JOIN dim_breeds db ON db.system_id = f.system_id AND db.name = f.race';
