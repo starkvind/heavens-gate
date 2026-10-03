@@ -175,17 +175,7 @@
 
 			$bioForms = [];
 			if ($bioSheetRaw === 'pj' && $bioFormSystemId > 0) {
-				$formCandidates = hg_characters_fetch_forms_for_system($link, $bioFormSystemId);
-				$formRaces = [];
-				foreach ($formCandidates as $formRow) {
-					$race = trim((string)($formRow['race'] ?? ''));
-					if ($race !== '') $formRaces[$race] = true;
-				}
-				$bioFormRace = '';
-				if (count($formRaces) > 1 && (int)$bioTribe > 0) {
-					$tribeRow = hg_characters_fetch_lookup($link, 'dim_tribes', (int)$bioTribe, ['name']);
-					$bioFormRace = trim((string)($tribeRow['name'] ?? ''));
-				}
+				$formCandidates = hg_characters_fetch_forms_for_system($link, $bioFormSystemId, (int)$bioRace, (int)$bioTribe);
 				$formModifiers = hg_characters_fetch_form_modifiers($link, array_column($formCandidates, 'id'));
 				$formatManeuver = static function (array $maneuver) use ($link): array {
 					$id = (int)($maneuver['id'] ?? 0);
@@ -213,7 +203,6 @@
 					if ($legacyColumn !== null) $legacyModifierColumns[(int)($attribute['id'] ?? 0)] = $legacyColumn;
 				}
 				foreach ($formCandidates as $formRow) {
-					if (count($formRaces) > 1 && ($bioFormRace === '' || (string)($formRow['race'] ?? '') !== $bioFormRace)) continue;
 					$formId = (int)($formRow['id'] ?? 0);
 					$formName = trim((string)($formRow['form'] ?? ''));
 					$modifiers = $formModifiers[$formId] ?? [];
@@ -240,7 +229,7 @@
 				$actionRow['href'] = pretty_url($link, 'fact_actions', '/rules/actions', (int)$actionRow['id']);
 				$bioActions[] = $actionRow;
 			}
-			foreach (hg_characters_fetch_maneuver_actions_for_sheet($link, $characterId, $bioSystemId, $bioFormSystemId) as $maneuverRow) {
+			foreach (hg_characters_fetch_maneuver_actions_for_sheet($link, $characterId, $bioSystemId, $bioFormSystemId, (int)$bioRace, (int)$bioTribe) as $maneuverRow) {
 				$maneuverRow['source_type'] = 'maneuver';
 				$maneuverRow['source_id'] = (int)$maneuverRow['id'];
 				$maneuverRow['href'] = pretty_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$maneuverRow['id']);
