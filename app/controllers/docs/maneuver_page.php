@@ -5,10 +5,12 @@ $maneuverId = (int)hg_request_param($hgRequest, 'maneuver');
 $maneuver = $maneuverId > 0 ? hg_rules_fetch_maneuver($link, $maneuverId) : null;
 if (!$maneuver) return;
 
+$availability = hg_rules_fetch_maneuver_availability($link, $maneuverId);
+$availabilityLines = hg_rules_format_maneuver_availability($availability);
+
 $maneID = htmlspecialchars((string)$maneuver['id']);
 $maneName = htmlspecialchars((string)$maneuver['name']);
 $maneText = (string)($maneuver['text'] ?? '');
-$maneUser = htmlspecialchars((string)($maneuver['user'] ?? ''));
 $maneRoll = htmlspecialchars((string)($maneuver['roll'] ?? ''));
 $maneDiff = htmlspecialchars((string)($maneuver['difficulty'] ?? ''));
 $maneDamg = htmlspecialchars((string)($maneuver['damage'] ?? ''));
@@ -28,7 +30,10 @@ if ($maneImg !== '') $itemImg = strpos($maneImg, '/') !== false ? $maneImg : 'im
 
 echo "<div class='power-card power-card--maneuver'><div class='power-card__banner'><span class='power-card__title'>{$maneName}</span></div><div class='power-card__body'><div class='power-card__media'><img class='power-card__img' src='" . htmlspecialchars($itemImg, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "' alt='{$maneName}'/></div><div class='power-card__stats'>";
 if ($maneActi !== '') echo "<div class='power-stat'><div class='power-stat__label'>Acciones</div><div class='power-stat__value'>{$maneActi}</div></div>";
-if ($maneUser !== '') echo "<div class='power-stat'><div class='power-stat__label'>Formas según el manual</div><div class='power-stat__value'>{$maneUser}</div></div>";
+if (!empty($availabilityLines)) {
+    $usableBy = implode('<br>', array_map(static fn(string $line): string => htmlspecialchars($line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $availabilityLines));
+    echo "<div class='power-stat'><div class='power-stat__label'>Usable por</div><div class='power-stat__value'>{$usableBy}</div></div>";
+}
 if ($maneRoll !== '') echo "<div class='power-stat'><div class='power-stat__label'>Tirada</div><div class='power-stat__value'>{$maneRoll} ({$maneDiff})</div></div>";
 if ($maneDamg !== '') echo "<div class='power-stat'><div class='power-stat__label'>Da&ntilde;o</div><div class='power-stat__value'>{$maneDamg}</div></div>";
 if ($maneSist !== '') echo "<div class='power-stat'><div class='power-stat__label'>Sistema de origen</div><div class='power-stat__value'>{$maneSist}</div></div>";
