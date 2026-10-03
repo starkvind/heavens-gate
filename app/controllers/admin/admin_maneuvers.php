@@ -80,7 +80,13 @@ if ($crudAction !== '') {
             // first-class list support.
             $systemsPosted = isset($_POST['system_ids']) && is_array($_POST['system_ids']) ? $_POST['system_ids'] : [];
             $formsPosted = isset($_POST['form_ids']) && is_array($_POST['form_ids']) ? $_POST['form_ids'] : [];
-            $result = hg_rules_admin_maneuver_save_links($link, $selectedId, $systemsPosted, $formsPosted);
+            $canonicalLinks = hg_rules_admin_maneuver_canonicalize_links($link, $systemsPosted, $formsPosted);
+            $result = hg_rules_admin_maneuver_save_links(
+                $link,
+                $selectedId,
+                $canonicalLinks['systems'],
+                $canonicalLinks['forms']
+            );
             $flash[] = !empty($result['ok'])
                 ? ['type' => 'ok', 'msg' => 'Disponibilidad guardada.']
                 : ['type' => 'error', 'msg' => 'Error al guardar disponibilidad: ' . (string)($result['error'] ?? '')];
@@ -308,6 +314,21 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
     const importButton = document.getElementById('importManeuverLinks');
     const importSelect = document.getElementById('importManeuver');
 
+    function syncSystemForms(sid) {
+        const systemInput = document.querySelector('input[name="system_ids[]"][value="' + sid + '"]');
+        const fullSystem = !!(systemInput && systemInput.checked);
+        document.querySelectorAll('input[name="form_ids[]"][data-form-system-id="' + sid + '"]').forEach(function(input) {
+            if (fullSystem) input.checked = false;
+            input.disabled = fullSystem;
+        });
+    }
+
+    function syncAllSystemForms() {
+        document.querySelectorAll('input[name="system_ids[]"]').forEach(function(input) {
+            syncSystemForms(input.value);
+        });
+    }
+
     function refreshAvailabilitySummary() {
         const systems = document.querySelectorAll('input[name="system_ids[]"]:checked').length;
         const forms = document.querySelectorAll('input[name="form_ids[]"]:checked').length;
@@ -330,6 +351,7 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
             document.querySelectorAll('input[name="form_ids[]"]').forEach(function(input) {
                 input.checked = forms.has(input.value);
             });
+            syncAllSystemForms();
             refreshAvailabilitySummary();
         });
     }
@@ -338,6 +360,8 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
         button.addEventListener('click', function() {
             const sid = button.getAttribute('data-form-system');
             const checked = button.getAttribute('data-checked') === '1';
+            const systemInput = document.querySelector('input[name="system_ids[]"][value="' + sid + '"]');
+            if (systemInput && systemInput.checked) return;
             document.querySelectorAll('input[name="form_ids[]"][data-form-system-id="' + sid + '"]').forEach(function(input) {
                 input.checked = checked;
             });
@@ -345,7 +369,14 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
         });
     });
 
-    document.querySelectorAll('input[name="system_ids[]"], input[name="form_ids[]"]').forEach(function(input) {
+    document.querySelectorAll('input[name="system_ids[]"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            syncSystemForms(input.value);
+            refreshAvailabilitySummary();
+        });
+    });
+
+    document.querySelectorAll('input[name="form_ids[]"]').forEach(function(input) {
         input.addEventListener('change', refreshAvailabilitySummary);
     });
 
@@ -360,6 +391,7 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
         });
     }
 
+    syncAllSystemForms();
     refreshAvailabilitySummary();
 })();
 </script>
