@@ -3,10 +3,9 @@
 /*
  * Canonical maneuver/Form admin state.
  *
- * This replaces the active use of the legacy hg_rules_admin_maneuver_state()
- * implementation kept in app/domains/rules/admin.php. Form identity now comes
- * from dim_forms.system_id and applicability from bridge_forms_applicability;
- * dim_forms.race is intentionally not read.
+ * Form identity comes from dim_forms.system_id and applicability from
+ * bridge_forms_applicability. Legacy dim_forms.race / affiliation columns are
+ * intentionally not read.
  */
 if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
     function hg_rules_admin_maneuver_state_normalized(mysqli $link, int $selectedId, bool $bridgesReady): array
@@ -73,5 +72,18 @@ if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
         }
 
         return compact('maneuvers', 'selectedId', 'systems', 'forms', 'selectedSystems', 'selectedForms', 'maneuverLinkMap');
+    }
+}
+
+/*
+ * Compatibility alias loaded before app/domains/rules/admin.php.
+ * Defining the historical symbol here prevents the dormant implementation in
+ * that file from being registered, so no runtime path can query legacy Form
+ * identity columns after the E2 database cleanup.
+ */
+if (!function_exists('hg_rules_admin_maneuver_state')) {
+    function hg_rules_admin_maneuver_state(mysqli $link, int $selectedId, bool $bridgesReady): array
+    {
+        return hg_rules_admin_maneuver_state_normalized($link, $selectedId, $bridgesReady);
     }
 }
