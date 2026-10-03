@@ -10,6 +10,21 @@ if (!function_exists('hg_system_details_admin_has_column')) {
     }
 }
 
+if (!function_exists('hg_system_details_admin_persisted_fields')) {
+    function hg_system_details_admin_persisted_fields(mysqli $link, string $table, array $fields): array
+    {
+        $persisted = [];
+        foreach ($fields as $field) {
+            if (($field['db'] ?? 's') === 'x') continue;
+            $column = trim((string)($field['k'] ?? ''));
+            if ($column === '') continue;
+            if (!hg_system_details_admin_has_column($link, $table, $column)) continue;
+            $persisted[] = $field;
+        }
+        return $persisted;
+    }
+}
+
 if (!function_exists('hg_system_details_admin_fetch_origins')) {
     function hg_system_details_admin_fetch_origins(mysqli $link): array
     {
@@ -63,19 +78,24 @@ if (!function_exists('hg_system_details_admin_create')) {
         $types = '';
         $bind = [];
 
-        foreach ($meta['fields'] as $field) {
-            if (($field['db'] ?? 's') === 'x') continue;
+        foreach (hg_system_details_admin_persisted_fields($link, $table, $meta['fields'] ?? []) as $field) {
             $isNullableSelectInt = (($field['ui'] ?? '') === 'select_int') && empty($field['req']) && (($field['db'] ?? 's') === 'i');
-            $cols[] = (string)$field['k'];
+            $column = (string)$field['k'];
+            $cols[] = $column;
             $ph[] = $isNullableSelectInt ? 'NULLIF(?, 0)' : '?';
             $types .= (($field['db'] ?? 's') === 'i') ? 'i' : 's';
-            $bind[] = $vals[$field['k']];
+            $bind[] = $vals[$column] ?? (($field['db'] ?? 's') === 'i' ? 0 : '');
         }
         foreach ($extraWrite as $key => $value) {
+            if (!hg_system_details_admin_has_column($link, $table, (string)$key)) continue;
             $cols[] = (string)$key;
             $ph[] = '?';
             $types .= 's';
             $bind[] = (string)$value;
+        }
+
+        if (!$cols) {
+            return ['ok' => false, 'message' => 'No hay columnas persistentes para crear el registro.'];
         }
 
         $quotedCols = implode(',', array_map(static fn($col) => "`{$col}`", $cols));
@@ -113,17 +133,22 @@ if (!function_exists('hg_system_details_admin_update')) {
         $types = '';
         $bind = [];
 
-        foreach ($meta['fields'] as $field) {
-            if (($field['db'] ?? 's') === 'x') continue;
+        foreach (hg_system_details_admin_persisted_fields($link, $table, $meta['fields'] ?? []) as $field) {
             $isNullableSelectInt = (($field['ui'] ?? '') === 'select_int') && empty($field['req']) && (($field['db'] ?? 's') === 'i');
-            $sets[] = "`" . $field['k'] . "`=" . ($isNullableSelectInt ? 'NULLIF(?, 0)' : '?');
+            $column = (string)$field['k'];
+            $sets[] = "`{$column}`=" . ($isNullableSelectInt ? 'NULLIF(?, 0)' : '?');
             $types .= (($field['db'] ?? 's') === 'i') ? 'i' : 's';
-            $bind[] = $vals[$field['k']];
+            $bind[] = $vals[$column] ?? (($field['db'] ?? 's') === 'i' ? 0 : '');
         }
         foreach ($extraWrite as $key => $value) {
+            if (!hg_system_details_admin_has_column($link, $table, (string)$key)) continue;
             $sets[] = "`{$key}`=?";
             $types .= 's';
             $bind[] = (string)$value;
+        }
+
+        if (!$sets) {
+            return ['ok' => false, 'message' => 'No hay columnas persistentes para actualizar el registro.'];
         }
 
         $sql = "UPDATE `{$table}` SET " . implode(', ', $sets);
@@ -214,7 +239,7 @@ if (!function_exists('hg_system_details_admin_fetch_rows')) {
             $params[] = $systemId;
         }
 
-        $sqlFields = array_values(array_filter($meta['fields'], static fn($f) => (($f['db'] ?? 's') !== 'x')));
+        $sqlFields = hg_system_details_admin_persisted_fields($link, $table, $meta['fields'] ?? []);
         $energySql = hg_ser_energy_sql_parts($link, $table, 't', 'er_admin');
         $from = "`{$table}` t LEFT JOIN dim_systems s ON s.id = t.system_id{$energySql['join']}";
         $cols = array_map(static fn($f) => "t.`" . $f['k'] . "`", $sqlFields);
