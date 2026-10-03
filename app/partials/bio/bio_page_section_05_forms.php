@@ -8,7 +8,6 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
     <div class="bio-forms__control">
         <label for="bio-form-select">Forma activa</label>
         <select id="bio-form-select" class="bio-forms__select">
-            <option value="">Hom&iacute;nido</option>
             <?php foreach (($bioForms ?? []) as $form): ?>
                 <option value="<?= (int)($form['id'] ?? 0) ?>"><?= h((string)($form['name'] ?? '')) ?></option>
             <?php endforeach; ?>
@@ -104,7 +103,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             card.classList.toggle('is-active', card.dataset.formId === formId);
         });
 
-        detailUi.title.textContent = form ? String(form.name || 'Forma') : 'Homínido';
+        detailUi.title.textContent = form ? String(form.name || 'Forma') : 'Forma';
         detailUi.attributes.replaceChildren();
 
         traitCells.forEach(cell => {
@@ -160,7 +159,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             detailUi.description.textContent = plainDescription(form.description);
         } else {
             detailUi.capabilities.hidden = true;
-            detailUi.description.textContent = 'Atributos originales del personaje.';
+            detailUi.description.textContent = 'No hay una Forma activa disponible.';
         }
     };
 
@@ -168,13 +167,13 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'bio-forms-detail__card';
-        card.dataset.formId = form ? String(form.id) : '';
+        card.dataset.formId = String(form.id);
 
         const silhouette = document.createElement('span');
         silhouette.className = 'bio-forms-detail__silhouette';
         silhouette.setAttribute('aria-hidden', 'true');
 
-        const silhouetteUrl = form ? publicImageUrl(form.silhouette_image_url) : '';
+        const silhouetteUrl = publicImageUrl(form.silhouette_image_url);
         if (silhouetteUrl) {
             const image = document.createElement('img');
             image.src = silhouetteUrl;
@@ -186,11 +185,11 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
 
         const label = document.createElement('span');
         label.className = 'bio-forms-detail__card-label';
-        label.textContent = form ? String(form.name || 'Forma') : 'Homínido';
+        label.textContent = String(form.name || 'Forma');
 
         card.append(silhouette, label);
         card.addEventListener('click', () => {
-            select.value = form ? String(form.id) : '';
+            select.value = String(form.id);
             select.dispatchEvent(new Event('change', { bubbles: true }));
         });
         return card;
@@ -223,7 +222,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         rail.className = 'bio-forms-detail__rail';
         rail.setAttribute('aria-label', 'Formas disponibles');
 
-        const cards = [createFormCard(null), ...forms.map(createFormCard)];
+        const cards = forms.map(createFormCard);
         cards.forEach(card => rail.appendChild(card));
 
         const detailPanel = document.createElement('div');
@@ -264,12 +263,15 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         bioBody.appendChild(panel);
 
         detailUi = { cards, title, attributes, capabilities, melee, firearms, regeneration, description };
-        const selectedForm = forms.find(item => String(item.id) === select.value) || null;
+        const selectedForm = forms.find(item => String(item.id) === select.value) || forms[0] || null;
+        if (selectedForm && String(select.value) !== String(selectedForm.id)) select.value = String(selectedForm.id);
         renderDetail(selectedForm);
     };
 
     const render = () => {
-        const form = forms.find(item => String(item.id) === select.value) || null;
+        const form = forms.find(item => String(item.id) === select.value) || forms[0] || null;
+        if (form && String(select.value) !== String(form.id)) select.value = String(form.id);
+
         traitCells.forEach(cell => {
             const traitId = String(cell.dataset.bioFormTraitId || '');
             const base = Number(cell.dataset.bioFormBase || 0);
@@ -284,7 +286,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         });
 
         if (!form) {
-            summary.textContent = 'Homínido: se muestran los atributos originales del personaje.';
+            summary.textContent = 'No hay una Forma activa disponible.';
         } else {
             const changes = traitCells.map(cell => {
                 const traitId = String(cell.dataset.bioFormTraitId || '');
