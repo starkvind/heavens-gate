@@ -63,6 +63,45 @@ function hg_powers_fetch_gift_relation(mysqli $link, int $giftId, string $relati
     return $row ?: null;
 }
 
+/**
+ * Returns Gifts that point at the requested Gift.
+ *
+ * This is intentionally the reverse side of the relation: if Ishin Deshin
+ * mechanics_from Habla Mental, the Habla Mental page can advertise Ishin
+ * Deshin as a related Gift. The same model supports several variants pointing
+ * at a shared canonical Gift such as Roce Materno.
+ */
+function hg_powers_fetch_gift_dependents(mysqli $link, int $giftId): array
+{
+    if ($giftId <= 0 || !hg_powers_gift_relations_table_exists($link)) return [];
+
+    $sql = "SELECT
+                r.id AS relation_id,
+                r.gift_id AS related_gift_id,
+                r.relation_type,
+                r.notes AS relation_notes,
+                g.pretty_id AS related_pretty_id,
+                g.name AS related_name,
+                g.rank AS related_rank
+            FROM bridge_gifts_relations r
+            INNER JOIN fact_gifts g ON g.id = r.gift_id
+            WHERE r.related_gift_id = ?
+              AND r.relation_type IN ('mechanics_from', 'variant_of')
+            ORDER BY CAST(g.rank AS UNSIGNED), g.name, g.id";
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return [];
+
+    $stmt->bind_param('i', $giftId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) $rows[] = $row;
+    $stmt->close();
+
+    return $rows;
+}
+
 function hg_powers_resolve_gift_soft_mechanics(mysqli $link, array $gift, int $maxDepth = 8): array
 {
     $gift['attribute_resolved'] = (string)($gift['attribute_name'] ?? '');
