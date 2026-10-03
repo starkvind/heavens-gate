@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
 $systemCategory = hg_request_param($hgRequest, 'system');
 $systemCategoryId = hg_systems_resolve_id($link, 'dim_systems', $systemCategory);
@@ -109,6 +110,22 @@ if (!$ordenQueryResult) {
 
             echo "</fieldset>";
         }
+    }
+
+    $systemManeuvers = hg_systems_fetch_system_maneuvers_normalized($link, $systemCategoryId);
+    if (!empty($systemManeuvers)) {
+        $showToggle = count($systemManeuvers) > 12;
+        $cls = $showToggle ? "syst-section collapsed" : "syst-section";
+        $toggleBtn = $showToggle ? "<button type='button' class='syst-toggle' data-toggle='1'></button>" : "";
+        echo "<fieldset class='$cls'><legend><b>Maniobras de combate</b>$toggleBtn</legend><div class='syst-grid'>";
+        foreach ($systemManeuvers as $idx => $maneuver) {
+            $maneuverId = (int)($maneuver['id'] ?? 0);
+            $maneuverName = htmlspecialchars((string)($maneuver['name'] ?? ''));
+            $maneuverHref = pretty_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', $maneuverId);
+            $dataIdx = $showToggle ? " data-idx='" . (int)$idx . "'" : "";
+            echo "<a class='syst-card'$dataIdx href='" . htmlspecialchars($maneuverHref) . "'>$maneuverName</a>";
+        }
+        echo "</div></fieldset>";
     }
 
     $sectionDefs = [
