@@ -19,9 +19,13 @@ $contracts = [
         'function hg_systems_fetch_gifts',
         'function hg_systems_fetch_members',
         'function hg_systems_fetch_form',
-        'function hg_systems_fetch_form_maneuvers',
         'bridge_systems_resources_to_system',
         'dim_systems_resources',
+    ],
+    'app/domains/systems/maneuver_availability.php' => [
+        'function hg_systems_fetch_form_maneuvers_normalized',
+        'bridge_maneuvers_systems',
+        'bridge_maneuvers_forms',
     ],
     'app/domains/characters/admin_service.php' => [
         'function pjs_table_exists',
@@ -101,7 +105,7 @@ foreach (['app', 'api'] as $runtimeRoot) {
         $source = file_get_contents($file->getPathname());
         if ($source === false) continue;
         foreach ($removedPhase72Symbols as $symbol) {
-            if (preg_match('/\\b' . preg_quote($symbol, '/') . '\\s*\\(/', $source)) {
+            if (preg_match('/\b' . preg_quote($symbol, '/') . '\s*\(/', $source)) {
                 $relative = str_replace($root . '/', '', $file->getPathname());
                 hg_runtime_regression_fail("Removed runtime symbol still called in {$relative}: {$symbol}");
             }
