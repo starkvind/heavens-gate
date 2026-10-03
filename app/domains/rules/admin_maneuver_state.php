@@ -80,3 +80,80 @@ if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
         return compact('maneuvers', 'selectedId', 'systems', 'forms', 'selectedSystems', 'selectedForms', 'maneuverLinkMap');
     }
 }
+
+/*
+ * Canonical availability writer.
+ *
+ * A system-wide link subsumes every Form link belonging to that System. The
+ * backend enforces this even if a stale browser or crafted request submits
+ * redundant checkbox values.
+ */
+if (!function_exists('hg_rules_admin_maneuver_save_links')) {
+    function hg_rules_admin_maneuver_save_links(mysqli $link, int $maneuverId, array $systems, array $forms): array
+    {
+        if ($maneuverId <= 0) return ['ok' => false, 'error' => 'invalid_maneuver'];
+
+        $systems = array_values(array_unique(array_filter(array_map('intval', $systems), static fn(int $id): bool => $id > 0)));
+        $forms = array_values(array_unique(array_filter(array_map('intval', $forms), static fn(int $id): bool => $id > 0)));
+        $systemSet = array_fill_keys($systems, true);
+
+        if ($forms) {
+            $validForms = [];
+            $sql = 'SELECT id, system_id FROM dim_forms WHERE id IN (' . implode(',', $forms) . ')';
+            if ($rs = $link->query($sql)) {
+                while ($row = $rs->fetch_assoc()) {
+                    $formId = (int)($row['id'] ?? 0);
+                    $systemId = (int)($row['system_id'] ?? 0);
+                    if ($formId > 0 && !isset($systemSet[$systemId])) $validForms[] = $formId;
+                }
+                $rs->free();
+            }
+            $forms = array_values(array_unique($validForms));
+        }
+
+        $link->begin_transaction();
+        try {
+            $deleteSystems = $link->prepare('DELETE FROM bridge_maneuvers_systems WHERE maneuver_id = ?');
+            $deleteForms = $link->prepare('DELETE FROM bridge_maneuvers_forms WHERE maneuver_id = ?');
+            if (!$deleteSystems || !$deleteForms) throw new RuntimeException($link->error);
+            $deleteSystems->bind_param('i', $maneuverId);
+            $deleteForms->bind_param('i', $maneuverId);
+            if (!$deleteSystems->execute()) throw new RuntimeException($deleteSystems->error);
+            if (!$deleteForms->execute()) throw new RuntimeException($deleteForms->error);
+            $deleteSystems->close();
+            $deleteForms->close();
+
+            if ($systems) {
+                $insertSystem = $link->prepare(
+                    'INSERT IGNORE INTO bridge_maneuvers_systems (maneuver_id, system_id) '
+                    . 'SELECT ?, id FROM dim_systems WHERE id = ?'
+                );
+                if (!$insertSystem) throw new RuntimeException($link->error);
+                foreach ($systems as $systemId) {
+                    $insertSystem->bind_param('ii', $maneuverId, $systemId);
+                    if (!$insertSystem->execute()) throw new RuntimeException($insertSystem->error);
+                }
+                $insertSystem->close();
+            }
+
+            if ($forms) {
+                $insertForm = $link->prepare(
+                    'INSERT IGNORE INTO bridge_maneuvers_forms (maneuver_id, form_id) '
+                    . 'SELECT ?, id FROM dim_forms WHERE id = ?'
+                );
+                if (!$insertForm) throw new RuntimeException($link->error);
+                foreach ($forms as $formId) {
+                    $insertForm->bind_param('ii', $maneuverId, $formId);
+                    if (!$insertForm->execute()) throw new RuntimeException($insertForm->error);
+                }
+                $insertForm->close();
+            }
+
+            $link->commit();
+            return ['ok' => true, 'error' => ''];
+        } catch (Throwable $e) {
+            $link->rollback();
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+}
