@@ -15,14 +15,11 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
 
         $stmt = mysqli_prepare(
             $db,
-            "SELECT b.override_value, b.modifier, t.name AS trait_name,
-                    f.strength_bonus, f.dexterity_bonus, f.stamina_bonus,
-                    c.system_id AS character_system_id, f.system_id AS form_system_id
+            "SELECT b.override_value, b.modifier
              FROM dim_forms f
              JOIN fact_characters c ON c.id = ?
              JOIN dim_breeds br ON br.id = c.breed_id AND br.form_system_id = f.system_id
-             JOIN dim_traits t ON t.id = ?
-             LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = t.id
+             LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = ?
              WHERE f.id = ?
              LIMIT 1"
         );
@@ -53,26 +50,8 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
             return max(0, $baseValue + (int)$row['modifier']);
         }
 
-        // Reuse the legacy helper when character system and form family still
-        // coincide. Cross-system families use the local legacy-column fallback
-        // below so Hengeyokai-style contexts remain valid during migration.
-        if ((int)($row['character_system_id'] ?? 0) === (int)($row['form_system_id'] ?? 0)) {
-            return max(0, $baseValue + hg_dice_form_attribute_modifier($db, $characterId, $formId, $traitId));
-        }
-
-        $modifier = 0;
-        switch ((string)($row['trait_name'] ?? '')) {
-            case 'Fuerza':
-                $modifier = (int)($row['strength_bonus'] ?? 0);
-                break;
-            case 'Destreza':
-                $modifier = (int)($row['dexterity_bonus'] ?? 0);
-                break;
-            case 'Resistencia':
-                $modifier = (int)($row['stamina_bonus'] ?? 0);
-                break;
-        }
-
-        return max(0, $baseValue + $modifier);
+        // bridge_forms_traits is now the only source of attribute changes.
+        // Missing rows mean that this Form does not modify the requested trait.
+        return $baseValue;
     }
 }
