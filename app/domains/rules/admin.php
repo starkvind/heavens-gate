@@ -579,51 +579,7 @@ if (!function_exists('hg_rules_admin_maneuver_save_links')) {
 if (!function_exists('hg_rules_admin_maneuver_state')) {
     function hg_rules_admin_maneuver_state(mysqli $link, int $selectedId, bool $bridgesReady): array
     {
-        $maneuvers = hg_rules_admin_fetch_all($link, 'SELECT id, name, system_name, user FROM fact_combat_maneuvers ORDER BY system_name, name');
-        if ($selectedId <= 0 && !empty($maneuvers)) $selectedId = (int)$maneuvers[0]['id'];
-
-        $systems = hg_rules_admin_fetch_all($link, 'SELECT id, name FROM dim_systems ORDER BY sort_order, name');
-        $forms = hg_rules_admin_fetch_all(
-            $link,
-            'SELECT f.id, f.form, f.race, s.name AS system_name
-             FROM dim_forms f
-             JOIN dim_systems s ON s.id=f.system_id
-             ORDER BY s.sort_order, s.name, f.race, f.form'
-        );
-
-        $selectedSystems = [];
-        $selectedForms = [];
-        $maneuverLinkMap = [];
-
-        if ($bridgesReady) {
-            foreach (hg_rules_admin_fetch_all($link, 'SELECT maneuver_id, system_id FROM bridge_maneuvers_systems') as $row) {
-                $maneuverLinkMap[(int)$row['maneuver_id']]['systems'][] = (int)$row['system_id'];
-            }
-            foreach (hg_rules_admin_fetch_all($link, 'SELECT maneuver_id, form_id FROM bridge_maneuvers_forms') as $row) {
-                $maneuverLinkMap[(int)$row['maneuver_id']]['forms'][] = (int)$row['form_id'];
-            }
-
-            if ($selectedId > 0) {
-                $st = $link->prepare('SELECT system_id FROM bridge_maneuvers_systems WHERE maneuver_id = ?');
-                if ($st) {
-                    $st->bind_param('i', $selectedId);
-                    $st->execute();
-                    $rs = $st->get_result();
-                    while ($rs && ($row = $rs->fetch_assoc())) $selectedSystems[(int)$row['system_id']] = true;
-                    $st->close();
-                }
-                $st = $link->prepare('SELECT form_id FROM bridge_maneuvers_forms WHERE maneuver_id = ?');
-                if ($st) {
-                    $st->bind_param('i', $selectedId);
-                    $st->execute();
-                    $rs = $st->get_result();
-                    while ($rs && ($row = $rs->fetch_assoc())) $selectedForms[(int)$row['form_id']] = true;
-                    $st->close();
-                }
-            }
-        }
-
-        return compact('maneuvers', 'selectedId', 'systems', 'forms', 'selectedSystems', 'selectedForms', 'maneuverLinkMap');
+        return hg_rules_admin_maneuver_state_normalized($link, $selectedId, $bridgesReady);
     }
 }
 
