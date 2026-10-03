@@ -38,6 +38,21 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         labels[cell.dataset.bioFormTraitId] = label ? label.textContent.replace(':', '').trim() : 'Atributo';
     });
 
+    const maneuversForForm = (form) => {
+        const merged = new Map();
+        baseManeuvers.forEach(maneuver => {
+            const id = Number(maneuver && maneuver.id || 0);
+            if (id > 0) merged.set(id, maneuver);
+        });
+        if (form && Array.isArray(form.maneuvers)) {
+            form.maneuvers.forEach(maneuver => {
+                const id = Number(maneuver && maneuver.id || 0);
+                if (id > 0) merged.set(id, maneuver);
+            });
+        }
+        return Array.from(merged.values());
+    };
+
     const publicImageUrl = (value) => {
         const path = String(value || '').trim();
         if (!path) return '';
@@ -303,7 +318,7 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         renderDetail(form);
 
         document.dispatchEvent(new CustomEvent('hg:form-change', {
-            detail: { form: form, maneuvers: form ? (form.maneuvers || []) : baseManeuvers }
+            detail: { form: form, maneuvers: maneuversForForm(form) }
         }));
     };
 
