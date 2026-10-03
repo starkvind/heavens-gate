@@ -1,5 +1,5 @@
 <?php
-// admin_forms.php -- CRUD Formas (dim_forms)
+// admin_forms.php -- CRUD Formas (dim_forms + bridge_forms_applicability)
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 if (!hg_admin_require_db($link)) { return; }
 if (session_status() === PHP_SESSION_NONE) { @session_start(); }
@@ -31,7 +31,8 @@ function sanitize_utf8_text(string $s): string {
 $formOptions = hg_systems_admin_forms_options($link);
 $origins = $formOptions['origins'];
 $systems = $formOptions['systems'];
-$tribesBySystem = $formOptions['tribesBySystem'];
+$breedsByFormSystem = $formOptions['breedsByFormSystem'] ?? [];
+$tribesBySystem = $formOptions['tribesBySystem'] ?? [];
 $systemNameById = [];
 $systemIdByName = [];
 foreach ($systems as $r) {
@@ -94,6 +95,40 @@ function forms_csrf_ok(): bool {
     return is_string($t) && $t !== '' && isset($_SESSION['csrf_admin_forms']) && hash_equals($_SESSION['csrf_admin_forms'], $t);
 }
 
+function forms_resolve_applicability(
+    string $raw,
+    int $systemId,
+    array $breedsByFormSystem,
+    array $tribesBySystem
+): array {
+    $raw = trim($raw);
+    if ($raw === '') {
+        return ['ok'=>true, 'type'=>'', 'id'=>0, 'label'=>''];
+    }
+    if (!preg_match('/^(breed|tribe):(\d+)$/', $raw, $m)) {
+        return ['ok'=>false, 'type'=>'', 'id'=>0, 'label'=>''];
+    }
+    $type = (string)$m[1];
+    $id = (int)$m[2];
+    if ($id <= 0 || $systemId <= 0) {
+        return ['ok'=>false, 'type'=>'', 'id'=>0, 'label'=>''];
+    }
+    $source = $type === 'breed'
+        ? ($breedsByFormSystem[$systemId] ?? [])
+        : ($tribesBySystem[$systemId] ?? []);
+    foreach ($source as $item) {
+        if ((int)($item['id'] ?? 0) === $id) {
+            return [
+                'ok'=>true,
+                'type'=>$type,
+                'id'=>$id,
+                'label'=>trim((string)($item['name'] ?? '')),
+            ];
+        }
+    }
+    return ['ok'=>false, 'type'=>'', 'id'=>0, 'label'=>''];
+}
+
 if (!$isAjaxRequest && isset($_GET['delete'])) {
     $flash[] = ['type'=>'error','msg'=>'El borrado por URL ha sido desactivado por seguridad. Usa el boton Borrar.'];
 }
@@ -124,59 +159,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
     if (!forms_csrf_ok()) {
         $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
     } else {
-    $id = (int)($_POST['id'] ?? 0);
-    $afiliacion = trim((string)($_POST['afiliacion'] ?? ''));
-    $raza = trim((string)($_POST['raza'] ?? ''));
-    $systemId = (int)($_POST['system_id'] ?? 0);
-    $forma = trim((string)($_POST['forma'] ?? ''));
-    $desc = sanitize_utf8_text((string)($_POST['description'] ?? ''));
-    $desc = hg_mentions_convert($link, $desc);
-    $imagen = trim((string)($_POST['imagen'] ?? ''));
-    $armas = (int)($_POST['armas'] ?? 0);
-    $armasfuego = (int)($_POST['armasfuego'] ?? 0);
-    $bonfue = trim((string)($_POST['bonfue'] ?? ''));
-    $bondes = trim((string)($_POST['bondes'] ?? ''));
-    $bonres = trim((string)($_POST['bonres'] ?? ''));
-    $hpregen = (int)($_POST['hpregen'] ?? 0);
-    $bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
+        $id = (int)($_POST['id'] ?? 0);
+        $systemId = (int)($_POST['system_id'] ?? 0);
+        $forma = trim((string)($_POST['forma'] ?? ''));
+        $desc = sanitize_utf8_text((string)($_POST['description'] ?? ''));
+        $desc = hg_mentions_convert($link, $desc);
+        $imagen = trim((string)($_POST['imagen'] ?? ''));
+        $armas = (int)($_POST['armas'] ?? 0);
+        $armasfuego = (int)($_POST['armasfuego'] ?? 0);
+        $bonfue = trim((string)($_POST['bonfue'] ?? ''));
+        $bondes = trim((string)($_POST['bondes'] ?? ''));
+        $bonres = trim((string)($_POST['bonres'] ?? ''));
+        $hpregen = max(0, (int)($_POST['hpregen'] ?? 0));
+        $bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
+        $applicability = forms_resolve_applicability(
+            (string)($_POST['applicability'] ?? ''),
+            $systemId,
+            $breedsByFormSystem,
+            $tribesBySystem
+        );
 
-    if ($raza === '' && $systemId > 0) {
-        $raza = (string)($systemNameById[$systemId] ?? '');
-    }
-    if ($raza !== '') {
-        $afiliacion = $raza;
-    } elseif ($systemId > 0) {
-        $afiliacion = (string)($systemNameById[$systemId] ?? '');
-    }
-    $systemNameForSlug = (string)($systemNameById[$systemId] ?? '');
-    if ($systemId <= 0 || $afiliacion === '' || $raza === '' || $forma === '') {
-        $flash[] = ['type'=>'error','msg'=>'Sistema, afiliacion, raza y forma son obligatorias.'];
-    } else {
-        $data = [
-            'affiliation' => $afiliacion,
-            'race' => $raza,
-            'system_id' => $systemId,
-            'form' => $forma,
-            'description' => $desc,
-            'image_url' => $imagen,
-            'weapons' => $armas,
-            'firearms' => $armasfuego,
-            'strength_bonus' => $bonfue,
-            'dexterity_bonus' => $bondes,
-            'stamina_bonus' => $bonres,
-            'hpregen' => $hpregen,
-            'bibliography_id' => $bibliographyId,
-        ];
-        $result = hg_systems_admin_form_save($link, $id, $data);
-        if (!empty($result['ok'])) {
-            $savedId = (int)$result['id'];
-            $src = trim($systemNameForSlug.' '.$afiliacion.' '.$forma);
-            hg_update_pretty_id_if_exists($link, 'dim_forms', $savedId, $src);
-            $flash[] = ['type'=>'ok','msg'=>$id > 0 ? 'Forma actualizada.' : 'Forma creada.'];
+        if ($systemId <= 0 || $forma === '') {
+            $flash[] = ['type'=>'error','msg'=>'Sistema y forma son obligatorios.'];
+        } elseif (empty($applicability['ok'])) {
+            $flash[] = ['type'=>'error','msg'=>'La aplicabilidad seleccionada no pertenece al sistema de Formas.'];
         } else {
-            $flash[] = ['type'=>'error','msg'=>($id > 0 ? 'Error al actualizar: ' : 'Error al crear: ').(string)($result['error'] ?? '')];
+            $data = [
+                'system_id' => $systemId,
+                'form' => $forma,
+                'description' => $desc,
+                'image_url' => $imagen,
+                'weapons' => $armas,
+                'firearms' => $armasfuego,
+                'strength_bonus' => $bonfue,
+                'dexterity_bonus' => $bondes,
+                'stamina_bonus' => $bonres,
+                'hpregen' => $hpregen,
+                'bibliography_id' => $bibliographyId,
+                'applicability_type' => (string)$applicability['type'],
+                'applicability_id' => (int)$applicability['id'],
+            ];
+            $result = hg_systems_admin_form_save($link, $id, $data);
+            if (!empty($result['ok'])) {
+                $savedId = (int)$result['id'];
+                $systemNameForSlug = (string)($systemNameById[$systemId] ?? '');
+                $scopeLabel = trim((string)($applicability['label'] ?? ''));
+                $src = trim($systemNameForSlug.' '.$scopeLabel.' '.$forma);
+                hg_update_pretty_id_if_exists($link, 'dim_forms', $savedId, $src);
+                $flash[] = ['type'=>'ok','msg'=>$id > 0 ? 'Forma actualizada.' : 'Forma creada.'];
+            } else {
+                $flash[] = ['type'=>'error','msg'=>($id > 0 ? 'Error al actualizar: ' : 'Error al crear: ').(string)($result['error'] ?? '')];
+            }
         }
-    }
     }
 }
 
@@ -270,11 +304,9 @@ if ($ajaxSaveDelete) {
                         <?= $sysModalOptions ?>
                     </select>
 
-                    <input type="hidden" name="afiliacion" id="form_afiliacion" value="">
-
-                    <label>Raza</label>
-                    <select class="select" name="raza" id="form_raza" required>
-                        <option value="">-- Seleccionar sistema primero --</option>
+                    <label>Aplicabilidad</label>
+                    <select class="select" name="applicability" id="form_applicability">
+                        <option value="">General: todas las razas/linajes</option>
                     </select>
 
                     <label>Forma</label>
@@ -338,7 +370,7 @@ if ($ajaxSaveDelete) {
         <tr>
             <th class="adm-w-60">ID</th>
             <th>Sistema</th>
-            <th>Raza</th>
+            <th>Aplicabilidad</th>
             <th>Forma</th>
             <th>Origen</th>
             <th class="adm-w-160">Acciones</th>
@@ -347,14 +379,16 @@ if ($ajaxSaveDelete) {
     <tbody id="formsTbody">
     <?php foreach ($rows as $r): ?>
         <?php
-            $search = trim((string)($r['system_name'] ?? '') . ' ' . (string)($r['raza'] ?? '') . ' ' . (string)($r['forma'] ?? '') . ' ' . (string)($r['origen_name'] ?? ''));
+            $scopeName = trim((string)($r['applicability_name'] ?? ''));
+            $scopeDisplay = $scopeName !== '' ? $scopeName : 'General';
+            $search = trim((string)($r['system_name'] ?? '') . ' ' . $scopeDisplay . ' ' . (string)($r['forma'] ?? '') . ' ' . (string)($r['origen_name'] ?? ''));
             if (function_exists('mb_strtolower')) { $search = mb_strtolower($search, 'UTF-8'); }
             else { $search = strtolower($search); }
         ?>
         <tr data-search="<?= h($search) ?>">
             <td><?= (int)$r['id'] ?></td>
             <td><?= h($r['system_name'] ?? '') ?></td>
-            <td><?= h($r['raza']) ?></td>
+            <td><?= h($scopeDisplay) ?></td>
             <td><?= h($r['forma']) ?></td>
             <td><?= h($r['origen_name'] ?? '') ?></td>
             <td>
@@ -382,7 +416,7 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 let formsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 let formEditor = null;
 let currentSys = <?= json_encode($sys > 0 ? (string)$sys : '', JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-const FORM_SYSTEMS = <?= json_encode($systemNameById, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+const FORM_BREEDS_BY_SYSTEM = <?= json_encode($breedsByFormSystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 const FORM_TRIBES_BY_SYSTEM = <?= json_encode($tribesBySystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 
 function request(url, opts){
@@ -433,73 +467,46 @@ function ensureFormEditor(){
         if (window.hgMentions) { window.hgMentions.attachQuill(formEditor, { types: ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'] }); }
     }
 }
-function syncAffiliationFromSelection(){
-    const raceSel = document.getElementById('form_raza');
-    const sysSel = document.getElementById('form_system_id');
-    const inp = document.getElementById('form_afiliacion');
-    if (!inp) return;
-    let txt = '';
-    if (raceSel) {
-        txt = String(raceSel.value || '').trim();
-    }
-    if (!txt && sysSel && sysSel.selectedIndex >= 0) {
-        txt = String(sysSel.options[sysSel.selectedIndex].text || '').trim();
-    }
-    inp.value = txt;
-}
-function buildRaceOptionsForSystem(systemId, selectedRace){
-    const sel = document.getElementById('form_raza');
+
+function buildApplicabilityOptionsForSystem(systemId, selectedType, selectedId){
+    const sel = document.getElementById('form_applicability');
     if (!sel) return;
     const sid = parseInt(systemId || '0', 10) || 0;
-    const desired = String(selectedRace || '').trim();
-    const options = [];
-    const seen = new Set();
-    const addOption = function(value){
-        const v = String(value || '').trim();
-        if (!v) return;
-        const key = v.toLowerCase();
-        if (seen.has(key)) return;
-        seen.add(key);
-        options.push(v);
-    };
+    const selected = selectedType && selectedId ? (String(selectedType) + ':' + String(selectedId)) : '';
+    sel.innerHTML = '';
+    sel.appendChild(new Option('General: todas las razas/linajes', ''));
 
-    if (sid > 0) {
-        addOption((FORM_SYSTEMS && (FORM_SYSTEMS[sid] || FORM_SYSTEMS[String(sid)])) || '');
-        const tribes = (FORM_TRIBES_BY_SYSTEM && (FORM_TRIBES_BY_SYSTEM[sid] || FORM_TRIBES_BY_SYSTEM[String(sid)])) || [];
-        if (Array.isArray(tribes)) tribes.forEach(addOption);
-    }
-
-    let html = '';
-    if (!options.length) {
-        html = '<option value="">-- Seleccionar sistema primero --</option>';
-    } else {
-        options.forEach(function(opt){
-            html += '<option value="' + esc(opt) + '">' + esc(opt) + '</option>';
+    const breeds = (FORM_BREEDS_BY_SYSTEM && (FORM_BREEDS_BY_SYSTEM[sid] || FORM_BREEDS_BY_SYSTEM[String(sid)])) || [];
+    if (Array.isArray(breeds) && breeds.length) {
+        const group = document.createElement('optgroup');
+        group.label = 'Razas';
+        breeds.forEach(function(item){
+            group.appendChild(new Option(String(item.name || ('ID ' + item.id)), 'breed:' + String(item.id)));
         });
+        sel.appendChild(group);
     }
 
-    let valueToSelect = options.length ? options[0] : '';
-    if (desired) {
-        const found = options.find(function(opt){ return opt.toLowerCase() === desired.toLowerCase(); });
-        if (found) {
-            valueToSelect = found;
-        } else {
-            html += '<option value="' + esc(desired) + '">' + esc(desired) + ' (legacy)</option>';
-            valueToSelect = desired;
-        }
+    const tribes = (FORM_TRIBES_BY_SYSTEM && (FORM_TRIBES_BY_SYSTEM[sid] || FORM_TRIBES_BY_SYSTEM[String(sid)])) || [];
+    if (Array.isArray(tribes) && tribes.length) {
+        const group = document.createElement('optgroup');
+        group.label = 'Tribus / linajes';
+        tribes.forEach(function(item){
+            group.appendChild(new Option(String(item.name || ('ID ' + item.id)), 'tribe:' + String(item.id)));
+        });
+        sel.appendChild(group);
     }
 
-    sel.innerHTML = html;
-    sel.value = valueToSelect;
+    if (selected) sel.value = selected;
+    if (sel.value !== selected) sel.value = '';
 }
+
 function openFormModal(id = null){
     ensureFormEditor();
     const modal = document.getElementById('formModal');
     document.getElementById('form_id').value = '';
     const initialSystemId = (parseInt(currentSys || '0', 10) || 0) > 0 ? String(parseInt(currentSys || '0', 10)) : '0';
     document.getElementById('form_system_id').value = initialSystemId;
-    document.getElementById('form_afiliacion').value = '';
-    buildRaceOptionsForSystem(initialSystemId, '');
+    buildApplicabilityOptionsForSystem(initialSystemId, '', 0);
     document.getElementById('form_forma').value = '';
     document.getElementById('form_desc').value = '';
     document.getElementById('form_imagen').value = '';
@@ -510,7 +517,6 @@ function openFormModal(id = null){
     document.getElementById('form_bonres').value = '';
     document.getElementById('form_hpregen').value = '0';
     document.getElementById('form_bibliography_id').value = '0';
-    syncAffiliationFromSelection();
     if (formEditor) formEditor.root.innerHTML = '';
     if (id) {
         const row = formsData.find(function(r){ return (parseInt(r.id,10) || 0) === (parseInt(id,10) || 0); });
@@ -519,8 +525,7 @@ function openFormModal(id = null){
             document.getElementById('form_id').value = row.id;
             const rowSystemId = String(parseInt(row.system_id || 0, 10) || 0);
             document.getElementById('form_system_id').value = rowSystemId;
-            buildRaceOptionsForSystem(rowSystemId, row.raza || '');
-            syncAffiliationFromSelection();
+            buildApplicabilityOptionsForSystem(rowSystemId, row.applicability_type || '', parseInt(row.applicability_id || 0, 10) || 0);
             document.getElementById('form_forma').value = row.forma || '';
             document.getElementById('form_imagen').value = row.imagen || '';
             document.getElementById('form_armas').value = row.armas || 0;
@@ -582,14 +587,14 @@ function renderRows(rows){
     rows.forEach(function(r){
         const id = parseInt(r.id || 0, 10) || 0;
         const systemName = String(r.system_name || '');
-        const raza = String(r.raza || '');
+        const scope = String(r.applicability_name || '').trim() || 'General';
         const forma = String(r.forma || '');
         const origen = String(r.origen_name || '');
-        const search = (systemName + ' ' + raza + ' ' + forma + ' ' + origen).toLowerCase();
+        const search = (systemName + ' ' + scope + ' ' + forma + ' ' + origen).toLowerCase();
         html += '<tr data-search="' + esc(search) + '">'
             + '<td>' + id + '</td>'
             + '<td>' + esc(systemName) + '</td>'
-            + '<td>' + esc(raza) + '</td>'
+            + '<td>' + esc(scope) + '</td>'
             + '<td>' + esc(forma) + '</td>'
             + '<td>' + esc(origen) + '</td>'
             + '<td><button class="btn" type="button" data-edit="' + id + '">Editar</button> '
@@ -654,11 +659,7 @@ document.getElementById('filterSystemForms').addEventListener('change', function
     reloadBySystem(this.value || '');
 });
 document.getElementById('form_system_id').addEventListener('change', function(){
-    buildRaceOptionsForSystem(this.value || '0', '');
-    syncAffiliationFromSelection();
-});
-document.getElementById('form_raza').addEventListener('change', function(){
-    syncAffiliationFromSelection();
+    buildApplicabilityOptionsForSystem(this.value || '0', '', 0);
 });
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeFormModal(); });
 bindRows();
