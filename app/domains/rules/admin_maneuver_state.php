@@ -18,6 +18,7 @@ if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
             $link,
             "SELECT
                 f.id,
+                f.system_id,
                 f.form,
                 s.name AS system_name,
                 COALESCE(
@@ -34,7 +35,7 @@ if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
                ON bfa.form_id = f.id AND bfa.is_active = 1
              LEFT JOIN dim_breeds db ON db.id = bfa.breed_id
              LEFT JOIN dim_tribes dt ON dt.id = bfa.tribe_id
-             GROUP BY f.id, f.form, f.sort_order, s.name, s.sort_order
+             GROUP BY f.id, f.system_id, f.form, f.sort_order, s.name, s.sort_order
              ORDER BY s.sort_order, s.name, applicability_name, f.sort_order, f.form"
         );
 
