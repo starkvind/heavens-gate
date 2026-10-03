@@ -305,10 +305,11 @@ if (!function_exists('hg_rules_fetch_maneuvers')) {
     function hg_rules_fetch_maneuvers(mysqli $db): ?array
     {
         return hg_rules_fetch_all($db, "
-            SELECT m.*, COALESCE(b.name, '') AS origin_name
+            SELECT m.*, COALESCE(s.name, '') AS system_name, COALESCE(b.name, '') AS origin_name
             FROM fact_combat_maneuvers m
+            LEFT JOIN dim_systems s ON s.id = m.system_id
             LEFT JOIN dim_bibliographies b ON b.id = m.bibliography_id
-            ORDER BY m.system_name, m.roll DESC, m.name
+            ORDER BY s.sort_order, s.name, m.roll DESC, m.name
         ");
     }
 }
@@ -317,11 +318,107 @@ if (!function_exists('hg_rules_fetch_maneuver')) {
     function hg_rules_fetch_maneuver(mysqli $db, int $id): ?array
     {
         return hg_rules_fetch_one_int($db, "
-            SELECT m.*, COALESCE(b.name, '') AS origin_name
+            SELECT m.*, COALESCE(s.name, '') AS system_name, COALESCE(b.name, '') AS origin_name
             FROM fact_combat_maneuvers m
+            LEFT JOIN dim_systems s ON s.id = m.system_id
             LEFT JOIN dim_bibliographies b ON b.id = m.bibliography_id
             WHERE m.id = ? LIMIT 1
         ", $id);
+    }
+}
+
+if (!function_exists('hg_rules_fetch_maneuver_availability')) {
+    function hg_rules_fetch_maneuver_availability(mysqli $db, int $id): array
+    {
+        if ($id <= 0) return ['systems' => [], 'forms' => []];
+
+        $systems = [];
+        $st = $db->prepare(
+            "SELECT s.id AS system_id, s.name AS system_name, s.sort_order AS system_sort
+             FROM bridge_maneuvers_systems bms
+             JOIN dim_systems s ON s.id = bms.system_id
+             WHERE bms.maneuver_id = ?
+             ORDER BY s.sort_order, s.name"
+        );
+        if ($st) {
+            $st->bind_param('i', $id);
+            $st->execute();
+            $rs = $st->get_result();
+            while ($rs && ($row = $rs->fetch_assoc())) $systems[] = $row;
+            $st->close();
+        }
+
+        $forms = [];
+        $st = $db->prepare(
+            "SELECT
+                f.id AS form_id,
+                f.form,
+                f.sort_order AS form_sort,
+                s.id AS system_id,
+                s.name AS system_name,
+                s.sort_order AS system_sort,
+                COALESCE(
+                    GROUP_CONCAT(
+                        DISTINCT COALESCE(NULLIF(db.name, ''), NULLIF(dt.name, ''))
+                        ORDER BY COALESCE(NULLIF(db.name, ''), NULLIF(dt.name, ''))
+                        SEPARATOR ', '
+                    ),
+                    ''
+                ) AS applicability_name
+             FROM bridge_maneuvers_forms bmf
+             JOIN dim_forms f ON f.id = bmf.form_id
+             JOIN dim_systems s ON s.id = f.system_id
+             LEFT JOIN bridge_forms_applicability bfa
+               ON bfa.form_id = f.id AND bfa.is_active = 1
+             LEFT JOIN dim_breeds db ON db.id = bfa.breed_id
+             LEFT JOIN dim_tribes dt ON dt.id = bfa.tribe_id
+             WHERE bmf.maneuver_id = ?
+             GROUP BY f.id, f.form, f.sort_order, s.id, s.name, s.sort_order
+             ORDER BY s.sort_order, s.name, applicability_name, f.sort_order, f.form"
+        );
+        if ($st) {
+            $st->bind_param('i', $id);
+            $st->execute();
+            $rs = $st->get_result();
+            while ($rs && ($row = $rs->fetch_assoc())) $forms[] = $row;
+            $st->close();
+        }
+
+        return ['systems' => $systems, 'forms' => $forms];
+    }
+}
+
+if (!function_exists('hg_rules_format_maneuver_availability')) {
+    function hg_rules_format_maneuver_availability(array $availability): array
+    {
+        $lines = [];
+        $systemWide = [];
+
+        foreach (($availability['systems'] ?? []) as $row) {
+            $systemId = (int)($row['system_id'] ?? 0);
+            $systemName = trim((string)($row['system_name'] ?? ''));
+            if ($systemId <= 0 || $systemName === '') continue;
+            $systemWide[$systemId] = true;
+            $lines[] = $systemName . ': todas las Formas';
+        }
+
+        $groups = [];
+        foreach (($availability['forms'] ?? []) as $row) {
+            $systemId = (int)($row['system_id'] ?? 0);
+            if ($systemId <= 0 || isset($systemWide[$systemId])) continue;
+            $systemName = trim((string)($row['system_name'] ?? ''));
+            $formName = trim((string)($row['form'] ?? ''));
+            if ($systemName === '' || $formName === '') continue;
+            $applicability = trim((string)($row['applicability_name'] ?? ''));
+            $label = $systemName . ($applicability !== '' ? ' · ' . $applicability : '');
+            $groups[$label][$formName] = true;
+        }
+
+        foreach ($groups as $label => $forms) {
+            $lines[] = $label . ': ' . implode(', ', array_keys($forms));
+        }
+
+        return $lines;
     }
 }
 
