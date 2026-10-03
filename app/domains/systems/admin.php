@@ -87,28 +87,82 @@ function hg_systems_admin_form_delete(mysqli $link, int $id): array {
     return hg_systems_admin_result($ok, $error);
 }
 
-function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
-    if ($id > 0) {
-        $st = $link->prepare('UPDATE dim_forms SET affiliation=?, race=?, system_id=?, form=?, description=?, image_url=?, weapons=?, firearms=?, strength_bonus=?, dexterity_bonus=?, stamina_bonus=?, regeneration=?, hpregen=?, bibliography_id=?, updated_at=NOW() WHERE id=?');
-        if (!$st) return hg_systems_admin_result(false, $link->error, $id);
-        $st->bind_param('ssisssiisssiiii', $d['affiliation'], $d['race'], $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['strength_bonus'], $d['dexterity_bonus'], $d['stamina_bonus'], $d['regeneration'], $d['hpregen'], $d['bibliography_id'], $id);
-        $ok = $st->execute();
-        $error = $st->error;
-        $st->close();
-        return hg_systems_admin_result($ok, $error, $id);
+function hg_systems_admin_save_form_traits(mysqli $link, int $formId, array $d): void {
+    $values = [
+        1 => (int)($d['strength_bonus'] ?? 0),
+        33 => (int)($d['dexterity_bonus'] ?? 0),
+        34 => (int)($d['stamina_bonus'] ?? 0),
+    ];
+    $st = $link->prepare(
+        'INSERT INTO bridge_forms_traits (form_id, trait_id, modifier, override_value) VALUES (?, ?, ?, NULL) '
+        . 'ON DUPLICATE KEY UPDATE modifier=VALUES(modifier), override_value=NULL'
+    );
+    if (!$st) {
+        throw new RuntimeException($link->error ?: 'No se pudo preparar el guardado de modificadores de Forma.');
     }
-    $st = $link->prepare('INSERT INTO dim_forms (affiliation, race, system_id, form, description, image_url, weapons, firearms, strength_bonus, dexterity_bonus, stamina_bonus, regeneration, hpregen, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())');
-    if (!$st) return hg_systems_admin_result(false, $link->error);
-    $st->bind_param('ssisssiisssiii', $d['affiliation'], $d['race'], $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['strength_bonus'], $d['dexterity_bonus'], $d['stamina_bonus'], $d['regeneration'], $d['hpregen'], $d['bibliography_id']);
-    $ok = $st->execute();
-    $error = $st->error;
-    $newId = $ok ? (int)$st->insert_id : 0;
+    foreach ($values as $traitId => $modifier) {
+        $st->bind_param('iii', $formId, $traitId, $modifier);
+        if (!$st->execute()) {
+            $error = $st->error;
+            $st->close();
+            throw new RuntimeException($error ?: 'No se pudieron guardar los modificadores de Forma.');
+        }
+    }
     $st->close();
-    return hg_systems_admin_result($ok, $error, $newId);
+}
+
+function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
+    $link->begin_transaction();
+    try {
+        if ($id > 0) {
+            $st = $link->prepare('UPDATE dim_forms SET affiliation=?, race=?, system_id=?, form=?, description=?, image_url=?, weapons=?, firearms=?, hpregen=?, bibliography_id=NULLIF(?, 0), updated_at=NOW() WHERE id=?');
+            if (!$st) throw new RuntimeException($link->error);
+            $st->bind_param('ssisssiiiii', $d['affiliation'], $d['race'], $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['hpregen'], $d['bibliography_id'], $id);
+            if (!$st->execute()) {
+                $error = $st->error;
+                $st->close();
+                throw new RuntimeException($error);
+            }
+            $st->close();
+            hg_systems_admin_save_form_traits($link, $id, $d);
+            $link->commit();
+            return hg_systems_admin_result(true, '', $id);
+        }
+
+        $st = $link->prepare('INSERT INTO dim_forms (affiliation, race, system_id, form, description, image_url, weapons, firearms, hpregen, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,NULLIF(?, 0),NOW(),NOW())');
+        if (!$st) throw new RuntimeException($link->error);
+        $st->bind_param('ssisssiiii', $d['affiliation'], $d['race'], $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['hpregen'], $d['bibliography_id']);
+        if (!$st->execute()) {
+            $error = $st->error;
+            $st->close();
+            throw new RuntimeException($error);
+        }
+        $newId = (int)$st->insert_id;
+        $st->close();
+        hg_systems_admin_save_form_traits($link, $newId, $d);
+        $link->commit();
+        return hg_systems_admin_result(true, '', $newId);
+    } catch (Throwable $e) {
+        $link->rollback();
+        return hg_systems_admin_result(false, $e->getMessage(), $id);
+    }
 }
 
 function hg_systems_admin_form_rows(mysqli $link, int $systemId): array {
-    $sql = "SELECT f.id, f.pretty_id, f.description, f.affiliation AS afiliacion, f.race AS raza, f.system_id, COALESCE(ds.name,'') AS system_name, f.form AS forma, f.image_url AS imagen, f.weapons AS armas, f.firearms AS armasfuego, f.strength_bonus AS bonfue, f.dexterity_bonus AS bondes, f.stamina_bonus AS bonres, f.regeneration AS regenera, f.hpregen, f.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_forms f LEFT JOIN dim_systems ds ON ds.id=f.system_id LEFT JOIN dim_bibliographies b ON f.bibliography_id=b.id";
+    $sql = "SELECT f.id, f.pretty_id, f.description, f.affiliation AS afiliacion, f.race AS raza, f.system_id,
+                   COALESCE(ds.name,'') AS system_name, f.form AS forma, f.image_url AS imagen,
+                   f.weapons AS armas, f.firearms AS armasfuego,
+                   COALESCE(str.modifier, 0) AS bonfue,
+                   COALESCE(dex.modifier, 0) AS bondes,
+                   COALESCE(sta.modifier, 0) AS bonres,
+                   CASE WHEN f.hpregen > 0 THEN 1 ELSE 0 END AS regenera,
+                   f.hpregen, f.bibliography_id, COALESCE(b.name,'') AS origen_name
+            FROM dim_forms f
+            LEFT JOIN dim_systems ds ON ds.id=f.system_id
+            LEFT JOIN dim_bibliographies b ON f.bibliography_id=b.id
+            LEFT JOIN bridge_forms_traits str ON str.form_id=f.id AND str.trait_id=1
+            LEFT JOIN bridge_forms_traits dex ON dex.form_id=f.id AND dex.trait_id=33
+            LEFT JOIN bridge_forms_traits sta ON sta.form_id=f.id AND sta.trait_id=34";
     if ($systemId > 0) $sql .= ' WHERE f.system_id = ?';
     $sql .= ' ORDER BY ds.sort_order, ds.name, f.affiliation, f.race, f.form';
     if ($systemId <= 0) return hg_systems_admin_fetch_all($link, $sql);
