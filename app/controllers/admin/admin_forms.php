@@ -137,7 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
     $bonfue = trim((string)($_POST['bonfue'] ?? ''));
     $bondes = trim((string)($_POST['bondes'] ?? ''));
     $bonres = trim((string)($_POST['bonres'] ?? ''));
-    $regenera = (int)($_POST['regenera'] ?? 0);
     $hpregen = (int)($_POST['hpregen'] ?? 0);
     $bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 
@@ -165,7 +164,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
             'strength_bonus' => $bonfue,
             'dexterity_bonus' => $bondes,
             'stamina_bonus' => $bonres,
-            'regeneration' => $regenera,
             'hpregen' => $hpregen,
             'bibliography_id' => $bibliographyId,
         ];
@@ -306,14 +304,8 @@ if ($ajaxSaveDelete) {
                     <label>Bon. Resistencia</label>
                     <input class="inp" type="text" name="bonres" id="form_bonres">
 
-                    <label>Regenera</label>
-                    <select class="select" name="regenera" id="form_regenera">
-                        <option value="0">No</option>
-                        <option value="1">Si</option>
-                    </select>
-
-                    <label>HP Regenera</label>
-                    <input class="inp" type="number" name="hpregen" id="form_hpregen">
+                    <label>Regeneración (Salud/turno)</label>
+                    <input class="inp" type="number" min="0" name="hpregen" id="form_hpregen">
 
                     <label>Origen</label>
                     <select class="select" name="bibliography_id" id="form_bibliography_id">
@@ -516,7 +508,6 @@ function openFormModal(id = null){
     document.getElementById('form_bonfue').value = '';
     document.getElementById('form_bondes').value = '';
     document.getElementById('form_bonres').value = '';
-    document.getElementById('form_regenera').value = '0';
     document.getElementById('form_hpregen').value = '0';
     document.getElementById('form_bibliography_id').value = '0';
     syncAffiliationFromSelection();
@@ -537,7 +528,6 @@ function openFormModal(id = null){
             document.getElementById('form_bonfue').value = row.bonfue || '';
             document.getElementById('form_bondes').value = row.bondes || '';
             document.getElementById('form_bonres').value = row.bonres || '';
-            document.getElementById('form_regenera').value = row.regenera || 0;
             document.getElementById('form_hpregen').value = row.hpregen || 0;
             document.getElementById('form_bibliography_id').value = row.bibliography_id || 0;
             const desc = row.description || '';
@@ -584,7 +574,7 @@ function renderRows(rows){
     const tbody = document.getElementById('formsTbody');
     if (!tbody) return;
     if (!rows || !rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="adm-color-muted">(Sin formas)</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="adm-color-muted">(Sin formas)</td></tr>';
         bindRows();
         return;
     }
@@ -675,8 +665,3 @@ bindRows();
 </script>
 
 <?php admin_panel_close(); ?>
-
-
-
-
-
