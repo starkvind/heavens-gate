@@ -26,23 +26,74 @@ if (!function_exists('hg_characters_fetch_form_system_id_for_breed')) {
     }
 }
 
+if (!function_exists('hg_characters_has_form_applicability')) {
+    function hg_characters_has_form_applicability(mysqli $link): bool
+    {
+        static $exists = null;
+        if ($exists !== null) return $exists;
+
+        $result = $link->query('SELECT 1 FROM bridge_forms_applicability LIMIT 0');
+        $exists = $result !== false;
+        if ($result) $result->free();
+        return $exists;
+    }
+}
+
 if (!function_exists('hg_characters_fetch_forms_for_system')) {
-    function hg_characters_fetch_forms_for_system(mysqli $link, int $systemId): array
+    function hg_characters_fetch_forms_for_system(mysqli $link, int $systemId, int $breedId = 0, int $tribeId = 0): array
     {
         if ($systemId <= 0 || !hg_characters_table_exists($link, 'dim_forms')) return [];
-        $sortSelect = 'COALESCE(sort_order, 999) AS sort_order';
-        $stmt = $link->prepare("SELECT id, form, race, strength_bonus, dexterity_bonus, stamina_bonus, {$sortSelect}
-                                FROM dim_forms
-                                WHERE system_id = ? AND TRIM(COALESCE(form, '')) <> ''
-                                ORDER BY sort_order ASC,
-                                  CASE LOWER(form)
-                                    WHEN 'hominido' THEN 10 WHEN 'glabro' THEN 20 WHEN 'glabrus' THEN 20
-                                    WHEN 'sokto' THEN 20 WHEN 'crinos' THEN 30 WHEN 'hispo' THEN 40
-                                    WHEN 'chatro' THEN 40 WHEN 'lupus' THEN 50 WHEN 'felino' THEN 50
-                                    ELSE 500 END ASC,
-                                  form ASC");
-        if (!$stmt) return [];
-        $stmt->bind_param('i', $systemId);
+        $sortSelect = 'COALESCE(f.sort_order, 999) AS sort_order';
+
+        if (hg_characters_has_form_applicability($link)) {
+            $stmt = $link->prepare("SELECT f.id, f.form, f.race, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus, {$sortSelect}
+                                    FROM dim_forms f
+                                    WHERE f.system_id = ?
+                                      AND TRIM(COALESCE(f.form, '')) <> ''
+                                      AND (
+                                          NOT EXISTS (
+                                              SELECT 1
+                                              FROM bridge_forms_applicability unrestricted
+                                              WHERE unrestricted.form_id = f.id
+                                                AND unrestricted.is_active = 1
+                                          )
+                                          OR EXISTS (
+                                              SELECT 1
+                                              FROM bridge_forms_applicability applicable
+                                              WHERE applicable.form_id = f.id
+                                                AND applicable.is_active = 1
+                                                AND (
+                                                    applicable.breed_id = ?
+                                                    OR applicable.tribe_id = ?
+                                                )
+                                          )
+                                      )
+                                    ORDER BY f.sort_order ASC,
+                                      CASE LOWER(f.form)
+                                        WHEN 'hominido' THEN 10 WHEN 'glabro' THEN 20 WHEN 'glabrus' THEN 20
+                                        WHEN 'sokto' THEN 20 WHEN 'crinos' THEN 30 WHEN 'hispo' THEN 40
+                                        WHEN 'chatro' THEN 40 WHEN 'lupus' THEN 50 WHEN 'felino' THEN 50
+                                        ELSE 500 END ASC,
+                                      f.form ASC");
+            if (!$stmt) return [];
+            $stmt->bind_param('iii', $systemId, $breedId, $tribeId);
+        } else {
+            // Transitional fallback for environments where the Phase D table
+            // has not been deployed yet. Production should use applicability.
+            $stmt = $link->prepare("SELECT f.id, f.form, f.race, f.strength_bonus, f.dexterity_bonus, f.stamina_bonus, {$sortSelect}
+                                    FROM dim_forms f
+                                    WHERE f.system_id = ? AND TRIM(COALESCE(f.form, '')) <> ''
+                                    ORDER BY f.sort_order ASC,
+                                      CASE LOWER(f.form)
+                                        WHEN 'hominido' THEN 10 WHEN 'glabro' THEN 20 WHEN 'glabrus' THEN 20
+                                        WHEN 'sokto' THEN 20 WHEN 'crinos' THEN 30 WHEN 'hispo' THEN 40
+                                        WHEN 'chatro' THEN 40 WHEN 'lupus' THEN 50 WHEN 'felino' THEN 50
+                                        ELSE 500 END ASC,
+                                      f.form ASC");
+            if (!$stmt) return [];
+            $stmt->bind_param('i', $systemId);
+        }
+
         $stmt->execute();
         $result = $stmt->get_result();
         $rows = [];
@@ -146,14 +197,29 @@ if (!function_exists('hg_characters_fetch_actions_for_sheet')) {
 }
 
 if (!function_exists('hg_characters_fetch_maneuver_actions_for_sheet')) {
-    function hg_characters_fetch_maneuver_actions_for_sheet(mysqli $link, int $characterId, int $systemId, int $formSystemId = 0): array
-    {
+    function hg_characters_fetch_maneuver_actions_for_sheet(
+        mysqli $link,
+        int $characterId,
+        int $systemId,
+        int $formSystemId = 0,
+        int $breedId = 0,
+        int $tribeId = 0
+    ): array {
         if ($characterId <= 0 || $systemId <= 0
             || !hg_characters_table_exists($link, 'fact_power_rolls')
             || !hg_characters_table_exists($link, 'bridge_maneuvers_systems')
             || !hg_characters_table_exists($link, 'bridge_maneuvers_forms')
             || !hg_characters_table_exists($link, 'dim_forms')
             || !hg_characters_table_exists($link, 'fact_combat_maneuvers')) return [];
+
+        $applicableFormIds = $formSystemId > 0
+            ? array_values(array_filter(array_map(
+                'intval',
+                array_column(hg_characters_fetch_forms_for_system($link, $formSystemId, $breedId, $tribeId), 'id')
+            )))
+            : [];
+        $applicableFormSql = $applicableFormIds ? implode(',', $applicableFormIds) : '0';
+
         $stmt = $link->prepare("SELECT DISTINCT m.id, m.name, 'Maniobras' AS category, m.text,
                                       pr.attribute_trait_id, pr.skill_trait_id, pr.difficulty_mode,
                                       pr.fixed_difficulty, NULL AS suggested_difficulty,
@@ -164,7 +230,9 @@ if (!function_exists('hg_characters_fetch_maneuver_actions_for_sheet')) {
                                JOIN fact_power_rolls pr ON pr.power_type = 'maneuver' AND pr.power_id = m.id
                                LEFT JOIN bridge_maneuvers_systems system_bridge
                                  ON system_bridge.maneuver_id = m.id AND system_bridge.system_id = ?
-                               LEFT JOIN bridge_maneuvers_forms form_bridge ON form_bridge.maneuver_id = m.id
+                               LEFT JOIN bridge_maneuvers_forms form_bridge
+                                 ON form_bridge.maneuver_id = m.id
+                                AND form_bridge.form_id IN ({$applicableFormSql})
                                LEFT JOIN dim_forms maneuver_form
                                  ON maneuver_form.id = form_bridge.form_id AND maneuver_form.system_id = ?
                                JOIN bridge_characters_traits attribute_value
