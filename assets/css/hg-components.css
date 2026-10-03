@@ -248,6 +248,66 @@ img.fotoBioList {
 	line-height: 1.4;
 }
 
+.power-card--maneuver .hg-maneuver-origin-link {
+	color: #99FFFF;
+	font-weight: bold;
+	text-decoration: none;
+	border-bottom: 1px dotted #3399cc;
+}
+
+.power-card--maneuver .hg-maneuver-origin-link:hover,
+.power-card--maneuver .hg-maneuver-origin-link:focus-visible {
+	color: #FFFFFF;
+	border-bottom-color: #66CCFF;
+}
+
+.hg-maneuver-availability {
+	margin-top: 10px;
+	background: #04044d;
+	border-top: 1px solid #000088;
+	padding: 8px 10px 9px 10px;
+}
+
+.hg-maneuver-availability__title {
+	color: #99FFFF;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+
+.hg-maneuver-availability__list {
+	color: #66CCFF;
+	line-height: 2.25;
+}
+
+.hg-maneuver-availability__pill {
+	display: inline-block;
+	padding: 2px 8px;
+	margin: 1px 0;
+	border: 1px solid #0055aa;
+	border-radius: 999px;
+	background: linear-gradient(180deg, #0b2075 0%, #07155c 100%);
+	box-shadow: 0 0 0 1px rgba(0, 0, 51, 0.55) inset;
+	color: #bfefff;
+	font-size: 10px;
+	font-weight: bold;
+	line-height: 1.35;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hg-maneuver-availability__pill:hover,
+.hg-maneuver-availability__pill:focus-visible {
+	background: linear-gradient(180deg, #003a99 0%, #00236f 100%);
+	border-color: #33CCCC;
+	box-shadow: 0 0 8px rgba(51, 204, 204, 0.28);
+	color: #FFFFFF;
+}
+
+.hg-maneuver-availability__separator {
+	color: #66CCFF;
+}
+
 .power-card--item .power-card__img-wrap {
 	width: 88px;
 	height: 88px;
