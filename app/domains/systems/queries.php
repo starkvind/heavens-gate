@@ -600,13 +600,34 @@ function hg_systems_fetch_form(mysqli $link, int $formId)
     return $row ?: null;
 }
 
+/**
+ * Compatibility reader for older callers that only know System + Form name.
+ * Availability is resolved exclusively through normalized bridge tables.
+ * New callers should prefer hg_systems_fetch_form_maneuvers_normalized() with
+ * an exact form_id because some Systems can contain repeated Form names.
+ */
 function hg_systems_fetch_form_maneuvers(mysqli $link, int $systemId, string $formName)
 {
+    $formName = trim($formName);
     if ($systemId <= 0 || $formName === '') return [];
-    $likeForm = '%' . $formName . '%';
-    $stmt = $link->prepare("SELECT id, pretty_id, name, image_url FROM fact_combat_maneuvers WHERE system_id = ? AND (user LIKE ? OR user LIKE '%Todas%') ORDER BY name ASC");
+
+    $stmt = $link->prepare(
+        "SELECT DISTINCT m.id, m.pretty_id, m.name, m.image_url
+         FROM fact_combat_maneuvers m
+         LEFT JOIN bridge_maneuvers_systems bms
+           ON bms.maneuver_id = m.id AND bms.system_id = ?
+         LEFT JOIN bridge_maneuvers_forms bmf
+           ON bmf.maneuver_id = m.id
+         LEFT JOIN dim_forms f
+           ON f.id = bmf.form_id
+          AND f.system_id = ?
+          AND f.form = ?
+         WHERE bms.maneuver_id IS NOT NULL
+            OR f.id IS NOT NULL
+         ORDER BY m.name ASC"
+    );
     if (!$stmt) return false;
-    $stmt->bind_param('is', $systemId, $likeForm);
+    $stmt->bind_param('iis', $systemId, $systemId, $formName);
     $stmt->execute();
     $rs = $stmt->get_result();
     $rows = [];
