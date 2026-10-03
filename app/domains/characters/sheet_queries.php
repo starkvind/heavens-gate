@@ -46,7 +46,7 @@ if (!function_exists('hg_characters_fetch_forms_for_system')) {
         $sortSelect = 'COALESCE(f.sort_order, 999) AS sort_order';
 
         if (hg_characters_has_form_applicability($link)) {
-            $stmt = $link->prepare("SELECT f.id, f.form, f.race, {$sortSelect}
+            $stmt = $link->prepare("SELECT f.id, f.form, {$sortSelect}
                                     FROM dim_forms f
                                     WHERE f.system_id = ?
                                       AND TRIM(COALESCE(f.form, '')) <> ''
@@ -80,7 +80,7 @@ if (!function_exists('hg_characters_fetch_forms_for_system')) {
         } else {
             // Transitional fallback for environments where the Phase D table
             // has not been deployed yet. Production should use applicability.
-            $stmt = $link->prepare("SELECT f.id, f.form, f.race, {$sortSelect}
+            $stmt = $link->prepare("SELECT f.id, f.form, {$sortSelect}
                                     FROM dim_forms f
                                     WHERE f.system_id = ? AND TRIM(COALESCE(f.form, '')) <> ''
                                     ORDER BY f.sort_order ASC,
