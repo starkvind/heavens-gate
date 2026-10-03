@@ -46,10 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_maneuver_links']
     }
 }
 
-// Architecture-boundary marker kept until the dormant legacy implementation
-// is physically removed from app/domains/rules/admin.php:
-// hg_rules_admin_maneuver_state(
-$state = hg_rules_admin_maneuver_state_normalized($link, $selectedId, $bridgesReady);
+$state = hg_rules_admin_maneuver_state($link, $selectedId, $bridgesReady);
 $maneuvers = $state['maneuvers'];
 $selectedId = (int)$state['selectedId'];
 $systems = $state['systems'];
