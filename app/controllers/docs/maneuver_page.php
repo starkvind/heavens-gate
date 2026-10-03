@@ -21,6 +21,7 @@ foreach (($availability['systems'] ?? []) as $row) {
             ? pretty_url($link, 'dim_systems', '/systems', $systemId)
             : '/systems/' . $systemId,
         'label' => $systemName . ' · todas las Formas',
+        'system_id' => $systemId,
     ];
 }
 
@@ -42,6 +43,7 @@ foreach (($availability['forms'] ?? []) as $row) {
             ? pretty_url($link, 'dim_forms', '/systems/form', $formId)
             : '/systems/form/' . $formId,
         'label' => implode(' · ', $labelParts),
+        'system_id' => $systemId,
     ];
 }
 
@@ -97,7 +99,9 @@ if (!empty($availabilityPills)) {
         if ($index > 0) echo "<span class='hg-maneuver-availability__separator' aria-hidden='true'>,</span> ";
         $href = htmlspecialchars((string)$pill['href'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $label = htmlspecialchars((string)$pill['label'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        echo "<a class='hg-maneuver-availability__pill' href='{$href}'>{$label}</a>";
+        $systemId = max(1, (int)($pill['system_id'] ?? 1));
+        $systemHue = (($systemId * 137) + 23) % 360;
+        echo "<a class='hg-maneuver-availability__pill' style='--hg-maneuver-system-hue: {$systemHue}' href='{$href}'>{$label}</a>";
     }
     echo '</div></div>';
 }
