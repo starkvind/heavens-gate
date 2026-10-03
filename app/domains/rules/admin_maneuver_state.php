@@ -3,13 +3,13 @@
 /*
  * Canonical maneuver/Form admin state.
  *
- * Loaded before app/domains/rules/admin.php so its guarded legacy
- * hg_rules_admin_maneuver_state() definition is skipped. Form identity now
- * comes from dim_forms.system_id and applicability from
- * bridge_forms_applicability; dim_forms.race is intentionally not read.
+ * This replaces the active use of the legacy hg_rules_admin_maneuver_state()
+ * implementation kept in app/domains/rules/admin.php. Form identity now comes
+ * from dim_forms.system_id and applicability from bridge_forms_applicability;
+ * dim_forms.race is intentionally not read.
  */
-if (!function_exists('hg_rules_admin_maneuver_state')) {
-    function hg_rules_admin_maneuver_state(mysqli $link, int $selectedId, bool $bridgesReady): array
+if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
+    function hg_rules_admin_maneuver_state_normalized(mysqli $link, int $selectedId, bool $bridgesReady): array
     {
         $maneuvers = hg_rules_admin_fetch_all($link, 'SELECT id, name, system_name, user FROM fact_combat_maneuvers ORDER BY system_name, name');
         if ($selectedId <= 0 && !empty($maneuvers)) $selectedId = (int)$maneuvers[0]['id'];
