@@ -34,6 +34,8 @@ if ($resultQueryDon) {
         $mechanicsSourceHref = pretty_url($link, 'fact_gifts', '/powers/gift', $mechanicsSourceId);
     }
 
+    $relatedGifts = hg_powers_fetch_gift_dependents($link, $donPageID);
+
     $_SESSION['punk2'] = $nombreTipo;
 
     $donOwners = hg_powers_fetch_bridge_owners(
@@ -115,6 +117,28 @@ if ($resultQueryDon) {
         echo "  <div class='power-card__desc'>";
         echo "    <div class='power-card__desc-title'>Sistema</div>";
         echo "    <div class='power-card__desc-body'>$donRules</div>";
+        echo "  </div>";
+    }
+
+    if (!empty($relatedGifts)) {
+        echo "  <div class='power-card__desc'>";
+        echo "    <div class='power-card__desc-title'>Dones relacionados</div>";
+        echo "    <div class='hg-powers-related'>";
+        echo "      <div class='hg-powers-related-content'>";
+        foreach ($relatedGifts as $relatedGift) {
+            $relatedId = (int)($relatedGift['related_gift_id'] ?? 0);
+            $relatedName = trim((string)($relatedGift['related_name'] ?? ''));
+            if ($relatedId <= 0 || $relatedName === '') continue;
+
+            $relatedHref = pretty_url($link, 'fact_gifts', '/powers/gift', $relatedId);
+            echo "<a href='" . htmlspecialchars($relatedHref) . "' class='hg-tooltip' data-tip='don' data-id='$relatedId'>";
+            echo "  <div class='hg-powers-list-card hg-powers-related-card'>";
+            echo "    <div class='hg-powers-list-card__main'><img class='hg-powers-list-icon' src='/img/ui/icons/icon_claws.webp' alt=''> " . htmlspecialchars($relatedName) . "</div>";
+            echo "  </div>";
+            echo "</a>";
+        }
+        echo "      </div>";
+        echo "    </div>";
         echo "  </div>";
     }
 
