@@ -42,7 +42,6 @@ if ($crudAction !== '') {
             'name' => hg_request_body_value($hgRequest, 'name'),
             'image_url' => hg_request_body_value($hgRequest, 'image_url'),
             'text' => hg_request_body_value($hgRequest, 'text'),
-            'user' => hg_request_body_value($hgRequest, 'user'),
             'roll' => hg_request_body_value($hgRequest, 'roll'),
             'difficulty' => hg_request_body_value($hgRequest, 'difficulty'),
             'damage' => hg_request_body_value($hgRequest, 'damage'),
@@ -116,15 +115,12 @@ foreach ($forms as $form) {
     $formsBySystem[$sid][] = $form;
 }
 
-$protectedCount = 0;
 $originSystems = [];
 foreach ($rows as $row) {
-    if (hg_rules_admin_maneuver_is_protected($row)) $protectedCount++;
     $systemName = trim((string)($row['system_name'] ?? ''));
     if ($systemName !== '') $originSystems[$systemName] = true;
 }
 
-$editingProtected = $editing ? hg_rules_admin_maneuver_is_protected($editing) : false;
 $publicUrl = $editing ? pretty_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)$editing['id']) : '';
 
 admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_maneuvers&amp;new=1">+ Nueva maniobra</a>');
@@ -145,7 +141,6 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
 <div class="adm-summary-band">
     <span class="adm-summary-pill">Maniobras: <?= count($rows) ?></span>
     <span class="adm-summary-pill">Sistemas de origen: <?= count($originSystems) ?></span>
-    <span class="adm-summary-pill">Base protegidas: <?= $protectedCount ?></span>
 </div>
 
 <form method="get" class="adm-flex-gap-8 adm-mt-12" id="maneuverPickerForm">
@@ -189,9 +184,6 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
         <label for="maneuver_image">Imagen</label>
         <input class="inp" id="maneuver_image" name="image_url" maxlength="190" value="<?= admin_maneuver_h($editing['image_url'] ?? '') ?>" placeholder="archivo.webp o ruta completa">
 
-        <label for="maneuver_user">Formas / usuarios válidos</label>
-        <input class="inp" id="maneuver_user" name="user" maxlength="100" value="<?= admin_maneuver_h($editing['user'] ?? '') ?>" placeholder="Todas / Homínido, Glabro, Crinos…">
-
         <label for="maneuver_roll">Tirada</label>
         <input class="inp" id="maneuver_roll" name="roll" maxlength="100" value="<?= admin_maneuver_h($editing['roll'] ?? '') ?>">
 
@@ -222,16 +214,12 @@ admin_panel_open('Maniobras', '<a class="btn btn-green" href="/talim?s=admin_man
 </form>
 
 <?php if ($editing): ?>
-    <?php if ($editingProtected): ?>
-        <p class="adm-color-muted">Esta es una maniobra base usada al crear sistemas nuevos. Puede editarse, pero su ID estable está protegido y no puede borrarse desde este panel.</p>
-    <?php else: ?>
-        <form method="post" class="adm-mt-12" onsubmit="return confirm('¿Borrar esta maniobra? Sus enlaces de sistemas y Formas también desaparecerán.');">
-            <input type="hidden" name="csrf" value="<?= admin_maneuver_h($csrf) ?>">
-            <input type="hidden" name="crud_action" value="delete">
-            <input type="hidden" name="id" value="<?= (int)$editing['id'] ?>">
-            <button class="btn btn-red" type="submit">Borrar maniobra</button>
-        </form>
-    <?php endif; ?>
+    <form method="post" class="adm-mt-12" onsubmit="return confirm('¿Borrar esta maniobra? Sus enlaces de sistemas y Formas también desaparecerán.');">
+        <input type="hidden" name="csrf" value="<?= admin_maneuver_h($csrf) ?>">
+        <input type="hidden" name="crud_action" value="delete">
+        <input type="hidden" name="id" value="<?= (int)$editing['id'] ?>">
+        <button class="btn btn-red" type="submit">Borrar maniobra</button>
+    </form>
 
     <hr>
     <h3>Disponibilidad</h3>
