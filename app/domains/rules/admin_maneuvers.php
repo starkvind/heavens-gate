@@ -2,13 +2,6 @@
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
-if (!function_exists('hg_rules_admin_maneuver_protected_pretty_ids')) {
-    function hg_rules_admin_maneuver_protected_pretty_ids(): array
-    {
-        return [];
-    }
-}
-
 if (!function_exists('hg_rules_admin_maneuver_is_protected')) {
     function hg_rules_admin_maneuver_is_protected(array $row): bool
     {
