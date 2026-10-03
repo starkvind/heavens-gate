@@ -79,6 +79,43 @@ if (!function_exists('hg_rules_admin_maneuver_normalize_payload')) {
     }
 }
 
+if (!function_exists('hg_rules_admin_maneuver_canonicalize_links')) {
+    function hg_rules_admin_maneuver_canonicalize_links(mysqli $link, array $systems, array $forms): array
+    {
+        $systems = array_values(array_unique(array_filter(array_map('intval', $systems), static fn($id) => $id > 0)));
+        $forms = array_values(array_unique(array_filter(array_map('intval', $forms), static fn($id) => $id > 0)));
+
+        if (!$systems || !$forms) {
+            return ['systems' => $systems, 'forms' => $forms];
+        }
+
+        $systemMap = array_fill_keys($systems, true);
+        $placeholders = implode(',', array_fill(0, count($forms), '?'));
+        $stmt = $link->prepare("SELECT id, system_id FROM dim_forms WHERE id IN ({$placeholders})");
+        if (!$stmt) {
+            return ['systems' => $systems, 'forms' => $forms];
+        }
+
+        $types = str_repeat('i', count($forms));
+        $stmt->bind_param($types, ...$forms);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $canonicalForms = [];
+        while ($rs && ($row = $rs->fetch_assoc())) {
+            $formId = (int)($row['id'] ?? 0);
+            $formSystemId = (int)($row['system_id'] ?? 0);
+            if ($formId > 0 && !isset($systemMap[$formSystemId])) {
+                $canonicalForms[] = $formId;
+            }
+        }
+        $stmt->close();
+
+        sort($systems, SORT_NUMERIC);
+        sort($canonicalForms, SORT_NUMERIC);
+        return ['systems' => $systems, 'forms' => $canonicalForms];
+    }
+}
+
 if (!function_exists('hg_rules_admin_maneuver_create')) {
     function hg_rules_admin_maneuver_create(mysqli $link, array $data): array
     {
