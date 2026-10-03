@@ -65,15 +65,33 @@ function hg_systems_admin_system_rows(mysqli $link): array {
 function hg_systems_admin_forms_options(mysqli $link): array {
     $origins = hg_systems_admin_fetch_all($link, 'SELECT id, name FROM dim_bibliographies ORDER BY name ASC');
     $systems = hg_systems_admin_fetch_all($link, 'SELECT id, name FROM dim_systems ORDER BY sort_order ASC, name ASC');
-    $tribesBySystem = [];
-    foreach (hg_systems_admin_fetch_all($link, 'SELECT system_id, name FROM dim_tribes ORDER BY system_id ASC, name ASC') as $row) {
-        $sid = (int)($row['system_id'] ?? 0);
+
+    $breedsByFormSystem = [];
+    foreach (hg_systems_admin_fetch_all($link, 'SELECT id, name, form_system_id FROM dim_breeds WHERE form_system_id IS NOT NULL ORDER BY form_system_id ASC, name ASC') as $row) {
+        $sid = (int)($row['form_system_id'] ?? 0);
+        $id = (int)($row['id'] ?? 0);
         $name = trim((string)($row['name'] ?? ''));
-        if ($sid <= 0 || $name === '') continue;
-        if (!isset($tribesBySystem[$sid])) $tribesBySystem[$sid] = [];
-        $tribesBySystem[$sid][] = $name;
+        if ($sid <= 0 || $id <= 0 || $name === '') continue;
+        if (!isset($breedsByFormSystem[$sid])) $breedsByFormSystem[$sid] = [];
+        $breedsByFormSystem[$sid][] = ['id' => $id, 'name' => $name];
     }
-    return ['origins'=>$origins, 'systems'=>$systems, 'tribesBySystem'=>$tribesBySystem];
+
+    $tribesBySystem = [];
+    foreach (hg_systems_admin_fetch_all($link, 'SELECT id, system_id, name FROM dim_tribes ORDER BY system_id ASC, name ASC') as $row) {
+        $sid = (int)($row['system_id'] ?? 0);
+        $id = (int)($row['id'] ?? 0);
+        $name = trim((string)($row['name'] ?? ''));
+        if ($sid <= 0 || $id <= 0 || $name === '') continue;
+        if (!isset($tribesBySystem[$sid])) $tribesBySystem[$sid] = [];
+        $tribesBySystem[$sid][] = ['id' => $id, 'name' => $name];
+    }
+
+    return [
+        'origins' => $origins,
+        'systems' => $systems,
+        'breedsByFormSystem' => $breedsByFormSystem,
+        'tribesBySystem' => $tribesBySystem,
+    ];
 }
 
 function hg_systems_admin_form_delete(mysqli $link, int $id): array {
@@ -111,13 +129,47 @@ function hg_systems_admin_save_form_traits(mysqli $link, int $formId, array $d):
     $st->close();
 }
 
+function hg_systems_admin_save_form_applicability(mysqli $link, int $formId, array $d): void {
+    $scopeType = trim((string)($d['applicability_type'] ?? ''));
+    $scopeId = (int)($d['applicability_id'] ?? 0);
+    if (!in_array($scopeType, ['', 'breed', 'tribe'], true)) {
+        throw new RuntimeException('Tipo de aplicabilidad de Forma inválido.');
+    }
+
+    $delete = $link->prepare('DELETE FROM bridge_forms_applicability WHERE form_id = ?');
+    if (!$delete) throw new RuntimeException($link->error ?: 'No se pudo limpiar la aplicabilidad de Forma.');
+    $delete->bind_param('i', $formId);
+    if (!$delete->execute()) {
+        $error = $delete->error;
+        $delete->close();
+        throw new RuntimeException($error ?: 'No se pudo limpiar la aplicabilidad de Forma.');
+    }
+    $delete->close();
+
+    if ($scopeType === '' || $scopeId <= 0) return;
+
+    if ($scopeType === 'breed') {
+        $insert = $link->prepare('INSERT INTO bridge_forms_applicability (form_id, breed_id, tribe_id, is_active) VALUES (?, ?, NULL, 1)');
+    } else {
+        $insert = $link->prepare('INSERT INTO bridge_forms_applicability (form_id, breed_id, tribe_id, is_active) VALUES (?, NULL, ?, 1)');
+    }
+    if (!$insert) throw new RuntimeException($link->error ?: 'No se pudo preparar la aplicabilidad de Forma.');
+    $insert->bind_param('ii', $formId, $scopeId);
+    if (!$insert->execute()) {
+        $error = $insert->error;
+        $insert->close();
+        throw new RuntimeException($error ?: 'No se pudo guardar la aplicabilidad de Forma.');
+    }
+    $insert->close();
+}
+
 function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
     $link->begin_transaction();
     try {
         if ($id > 0) {
-            $st = $link->prepare('UPDATE dim_forms SET affiliation=?, race=?, system_id=?, form=?, description=?, image_url=?, weapons=?, firearms=?, hpregen=?, bibliography_id=NULLIF(?, 0), updated_at=NOW() WHERE id=?');
+            $st = $link->prepare('UPDATE dim_forms SET system_id=?, form=?, description=?, image_url=?, weapons=?, firearms=?, hpregen=?, bibliography_id=NULLIF(?, 0), updated_at=NOW() WHERE id=?');
             if (!$st) throw new RuntimeException($link->error);
-            $st->bind_param('ssisssiiiii', $d['affiliation'], $d['race'], $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['hpregen'], $d['bibliography_id'], $id);
+            $st->bind_param('isssiiiii', $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['hpregen'], $d['bibliography_id'], $id);
             if (!$st->execute()) {
                 $error = $st->error;
                 $st->close();
@@ -125,13 +177,14 @@ function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
             }
             $st->close();
             hg_systems_admin_save_form_traits($link, $id, $d);
+            hg_systems_admin_save_form_applicability($link, $id, $d);
             $link->commit();
             return hg_systems_admin_result(true, '', $id);
         }
 
-        $st = $link->prepare('INSERT INTO dim_forms (affiliation, race, system_id, form, description, image_url, weapons, firearms, hpregen, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,NULLIF(?, 0),NOW(),NOW())');
+        $st = $link->prepare('INSERT INTO dim_forms (system_id, form, description, image_url, weapons, firearms, hpregen, bibliography_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,NULLIF(?, 0),NOW(),NOW())');
         if (!$st) throw new RuntimeException($link->error);
-        $st->bind_param('ssisssiiii', $d['affiliation'], $d['race'], $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['hpregen'], $d['bibliography_id']);
+        $st->bind_param('isssiiii', $d['system_id'], $d['form'], $d['description'], $d['image_url'], $d['weapons'], $d['firearms'], $d['hpregen'], $d['bibliography_id']);
         if (!$st->execute()) {
             $error = $st->error;
             $st->close();
@@ -140,6 +193,7 @@ function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
         $newId = (int)$st->insert_id;
         $st->close();
         hg_systems_admin_save_form_traits($link, $newId, $d);
+        hg_systems_admin_save_form_applicability($link, $newId, $d);
         $link->commit();
         return hg_systems_admin_result(true, '', $newId);
     } catch (Throwable $e) {
@@ -149,22 +203,43 @@ function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
 }
 
 function hg_systems_admin_form_rows(mysqli $link, int $systemId): array {
-    $sql = "SELECT f.id, f.pretty_id, f.description, f.affiliation AS afiliacion, f.race AS raza, f.system_id,
+    $sql = "SELECT f.id, f.pretty_id, f.description, f.system_id,
                    COALESCE(ds.name,'') AS system_name, f.form AS forma, f.image_url AS imagen,
                    f.weapons AS armas, f.firearms AS armasfuego,
                    COALESCE(str.modifier, 0) AS bonfue,
                    COALESCE(dex.modifier, 0) AS bondes,
                    COALESCE(sta.modifier, 0) AS bonres,
-                   CASE WHEN f.hpregen > 0 THEN 1 ELSE 0 END AS regenera,
-                   f.hpregen, f.bibliography_id, COALESCE(b.name,'') AS origen_name
+                   f.hpregen, f.bibliography_id, COALESCE(b.name,'') AS origen_name,
+                   CASE
+                       WHEN bfa.breed_id IS NOT NULL THEN 'breed'
+                       WHEN bfa.tribe_id IS NOT NULL THEN 'tribe'
+                       ELSE ''
+                   END AS applicability_type,
+                   COALESCE(bfa.breed_id, bfa.tribe_id, 0) AS applicability_id,
+                   COALESCE(db.name, dt.name, '') AS applicability_name,
+                   COALESCE(ac.scope_count, 0) AS applicability_count
             FROM dim_forms f
             LEFT JOIN dim_systems ds ON ds.id=f.system_id
             LEFT JOIN dim_bibliographies b ON f.bibliography_id=b.id
             LEFT JOIN bridge_forms_traits str ON str.form_id=f.id AND str.trait_id=1
             LEFT JOIN bridge_forms_traits dex ON dex.form_id=f.id AND dex.trait_id=33
-            LEFT JOIN bridge_forms_traits sta ON sta.form_id=f.id AND sta.trait_id=34";
+            LEFT JOIN bridge_forms_traits sta ON sta.form_id=f.id AND sta.trait_id=34
+            LEFT JOIN bridge_forms_applicability bfa
+              ON bfa.id = (
+                  SELECT MIN(bfa_pick.id)
+                  FROM bridge_forms_applicability bfa_pick
+                  WHERE bfa_pick.form_id = f.id AND bfa_pick.is_active = 1
+              )
+            LEFT JOIN dim_breeds db ON db.id=bfa.breed_id
+            LEFT JOIN dim_tribes dt ON dt.id=bfa.tribe_id
+            LEFT JOIN (
+                SELECT form_id, COUNT(*) AS scope_count
+                FROM bridge_forms_applicability
+                WHERE is_active = 1
+                GROUP BY form_id
+            ) ac ON ac.form_id=f.id";
     if ($systemId > 0) $sql .= ' WHERE f.system_id = ?';
-    $sql .= ' ORDER BY ds.sort_order, ds.name, f.affiliation, f.race, f.form';
+    $sql .= ' ORDER BY ds.sort_order, ds.name, applicability_name, f.sort_order, f.form';
     if ($systemId <= 0) return hg_systems_admin_fetch_all($link, $sql);
     $rows = [];
     $st = $link->prepare($sql);
