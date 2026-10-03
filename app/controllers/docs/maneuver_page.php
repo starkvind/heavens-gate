@@ -94,14 +94,17 @@ if (!empty($availabilityPills)) {
     $summaryAttr = htmlspecialchars('Usable por: ' . $availabilitySummary, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     echo "<div class='hg-maneuver-availability' aria-label='{$summaryAttr}'>";
     echo "<div class='hg-maneuver-availability__title'>Usable por</div>";
-    echo "<div class='hg-maneuver-availability__list'>";
+    echo "<div class='hg-maneuver-availability__list' style='text-align:left'>";
     foreach ($availabilityPills as $index => $pill) {
         if ($index > 0) echo "<span class='hg-maneuver-availability__separator' aria-hidden='true'>,</span> ";
         $href = htmlspecialchars((string)$pill['href'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $label = htmlspecialchars((string)$pill['label'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $systemId = max(1, (int)($pill['system_id'] ?? 1));
         $systemHue = (($systemId * 137) + 23) % 360;
-        echo "<a class='hg-maneuver-availability__pill' style='--hg-maneuver-system-hue: {$systemHue}' href='{$href}'>{$label}</a>";
+        $pillStyle = "border-color:hsl({$systemHue} 75% 48%);"
+            . "background:linear-gradient(180deg,hsl({$systemHue} 62% 28%) 0%,hsl({$systemHue} 68% 18%) 100%);"
+            . "color:hsl({$systemHue} 80% 88%)";
+        echo "<a class='hg-maneuver-availability__pill' data-system-id='{$systemId}' style='{$pillStyle}' href='{$href}'>{$label}</a>";
     }
     echo '</div></div>';
 }
