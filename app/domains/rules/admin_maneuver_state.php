@@ -3,14 +3,19 @@
 /*
  * Canonical maneuver/Form admin state.
  *
- * Form identity comes from dim_forms.system_id and applicability from
- * bridge_forms_applicability. Removed legacy Form identity columns are not
- * part of this query contract.
+ * Maneuver origin comes from fact_combat_maneuvers.system_id.
+ * Runtime availability comes exclusively from the normalized bridges.
  */
 if (!function_exists('hg_rules_admin_maneuver_state_normalized')) {
     function hg_rules_admin_maneuver_state_normalized(mysqli $link, int $selectedId, bool $bridgesReady): array
     {
-        $maneuvers = hg_rules_admin_fetch_all($link, 'SELECT id, name, system_name, user FROM fact_combat_maneuvers ORDER BY system_name, name');
+        $maneuvers = hg_rules_admin_fetch_all(
+            $link,
+            "SELECT m.id, m.name, COALESCE(s.name, '') AS system_name
+             FROM fact_combat_maneuvers m
+             LEFT JOIN dim_systems s ON s.id = m.system_id
+             ORDER BY s.sort_order, s.name, m.name"
+        );
         if ($selectedId <= 0 && !empty($maneuvers)) $selectedId = (int)$maneuvers[0]['id'];
 
         $systems = hg_rules_admin_fetch_all($link, 'SELECT id, name FROM dim_systems ORDER BY sort_order, name');
