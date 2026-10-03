@@ -67,6 +67,11 @@ jobs:
       - name: Audit classified schema introspection
         run: python3 .github/ci/php-schema-contract-audit.py
 
+      - name: Audit Gift availability bridge integration
+        run: |
+          php -l app/domains/systems/queries.php
+          python3 .github/ci/php-gift-availability-bridge-audit.py
+
       - name: Characterize runtime regressions
         run: php .github/ci/php-runtime-regression.php
 
