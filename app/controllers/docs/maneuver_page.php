@@ -28,10 +28,10 @@ if ($maneImg !== '') $itemImg = strpos($maneImg, '/') !== false ? $maneImg : 'im
 
 echo "<div class='power-card power-card--maneuver'><div class='power-card__banner'><span class='power-card__title'>{$maneName}</span></div><div class='power-card__body'><div class='power-card__media'><img class='power-card__img' src='" . htmlspecialchars($itemImg, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "' alt='{$maneName}'/></div><div class='power-card__stats'>";
 if ($maneActi !== '') echo "<div class='power-stat'><div class='power-stat__label'>Acciones</div><div class='power-stat__value'>{$maneActi}</div></div>";
-if ($maneUser !== '') echo "<div class='power-stat'><div class='power-stat__label'>Formas</div><div class='power-stat__value'>{$maneUser}</div></div>";
+if ($maneUser !== '') echo "<div class='power-stat'><div class='power-stat__label'>Formas según el manual</div><div class='power-stat__value'>{$maneUser}</div></div>";
 if ($maneRoll !== '') echo "<div class='power-stat'><div class='power-stat__label'>Tirada</div><div class='power-stat__value'>{$maneRoll} ({$maneDiff})</div></div>";
 if ($maneDamg !== '') echo "<div class='power-stat'><div class='power-stat__label'>Da&ntilde;o</div><div class='power-stat__value'>{$maneDamg}</div></div>";
-if ($maneSist !== '') echo "<div class='power-stat'><div class='power-stat__label'>Raza</div><div class='power-stat__value'>{$maneSist}</div></div>";
+if ($maneSist !== '') echo "<div class='power-stat'><div class='power-stat__label'>Sistema de origen</div><div class='power-stat__value'>{$maneSist}</div></div>";
 if ($maneOrig !== '') echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$maneOrig}</div></div>";
 echo '</div></div>';
 if ($maneText !== '') echo "<div class='power-card__desc'><div class='power-card__desc-title'>Descripci&oacute;n</div><div class='power-card__desc-body'>{$maneText}</div></div>";
