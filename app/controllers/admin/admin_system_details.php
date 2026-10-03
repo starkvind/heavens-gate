@@ -131,7 +131,7 @@ function meta_for(mysqli $link, string $tab, array $opts_origins, array $opts_sy
             'fields' => [
                 ['k'=>'name', 'label'=>'Nombre', 'ui'=>'text', 'db'=>'s', 'req'=>true],
                 ['k'=>'system_id', 'label'=>'Sistema', 'ui'=>'select_int', 'db'=>'i', 'req'=>true, 'opts'=>$opts_systems],
-                ['k'=>'forms', 'label'=>'Formas', 'ui'=>'text', 'db'=>'s', 'req'=>false],
+                ['k'=>'form_system_id', 'label'=>'Sistema de Formas', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_systems],
                 ['k'=>'energy', 'label'=>'Energía', 'ui'=>'number', 'db'=>'i', 'req'=>false],
                 ['k'=>'image_url', 'label'=>'Imagen', 'ui'=>'image', 'db'=>'s', 'req'=>false],
                 ['k'=>'bibliography_id', 'label'=>'Origen', 'ui'=>'select_int', 'db'=>'i', 'req'=>false, 'opts'=>$opts_origins],
@@ -669,8 +669,6 @@ admin_panel_open('Detalles de sistemas', $actions);
   </div>
 </div>
 
-
-
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
@@ -725,7 +723,7 @@ function energyResourceBelongsToSystem(resourceId, systemId){
 
 function pickOptsForField(fieldKey){
   if (TAB !== 'misc' && fieldKey === 'bibliography_id') return OPTS_ORIGINS;
-  if (fieldKey === 'system_id') return OPTS_SYSTEMS;
+  if (fieldKey === 'system_id' || fieldKey === 'form_system_id') return OPTS_SYSTEMS;
   if (fieldKey === 'energy_resource_id') return ENERGY_RESOURCES_ALL;
   return [];
 }
@@ -869,7 +867,6 @@ function syncEditorsToTextarea(){
       applyOptions(resourceSelect.value || '0', '');
     });
   }
-
 
   function createEnergyBridgeRow(index, entry, options){
     var row = el('div', {class:'energy-bridge-row'});
@@ -1428,8 +1425,3 @@ function syncEditorsToTextarea(){
 </script>
 
 <?php admin_panel_close(); ?>
-
-
-
-
-
