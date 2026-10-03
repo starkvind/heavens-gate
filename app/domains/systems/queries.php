@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../helpers/pretty.php';
 require_once __DIR__ . '/../../helpers/system_energy_resource.php';
+require_once __DIR__ . '/../../helpers/schema_introspection.php';
 
 function hg_systems_normalize_int_csv($csv): string
 {
@@ -297,20 +298,7 @@ function hg_systems_fetch_detail(mysqli $link, int $type, int $detailId)
 
 function hg_systems_gift_availability_table_exists(mysqli $link): bool
 {
-    static $cache = [];
-    $key = spl_object_id($link);
-    if (array_key_exists($key, $cache)) return $cache[$key];
-
-    $sql = "SELECT 1
-            FROM information_schema.TABLES
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'bridge_gifts_availability'
-            LIMIT 1";
-    $rs = $link->query($sql);
-    $exists = $rs && $rs->num_rows > 0;
-    if ($rs) $rs->free();
-    $cache[$key] = $exists;
-    return $exists;
+    return hg_table_exists($link, 'bridge_gifts_availability');
 }
 
 function hg_systems_gift_scope_candidates(mysqli $link, string $groupName, int $systemId): array
