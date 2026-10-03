@@ -247,22 +247,8 @@ $mobileResourcesByKind = $hasCharacterSheet
 $mobileForms = [];
 $mobileBaseManeuvers = [];
 if ($hasCharacterSheet && $formSystemId > 0) {
-    $forms = hg_characters_fetch_forms_for_system($link, $formSystemId);
-    $races = [];
-    foreach ($forms as $form) {
-        $race = trim((string)($form['race'] ?? ''));
-        if ($race !== '') {
-            $races[$race] = true;
-        }
-    }
-
-    $formIds = [];
-    foreach ($forms as $form) {
-        if (count($races) > 1 && trim((string)($form['race'] ?? '')) !== trim((string)($character['tribe_name'] ?? ''))) {
-            continue;
-        }
-        $formIds[] = (int)($form['id'] ?? 0);
-    }
+    $forms = hg_characters_fetch_forms_for_system($link, $formSystemId, $breedId, $tribeId);
+    $formIds = array_values(array_filter(array_map('intval', array_column($forms, 'id'))));
 
     $modifiersByForm = hg_characters_fetch_form_modifiers($link, $formIds);
     foreach (hg_characters_fetch_system_maneuvers($link, $systemId) as $maneuver) {
@@ -290,9 +276,6 @@ if ($hasCharacterSheet && $formSystemId > 0) {
 
     foreach ($forms as $form) {
         $formId = (int)($form['id'] ?? 0);
-        if (!in_array($formId, $formIds, true)) {
-            continue;
-        }
         $maneuvers = $mobileBaseManeuvers;
         foreach (($formManeuvers[$formId] ?? []) as $maneuverId => $maneuver) {
             $maneuvers[(int)$maneuverId] = $maneuver;
