@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../../helpers/schema_introspection.php';
+
 /**
  * Gift-to-Gift relationships.
  *
@@ -11,22 +13,7 @@
 
 function hg_powers_gift_relations_table_exists(mysqli $link): bool
 {
-    static $cache = [];
-
-    $key = spl_object_id($link);
-    if (array_key_exists($key, $cache)) return $cache[$key];
-
-    $sql = "SELECT 1
-            FROM information_schema.TABLES
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'bridge_gifts_relations'
-            LIMIT 1";
-    $rs = $link->query($sql);
-    $exists = $rs && $rs->num_rows > 0;
-    if ($rs) $rs->free();
-
-    $cache[$key] = $exists;
-    return $exists;
+    return hg_table_exists($link, 'bridge_gifts_relations');
 }
 
 function hg_powers_fetch_gift_relation(mysqli $link, int $giftId, string $relationType): ?array
