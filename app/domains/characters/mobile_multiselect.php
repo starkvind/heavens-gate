@@ -94,6 +94,35 @@ if (!function_exists('hg_characters_fetch_mobile_multiselect_page')) {
     ): array {
         $page = max(1, $page);
         $pageSize = max(1, $pageSize);
+
+        $dimensionKeys = ['type', 'group', 'organization', 'system', 'status'];
+        $normalized = [];
+        $hasMultiple = false;
+        foreach ($dimensionKeys as $key) {
+            $normalized[$key] = hg_characters_multifilter_ids($filters[$key] ?? []);
+            if (count($normalized[$key]) > 1) {
+                $hasMultiple = true;
+            }
+        }
+
+        if (!$hasMultiple) {
+            return hg_characters_fetch_mobile_page(
+                $link,
+                [
+                    'query' => trim((string)($filters['query'] ?? '')),
+                    'type' => $normalized['type'][0] ?? 0,
+                    'group' => $normalized['group'][0] ?? 0,
+                    'organization' => $normalized['organization'][0] ?? 0,
+                    'system' => $normalized['system'][0] ?? 0,
+                    'status' => $normalized['status'][0] ?? 0,
+                ],
+                $excludedChronicles,
+                $page,
+                $pageSize
+            );
+        }
+
+        $filters = array_merge($filters, $normalized);
         $whereSql = hg_characters_mobile_multiselect_where($link, $filters, $excludedChronicles);
 
         $total = 0;
