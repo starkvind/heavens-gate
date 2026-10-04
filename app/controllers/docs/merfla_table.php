@@ -32,13 +32,31 @@ $pageSect = 'Méritos y Defectos';
 </div></div>
 <script>
 $(document).ready(function(){
- const meritos=<?= json_encode($meritos, JSON_UNESCAPED_UNICODE) ?>,tbody=$('#tabla-meritos tbody');
- meritos.forEach(m=>{const slug=m.merit_pretty_id||m.merit_id,nombre=`<a href="/rules/merits-flaws/${escapeHtml(slug)}">${escapeHtml(m.merit_name)}</a>`,tipo=m.merit_type?escapeHtml(m.merit_type):'-',sistema=m.merit_system?escapeHtml(m.merit_system):'-',categoria=m.merit_category?escapeHtml(m.merit_category):'-',coste=(m.merit_cost!==null&&m.merit_cost!=='')?escapeHtml(String(m.merit_cost)):'-',origen=m.merit_origin?escapeHtml(m.merit_origin):'-';tbody.append(`<tr><td>${nombre}</td><td>${tipo}</td><td>${sistema}</td><td>${categoria}</td><td>${coste}</td><td>${origen}</td></tr>`);});
- const dt=$('#tabla-meritos').DataTable({pageLength:25,lengthMenu:[10,25,50,100],order:[[0,'asc']],language:{search:'Buscar:&nbsp;',lengthMenu:'Mostrar _MENU_ méritos y defectos',info:'Mostrando _START_ a _END_ de _TOTAL_ entradas',infoEmpty:'No hay méritos ni defectos disponibles',emptyTable:'No hay datos en la tabla',paginate:{first:'Primero',last:'Último',next:'Siguiente',previous:'Anterior'}},initComplete:function(){$('#dt-search-slot').append($('#tabla-meritos_filter'));}});
- const sets={type:new Set(),system:new Set(),category:new Set(),origin:new Set()};meritos.forEach(m=>{sets.type.add(m.merit_type&&String(m.merit_type).trim()?String(m.merit_type).trim():'-');sets.system.add(m.merit_system&&String(m.merit_system).trim()?String(m.merit_system).trim():'-');sets.category.add(m.merit_category&&String(m.merit_category).trim()?String(m.merit_category).trim():'-');sets.origin.add(m.merit_origin&&String(m.merit_origin).trim()?String(m.merit_origin).trim():'-');});
- const cfgs=[{key:'type',column:1,allLabel:'Todos'},{key:'system',column:2,allLabel:'Todos'},{key:'category',column:3,allLabel:'Todas'},{key:'origin',column:5,allLabel:'Todos'}];cfgs.forEach(c=>c.values=sortValues(Array.from(sets[c.key])));
- function close(k){$('#ms-panel-'+k).hide().attr('aria-hidden','true');$('#ms-toggle-'+k).attr('aria-expanded','false');}function toggle(k){const p=$('#ms-panel-'+k);if(p.is(':visible'))close(k);else{p.show().attr('aria-hidden','false');$('#ms-toggle-'+k).attr('aria-expanded','true');}}function selected(k){const s=$('#ms-options-'+k+' input:checked').map(function(){return $(this).val();}).get();return s.length?s:null;}function apply(){cfgs.forEach(c=>{const s=selected(c.key);$('#ms-summary-'+c.key).text(s===null?c.allLabel:(s.length===1?s[0]:s.length+' selecc.'));dt.column(c.column).search(s===null?'':'^(?:'+s.map(escapeRegex).join('|')+')$',true,false);});dt.draw();}
- cfgs.forEach(c=>{const o=$('#ms-options-'+c.key);c.values.forEach(v=>{const safe=escapeHtml(v);o.append(`<label class="ms-row"><input type="checkbox" value="${safe}" checked><span>${safe}</span></label>`);});$('#ms-toggle-'+c.key).on('click',()=>toggle(c.key)).on('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle(c.key);}});o.on('change','input',apply);$('#ms-select-all-'+c.key).on('click',()=>{o.find('input').prop('checked',true);apply();});$('#ms-clear-'+c.key).on('click',()=>{o.find('input').prop('checked',false);apply();});});$(document).on('click',e=>cfgs.forEach(c=>{if(!$(e.target).closest('#filter-'+c.key).length)close(c.key);}));apply();
+    const meritos=<?= json_encode($meritos, JSON_UNESCAPED_UNICODE) ?>;
+    const tbody=$('#tabla-meritos tbody');
+    meritos.forEach(m=>{
+        const slug=m.merit_pretty_id||m.merit_id;
+        const nombre=`<a href="/rules/merits-flaws/${escapeHtml(slug)}">${escapeHtml(m.merit_name)}</a>`;
+        const tipo=m.merit_type?escapeHtml(m.merit_type):'-';
+        const sistema=m.merit_system?escapeHtml(m.merit_system):'-';
+        const categoria=m.merit_category?escapeHtml(m.merit_category):'-';
+        const coste=(m.merit_cost!==null&&m.merit_cost!=='')?escapeHtml(String(m.merit_cost)):'-';
+        const origen=m.merit_origin?escapeHtml(m.merit_origin):'-';
+        tbody.append(`<tr><td>${nombre}</td><td>${tipo}</td><td>${sistema}</td><td>${categoria}</td><td>${coste}</td><td>${origen}</td></tr>`);
+    });
+
+    const dt=$('#tabla-meritos').DataTable({pageLength:25,lengthMenu:[10,25,50,100],order:[[0,'asc']],language:{search:'Buscar:&nbsp;',lengthMenu:'Mostrar _MENU_ méritos y defectos',info:'Mostrando _START_ a _END_ de _TOTAL_ entradas',infoEmpty:'No hay méritos ni defectos disponibles',emptyTable:'No hay datos en la tabla',paginate:{first:'Primero',last:'Último',next:'Siguiente',previous:'Anterior'}},initComplete:function(){$('#dt-search-slot').append($('#tabla-meritos_filter'));}});
+
+    HGDataTableFilters.create({
+        table: dt,
+        rows: meritos,
+        filters: [
+            { key:'type', source:'merit_type', column:1, allLabel:'Todos', dependsOn:[] },
+            { key:'system', source:'merit_system', column:2, allLabel:'Todos', dependsOn:['type'] },
+            { key:'category', source:'merit_category', column:3, allLabel:'Todas', dependsOn:['type','system'] },
+            { key:'origin', source:'merit_origin', column:5, allLabel:'Todos', dependsOn:['type','system','category'] }
+        ]
+    });
 });
-function escapeHtml(text){if(!text)return '';return String(text).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'})[m]);}function escapeRegex(text){return String(text).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}function sortValues(v){return v.sort((a,b)=>{if(a==='-'&&b!=='-')return 1;if(b==='-'&&a!=='-')return -1;return a.localeCompare(b,'es');});}
+function escapeHtml(text){if(!text)return '';return String(text).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'})[m]);}
 </script>
