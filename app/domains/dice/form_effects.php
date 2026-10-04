@@ -1,5 +1,68 @@
 <?php
 
+require_once __DIR__ . '/../characters/sheet_queries.php';
+require_once __DIR__ . '/../characters/form_presentation_queries.php';
+
+if (!function_exists('hg_dice_resolve_form_context')) {
+    function hg_dice_resolve_form_context(mysqli $db, int $characterId, int $formId): ?array
+    {
+        if ($characterId <= 0 || $formId <= 0) {
+            return null;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT c.breed_id, c.tribe_id, br.form_system_id '
+            . 'FROM fact_characters c '
+            . 'JOIN dim_breeds br ON br.id = c.breed_id '
+            . 'WHERE c.id = ? LIMIT 1'
+        );
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $characterId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $character = $result ? $result->fetch_assoc() : null;
+        if ($result) {
+            $result->free();
+        }
+        $stmt->close();
+
+        $breedId = (int)($character['breed_id'] ?? 0);
+        $tribeId = (int)($character['tribe_id'] ?? 0);
+        $formSystemId = (int)($character['form_system_id'] ?? 0);
+        if ($breedId <= 0 || $formSystemId <= 0) {
+            return null;
+        }
+
+        $selectedForm = null;
+        foreach (hg_characters_fetch_forms_for_system($db, $formSystemId, $breedId, $tribeId) as $form) {
+            if ((int)($form['id'] ?? 0) === $formId) {
+                $selectedForm = $form;
+                break;
+            }
+        }
+        if (!$selectedForm) {
+            return null;
+        }
+
+        $presentationById = hg_characters_fetch_form_presentation_by_ids($db, [$formId]);
+        $presentation = $presentationById[$formId] ?? null;
+        if (!is_array($presentation)) {
+            return null;
+        }
+
+        return [
+            'id' => $formId,
+            'name' => trim((string)($selectedForm['form'] ?? '')),
+            'weapons' => (int)($presentation['weapons'] ?? 0),
+            'firearms' => (int)($presentation['firearms'] ?? 0),
+            'hpregen' => (int)($presentation['hpregen'] ?? 0),
+        ];
+    }
+}
+
 if (!function_exists('hg_dice_resolve_form_attribute_value')) {
     function hg_dice_resolve_form_attribute_value(
         mysqli $db,
@@ -13,31 +76,32 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
             return $baseValue;
         }
 
-        $stmt = mysqli_prepare(
-            $db,
-            "SELECT b.override_value, b.modifier
-             FROM dim_forms f
-             JOIN fact_characters c ON c.id = ?
-             JOIN dim_breeds br ON br.id = c.breed_id AND br.form_system_id = f.system_id
-             LEFT JOIN bridge_forms_traits b ON b.form_id = f.id AND b.trait_id = ?
-             WHERE f.id = ?
-             LIMIT 1"
+        // Validate the supplied form through the same canonical family and
+        // applicability path used by character sheets. A same-system form that
+        // does not apply to this character must not affect a roll.
+        if (hg_dice_resolve_form_context($db, $characterId, $formId) === null) {
+            return $baseValue;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT override_value, modifier '
+            . 'FROM bridge_forms_traits '
+            . 'WHERE form_id = ? AND trait_id = ? '
+            . 'LIMIT 1'
         );
         if (!$stmt) {
             return $baseValue;
         }
 
-        mysqli_stmt_bind_param($stmt, 'iii', $characterId, $traitId, $formId);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $row = $result ? mysqli_fetch_assoc($result) : null;
+        $stmt->bind_param('ii', $formId, $traitId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result ? $result->fetch_assoc() : null;
         if ($result) {
-            mysqli_free_result($result);
+            $result->free();
         }
-        mysqli_stmt_close($stmt);
+        $stmt->close();
 
-        // No row means the selected form does not belong to the character's
-        // breed form family (or the character has no form family at all).
         if (!$row) {
             return $baseValue;
         }
@@ -50,8 +114,9 @@ if (!function_exists('hg_dice_resolve_form_attribute_value')) {
             return max(0, $baseValue + (int)$row['modifier']);
         }
 
-        // bridge_forms_traits is now the only source of attribute changes.
-        // Missing rows mean that this Form does not modify the requested trait.
+        // bridge_forms_traits is the only source of Form trait changes.
+        // Missing/empty effects mean that the selected Form leaves the trait
+        // unchanged.
         return $baseValue;
     }
 }

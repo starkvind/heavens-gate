@@ -229,6 +229,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$activeFormContext = null;
+if ($form_character_id > 0 && $form_active_form_id > 0) {
+    $activeFormContext = hg_dice_resolve_form_context($link, $form_character_id, $form_active_form_id);
+}
+
 echo "<div class='hg-dice-wrap'><div class='hg-dice-grid'>";
 
 if (isset($queryInput['see'])) {
@@ -257,6 +262,23 @@ if (!isset($queryInput['see'])) {
 
     echo "<input type='hidden' name='roll_mode' id='roll_mode' value='{$selectedMode}'>";
     echo "<input type='hidden' name='form_id' value='" . (int)$form_active_form_id . "'>";
+    if (is_array($activeFormContext)) {
+        $activeFormName = htmlspecialchars((string)($activeFormContext['name'] ?? 'Forma'), ENT_QUOTES, 'UTF-8');
+        $activeFormWeapons = !empty($activeFormContext['weapons']);
+        $activeFormFirearms = !empty($activeFormContext['firearms']);
+        $activeFormWeaponsLabel = $activeFormWeapons ? 'Sí' : 'No';
+        $activeFormFirearmsLabel = $activeFormFirearms ? 'Sí' : 'No';
+        echo "<div class='hg-dice-form-context'>";
+        echo "<p><strong>Forma activa:</strong> {$activeFormName}</p>";
+        echo "<p class='hg-dice-help'>Armas: {$activeFormWeaponsLabel} · Armas de fuego: {$activeFormFirearmsLabel}</p>";
+        if (!$activeFormWeapons) {
+            echo "<p class='hg-dice-help'><strong>Aviso:</strong> {$activeFormName} no permite utilizar armas.</p>";
+        }
+        if (!$activeFormFirearms) {
+            echo "<p class='hg-dice-help'><strong>Aviso:</strong> {$activeFormName} no permite utilizar armas de fuego.</p>";
+        }
+        echo "</div>";
+    }
     echo "<div class='hg-dice-tabs'>";
     echo "<button type='button' class='hg-dice-tab-btn js-roll-mode-btn' data-mode='free'>Tirada libre</button>";
     echo "<button type='button' class='hg-dice-tab-btn js-roll-mode-btn' data-mode='pj'>Usar protagonista</button>";
@@ -575,4 +597,3 @@ $(function(){
     });
 });
 </script>
-
