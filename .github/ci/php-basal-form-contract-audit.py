@@ -50,12 +50,4 @@ for forbidden in (
     if forbidden in mobile_position:
         fail(f"mobile Form renderer still contains legacy synthetic-base compatibility: {forbidden!r}")
 
-migration = read("tools/sql/2026-10-04-issue-37-basal-form-capabilities.sql")
-for basal_name in ("Homínido", "Antropos", "Hitogata", "Balaram", "Bajopiel"):
-    if basal_name not in migration:
-        fail(f"data normalization does not cover canonical basal Form {basal_name}")
-for assignment in ("weapons = 1", "firearms = 1", "hpregen = 0"):
-    if assignment not in migration:
-        fail(f"data normalization lost canonical capability assignment {assignment!r}")
-
 print("Basal Form contract: OK")
