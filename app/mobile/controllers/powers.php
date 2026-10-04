@@ -82,16 +82,16 @@ function hg_mpw_catalog_config(string $kind): ?array
     $configs = [
         'gifts' => [
             'title' => 'Dones', 'singular' => 'Don', 'table' => 'fact_gifts', 'item_base' => '/powers/gift', 'list_base' => '/powers/gifts', 'image_dir' => 'img/gifts',
-            'id' => 'gift_id', 'name' => 'gift_name', 'pretty' => 'gift_pretty_id', 'description' => 'gift_description',
+            'id' => 'gift_id', 'name' => 'gift_name', 'pretty' => 'gift_pretty_id', 'description' => 'gift_description', 'cascading_filters' => true,
             'fields' => [
                 ['Fêra', 'gift_fera_system'], ['Tipo', 'gift_type'], ['Grupo', 'gift_category'], ['Rango', 'gift_level'], ['Tirada', ['gift_roll_attribute', 'gift_roll_skill']],
             ],
             'filters' => [
-                ['key' => 'fera', 'label' => 'Fêra', 'source' => 'gift_fera_system', 'all' => 'Todas'],
-                ['key' => 'type', 'label' => 'Tipo', 'source' => 'gift_type', 'all' => 'Todos'],
-                ['key' => 'group', 'label' => 'Grupo', 'source' => 'gift_category', 'all' => 'Todos'],
-                ['key' => 'rank', 'label' => 'Rango', 'source' => 'gift_level', 'all' => 'Todos'],
-                ['key' => 'origin', 'label' => 'Origen', 'source' => 'gift_origin', 'all' => 'Todos'],
+                ['key' => 'fera', 'label' => 'Fêra', 'source' => 'gift_fera_system', 'all' => 'Todas', 'depends_on' => []],
+                ['key' => 'type', 'label' => 'Tipo', 'source' => 'gift_type', 'all' => 'Todos', 'depends_on' => ['fera']],
+                ['key' => 'group', 'label' => 'Grupo', 'source' => 'gift_category', 'all' => 'Todos', 'depends_on' => ['fera', 'type']],
+                ['key' => 'rank', 'label' => 'Rango', 'source' => 'gift_level', 'all' => 'Todos', 'depends_on' => ['fera', 'type', 'group']],
+                ['key' => 'origin', 'label' => 'Origen', 'source' => 'gift_origin', 'all' => 'Todos', 'depends_on' => ['fera', 'type', 'group', 'rank']],
             ],
         ],
         'rites' => [
@@ -188,18 +188,22 @@ function hg_mpw_render_list(mysqli $db, string $kind, array $rows): void
     $cfg = hg_mpw_catalog_config($kind);
     if (!$cfg) return;
     $filters = is_array($cfg['filters'] ?? null) ? $cfg['filters'] : [];
+    $cascadingFilters = !empty($cfg['cascading_filters']);
     ?>
     <section class="hg-mobile-section"><h1><?= hg_mpw_h($cfg['title']) ?></h1><p class="hg-mobile-muted"><?= number_format(count($rows), 0, ',', '.') ?> elementos</p></section>
-    <section class="hg-mobile-section"><div class="hg-mobile-card-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar" data-empty-text="No hay elementos con esos filtros.">
+    <section class="hg-mobile-section"><div class="hg-mobile-card-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar" data-empty-text="No hay elementos con esos filtros."<?= $cascadingFilters ? ' data-mobile-cascading-filters="1"' : '' ?>>
         <?php if ($filters): ?>
             <details class="hg-mobile-details">
                 <summary>Filtros <span data-mobile-list-filter-count hidden></span></summary>
                 <div class="hg-mobile-filterbar">
                     <?php foreach ($filters as $filter): ?>
-                        <?php $options = hg_mpw_filter_options($rows, (string)$filter['source']); ?>
+                        <?php
+                            $options = hg_mpw_filter_options($rows, (string)$filter['source']);
+                            $dependsOn = is_array($filter['depends_on'] ?? null) ? implode(',', $filter['depends_on']) : '';
+                        ?>
                         <label>
                             <span><?= hg_mpw_h($filter['label']) ?></span>
-                            <select data-mobile-list-filter data-mobile-filter-key="<?= hg_mpw_h($filter['key']) ?>" aria-label="Filtrar por <?= hg_mpw_h($filter['label']) ?>">
+                            <select data-mobile-list-filter data-mobile-filter-key="<?= hg_mpw_h($filter['key']) ?>"<?= $cascadingFilters ? ' data-mobile-filter-depends-on="' . hg_mpw_h($dependsOn) . '"' : '' ?> aria-label="Filtrar por <?= hg_mpw_h($filter['label']) ?>">
                                 <option value=""><?= hg_mpw_h($filter['all']) ?></option>
                                 <?php foreach ($options as $option): ?><option value="<?= hg_mpw_h($option) ?>"><?= hg_mpw_h($option) ?></option><?php endforeach; ?>
                             </select>
