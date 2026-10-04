@@ -83,11 +83,11 @@
     overscroll-behavior: contain;
 }
 
-.hg-mobile-multiselect-option {
-    display: flex !important;
-    grid-template-columns: none !important;
+.hg-mobile-details > .hg-mobile-filterbar .hg-mobile-multiselect-option {
+    display: flex;
+    grid-template-columns: none;
     align-items: center;
-    gap: 10px !important;
+    gap: 10px;
     min-height: 40px;
     padding: 7px 8px;
     border-radius: 6px;
@@ -98,7 +98,7 @@
     background: rgba(127, 127, 127, 0.18);
 }
 
-.hg-mobile-multiselect-option input[type="checkbox"] {
+.hg-mobile-details > .hg-mobile-filterbar .hg-mobile-multiselect-option input[type="checkbox"] {
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
