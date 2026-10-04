@@ -32,15 +32,8 @@
             return;
         }
 
-        let normalizedSelection = false;
-        const legacyBaseOption = select.querySelector('option[value=""]');
-        if (legacyBaseOption) {
-            legacyBaseOption.remove();
-            normalizedSelection = true;
-        }
         if (forms.length && !forms.some((item) => String(item.id) === String(select.value))) {
             select.value = String(forms[0].id);
-            normalizedSelection = true;
         }
 
         const cells = Array.from(document.querySelectorAll('[data-hg-mobile-form-trait]'));
@@ -107,9 +100,6 @@
 
         select.addEventListener('change', render);
         render();
-        if (normalizedSelection) {
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-        }
     };
 
     const init = () => {
