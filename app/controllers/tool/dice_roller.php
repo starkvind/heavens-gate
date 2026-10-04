@@ -403,14 +403,15 @@ $(function(){
     let profiles = {};
     try { profiles = JSON.parse($('#pj_profiles_json').val() || '{}'); } catch (e) { profiles = {}; }
 
-    function fillSelect($sel, list, selectedId) {
+    function fillSelect($sel, list, selectedId, formAdjusted) {
         $sel.empty().append($('<option>', { value: 0, text: '-- Ninguno --' }));
         (Array.isArray(list) ? list : []).forEach(item => {
             const id = parseInt(item.id || 0, 10);
             if (!id) return;
             const value = parseInt(item.value || 0, 10);
+            const displayValue = Math.max(0, value + (formAdjusted && id === selectedAttrId ? selectedFormAttrModifier : 0));
             const name = String(item.name || '');
-            const opt = $('<option>', { value: id, text: `${name} (${value})` });
+            const opt = $('<option>', { value: id, text: `${name} (${displayValue})` });
             if (id === selectedId) opt.prop('selected', true);
             $sel.append(opt);
         });
@@ -522,9 +523,9 @@ $(function(){
     function refreshPjOptions(useStoredSelection) {
         const cid = parseInt($char.val() || '0', 10);
         const p = profiles[cid] || {};
-        fillSelect($attr, p.attributes || [], useStoredSelection ? selectedAttrId : 0);
-        fillSelect($skill, p.skills || [], useStoredSelection ? selectedSkillId : 0);
-        fillSelect($res, p.resources || [], useStoredSelection ? selectedResourceId : 0);
+        fillSelect($attr, p.attributes || [], useStoredSelection ? selectedAttrId : 0, true);
+        fillSelect($skill, p.skills || [], useStoredSelection ? selectedSkillId : 0, false);
+        fillSelect($res, p.resources || [], useStoredSelection ? selectedResourceId : 0, false);
         if (p.name) {
             $name.val(String(p.name));
         } else if (cid === 0) {
@@ -574,5 +575,4 @@ $(function(){
     });
 });
 </script>
-
 
