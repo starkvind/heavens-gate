@@ -35,11 +35,3 @@ if ($mobileFormPositionMtime !== false) {
     $mobileFormPositionHref .= '?v=' . (int)$mobileFormPositionMtime;
 }
 echo '<script src="' . htmlspecialchars($mobileFormPositionHref, ENT_QUOTES, 'UTF-8') . '"></script>';
-
-$mobileFormDiceContextHref = '/assets/js/hg-mobile-form-dice-context.js';
-$mobileFormDiceContextFile = dirname(__DIR__, 3) . $mobileFormDiceContextHref;
-$mobileFormDiceContextMtime = @filemtime($mobileFormDiceContextFile);
-if ($mobileFormDiceContextMtime !== false) {
-    $mobileFormDiceContextHref .= '?v=' . (int)$mobileFormDiceContextMtime;
-}
-echo '<script src="' . htmlspecialchars($mobileFormDiceContextHref, ENT_QUOTES, 'UTF-8') . '"></script>';
