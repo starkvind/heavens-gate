@@ -1,0 +1,27 @@
+/* Shared mobile catalogue filter presentation.
+ * Issue #39: keep catalogue filters compact without pinning labels or controls
+ * against the expandable panel border. */
+.hg-mobile-details > .hg-mobile-filterbar {
+    gap: 12px;
+    margin: 0;
+    padding: 4px 12px 12px;
+}
+
+.hg-mobile-details > .hg-mobile-filterbar label {
+    gap: 7px;
+}
+
+.hg-mobile-details > .hg-mobile-filterbar label > span {
+    display: block;
+    padding: 0 2px;
+}
+
+.hg-mobile-details > .hg-mobile-filterbar select,
+.hg-mobile-details > .hg-mobile-filterbar input,
+.hg-mobile-details > .hg-mobile-filterbar button {
+    margin: 0;
+}
+
+.hg-mobile-details > .hg-mobile-filterbar [data-mobile-list-filter-clear] {
+    margin-top: 2px;
+}
