@@ -31,10 +31,25 @@
         return name || (index === 0 ? 'value' : 'filter' + String(index + 1));
     }
 
+    function filterDependencies(control) {
+        return String(control.dataset.mobileFilterDependsOn || '')
+            .split(',')
+            .map(function (value) { return value.trim(); })
+            .filter(Boolean);
+    }
+
     function itemFilterValue(item, key) {
         if (key === 'value') return item.dataset.mobileFilterValue || '';
         const attr = 'data-mobile-filter-' + key.replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
         return item.getAttribute(attr) || '';
+    }
+
+    function sortFacetValues(values) {
+        return values.sort(function (a, b) {
+            if (a === '-' && b !== '-') return 1;
+            if (b === '-' && a !== '-') return -1;
+            return String(a).localeCompare(String(b), 'es', { numeric: true, sensitivity: 'base' });
+        });
     }
 
     function initPaginatedList(list) {
@@ -44,9 +59,16 @@
 
         const pageSize = Math.max(1, parseInt(list.dataset.pageSize || '20', 10) || 20);
         const alwaysSearch = list.dataset.mobileSearch === '1';
+        const cascadingFilters = list.dataset.mobileCascadingFilters === '1';
         const filterControls = Array.from(list.querySelectorAll('[data-mobile-list-filter]'));
         const filterEntries = filterControls.map(function (control, index) {
-            return { control: control, key: filterKey(control, index) };
+            const neutralOption = Array.from(control.options || []).find(function (option) { return option.value === ''; });
+            return {
+                control: control,
+                key: filterKey(control, index),
+                dependsOn: filterDependencies(control),
+                allLabel: neutralOption ? neutralOption.textContent : 'Todos'
+            };
         });
         if (items.length <= pageSize && !alwaysSearch && !filterEntries.length) return;
 
@@ -114,6 +136,65 @@
             });
         }
 
+        function dependencyMatches(item, entry) {
+            return entry.dependsOn.every(function (dependencyKey) {
+                const selected = filters[dependencyKey] || '';
+                if (selected === '') return true;
+                return normalize(itemFilterValue(item, dependencyKey)) === selected;
+            });
+        }
+
+        function rebuildFacet(entry) {
+            const valuesByNormalized = new Map();
+            items.forEach(function (item) {
+                if (!dependencyMatches(item, entry)) return;
+                const raw = itemFilterValue(item, entry.key) || '-';
+                const normalized = normalize(raw);
+                if (!valuesByNormalized.has(normalized)) valuesByNormalized.set(normalized, raw);
+            });
+
+            const selected = filters[entry.key] || '';
+            let selectionChanged = false;
+            if (selected !== '' && !valuesByNormalized.has(selected)) {
+                filters[entry.key] = '';
+                selectionChanged = true;
+            }
+
+            const available = sortFacetValues(Array.from(valuesByNormalized.values()));
+            entry.control.innerHTML = '';
+            const neutral = document.createElement('option');
+            neutral.value = '';
+            neutral.textContent = entry.allLabel;
+            entry.control.appendChild(neutral);
+            available.forEach(function (value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                entry.control.appendChild(option);
+            });
+
+            const active = filters[entry.key] || '';
+            if (active !== '' && valuesByNormalized.has(active)) {
+                entry.control.value = valuesByNormalized.get(active);
+            } else {
+                entry.control.value = '';
+            }
+            return selectionChanged;
+        }
+
+        function recomputeFacetOptions() {
+            if (!cascadingFilters) return;
+            let passes = Math.max(1, filterEntries.length + 1);
+            let changed;
+            do {
+                changed = false;
+                filterEntries.forEach(function (entry) {
+                    if (rebuildFacet(entry)) changed = true;
+                });
+                passes -= 1;
+            } while (changed && passes > 0);
+        }
+
         function render() {
             const needle = normalize(query.trim());
             const matched = items.filter(function (item) {
@@ -158,6 +239,7 @@
             entry.control.addEventListener('change', function () {
                 filters[entry.key] = normalize(entry.control.value || '');
                 page = 1;
+                recomputeFacetOptions();
                 render();
             });
         });
@@ -169,6 +251,7 @@
                     filters[entry.key] = '';
                 });
                 page = 1;
+                recomputeFacetOptions();
                 render();
             });
         });
@@ -184,6 +267,7 @@
             render();
         });
 
+        recomputeFacetOptions();
         render();
     }
 

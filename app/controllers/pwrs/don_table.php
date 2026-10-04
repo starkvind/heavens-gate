@@ -153,11 +153,10 @@ $(document).ready(function () {
 		const attr = d.gift_roll_attribute ? escapeHtml(d.gift_roll_attribute) : '';
 		const skill = d.gift_roll_skill ? escapeHtml(d.gift_roll_skill) : '';
 		const tirada = (attr || skill) ? [attr, skill].filter(Boolean).join(' + ') : '-';
-		const fera = d.gift_fera_system ? escapeHtml(d.gift_fera_system) : '';
+		const fera = d.gift_fera_system ? escapeHtml(d.gift_fera_system) : '-';
 
 		const origen = d.gift_origin ? escapeHtml(d.gift_origin) : '-';
 		const row = `<tr>
-			
 			<td>${nombre}</td>
 			<td>${fera}</td>
 			<td>${tipo}</td>
@@ -189,112 +188,25 @@ $(document).ready(function () {
 		initComplete: function(){
 			$('#dt-search-slot').append($('#tabla-dones_filter'));
 		}
-
 	});
 
-	// ========= Generar opciones =========
-	const feraSet = new Set();
-	const typeSet = new Set();
-	const groupSet = new Set();
-	const rankSet = new Set();
-	const originSet = new Set();
-
-	dones.forEach(d => {
-		feraSet.add((d.gift_fera_system !== null && d.gift_fera_system !== undefined && String(d.gift_fera_system).trim() !== '') ? String(d.gift_fera_system).trim() : '-');
-		typeSet.add((d.gift_type !== null && d.gift_type !== undefined && String(d.gift_type).trim() !== '') ? String(d.gift_type).trim() : '-');
-		groupSet.add((d.gift_category !== null && d.gift_category !== undefined && String(d.gift_category).trim() !== '') ? String(d.gift_category).trim() : '-');
-		rankSet.add((d.gift_level !== null && d.gift_level !== undefined && String(d.gift_level).trim() !== '') ? String(d.gift_level).trim() : '-');
-		originSet.add((d.gift_origin !== null && d.gift_origin !== undefined && String(d.gift_origin).trim() !== '') ? String(d.gift_origin).trim() : '-');
+	HGDataTableFilters.create({
+		table: dt,
+		rows: dones,
+		filters: [
+			{ key: 'fera', source: 'gift_fera_system', column: 1, allLabel: 'Todos', dependsOn: [] },
+			{ key: 'type', source: 'gift_type', column: 2, allLabel: 'Todos', dependsOn: ['fera'] },
+			{ key: 'group', source: 'gift_category', column: 3, allLabel: 'Todos', dependsOn: ['fera', 'type'] },
+			{ key: 'rank', source: 'gift_level', column: 4, allLabel: 'Todos', dependsOn: ['fera', 'type', 'group'] },
+			{ key: 'origin', source: 'gift_origin', column: 6, allLabel: 'Todos', dependsOn: ['fera', 'type', 'group', 'rank'] }
+		]
 	});
-
-	const filterConfigs = [
-		{ key: 'fera', column: 1, allLabel: 'Todos', values: sortValues(Array.from(feraSet)) },
-		{ key: 'type', column: 2, allLabel: 'Todos', values: sortValues(Array.from(typeSet)) },
-		{ key: 'group', column: 3, allLabel: 'Todos', values: sortValues(Array.from(groupSet)) },
-		{ key: 'rank', column: 4, allLabel: 'Todos', values: sortValues(Array.from(rankSet)) },
-		{ key: 'origin', column: 6, allLabel: 'Todos', values: sortValues(Array.from(originSet)) },
-	];
-
-	function openPanel(key){ $('#ms-panel-' + key).show().attr('aria-hidden','false'); $('#ms-toggle-' + key).attr('aria-expanded','true'); }
-	function closePanel(key){ $('#ms-panel-' + key).hide().attr('aria-hidden','true'); $('#ms-toggle-' + key).attr('aria-expanded','false'); }
-	function togglePanel(key){ $('#ms-panel-' + key).is(':visible') ? closePanel(key) : openPanel(key); }
-
-	function getSelected(key){
-		const selected = $('#ms-options-' + key + ' input:checked').map(function(){ return $(this).val(); }).get();
-		return selected.length ? selected : null;
-	}
-	function updateSummary(key, selected, allLabel){
-		const $summary = $('#ms-summary-' + key);
-		if (selected === null) { $summary.text(allLabel); return; }
-		if (selected.length === 1) $summary.text(selected[0]);
-		else $summary.text(selected.length + ' selecc.');
-	}
-	function applyFilters(){
-		filterConfigs.forEach(cfg => {
-			const selected = getSelected(cfg.key);
-			updateSummary(cfg.key, selected, cfg.allLabel);
-			if (selected === null) {
-				dt.column(cfg.column).search('', true, false);
-			} else {
-				const pat = '^(?:' + selected.map(s => escapeRegex(s)).join('|') + ')$';
-				dt.column(cfg.column).search(pat, true, false);
-			}
-		});
-		dt.draw();
-	}
-
-	filterConfigs.forEach(cfg => {
-		const $opts = $('#ms-options-' + cfg.key);
-		cfg.values.forEach(v => {
-			const safe = escapeHtml(v);
-			$opts.append(`
-				<label class="ms-row">
-					<input type="checkbox" value="${safe}" checked>
-					<span>${safe}</span>
-				</label>
-			`);
-		});
-
-		$('#ms-toggle-' + cfg.key).on('click', () => togglePanel(cfg.key));
-		$('#ms-toggle-' + cfg.key).on('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); togglePanel(cfg.key); } });
-
-		$opts.on('change', 'input', applyFilters);
-
-		$('#ms-select-all-' + cfg.key).on('click', function(){
-			$opts.find('input').prop('checked', true);
-			applyFilters();
-		});
-		$('#ms-clear-' + cfg.key).on('click', function(){
-			$opts.find('input').prop('checked', false);
-			applyFilters();
-		});
-	});
-
-	$(document).on('click', function(e){
-		filterConfigs.forEach(cfg => {
-			if (!$(e.target).closest('#filter-' + cfg.key).length) closePanel(cfg.key);
-		});
-	});
-
-	applyFilters();
-
 });
 
 function escapeHtml(text) {
 	if (!text) return '';
-	return text.replace(/[&<>"']/g, function (m) {
+	return String(text).replace(/[&<>"']/g, function (m) {
 		return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
-	});
-}
-function escapeRegex(text){
-	return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function sortValues(values){
-	return values.sort((a,b)=>{
-		if (a === '-' && b !== '-') return 1;
-		if (b === '-' && a !== '-') return -1;
-		return a.localeCompare(b, 'es');
 	});
 }
 </script>

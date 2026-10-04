@@ -80,14 +80,14 @@ $originOptions = hg_mobile_sys_list_options($systems, 'system_origin');
 </section>
 
 <section class="hg-mobile-section">
-    <div class="hg-mobile-card-list hg-mobile-sys-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar sistema u origen" data-empty-text="No hay sistemas con esos filtros.">
+    <div class="hg-mobile-card-list hg-mobile-sys-list" data-mobile-paginated data-mobile-search="1" data-mobile-cascading-filters="1" data-page-size="20" data-search-placeholder="Buscar sistema u origen" data-empty-text="No hay sistemas con esos filtros.">
         <?php if ($systems): ?>
             <details class="hg-mobile-details">
                 <summary>Filtros <span data-mobile-list-filter-count hidden></span></summary>
                 <div class="hg-mobile-filterbar">
                     <label>
                         <span>Sistema</span>
-                        <select data-mobile-list-filter data-mobile-filter-key="system" aria-label="Filtrar por sistema">
+                        <select data-mobile-list-filter data-mobile-filter-key="system" data-mobile-filter-depends-on="" aria-label="Filtrar por sistema">
                             <option value="">Todos</option>
                             <?php foreach ($systemOptions as $option): ?>
                                 <option value="<?= hg_mobile_sys_list_h($option) ?>"><?= hg_mobile_sys_list_h($option) ?></option>
@@ -96,7 +96,7 @@ $originOptions = hg_mobile_sys_list_options($systems, 'system_origin');
                     </label>
                     <label>
                         <span>Origen</span>
-                        <select data-mobile-list-filter data-mobile-filter-key="origin" aria-label="Filtrar por origen">
+                        <select data-mobile-list-filter data-mobile-filter-key="origin" data-mobile-filter-depends-on="system" aria-label="Filtrar por origen">
                             <option value="">Todos</option>
                             <?php foreach ($originOptions as $option): ?>
                                 <option value="<?= hg_mobile_sys_list_h($option) ?>"><?= hg_mobile_sys_list_h($option) ?></option>
