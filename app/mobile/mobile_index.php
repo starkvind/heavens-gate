@@ -76,9 +76,11 @@
     }
 
     $mobileCssPath = __DIR__ . '/../../assets/css/hg-mobile.css';
+    $mobileFilterCssPath = __DIR__ . '/../../assets/css/hg-mobile-filters.css';
     $mobileJsPath = __DIR__ . '/../../assets/js/hg-mobile.js';
     $pwaJsPath = __DIR__ . '/../../assets/js/hg-pwa.js';
     $mobileCssVersion = is_file($mobileCssPath) ? (string)filemtime($mobileCssPath) : '1';
+    $mobileFilterCssVersion = is_file($mobileFilterCssPath) ? (string)filemtime($mobileFilterCssPath) : '1';
     $mobileJsVersion = is_file($mobileJsPath) ? (string)filemtime($mobileJsPath) : '1';
     $pwaJsVersion = is_file($pwaJsPath) ? (string)filemtime($pwaJsPath) : '1';
 
@@ -101,6 +103,7 @@
     <link rel="icon" type="image/webp" sizes="32x32" href="/img/favicon/favicon-32x32.webp">
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="assets/css/hg-mobile.css?v=<?= hg_mobile_h($mobileCssVersion) ?>">
+    <link rel="stylesheet" href="assets/css/hg-mobile-filters.css?v=<?= hg_mobile_h($mobileFilterCssVersion) ?>">
     <?php
         // Mobile controllers are buffered before <head>, so embedded tools can
         // register their page-scoped styles without falling back to body links.
