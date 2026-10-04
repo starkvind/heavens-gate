@@ -31,6 +31,49 @@ if (!function_exists('hg_mobile_chl_excerpt')) {
         return strlen($text) > $max ? substr($text, 0, $max) . '...' : $text;
     }
 }
+if (!function_exists('hg_mobile_chl_kind_label')) {
+    function hg_mobile_chl_kind_label(array $row): string {
+        $kind = trim((string)($row['season_kind'] ?? 'temporada'));
+        if ($kind === 'historia_personal') return 'Historia personal';
+        if ($kind === 'especial') return 'Especial';
+        if ($kind === 'inciso') return 'Inciso';
+        return 'Temporada';
+    }
+}
+if (!function_exists('hg_mobile_chl_season_label')) {
+    function hg_mobile_chl_season_label(array $row): string {
+        $kind = trim((string)($row['season_kind'] ?? 'temporada'));
+        $number = (int)($row['season_number'] ?? 0);
+        $name = trim((string)($row['season_name'] ?? ''));
+        if ($kind === 'historia_personal') return $name !== '' ? 'Historia personal - ' . $name : 'Historia personal';
+        if ($kind === 'especial') return $name !== '' ? 'Especial - ' . $name : 'Especial';
+        if ($kind === 'inciso') {
+            $inciso = $number;
+            if ($inciso >= 100 && $inciso < 200) $inciso -= 100;
+            $prefix = 'Inciso ' . ($inciso > 0 ? $inciso : '?');
+            return $name !== '' ? $prefix . ' - ' . $name : $prefix;
+        }
+        $prefix = 'T' . ($number > 0 ? $number : '?');
+        return $name !== '' ? $prefix . ' - ' . $name : $prefix;
+    }
+}
+if (!function_exists('hg_mobile_chl_filter_options')) {
+    function hg_mobile_chl_filter_options(array $rows, string $source): array {
+        $values = [];
+        foreach ($rows as $row) {
+            $value = trim((string)($row[$source] ?? ''));
+            if ($value === '') $value = '-';
+            $values[$value] = $value;
+        }
+        $values = array_values($values);
+        usort($values, static function (string $a, string $b): int {
+            if ($a === '-' && $b !== '-') return 1;
+            if ($b === '-' && $a !== '-') return -1;
+            return strnatcasecmp($a, $b);
+        });
+        return $values;
+    }
+}
 
 if (!isset($link) || !($link instanceof mysqli)) {
     hg_public_log_error('mobile_chapters_list', 'missing DB connection');
@@ -38,42 +81,75 @@ if (!isset($link) || !($link instanceof mysqli)) {
     return;
 }
 
-$q = hg_request_query_param($hgRequest, 'q');
-$seasonFilter = max(0, (int)hg_request_query_param($hgRequest, 'season'));
-
-$seasonRows = hg_chapters_fetch_season_options($link) ?? [];
-$rows = hg_chapters_fetch_mobile_list($link, $q, $seasonFilter);
+$rows = hg_chapters_fetch_mobile_list($link, '', 0);
 if ($rows === null) {
     hg_public_log_error('mobile_chapters_list', 'query failed: ' . mysqli_error($link));
     $rows = [];
 }
+
+$tableRows = hg_chapters_fetch_table_rows($link) ?? [];
+$chapterMeta = [];
+foreach ($tableRows as $tableRow) {
+    $chapterMeta[(int)($tableRow['chapter_id'] ?? 0)] = [
+        'chronicle_name' => trim((string)($tableRow['chronicle_name'] ?? '')),
+    ];
+}
+
+foreach ($rows as &$row) {
+    $id = (int)($row['id'] ?? 0);
+    $row['_filter_kind'] = hg_mobile_chl_kind_label($row);
+    $row['_filter_chronicle'] = $chapterMeta[$id]['chronicle_name'] ?? '';
+    if ($row['_filter_chronicle'] === '') $row['_filter_chronicle'] = '-';
+    $row['_filter_season'] = hg_mobile_chl_season_label($row);
+}
+unset($row);
+
+$filters = [
+    ['key'=>'kind','label'=>'Tipo de temporada','source'=>'_filter_kind','all'=>'Todos','depends_on'=>[]],
+    ['key'=>'chronicle','label'=>'Crónica','source'=>'_filter_chronicle','all'=>'Todas','depends_on'=>['kind']],
+    ['key'=>'season','label'=>'Temporada','source'=>'_filter_season','all'=>'Todas','depends_on'=>['kind','chronicle']],
+];
 ?>
 
 <section class="hg-mobile-section">
     <h1>Capítulos</h1>
-    <form class="hg-mobile-filterbar" action="/chapters" method="get">
-        <label>
-            <span>Buscar</span>
-            <input type="search" name="q" value="<?= hg_mobile_chl_h($q) ?>" placeholder="Título o sinopsis">
-        </label>
-        <label>
-            <span>Temporada</span>
-            <select name="season">
-                <option value="0">Todas</option>
-                <?php foreach ($seasonRows as $season): ?>
-                    <?php $sid = (int)($season['id'] ?? 0); ?>
-                    <option value="<?= $sid ?>"<?= $sid === $seasonFilter ? ' selected' : '' ?>><?= hg_mobile_chl_h($season['name'] ?? '') ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <button type="submit">Filtrar</button>
-    </form>
     <p class="hg-mobile-muted"><?= number_format(count($rows), 0, ',', '.') ?> capítulos</p>
 </section>
 
 <section class="hg-mobile-section">
-    <div class="hg-mobile-card-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar capítulos">
-        <?php if (empty($rows)): ?><p class="hg-mobile-muted">No hay capítulos para este filtro.</p><?php endif; ?>
+    <div class="hg-mobile-card-list"
+         data-mobile-paginated
+         data-mobile-search="1"
+         data-page-size="20"
+         data-search-placeholder="Buscar capítulos"
+         data-empty-text="No hay capítulos con esos filtros."
+         data-mobile-cascading-filters="1">
+        <details class="hg-mobile-details">
+            <summary>Filtros <span data-mobile-list-filter-count hidden></span></summary>
+            <div class="hg-mobile-filterbar">
+                <?php foreach ($filters as $filter): ?>
+                    <?php
+                        $options = hg_mobile_chl_filter_options($rows, (string)$filter['source']);
+                        $dependsOn = implode(',', $filter['depends_on']);
+                    ?>
+                    <label>
+                        <span><?= hg_mobile_chl_h($filter['label']) ?></span>
+                        <select data-mobile-list-filter
+                                data-mobile-filter-key="<?= hg_mobile_chl_h($filter['key']) ?>"
+                                data-mobile-filter-depends-on="<?= hg_mobile_chl_h($dependsOn) ?>"
+                                aria-label="Filtrar por <?= hg_mobile_chl_h($filter['label']) ?>">
+                            <option value=""><?= hg_mobile_chl_h($filter['all']) ?></option>
+                            <?php foreach ($options as $option): ?>
+                                <option value="<?= hg_mobile_chl_h($option) ?>"><?= hg_mobile_chl_h($option) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                <?php endforeach; ?>
+                <button type="button" data-mobile-list-filter-clear disabled>Limpiar filtros</button>
+            </div>
+        </details>
+
+        <?php if (empty($rows)): ?><p class="hg-mobile-muted">No hay capítulos disponibles.</p><?php endif; ?>
         <?php foreach ($rows as $row): ?>
             <?php
                 $id = (int)($row['id'] ?? 0);
@@ -82,10 +158,19 @@ if ($rows === null) {
                 $code = $kind === 'temporada' ? sprintf('%dx%02d', (int)$row['season_number'], (int)$row['chapter_number']) : sprintf('%02d', (int)$row['chapter_number']);
                 $date = hg_mobile_chl_date($row['played_date'] ?? '');
                 $excerpt = hg_mobile_chl_excerpt((string)($row['synopsis'] ?? ''));
+                $chronicle = (string)($row['_filter_chronicle'] ?? '-');
+                $season = (string)($row['_filter_season'] ?? '');
+                $search = trim($code . ' ' . (string)($row['name'] ?? '') . ' ' . $season . ' ' . $chronicle . ' ' . strip_tags((string)($row['synopsis'] ?? '')));
             ?>
-            <a class="hg-mobile-card" href="<?= hg_mobile_chl_h($href) ?>" data-mobile-item data-mobile-search="<?= hg_mobile_chl_h($code . ' ' . (string)($row['name'] ?? '') . ' ' . (string)($row['season_name'] ?? '') . ' ' . strip_tags((string)($row['synopsis'] ?? ''))) ?>">
+            <a class="hg-mobile-card"
+               href="<?= hg_mobile_chl_h($href) ?>"
+               data-mobile-item
+               data-mobile-search="<?= hg_mobile_chl_h($search) ?>"
+               data-mobile-filter-kind="<?= hg_mobile_chl_h($row['_filter_kind'] ?? '') ?>"
+               data-mobile-filter-chronicle="<?= hg_mobile_chl_h($chronicle) ?>"
+               data-mobile-filter-season="<?= hg_mobile_chl_h($season) ?>">
                 <strong><?= hg_mobile_chl_h($code . ' - ' . (string)($row['name'] ?? '')) ?></strong>
-                <span><?= hg_mobile_chl_h($row['season_name'] ?? '') ?><?= $date !== '' ? ' - ' . hg_mobile_chl_h($date) : '' ?> - <?= (int)($row['participant_count'] ?? 0) ?> participantes</span>
+                <span><?= hg_mobile_chl_h($season) ?><?= $chronicle !== '-' ? ' - ' . hg_mobile_chl_h($chronicle) : '' ?><?= $date !== '' ? ' - ' . hg_mobile_chl_h($date) : '' ?> - <?= (int)($row['participant_count'] ?? 0) ?> participantes</span>
                 <?php if ($excerpt !== ''): ?><span><?= hg_mobile_chl_h($excerpt) ?></span><?php endif; ?>
             </a>
         <?php endforeach; ?>
