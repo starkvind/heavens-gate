@@ -31,6 +31,10 @@
         return sortValues(Object.keys(seen), locale);
     }
 
+    function selectionIsNeutral(config) {
+        return config.selected === null || config.selected.size === 0;
+    }
+
     function create(options) {
         var $ = w.jQuery;
         if (!$ || !$.fn || !$.fn.dataTable) return null;
@@ -56,21 +60,21 @@
             return rows.filter(function (row) {
                 return config.dependsOn.every(function (dependencyKey) {
                     var dependency = byKey[dependencyKey];
-                    if (!dependency || dependency.selected === null) return true;
+                    if (!dependency || selectionIsNeutral(dependency)) return true;
                     return dependency.selected.has(valueFromRow(row, dependency));
                 });
             });
         }
 
         function pruneSelection(config) {
-            if (config.selected === null) return false;
+            if (selectionIsNeutral(config)) return false;
             var valid = new Set(config.available);
             var next = new Set();
             config.selected.forEach(function (value) {
                 if (valid.has(value)) next.add(value);
             });
             if (next.size === 0) {
-                config.selected = null;
+                config.selected = new Set();
                 return true;
             }
             if (next.size !== config.selected.size) {
@@ -114,7 +118,7 @@
 
         function renderSummary(config) {
             var node = summary(config);
-            if (config.selected === null) {
+            if (selectionIsNeutral(config)) {
                 node.text(config.allLabel);
                 return;
             }
@@ -148,7 +152,7 @@
 
         function applyDataTableFilters() {
             configs.forEach(function (config) {
-                if (config.selected === null) {
+                if (selectionIsNeutral(config)) {
                     dt.column(config.column).search('', true, false);
                     return;
                 }
@@ -175,7 +179,7 @@
 
             optionsNode(config).on('change.hgCascadingFilters', 'input', function () {
                 var checked = optionsNode(config).find('input:checked').map(function () { return $(this).val(); }).get();
-                config.selected = checked.length ? new Set(checked) : null;
+                config.selected = new Set(checked);
                 refresh();
             });
 
@@ -185,7 +189,7 @@
             });
 
             $('#ms-clear-' + config.domKey).on('click.hgCascadingFilters', function () {
-                config.selected = null;
+                config.selected = new Set();
                 refresh();
             });
         });
@@ -203,7 +207,7 @@
         return {
             refresh: refresh,
             clear: function () {
-                configs.forEach(function (config) { config.selected = null; });
+                configs.forEach(function (config) { config.selected = new Set(); });
                 refresh();
             }
         };
