@@ -87,6 +87,17 @@ if ($rows === null) {
     $rows = [];
 }
 
+// Preserve the canonical season catalogue as the fallback metadata source for
+// chapters whose LEFT JOIN cannot provide a season name/number.
+$seasonRows = hg_chapters_fetch_season_options($link) ?? [];
+$seasonMeta = [];
+foreach ($seasonRows as $seasonRow) {
+    $seasonMeta[(int)($seasonRow['id'] ?? 0)] = [
+        'name' => trim((string)($seasonRow['name'] ?? '')),
+        'number' => (int)($seasonRow['season_number'] ?? 0),
+    ];
+}
+
 $tableRows = hg_chapters_fetch_table_rows($link) ?? [];
 $chapterMeta = [];
 foreach ($tableRows as $tableRow) {
@@ -97,6 +108,13 @@ foreach ($tableRows as $tableRow) {
 
 foreach ($rows as &$row) {
     $id = (int)($row['id'] ?? 0);
+    $seasonId = (int)($row['season_id'] ?? 0);
+    if (trim((string)($row['season_name'] ?? '')) === '' && isset($seasonMeta[$seasonId])) {
+        $row['season_name'] = $seasonMeta[$seasonId]['name'];
+    }
+    if ((int)($row['season_number'] ?? 0) === 0 && isset($seasonMeta[$seasonId])) {
+        $row['season_number'] = $seasonMeta[$seasonId]['number'];
+    }
     $row['_filter_kind'] = hg_mobile_chl_kind_label($row);
     $row['_filter_chronicle'] = $chapterMeta[$id]['chronicle_name'] ?? '';
     if ($row['_filter_chronicle'] === '') $row['_filter_chronicle'] = '-';
