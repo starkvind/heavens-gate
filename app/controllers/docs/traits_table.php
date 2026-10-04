@@ -71,21 +71,28 @@ $(document).ready(function () {
         const origen = r.trait_origin ? escapeHtml(r.trait_origin) : '-';
         tbody.append(`<tr><td>${nombre}</td><td>${holders}</td><td>${tipo}</td><td>${clasificacion}</td><td>${origen}</td></tr>`);
     });
-    const dt = $('#tabla-rasgos').DataTable({pageLength:25,lengthMenu:[10,25,50,100],order:[[0,"asc"]],language:{search:"Buscar:&nbsp;",lengthMenu:"Mostrar _MENU_ rasgos",info:"Mostrando _START_ a _END_ de _TOTAL_ rasgos",infoEmpty:"No hay rasgos disponibles",emptyTable:"No hay datos en la tabla",paginate:{first:"Primero",last:"Último",next:"Siguiente",previous:"Anterior"}},initComplete:function(){$('#dt-search-slot').append($('#tabla-rasgos_filter'));}});
-    const typeSet=new Set(), classSet=new Set(), originSet=new Set();
-    rasgos.forEach(r=>{typeSet.add((r.trait_category!==null&&r.trait_category!==undefined&&String(r.trait_category).trim()!=='')?String(r.trait_category).trim():'-');classSet.add((r.trait_subcategory!==null&&r.trait_subcategory!==undefined&&String(r.trait_subcategory).trim()!=='')?String(r.trait_subcategory).trim():'-');originSet.add((r.trait_origin!==null&&r.trait_origin!==undefined&&String(r.trait_origin).trim()!=='')?String(r.trait_origin).trim():'-');});
-    const filterConfigs=[{key:'type',column:2,allLabel:'Todos',values:sortValues(Array.from(typeSet))},{key:'class',column:3,allLabel:'Todas',values:sortValues(Array.from(classSet))},{key:'origin',column:4,allLabel:'Todos',values:sortValues(Array.from(originSet))}];
-    function openPanel(key){$('#ms-panel-'+key).show().attr('aria-hidden','false');$('#ms-toggle-'+key).attr('aria-expanded','true');}
-    function closePanel(key){$('#ms-panel-'+key).hide().attr('aria-hidden','true');$('#ms-toggle-'+key).attr('aria-expanded','false');}
-    function togglePanel(key){$('#ms-panel-'+key).is(':visible')?closePanel(key):openPanel(key);}
-    function getSelected(key){const selected=$('#ms-options-'+key+' input:checked').map(function(){return $(this).val();}).get();return selected.length?selected:null;}
-    function updateSummary(key,selected,allLabel){const $summary=$('#ms-summary-'+key);if(selected===null){$summary.text(allLabel);return;}if(selected.length===1)$summary.text(selected[0]);else $summary.text(selected.length+' selecc.');}
-    function applyFilters(){filterConfigs.forEach(cfg=>{const selected=getSelected(cfg.key);updateSummary(cfg.key,selected,cfg.allLabel);if(selected===null)dt.column(cfg.column).search('',true,false);else dt.column(cfg.column).search('^(?:'+selected.map(s=>escapeRegex(s)).join('|')+')$',true,false);});dt.draw();}
-    filterConfigs.forEach(cfg=>{const $opts=$('#ms-options-'+cfg.key);cfg.values.forEach(v=>{const safe=escapeHtml(v);$opts.append(`<label class="ms-row"><input type="checkbox" value="${safe}" checked><span>${safe}</span></label>`);});$('#ms-toggle-'+cfg.key).on('click',()=>togglePanel(cfg.key));$('#ms-toggle-'+cfg.key).on('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();togglePanel(cfg.key);}});$opts.on('change','input',applyFilters);$('#ms-select-all-'+cfg.key).on('click',function(){$opts.find('input').prop('checked',true);applyFilters();});$('#ms-clear-'+cfg.key).on('click',function(){$opts.find('input').prop('checked',false);applyFilters();});});
-    $(document).on('click',function(e){filterConfigs.forEach(cfg=>{if(!$(e.target).closest('#filter-'+cfg.key).length)closePanel(cfg.key);});});
-    applyFilters();
+
+    const dt = $('#tabla-rasgos').DataTable({
+        pageLength:25,
+        lengthMenu:[10,25,50,100],
+        order:[[0,"asc"]],
+        language:{search:"Buscar:&nbsp;",lengthMenu:"Mostrar _MENU_ rasgos",info:"Mostrando _START_ a _END_ de _TOTAL_ rasgos",infoEmpty:"No hay rasgos disponibles",emptyTable:"No hay datos en la tabla",paginate:{first:"Primero",last:"Último",next:"Siguiente",previous:"Anterior"}},
+        initComplete:function(){$('#dt-search-slot').append($('#tabla-rasgos_filter'));}
+    });
+
+    HGDataTableFilters.create({
+        table: dt,
+        rows: rasgos,
+        filters: [
+            { key:'type', source:'trait_category', column:2, allLabel:'Todos', dependsOn:[] },
+            { key:'class', source:'trait_subcategory', column:3, allLabel:'Todas', dependsOn:['type'] },
+            { key:'origin', source:'trait_origin', column:4, allLabel:'Todos', dependsOn:['type','class'] }
+        ]
+    });
 });
-function escapeHtml(text){if(!text)return '';return text.replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'})[m]);}
-function escapeRegex(text){return String(text).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
-function sortValues(values){return values.sort((a,b)=>{if(a==='-'&&b!=='-')return 1;if(b==='-'&&a!=='-')return -1;return a.localeCompare(b,'es');});}
+
+function escapeHtml(text){
+    if(!text)return '';
+    return String(text).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'})[m]);
+}
 </script>
