@@ -10,9 +10,17 @@ if (!$mobileCharacterDetailReady) {
 
 if (!empty($mobileForms)) {
     $mobileFormIds = array_column($mobileForms, 'id');
+    $mobilePresentationById = hg_characters_fetch_form_presentation_by_ids($link, $mobileFormIds);
     $mobileOverridesById = hg_characters_fetch_form_trait_overrides($link, $mobileFormIds);
     foreach ($mobileForms as &$mobileForm) {
         $formId = (int)($mobileForm['id'] ?? 0);
+        $presentation = $mobilePresentationById[$formId] ?? [];
+        $mobileForm['description'] = trim((string)($presentation['description'] ?? ''));
+        $mobileForm['silhouette_image_url'] = trim((string)($presentation['silhouette_image_url'] ?? ''));
+        $mobileForm['weapons'] = (int)($presentation['weapons'] ?? 0);
+        $mobileForm['firearms'] = (int)($presentation['firearms'] ?? 0);
+        $mobileForm['regeneration'] = (int)($presentation['regeneration'] ?? 0);
+        $mobileForm['hpregen'] = (int)($presentation['hpregen'] ?? 0);
         $mobileForm['overrides'] = $mobileOverridesById[$formId] ?? [];
     }
     unset($mobileForm);
