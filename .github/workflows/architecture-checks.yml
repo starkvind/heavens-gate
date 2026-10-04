@@ -83,7 +83,7 @@ jobs:
           php -l app/controllers/tool/dice_roller.php
           php -l app/domains/dice/form_effects.php
           php -l app/mobile/controllers/character_detail.php
-          node --check assets/js/hg-mobile-form-dice-context.js
+          node --check assets/js/hg-mobile-form-position.js
           python3 .github/ci/php-form-roll-context-audit.py
 
       - name: Audit archived games stay out of production
