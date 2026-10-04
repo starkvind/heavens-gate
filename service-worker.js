@@ -5,6 +5,7 @@ const PRECACHE = [
   OFFLINE_URL,
   '/manifest.json',
   '/assets/css/hg-mobile.css',
+  '/assets/css/hg-mobile-filters.css',
   '/assets/js/hg-mobile.js',
   '/assets/js/hg-pwa.js',
   '/img/favicon/android-chrome-192x192.webp',
