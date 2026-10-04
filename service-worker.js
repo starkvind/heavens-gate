@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hg-pwa-static-v1';
+const CACHE_NAME = 'hg-pwa-static-v2';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE = [
@@ -6,6 +6,7 @@ const PRECACHE = [
   '/manifest.json',
   '/assets/css/hg-mobile.css',
   '/assets/css/hg-mobile-filters.css',
+  '/assets/js/hg-mobile-multifilters.js',
   '/assets/js/hg-mobile.js',
   '/assets/js/hg-pwa.js',
   '/img/favicon/android-chrome-192x192.webp',
