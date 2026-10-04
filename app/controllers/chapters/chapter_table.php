@@ -60,6 +60,7 @@ $pageSect = "Capítulos";
                     <th>Cr&oacute;nica</th>
                     <th>Descripci&oacute;n</th>
                     <th>N&ordm; personajes</th>
+                    <th>Tipo de temporada</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -79,14 +80,6 @@ $(document).ready(function () {
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
-    }
-
-    function sortValues(values) {
-        return values.sort((a, b) => {
-            if (a === '-' && b !== '-') return 1;
-            if (b === '-' && a !== '-') return -1;
-            return a.localeCompare(b, 'es');
-        });
     }
 
     function seasonLabel(row) {
@@ -135,6 +128,7 @@ $(document).ready(function () {
         const seasonSlug = r.season_pretty_id || r.season_id || '';
         const seasonText = seasonLabel(r);
         const seasonKind = String(r.season_kind || 'temporada').trim();
+        const seasonKindText = seasonKindLabel(r);
         const seasonSort = `${String(r.season_sort_order || 999999).padStart(6, '0')}-${String(r.season_number || 0).padStart(4, '0')}-${escapeHtml(seasonText)}`;
         const seasonCell = seasonSlug
             ? `<a href="/seasons/${escapeHtml(seasonSlug)}">${escapeHtml(seasonText)}</a>`
@@ -154,6 +148,7 @@ $(document).ready(function () {
             <td>${escapeHtml(chronicleText)}</td>
             <td data-order="${descLen}">${descLen}</td>
             <td data-order="${characterCount}">${characterCount}</td>
+            <td>${escapeHtml(seasonKindText)}</td>
         </tr>`);
     });
 
@@ -161,6 +156,9 @@ $(document).ready(function () {
         pageLength: 25,
         lengthMenu: [10, 25, 50, 100],
         order: [[1, "asc"], [0, "asc"]],
+        columnDefs: [
+            { targets: 6, visible: false, searchable: true }
+        ],
         language: {
             search: "&#128269; Buscar:&nbsp;",
             lengthMenu: "Mostrar _MENU_ episodios",
@@ -179,100 +177,17 @@ $(document).ready(function () {
         }
     });
 
-    const kindSet = new Set();
-    const chronicleSet = new Set();
-    rows.forEach(r => {
-        kindSet.add(seasonKindLabel(r));
-        chronicleSet.add(chronicleLabel(r));
-    });
-
-    const filterConfigs = [
-        {
-            key: 'kind',
-            allLabel: 'Todos',
-            noneLabel: 'Ninguno',
-            values: sortValues(Array.from(kindSet)),
-            getValue: seasonKindLabel
-        }
+    const filters = [
+        { key: 'kind', value: seasonKindLabel, column: 6, allLabel: 'Todos', dependsOn: [] }
     ];
     <?php if ($hasSeasonChronicle): ?>
-    filterConfigs.push({
-        key: 'chronicle',
-        allLabel: 'Todas',
-        noneLabel: 'Ninguna',
-        values: sortValues(Array.from(chronicleSet)),
-        getValue: chronicleLabel
-    });
+    filters.push({ key: 'chronicle', value: chronicleLabel, column: 3, allLabel: 'Todas', dependsOn: ['kind'] });
     <?php endif; ?>
 
-    function openPanel(key){ $('#ms-panel-' + key).show().attr('aria-hidden','false'); $('#ms-toggle-' + key).attr('aria-expanded','true'); }
-    function closePanel(key){ $('#ms-panel-' + key).hide().attr('aria-hidden','true'); $('#ms-toggle-' + key).attr('aria-expanded','false'); }
-    function togglePanel(key){ $('#ms-panel-' + key).is(':visible') ? closePanel(key) : openPanel(key); }
-    function getSelected(cfg){
-        const selected = $('#ms-options-' + cfg.key + ' input:checked').map(function(){ return $(this).val(); }).get();
-        if (selected.length === cfg.values.length) return null;
-        return selected;
-    }
-    function updateSummary(cfg, selected){
-        const $summary = $('#ms-summary-' + cfg.key);
-        if (selected === null) { $summary.text(cfg.allLabel); return; }
-        if (selected.length === 0) { $summary.text(cfg.noneLabel); return; }
-        if (selected.length === 1) $summary.text(selected[0]);
-        else $summary.text(selected.length + ' selecc.');
-    }
-    function applyFilters(){
-        filterConfigs.forEach(cfg => updateSummary(cfg, getSelected(cfg)));
-        dt.draw();
-    }
-
-    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-        if (settings.nTable.id !== 'tabla-capitulos') return true;
-        let ok = true;
-        filterConfigs.forEach(cfg => {
-            const selected = getSelected(cfg);
-            if (selected === null) return;
-            const row = rows[dataIndex] || {};
-            if (selected.length === 0) {
-                ok = false;
-                return;
-            }
-            const value = cfg.getValue(row);
-            if (!selected.includes(value)) ok = false;
-        });
-        return ok;
+    HGDataTableFilters.create({
+        table: dt,
+        rows: rows,
+        filters: filters
     });
-
-    filterConfigs.forEach(cfg => {
-        const $opts = $('#ms-options-' + cfg.key);
-        cfg.values.forEach(v => {
-            const safe = escapeHtml(v);
-            $opts.append(`
-                <label class="ms-row">
-                    <input type="checkbox" value="${safe}" checked>
-                    <span>${safe}</span>
-                </label>
-            `);
-        });
-
-        $('#ms-toggle-' + cfg.key).on('click', () => togglePanel(cfg.key));
-        $('#ms-toggle-' + cfg.key).on('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); togglePanel(cfg.key); } });
-        $opts.on('change', 'input', applyFilters);
-        $('#ms-select-all-' + cfg.key).on('click', function(){
-            $opts.find('input').prop('checked', true);
-            applyFilters();
-        });
-        $('#ms-clear-' + cfg.key).on('click', function(){
-            $opts.find('input').prop('checked', false);
-            applyFilters();
-        });
-    });
-
-    $(document).on('click', function(e){
-        filterConfigs.forEach(cfg => {
-            if (!$(e.target).closest('#filter-' + cfg.key).length) closePanel(cfg.key);
-        });
-    });
-
-    applyFilters();
 });
 </script>
