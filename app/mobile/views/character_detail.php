@@ -224,13 +224,12 @@
             <h2>Formas</h2>
             <label class="hg-mobile-form-control">Forma activa
                 <select data-hg-mobile-form-select>
-                    <option value="">Forma base</option>
                     <?php foreach ($mobileForms as $form): ?>
                         <option value="<?= (int)$form['id'] ?>"><?= hg_mobile_bio_h($form['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
-            <p data-hg-mobile-form-summary>Forma base: atributos originales.</p>
+            <p data-hg-mobile-form-summary>Selecciona una Forma para comprobar sus cambios de atributos.</p>
         </section>
         
     <?php endif; ?>

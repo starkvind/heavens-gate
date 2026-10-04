@@ -75,6 +75,9 @@ jobs:
       - name: Characterize runtime regressions
         run: php .github/ci/php-runtime-regression.php
 
+      - name: Audit canonical basal Form contract
+        run: python3 .github/ci/php-basal-form-contract-audit.py
+
       - name: Audit archived games stay out of production
         run: python3 .github/ci/php-retired-games-archive-audit.py
 
