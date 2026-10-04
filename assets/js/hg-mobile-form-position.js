@@ -37,10 +37,13 @@
         }
 
         const cells = Array.from(document.querySelectorAll('[data-hg-mobile-form-trait]'));
+        const cellsByTraitId = {};
         const labels = {};
         cells.forEach((cell) => {
+            const traitId = String(cell.dataset.hgMobileFormTrait || '');
             const label = cell.parentElement ? cell.parentElement.querySelector(':scope > span') : null;
-            labels[String(cell.dataset.hgMobileFormTrait || '')] = label ? label.textContent.trim() : 'Atributo';
+            cellsByTraitId[traitId] = cell;
+            labels[traitId] = label ? label.textContent.trim() : 'Atributo';
         });
 
         const hasOverride = (form, traitId) => {
@@ -66,15 +69,62 @@
                 + '</span>';
         };
 
+        const actionLinkUrl = (link) => {
+            try {
+                return new URL(link.getAttribute('href') || '/tools/dice', window.location.origin);
+            } catch (_) {
+                return null;
+            }
+        };
+
+        const ensureActionDiceTarget = (card) => {
+            const existing = card.querySelector('[data-hg-mobile-action-dice]');
+            if (existing) return existing;
+
+            const line = Array.from(card.children).find((element) => element.tagName === 'SPAN');
+            if (!line) return null;
+
+            const match = String(line.textContent || '').match(/^(.*?·\s*)(\d+)(\s+dados\s+·.*)$/u);
+            if (!match) return null;
+
+            const target = document.createElement('span');
+            target.dataset.hgMobileActionDice = '1';
+            target.textContent = match[2];
+
+            line.textContent = '';
+            line.append(document.createTextNode(match[1]));
+            line.append(target);
+            line.append(document.createTextNode(match[3]));
+            return target;
+        };
+
+        const syncActionPools = (form) => {
+            document.querySelectorAll('.hg-mobile-actions [data-mobile-action-card]').forEach((card) => {
+                const link = card.querySelector('a.boton2');
+                if (!link) return;
+
+                const url = actionLinkUrl(link);
+                if (!url) return;
+
+                const attributeTraitId = String(url.searchParams.get('attr_trait_id') || '');
+                const skillTraitId = String(url.searchParams.get('skill_trait_id') || '');
+                const attributeCell = cellsByTraitId[attributeTraitId];
+                const skillCell = cellsByTraitId[skillTraitId];
+                if (!attributeCell || !skillCell) return;
+
+                const baseAttribute = Number(attributeCell.dataset.hgMobileFormBase || 0);
+                const skillValue = Math.max(0, Number(skillCell.dataset.hgMobileFormBase || 0));
+                const pool = resolveValue(baseAttribute, form, attributeTraitId) + skillValue;
+                const target = ensureActionDiceTarget(card);
+                if (target) target.textContent = String(pool);
+            });
+        };
+
         const syncRollLinks = (form) => {
             const formId = Number(form && form.id ? form.id : 0);
             document.querySelectorAll('.hg-mobile-actions [data-mobile-action-card] a.boton2').forEach((link) => {
-                let url;
-                try {
-                    url = new URL(link.getAttribute('href') || '/tools/dice', window.location.origin);
-                } catch (_) {
-                    return;
-                }
+                const url = actionLinkUrl(link);
+                if (!url) return;
 
                 if (formId > 0) {
                     url.searchParams.set('form_id', String(formId));
@@ -100,6 +150,7 @@
                 if (dots) dots.innerHTML = dotsHtml(total);
             });
 
+            syncActionPools(form);
             syncRollLinks(form);
 
             if (!summary) return;
