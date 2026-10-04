@@ -179,12 +179,12 @@
 
             optionsNode(config).on('change.hgCascadingFilters', 'input', function () {
                 var checked = optionsNode(config).find('input:checked').map(function () { return $(this).val(); }).get();
-                config.selected = new Set(checked);
+                config.selected = checked.length === config.available.length ? null : new Set(checked);
                 refresh();
             });
 
             $('#ms-select-all-' + config.domKey).on('click.hgCascadingFilters', function () {
-                config.selected = new Set(config.available);
+                config.selected = null;
                 refresh();
             });
 
