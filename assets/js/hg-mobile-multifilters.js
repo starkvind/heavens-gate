@@ -60,6 +60,9 @@
         const originalLabelText = originalLabel
             ? String((originalLabel.querySelector('span') || {}).textContent || '').trim()
             : '';
+        const preservedTransportNodes = originalLabel
+            ? Array.from(originalLabel.querySelectorAll('[data-mobile-server-filter-value]'))
+            : [];
         const labelText = originalLabelText || String(control.getAttribute('aria-label') || entry.key).trim();
 
         const field = document.createElement('div');
@@ -112,6 +115,9 @@
             control.parentNode.insertBefore(field, control);
         }
         field.append(label, control, widget);
+        preservedTransportNodes.forEach(function (node) {
+            field.appendChild(node);
+        });
 
         entry.field = field;
         entry.toggle = toggle;
