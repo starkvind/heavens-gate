@@ -86,12 +86,25 @@ function hg_mpw_catalog_config(string $kind): ?array
             'fields' => [
                 ['Fêra', 'gift_fera_system'], ['Tipo', 'gift_type'], ['Grupo', 'gift_category'], ['Rango', 'gift_level'], ['Tirada', ['gift_roll_attribute', 'gift_roll_skill']],
             ],
+            'filters' => [
+                ['key' => 'fera', 'label' => 'Fêra', 'source' => 'gift_fera_system', 'all' => 'Todas'],
+                ['key' => 'type', 'label' => 'Tipo', 'source' => 'gift_type', 'all' => 'Todos'],
+                ['key' => 'group', 'label' => 'Grupo', 'source' => 'gift_category', 'all' => 'Todos'],
+                ['key' => 'rank', 'label' => 'Rango', 'source' => 'gift_level', 'all' => 'Todos'],
+                ['key' => 'origin', 'label' => 'Origen', 'source' => 'gift_origin', 'all' => 'Todos'],
+            ],
         ],
         'rites' => [
             'title' => 'Rituales', 'singular' => 'Ritual', 'table' => 'fact_rites', 'item_base' => '/powers/rite', 'list_base' => '/powers/rites', 'image_dir' => 'img/rites',
             'id' => 'ritual_id', 'name' => 'ritual_name', 'pretty' => 'ritual_pretty_id', 'description' => 'ritual_description',
             'fields' => [
                 ['Fêra', 'ritual_fera_system'], ['Tipo', 'ritual_type'], ['Nivel', 'ritual_level'], ['Raza', 'ritual_species'],
+            ],
+            'filters' => [
+                ['key' => 'fera', 'label' => 'Fêra', 'source' => 'ritual_fera_system', 'all' => 'Todas'],
+                ['key' => 'type', 'label' => 'Tipo', 'source' => 'ritual_type', 'all' => 'Todos'],
+                ['key' => 'level', 'label' => 'Nivel', 'source' => 'ritual_level', 'all' => 'Todos'],
+                ['key' => 'origin', 'label' => 'Origen', 'source' => 'ritual_origin', 'all' => 'Todos'],
             ],
         ],
         'totems' => [
@@ -100,12 +113,22 @@ function hg_mpw_catalog_config(string $kind): ?array
             'fields' => [
                 ['Tipo', 'totem_type'], ['Coste', 'totem_cost'],
             ],
+            'filters' => [
+                ['key' => 'type', 'label' => 'Tipo', 'source' => 'totem_type', 'all' => 'Todos'],
+                ['key' => 'cost', 'label' => 'Coste', 'source' => 'totem_cost', 'all' => 'Todos'],
+                ['key' => 'origin', 'label' => 'Origen', 'source' => 'totem_origin', 'all' => 'Todos'],
+            ],
         ],
         'disciplines' => [
             'title' => 'Disciplinas', 'singular' => 'Disciplina', 'table' => 'fact_discipline_powers', 'item_base' => '/powers/discipline', 'list_base' => '/powers/disciplines', 'image_dir' => 'img/disciplines',
             'id' => 'disc_id', 'name' => 'disc_name', 'pretty' => 'disc_pretty_id', 'description' => 'disc_description',
             'fields' => [
                 ['Disciplina', 'disc_type'], ['Nivel', 'disc_level'], ['Tirada', ['disc_roll_attribute', 'disc_roll_skill']],
+            ],
+            'filters' => [
+                ['key' => 'type', 'label' => 'Disciplina', 'source' => 'disc_type', 'all' => 'Todas'],
+                ['key' => 'level', 'label' => 'Nivel', 'source' => 'disc_level', 'all' => 'Todos'],
+                ['key' => 'origin', 'label' => 'Origen', 'source' => 'disc_origin', 'all' => 'Todos'],
             ],
         ],
     ];
@@ -118,6 +141,28 @@ function hg_mpw_value(array $row, $source): string
         return hg_mpw_roll($row[$source[0]] ?? '', $row[$source[1]] ?? '');
     }
     return trim((string)($row[$source] ?? ''));
+}
+
+function hg_mpw_filter_value(array $row, string $source): string
+{
+    $value = trim((string)($row[$source] ?? ''));
+    return $value !== '' ? $value : '-';
+}
+
+function hg_mpw_filter_options(array $rows, string $source): array
+{
+    $values = [];
+    foreach ($rows as $row) {
+        $value = hg_mpw_filter_value($row, $source);
+        $values[$value] = $value;
+    }
+    $values = array_values($values);
+    usort($values, static function (string $a, string $b): int {
+        if ($a === '-' && $b !== '-') return 1;
+        if ($b === '-' && $a !== '-') return -1;
+        return strnatcasecmp($a, $b);
+    });
+    return $values;
 }
 
 function hg_mpw_render_hub(): void
@@ -142,9 +187,28 @@ function hg_mpw_render_list(mysqli $db, string $kind, array $rows): void
 {
     $cfg = hg_mpw_catalog_config($kind);
     if (!$cfg) return;
+    $filters = is_array($cfg['filters'] ?? null) ? $cfg['filters'] : [];
     ?>
     <section class="hg-mobile-section"><h1><?= hg_mpw_h($cfg['title']) ?></h1><p class="hg-mobile-muted"><?= number_format(count($rows), 0, ',', '.') ?> elementos</p></section>
-    <section class="hg-mobile-section"><div class="hg-mobile-card-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar">
+    <section class="hg-mobile-section"><div class="hg-mobile-card-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar" data-empty-text="No hay elementos con esos filtros.">
+        <?php if ($filters): ?>
+            <details class="hg-mobile-details">
+                <summary>Filtros <span data-mobile-list-filter-count hidden></span></summary>
+                <div class="hg-mobile-filterbar">
+                    <?php foreach ($filters as $filter): ?>
+                        <?php $options = hg_mpw_filter_options($rows, (string)$filter['source']); ?>
+                        <label>
+                            <span><?= hg_mpw_h($filter['label']) ?></span>
+                            <select data-mobile-list-filter data-mobile-filter-key="<?= hg_mpw_h($filter['key']) ?>" aria-label="Filtrar por <?= hg_mpw_h($filter['label']) ?>">
+                                <option value=""><?= hg_mpw_h($filter['all']) ?></option>
+                                <?php foreach ($options as $option): ?><option value="<?= hg_mpw_h($option) ?>"><?= hg_mpw_h($option) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                    <?php endforeach; ?>
+                    <button type="button" data-mobile-list-filter-clear disabled>Limpiar filtros</button>
+                </div>
+            </details>
+        <?php endif; ?>
         <?php if (!$rows): ?><p class="hg-mobile-muted">No hay elementos disponibles.</p><?php endif; ?>
         <?php foreach ($rows as $row): ?>
             <?php
@@ -158,8 +222,14 @@ function hg_mpw_render_list(mysqli $db, string $kind, array $rows): void
                 }
                 $body = (string)($row[$cfg['description']] ?? '');
                 $search = trim($name . ' ' . implode(' ', $bits) . ' ' . strip_tags($body));
+                $filterAttrs = '';
+                foreach ($filters as $filter) {
+                    $key = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower((string)$filter['key']));
+                    $value = hg_mpw_filter_value($row, (string)$filter['source']);
+                    $filterAttrs .= ' data-mobile-filter-' . $key . '="' . hg_mpw_h($value) . '"';
+                }
             ?>
-            <a class="hg-mobile-card" href="<?= hg_mpw_h($href) ?>" data-mobile-item data-mobile-search="<?= hg_mpw_h($search) ?>">
+            <a class="hg-mobile-card" href="<?= hg_mpw_h($href) ?>" data-mobile-item data-mobile-search="<?= hg_mpw_h($search) ?>"<?= $filterAttrs ?>>
                 <strong><?= hg_mpw_h($name) ?></strong>
                 <?php foreach ($bits as $bit): ?><span><?= hg_mpw_h($bit) ?></span><?php endforeach; ?>
                 <?php $excerpt = hg_mpw_excerpt($body); if ($excerpt !== ''): ?><span><?= hg_mpw_h($excerpt) ?></span><?php endif; ?>
