@@ -77,10 +77,12 @@
 
     $mobileCssPath = __DIR__ . '/../../assets/css/hg-mobile.css';
     $mobileFilterCssPath = __DIR__ . '/../../assets/css/hg-mobile-filters.css';
+    $mobileMultiFilterJsPath = __DIR__ . '/../../assets/js/hg-mobile-multifilters.js';
     $mobileJsPath = __DIR__ . '/../../assets/js/hg-mobile.js';
     $pwaJsPath = __DIR__ . '/../../assets/js/hg-pwa.js';
     $mobileCssVersion = is_file($mobileCssPath) ? (string)filemtime($mobileCssPath) : '1';
     $mobileFilterCssVersion = is_file($mobileFilterCssPath) ? (string)filemtime($mobileFilterCssPath) : '1';
+    $mobileMultiFilterJsVersion = is_file($mobileMultiFilterJsPath) ? (string)filemtime($mobileMultiFilterJsPath) : '1';
     $mobileJsVersion = is_file($mobileJsPath) ? (string)filemtime($mobileJsPath) : '1';
     $pwaJsVersion = is_file($pwaJsPath) ? (string)filemtime($pwaJsPath) : '1';
 
@@ -111,6 +113,7 @@
             hg_page_render_registered_styles();
         }
     ?>
+    <script src="assets/js/hg-mobile-multifilters.js?v=<?= hg_mobile_h($mobileMultiFilterJsVersion) ?>" defer></script>
     <script src="assets/js/hg-mobile.js?v=<?= hg_mobile_h($mobileJsVersion) ?>" defer></script>
     <script src="assets/js/hg-pwa.js?v=<?= hg_mobile_h($pwaJsVersion) ?>" defer></script>
 </head>
