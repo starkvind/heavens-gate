@@ -132,109 +132,15 @@ $(document).ready(function () {
 		initComplete: function(){
 			$('#dt-search-slot').append($('#tabla-inventario_filter'));
 		}
-
 	});
 
-	// ========= Generar opciones =========
-	const categorySet = new Set();
-	const originSet = new Set();
-
-	items.forEach(i => {
-		categorySet.add((i.item_category !== null && i.item_category !== undefined && String(i.item_category).trim() !== '') ? String(i.item_category).trim() : '-');
-		originSet.add((i.item_origin !== null && i.item_origin !== undefined && String(i.item_origin).trim() !== '') ? String(i.item_origin).trim() : '-');
+	HGDataTableFilters.create({
+		table: dt,
+		rows: items,
+		filters: [
+			{ key: 'category', source: 'item_category', column: 1, allLabel: 'Todas', dependsOn: [] },
+			{ key: 'origin', source: 'item_origin', column: 2, allLabel: 'Todos', dependsOn: ['category'] }
+		]
 	});
-
-	const filterConfigs = [
-		{ key: 'category', column: 1, allLabel: 'Todas', values: sortValues(Array.from(categorySet)) },
-		{ key: 'origin', column: 2, allLabel: 'Todos', values: sortValues(Array.from(originSet)) },
-	];
-
-	function openPanel(key){ $('#ms-panel-' + key).show().attr('aria-hidden','false'); $('#ms-toggle-' + key).attr('aria-expanded','true'); }
-	function closePanel(key){ $('#ms-panel-' + key).hide().attr('aria-hidden','true'); $('#ms-toggle-' + key).attr('aria-expanded','false'); }
-	function togglePanel(key){ $('#ms-panel-' + key).is(':visible') ? closePanel(key) : openPanel(key); }
-
-	function getSelected(key){
-		const selected = $('#ms-options-' + key + ' input:checked').map(function(){ return $(this).val(); }).get();
-		return selected.length ? selected : null;
-	}
-	function updateSummary(key, selected, allLabel){
-		const $summary = $('#ms-summary-' + key);
-		if (selected === null) { $summary.text(allLabel); return; }
-		if (selected.length === 1) $summary.text(selected[0]);
-		else $summary.text(selected.length + ' selecc.');
-	}
-	function applyFilters(){
-		filterConfigs.forEach(cfg => {
-			const selected = getSelected(cfg.key);
-			updateSummary(cfg.key, selected, cfg.allLabel);
-			if (selected === null) {
-				dt.column(cfg.column).search('', true, false);
-			} else {
-				const pat = '^(?:' + selected.map(s => escapeRegex(s)).join('|') + ')$';
-				dt.column(cfg.column).search(pat, true, false);
-			}
-		});
-		dt.draw();
-	}
-
-	filterConfigs.forEach(cfg => {
-		const $opts = $('#ms-options-' + cfg.key);
-		cfg.values.forEach(v => {
-			const safe = escapeHtml(v);
-			$opts.append(`
-				<label class="ms-row">
-					<input type="checkbox" value="${safe}" checked>
-					<span>${safe}</span>
-				</label>
-			`);
-		});
-
-		$('#ms-toggle-' + cfg.key).on('click', () => togglePanel(cfg.key));
-		$('#ms-toggle-' + cfg.key).on('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); togglePanel(cfg.key); } });
-
-		$opts.on('change', 'input', applyFilters);
-
-		$('#ms-select-all-' + cfg.key).on('click', function(){
-			$opts.find('input').prop('checked', true);
-			applyFilters();
-		});
-		$('#ms-clear-' + cfg.key).on('click', function(){
-			$opts.find('input').prop('checked', false);
-			applyFilters();
-		});
-	});
-
-	$(document).on('click', function(e){
-		filterConfigs.forEach(cfg => {
-			if (!$(e.target).closest('#filter-' + cfg.key).length) closePanel(cfg.key);
-		});
-	});
-
-	applyFilters();
-
 });
-
-function escapeHtml(text) {
-	if (!text) return '';
-	return text.replace(/[&<>"']/g, function (m) {
-		return ({
-			'&': '&amp;',
-			'<': '&lt;',
-			'>': '&gt;',
-			'"': '&quot;',
-			"'": '&#39;'
-		})[m];
-	});
-}
-function escapeRegex(text){
-	return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function sortValues(values){
-	return values.sort((a,b)=>{
-		if (a === '-' && b !== '-') return 1;
-		if (b === '-' && a !== '-') return -1;
-		return a.localeCompare(b, 'es');
-	});
-}
 </script>
