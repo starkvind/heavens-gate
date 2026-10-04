@@ -24,6 +24,19 @@
             .toLowerCase();
     }
 
+    function filterKey(control, index) {
+        const explicit = String(control.dataset.mobileFilterKey || '').trim();
+        if (explicit) return explicit;
+        const name = String(control.getAttribute('name') || '').trim();
+        return name || (index === 0 ? 'value' : 'filter' + String(index + 1));
+    }
+
+    function itemFilterValue(item, key) {
+        if (key === 'value') return item.dataset.mobileFilterValue || '';
+        const attr = 'data-mobile-filter-' + key.replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+        return item.getAttribute(attr) || '';
+    }
+
     function initPaginatedList(list) {
         const items = Array.from(list.querySelectorAll('[data-mobile-item]'));
         if (!items.length || list.dataset.mobilePaginatedReady === '1') return;
@@ -31,12 +44,19 @@
 
         const pageSize = Math.max(1, parseInt(list.dataset.pageSize || '20', 10) || 20);
         const alwaysSearch = list.dataset.mobileSearch === '1';
-        const filterSelect = list.querySelector('[data-mobile-list-filter]');
-        if (items.length <= pageSize && !alwaysSearch && !filterSelect) return;
+        const filterControls = Array.from(list.querySelectorAll('[data-mobile-list-filter]'));
+        const filterEntries = filterControls.map(function (control, index) {
+            return { control: control, key: filterKey(control, index) };
+        });
+        if (items.length <= pageSize && !alwaysSearch && !filterEntries.length) return;
 
         let page = 1;
         let query = '';
-        let filter = '';
+        const filters = {};
+
+        filterEntries.forEach(function (entry) {
+            filters[entry.key] = normalize(entry.control.value || '');
+        });
 
         const tools = document.createElement('div');
         tools.className = 'hg-mobile-list-tools';
@@ -70,16 +90,41 @@
         empty.hidden = true;
         list.parentNode.insertBefore(empty, list.nextSibling);
 
+        const clearButtons = Array.from(list.querySelectorAll('[data-mobile-list-filter-clear]'));
+        const activeCounters = Array.from(list.querySelectorAll('[data-mobile-list-filter-count]'));
+
         function itemText(item) {
             return normalize(item.dataset.mobileSearch || item.textContent || '');
         }
 
+        function activeFilterCount() {
+            return Object.keys(filters).reduce(function (count, key) {
+                return count + (filters[key] !== '' ? 1 : 0);
+            }, 0);
+        }
+
+        function syncFilterSummary() {
+            const count = activeFilterCount();
+            activeCounters.forEach(function (node) {
+                node.textContent = count > 0 ? String(count) : '';
+                node.hidden = count === 0;
+            });
+            clearButtons.forEach(function (button) {
+                button.disabled = count === 0;
+            });
+        }
+
         function render() {
             const needle = normalize(query.trim());
-            const matched = items.filter(item => {
+            const matched = items.filter(function (item) {
                 const matchesSearch = needle === '' || itemText(item).includes(needle);
-                const matchesFilter = filter === '' || normalize(item.dataset.mobileFilterValue) === filter;
-                return matchesSearch && matchesFilter;
+                if (!matchesSearch) return false;
+
+                return filterEntries.every(function (entry) {
+                    const selected = filters[entry.key] || '';
+                    if (selected === '') return true;
+                    return normalize(itemFilterValue(item, entry.key)) === selected;
+                });
             });
             const totalPages = Math.max(1, Math.ceil(matched.length / pageSize));
             if (page > totalPages) page = totalPages;
@@ -87,7 +132,7 @@
             const end = start + pageSize;
             const visible = new Set(matched.slice(start, end));
 
-            items.forEach(item => {
+            items.forEach(function (item) {
                 const isVisible = visible.has(item);
                 item.hidden = !isVisible;
                 item.style.display = isVisible ? '' : 'none';
@@ -100,6 +145,7 @@
             meta.textContent = matched.length === 0
                 ? '0 resultados'
                 : `${start + 1}-${Math.min(end, matched.length)} de ${matched.length}`;
+            syncFilterSummary();
         }
 
         input.addEventListener('input', function () {
@@ -107,13 +153,26 @@
             page = 1;
             render();
         });
-        if (filterSelect) {
-            filterSelect.addEventListener('change', function () {
-                filter = normalize(filterSelect.value);
+
+        filterEntries.forEach(function (entry) {
+            entry.control.addEventListener('change', function () {
+                filters[entry.key] = normalize(entry.control.value || '');
                 page = 1;
                 render();
             });
-        }
+        });
+
+        clearButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                filterEntries.forEach(function (entry) {
+                    entry.control.value = '';
+                    filters[entry.key] = '';
+                });
+                page = 1;
+                render();
+            });
+        });
+
         prev.addEventListener('click', function () {
             if (page > 1) {
                 page -= 1;
