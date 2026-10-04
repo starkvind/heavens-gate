@@ -66,6 +66,26 @@
                 + '</span>';
         };
 
+        const syncRollLinks = (form) => {
+            const formId = Number(form && form.id ? form.id : 0);
+            document.querySelectorAll('.hg-mobile-actions [data-mobile-action-card] a.boton2').forEach((link) => {
+                let url;
+                try {
+                    url = new URL(link.getAttribute('href') || '/tools/dice', window.location.origin);
+                } catch (_) {
+                    return;
+                }
+
+                if (formId > 0) {
+                    url.searchParams.set('form_id', String(formId));
+                } else {
+                    url.searchParams.delete('form_id');
+                }
+
+                link.setAttribute('href', url.pathname + url.search + url.hash);
+            });
+        };
+
         const render = () => {
             const form = forms.find((item) => String(item.id) === String(select.value)) || forms[0] || null;
             if (form && String(select.value) !== String(form.id)) select.value = String(form.id);
@@ -79,6 +99,8 @@
                 if (value) value.textContent = String(total);
                 if (dots) dots.innerHTML = dotsHtml(total);
             });
+
+            syncRollLinks(form);
 
             if (!summary) return;
             if (!form) {
