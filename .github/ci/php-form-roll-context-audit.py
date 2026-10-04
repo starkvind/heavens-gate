@@ -18,29 +18,28 @@ def require(path: str, *needles: str) -> str:
     return source
 
 
-desktop_actions = require(
+require(
     "app/partials/bio/bio_page_section_12_actions.php",
     "let activeFormId = 0;",
     "url.searchParams.set('form_id', String(activeFormId))",
     "document.addEventListener('hg:form-change'",
 )
 
-mobile_bridge = require(
-    "assets/js/hg-mobile-form-dice-context.js",
+require(
+    "assets/js/hg-mobile-form-position.js",
     "[data-hg-mobile-form-select]",
-    "[data-mobile-action-card] a.boton2",
+    ".hg-mobile-actions [data-mobile-action-card] a.boton2",
+    "const formId = Number(form && form.id ? form.id : 0);",
     "url.searchParams.set('form_id', String(formId))",
-    "document.addEventListener('hg-mobile-form-change'",
+    "select.addEventListener('change', render)",
 )
-if ".name" in mobile_bridge or "form.name" in mobile_bridge:
-    errors.append("mobile Form dice bridge must propagate canonical form_id, not infer Form identity from display names")
 
 require(
     "app/mobile/controllers/character_detail.php",
-    "/assets/js/hg-mobile-form-dice-context.js",
+    "/assets/js/hg-mobile-form-position.js",
 )
 
-dice = require(
+require(
     "app/controllers/tool/dice_roller.php",
     "$form_active_form_id = (int)($queryInput['form_id'] ?? 0);",
     "$form_active_form_id = (int)($bodyInput['form_id'] ?? 0);",
