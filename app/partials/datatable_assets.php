@@ -23,6 +23,12 @@ if (!defined('HG_DATATABLE_ASSETS_INCLUDED')) {
         $hgDataTablesJs .= '?v=' . filemtime($hgDataTablesJsPath);
     }
 
+    $hgDataTableFiltersJs = '/assets/js/hg-datatable-filters.js';
+    $hgDataTableFiltersJsPath = dirname(__DIR__, 2) . $hgDataTableFiltersJs;
+    if (is_file($hgDataTableFiltersJsPath)) {
+        $hgDataTableFiltersJs .= '?v=' . filemtime($hgDataTableFiltersJsPath);
+    }
+
     echo '<script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>' . "\n";
     echo '<script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>' . "\n";
     echo '<script>window.HG_DATATABLE_COLUMNS=' . json_encode(
@@ -30,5 +36,6 @@ if (!defined('HG_DATATABLE_ASSETS_INCLUDED')) {
         JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
     ) . ';</script>' . "\n";
     echo '<script src="' . htmlspecialchars($hgDataTablesJs, ENT_QUOTES, 'UTF-8') . '"></script>' . "\n";
+    echo '<script src="' . htmlspecialchars($hgDataTableFiltersJs, ENT_QUOTES, 'UTF-8') . '"></script>' . "\n";
 }
 ?>
