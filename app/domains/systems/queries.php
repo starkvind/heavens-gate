@@ -558,6 +558,55 @@ function hg_systems_fetch_members(mysqli $link, int $type, int $detailId, $exclu
     return $rows;
 }
 
+function hg_systems_fetch_form_modifiers(mysqli $link, int $formId): array
+{
+    if ($formId <= 0) return [];
+
+    $stmt = $link->prepare(
+        "SELECT
+            bft.trait_id,
+            t.name,
+            bft.modifier,
+            bft.override_value
+         FROM bridge_forms_traits bft
+         INNER JOIN dim_traits t ON t.id = bft.trait_id
+         WHERE bft.form_id = ?
+           AND (COALESCE(bft.modifier, 0) <> 0 OR bft.override_value IS NOT NULL)
+         ORDER BY
+            CASE bft.trait_id
+                WHEN 1 THEN 10
+                WHEN 33 THEN 20
+                WHEN 34 THEN 30
+                WHEN 35 THEN 40
+                WHEN 36 THEN 50
+                WHEN 37 THEN 60
+                WHEN 38 THEN 70
+                WHEN 39 THEN 80
+                WHEN 40 THEN 90
+                ELSE 1000
+            END,
+            t.name ASC"
+    );
+    if (!$stmt) return [];
+
+    $stmt->bind_param('i', $formId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $rows = [];
+    while ($rs && ($row = $rs->fetch_assoc())) {
+        $rows[] = [
+            'trait_id' => (int)($row['trait_id'] ?? 0),
+            'name' => (string)($row['name'] ?? ''),
+            'modifier' => $row['modifier'] !== null ? (int)$row['modifier'] : null,
+            'override_value' => $row['override_value'] !== null ? (int)$row['override_value'] : null,
+        ];
+    }
+    if ($rs) $rs->free();
+    $stmt->close();
+
+    return $rows;
+}
+
 function hg_systems_fetch_form(mysqli $link, int $formId)
 {
     if ($formId <= 0) return null;
@@ -566,12 +615,30 @@ function hg_systems_fetch_form(mysqli $link, int $formId)
         COALESCE(dex.modifier, 0) AS dexterity_bonus,
         COALESCE(sta.modifier, 0) AS stamina_bonus,
         CASE WHEN f.hpregen > 0 THEN 1 ELSE 0 END AS regeneration,
-        CASE WHEN EXISTS (
-            SELECT 1
-            FROM dim_breeds regen_breed
-            WHERE regen_breed.form_system_id = f.system_id
-              AND COALESCE(regen_breed.regen_normal_per_turn, 0) > 0
-        ) THEN 1 ELSE 0 END AS contextual_regeneration,
+        CASE
+            WHEN f.hpregen > 0 THEN f.hpregen
+            WHEN EXISTS (
+                SELECT 1
+                FROM dim_breeds regen_breed
+                WHERE regen_breed.form_system_id = f.system_id
+                  AND COALESCE(regen_breed.regen_normal_per_turn, 0) > 0
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM dim_breeds native_breed
+                WHERE native_breed.form_system_id = f.system_id
+                  AND native_breed.native_form_id = f.id
+                  AND COALESCE(native_breed.regen_normal_per_turn, 0) > 0
+                  AND COALESCE(native_breed.regen_in_native_form, 0) = 0
+            )
+            THEN COALESCE((
+                SELECT MAX(regen_breed.regen_normal_per_turn)
+                FROM dim_breeds regen_breed
+                WHERE regen_breed.form_system_id = f.system_id
+                  AND COALESCE(regen_breed.regen_normal_per_turn, 0) > 0
+            ), 0)
+            ELSE 0
+        END AS public_hpregen,
         COALESCE(NULLIF(ds.name, ''), '') AS system_name_resolved,
         COALESCE(
             GROUP_CONCAT(
