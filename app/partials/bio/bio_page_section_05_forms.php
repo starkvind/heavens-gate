@@ -168,9 +168,9 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
             detailUi.capabilities.hidden = false;
             detailUi.melee.textContent = Number(form.weapons || 0) === 1 ? 'Sí' : 'No';
             detailUi.firearms.textContent = Number(form.firearms || 0) === 1 ? 'Sí' : 'No';
-            detailUi.regeneration.textContent = Number(form.hpregen || 0) > 0
-                ? String(Number(form.hpregen)) + ' / turno'
-                : 'No';
+            detailUi.regeneration.textContent = String(form.regeneration_label || (
+                Number(form.hpregen || 0) > 0 ? String(Number(form.hpregen)) + ' / turno' : 'No'
+            ));
             detailUi.description.textContent = plainDescription(form.description);
         } else {
             detailUi.capabilities.hidden = true;
