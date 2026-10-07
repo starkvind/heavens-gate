@@ -86,6 +86,22 @@ jobs:
           node --check assets/js/hg-mobile-form-position.js
           python3 .github/ci/php-form-roll-context-audit.py
 
+      - name: Audit Camazotz Phase 5D runtime contract
+        run: |
+          php -l app/domains/characters/form_presentation_queries.php
+          php -l app/controllers/bio/bio_page.php
+          php -l app/mobile/controllers/character_detail.php
+          php -l app/domains/dice/form_effects.php
+          php -l app/domains/characters/admin_queries.php
+          php -l app/controllers/admin/admin_characters.php
+          php -l app/domains/characters/queries.php
+          php -l app/domains/systems/queries.php
+          php -l app/controllers/systems/system_detail_page.php
+          php -l app/controllers/systems/system_form_page.php
+          php -l app/mobile/controllers/systems.php
+          node --check assets/js/admin/admin-characters.js
+          python3 .github/ci/php-camazotz-phase5d-audit.py
+
       - name: Audit archived games stay out of production
         run: python3 .github/ci/php-retired-games-archive-audit.py
 
