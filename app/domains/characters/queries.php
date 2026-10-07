@@ -1347,4 +1347,4 @@ if (!function_exists('hg_characters_fetch_sheet_skills')) {
 
         return $data;
     }
-}}
+}
