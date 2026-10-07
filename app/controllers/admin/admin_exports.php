@@ -30,7 +30,7 @@ $ajaxFlag = filter_input(INPUT_GET, 'ajax', FILTER_UNSAFE_RAW);\nif ((string)$aj
     $payload = function_exists('hg_admin_read_json_payload') ? hg_admin_read_json_payload() : [];
     $csrfToken = function_exists('hg_admin_extract_csrf_token')
         ? hg_admin_extract_csrf_token($payload)
-        : (string)($_POST['csrf'] ?? '');
+        : '';
     $csrfOk = function_exists('hg_admin_csrf_valid')
         ? hg_admin_csrf_valid($csrfToken, $ADMIN_CSRF_SESSION_KEY)
         : (is_string($csrfToken) && $csrfToken !== '' && isset($_SESSION[$ADMIN_CSRF_SESSION_KEY]) && hash_equals($_SESSION[$ADMIN_CSRF_SESSION_KEY], $csrfToken));
