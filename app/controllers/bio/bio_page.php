@@ -31,7 +31,7 @@ include __DIR__ . '/bio_page_prepare.php';
 
 if (!empty($bioForms)) {
     $bioFormIds = array_column($bioForms, 'id');
-    $formPresentationById = hg_characters_fetch_form_presentation_by_ids($link, $bioFormIds);
+    $formPresentationById = hg_characters_fetch_form_presentation_by_ids($link, $bioFormIds, (int)$bioRace);
     $formOverridesById = hg_characters_fetch_form_trait_overrides($link, $bioFormIds);
 
     foreach ($bioForms as &$bioForm) {
@@ -42,7 +42,10 @@ if (!empty($bioForms)) {
         $bioForm['weapons'] = (int)($presentation['weapons'] ?? 0);
         $bioForm['firearms'] = (int)($presentation['firearms'] ?? 0);
         $bioForm['hpregen'] = (int)($presentation['hpregen'] ?? 0);
-        $bioForm['regeneration'] = $bioForm['hpregen'] > 0 ? 1 : 0;
+        $bioForm['regeneration'] = (int)($presentation['regeneration'] ?? 0);
+        $bioForm['regeneration_label'] = (string)($presentation['regeneration_label'] ?? ($bioForm['hpregen'] > 0 ? $bioForm['hpregen'] . ' / turno' : 'No'));
+        $bioForm['regen_stress_difficulty'] = (int)($presentation['regen_stress_difficulty'] ?? 0);
+        $bioForm['regen_aggravated_auto'] = (int)($presentation['regen_aggravated_auto'] ?? 0);
         $bioForm['overrides'] = $formOverridesById[$formId] ?? [];
     }
     unset($bioForm);
