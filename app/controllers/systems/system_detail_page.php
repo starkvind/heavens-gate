@@ -113,6 +113,27 @@ if ($table !== '') {
         }
     }
 
+    if ($systemTypeDocument === 3) {
+        $patronTotemId = (int)($ResultQuery['patron_totem_id'] ?? 0);
+        if ($patronTotemId > 0) {
+            $stmtPatron = $link->prepare('SELECT name FROM dim_totems WHERE id = ? LIMIT 1');
+            if ($stmtPatron) {
+                $stmtPatron->bind_param('i', $patronTotemId);
+                $stmtPatron->execute();
+                $patronResult = $stmtPatron->get_result();
+                $patronRow = $patronResult ? $patronResult->fetch_assoc() : null;
+                if ($patronResult) $patronResult->free();
+                $stmtPatron->close();
+                $patronName = trim((string)($patronRow['name'] ?? ''));
+                if ($patronName !== '') {
+                    $patronHref = pretty_url($link, 'dim_totems', '/powers/totem', $patronTotemId);
+                    $metaHtml .= '<p><b>Patrono tribal:</b> <a href="' . htmlspecialchars($patronHref) . '">' . htmlspecialchars($patronName) . '</a></p>';
+                    $infoDataCheck++;
+                }
+            }
+        }
+    }
+
     if ($metaHtml !== '') echo "<div class=\"syst-box syst-meta\">$metaHtml</div>";
 ?>
 
