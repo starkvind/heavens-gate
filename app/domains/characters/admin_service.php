@@ -15,6 +15,8 @@ if (!function_exists('pjs_table_exists')) {
             'bridge_systems_ex_races' => true,
             'bridge_systems_ex_auspices' => true,
             'bridge_systems_ex_tribes' => true,
+            'bridge_tribes_breeds' => true,
+            'bridge_traits_availability' => true,
         ];
         return isset($tables[$table]);
     }
