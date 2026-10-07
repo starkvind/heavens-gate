@@ -49,6 +49,9 @@ $bonusDEX = sf_h((string)($row['dexterity_bonus'] ?? ''));
 $bonusRES = sf_h((string)($row['stamina_bonus'] ?? ''));
 $useMelee = (int)($row['weapons'] ?? 0);
 $useGuns = (int)($row['firearms'] ?? 0);
+$regenValue = (int)($row['hpregen'] ?? 0);
+$regenContextual = (int)($row['contextual_regeneration'] ?? 0) === 1;
+$regenDisplay = $regenValue > 0 ? $regenValue . ' / turno' : ($regenContextual ? 'Según Raza natal' : 'No');
 
 $canUseMelee = $useMelee === 1
     ? "Esta forma es capaz de utilizar armas cuerpo a cuerpo."
@@ -108,7 +111,7 @@ if (function_exists('hg_page_register_stylesheet')) {
       <div class="cap-item">
         <img class="cap-icon" src="/img/ui/icons/use_regen.webp" alt="Regeneracion">
         <div class="cap-label">Regeneracion</div>
-        <div class="cap-value"><?= ((int)($row["hpregen"] ?? 0) > 0) ? ((int)$row["hpregen"]) . " / turno" : "No" ?></div>
+        <div class="cap-value"><?= sf_h($regenDisplay) ?></div>
       </div>
     </div>
   </div>
