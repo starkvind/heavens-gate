@@ -377,7 +377,7 @@ if ($route === 'verforma') {
             <?php hg_mobile_sys_stat('Resistencia', ((int)($form['stamina_bonus'] ?? 0) > 0 ? '+' : '') . (string)($form['stamina_bonus'] ?? '0')); ?>
             <?php hg_mobile_sys_stat('Armas cuerpo a cuerpo', ((int)($form['weapons'] ?? 0) === 1 ? 'Si' : 'No')); ?>
             <?php hg_mobile_sys_stat('Armas de fuego', ((int)($form['firearms'] ?? 0) === 1 ? 'Si' : 'No')); ?>
-            <?php hg_mobile_sys_stat('Regeneracion', ((int)($form['hpregen'] ?? 0) > 0 ? ((int)$form['hpregen'] . ' / turno') : 'No')); ?>
+            <?php hg_mobile_sys_stat('Regeneracion', ((int)($form['hpregen'] ?? 0) > 0 ? ((int)$form['hpregen'] . ' / turno') : ((int)($form['contextual_regeneration'] ?? 0) === 1 ? 'Según Raza natal' : 'No'))); ?>
         </div>
     </section>
     <?php if (trim(strip_tags($description)) !== ''): ?><section class="hg-mobile-section"><h2>Descripción</h2><div class="hg-mobile-rich-body"><?= $description ?></div></section><?php endif; ?>
