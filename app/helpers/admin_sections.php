@@ -29,6 +29,7 @@ if (!function_exists('hg_admin_section_registry')) {
             'admin_powers' => ['target' => 'admin_powers.php', 'normal' => true, 'ajax' => true],
             'admin_gift_image_mass' => ['target' => 'admin_gift_image_mass.php', 'normal' => true, 'ajax' => true],
             'admin_docs' => ['target' => 'admin_docs.php', 'normal' => true, 'ajax' => true],
+            'admin_exports' => ['target' => 'admin_exports.php', 'normal' => true, 'ajax' => true],
             'admin_help' => ['target' => 'admin_help.php', 'normal' => true, 'ajax' => false],
             'admin_external_links' => ['target' => 'admin_external_links.php', 'normal' => true, 'ajax' => true],
             'admin_character_links' => ['target' => 'admin_character_links.php', 'normal' => true, 'ajax' => true],
