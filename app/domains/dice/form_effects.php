@@ -47,7 +47,7 @@ if (!function_exists('hg_dice_resolve_form_context')) {
             return null;
         }
 
-        $presentationById = hg_characters_fetch_form_presentation_by_ids($db, [$formId]);
+        $presentationById = hg_characters_fetch_form_presentation_by_ids($db, [$formId], $breedId);
         $presentation = $presentationById[$formId] ?? null;
         if (!is_array($presentation)) {
             return null;
