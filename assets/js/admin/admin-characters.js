@@ -74,6 +74,7 @@ var AUSP_ID_TO_ALLOWED_SYS = BOOT.AUSP_ID_TO_ALLOWED_SYS || {};
 var TRIBUS_BY_SYS     = BOOT.TRIBUS_BY_SYS || {};
 var TRIBU_ID_TO_SYS   = BOOT.TRIBU_ID_TO_SYS || {};
 var TRIBU_ID_TO_ALLOWED_SYS = BOOT.TRIBU_ID_TO_ALLOWED_SYS || {};
+var TRIBE_BREED_COMPATIBILITY = BOOT.TRIBE_BREED_COMPATIBILITY || {};
 
 // PODERES
 var DONES_OPTS       = Array.isArray(BOOT.DONES_OPTS) ? BOOT.DONES_OPTS : [];
@@ -99,6 +100,7 @@ var TRAITS_OPTS      = Array.isArray(BOOT.TRAITS_OPTS) ? BOOT.TRAITS_OPTS : [];
 var CHAR_TRAITS      = BOOT.CHAR_TRAITS || {};
 var TRAIT_KIND_ORDER = Array.isArray(BOOT.TRAIT_KIND_ORDER) ? BOOT.TRAIT_KIND_ORDER : [];
 var TRAIT_SET_ORDER  = BOOT.TRAIT_SET_ORDER || {};
+var TRAIT_AVAILABILITY = BOOT.TRAIT_AVAILABILITY || {};
 var CHAR_DETAILS     = BOOT.CHAR_DETAILS || {};
 var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
@@ -196,6 +198,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     if (nextBoot.TRIBUS_BY_SYS) TRIBUS_BY_SYS = nextBoot.TRIBUS_BY_SYS;
     if (nextBoot.TRIBU_ID_TO_SYS) TRIBU_ID_TO_SYS = nextBoot.TRIBU_ID_TO_SYS;
     if (nextBoot.TRIBU_ID_TO_ALLOWED_SYS) TRIBU_ID_TO_ALLOWED_SYS = nextBoot.TRIBU_ID_TO_ALLOWED_SYS;
+    if (nextBoot.TRIBE_BREED_COMPATIBILITY) TRIBE_BREED_COMPATIBILITY = nextBoot.TRIBE_BREED_COMPATIBILITY;
     DONES_OPTS = Array.isArray(nextBoot.DONES_OPTS) ? nextBoot.DONES_OPTS : DONES_OPTS;
     DISC_OPTS = Array.isArray(nextBoot.DISC_OPTS) ? nextBoot.DISC_OPTS : DISC_OPTS;
     RITU_OPTS = Array.isArray(nextBoot.RITU_OPTS) ? nextBoot.RITU_OPTS : RITU_OPTS;
@@ -211,6 +214,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     CHAR_TRAITS = nextBoot.CHAR_TRAITS || CHAR_TRAITS;
     TRAIT_KIND_ORDER = Array.isArray(nextBoot.TRAIT_KIND_ORDER) ? nextBoot.TRAIT_KIND_ORDER : TRAIT_KIND_ORDER;
     TRAIT_SET_ORDER = nextBoot.TRAIT_SET_ORDER || TRAIT_SET_ORDER;
+    TRAIT_AVAILABILITY = nextBoot.TRAIT_AVAILABILITY || TRAIT_AVAILABILITY;
     CHAR_DETAILS = nextBoot.CHAR_DETAILS || CHAR_DETAILS;
     rebuildTraitMetaIndex();
   }
@@ -335,11 +339,39 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       || (isSecondary && (kindNorm === 'talentos' || kindNorm === 'tecnicas' || kindNorm === 'conocimientos'));
   }
 
+  function isScopedTraitAllowed(traitId, systemId){
+    var key = String(parseInt(traitId, 10) || 0);
+    var rules = TRAIT_AVAILABILITY[key] || [];
+    if (!Array.isArray(rules) || !rules.length) return true;
+
+    var sys = parseInt(systemId || (selSistema && selSistema.value), 10) || 0;
+    var breed = parseInt(selRaza && selRaza.value, 10) || 0;
+    var auspice = parseInt(selAusp && selAusp.value, 10) || 0;
+    var tribe = parseInt(selTribu && selTribu.value, 10) || 0;
+
+    return rules.some(function(rule){
+      if ((parseInt(rule.system_id, 10) || 0) !== sys) return false;
+      var scopeType = String(rule.scope_type || '');
+      var scopeId = parseInt(rule.scope_id, 10) || 0;
+      if (scopeType === 'system') return scopeId === sys;
+      if (scopeType === 'race') return scopeId === breed;
+      if (scopeType === 'auspice') return scopeId === auspice;
+      if (scopeType === 'tribe') return scopeId === tribe;
+      return false;
+    });
+  }
+
   function getSystemTraitIds(systemId){
     var orderMap = (TRAIT_SET_ORDER && systemId && TRAIT_SET_ORDER[String(systemId)]) ? TRAIT_SET_ORDER[String(systemId)] : {};
-    return Object.keys(orderMap).sort(function(a, b){
-      var ao = parseInt(orderMap[a], 10);
-      var bo = parseInt(orderMap[b], 10);
+    var ids = {};
+    Object.keys(orderMap).forEach(function(id){ ids[String(id)] = true; });
+    Object.keys(TRAIT_AVAILABILITY || {}).forEach(function(id){
+      if (isScopedTraitAllowed(id, systemId)) ids[String(id)] = true;
+    });
+
+    return Object.keys(ids).sort(function(a, b){
+      var ao = Object.prototype.hasOwnProperty.call(orderMap, a) ? parseInt(orderMap[a], 10) : 9999;
+      var bo = Object.prototype.hasOwnProperty.call(orderMap, b) ? parseInt(orderMap[b], 10) : 9999;
       if (ao !== bo) return ao - bo;
       var am = getTraitMeta(a);
       var bm = getTraitMeta(b);
@@ -569,6 +601,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     var list = (TRAITS_OPTS || []).filter(function(trait){
       if (!trait || !trait.id) return false;
       if (exclude[String(trait.id)]) return false;
+      if (!isScopedTraitAllowed(trait.id, sys)) return false;
       if (isMonster && isTraitBlockedForMonster(trait)) return false;
       return true;
     }).sort(function(a, b){
@@ -759,6 +792,22 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     fillSelectFrom(list, selManada, '— Sin manadas en este Clan —', preselect);
   }
 
+  function tribesForBreed(sys, breedId){
+    var list = TRIBUS_BY_SYS[sys] || [];
+    breedId = parseInt(breedId, 10) || 0;
+    if (!breedId) return list;
+
+    return list.filter(function(tribe){
+      var rules = TRIBE_BREED_COMPATIBILITY[String(tribe.id)];
+      if (!rules || typeof rules !== 'object' || !Object.keys(rules).length) return true;
+      return !!rules[String(breedId)];
+    });
+  }
+
+  function updateTribeSet(sys, breedId, preTribu){
+    return fillSelectFrom(tribesForBreed(sys, breedId), selTribu, '— Sin tribus para esta Raza —', preTribu);
+  }
+
   function updateSistemaSets(sys, preRaza, preAusp, preTribu){
     if (!sys){
       clearSelect(selRaza, false); var a1 = document.createElement('option'); a1.value = '0'; a1.textContent = '— Elige un Sistema —'; selRaza.appendChild(a1); selRaza.disabled = true; reinitSelect2(selRaza);
@@ -769,7 +818,8 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     var okR = fillSelectFrom(RAZAS_BY_SYS[sys] || [], selRaza, '— Sin razas para este Sistema —', preRaza);
     var okA = fillSelectFrom(AUSP_BY_SYS[sys] || [], selAusp, '— Sin auspicios para este Sistema —', preAusp);
-    var okT = fillSelectFrom(TRIBUS_BY_SYS[sys] || [], selTribu, '— Sin tribus para este Sistema —', preTribu);
+    var effectiveBreed = okR ? (parseInt(preRaza, 10) || 0) : (parseInt(selRaza.value, 10) || 0);
+    var okT = updateTribeSet(sys, effectiveBreed, preTribu);
 
     if (preRaza && !okR){
       var w = document.createElement('option'); w.value = String(preRaza); w.textContent = '[WARN] (Fuera del Sistema) ID ' + preRaza;
@@ -1235,8 +1285,43 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     var currentTraitValues = collectTraitValues();
     var currentExtraTraitIds = collectExtraTraitIds();
     updateSistemaSets(sys, 0,0,0);
+    Object.keys(currentTraitValues).forEach(function(id){
+      if ((parseInt(currentTraitValues[id], 10) || 0) > 0 && !isScopedTraitAllowed(id, sys)) {
+        markTraitRemoved(id);
+        delete currentTraitValues[id];
+      }
+    });
     renderTraitsUI(currentTraitValues, currentExtraTraitIds);
     ensureSystemResources(sys);
+  });
+
+  onSelectChange(selRaza, function(){
+    var sys = parseInt(selSistema.value,10)||0;
+    var breed = parseInt(selRaza.value,10)||0;
+    var currentTribe = parseInt(selTribu.value,10)||0;
+    var currentTraitValues = collectTraitValues();
+    var currentExtraTraitIds = collectExtraTraitIds();
+    updateTribeSet(sys, breed, currentTribe);
+    Object.keys(currentTraitValues).forEach(function(id){
+      if ((parseInt(currentTraitValues[id], 10) || 0) > 0 && !isScopedTraitAllowed(id, sys)) {
+        markTraitRemoved(id);
+        delete currentTraitValues[id];
+      }
+    });
+    renderTraitsUI(currentTraitValues, currentExtraTraitIds);
+  });
+
+  onSelectChange(selTribu, function(){
+    var sys = parseInt(selSistema.value,10)||0;
+    var currentTraitValues = collectTraitValues();
+    var currentExtraTraitIds = collectExtraTraitIds();
+    Object.keys(currentTraitValues).forEach(function(id){
+      if ((parseInt(currentTraitValues[id], 10) || 0) > 0 && !isScopedTraitAllowed(id, sys)) {
+        markTraitRemoved(id);
+        delete currentTraitValues[id];
+      }
+    });
+    renderTraitsUI(currentTraitValues, currentExtraTraitIds);
   });
 
   // Clan -> manadas
@@ -1308,6 +1393,10 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       if (!isAllowedForSystem(RAZA_ID_TO_ALLOWED_SYS, RAZA_ID_TO_SYS, rz, sys)){ return 'La Raza no pertenece al Sistema elegido.'; }
       if (!isAllowedForSystem(AUSP_ID_TO_ALLOWED_SYS, AUSP_ID_TO_SYS, au, sys)){ return 'El Auspicio no pertenece al Sistema elegido.'; }
       if (!isAllowedForSystem(TRIBU_ID_TO_ALLOWED_SYS, TRIBU_ID_TO_SYS, tr, sys)){ return 'La Tribu no pertenece al Sistema elegido.'; }
+      var breedRules = TRIBE_BREED_COMPATIBILITY[String(tr)];
+      if (tr && rz && breedRules && typeof breedRules === 'object' && Object.keys(breedRules).length && !breedRules[String(rz)]) {
+        return 'La Tribu seleccionada no admite esa Raza de nacimiento.';
+      }
     }
     if (!fEstado.value) return 'Debes seleccionar un Estado.';
     return '';
