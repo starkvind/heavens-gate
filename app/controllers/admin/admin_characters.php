@@ -164,6 +164,7 @@ $valid_trait_ids = $complexCatalogs['validTraits'];
 $monster_blocked_trait_ids = $complexCatalogs['blockedMonster'];
 $trait_kind_order = $complexCatalogs['traitOrder'];
 $trait_set_order = $complexCatalogs['traitSetOrder'];
+$trait_availability = $complexCatalogs['traitAvailability'] ?? [];
 
 $dimensions = hg_characters_admin_system_dimensions($link, $opts_sist);
 $opts_razas = $dimensions['breed']['options'];
@@ -178,6 +179,7 @@ $opts_tribus = $dimensions['tribe']['options'];
 $tribus_by_sys = $dimensions['tribe']['by_system'];
 $tribu_id_to_sys = $dimensions['tribe']['id_to_system'];
 $tribu_id_to_allowed_sys = $dimensions['tribe']['allowed'];
+$tribe_breed_compatibility = $dimensions['tribe']['breed_compatibility'] ?? [];
 
 $groupMaps = hg_characters_admin_group_maps($link);
 $manadas_map_id_to_clan = $groupMaps['group_to_org'];
@@ -311,6 +313,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
     $traits_delete = array_map('intval', array_keys($traits_delete));
 
+    // Traits con disponibilidad contextual (por Raza/Auspicio/Tribu).
+    if (($action === 'create' || $action === 'update') && $should_save_traits && !empty($traits)) {
+        foreach (array_keys($traits) as $traitId) {
+            $rules = $trait_availability[(int)$traitId] ?? [];
+            if (empty($rules)) continue;
+
+            $allowedScopedTrait = false;
+            foreach ($rules as $rule) {
+                if ((int)($rule['system_id'] ?? 0) !== (int)$system_id) continue;
+                $scopeType = (string)($rule['scope_type'] ?? '');
+                $scopeId = (int)($rule['scope_id'] ?? 0);
+                if (
+                    ($scopeType === 'system' && $scopeId === (int)$system_id)
+                    || ($scopeType === 'race' && $scopeId === (int)$raza)
+                    || ($scopeType === 'auspice' && $scopeId === (int)$auspice_id)
+                    || ($scopeType === 'tribe' && $scopeId === (int)$tribe_id)
+                ) {
+                    $allowedScopedTrait = true;
+                    break;
+                }
+            }
+
+            if (!$allowedScopedTrait) {
+                unset($traits[(int)$traitId]);
+                $traitName = '';
+                foreach ($traits_catalog as $traitMeta) {
+                    if ((int)($traitMeta['id'] ?? 0) === (int)$traitId) {
+                        $traitName = (string)($traitMeta['name'] ?? '');
+                        break;
+                    }
+                }
+                $flash[] = [
+                    'type'=>'error',
+                    'msg'=>'[WARN] El Trait ' . ($traitName !== '' ? '"' . $traitName . '"' : '#' . (int)$traitId) . ' no está disponible para la combinación de Raza/Auspicio/Tribu seleccionada.'
+                ];
+            }
+        }
+    }
+
     // RECURSOS (nuevo modelo): arrays paralelos enviados desde chips del modal
     $resources_rows = [];
     $res_ids_raw  = isset($_POST['resource_ids']) ? (array)$_POST['resource_ids'] : [];
@@ -352,6 +393,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             }
             if ($tribe_id > 0 && isset($tribu_id_to_allowed_sys[$tribe_id]) && !isset($tribu_id_to_allowed_sys[$tribe_id][(int)$system_id])) {
                 $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
+            }
+            if ($tribe_id > 0 && $raza > 0 && isset($tribe_breed_compatibility[$tribe_id]) && !isset($tribe_breed_compatibility[$tribe_id][$raza])) {
+                $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu seleccionada no admite esa Raza de nacimiento.'];
             }
         }
     }
@@ -1142,6 +1186,7 @@ $jsBoot = [
   'TRIBUS_BY_SYS' => $tribus_by_sys,
   'TRIBU_ID_TO_SYS' => $tribu_id_to_sys,
   'TRIBU_ID_TO_ALLOWED_SYS' => $tribu_id_to_allowed_sys,
+  'TRIBE_BREED_COMPATIBILITY' => $tribe_breed_compatibility,
   'DONES_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_dones), array_values($opts_dones)),
   'DISC_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_disciplinas), array_values($opts_disciplinas)),
   'RITU_OPTS' => array_map(fn($id,$name)=>['id'=>$id,'name'=>$name], array_keys($opts_rituales), array_values($opts_rituales)),
@@ -1157,6 +1202,7 @@ $jsBoot = [
   'CHAR_TRAITS' => $char_traits,
   'TRAIT_KIND_ORDER' => $trait_kind_order,
   'TRAIT_SET_ORDER' => $trait_set_order,
+  'TRAIT_AVAILABILITY' => $trait_availability,
   'CHAR_DETAILS' => $char_details,
   'DEFAULT_STATUS_ID' => (int)$default_status_id,
 ];
