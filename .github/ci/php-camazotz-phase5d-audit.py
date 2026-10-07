@@ -74,6 +74,12 @@ mobile_systems = require(
 if "Según Raza natal" in mobile_systems:
     errors.append("mobile public Form page reintroduced misleading generic regeneration label")
 
+admin_service = require(
+    "app/domains/characters/admin_service.php",
+    "'bridge_tribes_breeds' => true",
+    "'bridge_traits_availability' => true",
+)
+
 admin_queries = require(
     "app/domains/characters/admin_queries.php",
     "bridge_tribes_breeds",
@@ -110,6 +116,8 @@ tribe_page = require(
     "app/controllers/systems/system_detail_page.php",
     "patron_totem_id",
     "Patrono tribal",
+    "Forma natal:",
+    "Regeneración fuera de la Forma natal:",
 )
 
 dice = require(
