@@ -715,6 +715,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     }).forEach(function(traitId){
       var meta = getTraitMeta(traitId) || { id: traitId, name: '#' + traitId, kind: 'Trait', classification: '' };
       if (defaultMap[String(traitId)]) return;
+      if (!isScopedTraitAllowed(traitId, systemId)) return;
       if (isMonster && isTraitBlockedForMonster(meta)) return;
       addTraitChip(traitId, values && values[traitId] !== undefined ? values[traitId] : 0);
     });
