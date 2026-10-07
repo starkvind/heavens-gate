@@ -183,10 +183,35 @@ if (!function_exists('hg_characters_admin_complex_catalogs')) {
             $result->close();
         }
 
+        $traitAvailability = [];
+        if (pjs_table_exists($link, 'bridge_traits_availability')) {
+            $result = $link->query(
+                "SELECT trait_id, system_id, scope_type, scope_id
+                 FROM bridge_traits_availability
+                 WHERE is_active=1
+                 ORDER BY system_id, trait_id, scope_type, scope_id"
+            );
+            if ($result) {
+                while ($row = $result->fetch_assoc()) {
+                    $tid = (int)($row['trait_id'] ?? 0);
+                    $sid = (int)($row['system_id'] ?? 0);
+                    $scopeType = trim((string)($row['scope_type'] ?? ''));
+                    $scopeId = (int)($row['scope_id'] ?? 0);
+                    if ($tid <= 0 || $sid <= 0 || $scopeType === '' || $scopeId <= 0) continue;
+                    $traitAvailability[$tid][] = [
+                        'system_id'=>$sid,
+                        'scope_type'=>$scopeType,
+                        'scope_id'=>$scopeId,
+                    ];
+                }
+                $result->close();
+            }
+        }
+
         return compact(
             'disciplinePowerToType','merits','items','hasResources','hasSystemResources',
             'hasCharResources','hasCharResourcesLog','resources','resourcesById','resourcesBySystem',
-            'traits','validTraits','blockedMonster','traitOrder','traitSetOrder'
+            'traits','validTraits','blockedMonster','traitOrder','traitSetOrder','traitAvailability'
         );
     }
 }
@@ -235,6 +260,28 @@ if (!function_exists('hg_characters_admin_system_dimensions')) {
             }
             $out[$key]=['options'=>$options,'by_system'=>$bySystem,'id_to_system'=>$idToSystem,'allowed'=>$allowed];
         }
+
+        $tribeBreedCompatibility = [];
+        if (pjs_table_exists($link, 'bridge_tribes_breeds')) {
+            $result = $link->query(
+                "SELECT tribe_id, breed_id
+                 FROM bridge_tribes_breeds
+                 WHERE is_active=1
+                 ORDER BY tribe_id, breed_id"
+            );
+            if ($result) {
+                while ($row = $result->fetch_assoc()) {
+                    $tribeId = (int)($row['tribe_id'] ?? 0);
+                    $breedId = (int)($row['breed_id'] ?? 0);
+                    if ($tribeId <= 0 || $breedId <= 0) continue;
+                    $tribeBreedCompatibility[$tribeId][$breedId] = true;
+                }
+                $result->close();
+            }
+        }
+        if (!isset($out['tribe'])) $out['tribe'] = [];
+        $out['tribe']['breed_compatibility'] = $tribeBreedCompatibility;
+
         return $out;
     }
 }
