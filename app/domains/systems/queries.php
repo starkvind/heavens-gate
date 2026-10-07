@@ -566,6 +566,12 @@ function hg_systems_fetch_form(mysqli $link, int $formId)
         COALESCE(dex.modifier, 0) AS dexterity_bonus,
         COALESCE(sta.modifier, 0) AS stamina_bonus,
         CASE WHEN f.hpregen > 0 THEN 1 ELSE 0 END AS regeneration,
+        CASE WHEN EXISTS (
+            SELECT 1
+            FROM dim_breeds regen_breed
+            WHERE regen_breed.form_system_id = f.system_id
+              AND COALESCE(regen_breed.regen_normal_per_turn, 0) > 0
+        ) THEN 1 ELSE 0 END AS contextual_regeneration,
         COALESCE(NULLIF(ds.name, ''), '') AS system_name_resolved,
         COALESCE(
             GROUP_CONCAT(
