@@ -1223,6 +1223,26 @@ if (!function_exists('hg_characters_fetch_sheet_skills')) {
             return $data;
         }
 
+        $scope = ['breed_id'=>0, 'auspice_id'=>0, 'tribe_id'=>0];
+        $scopeStmt = mysqli_prepare(
+            $link,
+            'SELECT breed_id, auspice_id, tribe_id FROM fact_characters WHERE id = ? LIMIT 1'
+        );
+        if ($scopeStmt) {
+            mysqli_stmt_bind_param($scopeStmt, 'i', $characterId);
+            mysqli_stmt_execute($scopeStmt);
+            $scopeResult = mysqli_stmt_get_result($scopeStmt);
+            $scopeRow = $scopeResult ? mysqli_fetch_assoc($scopeResult) : null;
+            if ($scopeResult) mysqli_free_result($scopeResult);
+            mysqli_stmt_close($scopeStmt);
+            if (is_array($scopeRow)) {
+                $scope['breed_id'] = (int)($scopeRow['breed_id'] ?? 0);
+                $scope['auspice_id'] = (int)($scopeRow['auspice_id'] ?? 0);
+                $scope['tribe_id'] = (int)($scopeRow['tribe_id'] ?? 0);
+            }
+        }
+
+        $primaryIds = [];
         $stmt = mysqli_prepare(
             $link,
             "SELECT t.id, t.name, t.kind, t.classification, s.sort_order, COALESCE(b.value, 0) AS value
@@ -1238,11 +1258,60 @@ if (!function_exists('hg_characters_fetch_sheet_skills')) {
             $result = mysqli_stmt_get_result($stmt);
             if ($result) {
                 while ($row = mysqli_fetch_assoc($result)) {
+                    $tid = (int)($row['id'] ?? 0);
+                    if ($tid > 0) $primaryIds[$tid] = true;
                     $data['primary'][] = $row;
                 }
                 mysqli_free_result($result);
             }
             mysqli_stmt_close($stmt);
+        }
+
+        // Optional scoped traits (e.g. a Background available only to one Tribe).
+        // If the table is not deployed, prepare() simply fails and legacy behavior
+        // remains intact.
+        $scopedStmt = mysqli_prepare(
+            $link,
+            "SELECT t.id, t.name, t.kind, t.classification, 9999 AS sort_order, COALESCE(b.value, 0) AS value
+             FROM bridge_traits_availability a
+             INNER JOIN dim_traits t ON t.id = a.trait_id
+             LEFT JOIN bridge_characters_traits b ON b.trait_id = t.id AND b.character_id = ?
+             WHERE a.system_id = ?
+               AND a.is_active = 1
+               AND (
+                    (a.scope_type = 'system' AND a.scope_id = ?)
+                    OR (a.scope_type = 'race' AND a.scope_id = ?)
+                    OR (a.scope_type = 'auspice' AND a.scope_id = ?)
+                    OR (a.scope_type = 'tribe' AND a.scope_id = ?)
+               )
+             ORDER BY t.kind ASC, t.name ASC"
+        );
+        if ($scopedStmt) {
+            $breedId = (int)$scope['breed_id'];
+            $auspiceId = (int)$scope['auspice_id'];
+            $tribeId = (int)$scope['tribe_id'];
+            mysqli_stmt_bind_param(
+                $scopedStmt,
+                'iiiiii',
+                $characterId,
+                $systemId,
+                $systemId,
+                $breedId,
+                $auspiceId,
+                $tribeId
+            );
+            mysqli_stmt_execute($scopedStmt);
+            $result = mysqli_stmt_get_result($scopedStmt);
+            if ($result) {
+                while ($row = mysqli_fetch_assoc($result)) {
+                    $tid = (int)($row['id'] ?? 0);
+                    if ($tid <= 0 || isset($primaryIds[$tid])) continue;
+                    $primaryIds[$tid] = true;
+                    $data['primary'][] = $row;
+                }
+                mysqli_free_result($result);
+            }
+            mysqli_stmt_close($scopedStmt);
         }
 
         $stmt = mysqli_prepare(
@@ -1267,6 +1336,8 @@ if (!function_exists('hg_characters_fetch_sheet_skills')) {
             $result = mysqli_stmt_get_result($stmt);
             if ($result) {
                 while ($row = mysqli_fetch_assoc($result)) {
+                    $tid = (int)($row['id'] ?? 0);
+                    if ($tid > 0 && isset($primaryIds[$tid])) continue;
                     $data['secondary'][] = $row;
                 }
                 mysqli_free_result($result);
@@ -1276,4 +1347,4 @@ if (!function_exists('hg_characters_fetch_sheet_skills')) {
 
         return $data;
     }
-}
+}}
