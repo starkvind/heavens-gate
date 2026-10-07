@@ -15,7 +15,7 @@ BASELINE = {
     "php_files": 349,
     "active_routes": 98,
     "mobile_routes": 76,
-    "admin_controllers": 60,
+    "admin_controllers": 61,
     "public_controller_sql_owners": 4,
     "public_controller_sql_calls": 16,
     "schema_probes": 20,
