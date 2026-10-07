@@ -290,6 +290,20 @@ function hg_systems_fetch_mobile_resources(mysqli $link, int $systemId)
     return $rows;
 }
 
+function hg_systems_fetch_form_identity(mysqli $link, int $formId): ?array
+{
+    if ($formId <= 0) return null;
+    $stmt = $link->prepare("SELECT id, pretty_id, form FROM dim_forms WHERE id = ? LIMIT 1");
+    if (!$stmt) return null;
+    $stmt->bind_param('i', $formId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    $row = $rs ? $rs->fetch_assoc() : null;
+    if ($rs) $rs->free();
+    $stmt->close();
+    return $row ?: null;
+}
+
 function hg_systems_fetch_detail(mysqli $link, int $type, int $detailId)
 {
     $def = hg_systems_table_for_detail_type($type);
