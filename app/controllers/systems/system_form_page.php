@@ -44,14 +44,11 @@ if ($systemNameRaw === "Bastet" && $breedNameRaw !== '') {
 $nameWereForm = sf_h($formDisplayRaw);
 $infoDesc = (string)($row['description'] ?? '');
 $imageWereForm = trim((string)($row['image_url'] ?? ''));
-$bonusSTR = sf_h((string)($row['strength_bonus'] ?? ''));
-$bonusDEX = sf_h((string)($row['dexterity_bonus'] ?? ''));
-$bonusRES = sf_h((string)($row['stamina_bonus'] ?? ''));
+$formModifiers = hg_systems_fetch_form_modifiers($link, $formId);
 $useMelee = (int)($row['weapons'] ?? 0);
 $useGuns = (int)($row['firearms'] ?? 0);
-$regenValue = (int)($row['hpregen'] ?? 0);
-$regenContextual = (int)($row['contextual_regeneration'] ?? 0) === 1;
-$regenDisplay = $regenValue > 0 ? $regenValue . ' / turno' : ($regenContextual ? 'Según Raza natal' : 'No');
+$regenValue = (int)($row['public_hpregen'] ?? $row['hpregen'] ?? 0);
+$regenDisplay = $regenValue > 0 ? $regenValue . ' / turno' : 'No';
 
 $canUseMelee = $useMelee === 1
     ? "Esta forma es capaz de utilizar armas cuerpo a cuerpo."
@@ -84,18 +81,26 @@ if (function_exists('hg_page_register_stylesheet')) {
   <div class="form-box">
     <h3>Modificadores</h3>
     <div class="mod-grid">
-      <div class="mod-card">
-        <div class="mod-label">Fuerza</div>
-        <div class="mod-value"><?= ($bonusSTR !== '' && is_numeric($bonusSTR) && $bonusSTR > 0 ? '+' : '') . $bonusSTR ?></div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-label">Destreza</div>
-        <div class="mod-value"><?= ($bonusDEX !== '' && is_numeric($bonusDEX) && $bonusDEX > 0 ? '+' : '') . $bonusDEX ?></div>
-      </div>
-      <div class="mod-card">
-        <div class="mod-label">Resistencia</div>
-        <div class="mod-value"><?= ($bonusRES !== '' && is_numeric($bonusRES) && $bonusRES > 0 ? '+' : '') . $bonusRES ?></div>
-      </div>
+      <?php if (empty($formModifiers)): ?>
+        <div class="mod-card">
+          <div class="mod-label">Atributos</div>
+          <div class="mod-value">Sin modificadores</div>
+        </div>
+      <?php else: ?>
+        <?php foreach ($formModifiers as $modifier): ?>
+          <?php
+            $overrideValue = $modifier['override_value'] ?? null;
+            $modifierValue = $modifier['modifier'] ?? null;
+            $displayValue = $overrideValue !== null
+                ? '= ' . (int)$overrideValue
+                : (((int)$modifierValue > 0 ? '+' : '') . (int)$modifierValue);
+          ?>
+          <div class="mod-card">
+            <div class="mod-label"><?= sf_h((string)($modifier['name'] ?? 'Rasgo')) ?></div>
+            <div class="mod-value"><?= sf_h($displayValue) ?></div>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
     <div class="cap-grid">
       <div class="cap-item">
