@@ -265,6 +265,22 @@ if ($route === 'versistdetalle') {
         if (trim((string)($detail['extra_info'] ?? '')) !== '') $stats[] = ['Info', (string)$detail['extra_info']];
         if (trim((string)($detail['energy_name'] ?? '')) !== '') $stats[] = [(string)$detail['energy_name'], (string)($detail['energy_value'] ?? '')];
     }
+    if ($type === 1) {
+        $nativeFormId = (int)($detail['native_form_id'] ?? 0);
+        if ($nativeFormId > 0) {
+            $nativeForm = hg_systems_fetch_form_identity($link, $nativeFormId);
+            $nativeFormName = trim((string)($nativeForm['form'] ?? ''));
+            if ($nativeFormName !== '') $stats[] = ['Forma natal', $nativeFormName];
+        }
+        $regenNormal = (int)($detail['regen_normal_per_turn'] ?? 0);
+        if ($regenNormal > 0) {
+            $stats[] = ['Regeneración fuera de Forma natal', $regenNormal . ' / turno'];
+            $stressDifficulty = (int)($detail['regen_stress_difficulty'] ?? 0);
+            if ($stressDifficulty > 0) $stats[] = ['Regeneración bajo estrés', 'Resistencia, dificultad ' . $stressDifficulty];
+            $stats[] = ['Regeneración en Forma natal', ((int)($detail['regen_in_native_form'] ?? 0) === 1 ? 'Sí' : 'No')];
+            $stats[] = ['Daño agravado automático', ((int)($detail['regen_aggravated_auto'] ?? 0) === 1 ? 'Sí' : 'No')];
+        }
+    }
     if ($type === 3) {
         $patronTotemId = (int)($detail['patron_totem_id'] ?? 0);
         if ($patronTotemId > 0) {
