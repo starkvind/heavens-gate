@@ -265,6 +265,22 @@ if ($route === 'versistdetalle') {
         if (trim((string)($detail['extra_info'] ?? '')) !== '') $stats[] = ['Info', (string)$detail['extra_info']];
         if (trim((string)($detail['energy_name'] ?? '')) !== '') $stats[] = [(string)$detail['energy_name'], (string)($detail['energy_value'] ?? '')];
     }
+    if ($type === 3) {
+        $patronTotemId = (int)($detail['patron_totem_id'] ?? 0);
+        if ($patronTotemId > 0) {
+            $stmtPatron = $link->prepare('SELECT name FROM dim_totems WHERE id = ? LIMIT 1');
+            if ($stmtPatron) {
+                $stmtPatron->bind_param('i', $patronTotemId);
+                $stmtPatron->execute();
+                $patronResult = $stmtPatron->get_result();
+                $patronRow = $patronResult ? $patronResult->fetch_assoc() : null;
+                if ($patronResult) $patronResult->free();
+                $stmtPatron->close();
+                $patronName = trim((string)($patronRow['name'] ?? ''));
+                if ($patronName !== '') $stats[] = ['Patrono tribal', $patronName];
+            }
+        }
+    }
 
     $gifts = [];
     $giftRows = hg_systems_fetch_gifts($link, $name, $systemId);
