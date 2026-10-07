@@ -113,6 +113,33 @@ if ($table !== '') {
         }
     }
 
+    if ($systemTypeDocument === 1) {
+        $nativeFormId = (int)($ResultQuery['native_form_id'] ?? 0);
+        if ($nativeFormId > 0) {
+            $nativeForm = hg_systems_fetch_form_identity($link, $nativeFormId);
+            if ($nativeForm) {
+                $nativeFormName = trim((string)($nativeForm['form'] ?? ''));
+                if ($nativeFormName !== '') {
+                    $nativeFormHref = pretty_url($link, 'dim_forms', '/systems/form', $nativeFormId);
+                    $metaHtml .= '<p><b>Forma natal:</b> <a href="' . htmlspecialchars($nativeFormHref) . '">' . htmlspecialchars($nativeFormName) . '</a></p>';
+                    $infoDataCheck++;
+                }
+            }
+        }
+
+        $regenNormal = (int)($ResultQuery['regen_normal_per_turn'] ?? 0);
+        if ($regenNormal > 0) {
+            $metaHtml .= '<p><b>Regeneración fuera de la Forma natal:</b> ' . $regenNormal . ' / turno</p>';
+            $stressDifficulty = (int)($ResultQuery['regen_stress_difficulty'] ?? 0);
+            if ($stressDifficulty > 0) {
+                $metaHtml .= '<p><b>Regeneración bajo estrés:</b> Resistencia, dificultad ' . $stressDifficulty . '</p>';
+            }
+            $metaHtml .= '<p><b>Regeneración en Forma natal:</b> ' . ((int)($ResultQuery['regen_in_native_form'] ?? 0) === 1 ? 'Sí' : 'No') . '</p>';
+            $metaHtml .= '<p><b>Daño agravado automático:</b> ' . ((int)($ResultQuery['regen_aggravated_auto'] ?? 0) === 1 ? 'Sí' : 'No') . '</p>';
+            $infoDataCheck++;
+        }
+    }
+
     if ($systemTypeDocument === 3) {
         $patronTotemId = (int)($ResultQuery['patron_totem_id'] ?? 0);
         if ($patronTotemId > 0) {
