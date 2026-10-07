@@ -155,27 +155,7 @@ admin_panel_open('Exportación documental');
   <?php endforeach; ?>
 </div>
 
-<style>
-.adm-export-scope { margin: 18px 0 22px; }
-.adm-export-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.adm-export-chronicles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px 14px; margin:14px 0; }
-.adm-export-check { display:flex; gap:8px; align-items:center; min-width:0; }
-.adm-export-check span { min-width:0; overflow-wrap:anywhere; }
-.adm-export-unscoped { margin-top:10px; }
-.adm-export-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
-.adm-export-card { width:auto !important; min-height:170px; box-sizing:border-box; margin:0 !important; padding:14px; display:flex; flex-direction:column; justify-content:space-between; }
-.adm-export-card h3 { margin-top:0; }
-.adm-export-progress-wrap { display:grid; gap:6px; margin:14px 0; }
-.adm-export-progress { width:100%; height:14px; }
-.adm-export-status { color:#9dd; font-size:12px; }
-.adm-export-actions { display:flex; gap:8px; flex-wrap:wrap; }
-@media (max-width: 900px) {
-  .adm-export-chronicles { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-@media (max-width: 700px) {
-  .adm-export-grid, .adm-export-chronicles { grid-template-columns:1fr; }
-}
-</style>
+
 
 <script src="/assets/js/admin/admin-http.js"></script>
 <script>
