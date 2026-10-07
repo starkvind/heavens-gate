@@ -21,7 +21,8 @@ $CSRF = function_exists('hg_admin_ensure_csrf_token')
 
 $allowedKinds = ['characters', 'seasons', 'chapters', 'documents', 'inventory'];
 
-$ajaxFlag = filter_input(INPUT_GET, 'ajax', FILTER_UNSAFE_RAW);\nif ((string)$ajaxFlag === '1') {
+$ajaxFlag = filter_input(INPUT_GET, 'ajax', FILTER_UNSAFE_RAW);
+if ((string)$ajaxFlag === '1') {
     if (function_exists('hg_admin_require_session')) hg_admin_require_session(true);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         hg_admin_json_error('Método inválido', 405, ['method' => 'POST requerido']);
