@@ -362,6 +362,8 @@ if ($route === 'verforma') {
     $systemId = (int)($form['system_id'] ?? 0);
 
     $maneuvers = hg_systems_fetch_form_maneuvers_normalized($link, $systemId, $formId);
+    $formModifiers = hg_systems_fetch_form_modifiers($link, $formId);
+    $publicHpregen = (int)($form['public_hpregen'] ?? $form['hpregen'] ?? 0);
     ?>
     <section class="hg-mobile-section">
         <a class="hg-mobile-back-link" href="<?= $systemId > 0 ? hg_mobile_sys_h(hg_mobile_sys_url($link, 'dim_systems', '/systems', $systemId)) : '/systems' ?>">Volver al sistema</a>
@@ -372,12 +374,19 @@ if ($route === 'verforma') {
     </section>
     <section class="hg-mobile-section">
         <div class="hg-mobile-sys-stats">
-            <?php hg_mobile_sys_stat('Fuerza', ((int)($form['strength_bonus'] ?? 0) > 0 ? '+' : '') . (string)($form['strength_bonus'] ?? '0')); ?>
-            <?php hg_mobile_sys_stat('Destreza', ((int)($form['dexterity_bonus'] ?? 0) > 0 ? '+' : '') . (string)($form['dexterity_bonus'] ?? '0')); ?>
-            <?php hg_mobile_sys_stat('Resistencia', ((int)($form['stamina_bonus'] ?? 0) > 0 ? '+' : '') . (string)($form['stamina_bonus'] ?? '0')); ?>
+            <?php foreach ($formModifiers as $modifier): ?>
+                <?php
+                    $overrideValue = $modifier['override_value'] ?? null;
+                    $modifierValue = $modifier['modifier'] ?? null;
+                    $displayValue = $overrideValue !== null
+                        ? '= ' . (int)$overrideValue
+                        : (((int)$modifierValue > 0 ? '+' : '') . (int)$modifierValue);
+                    hg_mobile_sys_stat((string)($modifier['name'] ?? 'Rasgo'), $displayValue);
+                ?>
+            <?php endforeach; ?>
             <?php hg_mobile_sys_stat('Armas cuerpo a cuerpo', ((int)($form['weapons'] ?? 0) === 1 ? 'Si' : 'No')); ?>
             <?php hg_mobile_sys_stat('Armas de fuego', ((int)($form['firearms'] ?? 0) === 1 ? 'Si' : 'No')); ?>
-            <?php hg_mobile_sys_stat('Regeneracion', ((int)($form['hpregen'] ?? 0) > 0 ? ((int)$form['hpregen'] . ' / turno') : ((int)($form['contextual_regeneration'] ?? 0) === 1 ? 'Según Raza natal' : 'No'))); ?>
+            <?php hg_mobile_sys_stat('Regeneracion', $publicHpregen > 0 ? ($publicHpregen . ' / turno') : 'No'); ?>
         </div>
     </section>
     <?php if (trim(strip_tags($description)) !== ''): ?><section class="hg-mobile-section"><h2>Descripción</h2><div class="hg-mobile-rich-body"><?= $description ?></div></section><?php endif; ?>
