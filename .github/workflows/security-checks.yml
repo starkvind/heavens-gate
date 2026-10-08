@@ -36,6 +36,12 @@ jobs:
           set -euo pipefail
           node --check assets/js/admin/admin-bibliographies.js
 
+      - name: Characterize bibliography material links
+        shell: bash
+        run: |
+          set -euo pipefail
+          php .github/ci/php-bibliography-reference-characterization.php
+
       - name: Validate production smoke runner
         shell: bash
         run: |
