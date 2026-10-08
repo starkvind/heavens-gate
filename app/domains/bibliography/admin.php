@@ -109,6 +109,60 @@ if (!function_exists('hg_bib_admin_public_routes')) {
     }
 }
 
+
+// Resolve labels for the publication bridge without N+1 lookups. The bridge
+// stores content identities, not copies of source titles or public slugs.
+if (!function_exists('hg_bib_admin_enrich_publication_members')) {
+    function hg_bib_admin_enrich_publication_members(mysqli $db, array &$items): void {
+        $catalog = [
+            'fact_gifts' => 'name',
+            'dim_systems' => 'name',
+            'dim_breeds' => 'name',
+            'dim_auspices' => 'name',
+            'dim_tribes' => 'name',
+            'dim_forms' => 'form',
+            'dim_totems' => 'name',
+            'dim_traits' => 'name',
+            'dim_merits_flaws' => 'name',
+        ];
+        $grouped = [];
+        foreach ($items as $entry) {
+            $type = (string)($entry['entity_table'] ?? '');
+            $entity = (int)($entry['entity_id'] ?? 0);
+            if (isset($catalog[$type]) && $entity > 0) $grouped[$type][$entity] = $entity;
+        }
+        $resolved = [];
+        foreach ($grouped as $type => $ids) {
+            $field = $catalog[$type]; // static trusted SQL identifier
+            $sql = 'SELECT id, pretty_id, ' . $field . ' AS title FROM ' . $type .
+                   ' WHERE id IN (' . implode(',', array_map('intval', $ids)) . ')';
+            $rs = $db->query($sql);
+            if (!$rs) continue;
+            while ($row = $rs->fetch_assoc()) {
+                $resolved[$type][(int)$row['id']] = $row;
+            }
+            $rs->free();
+        }
+        $routes = hg_bib_admin_public_routes();
+        foreach ($items as &$entry) {
+            $type = (string)($entry['entity_table'] ?? '');
+            $entity = (int)($entry['entity_id'] ?? 0);
+            $source = $resolved[$type][$entity] ?? null;
+            if (!$source) continue;
+            $title = trim((string)($source['title'] ?? ''));
+            $entry['_display_name'] = $title !== '' ? $title : '(sin nombre disponible)';
+            $slug = trim((string)($source['pretty_id'] ?? ''));
+            if ($slug === '') $slug = (string)$entity;
+            $base = $routes[$type] ?? '';
+            if ($base !== '') {
+                $entry['_url'] = $base . rawurlencode($slug) .
+                    '?edition=heavens-gate-camazotz';
+            }
+        }
+        unset($entry);
+    }
+}
+
 if (!function_exists('hg_bib_admin_references')) {
     function hg_bib_admin_references(mysqli $db, int $id, string $table, int $page = 1): array {
         $source = null;
@@ -151,12 +205,19 @@ if (!function_exists('hg_bib_admin_references')) {
             }
         }
         $isGiftAvailability = $table === 'bridge_gifts_availability' && isset($available['gift_id']);
+        $isPublicationBridge = $table === 'bridge_bibliography_publications'
+            && isset($available['entity_table'], $available['entity_id'], $available['context_system_id']);
         $routes = hg_bib_admin_public_routes();
         $route = empty($source['archive']) ? ($routes[$table] ?? '') : '';
 
         $keyColumns = $pk;
         if ($isGiftAvailability && !in_array('gift_id', $keyColumns, true)) {
             $keyColumns[] = 'gift_id';
+        }
+        if ($isPublicationBridge) {
+            foreach (['entity_table', 'entity_id', 'context_system_id'] as $field) {
+                if (!in_array($field, $keyColumns, true)) $keyColumns[] = $field;
+            }
         }
         $sqlColumns = [];
         foreach ($keyColumns as $key) $sqlColumns[] = 't.'.$key;
@@ -224,6 +285,9 @@ if (!function_exists('hg_bib_admin_references')) {
             $items[] = $record;
         }
         $st->close();
+        if ($isPublicationBridge) {
+            hg_bib_admin_enrich_publication_members($db, $items);
+        }
 
         return [
             'table' => $table, 'columns' => $keyColumns, 'rows' => $items,

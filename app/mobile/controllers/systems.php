@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
 $metaTitle = "Sistemas | Heaven's Gate";
@@ -245,12 +246,19 @@ if ($route === 'versistdetalle') {
     $name = trim((string)($detail['name'] ?? ''));
     $systemName = trim((string)($detail['system_name'] ?? ''));
     $systemId = (int)($detail['system_id'] ?? 0);
+    $detailPublication = hg_camazotz_publication_for($link, $table, $detailId,
+        hg_camazotz_publication_eligible($systemId, hg_camazotz_publication_requested($hgRequest)));
     $description = (string)($detail['description'] ?? '');
     $image = hg_mobile_sys_image($detail['image_url'] ?? '');
     $metaTitle = $name . " | Sistemas | Heaven's Gate";
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
 
     $stats = [];
+    if ($detailPublication) {
+        $stats[] = ['Publicación / versión', hg_camazotz_publication_label($detailPublication)];
+        $source = hg_camazotz_historical_source($link, (int)($detail['bibliography_id'] ?? 0));
+        if ($source !== '') $stats[] = ['Fuente original', $source];
+    }
     $energyEntries = hg_ser_energy_entries_for_row($link, $table, $detailId, $detail, $systemName);
     if (!empty($energyEntries)) {
         foreach ($energyEntries as $entry) {
@@ -296,7 +304,9 @@ if ($route === 'versistdetalle') {
         $gifts[] = [
             'label' => (string)($row['name'] ?? ''),
             'meta' => (string)($row['rank'] ?? ''),
-            'href' => hg_mobile_sys_url($link, 'fact_gifts', '/powers/gift', (int)($row['id'] ?? 0)),
+            'href' => $systemId === HG_CAMAZOTZ_SYSTEM_ID
+                ? hg_camazotz_publication_link(hg_mobile_sys_url($link, 'fact_gifts', '/powers/gift', (int)($row['id'] ?? 0)))
+                : hg_mobile_sys_url($link, 'fact_gifts', '/powers/gift', (int)($row['id'] ?? 0)),
         ];
     }
 
@@ -367,6 +377,11 @@ if ($route === 'verforma') {
     $metaTitle = $display . " | Formas | Heaven's Gate";
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
     $systemId = (int)($form['system_id'] ?? 0);
+    $formPublication = hg_camazotz_publication_for($link, 'dim_forms', $formId,
+        hg_camazotz_publication_eligible($systemId, hg_camazotz_publication_requested($hgRequest)));
+    $formHistoricalSource = $formPublication
+        ? hg_camazotz_historical_source($link, (int)($form['bibliography_id'] ?? 0))
+        : '';
 
     $maneuvers = hg_systems_fetch_form_maneuvers_normalized($link, $systemId, $formId);
     $formModifiers = hg_systems_fetch_form_modifiers($link, $formId);
@@ -381,6 +396,8 @@ if ($route === 'verforma') {
     </section>
     <section class="hg-mobile-section">
         <div class="hg-mobile-sys-stats">
+            <?php if ($formPublication) hg_mobile_sys_stat('Publicación / versión', hg_camazotz_publication_label($formPublication)); ?>
+            <?php if ($formHistoricalSource !== '') hg_mobile_sys_stat('Fuente original', $formHistoricalSource); ?>
             <?php foreach ($formModifiers as $modifier): ?>
                 <?php
                     $overrideValue = $modifier['override_value'] ?? null;
