@@ -117,34 +117,38 @@ tribe_page = require(
     "patron_totem_id",
     "Patrono tribal",
     "Forma natal",
+    "$metaItems[] = ['label' => $energyLabel . ' inicial'",
+    "if ($metaHtml !== '' || !empty($metaItems))",
     "Regeneración fuera de la Forma natal",
     "Regeneración de daño agravado",
-    "syst-race-meta-grid",
-    "syst-race-meta-item",
-    'strong class="syst-race-meta-value"',
+    "syst-detail-meta-grid",
+    "syst-detail-meta-item",
+    'strong class="syst-detail-meta-value"',
 )
 
 require(
     "assets/css/hg-systems.css",
-    ".syst-race-meta-grid",
+    ".syst-detail-meta-grid",
     "grid-template-columns: repeat(2, minmax(0, 1fr))",
-    ".syst-race-meta-item",
+    ".syst-detail-meta-item",
     "flex-direction: column",
-    ".syst-race-meta-label",
-    ".syst-race-meta-value",
+    ".syst-detail-meta-label",
+    ".syst-detail-meta-value",
+    "font-size: 12px",
     "@media (max-width: 720px)",
 )
 
 require(
     "app/mobile/controllers/systems.php",
-    "hg-mobile-sys-stats--race",
+    "hg-mobile-sys-stats--detail",
     "Regeneración de daño agravado",
 )
 
 require(
     "assets/css/hg-mobile.css",
-    ".hg-mobile-sys-stats--race",
+    ".hg-mobile-sys-stats--detail",
     "grid-template-columns: 1fr",
+    "font-size: 12px",
 )
 
 dice = require(
