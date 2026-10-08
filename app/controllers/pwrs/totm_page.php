@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
 $totemPageID = (int)hg_request_param($hgRequest, 'totem');
 $resultQueryTotem = hg_powers_fetch_totem($link, $totemPageID);
@@ -16,6 +17,9 @@ if ($resultQueryTotem) {
     $totemBan   = $resultQueryTotem["prohibited"];
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["image_url"] ?? ""));
+    $totemPublication = hg_camazotz_publication_for(
+        $link, 'dim_totems', $totemPageID, hg_camazotz_publication_requested($hgRequest)
+    );
     $totemOriginName = htmlspecialchars((string)($resultQueryTotem['origin_name'] ?? '-'));
     if ($totemOriginName === '') $totemOriginName = '-';
     $nombreTipo = htmlspecialchars((string)($resultQueryTotem['type_name'] ?? 'Desconocido'));
@@ -81,8 +85,14 @@ if ($resultQueryTotem) {
     if ($nombreTipo !== "") {
         echo "<div class='power-stat'><div class='power-stat__label'>Tipo</div><div class='power-stat__value'>$nombreTipo</div></div>";
     }
-    if ($totemOriginName !== "") {
-        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$totemOriginName</div></div>";
+    if ($totemOriginName !== "" && $totemOriginName !== "-") {
+        $originCaption = $totemPublication ? 'Fuente original' : 'Origen';
+        echo "<div class='power-stat'><div class='power-stat__label'>$originCaption</div><div class='power-stat__value'>$totemOriginName</div></div>";
+    }
+    if ($totemPublication) {
+        echo "<div class='power-stat'><div class='power-stat__label'>Publicaci&oacute;n / versi&oacute;n</div><div class='power-stat__value'>"
+            . htmlspecialchars(hg_camazotz_publication_label($totemPublication), ENT_QUOTES, 'UTF-8')
+            . "</div></div>";
     }
     echo "    </div>";
     echo "  </div>";
