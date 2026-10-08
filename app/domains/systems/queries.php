@@ -686,3 +686,24 @@ function hg_systems_fetch_form(mysqli $link, int $formId)
     $stmt->close();
     return $row ?: null;
 }
+
+/**
+ * Fetch the title of a tribal patron totem for system detail presentations.
+ * Shared by desktop and mobile so controllers do not own SQL.
+ */
+function hg_systems_fetch_patron_totem_name(mysqli $link, int $patronTotemId): string
+{
+    if ($patronTotemId <= 0) return '';
+    $stmt = $link->prepare('SELECT name FROM dim_totems WHERE id = ? LIMIT 1');
+    if (!$stmt) return '';
+    $stmt->bind_param('i', $patronTotemId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return '';
+    }
+    $result = $stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
+    if ($result) $result->free();
+    $stmt->close();
+    return trim((string)($row['name'] ?? ''));
+}

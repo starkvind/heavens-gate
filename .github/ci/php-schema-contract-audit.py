@@ -9,6 +9,10 @@ allowed = {
         'class': 'compatibility-boundary',
         'reason': 'single cached owner for ordinary current-database table/column existence checks',
     },
+    'app/domains/bibliography/admin.php': {
+        'class': 'dynamic-admin-operation',
+        'reason': 'bibliography manager must enumerate FK and other bibliography_id consumers before deletion',
+    },
     'app/domains/characters/admin_clone.php': {
         'class': 'dynamic-admin-operation',
         'reason': 'character cloning must discover bridge tables and copyable columns dynamically',

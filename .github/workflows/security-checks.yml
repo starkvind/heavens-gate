@@ -30,6 +30,12 @@ jobs:
           find app -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l index.php
 
+      - name: Validate bibliography Admin JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check assets/js/admin/admin-bibliographies.js
+
       - name: Validate production smoke runner
         shell: bash
         run: |

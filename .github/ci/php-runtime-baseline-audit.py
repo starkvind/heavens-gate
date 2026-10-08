@@ -15,10 +15,10 @@ BASELINE = {
     "php_files": 349,
     "active_routes": 98,
     "mobile_routes": 76,
-    "admin_controllers": 61,
+    "admin_controllers": 62,
     "public_controller_sql_owners": 4,
     "public_controller_sql_calls": 16,
-    "schema_probes": 20,
+    "schema_probes": 24,  # +4 domain-owned bibliography schema probes
     "raw_get_reads": 192,
     "raw_post_reads": 708,
     "raw_request_reads": 0,
