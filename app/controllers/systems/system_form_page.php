@@ -51,6 +51,9 @@ $formPublication = hg_camazotz_publication_for(
         (int)($row['system_id'] ?? 0), hg_camazotz_publication_requested($hgRequest)
     )
 );
+$formHistoricalSource = $formPublication
+    ? hg_camazotz_historical_source($link, (int)($row['bibliography_id'] ?? 0))
+    : '';
 $formModifiers = hg_systems_fetch_form_modifiers($link, $formId);
 $useMelee = (int)($row['weapons'] ?? 0);
 $useGuns = (int)($row['firearms'] ?? 0);
@@ -88,6 +91,9 @@ if (function_exists('hg_page_register_stylesheet')) {
   <?php if ($formPublication): ?>
   <div class="form-box"><strong>Publicación / versión:</strong>
     <?= sf_h(hg_camazotz_publication_label($formPublication)) ?>
+    <?php if ($formHistoricalSource !== ''): ?>
+      <div><strong>Fuente original:</strong> <?= sf_h($formHistoricalSource) ?></div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
