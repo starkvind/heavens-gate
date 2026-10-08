@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
 function sf_h($s): string {
@@ -44,6 +45,12 @@ if ($systemNameRaw === "Bastet" && $breedNameRaw !== '') {
 $nameWereForm = sf_h($formDisplayRaw);
 $infoDesc = (string)($row['description'] ?? '');
 $imageWereForm = trim((string)($row['image_url'] ?? ''));
+$formPublication = hg_camazotz_publication_for(
+    $link, 'dim_forms', $formId,
+    hg_camazotz_publication_eligible(
+        (int)($row['system_id'] ?? 0), hg_camazotz_publication_requested($hgRequest)
+    )
+);
 $formModifiers = hg_systems_fetch_form_modifiers($link, $formId);
 $useMelee = (int)($row['weapons'] ?? 0);
 $useGuns = (int)($row['firearms'] ?? 0);
@@ -77,6 +84,12 @@ if (function_exists('hg_page_register_stylesheet')) {
     <?php endif; ?>
     <h2 class="form-banner-title"><?= $nameWereForm ?></h2>
   </div>
+
+  <?php if ($formPublication): ?>
+  <div class="form-box"><strong>Publicación / versión:</strong>
+    <?= sf_h(hg_camazotz_publication_label($formPublication)) ?>
+  </div>
+  <?php endif; ?>
 
   <div class="form-box">
     <h3>Modificadores</h3>
