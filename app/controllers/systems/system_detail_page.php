@@ -54,6 +54,9 @@ if ($table !== '') {
         $link, $table, $resolvedId,
         hg_camazotz_publication_eligible($systemId, hg_camazotz_publication_requested($hgRequest))
     );
+    $historicalSource = $publication
+        ? hg_camazotz_historical_source($link, (int)($ResultQuery['bibliography_id'] ?? 0))
+        : '';
     $imageSyst = isset($ResultQuery["image_url"]) ? htmlspecialchars($ResultQuery["image_url"]) : "";
 
     $pageSect = $returnType;
@@ -193,6 +196,9 @@ if ($table !== '') {
   <?php if ($publication): ?>
   <div class="syst-box"><strong>Publicación / versión:</strong>
     <?= htmlspecialchars(hg_camazotz_publication_label($publication), ENT_QUOTES, 'UTF-8') ?>
+    <?php if ($historicalSource !== ''): ?>
+    <div><strong>Fuente original:</strong> <?= htmlspecialchars($historicalSource, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
