@@ -276,9 +276,9 @@ if ($route === 'versistdetalle') {
         if ($regenNormal > 0) {
             $stats[] = ['Regeneración fuera de Forma natal', $regenNormal . ' / turno'];
             $stressDifficulty = (int)($detail['regen_stress_difficulty'] ?? 0);
-            if ($stressDifficulty > 0) $stats[] = ['Regeneración bajo estrés', 'Resistencia, dificultad ' . $stressDifficulty];
+            if ($stressDifficulty > 0) $stats[] = ['Regeneración bajo estrés', 'Resistencia · Dificultad ' . $stressDifficulty];
             $stats[] = ['Regeneración en Forma natal', ((int)($detail['regen_in_native_form'] ?? 0) === 1 ? 'Sí' : 'No')];
-            $stats[] = ['Daño agravado automático', ((int)($detail['regen_aggravated_auto'] ?? 0) === 1 ? 'Sí' : 'No')];
+            $stats[] = ['Regeneración de daño agravado', ((int)($detail['regen_aggravated_auto'] ?? 0) === 1 ? 'Automática' : 'No automática')];
         }
     }
     if ($type === 3) {
@@ -324,7 +324,7 @@ if ($route === 'versistdetalle') {
         </div>
     </section>
     <?php if (!empty($stats)): ?>
-        <section class="hg-mobile-section"><div class="hg-mobile-sys-stats"><?php foreach ($stats as $stat) hg_mobile_sys_stat($stat[0], $stat[1]); ?></div></section>
+        <section class="hg-mobile-section"><div class="hg-mobile-sys-stats<?= $type === 1 ? ' hg-mobile-sys-stats--race' : '' ?>"><?php foreach ($stats as $stat) hg_mobile_sys_stat($stat[0], $stat[1]); ?></div></section>
     <?php endif; ?>
     <?php if (trim(strip_tags($description)) !== ''): ?>
         <section class="hg-mobile-section"><h2>Descripción</h2><div class="hg-mobile-rich-body"><?= $description ?></div></section>
