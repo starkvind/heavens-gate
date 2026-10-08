@@ -118,13 +118,33 @@ tribe_page = require(
     "Patrono tribal",
     "Forma natal",
     "Regeneración fuera de la Forma natal",
+    "Regeneración de daño agravado",
     "syst-race-meta-grid",
+    "syst-race-meta-item",
+    'strong class="syst-race-meta-value"',
 )
 
 require(
     "assets/css/hg-systems.css",
     ".syst-race-meta-grid",
     "grid-template-columns: repeat(2, minmax(0, 1fr))",
+    ".syst-race-meta-item",
+    "flex-direction: column",
+    ".syst-race-meta-label",
+    ".syst-race-meta-value",
+    "@media (max-width: 720px)",
+)
+
+require(
+    "app/mobile/controllers/systems.php",
+    "hg-mobile-sys-stats--race",
+    "Regeneración de daño agravado",
+)
+
+require(
+    "assets/css/hg-mobile.css",
+    ".hg-mobile-sys-stats--race",
+    "grid-template-columns: 1fr",
 )
 
 dice = require(
