@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
 require_once __DIR__ . '/../../domains/powers/gift_relationships.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
 $donPageID = (int)hg_request_param($hgRequest, 'gift');
 $resultQueryDon = hg_powers_fetch_gift($link, $donPageID);
@@ -24,6 +25,17 @@ if ($resultQueryDon) {
     $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));
     $donOriginName = htmlspecialchars((string)($resultQueryDon['origin_name'] ?? '-'));
     if ($donOriginName === '') $donOriginName = '-';
+    $editionRequested = hg_camazotz_publication_requested($hgRequest);
+    $editionAllowed = hg_camazotz_publication_eligible(
+        (int)($resultQueryDon['system_id'] ?? 0), $editionRequested
+    );
+    $camazotzPublication = hg_camazotz_publication_for(
+        $link, 'fact_gifts', $donPageID, $editionAllowed
+    );
+    $camazotzPublicationName = hg_camazotz_publication_label($camazotzPublication);
+    $camazotzContextSource = $camazotzPublication
+        ? hg_camazotz_gift_availability_source($link, $donPageID)
+        : '';
     $nombreTipo = htmlspecialchars((string)($resultQueryDon['type_name'] ?? 'Desconocido'));
     if ($nombreTipo === '') $nombreTipo = 'Desconocido';
 
@@ -100,8 +112,18 @@ if ($resultQueryDon) {
         $sourceHref = htmlspecialchars($mechanicsSourceHref);
         echo "<div class='power-stat'><div class='power-stat__label'>Mec&aacute;nica base</div><div class='power-stat__value'><a href='$sourceHref'>$sourceLabel</a></div></div>";
     }
-    if ($donOriginName !== "") {
-        echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>$donOriginName</div></div>";
+    if ($donOriginName !== "" && $donOriginName !== "-") {
+        $sourceCaption = $camazotzPublication ? 'Fuente original' : 'Origen';
+        echo "<div class='power-stat'><div class='power-stat__label'>$sourceCaption</div><div class='power-stat__value'>$donOriginName</div></div>";
+    }
+    if ($camazotzPublicationName !== '') {
+        echo "<div class='power-stat'><div class='power-stat__label'>Publicaci&oacute;n / versi&oacute;n</div><div class='power-stat__value'>"
+            . htmlspecialchars($camazotzPublicationName, ENT_QUOTES, 'UTF-8') . "</div></div>";
+        $globalSource = trim((string)($resultQueryDon['origin_name'] ?? ''));
+        if ($camazotzContextSource !== '' && $camazotzContextSource !== $globalSource) {
+            echo "<div class='power-stat'><div class='power-stat__label'>Fuente de la versi&oacute;n Camazotz</div><div class='power-stat__value'>"
+                . htmlspecialchars($camazotzContextSource, ENT_QUOTES, 'UTF-8') . "</div></div>";
+        }
     }
     echo "    </div>";
     echo "  </div>";
