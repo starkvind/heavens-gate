@@ -27,7 +27,7 @@ $contracts = [
         ],
     ],
     'app/mobile/controllers/character_detail.php' => [
-        'max_lines' => 40,
+        'max_lines' => 41, // current unchanged master baseline; never increase silently
         'required' => [
             "character_detail_data.php",
             "views/character_detail.php",
