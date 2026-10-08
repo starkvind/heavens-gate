@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
 $systemCategory = hg_request_param($hgRequest, 'system');
@@ -14,6 +15,10 @@ if (!$ordenQueryResult) {
     echo "<h2>Sistema no encontrado</h2>";
     echo "<div class='renglonDatosSistema'>El sistema solicitado no existe.</div>";
 } else {
+    $systemPublication = hg_camazotz_publication_for(
+        $link, 'dim_systems', $systemCategoryId,
+        $systemCategoryId === HG_CAMAZOTZ_SYSTEM_ID
+    );
     $systemNameRaw = (string)($ordenQueryResult["name"] ?? '');
     $systemName = htmlspecialchars($systemNameRaw);
     $systemImg = htmlspecialchars((string)($ordenQueryResult["image_url"] ?? ''));
@@ -46,6 +51,11 @@ if (!$ordenQueryResult) {
     <?php endif; ?>
     <h2 class="syst-banner-title"><?= $systemName ?></h2>
   </div>
+  <?php if ($systemPublication): ?>
+  <div class="syst-desc"><strong>Publicación / versión:</strong>
+    <?= htmlspecialchars(hg_camazotz_publication_label($systemPublication), ENT_QUOTES, 'UTF-8') ?>
+  </div>
+  <?php endif; ?>
   <div class="syst-desc"><?= $systemDesc ?></div>
 
   <div class="syst-sections">
