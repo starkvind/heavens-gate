@@ -128,6 +128,7 @@ if ($table !== '') {
                     ];
                     $infoDataCheck++;
                 }
+            }
         }
 
         $regenNormal = (int)($ResultQuery['regen_normal_per_turn'] ?? 0);
