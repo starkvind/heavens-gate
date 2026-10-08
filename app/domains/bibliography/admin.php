@@ -28,8 +28,15 @@ if (!function_exists('hg_bib_admin_sources')) {
                 'archive' => strncmp($table, 'backup_', 7) === 0];
         }
         $rs->free();
-        // Fail closed: schema introspection may be unavailable or incomplete.
-        if (count($tables) < 18) throw new RuntimeException('Inventario de referencias incompleto; borrado deshabilitado.');
+        // Fail closed if any of the 18 FK consumers verified by the Phase-6A
+        // production inventory are missing. Historical backup tables are
+        // reported whenever present, rather than silently discarded.
+        $fkCount = count(array_filter($tables, static function ($entry) {
+            return $entry['fk'];
+        }));
+        if ($fkCount < 18) {
+            throw new RuntimeException('Inventario de claves bibliograficas incompleto; borrado deshabilitado.');
+        }
         return $tables;
     }
 }
