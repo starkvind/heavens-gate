@@ -26,7 +26,8 @@ if ($ajax) {
         if ($method === 'GET' && $action === 'references') {
             $id = (int)($payload['id'] ?? 0);
             $table = (string)($payload['table'] ?? '');
-            hg_admin_json_success(hg_bib_admin_references($link, $id, $table), 'Referencias');
+            $page = (int)($payload['page'] ?? 1);
+            hg_admin_json_success(hg_bib_admin_references($link, $id, $table, $page), 'Referencias');
         }
         if ($method === 'POST' && ($action === 'create' || $action === 'update')) {
             $id = $action === 'create' ? 0 : (int)($payload['id'] ?? 0);

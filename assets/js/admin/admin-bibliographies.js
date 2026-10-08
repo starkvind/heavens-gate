@@ -82,37 +82,74 @@
         return '<tr><td>' + escapeHtml(entry.table) + '</td><td>' + Number(entry.count || 0)
           + '</td><td>' + (entry.archive ? 'Backup histórico' : (entry.fk ? 'FK activa' : 'Referencia sin FK'))
           + '</td><td><button class="btn btn-small" type="button" data-action="sample" data-id="' + id
-          + '" data-index="' + i + '">Ver identificadores</button></td></tr>'
+          + '" data-index="' + i + '">Ver materiales</button></td></tr>'
           + '<tr><td colspan="4"><div id="bibSample-' + id + '-' + i + '" hidden></div></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
-  function showSample(id, index) {
+  function showSample(id, index, page) {
     var source = (details[id] || [])[index];
     var target = document.getElementById('bibSample-' + id + '-' + index);
     if (!source || !target) return;
-    if (!target.hidden) { target.hidden = true; return; }
+    var navigate = typeof page === 'number';
+    if (!target.hidden && !navigate) { target.hidden = true; return; }
     target.hidden = false;
-    target.textContent = 'Cargando identificadores...';
-    http.request(endpoint({ action: 'references', id: id, table: source.table }), { method: 'GET' })
-      .then(function (payload) {
-        var data = payload.data || {};
-        var cols = data.columns || [];
-        var sample = data.rows || [];
-        var text = '<p>' + escapeHtml(data.notice || '') + '</p>';
-        if (cols.length && sample.length) {
-          text += '<table class="table"><thead><tr>'
-            + cols.map(function (c) { return '<th>' + escapeHtml(c) + '</th>'; }).join('')
-            + '</tr></thead><tbody>'
-            + sample.map(function (row) {
-              return '<tr>' + cols.map(function (c) {
+    var currentPage = navigate ? page : 1;
+    target.textContent = 'Cargando materiales...';
+    http.request(endpoint({
+      action: 'references',
+      id: id,
+      table: source.table,
+      page: currentPage
+    }), { method: 'GET' }).then(function (payload) {
+      var data = payload.data || {};
+      var cols = data.columns || [];
+      var sample = data.rows || [];
+      var total = Number(data.total || 0);
+      var pageSize = Math.max(1, Number(data.page_size || 50));
+      var actualPage = Math.max(1, Number(data.page || currentPage));
+      var pages = Math.max(1, Math.ceil(total / pageSize));
+      var safeId = Number(id) || 0;
+      var heading = '<p>' + escapeHtml(data.notice || '') + '</p>';
+      heading += '<p class="adm-help-text">Registros ' +
+        (total > 0 ? (1 + (actualPage - 1) * pageSize) + '–' +
+          Math.min(total, actualPage * pageSize) : '0') +
+        ' de ' + total + ' · Página ' + actualPage + ' de ' + pages + '</p>';
+      var text = heading;
+      if (sample.length) {
+        text += '<table class="table"><thead><tr><th>Material</th><th>Enlace</th>'
+          + cols.map(function (c) { return '<th>' + escapeHtml(c) + '</th>'; }).join('')
+          + '</tr></thead><tbody>'
+          + sample.map(function (row) {
+            var url = String(row._url || '');
+            var safe = url.charAt(0) === '/' && url.slice(0, 2) !== '//';
+            var material = escapeHtml(row._display_name || '(sin nombre disponible)');
+            var open = safe
+              ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir ficha ↗</a>'
+              : '<span class="adm-help-text">Sin ficha pública</span>';
+            return '<tr><td><strong>' + material + '</strong></td><td>' + open + '</td>'
+              + cols.map(function (c) {
                 return '<td>' + escapeHtml(row[c]) + '</td>';
               }).join('') + '</tr>';
-            }).join('') + '</tbody></table>';
+          }).join('') + '</tbody></table>';
+      } else {
+        text += '<p>No hay materiales que mostrar en esta página.</p>';
+      }
+      if (pages > 1) {
+        text += '<div class="adm-flex-8-m10">';
+        if (actualPage > 1) {
+          text += '<button type="button" class="btn btn-small" data-action="sample-page" data-id="' + safeId
+            + '" data-index="' + index + '" data-page="' + (actualPage - 1) + '">← Anterior</button>';
         }
-        target.innerHTML = text;
-      }).catch(function (err) {
-        target.textContent = http.errorMessage(err);
-      });
+        if (actualPage < pages) {
+          text += '<button type="button" class="btn btn-small" data-action="sample-page" data-id="' + safeId
+            + '" data-index="' + index + '" data-page="' + (actualPage + 1) + '">Siguiente →</button>';
+        }
+        text += '</div>';
+      }
+      target.innerHTML = text;
+    }).catch(function (err) {
+      target.textContent = http.errorMessage(err);
+    });
   }
   function openEditor(id) {
     var r = id > 0 ? findRow(id) : null;
@@ -167,6 +204,8 @@
     if (action === 'delete') openDelete(id);
     if (action === 'usage') showUsage(id);
     if (action === 'sample') showSample(id, Number(button.getAttribute('data-index')) || 0);
+    if (action === 'sample-page') showSample(id, Number(button.getAttribute('data-index')) || 0,
+      Number(button.getAttribute('data-page')) || 1);
   });
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
