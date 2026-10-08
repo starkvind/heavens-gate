@@ -3,6 +3,7 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
 function hg_mpw_h($value): string
 {
@@ -274,7 +275,7 @@ function hg_mpw_detail_data(mysqli $db, string $kind, int $id): ?array
         $row = hg_powers_fetch_gift($db, $id);
         if (!$row || !is_array($row)) return null;
         return [
-            'name' => $row['name'] ?? '', 'image' => hg_mpw_image((string)($row['image_url'] ?? ''), 'img/gifts'), 'origin' => $row['origin_name'] ?? '',
+            'name' => $row['name'] ?? '', 'image' => hg_mpw_image((string)($row['image_url'] ?? ''), 'img/gifts'), 'origin' => $row['origin_name'] ?? '', 'owning_system_id' => (int)($row['system_id'] ?? 0),
             'fields' => [['Fêra', $row['resolved_system_name'] ?? ''], ['Tipo', $row['type_name'] ?? ''], ['Grupo', $row['gift_group'] ?? ''], ['Rango', $row['rank'] ?? ''], ['Tirada', hg_mpw_roll($row['attribute_name'] ?? '', $row['ability_name'] ?? '')]],
             'sections' => [['Descripción', $row['description'] ?? ''], ['Sistema', $row['mechanics_resolved'] ?? '']],
             'owners' => hg_powers_fetch_bridge_owners($db, 'dones', $id, hg_mpw_excluded_chronicles()), 'links' => [],
@@ -338,7 +339,9 @@ function hg_mpw_render_detail(mysqli $db, string $kind, array $data): void
                     <?php $value = trim((string)($field[1] ?? '')); if ($value === '') continue; ?>
                     <div><span><?= hg_mpw_h($field[0] ?? '') ?></span><strong><?= hg_mpw_h($value) ?></strong></div>
                 <?php endforeach; ?>
-                <?php $origin = trim((string)($data['origin'] ?? '')); if ($origin !== ''): ?><div><span>Origen</span><strong><?= hg_mpw_h($origin) ?></strong></div><?php endif; ?>
+                <?php $origin = trim((string)($data['origin'] ?? '')); if ($origin !== ''): ?><div><span><?= !empty($data['publication']) ? 'Fuente original' : 'Origen' ?></span><strong><?= hg_mpw_h($origin) ?></strong></div><?php endif; ?>
+                <?php if (!empty($data['publication'])): ?><div><span>Publicación / versión</span><strong><?= hg_mpw_h($data['publication']) ?></strong></div><?php endif; ?>
+                <?php if (!empty($data['edition_source'])): ?><div><span>Fuente de la versión Camazotz</span><strong><?= hg_mpw_h($data['edition_source']) ?></strong></div><?php endif; ?>
             </div>
         </section>
 
@@ -442,5 +445,21 @@ if (!$data) {
     return;
 }
 
+if (in_array($kind, ['gifts', 'totems'], true)) {
+    $explicitContext = hg_camazotz_publication_requested($hgRequest);
+    $allowed = $kind === 'gifts'
+        ? hg_camazotz_publication_eligible((int)($data['owning_system_id'] ?? 0), $explicitContext)
+        : $explicitContext;
+    $publication = hg_camazotz_publication_for($link, $cfg['table'], $id, $allowed);
+    if ($publication) {
+        $data['publication'] = hg_camazotz_publication_label($publication);
+        if ($kind === 'gifts') {
+            $source = hg_camazotz_gift_availability_source($link, $id);
+            if ($source !== '' && $source !== trim((string)($data['origin'] ?? ''))) {
+                $data['edition_source'] = $source;
+            }
+        }
+    }
+}
 $metaTitle = (string)($data['name'] ?? $cfg['singular']) . ' | ' . $cfg['title'] . " | Heaven's Gate";
 hg_mpw_render_detail($link, $kind, $data);
