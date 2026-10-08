@@ -19,6 +19,9 @@ if (!$ordenQueryResult) {
         $link, 'dim_systems', $systemCategoryId,
         $systemCategoryId === HG_CAMAZOTZ_SYSTEM_ID
     );
+    $systemHistoricalSource = $systemPublication
+        ? hg_camazotz_historical_source($link, (int)($ordenQueryResult['bibliography_id'] ?? 0))
+        : '';
     $systemNameRaw = (string)($ordenQueryResult["name"] ?? '');
     $systemName = htmlspecialchars($systemNameRaw);
     $systemImg = htmlspecialchars((string)($ordenQueryResult["image_url"] ?? ''));
@@ -54,6 +57,9 @@ if (!$ordenQueryResult) {
   <?php if ($systemPublication): ?>
   <div class="syst-desc"><strong>Publicación / versión:</strong>
     <?= htmlspecialchars(hg_camazotz_publication_label($systemPublication), ENT_QUOTES, 'UTF-8') ?>
+    <?php if ($systemHistoricalSource !== ''): ?>
+      <div><strong>Fuente original:</strong> <?= htmlspecialchars($systemHistoricalSource, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
   <div class="syst-desc"><?= $systemDesc ?></div>
