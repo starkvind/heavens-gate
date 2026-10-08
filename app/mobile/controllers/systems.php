@@ -254,7 +254,11 @@ if ($route === 'versistdetalle') {
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
 
     $stats = [];
-    if ($detailPublication) $stats[] = ['Publicación / versión', hg_camazotz_publication_label($detailPublication)];
+    if ($detailPublication) {
+        $stats[] = ['Publicación / versión', hg_camazotz_publication_label($detailPublication)];
+        $source = hg_camazotz_historical_source($link, (int)($detail['bibliography_id'] ?? 0));
+        if ($source !== '') $stats[] = ['Fuente original', $source];
+    }
     $energyEntries = hg_ser_energy_entries_for_row($link, $table, $detailId, $detail, $systemName);
     if (!empty($energyEntries)) {
         foreach ($energyEntries as $entry) {
@@ -375,6 +379,9 @@ if ($route === 'verforma') {
     $systemId = (int)($form['system_id'] ?? 0);
     $formPublication = hg_camazotz_publication_for($link, 'dim_forms', $formId,
         hg_camazotz_publication_eligible($systemId, hg_camazotz_publication_requested($hgRequest)));
+    $formHistoricalSource = $formPublication
+        ? hg_camazotz_historical_source($link, (int)($form['bibliography_id'] ?? 0))
+        : '';
 
     $maneuvers = hg_systems_fetch_form_maneuvers_normalized($link, $systemId, $formId);
     $formModifiers = hg_systems_fetch_form_modifiers($link, $formId);
@@ -390,6 +397,7 @@ if ($route === 'verforma') {
     <section class="hg-mobile-section">
         <div class="hg-mobile-sys-stats">
             <?php if ($formPublication) hg_mobile_sys_stat('Publicación / versión', hg_camazotz_publication_label($formPublication)); ?>
+            <?php if ($formHistoricalSource !== '') hg_mobile_sys_stat('Fuente original', $formHistoricalSource); ?>
             <?php foreach ($formModifiers as $modifier): ?>
                 <?php
                     $overrideValue = $modifier['override_value'] ?? null;
