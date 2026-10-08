@@ -324,7 +324,7 @@ if ($route === 'versistdetalle') {
         </div>
     </section>
     <?php if (!empty($stats)): ?>
-        <section class="hg-mobile-section"><div class="hg-mobile-sys-stats<?= $type === 1 ? ' hg-mobile-sys-stats--race' : '' ?>"><?php foreach ($stats as $stat) hg_mobile_sys_stat($stat[0], $stat[1]); ?></div></section>
+        <section class="hg-mobile-section"><div class="hg-mobile-sys-stats hg-mobile-sys-stats--detail"><?php foreach ($stats as $stat) hg_mobile_sys_stat($stat[0], $stat[1]); ?></div></section>
     <?php endif; ?>
     <?php if (trim(strip_tags($description)) !== ''): ?>
         <section class="hg-mobile-section"><h2>Descripción</h2><div class="hg-mobile-rich-body"><?= $description ?></div></section>
