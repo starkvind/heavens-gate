@@ -285,7 +285,7 @@ if ($route === 'versistdetalle') {
         $patronTotemId = (int)($detail['patron_totem_id'] ?? 0);
         if ($patronTotemId > 0) {
             $patronName = hg_systems_fetch_patron_totem_name($link, $patronTotemId);
-                if ($patronName !== '') $stats[] = ['Patrono tribal', $patronName];
+            if ($patronName !== '') $stats[] = ['Patrono tribal', $patronName];
         }
     }
 
