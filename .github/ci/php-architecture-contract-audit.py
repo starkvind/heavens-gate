@@ -23,10 +23,11 @@ SCHEMA_TOKENS = (
 EXPECTED_SCHEMA_OWNERS = {
     'app/helpers/schema_introspection.php',
     'app/domains/characters/admin_clone.php',
+    'app/domains/bibliography/admin.php',  # Phase 6B: audited dynamic FK/column dependency inventory
     'app/tools/forum_topic_viewer_tool.php',
     'app/tools/inspect_db.php',
 }
-EXPECTED_SCHEMA_TOKENS = 10
+EXPECTED_SCHEMA_TOKENS = 14  # +4 strictly scoped information_schema references in bibliography Admin
 EXPECTED_PUBLIC_ALIASES = {
     'bio_chronicles': 'chronicles',
     'listaobj': 'inv',
