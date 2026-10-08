@@ -82,42 +82,154 @@ if (!function_exists('hg_bib_admin_snapshot')) {
     }
 }
 
+// Verified detail paths only. Not all bibliography consumers have a public page.
+if (!function_exists('hg_bib_admin_public_routes')) {
+    function hg_bib_admin_public_routes(): array {
+        return [
+            'fact_gifts' => '/powers/gift/',
+            'fact_rites' => '/powers/rite/',
+            'dim_totems' => '/powers/totem/',
+            'fact_discipline_powers' => '/powers/discipline/',
+            'fact_docs' => '/documents/',
+            'fact_items' => '/inventory/items/',
+            'dim_systems' => '/systems/',
+            'dim_breeds' => '/systems/breeds/',
+            'dim_auspices' => '/systems/auspices/',
+            'dim_tribes' => '/systems/tribes/',
+            'fact_misc_systems' => '/systems/misc/',
+            'dim_forms' => '/systems/form/',
+            'dim_traits' => '/rules/traits/',
+            'dim_merits_flaws' => '/rules/merits-flaws/',
+            'fact_actions' => '/rules/actions/',
+            'fact_combat_maneuvers' => '/rules/maneuvers/',
+            'fact_timeline_events' => '/timeline/event/',
+            'fact_map_pois' => '/maps/poi/',
+            'bridge_gifts_availability' => '/powers/gift/',
+        ];
+    }
+}
+
 if (!function_exists('hg_bib_admin_references')) {
-    function hg_bib_admin_references(mysqli $db, int $id, string $table): array {
-        $sources = hg_bib_admin_sources($db);
+    function hg_bib_admin_references(mysqli $db, int $id, string $table, int $page = 1): array {
         $source = null;
-        foreach ($sources as $s) if ($s['table'] === $table) $source = $s;
-        if ($source === null || $id <= 0) throw new InvalidArgumentException('Tabla o bibliografia no valida.');
-        // Display only index-like identities, not complete rows or private content.
-        $st = $db->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        foreach (hg_bib_admin_sources($db) as $s) {
+            if ($s['table'] === $table) {
+                $source = $s;
+                break;
+            }
+        }
+        if ($source === null || $id <= 0 || $page < 1 || $page > 100000) {
+            throw new InvalidArgumentException('Tabla, bibliografia o pagina no valida.');
+        }
+
+        // Read the actual schema: dimensions do not all use the same title column.
+        $st = $db->prepare("SELECT COLUMN_NAME, COLUMN_KEY FROM information_schema.COLUMNS
                            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
-                             AND COLUMN_KEY = 'PRI' ORDER BY ORDINAL_POSITION");
-        if (!$st) throw new RuntimeException('No se pudieron consultar las claves.');
+                           ORDER BY ORDINAL_POSITION");
+        if (!$st) throw new RuntimeException('No se pudo inspeccionar la tabla.');
         $st->bind_param('s', $table);
         $st->execute();
-        $res = $st->get_result();
+        $columnResult = $st->get_result();
+        $available = [];
         $pk = [];
-        while ($r = $res->fetch_assoc()) {
-            $key = (string)$r['COLUMN_NAME'];
-            if (!preg_match('/^[A-Za-z0-9_]+$/D', $key)) throw new RuntimeException('Clave invalida.');
-            $pk[] = $key;
+        while ($col = $columnResult->fetch_assoc()) {
+            $field = (string)$col['COLUMN_NAME'];
+            if (!preg_match('/^[A-Za-z0-9_]+$/D', $field)) {
+                $st->close();
+                throw new RuntimeException('Nombre de columna no seguro.');
+            }
+            $available[$field] = true;
+            if ((string)$col['COLUMN_KEY'] === 'PRI') $pk[] = $field;
         }
         $st->close();
-        if (!$pk) {
-            return ['table' => $table, 'columns' => [], 'rows' => [],
-                    'notice' => 'Sin clave primaria individual inspeccionable; consulta el desglose de usos.'];
+
+        $titleColumn = null;
+        foreach (['name', 'title', 'form', 'label', 'event_name'] as $candidate) {
+            if (isset($available[$candidate])) {
+                $titleColumn = $candidate;
+                break;
+            }
         }
-        $select = implode(', ', array_map(static function ($s) { return $s; }, $pk));
-        $st = $db->prepare("SELECT ".$select." FROM ".$table." WHERE bibliography_id = ? LIMIT 30");
-        if (!$st) throw new RuntimeException('No se pudieron inspeccionar los registros.');
-        $st->bind_param('i', $id);
+        $isGiftAvailability = $table === 'bridge_gifts_availability' && isset($available['gift_id']);
+        $routes = hg_bib_admin_public_routes();
+        $route = empty($source['archive']) ? ($routes[$table] ?? '') : '';
+
+        $keyColumns = $pk;
+        if ($isGiftAvailability && !in_array('gift_id', $keyColumns, true)) {
+            $keyColumns[] = 'gift_id';
+        }
+        $sqlColumns = [];
+        foreach ($keyColumns as $key) $sqlColumns[] = 't.'.$key;
+        if ($titleColumn !== null && !in_array($titleColumn, $keyColumns, true)) {
+            $sqlColumns[] = 't.'.$titleColumn;
+        }
+        if (isset($available['pretty_id']) && !in_array('pretty_id', $keyColumns, true)) {
+            $sqlColumns[] = 't.pretty_id';
+        }
+        if ($isGiftAvailability) {
+            $sqlColumns[] = 'g.name AS _linked_name';
+            $sqlColumns[] = 'g.pretty_id AS _linked_pretty';
+        }
+        if (!$sqlColumns) {
+            return ['table' => $table, 'columns' => [], 'rows' => [],
+                'page' => $page, 'page_size' => 50, 'total' => 0,
+                'notice' => 'Esta tabla no tiene columnas identificativas disponibles.'];
+        }
+
+        $countSt = $db->prepare('SELECT COUNT(*) AS n FROM '.$table.' WHERE bibliography_id = ?');
+        if (!$countSt) throw new RuntimeException('No se pudo contar el material.');
+        $countSt->bind_param('i', $id);
+        $countSt->execute();
+        $countResult = $countSt->get_result();
+        $total = (int)($countResult->fetch_assoc()['n'] ?? 0);
+        $countSt->close();
+
+        $size = 50;
+        $offset = ($page - 1) * $size;
+        $orderColumns = $pk;
+        if (!$orderColumns && $isGiftAvailability) {
+            foreach (['gift_id', 'scope_type', 'scope_id', 'system_id'] as $candidate) {
+                if (isset($available[$candidate])) $orderColumns[] = $candidate;
+            }
+        }
+        if (!$orderColumns && $titleColumn !== null) $orderColumns[] = $titleColumn;
+        if (!$orderColumns) $orderColumns = $keyColumns;
+        $order = implode(', ', array_map(static function ($column) {
+            return 't.'.$column;
+        }, $orderColumns));
+        $sql = 'SELECT '.implode(', ', $sqlColumns).' FROM '.$table.' t';
+        if ($isGiftAvailability) $sql .= ' LEFT JOIN fact_gifts g ON g.id = t.gift_id';
+        $sql .= ' WHERE t.bibliography_id = ? ORDER BY '.$order.' LIMIT ? OFFSET ?';
+        $st = $db->prepare($sql);
+        if (!$st) throw new RuntimeException('No se pudieron cargar las referencias.');
+        $st->bind_param('iii', $id, $size, $offset);
         $st->execute();
         $rs = $st->get_result();
         $items = [];
-        while ($r = $rs->fetch_assoc()) $items[] = $r;
+        while ($record = $rs->fetch_assoc()) {
+            $name = $isGiftAvailability
+                ? trim((string)($record['_linked_name'] ?? ''))
+                : trim((string)($titleColumn === null ? '' : ($record[$titleColumn] ?? '')));
+            $publicId = '';
+            if ($isGiftAvailability) {
+                $publicId = trim((string)($record['_linked_pretty'] ?? ''));
+                if ($publicId === '') $publicId = (string)($record['gift_id'] ?? '');
+            } elseif (count($pk) === 1 && $pk[0] === 'id') {
+                $publicId = trim((string)($record['pretty_id'] ?? ''));
+                if ($publicId === '') $publicId = (string)($record['id'] ?? '');
+            }
+            $record['_display_name'] = $name !== '' ? $name : '(sin nombre disponible)';
+            $record['_url'] = ($route !== '' && $publicId !== '') ? $route.rawurlencode($publicId) : '';
+            unset($record['_linked_name'], $record['_linked_pretty']);
+            $items[] = $record;
+        }
         $st->close();
-        return ['table' => $table, 'columns' => $pk, 'rows' => $items,
-                'notice' => 'Primeros 30 identificadores. No se ha modificado ningun registro.'];
+
+        return [
+            'table' => $table, 'columns' => $keyColumns, 'rows' => $items,
+            'page' => $page, 'page_size' => $size, 'total' => $total,
+            'notice' => 'Nombres y enlaces cuando la web dispone de una pagina publica de ese material.',
+        ];
     }
 }
 
