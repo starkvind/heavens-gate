@@ -153,14 +153,13 @@ if ($table !== '') {
         $patronTotemId = (int)($ResultQuery['patron_totem_id'] ?? 0);
         if ($patronTotemId > 0) {
             $patronName = hg_systems_fetch_patron_totem_name($link, $patronTotemId);
-                if ($patronName !== '') {
-                    $patronHref = pretty_url($link, 'dim_totems', '/powers/totem', $patronTotemId);
-                    $metaItems[] = [
-                        'label' => 'Patrono tribal',
-                        'value_html' => '<a href="' . htmlspecialchars($patronHref) . '">' . htmlspecialchars($patronName) . '</a>',
-                    ];
-                    $infoDataCheck++;
-                }
+            if ($patronName !== '') {
+                $patronHref = pretty_url($link, 'dim_totems', '/powers/totem', $patronTotemId);
+                $metaItems[] = [
+                    'label' => 'Patrono tribal',
+                    'value_html' => '<a href="' . htmlspecialchars($patronHref) . '">' . htmlspecialchars($patronName) . '</a>',
+                ];
+                $infoDataCheck++;
             }
         }
     }
