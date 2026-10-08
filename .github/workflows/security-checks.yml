@@ -42,6 +42,9 @@ jobs:
           set -euo pipefail
           php .github/ci/php-bibliography-reference-characterization.php
 
+      - name: Characterize Camazotz publication context
+        run: php .github/ci/php-camazotz-publication-characterization.php
+
       - name: Validate production smoke runner
         shell: bash
         run: |
