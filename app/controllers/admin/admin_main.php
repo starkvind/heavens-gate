@@ -174,6 +174,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					'summary' => 'Documentos, enlaces y vinculaciones de soporte.',
 					'items' => [
 						['href' => '/talim?s=admin_docs', 'label' => 'Gestionar Documentación', 'keywords' => ['docs']],
+						['href' => '/talim?s=admin_bibliographies', 'label' => 'Gestionar Bibliografías', 'keywords' => ['bibliografia', 'origen', 'fuentes', 'editorial']],
 						['href' => '/talim?s=admin_exports', 'label' => 'Exportar Documentación', 'hint' => 'TXT por crónica y por lotes', 'keywords' => ['exportar', 'txt', 'canon', 'documentacion']],
 						['href' => '/talim?s=admin_help', 'label' => 'Gestionar Ayuda', 'keywords' => ['help', 'manuales', 'guias']],
 						['href' => '/talim?s=admin_external_links', 'label' => 'Gestionar Documentos Externos', 'keywords' => ['enlaces']],
