@@ -2277,20 +2277,20 @@ html {
     overflow-wrap: anywhere;
 }
 
-.hg-mobile-sys-stats--race {
+.hg-mobile-sys-stats--detail {
     grid-template-columns: 1fr;
 }
 
-.hg-mobile-sys-stats--race .hg-mobile-sys-stat {
+.hg-mobile-sys-stats--detail .hg-mobile-sys-stat {
     gap: 6px;
     padding: 11px 13px;
     border-radius: 9px;
     background: var(--hg-mobile-panel);
 }
 
-.hg-mobile-sys-stats--race .hg-mobile-sys-stat strong {
+.hg-mobile-sys-stats--detail .hg-mobile-sys-stat strong {
     color: #33ffff;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.35;
 }
 
