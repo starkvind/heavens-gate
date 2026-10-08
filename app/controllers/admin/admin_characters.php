@@ -391,11 +391,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             if ($auspice_id > 0 && isset($ausp_id_to_allowed_sys[$auspice_id]) && !isset($ausp_id_to_allowed_sys[$auspice_id][(int)$system_id])) {
                 $flash[]=['type'=>'error','msg'=>'[WARN] El Auspicio no pertenece al Sistema elegido.'];
             }
-            if ($tribe_id > 0 && isset($tribu_id_to_allowed_sys[$tribe_id]) && !isset($tribu_id_to_allowed_sys[$tribe_id][(int)$system_id])) {
-                $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
-            }
             if ($tribe_id > 0 && $raza > 0 && isset($tribe_breed_compatibility[$tribe_id]) && !isset($tribe_breed_compatibility[$tribe_id][$raza])) {
                 $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu seleccionada no admite esa Raza de nacimiento.'];
+            } elseif ($tribe_id > 0 && isset($tribu_id_to_allowed_sys[$tribe_id]) && !isset($tribu_id_to_allowed_sys[$tribe_id][(int)$system_id])) {
+                $flash[]=['type'=>'error','msg'=>'[WARN] La Tribu no pertenece al Sistema elegido.'];
             }
         }
     }
