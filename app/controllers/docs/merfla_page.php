@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/rules/queries.php';
+require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
 if (!function_exists('hg_merfla_normalize_text')) {
@@ -23,6 +24,9 @@ $mafAfil = htmlspecialchars((string)($merit['afiliacion'] ?? ''));
 $mafCoste = htmlspecialchars((string)($merit['coste'] ?? ''));
 $mafDesc = (string)($merit['descripcion'] ?? '');
 $mafSystem = htmlspecialchars((string)($merit['sistema'] ?? ''));
+$mafPublication = hg_camazotz_publication_for(
+    $link, 'dim_merits_flaws', $mafPageID, hg_camazotz_publication_requested($hgRequest)
+);
 $mafOriginName = htmlspecialchars((string)($merit['origin_name'] ?? '-'));
 if ($mafOriginName === '') $mafOriginName = '-';
 
@@ -58,7 +62,12 @@ if ($mafNameType !== '') echo "<div class='power-stat'><div class='power-stat__l
 if ($costText !== '' && $costText !== '0 puntos') echo "<div class='power-stat'><div class='power-stat__label'>Coste</div><div class='power-stat__value'>{$costText}</div></div>";
 if ($mafAfil !== '') echo "<div class='power-stat'><div class='power-stat__label'>Categor&iacute;a</div><div class='power-stat__value'>{$mafAfil}</div></div>";
 if ($mafSystem !== '') echo "<div class='power-stat'><div class='power-stat__label'>Sistema</div><div class='power-stat__value'>{$mafSystem}</div></div>";
-if ($mafOriginName !== '') echo "<div class='power-stat'><div class='power-stat__label'>Origen</div><div class='power-stat__value'>{$mafOriginName}</div></div>";
+if ($mafOriginName !== '' && $mafOriginName !== '-') {
+    $mafOriginCaption = $mafPublication ? 'Fuente original' : 'Origen';
+    echo "<div class='power-stat'><div class='power-stat__label'>{$mafOriginCaption}</div><div class='power-stat__value'>{$mafOriginName}</div></div>";
+}
+if ($mafPublication) echo "<div class='power-stat'><div class='power-stat__label'>Publicaci&oacute;n / versi&oacute;n</div><div class='power-stat__value'>" .
+    htmlspecialchars(hg_camazotz_publication_label($mafPublication), ENT_QUOTES, 'UTF-8') . "</div></div>";
 echo '</div></div>';
 if ($mafDesc !== '') echo "<div class='power-card__desc'><div class='power-card__desc-title'>Descripci&oacute;n</div><div class='power-card__desc-body'>{$mafDesc}</div></div>";
 echo '</div>';
