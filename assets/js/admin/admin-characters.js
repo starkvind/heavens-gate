@@ -1393,11 +1393,11 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     if (sys){
       if (!isAllowedForSystem(RAZA_ID_TO_ALLOWED_SYS, RAZA_ID_TO_SYS, rz, sys)){ return 'La Raza no pertenece al Sistema elegido.'; }
       if (!isAllowedForSystem(AUSP_ID_TO_ALLOWED_SYS, AUSP_ID_TO_SYS, au, sys)){ return 'El Auspicio no pertenece al Sistema elegido.'; }
-      if (!isAllowedForSystem(TRIBU_ID_TO_ALLOWED_SYS, TRIBU_ID_TO_SYS, tr, sys)){ return 'La Tribu no pertenece al Sistema elegido.'; }
       var breedRules = TRIBE_BREED_COMPATIBILITY[String(tr)];
       if (tr && rz && breedRules && typeof breedRules === 'object' && Object.keys(breedRules).length && !breedRules[String(rz)]) {
         return 'La Tribu seleccionada no admite esa Raza de nacimiento.';
       }
+      if (!isAllowedForSystem(TRIBU_ID_TO_ALLOWED_SYS, TRIBU_ID_TO_SYS, tr, sys)){ return 'La Tribu no pertenece al Sistema elegido.'; }
     }
     if (!fEstado.value) return 'Debes seleccionar un Estado.';
     return '';
