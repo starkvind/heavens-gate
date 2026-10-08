@@ -116,8 +116,15 @@ tribe_page = require(
     "app/controllers/systems/system_detail_page.php",
     "patron_totem_id",
     "Patrono tribal",
-    "Forma natal:",
-    "Regeneración fuera de la Forma natal:",
+    "Forma natal",
+    "Regeneración fuera de la Forma natal",
+    "syst-race-meta-grid",
+)
+
+require(
+    "assets/css/hg-systems.css",
+    ".syst-race-meta-grid",
+    "grid-template-columns: repeat(2, minmax(0, 1fr))",
 )
 
 dice = require(
