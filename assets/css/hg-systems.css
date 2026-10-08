@@ -102,6 +102,45 @@
     color: #cfe;
 }
 
+.syst-race-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 18px;
+}
+
+.syst-race-meta-item {
+    display: grid;
+    grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
+    gap: 8px;
+    align-items: baseline;
+    padding: 4px 0;
+}
+
+.syst-race-meta-label {
+    color: #fff;
+    font-weight: bold;
+}
+
+.syst-race-meta-value {
+    min-width: 0;
+    color: #cfe;
+}
+
+.syst-race-meta-value a {
+    color: #33ffff;
+}
+
+@media (max-width: 720px) {
+    .syst-race-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .syst-race-meta-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+    }
+}
+
 .hg-system-message {
     padding: 10px;
     border: 1px solid #000088;
