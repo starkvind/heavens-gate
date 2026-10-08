@@ -59,7 +59,7 @@ if (!function_exists('hg_bib_admin_snapshot')) {
         $sources = hg_bib_admin_sources($db);
         $details = [];
         foreach ($sources as $src) {
-            $table = $src['table']; // validated using information_schema
+            $table = $src['table']; // validated using schema metadata
             $uses = $db->query("SELECT bibliography_id, COUNT(*) AS n FROM ".$table."
                                 WHERE bibliography_id IS NOT NULL GROUP BY bibliography_id");
             if (!$uses) throw new RuntimeException('No se pudieron contar todas las referencias.');
