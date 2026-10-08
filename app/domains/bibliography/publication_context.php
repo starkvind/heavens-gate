@@ -100,3 +100,22 @@ function hg_camazotz_publication_label(?array $publication): string
 {
     return trim((string)($publication['name'] ?? ''));
 }
+
+/** Historical bibliography label; never substitutes for the publication FK. */
+function hg_camazotz_historical_source(mysqli $db, int $bibliographyId): string
+{
+    if ($bibliographyId <= 0) return '';
+    try {
+        $stmt = $db->prepare('SELECT name FROM dim_bibliographies WHERE id=? LIMIT 1');
+        if (!$stmt) return '';
+        $stmt->bind_param('i', $bibliographyId);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+        $row = $rs ? $rs->fetch_assoc() : null;
+        if ($rs) $rs->free();
+        $stmt->close();
+        return trim((string)($row['name'] ?? ''));
+    } catch (Throwable $e) {
+        return '';
+    }
+}
