@@ -84,6 +84,7 @@ if ($table !== '') {
 
 <?php
     $metaHtml = '';
+    $raceMetaItems = [];
     if ($systemTypeDocument == 4) {
         $miscInfoData = ($ResultQuery["extra_info"] ?? '');
         if ($miscInfoData != "") {
@@ -98,12 +99,20 @@ if ($table !== '') {
             $energyValue = (int)($energyEntry['energy_value'] ?? 0);
             if ($energyLabel === '' || $energyValue <= 0) continue;
             $infoDataCheck++;
-            $metaHtml .= "<p><b>$energyLabel inicial:</b> $energyValue</p>";
+            if ($systemTypeDocument === 1) {
+                $raceMetaItems[] = ['label' => $energyLabel . ' inicial', 'value' => (string)$energyValue];
+            } else {
+                $metaHtml .= "<p><b>$energyLabel inicial:</b> $energyValue</p>";
+            }
         }
     } elseif ($checkEnergy != 0) {
         $infoDataCheck++;
         $energyLabel = htmlspecialchars(hg_ser_energy_label_from_row($table, $ResultQuery, $returnTypeRaw));
-        $metaHtml .= "<p><b>$energyLabel inicial:</b> $checkEnergy</p>";
+        if ($systemTypeDocument === 1) {
+            $raceMetaItems[] = ['label' => $energyLabel . ' inicial', 'value' => (string)$checkEnergy];
+        } else {
+            $metaHtml .= "<p><b>$energyLabel inicial:</b> $checkEnergy</p>";
+        }
     } elseif ($systemTypeDocument == 4) {
         $miscNameEnergy = htmlspecialchars((string)($ResultQuery["energy_name"] ?? ''));
         $miscValuEnergy = htmlspecialchars((string)($ResultQuery["energy_value"] ?? ''));
@@ -121,7 +130,10 @@ if ($table !== '') {
                 $nativeFormName = trim((string)($nativeForm['form'] ?? ''));
                 if ($nativeFormName !== '') {
                     $nativeFormHref = pretty_url($link, 'dim_forms', '/systems/form', $nativeFormId);
-                    $metaHtml .= '<p><b>Forma natal:</b> <a href="' . htmlspecialchars($nativeFormHref) . '">' . htmlspecialchars($nativeFormName) . '</a></p>';
+                    $raceMetaItems[] = [
+                        'label' => 'Forma natal',
+                        'value_html' => '<a href="' . htmlspecialchars($nativeFormHref) . '">' . htmlspecialchars($nativeFormName) . '</a>',
+                    ];
                     $infoDataCheck++;
                 }
             }
@@ -129,13 +141,19 @@ if ($table !== '') {
 
         $regenNormal = (int)($ResultQuery['regen_normal_per_turn'] ?? 0);
         if ($regenNormal > 0) {
-            $metaHtml .= '<p><b>Regeneración fuera de la Forma natal:</b> ' . $regenNormal . ' / turno</p>';
+            $raceMetaItems[] = ['label' => 'Regeneración fuera de la Forma natal', 'value' => $regenNormal . ' / turno'];
             $stressDifficulty = (int)($ResultQuery['regen_stress_difficulty'] ?? 0);
             if ($stressDifficulty > 0) {
-                $metaHtml .= '<p><b>Regeneración bajo estrés:</b> Resistencia, dificultad ' . $stressDifficulty . '</p>';
+                $raceMetaItems[] = ['label' => 'Regeneración bajo estrés', 'value' => 'Resistencia, dificultad ' . $stressDifficulty];
             }
-            $metaHtml .= '<p><b>Regeneración en Forma natal:</b> ' . ((int)($ResultQuery['regen_in_native_form'] ?? 0) === 1 ? 'Sí' : 'No') . '</p>';
-            $metaHtml .= '<p><b>Daño agravado automático:</b> ' . ((int)($ResultQuery['regen_aggravated_auto'] ?? 0) === 1 ? 'Sí' : 'No') . '</p>';
+            $raceMetaItems[] = [
+                'label' => 'Regeneración en Forma natal',
+                'value' => ((int)($ResultQuery['regen_in_native_form'] ?? 0) === 1 ? 'Sí' : 'No'),
+            ];
+            $raceMetaItems[] = [
+                'label' => 'Daño agravado automático',
+                'value' => ((int)($ResultQuery['regen_aggravated_auto'] ?? 0) === 1 ? 'Sí' : 'No'),
+            ];
             $infoDataCheck++;
         }
     }
@@ -161,7 +179,19 @@ if ($table !== '') {
         }
     }
 
-    if ($metaHtml !== '') echo "<div class=\"syst-box syst-meta\">$metaHtml</div>";
+    if ($systemTypeDocument === 1 && !empty($raceMetaItems)) {
+        echo '<div class="syst-box syst-meta"><div class="syst-race-meta-grid">';
+        foreach ($raceMetaItems as $item) {
+            $label = htmlspecialchars((string)($item['label'] ?? ''));
+            $valueHtml = isset($item['value_html'])
+                ? (string)$item['value_html']
+                : htmlspecialchars((string)($item['value'] ?? ''));
+            echo '<div class="syst-race-meta-item"><span class="syst-race-meta-label">' . $label . '</span><span class="syst-race-meta-value">' . $valueHtml . '</span></div>';
+        }
+        echo '</div></div>';
+    } elseif ($metaHtml !== '') {
+        echo "<div class=\"syst-box syst-meta\">$metaHtml</div>";
+    }
 ?>
 
   <div class="syst-box">
