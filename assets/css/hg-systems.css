@@ -105,39 +105,54 @@
 .syst-race-meta-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 18px;
+    gap: 10px;
 }
 
 .syst-race-meta-item {
-    display: grid;
-    grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
-    gap: 8px;
-    align-items: baseline;
-    padding: 4px 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    min-height: 70px;
+    gap: 6px;
+    padding: 11px 13px;
+    border: 1px solid #1b4aa0;
+    border-radius: 9px;
+    background: #00135a;
 }
 
 .syst-race-meta-label {
-    color: #fff;
-    font-weight: bold;
+    color: #a9d8e0;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1.35;
 }
 
 .syst-race-meta-value {
+    display: block;
     min-width: 0;
-    color: #cfe;
+    color: #33ffff;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
 .syst-race-meta-value a {
-    color: #33ffff;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.syst-race-meta-value a:hover,
+.syst-race-meta-value a:focus-visible {
+    color: #fff;
 }
 
 @media (max-width: 720px) {
     .syst-race-meta-grid {
         grid-template-columns: 1fr;
-    }
-
-    .syst-race-meta-item {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 2px;
     }
 }
 
