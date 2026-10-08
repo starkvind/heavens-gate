@@ -95,14 +95,14 @@ if ($table !== '') {
 
     if (!empty($energyEntries)) {
         foreach ($energyEntries as $energyEntry) {
-            $energyLabel = htmlspecialchars((string)($energyEntry['resource_name'] ?? ''));
+            $energyLabel = (string)($energyEntry['resource_name'] ?? '');
             $energyValue = (int)($energyEntry['energy_value'] ?? 0);
             if ($energyLabel === '' || $energyValue <= 0) continue;
             $infoDataCheck++;
             if ($systemTypeDocument === 1) {
                 $raceMetaItems[] = ['label' => $energyLabel . ' inicial', 'value' => (string)$energyValue];
             } else {
-                $metaHtml .= "<p><b>$energyLabel inicial:</b> $energyValue</p>";
+                $metaHtml .= "<p><b>" . htmlspecialchars($energyLabel) . " inicial:</b> $energyValue</p>";
             }
         }
     } elseif ($checkEnergy != 0) {
@@ -144,15 +144,15 @@ if ($table !== '') {
             $raceMetaItems[] = ['label' => 'Regeneración fuera de la Forma natal', 'value' => $regenNormal . ' / turno'];
             $stressDifficulty = (int)($ResultQuery['regen_stress_difficulty'] ?? 0);
             if ($stressDifficulty > 0) {
-                $raceMetaItems[] = ['label' => 'Regeneración bajo estrés', 'value' => 'Resistencia, dificultad ' . $stressDifficulty];
+                $raceMetaItems[] = ['label' => 'Regeneración bajo estrés', 'value' => 'Resistencia · Dificultad ' . $stressDifficulty];
             }
             $raceMetaItems[] = [
                 'label' => 'Regeneración en Forma natal',
                 'value' => ((int)($ResultQuery['regen_in_native_form'] ?? 0) === 1 ? 'Sí' : 'No'),
             ];
             $raceMetaItems[] = [
-                'label' => 'Daño agravado automático',
-                'value' => ((int)($ResultQuery['regen_aggravated_auto'] ?? 0) === 1 ? 'Sí' : 'No'),
+                'label' => 'Regeneración de daño agravado',
+                'value' => ((int)($ResultQuery['regen_aggravated_auto'] ?? 0) === 1 ? 'Automática' : 'No automática'),
             ];
             $infoDataCheck++;
         }
@@ -186,7 +186,7 @@ if ($table !== '') {
             $valueHtml = isset($item['value_html'])
                 ? (string)$item['value_html']
                 : htmlspecialchars((string)($item['value'] ?? ''));
-            echo '<div class="syst-race-meta-item"><span class="syst-race-meta-label">' . $label . '</span><span class="syst-race-meta-value">' . $valueHtml . '</span></div>';
+            echo '<div class="syst-race-meta-item"><span class="syst-race-meta-label">' . $label . '</span><strong class="syst-race-meta-value">' . $valueHtml . '</strong></div>';
         }
         echo '</div></div>';
     } elseif ($metaHtml !== '') {
