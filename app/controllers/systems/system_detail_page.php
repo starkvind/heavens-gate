@@ -128,7 +128,6 @@ if ($table !== '') {
                     ];
                     $infoDataCheck++;
                 }
-            }
         }
 
         $regenNormal = (int)($ResultQuery['regen_normal_per_turn'] ?? 0);
@@ -153,15 +152,7 @@ if ($table !== '') {
     if ($systemTypeDocument === 3) {
         $patronTotemId = (int)($ResultQuery['patron_totem_id'] ?? 0);
         if ($patronTotemId > 0) {
-            $stmtPatron = $link->prepare('SELECT name FROM dim_totems WHERE id = ? LIMIT 1');
-            if ($stmtPatron) {
-                $stmtPatron->bind_param('i', $patronTotemId);
-                $stmtPatron->execute();
-                $patronResult = $stmtPatron->get_result();
-                $patronRow = $patronResult ? $patronResult->fetch_assoc() : null;
-                if ($patronResult) $patronResult->free();
-                $stmtPatron->close();
-                $patronName = trim((string)($patronRow['name'] ?? ''));
+            $patronName = hg_systems_fetch_patron_totem_name($link, $patronTotemId);
                 if ($patronName !== '') {
                     $patronHref = pretty_url($link, 'dim_totems', '/powers/totem', $patronTotemId);
                     $metaItems[] = [
