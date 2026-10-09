@@ -188,11 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje_error = 'El nombre de la tirada no puede superar 150 caracteres.';
     }
 
-    if ($mensaje_error === '') {
-        $lastRollAt = hg_dice_last_roll_at_for_ip($link, $ip);
-        if ($lastRollAt !== null && $lastRollAt !== '' && strtotime($lastRollAt) > time() - 10) {
-            $mensaje_error = 'Has tirado hace menos de 10 segundos.';
-        }
+    if ($mensaje_error === '' && hg_dice_rate_limited_for_ip($link, $ip)) {
+        $mensaje_error = 'Has tirado hace menos de 10 segundos.';
     }
 
     if ($mensaje_error === '' && hg_dice_roll_name_exists($link, $tirada_nombre)) {
