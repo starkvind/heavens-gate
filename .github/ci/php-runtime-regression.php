@@ -113,4 +113,37 @@ foreach (['app', 'api'] as $runtimeRoot) {
     }
 }
 
+// The anonymous dice roller must use a single MariaDB-clock cooldown on all routes.
+// This is a source-contract test; live DB timing is verified after deployment.
+$diceDomain = file_get_contents($root . '/app/domains/dice/queries.php');
+if ($diceDomain === false) {
+    hg_runtime_regression_fail('Cannot read dice domain queries');
+}
+foreach ([
+    'function hg_dice_rate_limited_for_ip',
+    'WHERE ip = ?',
+    'rolled_at > NOW() - INTERVAL 10 SECOND',
+    'rolled_at <= NOW()',
+] as $needle) {
+    if (strpos($diceDomain, $needle) === false) {
+        hg_runtime_regression_fail("Dice cooldown lost database-clock contract: {$needle}");
+    }
+}
+foreach ([
+    'app/controllers/tool/dice_roller.php',
+    'app/controllers/tool/dice_api.php',
+] as $path) {
+    $source = file_get_contents($root . '/' . $path);
+    if ($source === false
+        || strpos($source, 'hg_dice_rate_limited_for_ip($link, $ip)') === false
+        || strpos($source, 'hg_dice_last_roll_at_for_ip(') !== false
+        || strpos($source, 'strtotime($lastRollAt)') !== false) {
+        hg_runtime_regression_fail("Dice cooldown is not centralized in {$path}");
+    }
+}
+$mobileDice = file_get_contents($root . '/app/mobile/controllers/dice.php');
+if ($mobileDice === false || strpos($mobileDice, "controllers/tool/dice_roller.php") === false) {
+    hg_runtime_regression_fail('Mobile dice roller no longer shares the same cooldown');
+}
+
 fwrite(STDOUT, "Runtime regression characterization: OK\n");
