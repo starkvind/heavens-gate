@@ -256,22 +256,41 @@ if (!function_exists('hg_dice_fetch_roll')) {
     }
 }
 
-if (!function_exists('hg_dice_last_roll_at_for_ip')) {
-    function hg_dice_last_roll_at_for_ip(mysqli $link, string $ip): ?string
+if (!function_exists('hg_dice_rate_limited_for_ip')) {
+    /**
+     * Enforce the public roller's 10-second cooldown using MariaDB's clock.
+     *
+     * rolled_at is populated by the database. Converting its timezone-naive
+     * value with PHP's strtotime() can make old rolls appear to be in the future.
+     * Keep both sides of the comparison within the same database session.
+     * The rate limit remains IP-based for anonymous/public roll requests.
+     */
+    function hg_dice_rate_limited_for_ip(mysqli $link, string $ip): bool
     {
-        $stmt = mysqli_prepare($link, 'SELECT rolled_at FROM fact_dice_rolls WHERE ip = ? ORDER BY rolled_at DESC LIMIT 1');
+        $stmt = mysqli_prepare(
+            $link,
+            'SELECT 1
+             FROM fact_dice_rolls
+             WHERE ip = ?
+               AND rolled_at > NOW() - INTERVAL 10 SECOND
+               AND rolled_at <= NOW()
+             LIMIT 1'
+        );
         if (!$stmt) {
-            return null;
+            return false;
         }
         mysqli_stmt_bind_param($stmt, 's', $ip);
-        mysqli_stmt_execute($stmt);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return false;
+        }
         $result = mysqli_stmt_get_result($stmt);
-        $row = $result ? mysqli_fetch_assoc($result) : null;
+        $recent = $result && mysqli_fetch_assoc($result) !== null;
         if ($result) {
             mysqli_free_result($result);
         }
         mysqli_stmt_close($stmt);
-        return $row ? (string)($row['rolled_at'] ?? '') : null;
+        return $recent;
     }
 }
 
