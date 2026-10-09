@@ -255,8 +255,7 @@ if (hg_api_strlen($rollName) > 150) {
     return;
 }
 
-$lastRollAt = hg_dice_last_roll_at_for_ip($link, $ip);
-if ($lastRollAt !== null && $lastRollAt !== '' && strtotime($lastRollAt) > time() - 10) {
+if (hg_dice_rate_limited_for_ip($link, $ip)) {
     hg_tool_api_error('Has tirado hace menos de 10 segundos.', 429);
     return;
 }
