@@ -7,6 +7,7 @@ $hgMobileRoutes = [
     'busq' => __DIR__ . '/controllers/search.php',
     'busk' => __DIR__ . '/controllers/search.php',
     'status' => __DIR__ . '/controllers/status.php',
+    'time_machine' => __DIR__ . '/../controllers/main/main_time_machine.php',
     'timeline' => __DIR__ . '/controllers/timeline.php',
     'timeline_event' => __DIR__ . '/controllers/timeline_event.php',
     'ost' => __DIR__ . '/controllers/soundtrack.php',

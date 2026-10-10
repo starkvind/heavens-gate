@@ -48,6 +48,7 @@ Parámetros legacy frecuentes:
 | `news` | `/news` | Noticias. | `app/controllers/main/main_news.php` |
 | `status` | `/status` | Estado general del proyecto/web. | `app/controllers/main/main_status.php` |
 | `about` | `/about` | Página acerca de Heaven's Gate. | `app/controllers/main/main_about.php` |
+| `time_machine` | `/time-machine` | Portal de las webs originales de enero de 2007, separadas del canon vigente. | `app/controllers/main/main_time_machine.php` |
 | `help` | `/help` | Centro de ayuda; catálogo de manuales publicados en `fact_help_pages`. | `app/controllers/help/help_home.php` |
 | `help_page` | `/help/{slug}` | Página de ayuda publicada y resuelta por slug desde BDD. | `app/controllers/help/help_page.php` |
 | `biblio` | `/bibliography` | Bibliografía y referencias. | `app/controllers/main/main_biblio.php` |

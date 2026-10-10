@@ -32,6 +32,7 @@ $categories = [
     ['title' => 'Reglas', 'description' => 'Sistemas de juego, mecánicas y material de consulta rápida.', 'href' => '/rules', 'count' => $rulesCount],
     ['title' => 'Poderes', 'description' => 'Dones, rituales, tótems, disciplinas y capacidades sobrenaturales.', 'href' => '/powers', 'count' => $counts['powers']],
     ['title' => 'Ayuda', 'description' => 'Manuales de uso para navegar por el archivo y utilizar sus herramientas.', 'href' => '/help', 'count' => null],
+    ['title' => 'Máquina del Tiempo', 'description' => 'Visita las dos primeras versiones históricas de la web, tal como eran en enero de 2007.', 'href' => '/time-machine', 'count' => null],
 ];
 
 $stats = [

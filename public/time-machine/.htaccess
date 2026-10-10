@@ -1,0 +1,18 @@
+# Static museum display: no old server-side code is executed.
+Options -Indexes -ExecCGI
+DirectoryIndex index.html
+<FilesMatch "(?i)\.(?:php[0-9]?|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp|exe|bat|cmd|db|sql|env)$">
+    Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'self'; object-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'"
+</IfModule>
+<FilesMatch "(?i)\.doc$">
+    <IfModule mod_headers.c>
+        Header always set Content-Disposition "attachment"
+    </IfModule>
+</FilesMatch>

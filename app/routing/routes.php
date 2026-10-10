@@ -6,6 +6,7 @@ return [
     'news'       => ['app/controllers/main/main_news.php', 'Noticias'],
     'status'     => ['app/controllers/main/main_status.php', 'Estado'],
     'about'      => ['app/controllers/main/main_about.php', 'Acerca de...'],
+    'time_machine' => ['app/controllers/main/main_time_machine.php', 'Máquina del Tiempo'],
     'help'       => ['app/controllers/help/help_home.php', 'Ayuda'],
     'help_page'  => ['app/controllers/help/help_page.php', 'Ayuda'],
     'biblio'     => ['app/controllers/main/main_biblio.php', 'Bibliografía'],

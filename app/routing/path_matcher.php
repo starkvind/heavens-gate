@@ -14,6 +14,7 @@ function hg_request_path_matcher_match(string $path): array
         '/news' => ['p' => 'news'],
         '/status' => ['p' => 'status'],
         '/about' => ['p' => 'about'],
+        '/time-machine' => ['p' => 'time_machine'],
         '/help' => ['p' => 'help'],
         '/bibliography' => ['p' => 'biblio'],
         '/search' => ['p' => 'busq'],

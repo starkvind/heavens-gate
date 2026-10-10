@@ -1,0 +1,23 @@
+/* Historic website museum portal. Scoped to this route. */
+.hg-time-machine{max-width:1040px;margin:0 auto;padding:1rem 0 2rem;color:inherit}
+.hg-time-machine__heading{margin-bottom:1.8rem}
+.hg-time-machine__eyebrow{display:inline-block;margin-bottom:.6rem;font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:#a9bfe3}
+.hg-time-machine__heading h1{margin:0 0 .75rem;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.16}
+.hg-time-machine__heading p{max-width:72ch;line-height:1.7}
+.hg-time-machine__versions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.15rem}
+.hg-time-machine__card{overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(160,184,225,.36);border-radius:12px;background:rgba(5,9,31,.54)}
+.hg-time-machine__visual{display:grid;place-items:center;min-height:180px;height:195px;overflow:hidden;background:#030626}
+.hg-time-machine__visual img{display:block;width:100%;height:100%;object-fit:contain}
+.hg-time-machine__placeholder{font-size:4rem;color:rgba(180,202,240,.35);letter-spacing:.1em}
+.hg-time-machine__card-content{display:flex;flex-direction:column;align-items:flex-start;flex:1;padding:1.25rem}
+.hg-time-machine__date{color:#c3d2f3;font-size:.84rem}
+.hg-time-machine__card h2{font-size:1.24rem;margin:.35rem 0 .6rem}
+.hg-time-machine__card p{line-height:1.62;flex:1;margin:0 0 1rem}
+.hg-time-machine__file-count{opacity:.72;font-size:.78rem;margin:0 0 .9rem}
+.hg-time-machine__open{display:inline-flex;justify-content:center;align-items:center;gap:.5rem;padding:.65rem 1rem;min-height:40px;border-radius:6px;border:1px solid rgba(190,207,244,.7);color:#fff;text-decoration:none;background:#192c67}
+.hg-time-machine__open:focus-visible,.hg-time-machine__open:hover{background:#29428a;color:#fff}
+.hg-time-machine__notice{margin-top:1.75rem;padding:1.15rem 1.3rem;border-left:3px solid #8da8d8;background:rgba(30,42,76,.23)}
+.hg-time-machine__notice h2{font-size:1.08rem;margin:0 0 .7rem}
+.hg-time-machine__notice p{line-height:1.65;margin:0 0 .7rem}
+.hg-time-machine__notice p:last-child{margin-bottom:0}
+@media(max-width:760px){.hg-time-machine__versions{grid-template-columns:1fr}.hg-time-machine__visual{height:150px}.hg-time-machine__card-content{padding:1rem}}
