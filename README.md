@@ -49,6 +49,8 @@ There is no schema installer or one-use SQL directory in the production reposito
 
 See [admin_docs/DATABASE_SCHEMA.md](./admin_docs/DATABASE_SCHEMA.md).
 
+Historical web archive: [Time Machine](./admin_docs/TIME_MACHINE.md).
+
 ## Configuration
 
 The runtime expects config.env with:

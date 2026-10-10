@@ -75,3 +75,7 @@ admin_docs/HEAVENS_GATE_MOBILE_WRAPPER_PLAN.md
 admin_docs/MOBILE_ADAPTATION_2026_07.md
 
 .agents/
+# Generated read-only copies of the two historical websites
+/public/time-machine/2007/
+/public/time-machine/v1.2/
+/public/time-machine/installation-manifest.json
