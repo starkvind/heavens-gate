@@ -51,6 +51,11 @@ def convert(raw, rel, version):
         )
     if version == 'v1.2':
         raw = raw.replace(b'clasificados.php', b'clasificados.html')
+        if rel == 'menu.html':
+            # Modern browsers must address the image element explicitly: IMG01/02
+            # are also legacy global variables containing sprite URLs.
+            raw = re.sub(rb'\b(imgover|imgout)\((IMG0[1-7])\)',
+                         lambda m: m.group(1) + b"(document.images.namedItem('" + m.group(2) + b"'))", raw)
 
     try:
         text = raw.decode('utf-8')
