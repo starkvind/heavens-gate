@@ -3,6 +3,7 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/recent_content.php');
 require_once(__DIR__ . '/../../domains/home/queries.php');
+require_once(__DIR__ . '/../../domains/forum/recent_activity.php');
 if (!$link) {
     hg_public_log_error('main_home', 'missing DB connection');
     hg_public_render_error('Inicio no disponible', 'No se pudo cargar la página de inicio en este momento.');
@@ -43,6 +44,7 @@ $stats = [
 ];
 
 $latestNews = hg_home_query_latest_news($link);
+$forumActivity = hg_forum_recent_activity($link);
 $recentContent = hg_recent_content_feed($link);
 ?>
 
@@ -87,6 +89,32 @@ $recentContent = hg_recent_content_feed($link);
             </a>
         </section>
     <?php endif; ?>
+
+    <?php if ($forumActivity): ?>
+        <section class="home-section home-forum-activity" aria-labelledby="home-forum-activity-title">
+            <div class="home-section-head">
+                <h2 id="home-forum-activity-title">La historia continúa</h2>
+                <p class="home-forum-intro">Últimas respuestas de la partida por foro</p>
+            </div>
+            <div class="home-forum-grid">
+                <?php foreach ($forumActivity as $post): ?>
+                    <?php $postedAt = (int)($post['poster_time'] ?? 0); ?>
+                    <a class="home-forum-card" href="<?= hg_home_h($post['href']) ?>">
+                        <span class="home-forum-author"><?= hg_home_h($post['author']) ?></span>
+                        <span class="home-forum-title"><?= hg_home_h($post['topic_title']) ?></span>
+                        <span class="home-forum-excerpt"><?= hg_home_h($post['excerpt']) ?></span>
+                        <span class="home-forum-footer">
+                            <?php if ($postedAt > 0): ?>
+                                <time datetime="<?= hg_home_h(date('c', $postedAt)) ?>"><?= hg_home_h(date('d/m/Y · H:i', $postedAt)) ?></time>
+                            <?php endif; ?>
+                            <span class="home-forum-link">Leer respuesta &rarr;</span>
+                        </span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
     <section class="home-section" aria-labelledby="home-explore-title">
         <div class="home-section-head">
             <h2 id="home-explore-title">Explora</h2>
