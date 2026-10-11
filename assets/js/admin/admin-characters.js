@@ -1058,69 +1058,68 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     reinitSelect2(sel);
   }
 
-  function openCreate(){
-    document.getElementById('modalTitle').textContent = 'Nuevo personaje';
+  // Limpieza centralizada: evita arrastrar valores entre creacion y edicion.
+  // Solo se ejecuta al iniciar una ficha o al terminar un cierre/guardado explicito.
+  function resetEditorState(){
+    formCrud.reset();
     document.getElementById('crud_action').value = 'create';
     document.getElementById('f_id').value = '0';
 
-    ['nombre','alias','nombregarou','gender','concept','text_color','rango'].forEach(function(k){
-      var el=document.getElementById('f_'+k); if(el) el.value='';
+    // Los IDs reales difieren de las claves POST (gender/concept/text_color).
+    ['f_genero_pj', 'f_concepto', 'f_colortexto'].forEach(function(id){
+      var field = document.getElementById(id);
+      if (field) field.value = '';
     });
-    ['cronica','jugador','system_id'].forEach(function(k){
-      var el=document.getElementById('f_'+k); if(el) el.value='0';
-    });
-    if (selTotem) selTotem.value = '0';
+
+    selSistema.value = '0';
     selAfili.value = '0';
     if (selKind) selKind.value = 'pnj';
+    if (selTotem) selTotem.value = '0';
+    if (selNature) selNature.value = '0';
+    if (selDemeanor) selDemeanor.value = '0';
+    updateSistemaSets('', 0, 0, 0);
 
-    ensureEstadoOption(DEFAULT_STATUS_ID);
-
-    fInfo.value  = '';
-    if (fNotes) fNotes.value = '';
-
-	    updateSistemaSets('', 0,0,0);
-	    if (selNature) selNature.value = '0';
-	    if (selDemeanor) selDemeanor.value = '0';
-
-    selClan.value='0';
-    clearSelect(selManada,false);
-    var o=document.createElement('option'); o.value='0'; o.textContent='— Selecciona primero un Clan —';
-    selManada.appendChild(o); selManada.disabled=true;
+    selClan.value = '0';
+    clearSelect(selManada, false);
+    var placeholder = document.createElement('option');
+    placeholder.value = '0';
+    placeholder.textContent = '— Selecciona primero un Clan —';
+    selManada.appendChild(placeholder);
+    selManada.disabled = true;
     reinitSelect2(selManada);
 
     resetAvatarUI();
 
-    // reset poderes
     powList.innerHTML = '';
     powTipo.value = 'dones';
     refreshPowerSelect();
 
-    // reset myd
     mydList.innerHTML = '';
-    mydLvl.value = '';
     refreshMydSelect();
 
-    // reset inv
     invList.innerHTML = '';
     refreshInvSelect();
 
-    // reset recursos
     resList.innerHTML = '';
     refreshResourceSelect();
-    ensureSystemResources(parseInt(selSistema.value,10)||0);
 
-    // reset traits
     resetTraits();
     setTraitBaseline({});
     applyKindVisibility(selKind ? selKind.value : 'pnj', false);
+  }
 
-    mb.style.display='flex';
+  function openCreate(){
+    resetEditorState();
+    document.getElementById('modalTitle').textContent = 'Nuevo personaje';
+    ensureEstadoOption(DEFAULT_STATUS_ID);
+
+    mb.style.display = 'flex';
     initSelect2Modal();
-
     document.getElementById('f_nombre').focus();
   }
 
   function openEdit(btn){
+    resetEditorState();
     document.getElementById('modalTitle').textContent = 'Editar personaje';
     document.getElementById('crud_action').value = 'update';
     var cid = btn.getAttribute('data-id') || '0';
@@ -1229,8 +1228,13 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
   // Modal binds
   btnNew.addEventListener('click', openCreate);
-  btnCancel.addEventListener('click', function(){ mb.style.display='none'; });
-  mb.addEventListener('click', function(e){ if (e.target === mb) mb.style.display='none'; });
+  btnCancel.addEventListener('click', function(){
+    if (formCrud.dataset.saving === '1') return;
+    if (!window.confirm('¿Descartar los cambios y cerrar el editor de personajes?')) return;
+    mb.style.display = 'none';
+    resetEditorState();
+  });
+  // Un clic accidental en el fondo nunca cierra el editor ni descarta el borrador.
   bindEditButtons();
   bindDeleteButtons();
 
@@ -1495,6 +1499,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       var msg = (payload && (payload.message || payload.msg)) || 'Personaje guardado';
       notifyResult(msg, 'ok');
       mb.style.display = 'none';
+      resetEditorState();
       loadListViaAjax(window.location.pathname + window.location.search, false);
     }).catch(function(err){
       var msg = requestErrorMessage(err, 'No se pudo guardar');
