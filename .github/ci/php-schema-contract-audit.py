@@ -56,6 +56,27 @@ for table in required_character_sheet_tables:
     if token not in character_queries:
         errors.append(f'character sheet schema contract missing canonical table: {table}')
 
+# Chapter participation uses the same capability registries as character
+# sheets. Omitting these current tables makes the shared chapter query return
+# [] before contacting MariaDB, hiding chapters on desktop and mobile (#16).
+required_chapter_tables = (
+    'bridge_chapters_characters',
+    'dim_chapters',
+    'dim_seasons',
+)
+for table in required_chapter_tables:
+    token = f"'{table}' => true"
+    if token not in character_queries:
+        errors.append(f'character chapter participation missing canonical table: {table}')
+
+required_chapter_columns = (
+    "'dim_chapters' => ['season_id']",
+    "'dim_seasons' => ['season_kind']",
+)
+for token in required_chapter_columns:
+    if token not in character_queries:
+        errors.append(f'character chapter participation missing season schema contract: {token}')
+
 # Form-family resolution is different: dim_breeds.form_system_id is mandatory
 # current production schema, not an optional legacy capability. The resolver
 # must query that canonical contract directly. This guards the 2026-10-02
