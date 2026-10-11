@@ -72,6 +72,9 @@ jobs:
           php -l app/domains/systems/queries.php
           python3 .github/ci/php-gift-availability-bridge-audit.py
 
+      - name: Characterize home forum activity excerpts
+        run: php .github/ci/php-home-forum-activity-characterization.php
+
       - name: Characterize runtime regressions
         run: php .github/ci/php-runtime-regression.php
 

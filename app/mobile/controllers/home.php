@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/recent_content.php');
 require_once(__DIR__ . '/../../domains/home/queries.php');
+require_once(__DIR__ . '/../../domains/forum/recent_activity.php');
 
 $metaTitle = "Heaven's Gate | Móvil";
 $metaDescription = "Archivo móvil de Heaven's Gate.";
@@ -36,6 +37,7 @@ $stats = [
     ['label' => 'Documentos', 'value' => $counts['documents'] ?? null],
 ];
 $latestNews = isset($link) && ($link instanceof mysqli) ? hg_home_query_latest_news($link) : null;
+$forumActivity = isset($link) && ($link instanceof mysqli) ? hg_forum_recent_activity($link) : [];
 $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_feed($link) : [];
 ?>
 
@@ -73,6 +75,27 @@ $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_f
             </small>
         </a>
     </section>
+<?php endif; ?>
+
+
+<?php if ($forumActivity): ?>
+<section class="hg-mobile-section hg-mobile-home-section" aria-labelledby="mobile-home-forum-title">
+    <h2 id="mobile-home-forum-title">La historia continúa</h2>
+    <p>Últimas respuestas de la partida por foro</p>
+    <div class="hg-mobile-home-archive-list">
+        <?php foreach ($forumActivity as $post): ?>
+            <?php $postedAt = (int)($post['poster_time'] ?? 0); ?>
+            <a class="hg-mobile-home-archive-card" href="<?= hg_mobile_home_h($post['href']) ?>">
+                <small><?= hg_mobile_home_h($post['author']) ?></small>
+                <strong><?= hg_mobile_home_h($post['topic_title']) ?></strong>
+                <span><?= hg_mobile_home_h($post['excerpt']) ?></span>
+                <time<?= $postedAt > 0 ? ' datetime="' . hg_mobile_home_h(date('c', $postedAt)) . '"' : '' ?>>
+                    <?= $postedAt > 0 ? hg_mobile_home_h(date('d/m/Y · H:i', $postedAt)) . ' · ' : '' ?>Leer respuesta <span aria-hidden="true">&rarr;</span>
+                </time>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</section>
 <?php endif; ?>
 
 <section class="hg-mobile-section hg-mobile-home-section" aria-labelledby="mobile-home-explore-title">

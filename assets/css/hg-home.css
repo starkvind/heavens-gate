@@ -263,6 +263,81 @@
     margin-top: auto;
 }
 
+/* Recent forum activity --------------------------------------------------- */
+
+.home-forum-intro {
+    margin: 6px 0 0;
+    color: var(--hg-info-link);
+    line-height: 1.5;
+}
+
+.home-forum-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.home-forum-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 10px;
+    padding: 18px;
+    border: 1px solid var(--hg-field-border);
+    border-radius: 8px;
+    background: var(--hg-bg);
+    color: var(--hg-text);
+    text-decoration: none;
+    transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.home-forum-card:hover {
+    border-color: var(--hg-link-hover);
+    background: var(--hg-field-bg);
+    transform: translateY(-2px);
+}
+
+.home-forum-author {
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.home-forum-title {
+    color: var(--hg-h3);
+    font-family: var(--hg-font-head);
+    font-size: 1.13rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.home-forum-excerpt {
+    color: var(--hg-text);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.home-forum-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px 16px;
+    margin-top: auto;
+    padding-top: 8px;
+    color: var(--hg-link);
+    font-family: var(--hg-font-ui);
+    font-size: 0.8rem;
+}
+
+.home-forum-link {
+    margin-left: auto;
+    font-weight: 700;
+}
+
 /* Latest news ------------------------------------------------------------ */
 
 .home-latest-news-card {
@@ -380,7 +455,8 @@
 
     .home-search,
     .home-shortcuts-grid,
-    .home-reading-grid {
+    .home-reading-grid,
+    .home-forum-grid {
         grid-template-columns: 1fr;
     }
 
@@ -397,12 +473,14 @@
 @media (prefers-reduced-motion: reduce) {
     .home-shortcut-card,
     .home-reading-card,
+    .home-forum-card,
     .home-shortcut-arrow {
         transition: none;
     }
 
     .home-shortcut-card:hover,
     .home-reading-card:hover,
+    .home-forum-card:hover,
     .home-shortcut-card:hover .home-shortcut-arrow {
         transform: none;
     }
