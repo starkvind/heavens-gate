@@ -25,7 +25,7 @@ hg_forum_activity_expect(!str_contains($excerpt, 'example.com'), 'image embeds m
 hg_forum_activity_expect(!str_contains($excerpt, 'hg_avatar'), 'BBCode must be stripped');
 
 $plain = hg_forum_recent_excerpt('Una frase &amp; otra <strong>con estilo</strong>.');
-hg_forum_activity_expect($plain === 'Una frase & otra con estilo .', 'HTML and entities must become plain text');
+hg_forum_activity_expect($plain === 'Una frase & otra con estilo.', 'HTML and entities must become plain text');
 
 $empty = hg_forum_recent_excerpt('[spoiler]Oculto[/spoiler]');
 hg_forum_activity_expect($empty === 'Lee la intervención completa en el lector del foro.', 'empty excerpt has fallback');
