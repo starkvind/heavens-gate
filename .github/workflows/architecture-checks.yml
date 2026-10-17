@@ -75,6 +75,9 @@ jobs:
       - name: Characterize home forum activity excerpts
         run: php .github/ci/php-home-forum-activity-characterization.php
 
+      - name: Characterize forum post timezones and DST
+        run: php .github/ci/php-forum-datetime-characterization.php
+
       - name: Characterize runtime regressions
         run: php .github/ci/php-runtime-regression.php
 

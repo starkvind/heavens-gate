@@ -8,6 +8,7 @@ if (!isset($link) || !($link instanceof mysqli)) {
 require_once __DIR__ . '/../helpers/runtime_response.php';
 require_once __DIR__ . '/../helpers/character_avatar.php';
 require_once __DIR__ . '/../helpers/schema_introspection.php';
+require_once __DIR__ . '/../helpers/forum_datetime.php';
 
 if (!hg_runtime_require_db($link, 'forum_topic_viewer_tool', 'bootstrap', [
     'message' => 'No se pudo conectar a la base de datos.',
@@ -216,7 +217,7 @@ function parse_bbcode_inline($rawText, $convertBreaks = true)
 
             $unix = isset($attrs['date']) ? (int)$attrs['date'] : 0;
             if ($unix > 0) {
-                $label .= ' | ' . h(date('Y-m-d H:i:s', $unix));
+                $label .= ' | ' . h(hg_forum_format_post_time($unix, 'Y-m-d H:i:s T'));
             }
 
             return '<blockquote><div class="bb-quote-head">' . $label . '</div>' . $content . '</blockquote>';
@@ -1090,7 +1091,7 @@ if (!$hgfvEmbedded) {
                                 $tocSubject = trim((string)($tocMsg['subject'] ?? ''));
                                 $tocPoster = trim((string)($tocMsg['poster_name'] ?? ''));
                                 $tocPosterTime = (int)($tocMsg['poster_time'] ?? 0);
-                                $tocHumanTime = $tocPosterTime > 0 ? date('Y-m-d H:i', $tocPosterTime) : 'Sin fecha';
+                                $tocHumanTime = $tocPosterTime > 0 ? hg_forum_format_post_time($tocPosterTime, 'Y-m-d H:i T') : 'Sin fecha';
                             ?>
                             <li>
                                 <a href="<?= h($currentTopicUrl !== '' ? ($currentTopicUrl . '#msg-' . $tocMessageId) : ('#msg-' . $tocMessageId)) ?>" data-hgfv-toc-link>
@@ -1112,7 +1113,7 @@ if (!$hgfvEmbedded) {
                     $posterAvatar = hgfv_normalize_author_avatar_url((string)($msg['poster_avatar'] ?? ''));
                     $posterInitial = hgfv_author_initial($poster);
                     $posterTime = (int)($msg['poster_time'] ?? 0);
-                    $humanTime = $posterTime > 0 ? date('Y-m-d H:i:s', $posterTime) : 'Sin fecha';
+                    $humanTime = $posterTime > 0 ? hg_forum_format_post_time($posterTime, 'Y-m-d H:i:s T') : 'Sin fecha';
                     $parsedBody = parse_forum_body($link, (string)($msg['body'] ?? ''));
                     $messageDomId = $messageId > 0 ? 'msg-' . $messageId : '';
                     $forumMessageHref = ($topicId > 0 && $messageId > 0)

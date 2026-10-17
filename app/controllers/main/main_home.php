@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/recent_content.php');
 require_once(__DIR__ . '/../../domains/home/queries.php');
 require_once(__DIR__ . '/../../domains/forum/recent_activity.php');
+require_once(__DIR__ . '/../../helpers/forum_datetime.php');
 if (!$link) {
     hg_public_log_error('main_home', 'missing DB connection');
     hg_public_render_error('Inicio no disponible', 'No se pudo cargar la página de inicio en este momento.');
@@ -105,7 +106,7 @@ $recentContent = hg_recent_content_feed($link);
                         <span class="home-forum-excerpt"><?= hg_home_h($post['excerpt']) ?></span>
                         <span class="home-forum-footer">
                             <?php if ($postedAt > 0): ?>
-                                <time datetime="<?= hg_home_h(date('c', $postedAt)) ?>"><?= hg_home_h(date('d/m/Y · H:i', $postedAt)) ?></time>
+                                <time datetime="<?= hg_home_h(hg_forum_format_post_time($postedAt, 'c')) ?>"><?= hg_home_h(hg_forum_format_post_time($postedAt)) ?></time>
                             <?php endif; ?>
                             <span class="home-forum-link">Leer respuesta &rarr;</span>
                         </span>

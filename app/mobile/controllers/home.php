@@ -2,6 +2,7 @@
 include_once(__DIR__ . '/../../helpers/recent_content.php');
 require_once(__DIR__ . '/../../domains/home/queries.php');
 require_once(__DIR__ . '/../../domains/forum/recent_activity.php');
+require_once(__DIR__ . '/../../helpers/forum_datetime.php');
 
 $metaTitle = "Heaven's Gate | Móvil";
 $metaDescription = "Archivo móvil de Heaven's Gate.";
@@ -89,8 +90,8 @@ $recentContent = isset($link) && ($link instanceof mysqli) ? hg_recent_content_f
                 <small><?= hg_mobile_home_h($post['author']) ?></small>
                 <strong><?= hg_mobile_home_h($post['topic_title']) ?></strong>
                 <span><?= hg_mobile_home_h($post['excerpt']) ?></span>
-                <time<?= $postedAt > 0 ? ' datetime="' . hg_mobile_home_h(date('c', $postedAt)) . '"' : '' ?>>
-                    <?= $postedAt > 0 ? hg_mobile_home_h(date('d/m/Y · H:i', $postedAt)) . ' · ' : '' ?>Leer respuesta <span aria-hidden="true">&rarr;</span>
+                <time<?= $postedAt > 0 ? ' datetime="' . hg_mobile_home_h(hg_forum_format_post_time($postedAt, 'c')) . '"' : '' ?>>
+                    <?= $postedAt > 0 ? hg_mobile_home_h(hg_forum_format_post_time($postedAt)) . ' · ' : '' ?>Leer respuesta <span aria-hidden="true">&rarr;</span>
                 </time>
             </a>
         <?php endforeach; ?>
