@@ -8,8 +8,8 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else { mysqli_set_charset($link, 'utf8mb4'); }
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/character_birth_events.php');
+include_once(__DIR__ . '/../../helpers/schema_introspection.php');
 include_once(__DIR__ . '/../../domains/characters/admin_birthdays.php');
 include_once(__DIR__ . '/../../partials/admin/admin_styles.php');
 
@@ -27,10 +27,10 @@ if (function_exists('hg_admin_ensure_csrf_token')) {
     $CSRF = $_SESSION[$ADMIN_CSRF_SESSION_KEY];
 }
 
-$hasSchema = hg_abq_table_exists($link, 'fact_characters')
-    && hg_abq_table_exists($link, 'fact_timeline_events')
-    && hg_abq_table_exists($link, 'bridge_timeline_events_characters')
-    && hg_abq_table_exists($link, 'dim_timeline_events_types');
+$hasSchema = hg_table_exists($link, 'fact_characters')
+    && hg_table_exists($link, 'fact_timeline_events')
+    && hg_table_exists($link, 'bridge_timeline_events_characters')
+    && hg_table_exists($link, 'dim_timeline_events_types');
 
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if (function_exists('hg_admin_require_session')) hg_admin_require_session(true);
