@@ -74,7 +74,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             hg_admin_json_error('ID de personaje inválido', 400, ['character_id' => 'required']);
         }
 
-        $result = hg_abq_save_row($link, $characterId, $birthdateText, $forcedEventDate);
+        $changedField = (string)($payload['changed_field'] ?? 'birthdate');
+        $result = hg_abq_save_row($link, $characterId, $birthdateText, $forcedEventDate, $changedField);
         if (empty($result['ok'])) {
             hg_admin_json_error(
                 (string)($result['message'] ?? 'Error al guardar fila'),
@@ -182,8 +183,8 @@ admin_panel_open('Fechas de nacimiento', $actions);
           '<td>' + Number(r.character_id || 0) + '</td>' +
           '<td><code>' + esc(r.character_pretty_id || '') + '</code></td>' +
           '<td>' + esc(r.character_name || '') + '</td>' +
-          '<td><input type="text" class="inp abq-birthtext" value="' + esc(r.character_birthdate_text || '') + '" placeholder="dd/mm/aaaa o yyyy-mm-dd"></td>' +
-          '<td><input type="date" class="inp abq-eventdate" value="' + esc(toDateInput(r.birth_event_date || '')) + '"></td>' +
+          '<td><input type="text" class="inp abq-birthtext" value="' + esc(r.character_birthdate_text || '') + '" data-original="' + esc(r.character_birthdate_text || '') + '" placeholder="AAAA, dd/mm/aaaa o yyyy-mm-dd"></td>' +
+          '<td><input type="date" class="inp abq-eventdate" value="' + esc(toDateInput(r.birth_event_date || '')) + '" data-original="' + esc(toDateInput(r.birth_event_date || '')) + '"></td>' +
           '<td>' + (r.birth_event_id ? Number(r.birth_event_id) : '-') + '</td>' +
           '<td><span class="abq-state state-' + esc((r.estado || '').toLowerCase()) + '">' + esc(r.estado || '') + '</span></td>' +
           '<td><button type="button" class="btn btn-sm btn-blue abq-save">Guardar</button></td>' +
@@ -225,12 +226,19 @@ admin_panel_open('Fechas de nacimiento', $actions);
     var birthInput = tr.querySelector('.abq-birthtext');
     var dateInput = tr.querySelector('.abq-eventdate');
     var btn = tr.querySelector('.abq-save');
+    var birthChanged = birthInput && birthInput.value.trim() !== (birthInput.getAttribute('data-original') || '').trim();
+    var eventChanged = dateInput && dateInput.value !== (dateInput.getAttribute('data-original') || '');
+    if (!birthChanged && !eventChanged) {
+      HGAdminHttp.notify('No has modificado ninguna fecha.', 'err', 3200);
+      return;
+    }
     if (btn) btn.disabled = true;
     try {
       var payload = await HGAdminHttp.postAction(endpoint, 'save_row', {
         character_id: characterId,
         birthdate_text: birthInput ? birthInput.value : '',
-        event_date: dateInput ? dateInput.value : ''
+        event_date: dateInput ? dateInput.value : '',
+        changed_field: eventChanged && !birthChanged ? 'event' : 'birthdate'
       }, { loadingEl: tr });
       HGAdminHttp.notify((payload && payload.message) ? payload.message : 'Guardado', 'ok');
       await loadRows();
