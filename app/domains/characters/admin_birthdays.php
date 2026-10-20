@@ -33,11 +33,12 @@ if (!function_exists('hg_abq_birthtext_expr')) {
 }
 
 if (!function_exists('hg_abq_fetch_rows')) {
-    function hg_abq_fetch_rows(mysqli $db, string $q, string $status, int $limit): array {
+    function hg_abq_fetch_rows(mysqli $db, string $q, string $status, int $limit, int $offset = 0): array {
         $rows = [];
         $q = trim($q);
         if ($limit <= 0) $limit = 300;
         if ($limit > 1000) $limit = 1000;
+        $offset = max(0, $offset);
 
         $statusWhere = '';
         if ($status === 'pending') {
@@ -87,7 +88,7 @@ if (!function_exists('hg_abq_fetch_rows')) {
               {$statusWhere}
               {$searchSql}
             ORDER BY p.id ASC
-            LIMIT {$limit}
+            LIMIT {$limit} OFFSET {$offset}
         ";
 
         $st = $db->prepare($sql);
@@ -102,6 +103,40 @@ if (!function_exists('hg_abq_fetch_rows')) {
         }
         $st->close();
         return $rows;
+    }
+}
+
+if (!function_exists('hg_abq_count_rows')) {
+    function hg_abq_count_rows(mysqli $db, string $q, string $status): int {
+        $q = trim($q);
+        $statusWhere = '';
+        if ($status === 'pending') {
+            $statusWhere = "AND (be.id IS NULL OR be.event_date IS NULL OR be.event_date = '0000-00-00')";
+        } elseif ($status === 'ok') {
+            $statusWhere = "AND (be.id IS NOT NULL AND be.event_date IS NOT NULL AND be.event_date <> '0000-00-00')";
+        }
+        $searchSql = $q !== '' ? " AND (p.name LIKE CONCAT('%', ?, '%') OR p.pretty_id LIKE CONCAT('%', ?, '%') OR CAST(p.id AS CHAR) = ?)" : '';
+        $sql = "
+            SELECT COUNT(*)
+            FROM fact_characters p
+            LEFT JOIN (
+              SELECT b.character_id, MIN(e.id) AS event_id
+              FROM bridge_timeline_events_characters b
+              INNER JOIN fact_timeline_events e ON e.id = b.event_id
+              INNER JOIN dim_timeline_events_types t ON t.id = e.event_type_id
+              WHERE t.pretty_id = 'nacimiento'
+              GROUP BY b.character_id
+            ) bx ON bx.character_id = p.id
+            LEFT JOIN fact_timeline_events be ON be.id = bx.event_id
+            WHERE 1=1 {$statusWhere} {$searchSql}
+        ";
+        $st = $db->prepare($sql);
+        if ($q !== '') $st->bind_param('sss', $q, $q, $q);
+        $st->execute();
+        $st->bind_result($total);
+        $st->fetch();
+        $st->close();
+        return (int)$total;
     }
 }
 
