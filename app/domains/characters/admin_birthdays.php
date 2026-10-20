@@ -186,7 +186,7 @@ if (!function_exists('hg_abq_fetch_row_by_character')) {
 
 
 if (!function_exists('hg_abq_save_row')) {
-    function hg_abq_save_row(mysqli $link, int $characterId, string $birthdateText, string $forcedEventDate): array {
+    function hg_abq_save_row(mysqli $link, int $characterId, string $birthdateText, string $forcedEventDate, string $changedField = 'birthdate'): array {
         if ($characterId <= 0) {
             return ['ok'=>false,'status'=>400,'message'=>'ID de personaje inválido','errors'=>['character_id'=>'required']];
         }
@@ -209,12 +209,22 @@ if (!function_exists('hg_abq_save_row')) {
             return ['ok'=>false,'status'=>400,'message'=>'No existe el tipo nacimiento en dim_timeline_events_types','errors'=>['event_type'=>'nacimiento_missing']];
         }
 
-        $parsedDate = hg_abq_parse_birth_to_ymd($forcedEventDate !== '' ? $forcedEventDate : $birthdateText);
+        $rawDate = $changedField === 'event' ? $forcedEventDate : $birthdateText;
+        $parsedDate = hg_abq_parse_birth_to_ymd($rawDate);
+        if ($parsedDate === null || !checkdate((int)substr($parsedDate, 5, 2), (int)substr($parsedDate, 8, 2), (int)substr($parsedDate, 0, 4))) {
+            return ['ok'=>false,'status'=>400,'message'=>'Introduce una fecha válida (AAAA, DD/MM/AAAA o AAAA-MM-DD).','errors'=>['birthdate'=>'invalid']];
+        }
+        $precision = preg_match('/^\\d{4}$/', trim($rawDate)) ? 'year' : 'day';
+        $canonicalBirthText = $changedField === 'event' ? $forcedEventDate : $birthdateText;
         $prettyId = 'birthday-char-' . $characterId;
         $eventId = 0;
 
         $link->begin_transaction();
         try {
+            $st = $link->prepare('UPDATE fact_characters SET birthdate_text = ? WHERE id = ?');
+            $st->bind_param('si', $canonicalBirthText, $characterId);
+            $st->execute();
+            $st->close();
             if ($parsedDate !== null) {
                 if ($st = $link->prepare('SELECT id FROM fact_timeline_events WHERE pretty_id = ? LIMIT 1')) {
                     $st->bind_param('s', $prettyId);
@@ -244,21 +254,21 @@ if (!function_exists('hg_abq_save_row')) {
                 $description = 'Evento de nacimiento del personaje ' . trim($characterName) . ' (id=' . $characterId . ').';
                 if ($eventId > 0) {
                     $sqlUpdateEvent = "UPDATE fact_timeline_events
-                           SET pretty_id = ?, event_date = ?, date_precision = 'day', date_note = NULL, sort_date = ?,
+                           SET pretty_id = ?, event_date = ?, date_precision = ?, date_note = NULL, sort_date = ?,
                                title = ?, description = ?, event_type_id = ?, is_active = 1,
                                source = 'admin_birthdays_quick', updated_at = NOW()
                            WHERE id = ?";
                     if ($st = $link->prepare($sqlUpdateEvent)) {
-                        $st->bind_param('sssssii', $prettyId, $parsedDate, $parsedDate, $title, $description, $birthTypeId, $eventId);
+                        $st->bind_param('ssssssii', $prettyId, $parsedDate, $precision, $parsedDate, $title, $description, $birthTypeId, $eventId);
                         $st->execute();
                         $st->close();
                     }
                 } else {
                     $sqlInsertEvent = "INSERT INTO fact_timeline_events
                            (pretty_id, event_date, date_precision, date_note, sort_date, title, description, event_type_id, is_active, source, timeline)
-                           VALUES (?, ?, 'day', NULL, ?, ?, ?, ?, 1, 'admin_birthdays_quick', NULL)";
+                           VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 1, 'admin_birthdays_quick', NULL)";
                     if ($st = $link->prepare($sqlInsertEvent)) {
-                        $st->bind_param('sssssi', $prettyId, $parsedDate, $parsedDate, $title, $description, $birthTypeId);
+                        $st->bind_param('ssssssi', $prettyId, $parsedDate, $precision, $parsedDate, $title, $description, $birthTypeId);
                         $st->execute();
                         $eventId = (int)$link->insert_id;
                         $st->close();
@@ -291,9 +301,7 @@ if (!function_exists('hg_abq_save_row')) {
         }
 
         $savedRow = hg_abq_fetch_row_by_character($link, $characterId);
-        $message = ($parsedDate === null)
-            ? 'La fecha indicada no se ha podido convertir en evento de nacimiento.'
-            : 'Evento de nacimiento guardado.';
+        $message = 'Fecha de nacimiento y evento actualizados.';
         return ['ok'=>true,'status'=>200,'message'=>$message,'row'=>$savedRow];
     }
 }
