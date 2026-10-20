@@ -57,9 +57,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($action === 'list') {
         $q = (string)($payload['q'] ?? '');
         $status = (string)($payload['status'] ?? 'pending');
-        $limit = (int)($payload['limit'] ?? 300);
-        $rows = hg_abq_fetch_rows($link, $q, $status, $limit);
-        hg_admin_json_success($rows, 'Listado cargado', ['count' => count($rows)]);
+        $limit = min(100, max(1, (int)($payload['limit'] ?? 25)));
+        $page = max(1, (int)($payload['page'] ?? 1));
+        $total = hg_abq_count_rows($link, $q, $status);
+        $pages = max(1, (int)ceil($total / $limit));
+        $page = min($page, $pages);
+        $rows = hg_abq_fetch_rows($link, $q, $status, $limit, ($page - 1) * $limit);
+        hg_admin_json_success($rows, 'Listado cargado', ['count' => count($rows), 'total' => $total, 'page' => $page, 'pages' => $pages, 'limit' => $limit]);
     }
 
     if ($action === 'save_row') {
@@ -119,6 +123,11 @@ admin_panel_open('Fechas de nacimiento', $actions);
     <tbody></tbody>
   </table>
 </div>
+<div class="adm-flex-right-wrap-8" id="abqPagination" aria-label="Paginación de fechas de nacimiento">
+  <span id="abqPageInfo" aria-live="polite"></span>
+  <button class="btn btn-sm" type="button" id="abqPrev">Anterior</button>
+  <button class="btn btn-sm" type="button" id="abqNext">Siguiente</button>
+</div>
 
 <script src="/assets/js/admin/admin-http.js"></script>
 <script>
@@ -130,6 +139,22 @@ admin_panel_open('Fechas de nacimiento', $actions);
   var searchInput = document.getElementById('abqSearch');
   var statusSelect = document.getElementById('abqStatus');
   var reloadBtn = document.getElementById('abqReload');
+  var prevBtn = document.getElementById('abqPrev');
+  var nextBtn = document.getElementById('abqNext');
+  var pageInfo = document.getElementById('abqPageInfo');
+  var currentPage = 1;
+  var currentPages = 1;
+  var requestId = 0;
+
+  function updatePagination(total, limit) {
+    if (pageInfo) {
+      var from = total ? (currentPage - 1) * limit + 1 : 0;
+      var to = Math.min(total, currentPage * limit);
+      pageInfo.textContent = from + '–' + to + ' de ' + total + ' personajes · Página ' + currentPage + ' de ' + currentPages;
+    }
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= currentPages;
+  }
 
   function esc(v) {
     return String(v == null ? '' : v)
@@ -168,6 +193,7 @@ admin_panel_open('Fechas de nacimiento', $actions);
   }
 
   async function loadRows() {
+    var thisRequest = ++requestId;
     if (!hasSchema) {
       if (tableBody) tableBody.innerHTML = '<tr><td colspan="8">Falta esquema requerido para el modulo.</td></tr>';
       return;
@@ -176,10 +202,17 @@ admin_panel_open('Fechas de nacimiento', $actions);
       var payload = await HGAdminHttp.postAction(endpoint, 'list', {
         q: searchInput ? searchInput.value.trim() : '',
         status: statusSelect ? statusSelect.value : 'pending',
-        limit: 500
+        limit: 25,
+        page: currentPage
       }, { loadingEl: document.getElementById('abqTable') });
+      if (thisRequest !== requestId) return;
+      var meta = (payload && payload.meta) ? payload.meta : {};
+      currentPage = Number(meta.page || currentPage);
+      currentPages = Number(meta.pages || 1);
+      updatePagination(Number(meta.total || 0), Number(meta.limit || 25));
       renderRows((payload && payload.data) ? payload.data : []);
     } catch (e) {
+      if (thisRequest !== requestId) return;
       renderRows([]);
       HGAdminHttp.notify(HGAdminHttp.errorMessage(e), 'err', 3200);
     }
@@ -209,12 +242,14 @@ admin_panel_open('Fechas de nacimiento', $actions);
   }
 
   if (reloadBtn) reloadBtn.addEventListener('click', loadRows);
-  if (statusSelect) statusSelect.addEventListener('change', loadRows);
+  if (prevBtn) prevBtn.addEventListener('click', function() { if (currentPage > 1) { currentPage--; loadRows(); } });
+  if (nextBtn) nextBtn.addEventListener('click', function() { if (currentPage < currentPages) { currentPage++; loadRows(); } });
+  if (statusSelect) statusSelect.addEventListener('change', function() { currentPage = 1; loadRows(); });
   if (searchInput) {
     var tmr = null;
     searchInput.addEventListener('input', function() {
       clearTimeout(tmr);
-      tmr = setTimeout(loadRows, 250);
+      tmr = setTimeout(function() { currentPage = 1; loadRows(); }, 250);
     });
   }
   if (tableBody) {
