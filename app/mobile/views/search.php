@@ -43,17 +43,6 @@
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
-        <div class="hg-mobile-search-recent"
-             id="search-recent"
-             data-mobile-search-recent
-             data-current-q="<?= hg_mobile_search_h($query) ?>"
-             data-current-section="<?= hg_mobile_search_h($sectionKey) ?>"
-             data-current-label="<?= hg_mobile_search_h(hg_mobile_search_text_label($sectionConfig)) ?>"
-             data-store-current="<?= ($isResults && $query !== '' && $queryLength > 2) ? '1' : '0' ?>"
-             data-skip-current="<?= $isResults ? '1' : '0' ?>">
-            <span>Recientes</span>
-            <div data-mobile-search-recent-items></div>
-        </div>
         <?php if (!empty($rows)): ?>
             <div class="hg-mobile-card-list">
                 <?php foreach ($rows as $row): ?>
@@ -69,6 +58,17 @@
         <?php else: ?>
             <div class="hg-mobile-empty">Sin coincidencias para &quot;<?= hg_mobile_search_h($query) ?>&quot;.</div>
         <?php endif; ?>
+        <div class="hg-mobile-search-recent"
+             id="search-recent"
+             data-mobile-search-recent
+             data-current-q="<?= hg_mobile_search_h($query) ?>"
+             data-current-section="<?= hg_mobile_search_h($sectionKey) ?>"
+             data-current-label="<?= hg_mobile_search_h(hg_mobile_search_text_label($sectionConfig)) ?>"
+             data-store-current="<?= ($isResults && $query !== '' && $queryLength > 2) ? '1' : '0' ?>"
+             data-skip-current="<?= $isResults ? '1' : '0' ?>">
+            <span>Recientes</span>
+            <div data-mobile-search-recent-items></div>
+        </div>
     <?php elseif ($query === ''): ?>
         <div class="hg-mobile-empty">Introduce un criterio de busqueda.</div>
     <?php else: ?>
