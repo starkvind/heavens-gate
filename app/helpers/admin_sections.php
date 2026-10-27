@@ -40,6 +40,7 @@ if (!function_exists('hg_admin_section_registry')) {
             'admin_items' => ['target' => 'admin_items.php', 'normal' => true, 'ajax' => true],
             'admin_menu' => ['target' => 'admin_menu.php', 'normal' => true, 'ajax' => true],
             'admin_relations' => ['target' => 'admin_relations.php', 'normal' => true, 'ajax' => false],
+            'admin_spoilers' => ['target' => 'admin_spoilers.php', 'normal' => true, 'ajax' => false],
             'admin_news' => ['target' => 'admin_news.php', 'normal' => true, 'ajax' => true],
             'admin_systems' => ['target' => 'admin_systems.php', 'normal' => true, 'ajax' => true],
             'admin_forms' => ['target' => 'admin_forms.php', 'normal' => true, 'ajax' => true],
