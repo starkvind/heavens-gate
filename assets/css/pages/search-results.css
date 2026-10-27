@@ -254,7 +254,9 @@
 }
 
 .search-page .search-recent {
-    margin: 0 0 18px;
+    margin: 24px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(0, 120, 220, 0.22);
     display: none;
     gap: 8px;
     flex-wrap: wrap;
@@ -266,8 +268,10 @@
 }
 
 .search-page .search-recent-label {
+    width: 100%;
     color: #99ffff;
-    font-size: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }

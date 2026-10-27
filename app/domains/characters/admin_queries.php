@@ -82,9 +82,9 @@ if (!function_exists('hg_characters_admin_reference_catalogs')) {
             'character_types' => hg_characters_admin_fetch_pairs($link, "SELECT id, kind AS name FROM dim_character_types ORDER BY sort_order, kind"),
             'archetypes' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_archetypes ORDER BY name"),
             'groups' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_groups ORDER BY name"),
-            'gifts' => hg_characters_admin_fetch_pairs($link, "SELECT id, CONCAT(name, ' (', gift_group, ')') AS name FROM fact_gifts"),
+            'gifts' => hg_characters_admin_fetch_pairs($link, "SELECT g.id, CONCAT(g.name, IF(COALESCE(g.gift_group, '') = '', '', CONCAT(' (', g.gift_group, ')')), IF(COALESCE(b.name, '') = '', '', CONCAT(' — ', b.name))) AS name FROM fact_gifts g LEFT JOIN dim_bibliographies b ON b.id = g.bibliography_id ORDER BY g.name, b.name"),
             'disciplines' => hg_characters_admin_fetch_pairs($link, "SELECT id, name FROM dim_discipline_types ORDER BY name"),
-            'rites' => hg_characters_admin_fetch_pairs($link, "SELECT nr.id, CONCAT(nr.name, ' (', ntr.name, ')') AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id"),
+            'rites' => hg_characters_admin_fetch_pairs($link, "SELECT nr.id, CONCAT(nr.name, IF(COALESCE(ntr.name, '') = '', '', CONCAT(' (', ntr.name, ')')), IF(COALESCE(b.name, '') = '', '', CONCAT(' — ', b.name))) AS name FROM fact_rites nr LEFT JOIN dim_rite_types ntr ON nr.kind = ntr.id LEFT JOIN dim_bibliographies b ON b.id = nr.bibliography_id ORDER BY nr.name, b.name"),
         ];
     }
 }

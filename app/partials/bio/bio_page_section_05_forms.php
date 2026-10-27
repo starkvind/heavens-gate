@@ -222,7 +222,8 @@ $baseManeuversJson = json_encode(array_values($bioBaseManeuvers ?? []), JSON_HEX
         tab.type = 'button';
         tab.className = 'hgTabBtn';
         tab.dataset.tab = 'forms';
-        tab.innerHTML = '<span class="hgTabEmoji" aria-hidden="true"><img class="hgTabIcon" src="/img/ui/icons/icon_character_sheet.webp" alt="" width="16" height="16" loading="lazy" decoding="async"></span><span class="hgTabLabel">Formas</span>';
+        // Icono propio de Formas: silueta central rodeada de flechas de transformación.
+        tab.innerHTML = '<span class="hgTabEmoji" aria-hidden="true"><svg class="hgTabIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 7a7 7 0 0 1 12-2"/><path d="m17 2 1 4-4 1"/><path d="M19 17a7 7 0 0 1-12 2"/><path d="m7 22-1-4 4-1"/><path d="m12 8 4 4-4 4-4-4z"/></svg></span><span class="hgTabLabel">Formas</span>';
         sheetTab.insertAdjacentElement('afterend', tab);
 
         const panel = document.createElement('section');

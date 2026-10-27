@@ -894,11 +894,12 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     chip.dataset.id = String(id);
     chip.innerHTML =
       '<span class="tag">'+(type.charAt(0).toUpperCase()+type.slice(1))+'</span>' +
-      '<span class="pname">'+name+'</span>' +
+      '<span class="pname"></span>' +
       '<input class="inp power-lvl" type="number" name="powers_lvl[]" min="0" max="9" value="'+(lvl||0)+'">' +
       '<input type="hidden" name="powers_type[]" value="'+type+'">' +
       '<input type="hidden" name="powers_id[]" value="'+id+'">' +
       '<button type="button" class="btn btn-red btn-del-power">X</button>';
+    chip.querySelector('.pname').textContent = name || ('#' + id);
     powList.appendChild(chip);
     chip.querySelector('.btn-del-power').addEventListener('click', function(){ chip.remove(); });
   }

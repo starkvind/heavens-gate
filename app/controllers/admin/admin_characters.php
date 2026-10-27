@@ -12,6 +12,7 @@ $isAjaxRequest = (
 if (!$isAjaxRequest):
 ?>
 <link rel="stylesheet" href="/assets/vendor/select2/select2.min.4.1.0.css">
+<link rel="stylesheet" href="/assets/css/pages/admin-characters-layout.css?v=<?= (int)(@filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/css/pages/admin-characters-layout.css') ?: 1) ?>">
 <script src="/assets/vendor/jquery/jquery-3.7.1.min.js"></script>
 <script src="/assets/vendor/select2/select2.min.4.1.0.js"></script>
 

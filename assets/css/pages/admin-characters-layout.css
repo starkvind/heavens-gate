@@ -1,0 +1,51 @@
+/* Character Admin: preserve readable labels in editable trait/resource chips.
+   Keep these rules local to this editor; do not change shared chip styling. */
+#traitExtraList .trait-chip,
+#resourceList .res-chip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1 1 360px;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 12px;
+    column-gap: 9px;
+    row-gap: 7px;
+}
+
+#traitExtraList .trait-chip .tag,
+#resourceList .res-chip .tag,
+#traitExtraList .trait-chip .btn,
+#resourceList .res-chip .btn {
+    flex: 0 0 auto;
+}
+
+#traitExtraList .trait-chip .pname,
+#resourceList .res-chip .pname {
+    flex: 1 1 12rem;
+    min-width: min(12rem, 100%);
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.35;
+}
+
+#traitExtraList .trait-chip .trait-input,
+#resourceList .res-chip input[type="number"] {
+    flex: 0 0 5.25rem;
+    width: 5.25rem;
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 540px) {
+    #traitExtraList .trait-chip,
+    #resourceList .res-chip {
+        flex-basis: 100%;
+    }
+
+    #traitExtraList .trait-chip .pname,
+    #resourceList .res-chip .pname {
+        flex-basis: 100%;
+        min-width: 0;
+    }
+}
