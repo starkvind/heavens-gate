@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../spoilers/queries.php';
+
 /**
  * Database access for public relationship-map views.
  */
@@ -262,5 +264,5 @@ function hg_relationships_fetch_character_relations(mysqli $link): ?array
     }
     $rows = $result->fetch_all(MYSQLI_ASSOC);
     $result->free();
-    return $rows;
+    return array_merge($rows, hg_spoilers_public_graph_relations($link));
 }
