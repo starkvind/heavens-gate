@@ -107,7 +107,7 @@ if (!function_exists('hg_spoilers_admin_save_layer')) {
     {
         $title = trim($title);
         $content = trim($content);
-        if ($title === '' || mb_strlen($title, 'UTF-8') > 190) {
+        if ($title === '' || (function_exists('mb_strlen') ? mb_strlen($title, 'UTF-8') : strlen($title)) > 190) {
             return ['ok' => false, 'message' => 'Indica un título de hasta 190 caracteres.'];
         }
         if ($id <= 0 && !hg_spoilers_admin_character_exists($link, $characterId)) {
@@ -172,7 +172,7 @@ if (!function_exists('hg_spoilers_admin_add_relation')) {
             return ['ok' => false, 'message' => 'Elige otro personaje existente como destino.'];
         }
         $type = trim($type);
-        if ($type === '' || mb_strlen($type, 'UTF-8') > 100) {
+        if ($type === '' || (function_exists('mb_strlen') ? mb_strlen($type, 'UTF-8') : strlen($type)) > 100) {
             return ['ok' => false, 'message' => 'Indica un tipo de relación (máximo 100 caracteres).'];
         }
         $tag = substr(trim($tag), 0, 50);
