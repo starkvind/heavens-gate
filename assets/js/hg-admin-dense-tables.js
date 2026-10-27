@@ -476,9 +476,8 @@
             control.classList.add('adm-icon-btn');
             if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Editar');
             if (!control.getAttribute('title')) control.setAttribute('title', 'Editar');
-            // Writing even the same text creates childList mutations in the DOM.
-          // Avoid re-triggering this table's MutationObserver on every frame.
-          if (control.textContent !== '✏') control.textContent = '✏';
+            // Assigning identical textContent retriggers the table MutationObserver.
+            if (control.textContent !== '✏') control.textContent = '✏';
           } else if (label === 'borrar' || label === '🗑 borrar' || label === '🗑') {
             control.classList.add('adm-icon-btn');
             if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Borrar');
