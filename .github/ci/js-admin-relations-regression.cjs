@@ -75,6 +75,18 @@ compactActionColumn(table, wrapper);
 assert.equal(edit.writes, 1, 'Repeated refresh must NOT mutate an unchanged Edit icon');
 assert.equal(remove.writes, 1, 'Repeated refresh must NOT mutate an unchanged Delete icon');
 
+// A full AJAX tbody replacement creates many added <tr> nodes. The global
+// observer must not re-register the same table once for every new row.
+const registrationSource = dense.match(/  function registerTable\(table\) \{[\s\S]*?\n  \}\n\n  function scan/);
+assert.ok(registrationSource, 'registerTable must be extractable for regression coverage');
+let candidateChecks = 0;
+const registerTable = vm.runInNewContext(
+  registrationSource[0].replace(/\n\n  function scan$/, '') + '\nregisterTable;',
+  { isDenseCandidate: () => { candidateChecks += 1; return true; } }
+);
+registerTable({ dataset: { admDenseReady: '1' } });
+assert.equal(candidateChecks, 0, 'Already-registered tables must short-circuit before any full-table work');
+
 const editMarkup = relations.match(/data-edit="1"[\s\S]*?>Editar<\/button>/);
 assert.ok(editMarkup, 'Relations edit button must exist');
 assert.doesNotMatch(editMarkup[0], /onclick\s*=/, 'Do not inline-bind the edit button twice');
