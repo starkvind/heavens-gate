@@ -162,7 +162,7 @@
                 checkbox.setAttribute('data-mobile-multiselect-option', '');
 
                 const text = document.createElement('span');
-                text.textContent = raw;
+                text.textContent = entry.labels.get(normalized) || raw;
                 row.append(checkbox, text);
                 entry.optionsNode.appendChild(row);
             });
@@ -172,7 +172,7 @@
             entry.summary.textContent = entry.allLabel;
         } else if (entry.selected.size === 1) {
             const normalized = Array.from(entry.selected)[0];
-            entry.summary.textContent = entry.available.get(normalized) || '1 selecc.';
+            entry.summary.textContent = entry.labels.get(normalized) || entry.available.get(normalized) || '1 selecc.';
         } else {
             entry.summary.textContent = entry.selected.size + ' selecc.';
         }
@@ -185,7 +185,7 @@
         entry.available.forEach(function (raw, normalized) {
             const option = document.createElement('option');
             option.value = raw;
-            option.textContent = raw;
+            option.textContent = entry.labels.get(normalized) || raw;
             option.selected = entry.selected.has(normalized);
             entry.control.appendChild(option);
         });
@@ -205,8 +205,15 @@
             .map(function (option) { return String(option.value || '').trim(); })
             .filter(function (value) { return value !== ''; });
 
+        const labels = new Map();
+        Array.from(control.options || []).forEach(function (option) {
+            const value = String(option.value || '').trim();
+            if (value !== '') labels.set(normalize(value), String(option.textContent || '').trim() || value);
+        });
+
         return {
             control: control,
+            labels: labels,
             key: filterKey(control, index),
             dependsOn: filterDependencies(control),
             allLabel: neutralOption ? neutralOption.textContent : 'Todos',
