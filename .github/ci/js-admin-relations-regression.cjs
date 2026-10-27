@@ -93,4 +93,10 @@ assert.doesNotMatch(editMarkup[0], /onclick\s*=/, 'Do not inline-bind the edit b
 assert.match(relations, /btn\.addEventListener\('click', function\(\)\{ openRelModal\(btn\); \}\)/,
   'Delegated edit-button initialization must remain');
 
-console.log('Issue #68: idempotent compact actions and single modal binding PASS');
+const adminMain = fs.readFileSync(path.join(root, 'app/controllers/admin/admin_main.php'), 'utf8');
+assert.match(adminMain, /filemtime\(\$denseTableJsPath\)/,
+  'Shared Admin JavaScript must use deploy-sensitive cache busting');
+assert.doesNotMatch(adminMain, /dense-tables\.js\?v=699z-homogeneous-4/,
+  'A hard-coded asset version can preserve the freeze after a deploy');
+
+console.log('Issue #68: idempotent compact actions, single bindings, registration and cache version PASS');
