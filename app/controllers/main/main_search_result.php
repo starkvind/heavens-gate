@@ -309,7 +309,7 @@ include('app/partials/main_nav_bar.php');
         <div class="search-empty"><h3>Criterio demasiado corto</h3><p>La b&uacute;squeda debe realizarse con al menos 3 letras.</p></div>
 <?php endif; ?>
         <div class="search-recent" id="search-recent">
-            <span class="search-recent-label">Recientes</span>
+            <span class="search-recent-label" role="heading" aria-level="2">Búsquedas recientes</span>
             <div class="search-recent-items" id="search-recent-items"></div>
         </div>
         <div class="search-results-actions"><a class="search-results-back" href="/search">Volver</a></div>
