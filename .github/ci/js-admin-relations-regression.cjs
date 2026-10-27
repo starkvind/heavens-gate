@@ -52,13 +52,17 @@ const table = {
 const wrapper = { classList: classes() };
 const normalize = (value) => String(value || '').toLowerCase().trim();
 
+const isActionHeader = (label, index, total) =>
+  index === total - 1 && /^(acc\\.?|accion|acciones|opciones)$/.test(normalize(label));
+assert.ok(isActionHeader('Acc.', 4, 5), 'Compacted header must still qualify on subsequent passes');
+
 const compactActionColumn = vm.runInNewContext(
   functionSource + '\ncompactActionColumn;',
   {
     headers: () => ['ID', 'Origen', 'Destino', 'Tag', heading.textContent],
     normalize,
     isActionHeader: (label, index, total) =>
-      index === total - 1 && /^(acc\\.?|accion|acciones|opciones)$/.test(normalize(label))
+      index === total - 1 && /^(acc\.?|accion|acciones|opciones)$/.test(normalize(label))
   }
 );
 
