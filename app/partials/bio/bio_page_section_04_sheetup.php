@@ -40,7 +40,7 @@
 		echo"<div class='bioSheetSectionLeft'>$titleClan:</div>";
 		echo"<div class='bioSheetSectionRight'>$clanLink</div>"; // Variable obtenida de #bio_page_section_01_data
 	}
-	if ($bioPlayer != 0) {	// Jugador del Personaje
+	if ($bioPlayer != 0 && strcasecmp(trim((string)$bioPlayer), 'PNJ') !== 0 && strcasecmp(trim((string)($namePlayerOfChara ?? '')), 'PNJ') !== 0) {	// Jugador real del Personaje
 		$playerDisplay = (isset($playerLinkOfChara) && $playerLinkOfChara !== '') ? $playerLinkOfChara : $namePlayerOfChara;
 		echo"<div class='bioSheetSectionLeft'>Jugador:</div>";
 		echo"<div class='bioSheetSectionRight'>$playerDisplay</div>"; // Variable obtenida de #bio_page_section_01_data
