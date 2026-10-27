@@ -321,6 +321,7 @@ usort($items, static function (array $left, array $right): int {
 
 $comments = array_slice(hg_characters_fetch_comments($link, $cid), 0, 20);
 $relations = hg_characters_fetch_relations($link, $cid, '2,7');
+$mobilePublishedRevelations = hg_spoilers_public_layers($link, 'character', $cid);
 $chapterParticipation = hg_characters_fetch_chapter_participation($link, $cid, 'season');
 $timelineEvents = hg_characters_fetch_participation_events($link, $cid, 24);
 $characterDocs = hg_characters_fetch_docs($link, $cid);
