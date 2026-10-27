@@ -143,6 +143,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 						['href' => '/talim?s=admin_bridges', 'label' => 'Editar Bridges', 'keywords' => ['vinculos']],
 						['href' => '/talim?s=admin_character_affiliations_canonical', 'label' => 'Canonizar Afiliaciones', 'keywords' => ['normalizar']],
 						['href' => '/talim?s=admin_relations', 'label' => 'Editar Relaciones', 'keywords' => ['vinculos', 'network']],
+						['href' => '/talim?s=admin_spoilers', 'label' => 'Gestionar Spoilers / Revelaciones', 'keywords' => ['oculto', 'sheol', 'publicacion', 'spoilers']],
 					],
 				],
 				[
