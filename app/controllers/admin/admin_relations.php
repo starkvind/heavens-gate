@@ -216,7 +216,6 @@ admin_panel_open('Relaciones', '<button class="btn btn-green" type="button" oncl
 					data-arrows="<?= h((string)($r['arrows'] ?? '')) ?>"
 					data-importance="<?= (int)($r['importance'] ?? 0) ?>"
 					data-description="<?= h((string)($r['description'] ?? '')) ?>"
-					onclick="openRelModal(this)"
 				>Editar</button>
 				<form method="post" class="rel-delete-form adm-inline" data-id="<?= (int)$r['id'] ?>">
 					<input type="hidden" name="csrf" value="<?= h($CSRF) ?>">

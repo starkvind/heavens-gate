@@ -476,12 +476,13 @@
             control.classList.add('adm-icon-btn');
             if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Editar');
             if (!control.getAttribute('title')) control.setAttribute('title', 'Editar');
-            control.textContent = '✏';
+            // Assigning identical textContent retriggers the table MutationObserver.
+            if (control.textContent !== '✏') control.textContent = '✏';
           } else if (label === 'borrar' || label === '🗑 borrar' || label === '🗑') {
             control.classList.add('adm-icon-btn');
             if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Borrar');
             if (!control.getAttribute('title')) control.setAttribute('title', 'Borrar');
-            control.textContent = '🗑';
+            if (control.textContent !== '🗑') control.textContent = '🗑';
           }
         });
       });
@@ -489,6 +490,9 @@
   }
 
   function registerTable(table) {
+    // Global childList scans revisit this table once per newly inserted row.
+    // Its own observer already handles row changes after the first setup.
+    if (table.dataset.admDenseReady === '1') return;
     if (!isDenseCandidate(table)) return;
     table.classList.add('adm-wide-table');
 

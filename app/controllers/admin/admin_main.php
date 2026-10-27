@@ -298,6 +298,8 @@ HTML;
 		}
 	}
 	if (hg_admin_is_authenticated()) {
-		echo '<script src="/assets/js/hg-admin-dense-tables.js?v=699z-homogeneous-4"></script>';
+		$denseTableJsPath = __DIR__ . '/../../../assets/js/hg-admin-dense-tables.js';
+		$denseTableJsVersion = @filemtime($denseTableJsPath) ?: 0;
+		echo '<script src="/assets/js/hg-admin-dense-tables.js?v=' . (int)$denseTableJsVersion . '"></script>';
 	}
 ?>

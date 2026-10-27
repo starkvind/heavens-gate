@@ -135,6 +135,11 @@ jobs:
       - name: Check dense Admin table JavaScript
         run: node --check assets/js/hg-admin-dense-tables.js
 
+      - name: Prevent relations editor MutationObserver regression (#68)
+        run: |
+          node .github/ci/js-admin-relations-regression.cjs
+          php -l app/controllers/admin/admin_relations.php
+
       - name: Enforce runtime architecture baseline
         run: python3 .github/ci/php-runtime-baseline-audit.py
 
