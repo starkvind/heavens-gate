@@ -218,7 +218,9 @@
             dependsOn: filterDependencies(control),
             allLabel: neutralOption ? neutralOption.textContent : 'Todos',
             selected: initialSelected(control),
-            available: availableMap(sourceValues),
+            available: prefix === 'server'
+                ? new Map(sourceValues.map(function (value) { return [normalize(value), value]; }))
+                : availableMap(sourceValues),
             uid: prefix + '-' + index + '-' + Math.random().toString(36).slice(2, 8),
             closePeers: function () {},
             onSelectionChange: function () {}
