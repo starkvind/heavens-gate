@@ -476,12 +476,14 @@
             control.classList.add('adm-icon-btn');
             if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Editar');
             if (!control.getAttribute('title')) control.setAttribute('title', 'Editar');
-            control.textContent = '✏';
+            // Writing even the same text creates childList mutations in the DOM.
+          // Avoid re-triggering this table's MutationObserver on every frame.
+          if (control.textContent !== '✏') control.textContent = '✏';
           } else if (label === 'borrar' || label === '🗑 borrar' || label === '🗑') {
             control.classList.add('adm-icon-btn');
             if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', 'Borrar');
             if (!control.getAttribute('title')) control.setAttribute('title', 'Borrar');
-            control.textContent = '🗑';
+            if (control.textContent !== '🗑') control.textContent = '🗑';
           }
         });
       });
