@@ -1306,12 +1306,15 @@ html {
 
 .hg-mobile-search-recent {
     display: none;
-    margin-top: 12px;
+    margin-top: 22px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hg-mobile-border);
 }
 
 .hg-mobile-search-recent > span {
     color: var(--hg-mobile-muted);
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: 700;
     width: 100%;
 }
 
