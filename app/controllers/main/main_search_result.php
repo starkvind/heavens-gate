@@ -276,10 +276,6 @@ include('app/partials/main_nav_bar.php');
             <?php if ($sectionKey !== 'all'): ?><a class="search-results-tool" href="/search/results?q=<?= rawurlencode($query) ?>&section=all">Ver mezcla global</a><?php endif; ?>
             <?php if (!empty($rows)): ?><span class="search-results-tool">Ordenado por relevancia</span><?php endif; ?>
         </div>
-        <div class="search-recent" id="search-recent">
-            <span class="search-recent-label">Recientes</span>
-            <div class="search-recent-items" id="search-recent-items"></div>
-        </div>
         <?php if ($sectionKey === 'all' && !empty($sectionBreakdown)): ?>
             <div class="search-section-bar">
                 <?php foreach ($sectionBreakdown as $breakKey => $breakMeta): ?>
@@ -312,6 +308,10 @@ include('app/partials/main_nav_bar.php');
 <?php else: ?>
         <div class="search-empty"><h3>Criterio demasiado corto</h3><p>La b&uacute;squeda debe realizarse con al menos 3 letras.</p></div>
 <?php endif; ?>
+        <div class="search-recent" id="search-recent">
+            <span class="search-recent-label">Recientes</span>
+            <div class="search-recent-items" id="search-recent-items"></div>
+        </div>
         <div class="search-results-actions"><a class="search-results-back" href="/search">Volver</a></div>
     </section>
 </div>
