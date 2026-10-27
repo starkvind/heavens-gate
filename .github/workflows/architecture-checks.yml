@@ -152,6 +152,12 @@ jobs:
       - name: Enforce mobile presentation boundary
         run: python3 .github/ci/php-mobile-presentation-audit.py
 
+      - name: Protect quick mobile and desktop UX fixes
+        run: |
+          node --check assets/js/hg-mobile-multifilters.js
+          node --check .github/ci/js-quick-ui-regression.cjs
+          node .github/ci/js-quick-ui-regression.cjs
+
       - name: Enforce PWA contract
         run: python3 .github/ci/php-pwa-contract-audit.py
 
