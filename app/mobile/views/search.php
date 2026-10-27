@@ -25,7 +25,7 @@
              data-current-label="<?= hg_mobile_search_h(hg_mobile_search_text_label($sectionConfig)) ?>"
              data-store-current="<?= ($isResults && $query !== '' && $queryLength > 2) ? '1' : '0' ?>"
              data-skip-current="<?= $isResults ? '1' : '0' ?>">
-            <span>Recientes</span>
+            <span role="heading" aria-level="2">Búsquedas recientes</span>
             <div data-mobile-search-recent-items></div>
         </div>
     <?php endif; ?>
@@ -66,7 +66,7 @@
              data-current-label="<?= hg_mobile_search_h(hg_mobile_search_text_label($sectionConfig)) ?>"
              data-store-current="<?= ($isResults && $query !== '' && $queryLength > 2) ? '1' : '0' ?>"
              data-skip-current="<?= $isResults ? '1' : '0' ?>">
-            <span>Recientes</span>
+            <span role="heading" aria-level="2">Búsquedas recientes</span>
             <div data-mobile-search-recent-items></div>
         </div>
     <?php elseif ($query === ''): ?>
