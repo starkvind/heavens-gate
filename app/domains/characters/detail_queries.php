@@ -1,6 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/queries.php');
+require_once(__DIR__ . '/../spoilers/queries.php');
 
 if (!function_exists('hg_characters_detect_death_table')) {
     function hg_characters_detect_death_table(mysqli $link): ?string
@@ -469,6 +470,8 @@ if (!function_exists('hg_characters_fetch_relations')) {
             }
             mysqli_stmt_close($stmt);
         }
+
+        $rows = array_merge($rows, hg_spoilers_public_character_relations($link, $characterId, (string)$excludedChronicles));
 
         usort($rows, static function (array $left, array $right): int {
             $typeCmp = strcasecmp((string)($left['relation_type'] ?? ''), (string)($right['relation_type'] ?? ''));
