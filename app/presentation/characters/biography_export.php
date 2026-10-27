@@ -49,6 +49,10 @@ $bioExportSections = [];
 		if (trim((string)$bioText) !== '') $bioExportInfo[] = bio_plain_text($bioText);
 		if ($bioIsAdminFlag && trim((string)$bioNotes) !== '') $bioExportInfo[] = 'Notas internas (admin):' . "\n" . bio_plain_text($bioNotes);
 		bio_export_add_section($bioExportSections, 'INFORMACION', $bioExportInfo);
+		foreach (($bioPublishedRevelations ?? []) as $revelation) {
+			if (trim((string)($revelation['content_text'] ?? '')) === '') continue;
+			bio_export_add_section($bioExportSections, (string)($revelation['title'] ?? 'Revelación'), [(string)$revelation['content_text']]);
+		}
 
 		if ($bioHasSheet) {
 			$bioExportSheetTop = [];
