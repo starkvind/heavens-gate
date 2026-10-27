@@ -491,6 +491,9 @@
   }
 
   function registerTable(table) {
+    // Global childList scans revisit this table once per newly inserted row.
+    // Its own observer already handles row changes after the first setup.
+    if (table.dataset.admDenseReady === '1') return;
     if (!isDenseCandidate(table)) return;
     table.classList.add('adm-wide-table');
 
