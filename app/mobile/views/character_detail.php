@@ -54,6 +54,14 @@
         </section>
     <?php endif; ?>
 
+    <?php foreach (($mobilePublishedRevelations ?? []) as $revelation): ?>
+        <?php if (trim((string)($revelation['content_text'] ?? '')) === '') continue; ?>
+        <section class="hg-mobile-section hg-mobile-prose">
+            <h2><?= hg_mobile_bio_h($revelation['title'] ?? 'Revelación') ?></h2>
+            <p><?= nl2br(hg_mobile_bio_h($revelation['content_text'] ?? '')) ?></p>
+        </section>
+    <?php endforeach; ?>
+
     <?php if (!empty($relations)): ?>
         <section class="hg-mobile-section">
             <h2>Relaciones</h2>
