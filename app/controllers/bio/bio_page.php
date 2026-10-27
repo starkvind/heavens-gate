@@ -26,6 +26,7 @@ if (!is_array($dataResult)) {
 }
 
 $bioIsAdminFlag = bio_page_is_admin_flag_enabled();
+$bioPublishedRevelations = hg_spoilers_public_layers($link, 'character', $characterId);
 
 include __DIR__ . '/bio_page_prepare.php';
 

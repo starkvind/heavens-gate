@@ -93,6 +93,12 @@
 				echo "<fieldset class='bioSeccion'><legend>$titleInfo</legend>$bioText</fieldset>";
 			echo "</div>";
 		} // Finalizamos de poner el Texto
+		foreach (($bioPublishedRevelations ?? []) as $revelation) {
+			$revelationTitle = h((string)($revelation['title'] ?? 'Revelación'));
+			$revelationText = nl2br(h((string)($revelation['content_text'] ?? '')));
+			if (trim((string)($revelation['content_text'] ?? '')) === '') continue;
+			echo "<div class='bioTextData'><fieldset class='bioSeccion'><legend>" . $revelationTitle . "</legend><div class='bio-revelation-text'>" . $revelationText . "</div></fieldset></div>";
+		}
 		if ($bioIsAdminFlag && trim($bioNotes) !== '') {
 			echo "<div class='bioTextData'>";
 				echo "<fieldset class='bioSeccion'><legend>&nbsp;Notas internas (admin)&nbsp;</legend><div class='bioAdminNotes'>" . nl2br(h($bioNotes)) . "</div></fieldset>";

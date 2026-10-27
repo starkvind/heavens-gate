@@ -158,6 +158,9 @@ jobs:
           node --check .github/ci/js-quick-ui-regression.cjs
           node .github/ci/js-quick-ui-regression.cjs
 
+      - name: Enforce spoiler-publication boundaries
+        run: python3 .github/ci/php-spoiler-visibility-audit.py
+
       - name: Enforce PWA contract
         run: python3 .github/ci/php-pwa-contract-audit.py
 
