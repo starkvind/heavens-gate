@@ -33,6 +33,7 @@ $hgMobileRoutes = [
     'seasons_interludes' => __DIR__ . '/controllers/seasons_list.php',
     'seasons_personal' => __DIR__ . '/controllers/seasons_list.php',
     'seasons_specials' => __DIR__ . '/controllers/seasons_list.php',
+    'season_order' => __DIR__ . '/controllers/season_order.php',
     'temp' => __DIR__ . '/controllers/season_detail.php',
     'chapters_table' => __DIR__ . '/controllers/chapters_list.php',
     'seechapter' => __DIR__ . '/controllers/chapter_detail.php',

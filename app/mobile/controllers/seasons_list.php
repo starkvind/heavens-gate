@@ -81,6 +81,7 @@ $metaTitle = $title . " | Heaven's Gate";
     <div class="hg-mobile-action-row">
         <a href="/seasons?view=mobile">Todo</a>
         <a href="/chapters?view=mobile">Capítulos</a>
+        <a href="/seasons/order?view=mobile">Orden de temporadas</a>
     </div>
 </section>
 

@@ -33,14 +33,12 @@ if (!function_exists('hg_mobile_menu_is_desktop_only_href')) {
         $route = strtolower((string)($query['p'] ?? ''));
 
         $desktopOnlyPaths = [
-            '/seasons/order',
             '/relationship-map/organizations',
             '/relationship-map/characters',
             '/relationship-map/groups',
             '/organizations/org-chart',
         ];
         $desktopOnlyRoutes = [
-            'season_order',
             'nebula_clan',
             'nebula_character',
             'nebula_groups',
@@ -130,6 +128,7 @@ if (!function_exists('hg_mobile_menu_fallback')) {
                 ['label' => 'Personajes', 'href' => '/characters', 'target' => '_self'],
                 ['label' => 'Jugadores', 'href' => '/players', 'target' => '_self'],
                 ['label' => 'Temporadas', 'href' => '/seasons', 'target' => '_self'],
+                ['label' => 'Orden de temporadas', 'href' => '/seasons/order?view=mobile', 'target' => '_self'],
                 ['label' => 'Crónicas', 'href' => '/chronicles', 'target' => '_self'],
                 ['label' => 'Documentos', 'href' => '/documents', 'target' => '_self'],
                 ['label' => 'Inventario', 'href' => '/inventory', 'target' => '_self'],
@@ -221,3 +220,35 @@ if (!$hgMobileMenuGroups) {
 }
 
 $hgMobileMenuGroups = hg_mobile_menu_ensure_tool_links($hgMobileMenuGroups);
+
+/* DB-driven navigation may not yet expose the new mobile route. Add a single
+ * archive link without duplicating any existing configured order entry. */
+if (!function_exists('hg_mobile_menu_ensure_season_order_link')) {
+    function hg_mobile_menu_ensure_season_order_link(array $groups): array
+    {
+        foreach ($groups as $group) {
+            foreach (($group['items'] ?? []) as $item) {
+                $href = (string)($item['href'] ?? '');
+                $path = strtolower(rtrim((string)(parse_url($href, PHP_URL_PATH) ?? ''), '/'));
+                $params = [];
+                parse_str((string)(parse_url($href, PHP_URL_QUERY) ?? ''), $params);
+                if ($path === '/seasons/order' || ($params['p'] ?? '') === 'season_order') {
+                    return $groups;
+                }
+            }
+        }
+        $item = ['label' => 'Orden de temporadas', 'href' => '/seasons/order?view=mobile', 'target' => '_self'];
+        foreach ($groups as &$group) {
+            $label = strtolower((string)($group['label'] ?? ''));
+            if (strpos($label, 'archivo') !== false || strpos($label, 'temporada') !== false) {
+                $group['items'][] = $item;
+                unset($group);
+                return $groups;
+            }
+        }
+        unset($group);
+        $groups[] = ['label' => 'Archivo', 'items' => [$item]];
+        return $groups;
+    }
+}
+$hgMobileMenuGroups = hg_mobile_menu_ensure_season_order_link($hgMobileMenuGroups);

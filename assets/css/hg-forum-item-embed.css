@@ -73,3 +73,60 @@
 .hgfv-root .hgfv-flow-ready > .hg-inline-item-frame {
     margin-inline: 0;
 }
+
+/* Forum reader only: prevent a flex item from squeezing the avatar into a
+ * narrow portrait when a desktop view is rendered on a small screen.
+ * Keep the canonical /forum/message embed presentation unchanged. */
+.hgfv-root .hg-inline-message .msg_main_box {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.hgfv-root .hg-inline-message .img_link {
+    display: block;
+    flex: 0 0 80px;
+    width: 80px;
+    min-width: 80px;
+    max-width: none;
+}
+
+.hgfv-root .hg-inline-message .msg_face {
+    display: block;
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+.hgfv-root .hg-inline-message .msg_body {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* The viewer wrapper is a CSS container: adapt to the *actual reading width*,
+ * not to mobile/desktop user-agent mode or the browser viewport. */
+@container (max-width: 420px) {
+    .hgfv-root .hg-inline-message .img_link {
+        flex-basis: 60px;
+        width: 60px;
+        min-width: 60px;
+    }
+
+    .hgfv-root .hg-inline-message .msg_face {
+        width: 60px;
+        height: 60px;
+        min-width: 60px;
+        margin-right: -2.4em;
+    }
+
+    .hgfv-root .hg-inline-message .msg_container {
+        padding-left: 1.5em;
+    }
+
+    .hgfv-root .hg-inline-message .msg_name_box {
+        left: 1.5em;
+        max-width: calc(100% - 2em);
+    }
+}

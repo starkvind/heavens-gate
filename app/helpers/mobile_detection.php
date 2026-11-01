@@ -33,7 +33,6 @@ function hg_mobile_is_excluded_route(string $routeKey): bool
         'dice_api',
         'forum_avatar_api',
         'chronicle_image',
-        'season_order',
         'nebula_clan',
         'nebula_character',
         'nebula_groups',

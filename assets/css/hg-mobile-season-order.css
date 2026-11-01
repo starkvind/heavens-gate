@@ -1,0 +1,196 @@
+/* Mobile season-order tree. Scoped to the native mobile controller; desktop D3
+ * graph and global mobile shell retain their own styles. */
+.hg-mso-page {
+    --hg-mso-trunk: #80b9ff;
+    max-width: 780px;
+    margin-inline: auto;
+}
+
+.hg-mso-page h1 { margin-bottom: 8px; }
+.hg-mso-page > p { line-height: 1.5; }
+
+.hg-mso-picker {
+    display: grid;
+    gap: 7px;
+    margin: 18px 0 24px;
+}
+
+.hg-mso-picker label {
+    font-weight: 700;
+}
+
+.hg-mso-picker-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.hg-mso-picker select,
+.hg-mso-picker button {
+    min-height: 44px;
+    border: 1px solid currentColor;
+    border-radius: 9px;
+    font: inherit;
+}
+
+.hg-mso-picker select {
+    min-width: 0;
+    flex: 1;
+    color: inherit;
+    background: transparent;
+    padding: 8px;
+}
+
+.hg-mso-picker select option {
+    color: #172033;
+    background: #fff;
+}
+
+.hg-mso-picker button {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    background: #174c9a;
+    border-color: #5e9be7;
+    color: #fff;
+    font-weight: 700;
+}
+
+.hg-mso-trunk,
+.hg-mso-branches {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hg-mso-trunk {
+    margin-left: 10px;
+    border-left: 3px solid var(--hg-mso-trunk);
+}
+
+.hg-mso-step {
+    position: relative;
+    margin: 0 0 24px 18px;
+}
+
+.hg-mso-step::before {
+    content: '';
+    position: absolute;
+    left: -27px;
+    top: 24px;
+    width: 12px;
+    height: 12px;
+    background: var(--hg-mso-trunk);
+    border: 3px solid #111c42;
+    border-radius: 50%;
+}
+
+.hg-mso-node {
+    min-width: 0;
+    padding: 14px;
+    background: #0c2146;
+    border: 1px solid #4978b9;
+    border-left: 4px solid var(--hg-mso-trunk);
+    border-radius: 10px;
+    color: #f2f7ff;
+    overflow-wrap: anywhere;
+}
+
+.hg-mso-kicker {
+    display: block;
+    margin-bottom: 6px;
+    font-size: .76rem;
+    font-weight: 700;
+    letter-spacing: .025em;
+    color: #cfddf6;
+}
+
+.hg-mso-title {
+    font-size: 1.08rem;
+    line-height: 1.32;
+    margin: 0;
+    color: inherit;
+}
+
+.hg-mso-title a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: #8cbcff;
+    text-underline-offset: 3px;
+}
+
+.hg-mso-title a:focus-visible,
+.hg-mso-back a:focus-visible,
+.hg-mso-description summary:focus-visible,
+.hg-mso-picker :focus-visible {
+    outline: 2px solid #ffce83;
+    outline-offset: 3px;
+}
+
+.hg-mso-subtitle,
+.hg-mso-range {
+    margin: 7px 0 0;
+    font-size: .87rem;
+    color: #dbe7ff;
+    line-height: 1.45;
+}
+
+.hg-mso-description {
+    margin-top: 11px;
+    border-top: 1px solid rgba(255,255,255,.24);
+    padding-top: 10px;
+    font-size: .9rem;
+}
+
+.hg-mso-description summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: #d6e8ff;
+    min-height: 30px;
+}
+
+.hg-mso-description p {
+    margin: 7px 0 0;
+    line-height: 1.55;
+}
+
+.hg-mso-branches {
+    margin: 12px 0 16px 14px;
+}
+
+.hg-mso-branch {
+    position: relative;
+    padding: 0 0 12px 16px;
+    border-left: 3px solid var(--hg-mso-accent);
+}
+
+.hg-mso-branch::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: -3px;
+    width: 17px;
+    border-top: 3px solid var(--hg-mso-accent);
+}
+
+.hg-mso-node--secondary {
+    border-color: var(--hg-mso-accent);
+    border-left-width: 4px;
+    background: #152443;
+}
+
+.hg-mso-node--secondary .hg-mso-kicker {
+    color: var(--hg-mso-accent);
+}
+
+.hg-mso-back {
+    margin: 22px 0 4px;
+}
+
+.hg-mso-back a { color: inherit; }
+
+@media (max-width: 380px) {
+    .hg-mso-step { margin-left: 12px; }
+    .hg-mso-step::before { left: -21px; }
+    .hg-mso-node { padding: 11px; }
+    .hg-mso-branches { margin-left: 8px; }
+    .hg-mso-branch { padding-left: 10px; }
+}
