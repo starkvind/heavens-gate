@@ -14,7 +14,7 @@ RAW_REQUEST = re.compile(r"\$_REQUEST\s*\[")
 BASELINE = {
     "php_files": 349,
     "active_routes": 98,
-    "mobile_routes": 76,
+    "mobile_routes": 77,  # 2026-11-01: native mobile season_order route (explicitly approved).
     "admin_controllers": 62,
     "public_controller_sql_owners": 4,
     "public_controller_sql_calls": 16,
