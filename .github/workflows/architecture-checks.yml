@@ -81,6 +81,14 @@ jobs:
       - name: Characterize runtime regressions
         run: php .github/ci/php-runtime-regression.php
 
+      - name: Verify effective Maneuver discovery (#45)
+        run: |
+          php -l app/domains/systems/maneuver_availability.php
+          php -l app/controllers/systems/system_overview_page.php
+          php -l app/controllers/docs/maneuver_list.php
+          php -l app/mobile/controllers/systems.php
+          python3 .github/ci/php-maneuver-discovery-regression.py
+
       - name: Audit canonical basal Form contract
         run: python3 .github/ci/php-basal-form-contract-audit.py
 
