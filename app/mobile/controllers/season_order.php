@@ -181,7 +181,7 @@ foreach ($nodeRows as $row) {
                                     $hue = ((int)round($branchIndex * 137.508 + 36)) % 360;
                                     ++$branchIndex;
                                 ?>
-                                <li class="hg-mso-branch" style="--hg-mso-accent: hsl(<?= $hue ?> 78% 68%)">
+                                <li class="hg-mso-branch" style="--hg-mso-hue: <?= $hue ?>">
                                     <?php hg_mso_render_card($branch, true); ?>
                                 </li>
                             <?php endforeach; ?>

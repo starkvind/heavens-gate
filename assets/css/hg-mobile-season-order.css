@@ -1,9 +1,24 @@
-/* Mobile season-order tree. Scoped to the native mobile controller; desktop D3
- * graph and global mobile shell retain their own styles. */
+/* Native mobile season-order tree. Reuse the mobile shell's live theme
+ * variables: theme changes are applied in-place without reloading the page.
+ * Accent hues remain distinct, with accessible contrast on light/dark cards.
+ * The desktop D3 graph is intentionally not affected. */
 .hg-mso-page {
-    --hg-mso-trunk: #80b9ff;
+    --hg-mso-trunk: var(--hg-mobile-link);
+    --hg-mso-branch-saturation: 78%;
+    --hg-mso-branch-lightness: 76%;
     max-width: 780px;
     margin-inline: auto;
+}
+
+/* Dark text and darker branches on the light mobile themes. */
+.hg-mobile-body:is(.theme-light, .theme-modern, .theme-violet-pearl) .hg-mso-page {
+    --hg-mso-branch-lightness: 25%;
+}
+
+/* Ahorro de energía: retain distinct branches but with lower saturation. */
+.hg-mobile-body.theme-power-save .hg-mso-page {
+    --hg-mso-branch-saturation: 38%;
+    --hg-mso-branch-lightness: 74%;
 }
 
 .hg-mso-page h1 { margin-bottom: 8px; }
@@ -48,9 +63,9 @@
 .hg-mso-picker button {
     flex: 0 0 auto;
     padding: 8px 14px;
-    background: #174c9a;
-    border-color: #5e9be7;
-    color: #fff;
+    background: var(--hg-mobile-surface);
+    border-color: var(--hg-mobile-border);
+    color: var(--hg-mobile-link);
     font-weight: 700;
 }
 
@@ -79,18 +94,18 @@
     width: 12px;
     height: 12px;
     background: var(--hg-mso-trunk);
-    border: 3px solid #111c42;
+    border: 3px solid var(--hg-mobile-bg);
     border-radius: 50%;
 }
 
 .hg-mso-node {
     min-width: 0;
     padding: 14px;
-    background: #0c2146;
-    border: 1px solid #4978b9;
+    background: var(--hg-mobile-surface);
+    border: 1px solid var(--hg-mobile-border);
     border-left: 4px solid var(--hg-mso-trunk);
     border-radius: 10px;
-    color: #f2f7ff;
+    color: var(--hg-mobile-text);
     overflow-wrap: anywhere;
 }
 
@@ -100,20 +115,22 @@
     font-size: .76rem;
     font-weight: 700;
     letter-spacing: .025em;
-    color: #cfddf6;
+    color: var(--hg-mobile-muted);
 }
 
-.hg-mso-title {
+.hg-mobile-content .hg-mso-node .hg-mso-title {
+    /* Must outrank the generic .hg-mobile-section h2 font sizing and the
+     * .hg-mobile-content h2/h3 colour rules, especially in light themes. */
     font-size: 1.08rem;
     line-height: 1.32;
     margin: 0;
-    color: inherit;
+    color: var(--hg-mobile-text);
 }
 
-.hg-mso-title a {
-    color: inherit;
+.hg-mobile-content .hg-mso-node .hg-mso-title a {
+    color: var(--hg-mobile-link);
     text-decoration: underline;
-    text-decoration-color: #8cbcff;
+    text-decoration-color: currentColor;
     text-underline-offset: 3px;
 }
 
@@ -121,7 +138,7 @@
 .hg-mso-back a:focus-visible,
 .hg-mso-description summary:focus-visible,
 .hg-mso-picker :focus-visible {
-    outline: 2px solid #ffce83;
+    outline: 2px solid var(--hg-mobile-link);
     outline-offset: 3px;
 }
 
@@ -129,13 +146,13 @@
 .hg-mso-range {
     margin: 7px 0 0;
     font-size: .87rem;
-    color: #dbe7ff;
+    color: var(--hg-mobile-muted);
     line-height: 1.45;
 }
 
 .hg-mso-description {
     margin-top: 11px;
-    border-top: 1px solid rgba(255,255,255,.24);
+    border-top: 1px solid var(--hg-mobile-border);
     padding-top: 10px;
     font-size: .9rem;
 }
@@ -143,7 +160,7 @@
 .hg-mso-description summary {
     cursor: pointer;
     font-weight: 700;
-    color: #d6e8ff;
+    color: var(--hg-mobile-link);
     min-height: 30px;
 }
 
@@ -157,6 +174,7 @@
 }
 
 .hg-mso-branch {
+    --hg-mso-accent: hsl(var(--hg-mso-hue) var(--hg-mso-branch-saturation) var(--hg-mso-branch-lightness));
     position: relative;
     padding: 0 0 12px 16px;
     border-left: 3px solid var(--hg-mso-accent);
@@ -174,7 +192,7 @@
 .hg-mso-node--secondary {
     border-color: var(--hg-mso-accent);
     border-left-width: 4px;
-    background: #152443;
+    background: var(--hg-mobile-surface);
 }
 
 .hg-mso-node--secondary .hg-mso-kicker {
