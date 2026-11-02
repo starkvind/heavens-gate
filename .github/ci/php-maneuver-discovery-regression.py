@@ -74,5 +74,9 @@ assert mobile.index("$resources = hg_systems_fetch_mobile_resources") < mobile.i
 assert "hg_systems_fetch_system_maneuvers_normalized($link, $systemId)" in mobile
 assert "id=\"tabla-maniobras\"" in table
 assert "datatable_assets.php" in table
-assert "hg-maneuvers-system-filter" in table
+assert 'id="ms-toggle-system"' in table
+assert 'id="ms-options-system"' in table
+assert "HGDataTableFilters.create" in table
+assert "hg-maneuvers-system-filter" not in table
+assert "<th>Nombre</th>" in table
 print("Issue #45 Maneuver discovery regression: OK")

@@ -88,6 +88,8 @@ jobs:
           php -l app/controllers/docs/maneuver_list.php
           php -l app/mobile/controllers/systems.php
           python3 .github/ci/php-maneuver-discovery-regression.py
+          node --check .github/ci/js-maneuver-datatable-regression.cjs
+          node .github/ci/js-maneuver-datatable-regression.cjs
 
       - name: Audit canonical basal Form contract
         run: python3 .github/ci/php-basal-form-contract-audit.py

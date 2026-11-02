@@ -37,6 +37,7 @@
     /* Fallback middle/key column for tables that fit Name + key + Origin. */
     var keyColumnProfiles = {
         'tabla-acciones': ['tirada'],
+        'tabla-maniobras': ['tirada'],
         'tabla-meritos': ['tipo'],
         'tabla-rasgos': ['tipo'],
         'tabla-documentos': ['tipo', 'categoria'],
@@ -144,7 +145,7 @@
         }
 
         var nameCandidates = [
-            'nombre', 'accion', 'personaje', 'documento', 'objeto', 'don', 'rito',
+            'nombre', 'maniobra', 'accion', 'personaje', 'documento', 'objeto', 'don', 'rito',
             'ritual', 'disciplina', 'totem', 'cancion', 'jugador', 'arquetipo',
             'rasgo', 'merito', 'defecto', 'capitulo', 'episodio'
         ];
