@@ -14,13 +14,6 @@ if ($maneuvers === null) {
     return;
 }
 
-$originSystems = [];
-foreach ($maneuvers as $maneuver) {
-    $systemName = trim((string)($maneuver['system_name'] ?? ''));
-    if ($systemName !== '') $originSystems[$systemName] = $systemName;
-}
-natcasesort($originSystems);
-
 setMetaFromPage("Maniobras | Heaven's Gate", "Listado de maniobras de combate.", null, 'website');
 $pageSect = 'Maniobras de combate';
 include 'app/partials/main_nav_bar.php';
@@ -36,18 +29,24 @@ $h = static function ($value): string {
 <div class="docs-table-wrap"><div class="docs-table-inner">
     <div class="dt-toolbar">
         <div class="left">
-            <label for="hg-maneuvers-system-filter">Sistema de origen</label>
-            <select id="hg-maneuvers-system-filter" aria-label="Filtrar por sistema de origen">
-                <option value="">Todos los sistemas</option>
-                <?php foreach ($originSystems as $systemName): ?>
-                    <option value="<?= $h($systemName) ?>"><?= $h($systemName) ?></option>
-                <?php endforeach; ?>
-            </select>
+            <div class="ms-wrap" id="filter-system">
+                <div class="ms-btn" id="ms-toggle-system" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+                    <span class="ms-label">Sistema</span>
+                    <span class="ms-summary" id="ms-summary-system">Todos</span>
+                </div>
+                <div class="ms-panel" id="ms-panel-system" aria-hidden="true">
+                    <div id="ms-options-system"></div>
+                    <div class="ms-actions">
+                        <button type="button" id="ms-select-all-system">Todo</button>
+                        <button type="button" id="ms-clear-system">Limpiar</button>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="right" id="dt-search-slot"></div>
     </div>
     <table id="tabla-maniobras" class="display docs-table">
-        <thead><tr><th>Maniobra</th><th>Sistema de origen</th><th>Tirada</th><th>Dificultad</th><th>Daño</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Sistema de origen</th><th>Tirada</th><th>Dificultad</th><th>Daño</th><th>Acciones</th></tr></thead>
         <tbody>
         <?php foreach ($maneuvers as $maneuver): ?>
             <?php
@@ -69,6 +68,11 @@ $h = static function ($value): string {
 <script>
 jQuery(function ($) {
     if (!$.fn.DataTable) return;
+    // Read the already rendered source System column for the shared facet filter.
+    const filterRows = $('#tabla-maniobras tbody tr').map(function () {
+        const name = this.cells[1] ? this.cells[1].textContent.trim() : '';
+        return { system_name: name || '-' };
+    }).get();
     const table = $('#tabla-maniobras').DataTable({
         pageLength: 25,
         lengthMenu: [10, 25, 50, 100],
@@ -85,10 +89,12 @@ jQuery(function ($) {
             $('#dt-search-slot').append($('#tabla-maniobras_filter'));
         }
     });
-    $('#hg-maneuvers-system-filter').on('change', function () {
-        const value = this.value;
-        const search = value ? '^' + $.fn.dataTable.util.escapeRegex(value) + '$' : '';
-        table.column(1).search(search, true, false).draw();
+    HGDataTableFilters.create({
+        table: table,
+        rows: filterRows,
+        filters: [
+            { key: 'system', source: 'system_name', column: 1, allLabel: 'Todos', dependsOn: [] }
+        ]
     });
 });
 </script>
