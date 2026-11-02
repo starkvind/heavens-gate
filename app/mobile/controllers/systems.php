@@ -219,6 +219,16 @@ if ($route === 'sistemas') {
         </section>
     <?php endif; ?>
     <?php
+    // Use the same effective union as the desktop System overview.
+    $systemManeuvers = hg_systems_fetch_system_maneuvers_normalized($link, $systemId);
+    $maneuverItems = [];
+    foreach ($systemManeuvers as $maneuver) {
+        $maneuverItems[] = [
+            'label' => (string)($maneuver['name'] ?? ''),
+            'href' => hg_mobile_sys_url($link, 'fact_combat_maneuvers', '/rules/maneuvers', (int)($maneuver['id'] ?? 0)),
+        ];
+    }
+    if ($maneuverItems) hg_mobile_sys_section('Maniobras de combate', $maneuverItems);
     return;
 }
 
