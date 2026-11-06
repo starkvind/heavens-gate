@@ -3,6 +3,11 @@ php_value error_reporting 0
 php_flag display_errors Off
 php_flag display_startup_errors Off
 
+# Gallery uploads: allow generated images around 2.5 MiB.
+# POST includes multipart form overhead, so it must exceed the file limit.
+php_value upload_max_filesize 3M
+php_value post_max_size 4M
+
 Options -Indexes
 
 <IfModule mod_rewrite.c>
