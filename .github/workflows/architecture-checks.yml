@@ -150,6 +150,12 @@ jobs:
           node .github/ci/js-admin-relations-regression.cjs
           php -l app/controllers/admin/admin_relations.php
 
+      - name: Protect Admin Gallery upload errors and multipart limits
+        run: |
+          php -l app/controllers/admin/admin_gallery.php
+          php .github/ci/php-admin-gallery-upload-regression.php
+          node .github/ci/js-admin-gallery-upload-regression.cjs
+
       - name: Enforce runtime architecture baseline
         run: python3 .github/ci/php-runtime-baseline-audit.py
 
