@@ -65,8 +65,17 @@ function galleryValidateUpload(array $file, int $maxBytes = 5242880, int $maxPix
     if (!isset($file['error']) || (int)$file['error'] === UPLOAD_ERR_NO_FILE) {
         return ['ok' => false, 'msg' => 'No se recibio archivo.'];
     }
-    if ((int)$file['error'] !== UPLOAD_ERR_OK) {
-        return ['ok' => false, 'msg' => 'Error en la subida (#' . (int)$file['error'] . ').'];
+    $uploadError = (int)$file['error'];
+    if ($uploadError !== UPLOAD_ERR_OK) {
+        $messages = [
+            UPLOAD_ERR_INI_SIZE => 'La imagen supera el limite de PHP (upload_max_filesize: ' . ini_get('upload_max_filesize') . ').',
+            UPLOAD_ERR_FORM_SIZE => 'La imagen supera el limite del formulario.',
+            UPLOAD_ERR_PARTIAL => 'La subida de la imagen ha quedado incompleta.',
+            UPLOAD_ERR_NO_TMP_DIR => 'El servidor no tiene carpeta temporal para las subidas.',
+            UPLOAD_ERR_CANT_WRITE => 'El servidor no pudo escribir la imagen temporal en disco.',
+            UPLOAD_ERR_EXTENSION => 'Una extension de PHP ha detenido la subida.',
+        ];
+        return ['ok' => false, 'msg' => $messages[$uploadError] ?? ('Error en la subida (#' . $uploadError . ').')];
     }
 
     $size = (int)($file['size'] ?? 0);
@@ -100,6 +109,13 @@ function galleryValidateUpload(array $file, int $maxBytes = 5242880, int $maxPix
     }
 
     return ['ok' => true, 'tmp_name' => $tmp, 'width' => $width, 'height' => $height, 'type' => $type];
+}
+// php.ini permite valores como 8M; detectar post_max_size antes del CSRF evita
+// una respuesta HTML enganosa cuando PHP descarta todo el cuerpo multipart.
+function galleryPhpIniBytes(string $value): int {
+    if (!preg_match('/^\s*(\d+)\s*([KMG]?)\s*$/i', $value, $match)) return 0;
+    $multipliers = ['' => 1, 'k' => 1024, 'm' => 1048576, 'g' => 1073741824];
+    return (int)$match[1] * $multipliers[strtolower($match[2])];
 }
 function fsPathJoin(string $base, string $rel = ''): string {
     $rel = trim($rel, "/");
@@ -311,12 +327,21 @@ if ($isAjaxRequest && ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && (string)($
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $isAjaxPost = (
-        ((string)($_POST['ajax'] ?? '') === '1')
+        ((string)($_GET['ajax'] ?? '') === '1')
+        || ((string)($_POST['ajax'] ?? '') === '1')
         || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
     );
 
     if ($isAjaxPost && function_exists('hg_admin_require_session')) {
         hg_admin_require_session(true);
+    }
+    $postMaxBytes = galleryPhpIniBytes((string)ini_get('post_max_size'));
+    $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if ($isAjaxPost && $postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+        hg_admin_json_error(
+            'La subida supera el limite de peticion del servidor (post_max_size: ' . ini_get('post_max_size') . ').',
+            413
+        );
     }
     $csrfValid = gallery_csrf_ok($ADMIN_CSRF_SESSION_KEY);
     if (!$csrfValid) {
@@ -348,34 +373,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!isValidFileName($origName, $ALLOWED_EXT)) {
                     $resp["msg"] = "Extension no permitida ($origName).";
                 } else {
-                    $tmpName  = (string)$validation['tmp_name'];
-                    $safeName = uniqueFileName($postAbs, galleryWebpFileName($origName));
-                    $destAbs  = fsPathJoin($postAbs, $safeName);
-                    if (compressImage($tmpName, $destAbs, 80)) {
-                        $thumbAbs = fsPathJoin($postAbs, "thumbnails/" . $safeName);
-                        ensureDir(dirname($thumbAbs));
-                        createThumbnail($destAbs, $thumbAbs, 200, 200);
-
-                        $resp["ok"]    = true;
-                        $resp["file"]  = $safeName;
-                        $resp["title"] = formatTitle($safeName);
-                        $resp["thumb"] = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . 'thumbnails/' . $safeName);
-                        $resp["url"]   = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . $safeName);
-                        $resp["msg"]   = "Subida completada: $safeName";
+                    if (!is_dir($postAbs) || !is_writable($postAbs)) {
+                        $resp["msg"] = "La carpeta de destino no permite escritura. Revisa los permisos del servidor.";
+                    } elseif (!function_exists('imagewebp') || !function_exists('imagecreatefromwebp')) {
+                        $resp["msg"] = "La extension GD de PHP no tiene soporte WebP.";
                     } else {
-                        $resp["msg"] = "Error al procesar $origName.";
+                        $tmpName  = (string)$validation['tmp_name'];
+                        $safeName = uniqueFileName($postAbs, galleryWebpFileName($origName));
+                        $destAbs  = fsPathJoin($postAbs, $safeName);
+                        if (compressImage($tmpName, $destAbs, 80)) {
+                            $thumbDir = fsPathJoin($postAbs, "thumbnails");
+                            $thumbAbs = fsPathJoin($thumbDir, $safeName);
+                            if (!ensureDir($thumbDir) || !is_writable($thumbDir)) {
+                                @unlink($destAbs);
+                                $resp["msg"] = "La carpeta de miniaturas no permite escritura.";
+                            } elseif (!createThumbnail($destAbs, $thumbAbs, 200, 200)) {
+                                @unlink($destAbs);
+                                @unlink($thumbAbs);
+                                $resp["msg"] = "No se pudo generar la miniatura WebP.";
+                            } else {
+                                $resp["ok"]    = true;
+                                $resp["file"]  = $safeName;
+                                $resp["title"] = formatTitle($safeName);
+                                $resp["thumb"] = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . 'thumbnails/' . $safeName);
+                                $resp["url"]   = webPathJoin($GALLERY_BASE_WEB, ($postRel === '' ? '' : $postRel . '/') . $safeName);
+                                $resp["msg"]   = "Subida completada: $safeName";
+                            }
+                        } else {
+                            $resp["msg"] = "No se pudo convertir la imagen a WebP. Comprueba el soporte GD del formato y los permisos de escritura.";
+                        }
                     }
                 }
             }
         }
 
-        // Limpia cualquier salida previa para no romper el JSON.
-        while (ob_get_level()) { ob_end_clean(); }
-        header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-store, no-cache, must-revalidate');
-        header('Pragma: no-cache');
-        echo json_encode($resp);
-        exit; // Importantisimo.
+        // Contrato JSON compartido, con estado HTTP de error cuando proceda.
+        hg_admin_json_response($resp, $resp['ok'] ? 200 : 400);
     }
     // --- FIN endpoint AJAX ---
 
@@ -715,9 +748,10 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen \"" + name
       const row = document.createElement('div');
       row.className = 'progress-row';
       row.innerHTML = `
-        <div class="name">${file.name}</div>
+        <div class="name"></div>
         <div class="progress"><div class="progress-bar">0%</div></div>
       `;
+      row.querySelector('.name').textContent = file.name;
       progressWrap.appendChild(row);
       const bar = row.querySelector('.progress-bar');
 
@@ -730,7 +764,8 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen \"" + name
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', ajaxUrl.toString(), true);
-      xhr.responseType = 'json'; // <-- que el propio XHR parsee JSON
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.responseType = 'json';
 
       // Progreso de subida
       xhr.upload.onprogress = (e) => {
@@ -741,43 +776,56 @@ function confirmDeleteImg(name){ return confirm("¿Eliminar la imagen \"" + name
         }
       };
 
-      xhr.onerror = () => {
-        row.classList.add('error');
-        bar.textContent = 'Error de red';
-        index++; next();
+      // Un fallo de red puede disparar tanto onerror como readyState=4.
+      // Avanzar la cola una sola vez y no acceder a responseText con responseType=json.
+      let completed = false;
+      const complete = (error) => {
+        if (completed) return;
+        completed = true;
+        if (error) {
+          row.classList.add('error');
+          bar.textContent = error;
+        }
+        index++;
+        next();
       };
 
+      xhr.onerror = () => complete('Error de conexion con el servidor.');
       xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          let resp = xhr.response;
-          if (!resp && xhr.responseText) {
-            try { resp = JSON.parse(xhr.responseText); } catch (e) { /* sigue null */ }
-          }
-          if (xhr.status === 200 && resp && resp.ok) {
-            row.classList.add('done');
-            bar.style.width = '100%';
-            bar.textContent = '100%';
+        if (xhr.readyState !== 4 || completed) return;
+        const resp = xhr.response;
+        if (xhr.status === 200 && resp && resp.ok) {
+          row.classList.add('done');
+          bar.style.width = '100%';
+          bar.textContent = '100%';
 
-            // Anadir a la grilla, si existe en DOM
-            if (imgGrid) {
-              const item = document.createElement('div');
-              item.className = 'img-item';
-              const cacheBust = '?t=' + Date.now();
-              item.innerHTML = `
-                <a href="${resp.url}${cacheBust}" target="_blank" title="Ver original">
-                  <img class="thumb" src="${resp.thumb}${cacheBust}" alt="${resp.title}">
-                </a>
-                <div class="small adm-mt-4">${resp.title}</div>
-              `;
-              imgGrid.appendChild(item);
-            }
-          } else {
-            row.classList.add('error');
-            bar.textContent = (resp && resp.msg) ? resp.msg : 'Error de respuesta';
+          if (imgGrid) {
+            const item = document.createElement('div');
+            item.className = 'img-item';
+            const cacheBust = '?t=' + Date.now();
+            const link = document.createElement('a');
+            link.href = resp.url + cacheBust;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.title = 'Ver original';
+            const image = document.createElement('img');
+            image.className = 'thumb';
+            image.src = resp.thumb + cacheBust;
+            image.alt = resp.title || '';
+            link.appendChild(image);
+            const title = document.createElement('div');
+            title.className = 'small adm-mt-4';
+            title.textContent = resp.title || '';
+            item.appendChild(link);
+            item.appendChild(title);
+            imgGrid.appendChild(item);
           }
-          // Siguiente fichero tras finalizar este (exito o error)
-          index++;
-          next();
+          complete();
+        } else {
+          const fallback = xhr.status === 413
+            ? 'La peticion supera el limite de subida del servidor (HTTP 413).'
+            : (xhr.status === 0 ? 'Error de conexion.' : 'Respuesta no valida del servidor (HTTP ' + xhr.status + ').');
+          complete((resp && (resp.msg || resp.message || resp.error)) || fallback);
         }
       };
 
