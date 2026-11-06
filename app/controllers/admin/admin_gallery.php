@@ -326,11 +326,8 @@ if ($isAjaxRequest && ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && (string)($
 // ==============================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    $isAjaxPost = (
-        ((string)($_GET['ajax'] ?? '') === '1')
-        || ((string)($_POST['ajax'] ?? '') === '1')
-        || (strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest')
-    );
+    // La deteccion anterior incluye ?ajax=1 aun si PHP vacia el multipart.
+    $isAjaxPost = $isAjaxRequest;
 
     if ($isAjaxPost && function_exists('hg_admin_require_session')) {
         hg_admin_require_session(true);
