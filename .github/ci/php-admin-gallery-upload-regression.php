@@ -26,4 +26,18 @@ foreach ([
 if (!preg_match('/if \(\$isAjaxPost && \$postMaxBytes > 0 && \$contentLength > \$postMaxBytes\) \{\s*hg_admin_json_error\(/', $source)) {
     throw new RuntimeException('Oversized multipart must return JSON before CSRF check');
 }
+// The tracked Apache configuration must accept gallery images up to 3 MiB.
+// Multipart headers and CSRF fields require a larger post_max_size.
+$apacheConfig = file_get_contents(__DIR__ . '/../../.htaccess');
+if (!is_string($apacheConfig)) throw new RuntimeException('Apache config unreadable');
+if (!preg_match('/^php_value\\s+upload_max_filesize\\s+3M\\s*$/m', $apacheConfig)) {
+    throw new RuntimeException('Apache upload_max_filesize must be 3M');
+}
+if (!preg_match('/^php_value\\s+post_max_size\\s+4M\\s*$/m', $apacheConfig)) {
+    throw new RuntimeException('Apache post_max_size must be 4M');
+}
+if (!preg_match('/function galleryValidateUpload\\(array \\$file, int \\$maxBytes = (\\d+)/', $source, $fileLimit) || (int)$fileLimit[1] < 3 * 1024 * 1024) {
+    throw new RuntimeException('Gallery application limit must not reject 3 MiB uploads');
+}
+
 echo "Admin Gallery upload PHP limits and failure diagnostics PASS\n";
