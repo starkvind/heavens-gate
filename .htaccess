@@ -1,12 +1,7 @@
-# Production error settings (prefer php.ini or vhost config when possible)
-php_value error_reporting 0
-php_flag display_errors Off
-php_flag display_startup_errors Off
+# PHP-FPM settings live in .user.ini; php_value/php_flag break Apache.
 
-# Gallery uploads: allow generated images around 2.5 MiB.
+# Gallery uploads: allow image files up to 3 MiB (configured in .user.ini).
 # POST includes multipart form overhead, so it must exceed the file limit.
-php_value upload_max_filesize 3M
-php_value post_max_size 4M
 
 Options -Indexes
 
@@ -20,6 +15,8 @@ RewriteBase /
 RewriteRule (^|/)\.(?:git|svn|hg)(?:/|$) index.php?p=error404 [L,NC,QSA]
 RewriteRule ^\.github(?:/|$) index.php?p=error404 [L,NC,QSA]
 RewriteRule (^|/)(?:\.(?:gitignore|gitattributes|env(?:\..*)?)|config\.env(?:\..*)?)$ index.php?p=error404 [L,NC,QSA]
+# Keep per-directory PHP settings private.
+RewriteRule (^|/)\.user\.ini$ - [F,L]
 RewriteRule ^app(?:/|$) index.php?p=error404 [L,NC,QSA]
 
 # Block only real internal files/directories under /tools and /sql.
