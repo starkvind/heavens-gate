@@ -156,8 +156,9 @@ if ($resultQueryDon) {
             echo "<a href='" . htmlspecialchars($relatedHref) . "' class='hg-tooltip' data-tip='don' data-id='$relatedId'>";
             echo "  <div class='hg-powers-list-card hg-powers-related-card'>";
             $relatedLabel = htmlspecialchars((string)($relatedGift['navigation_label'] ?? ''), ENT_QUOTES, 'UTF-8');
-            echo "    <div class='hg-powers-list-card__main'><img class='hg-powers-list-icon' src='/img/ui/icons/icon_claws.webp' alt=''> " . htmlspecialchars($relatedName) . "</div>";
-            if ($relatedLabel !== '') echo "    <div class='hg-powers-list-card__meta'>$relatedLabel</div>";
+            $relatedSymbol = htmlspecialchars((string)($relatedGift['navigation_symbol'] ?? ''), ENT_QUOTES, 'UTF-8');
+            echo "    <div class='hg-powers-list-card__main'><img class='hg-powers-list-icon' src='/img/ui/icons/icon_claws.webp' alt=''> <span class='hg-powers-related-name'>" . htmlspecialchars($relatedName) . "</span></div>";
+            if ($relatedSymbol !== '') echo "    <span class='hg-powers-related-symbol' title='$relatedLabel' aria-label='$relatedLabel' role='img'>$relatedSymbol</span>";
             echo "  </div>";
             echo "</a>";
         }

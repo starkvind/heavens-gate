@@ -284,6 +284,7 @@ function hg_mpw_detail_data(mysqli $db, string $kind, int $id): ?array
                 (string)($giftRelation['navigation_label'] ?? 'Relacionado'),
                 $targetName,
                 hg_mpw_url($db, 'fact_gifts', '/powers/gift', $targetId) . '?view=mobile',
+                (string)($giftRelation['navigation_symbol'] ?? ''),
             ];
         }
         return [
@@ -364,7 +365,7 @@ function hg_mpw_render_detail(mysqli $db, string $kind, array $data): void
 
         <?php if (!empty($data['links'])): ?>
             <section class="hg-mobile-section"><h2>Vinculos</h2><div class="hg-mobile-card-list">
-                <?php foreach ($data['links'] as $link): ?><a class="hg-mobile-card" href="<?= hg_mpw_h($link[2] ?? '#') ?>"><strong><?= hg_mpw_h($link[1] ?? '') ?></strong><span><?= hg_mpw_h($link[0] ?? '') ?></span></a><?php endforeach; ?>
+                <?php foreach ($data['links'] as $link): ?><a class="hg-mobile-card" href="<?= hg_mpw_h($link[2] ?? '#') ?>"><strong><?= hg_mpw_h($link[1] ?? '') ?></strong><?php if (!empty($link[3])): ?><span class="hg-mobile-related-symbol" title="<?= hg_mpw_h($link[0] ?? '') ?>" role="img" aria-label="<?= hg_mpw_h($link[0] ?? '') ?>"><?= hg_mpw_h($link[3]) ?></span><?php else: ?><span><?= hg_mpw_h($link[0] ?? '') ?></span><?php endif; ?></a><?php endforeach; ?>
             </div></section>
         <?php endif; ?>
 

@@ -97,7 +97,8 @@ function hg_powers_fetch_gift_navigation(mysqli $link, int $giftId): array
 {
     $rows = hg_powers_fetch_gift_dependents($link, $giftId);
     foreach ($rows as &$row) {
-        $row['navigation_label'] = $row['relation_type'] === 'variant_of' ? 'Variantes' : 'Mecánica utilizada por';
+        $row['navigation_label'] = $row['relation_type'] === 'variant_of' ? 'Versión más reciente' : 'Utiliza esta mecánica';
+        $row['navigation_symbol'] = $row['relation_type'] === 'variant_of' ? '↑' : '⚙';
     }
     unset($row);
 
@@ -123,7 +124,8 @@ function hg_powers_fetch_gift_navigation(mysqli $link, int $giftId): array
     $stmt->execute();
     $rs = $stmt->get_result();
     while ($rs && ($row = $rs->fetch_assoc())) {
-        $row['navigation_label'] = 'Variante de';
+        $row['navigation_label'] = 'Versión anterior';
+        $row['navigation_symbol'] = '↓';
         $rows[] = $row;
     }
     $stmt->close();
