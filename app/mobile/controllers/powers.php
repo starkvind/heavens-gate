@@ -3,6 +3,7 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../domains/powers/gift_relationships.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
 function hg_mpw_h($value): string
@@ -274,11 +275,22 @@ function hg_mpw_detail_data(mysqli $db, string $kind, int $id): ?array
     if ($kind === 'gifts') {
         $row = hg_powers_fetch_gift($db, $id);
         if (!$row || !is_array($row)) return null;
+        $related = [];
+        foreach (hg_powers_fetch_gift_navigation($db, $id) as $giftRelation) {
+            $targetId = (int)($giftRelation['related_gift_id'] ?? 0);
+            $targetName = trim((string)($giftRelation['related_name'] ?? ''));
+            if ($targetId <= 0 || $targetName === '') continue;
+            $related[] = [
+                (string)($giftRelation['navigation_label'] ?? 'Relacionado'),
+                $targetName,
+                hg_mpw_url($db, 'fact_gifts', '/powers/gift', $targetId) . '?view=mobile',
+            ];
+        }
         return [
             'name' => $row['name'] ?? '', 'image' => hg_mpw_image((string)($row['image_url'] ?? ''), 'img/gifts'), 'origin' => $row['origin_name'] ?? '', 'owning_system_id' => (int)($row['system_id'] ?? 0),
             'fields' => [['Fêra', $row['resolved_system_name'] ?? ''], ['Tipo', $row['type_name'] ?? ''], ['Grupo', $row['gift_group'] ?? ''], ['Rango', $row['rank'] ?? ''], ['Tirada', hg_mpw_roll($row['attribute_name'] ?? '', $row['ability_name'] ?? '')]],
             'sections' => [['Descripción', $row['description'] ?? ''], ['Sistema', $row['mechanics_resolved'] ?? '']],
-            'owners' => hg_powers_fetch_bridge_owners($db, 'dones', $id, hg_mpw_excluded_chronicles()), 'links' => [],
+            'owners' => hg_powers_fetch_bridge_owners($db, 'dones', $id, hg_mpw_excluded_chronicles()), 'links' => $related,
         ];
     }
 

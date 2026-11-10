@@ -67,6 +67,13 @@ jobs:
       - name: Audit classified schema introspection
         run: python3 .github/ci/php-schema-contract-audit.py
 
+      - name: Guard Gift variant navigation (#44)
+        run: |
+          php -l app/domains/powers/gift_relationships.php
+          php -l app/controllers/pwrs/don_page.php
+          php -l app/mobile/controllers/powers.php
+          python3 .github/ci/php-gift-variant-navigation-regression.py
+
       - name: Audit Gift availability bridge integration
         run: |
           php -l app/domains/systems/queries.php

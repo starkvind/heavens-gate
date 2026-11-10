@@ -89,6 +89,48 @@ function hg_powers_fetch_gift_dependents(mysqli $link, int $giftId): array
     return $rows;
 }
 
+/**
+ * Navigable relations for a Gift. Keep the stored edge directional: only
+ * variant_of is also navigable from its source to its target.
+ */
+function hg_powers_fetch_gift_navigation(mysqli $link, int $giftId): array
+{
+    $rows = hg_powers_fetch_gift_dependents($link, $giftId);
+    foreach ($rows as &$row) {
+        $row['navigation_label'] = $row['relation_type'] === 'variant_of' ? 'Variantes' : 'Mecánica utilizada por';
+    }
+    unset($row);
+
+    if ($giftId <= 0 || !hg_powers_gift_relations_table_exists($link)) return $rows;
+
+    $sql = "SELECT
+                r.id AS relation_id,
+                r.related_gift_id,
+                r.relation_type,
+                r.notes AS relation_notes,
+                g.pretty_id AS related_pretty_id,
+                g.name AS related_name,
+                g.rank AS related_rank
+            FROM bridge_gifts_relations r
+            INNER JOIN fact_gifts g ON g.id = r.related_gift_id
+            WHERE r.gift_id = ?
+              AND r.relation_type = 'variant_of'
+            ORDER BY CAST(g.rank AS UNSIGNED), g.name, g.id";
+
+    $stmt = $link->prepare($sql);
+    if (!$stmt) return $rows;
+    $stmt->bind_param('i', $giftId);
+    $stmt->execute();
+    $rs = $stmt->get_result();
+    while ($rs && ($row = $rs->fetch_assoc())) {
+        $row['navigation_label'] = 'Variante de';
+        $rows[] = $row;
+    }
+    $stmt->close();
+
+    return $rows;
+}
+
 function hg_powers_resolve_gift_soft_mechanics(mysqli $link, array $gift, int $maxDepth = 8): array
 {
     $gift['attribute_resolved'] = (string)($gift['attribute_name'] ?? '');

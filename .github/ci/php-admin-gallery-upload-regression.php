@@ -26,15 +26,19 @@ foreach ([
 if (!preg_match('/if \(\$isAjaxPost && \$postMaxBytes > 0 && \$contentLength > \$postMaxBytes\) \{\s*hg_admin_json_error\(/', $source)) {
     throw new RuntimeException('Oversized multipart must return JSON before CSRF check');
 }
-// The tracked Apache configuration must accept gallery images up to 3 MiB.
-// Multipart headers and CSRF fields require a larger post_max_size.
+// The PHP-FPM-compatible .user.ini configuration accepts 3 MiB uploads.
+$phpFpmConfig = file_get_contents(__DIR__ . '/../../.user.ini');
+if (!is_string($phpFpmConfig)) throw new RuntimeException('PHP-FPM config unreadable');
+if (!preg_match('/^upload_max_filesize\\s*=\\s*3M\\s*$/m', $phpFpmConfig)) {
+    throw new RuntimeException('PHP-FPM upload_max_filesize must be 3M');
+}
+if (!preg_match('/^post_max_size\\s*=\\s*4M\\s*$/m', $phpFpmConfig)) {
+    throw new RuntimeException('PHP-FPM post_max_size must be 4M');
+}
 $apacheConfig = file_get_contents(__DIR__ . '/../../.htaccess');
 if (!is_string($apacheConfig)) throw new RuntimeException('Apache config unreadable');
-if (!preg_match('/^php_value\\s+upload_max_filesize\\s+3M\\s*$/m', $apacheConfig)) {
-    throw new RuntimeException('Apache upload_max_filesize must be 3M');
-}
-if (!preg_match('/^php_value\\s+post_max_size\\s+4M\\s*$/m', $apacheConfig)) {
-    throw new RuntimeException('Apache post_max_size must be 4M');
+if (preg_match('/^\\s*php_(?:value|flag)\\b/m', $apacheConfig)) {
+    throw new RuntimeException('Apache php_value/php_flag directives break PHP-FPM');
 }
 if (!preg_match('/function galleryValidateUpload\\(array \\$file, int \\$maxBytes = (\\d+)/', $source, $fileLimit) || (int)$fileLimit[1] < 3 * 1024 * 1024) {
     throw new RuntimeException('Gallery application limit must not reject 3 MiB uploads');
