@@ -215,6 +215,44 @@
     text-align: center;
 }
 
+/* One-character relationship cues preserve the narrow Gift cards. */
+.hg-powers-related-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    min-width: 0;
+}
+.hg-powers-related-card .hg-powers-list-card__main {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 auto;
+    gap: 3px;
+}
+.hg-powers-related-card .hg-powers-list-icon {
+    flex: 0 0 auto;
+}
+.hg-powers-related-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hg-powers-related-symbol {
+    flex: 0 0 auto;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 700;
+}
+.hg-mobile-related-symbol {
+    display: inline-block;
+    width: 1.25em;
+    text-align: center;
+    font-weight: 700;
+}
+
 /* Full gift/rite catalog. These two pages share one presentation model. */
 .hg-dones,
 .hg-rituales {
