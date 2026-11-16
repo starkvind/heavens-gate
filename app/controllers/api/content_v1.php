@@ -25,12 +25,12 @@ if ($token==='' || !hash_equals($secret,$token)) {
 if (!isset($link) || !($link instanceof mysqli)) {
     $send(['ok'=>false,'error'=>'service_unavailable'],503); return;
 }
-$resource=strtolower(trim((string)($_GET['resource']??'catalog')));
-$q=trim((string)($_GET['q']??''));
-$id=filter_var($_GET['id']??null,FILTER_VALIDATE_INT);
+$resource=strtolower(trim((string)hg_request_query_value($hgRequest,'resource','catalog')));
+$q=trim((string)hg_request_query_value($hgRequest,'q',''));
+$id=filter_var(hg_request_query_value($hgRequest,'id'),FILTER_VALIDATE_INT);
 $id=($id!==false && $id>0)?$id:0;
-$page=max(1,min(10000,(int)($_GET['page']??1)));
-$limit=max(1,min(25,(int)($_GET['limit']??10)));
+$page=max(1,min(10000,(int)hg_request_query_value($hgRequest,'page','1')));
+$limit=max(1,min(25,(int)hg_request_query_value($hgRequest,'limit','10')));
 $offset=($page-1)*$limit;
 if (strlen($q)>160) { $send(['ok'=>false,'error'=>'query_too_long'],400); return; }
 $aliases=[
@@ -62,7 +62,7 @@ if ($id && $resource !== 'forum') {
     $send(['ok'=>true,'resource'=>$resource,'item'=>$detail]); return;
 }
 if ($resource==='forum') {
- $topicId=filter_var($_GET['topic_id']??null,FILTER_VALIDATE_INT);
+ $topicId=filter_var(hg_request_query_value($hgRequest,'topic_id'),FILTER_VALIDATE_INT);
  $topicId=($topicId!==false && $topicId>0)?$topicId:0;
  $meta=null;
  if ($topicId===0) {
