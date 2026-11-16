@@ -87,6 +87,10 @@ function hg_request_path_matcher_match(string $path): array
         '/api/dice' => ['p' => 'dice_api'],
         '/api/v1/content' => ['p' => 'content_api_v1'],
         '/mcp' => ['p' => 'heavens_gate_mcp'],
+        '/.well-known/oauth-protected-resource' => ['p' => 'mcp_oauth_protected_metadata'],
+        '/.well-known/oauth-authorization-server' => ['p' => 'mcp_oauth_authorization_metadata'],
+        '/oauth/authorize' => ['p' => 'mcp_oauth_authorize'],
+        '/oauth/token' => ['p' => 'mcp_oauth_token'],
     ];
 
     if (isset($static[$path])) {

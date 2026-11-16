@@ -138,6 +138,10 @@ return [
     'maps_api'    => ['app/controllers/maps/maps_api.php', null],
     'content_api_v1' => ['app/controllers/api/content_v1.php', null],
     'heavens_gate_mcp' => ['app/controllers/api/mcp.php', null],
+    'mcp_oauth_protected_metadata' => ['app/controllers/api/mcp_oauth_metadata.php', null],
+    'mcp_oauth_authorization_metadata' => ['app/controllers/api/mcp_oauth_metadata.php', null],
+    'mcp_oauth_authorize' => ['app/controllers/api/mcp_oauth_authorize.php', null],
+    'mcp_oauth_token' => ['app/controllers/api/mcp_oauth_token.php', null],
 
     // Jugadores
     'players'   => ['app/controllers/playr/playr_list.php', 'Jugadores'],
