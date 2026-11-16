@@ -215,6 +215,7 @@ if (!function_exists('hg_admin_render_menu_section')) {
 					'summary' => 'Herramientas internas, auditorías y utilidades de administración.',
 					'items' => [
 						['href' => '/talim?s=admin_menu', 'label' => 'Editar Menú', 'keywords' => ['menu']],
+						['href' => '/talim?s=admin_api_activity', 'label' => 'Actividad de la API', 'hint' => 'REST y MCP: clientes, consultas y errores', 'keywords' => ['api', 'mcp', 'oauth', 'auditoria', 'accesos']],
 						['href' => '/talim?s=admin_datatables', 'label' => 'Columnas DataTables', 'keywords' => ['datatable', 'columnas', 'frontend', 'visibilidad']],
 						['href' => '/talim?s=admin_usage', 'label' => 'Uso del Admin', 'hint' => 'Accesos por sección, sin datos personales', 'keywords' => ['uso', 'telemetria', 'estadisticas', 'accesos']],
 						['href' => '/talim?s=admin_inspect_db', 'label' => 'Inspeccionar BDD', 'keywords' => ['db', 'bdd']],
