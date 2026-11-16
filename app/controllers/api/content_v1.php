@@ -3,6 +3,7 @@
 require_once __DIR__.'/../../helpers/tool_api.php';
 require_once __DIR__.'/../../helpers/search_catalog.php';
 require_once __DIR__.'/../../domains/search/queries.php';
+require_once __DIR__.'/../../domains/api/content_details.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store, max-age=0');
 header('X-Content-Type-Options: nosniff');
@@ -38,7 +39,7 @@ $aliases=[
  'skills'=>'habilidades','traits'=>'habilidades','merits-flaws'=>'merydef',
  'powers'=>'dones','gifts'=>'dones','breeds'=>'razas','auspices'=>'auspicios',
  'tribes'=>'tribus','documents'=>'escritos','chronicles'=>'cronicas',
- 'misc-systems'=>'misc_sistemas'
+ 'misc-systems'=>'misc_sistemas','merits'=>'merydef','flaws'=>'merydef'
 ];
 $resource=$aliases[$resource]??$resource;
 $catalog=hg_search_catalog($link);
@@ -54,6 +55,11 @@ if ($resource==='catalog') {
  foreach ($extra as $name=>$table) $items[]=['resource'=>$name,'label'=>$name];
  $items[]=['resource'=>'forum','label'=>'Temas publicados del foro'];
  $send(['ok'=>true,'version'=>'1','read_only'=>true,'items'=>$items]); return;
+}
+if ($id && $resource !== 'forum') {
+    $detail=hg_content_api_detail($link,$resource,$id);
+    if (!$detail) { $send(['ok'=>false,'error'=>'not_found'],404); return; }
+    $send(['ok'=>true,'resource'=>$resource,'item'=>$detail]); return;
 }
 if ($resource==='forum') {
  $topicId=filter_var($_GET['topic_id']??null,FILTER_VALIDATE_INT);
