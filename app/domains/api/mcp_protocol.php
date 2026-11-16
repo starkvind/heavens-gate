@@ -25,7 +25,7 @@ function hg_mcp_tool_definitions(): array
     ]];
 }
 
-function hg_mcp_reply(mixed $id, array $result): array
+function hg_mcp_reply(mixed $id, array|stdClass $result): array
 {
     return ['jsonrpc' => '2.0', 'id' => $id, 'result' => $result];
 }
