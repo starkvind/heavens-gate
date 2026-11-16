@@ -58,12 +58,15 @@ if ($resource==='forum') {
    mysqli_stmt_bind_param($gate,'i',$topicId); mysqli_stmt_execute($gate);
    $meta=mysqli_fetch_assoc(mysqli_stmt_get_result($gate)); mysqli_stmt_close($gate);
    if (!$meta) { $send(['ok'=>false,'error'=>'not_found'],404); return; }
-   $queryTail=' WHERE id_topic = ? ORDER BY poster_time,id_msg LIMIT ? OFFSET ?';
-   $select='SELECT id_msg AS id,id_topic AS topic_id,subject,poster_name,poster_time,body,id_member FROM ';
-   $stmt=mysqli_prepare($link,$select.'smf_messages'.$queryTail);
-   if (!$stmt) $stmt=mysqli_prepare($link,$select.'smf.smf_messages'.$queryTail);
-   if (!$stmt) { $send(['ok'=>false,'error'=>'forum_unavailable'],503); return; }
-   mysqli_stmt_bind_param($stmt,'iii',$topicId,$limit,$offset);
+   require_once __DIR__ . '/content_forum.php';
+   try {
+     $items=hg_content_api_forum_fetch($link,$topicId,$limit,$offset,$q);
+   } catch (mysqli_sql_exception $e) {
+     error_log('content_api.forum_fetch: '.$e->getMessage());
+     $items=null;
+   }
+   if ($items===null) { $send(['ok'=>false,'error'=>'forum_unavailable'],503);return; }
+   $send(['ok'=>true,'resource'=>'forum','topic'=>$meta,'items'=>$items,'page'=>$page,'limit'=>$limit,'has_more'=>count($items)===$limit]); return;
  }
  if (!mysqli_stmt_execute($stmt)) { mysqli_stmt_close($stmt);$send(['ok'=>false,'error'=>'query_unavailable'],503);return; }
  $res=mysqli_stmt_get_result($stmt);$items=[];

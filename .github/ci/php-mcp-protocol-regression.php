@@ -3,6 +3,11 @@ require_once __DIR__ . '/../../app/domains/api/mcp_protocol.php';
 $tests = [];
 $read = static function(array $params): array { return ['ok'=>true,'resource'=>$params['resource'] ?? 'catalog','items'=>[]]; };
 $init = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>1,'method'=>'initialize','params'=>['protocolVersion'=>'2025-06-18']], $read);
+$ping = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>9,'method'=>'ping'], $read);
+$tests['ping object without type error'] = ($ping['jsonrpc'] ?? '') === '2.0'
+    && ($ping['id'] ?? null) === 9
+    && ($ping['result'] instanceof stdClass)
+    && json_encode($ping['result']) === '{}';
 $tests['initialize'] = ($init['result']['protocolVersion'] ?? '') === '2025-06-18';
 $tools = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>2,'method'=>'tools/list'], $read);
 $tests['tools list'] = ($tools['result']['tools'][0]['name'] ?? '') === 'heavens_gate_content';
