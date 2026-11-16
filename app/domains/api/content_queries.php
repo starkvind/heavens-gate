@@ -2,6 +2,7 @@
 /** Data retrieval logic for the read-only content API; never called before authentication. */
 function hg_content_api_handle(mysqli $link,array $hgRequest,callable $send): void {
 $resource=strtolower(trim((string)hg_request_query_value($hgRequest,'resource','catalog')));
+$requestedResource=$resource;
 $q=trim((string)hg_request_query_value($hgRequest,'q',''));
 $id=filter_var(hg_request_query_value($hgRequest,'id'),FILTER_VALIDATE_INT);
 $id=($id!==false && $id>0)?$id:0;
@@ -15,7 +16,7 @@ $aliases=[
  'skills'=>'habilidades','traits'=>'habilidades','merits-flaws'=>'merydef',
  'powers'=>'dones','gifts'=>'dones','breeds'=>'razas','auspices'=>'auspicios',
  'tribes'=>'tribus','documents'=>'escritos','chronicles'=>'cronicas',
- 'misc-systems'=>'misc_sistemas','merits'=>'merydef','flaws'=>'merydef'
+ 'misc-systems'=>'misc_sistemas','merits'=>'merydef','flaws'=>'merydef','backgrounds'=>'habilidades'
 ];
 $resource=$aliases[$resource]??$resource;
 $catalog=hg_search_catalog($link);
@@ -34,6 +35,12 @@ if ($resource==='catalog') {
 }
 if ($id && $resource !== 'forum') {
     $detail=hg_content_api_detail($link,$resource,$id);
+    if ($detail && $resource==='habilidades' && isset($detail['rule_kind'])) {
+       $kind=$detail['rule_kind'];
+       if ($requestedResource==='attributes' && $kind!=='Atributos') $detail=null;
+       if ($requestedResource==='skills' && !in_array($kind,['Talentos','Técnicas','Tecnicas','Conocimientos'],true)) $detail=null;
+       if ($requestedResource==='backgrounds' && $kind!=='Trasfondos') $detail=null;
+    }
     if (!$detail) { $send(['ok'=>false,'error'=>'not_found'],404); return; }
     $send(['ok'=>true,'resource'=>$resource,'item'=>$detail]); return;
 }
@@ -72,6 +79,11 @@ if ($cfg) {
  $sql='SELECT '.$cfg['id_expr'].' AS id,'.$cfg['title_expr'].' AS title,'.$cfg['excerpt_expr'].' AS description,'.$cfg['secondary_expr'].' AS secondary FROM '.$cfg['from_sql'];
  if ($id) { $where[]=$cfg['id_expr'].' = ?';$params[]=$id;$types.='i'; }
  elseif ($q!=='') $where[]=hg_search_query_build_where($cfg['search_fields']??[],[$q],$params,$types);
+ if ($resource==='habilidades' && in_array($requestedResource,['attributes','skills','backgrounds'],true)) {
+    if ($requestedResource==='attributes') $where[]="src.kind = 'Atributos'";
+    elseif ($requestedResource==='backgrounds') $where[]="src.kind = 'Trasfondos'";
+    else $where[]="src.kind IN ('Talentos','Técnicas','Tecnicas','Conocimientos')";
+ }
  if ($where) $sql.=' WHERE '.implode(' AND ',$where);
  if (!empty($cfg['group_sql'])) $sql.=' GROUP BY '.$cfg['group_sql'];
  $sql.=' ORDER BY '.$cfg['order_sql'].' LIMIT ? OFFSET ?';
