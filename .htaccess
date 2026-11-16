@@ -12,7 +12,7 @@ RewriteBase /
 RewriteRule ^api/v1/content$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^mcp$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 # Ensure OAuth discovery routes reach the front controller even if .well-known exists.
-RewriteRule ^\\.well-known/oauth-(?:protected-resource|authorization-server)$ index.php [L,QSA]
+RewriteRule ^\.well-known/oauth-(?:protected-resource|authorization-server)$ index.php [L,QSA]
 
 # ==============================
 # Security

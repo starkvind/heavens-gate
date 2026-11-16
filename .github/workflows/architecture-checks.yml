@@ -40,6 +40,7 @@ jobs:
           php -l app/controllers/api/mcp_oauth_authorize.php
           php -l app/controllers/api/mcp_oauth_token.php
           php .github/ci/php-mcp-oauth-regression.php
+          python3 .github/ci/php-mcp-oauth-discovery-rewrite-regression.py
           php .github/ci/php-content-api-auth-regression.php
 
       - name: Characterize router contract
