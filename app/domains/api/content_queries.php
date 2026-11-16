@@ -9,6 +9,17 @@ $id=($id!==false && $id>0)?$id:0;
 $page=max(1,min(10000,(int)hg_request_query_value($hgRequest,'page','1')));
 $limit=max(1,min(25,(int)hg_request_query_value($hgRequest,'limit','10')));
 $offset=($page-1)*$limit;
+$organizationParam=hg_request_query_value($hgRequest,'organization_id','');
+$groupParam=hg_request_query_value($hgRequest,'group_id','');
+$organizationId=$organizationParam===''?0:filter_var($organizationParam,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+$groupId=$groupParam===''?0:filter_var($groupParam,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+if ($organizationId===false || $groupId===false) { $send(['ok'=>false,'error'=>'invalid_membership_filter'],400);return; }
+$organizationId=(int)$organizationId;
+$groupId=(int)$groupId;
+if (($organizationId>0 || $groupId>0) && ($resource!=='biografias' && $resource!=='characters' || $id>0)) {
+ $send(['ok'=>false,'error'=>'unsupported_membership_filter'],400);return;
+}
+
 if (strlen($q)>160) { $send(['ok'=>false,'error'=>'query_too_long'],400); return; }
 $aliases=[
  'characters'=>'biografias','episodes'=>'episodios','seasons'=>'temporadas',
@@ -91,6 +102,19 @@ if ($cfg) {
  $sql='SELECT '.$cfg['id_expr'].' AS id,'.$cfg['title_expr'].' AS title,'.$cfg['excerpt_expr'].' AS description,'.$cfg['secondary_expr'].' AS secondary FROM '.$cfg['from_sql'];
  if ($id) { $where[]=$cfg['id_expr'].' = ?';$params[]=$id;$types.='i'; }
  elseif ($q!=='') $where[]=hg_search_query_build_where($cfg['search_fields']??[],[$q],$params,$types);
+ if ($resource==='biografias') {
+    // Explicit active membership bridges only; EXISTS avoids duplicate biographies.
+    if ($organizationId>0) {
+        $where[]='EXISTS (SELECT 1 FROM bridge_characters_organizations bco WHERE bco.character_id = src.id AND bco.organization_id = ? AND (bco.is_active = 1 OR bco.is_active IS NULL))';
+        $params[]=$organizationId;
+        $types.='i';
+    }
+    if ($groupId>0) {
+        $where[]='EXISTS (SELECT 1 FROM bridge_characters_groups bcg INNER JOIN dim_groups dg ON dg.id = bcg.group_id AND dg.is_active = 1 WHERE bcg.character_id = src.id AND bcg.group_id = ? AND (bcg.is_active = 1 OR bcg.is_active IS NULL))';
+        $params[]=$groupId;
+        $types.='i';
+    }
+ }
  if ($resource==='habilidades' && in_array($requestedResource,['attributes','skills','backgrounds'],true)) {
     if ($requestedResource==='attributes') $where[]="src.kind = 'Atributos'";
     elseif ($requestedResource==='backgrounds') $where[]="src.kind = 'Trasfondos'";
