@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/domains/api/mcp_oauth.php';
+require_once __DIR__ . '/../../app/domains/api/mcp_oauth_refresh.php';
 
 $secret = random_bytes(32);
 $tests = [];
@@ -35,6 +36,39 @@ if (is_string($code)) {
     $tests['wrong verifier rejected'] = !hg_mcp_oauth_redeem_code($secret, $code, str_repeat('Z', 43), $redeem, $now);
     $tests['valid verifier redeems'] = hg_mcp_oauth_redeem_code($secret, $code, $verifier, $redeem, $now);
     $tests['code cannot be replayed'] = !hg_mcp_oauth_redeem_code($secret, $code, $verifier, $redeem, $now);
+}
+$tests['refresh grant advertised'] = in_array('refresh_token', $as['grant_types_supported'], true);
+$refresh = hg_mcp_refresh_issue($secret, $now);
+$tests['refresh issued'] = is_string($refresh);
+if (is_string($refresh)) {
+    $new = hg_mcp_refresh_rotate($secret, $refresh, $now + 10);
+    $tests['first refresh rotates token'] = is_string($new) && $new !== $refresh;
+    if (is_string($new)) {
+        $next = hg_mcp_refresh_rotate($secret, $new, $now + 20);
+        $tests['second refresh rotates'] = is_string($next) && $next !== $new;
+        $tests['old token replay rejected'] = hg_mcp_refresh_rotate($secret, $refresh, $now + 30) === false;
+        $tests['family revoked on replay'] = is_string($next)
+            && hg_mcp_refresh_rotate($secret, $next, $now + 40) === false;
+    }
+}
+$expiring = hg_mcp_refresh_issue($secret, $now);
+$tests['refresh independently issued'] = is_string($expiring);
+if (is_string($expiring)) {
+    $tests['refresh absolute expiry'] = hg_mcp_refresh_rotate(
+        $secret, $expiring, $now + HG_MCP_REFRESH_LIFETIME + 1
+    ) === false;
+}
+$revoke = hg_mcp_refresh_issue($secret, $now);
+$tests['revocation setup'] = is_string($revoke);
+if (is_string($revoke)) {
+    $tests['explicit refresh revocation'] = hg_mcp_refresh_revoke($secret, $revoke);
+    $tests['revoked token denied'] = hg_mcp_refresh_rotate($secret, $revoke, $now + 5) === false;
+}
+$crossSecret = hg_mcp_refresh_issue($secret, $now);
+if (is_string($crossSecret)) {
+    $tests['wrong signing secret denied'] = hg_mcp_refresh_rotate(
+        random_bytes(32), $crossSecret, $now + 30
+    ) === false;
 }
 foreach ($tests as $name => $ok) {
     if (!$ok) { fwrite(STDERR, 'FAIL: ' . $name . PHP_EOL); exit(1); }
