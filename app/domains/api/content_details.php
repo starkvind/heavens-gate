@@ -46,6 +46,13 @@ function hg_content_api_detail(mysqli $link,string $resource,int $id): ?array {
         $data['forms']=array_slice(hg_systems_fetch_forms($link,$id)?:[],0,100);
         return $data;
     }
+    if ($resource==='forms' || $resource==='resources') {
+        require_once __DIR__.'/../systems/queries.php';
+        $row=$resource==='forms'?hg_systems_fetch_form($link,$id):hg_systems_fetch_resource($link,$id);
+        return $row?hg_content_api_pick($row,['id','pretty_id','form','name','description','kind','system_id',
+            'hpregen','public_hpregen','strength_bonus','dexterity_bonus','stamina_bonus',
+            'applicability_name_resolved','system_name_resolved','weapons','firearms']):null;
+    }
     if (in_array($resource,['dones','rites','totems','disciplines'],true)) {
         require_once __DIR__.'/../powers/queries.php';
         $fetch=['dones'=>'hg_powers_fetch_gift','rites'=>'hg_powers_fetch_rite','totems'=>'hg_powers_fetch_totem','disciplines'=>'hg_powers_fetch_discipline'][$resource];
