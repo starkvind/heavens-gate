@@ -31,7 +31,7 @@ function hg_api_audit_query(array $query): array
     $resource = $query['resource'] ?? 'catalog';
     $resource = is_string($resource) ? strtolower(trim($resource)) : '';
     $filters = [];
-    foreach (['q', 'id', 'topic_id', 'page', 'limit'] as $key) {
+    foreach (['q', 'id', 'topic_id', 'organization_id', 'group_id', 'page', 'limit'] as $key) {
         if (array_key_exists($key, $query)) $filters[] = $key;
     }
     return ['resource' => in_array($resource, $resources, true) ? $resource : 'other',

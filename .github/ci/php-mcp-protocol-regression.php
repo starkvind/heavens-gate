@@ -12,6 +12,20 @@ $tests['initialize'] = ($init['result']['protocolVersion'] ?? '') === '2025-06-1
 $tools = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>2,'method'=>'tools/list'], $read);
 $tests['tools list'] = ($tools['result']['tools'][0]['name'] ?? '') === 'heavens_gate_content';
 $call = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>3,'method'=>'tools/call','params'=>['name'=>'heavens_gate_content','arguments'=>['resource'=>'characters','limit'=>2]]], $read);
+$membershipRead = static function(array $params): array {
+    return ['ok'=>true,'resource'=>$params['resource'] ?? '', 'organization_id'=>$params['organization_id'] ?? '',
+        'group_id'=>$params['group_id'] ?? ''];
+};
+$membership = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>12,'method'=>'tools/call','params'=>[
+    'name'=>'heavens_gate_content','arguments'=>['resource'=>'characters','organization_id'=>4,'group_id'=>8]
+]], $membershipRead);
+$tests['active membership filters forwarded'] =
+    ($membership['result']['structuredContent']['organization_id'] ?? '') === '4'
+    && ($membership['result']['structuredContent']['group_id'] ?? '') === '8';
+$badMembership = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>13,'method'=>'tools/call','params'=>[
+    'name'=>'heavens_gate_content','arguments'=>['resource'=>'characters','organization_id'=>-1]
+]], $membershipRead);
+$tests['invalid membership filter denied'] = ($badMembership['error']['code'] ?? null) === -32602;
 $tests['tools call read-only'] = ($call['result']['structuredContent']['resource'] ?? '') === 'characters';
 $invalid = hg_mcp_dispatch(['jsonrpc'=>'2.0','id'=>4,'method'=>'tools/call','params'=>['name'=>'heavens_gate_content','arguments'=>['limit'=>500]]], $read);
 $tests['limit validation'] = ($invalid['error']['code'] ?? null) === -32602;

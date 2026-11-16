@@ -20,7 +20,7 @@ paths:
           schema:
             type: string
             default: catalog
-          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, backgrounds, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, forms, resources, breeds, auspices, tribes, documents, chronicles and additional catalog sections"
+          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, backgrounds, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, forms, resources, breeds, auspices, tribes, documents, chronicles, organizations, groups and additional catalog sections"
         - name: id
           in: query
           schema:
@@ -33,6 +33,18 @@ paths:
             type: integer
             minimum: 1
           description: Published forum topic ID
+        - name: organization_id
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Optional active organization membership filter for resource=characters or biografias lists; incompatible with entity id.
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Optional active manada/group membership filter for resource=characters or biografias lists; incompatible with entity id.
         - name: q
           in: query
           schema:
