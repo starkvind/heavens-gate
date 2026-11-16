@@ -11,6 +11,7 @@ function hg_dispatch_bare_routes(): array
         'mentions',
         'maps_api',
         'content_api_v1',
+        'heavens_gate_mcp',
         'dice_api',
         'forum_avatar_api',
         'chronicle_image',
