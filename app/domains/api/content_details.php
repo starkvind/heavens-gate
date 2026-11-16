@@ -22,6 +22,13 @@ function hg_content_api_detail(mysqli $link,string $resource,int $id): ?array {
             }
             mysqli_stmt_close($stmt);
         }
+        // Match the public character biography sheet's linked sections.
+        require_once __DIR__.'/../characters/queries.php';
+        $data['merits_flaws']=array_slice(hg_characters_fetch_merits_flaws($link,$id),0,100);
+        $data['powers']=hg_characters_fetch_powers($link,$id);
+        $data['inventory']=array_slice(hg_characters_fetch_items($link,$id),0,100);
+        $data['relationships']=array_slice(hg_characters_fetch_relations($link,$id),0,100);
+        $data['documents']=array_slice(hg_characters_fetch_docs($link,$id),0,100);
         return $data;
     }
     if ($resource === 'episodios' || $resource === 'temporadas') {
