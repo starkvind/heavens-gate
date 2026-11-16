@@ -136,6 +136,7 @@ return [
     'maps'        => ['app/controllers/maps/maps_main.php', 'Mapas'],
     'maps_detail' => ['app/controllers/maps/maps_detail.php', 'Punto de interés'],
     'maps_api'    => ['app/controllers/maps/maps_api.php', null],
+    'content_api_v1' => ['app/controllers/api/content_v1.php', null],
 
     // Jugadores
     'players'   => ['app/controllers/playr/playr_list.php', 'Jugadores'],
