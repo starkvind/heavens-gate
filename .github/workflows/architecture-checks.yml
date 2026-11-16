@@ -29,6 +29,8 @@ jobs:
         run: |
           php -l app/controllers/api/content_v1.php
           php -l app/domains/api/content_queries.php
+          php -l app/domains/api/content_forum.php
+          php .github/ci/php-content-api-forum-regression.php
           php -l app/domains/api/content_details.php
           php -l app/helpers/content_api_auth.php
           php -l app/controllers/api/mcp.php
