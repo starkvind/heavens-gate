@@ -52,6 +52,21 @@ function hg_content_api_detail(mysqli $link,string $resource,int $id): ?array {
         $row=$fetch($link,$id);
         return $row?hg_content_api_pick($row,['id','pretty_id','name','description','mechanics_text','mechanics_resolved','system_name','resolved_system_name','system_id','type_name','kind','rank','level','cost','gnosis','rage','willpower','origin_name','bibliography_id','type','disc','totem_type_id','image_url']):null;
     }
+    if (in_array($resource,['habilidades','merydef','maneuvers','actions','conditions','archetypes'],true)) {
+        require_once __DIR__.'/../rules/queries.php';
+        $func=['habilidades'=>'hg_rules_fetch_trait','merydef'=>'hg_rules_fetch_merit',
+            'maneuvers'=>'hg_rules_fetch_maneuver','actions'=>'hg_rules_fetch_action',
+            'conditions'=>'hg_rules_fetch_condition','archetypes'=>'hg_rules_fetch_archetype'][$resource];
+        $row=$func($link,$id);
+        if (!$row) return null;
+        $data=hg_content_api_pick($row,['id','pretty_id','name','description','text','levels','roll',
+            'difficulty','damage','actions','effect','attribute_name','skill_name','system_id',
+            'system_name','kind','rule_kind','type','tipo','cost','coste','affiliation','afiliacion',
+            'origin_name','category','max_instances','image_url','bibliography_id']);
+        if ($resource==='maneuvers') $data['availability']=hg_rules_fetch_maneuver_availability($link,$id);
+        if ($resource==='conditions') $data['effects']=hg_rules_fetch_condition_effects($link,$id);
+        return $data;
+    }
     return hg_content_api_basic_detail($link,$resource,$id);
 }
 function hg_content_api_basic_detail(mysqli $link,string $resource,int $id): ?array {
