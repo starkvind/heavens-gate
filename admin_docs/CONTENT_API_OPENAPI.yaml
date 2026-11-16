@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: Heaven's Gate Content API
+  version: 1.0.0
+  description: Read-only access to website-published Heaven's Gate content. Every request requires Bearer authentication.
+servers:
+  - url: https://naufragio-heavensgate.duckdns.org
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/content:
+    get:
+      operationId: readHeavensGateContent
+      summary: Search published entities, retrieve an entity by ID, or read public forum topics
+      description: Use resource=catalog first to see supported sections. Forum requires topic_id to read its published messages; without it returns the published topic list. Results are paginated and include raw forum BBCode.
+      parameters:
+        - name: resource
+          in: query
+          required: false
+          schema:
+            type: string
+            default: catalog
+          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, breeds, auspices, tribes, documents, chronicles and additional catalog sections"
+        - name: id
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Entity ID (non-forum resources)
+        - name: topic_id
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: Published forum topic ID
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 160
+          description: Search term; not used for forum topics
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 10
+      responses:
+        '200':
+          description: Paginated JSON items or resource catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: {type: boolean}
+                  resource: {type: string}
+                  items:
+                    type: array
+                    items: {type: object}
+                  page: {type: integer}
+                  limit: {type: integer}
+                  has_more: {type: boolean}
+        '400': {description: Invalid request}
+        '401': {description: Missing or invalid bearer token}
+        '404': {description: Unknown or unpublished resource}
+        '405': {description: Read-only API; GET only}
+        '503': {description: Service unconfigured or backing resource unavailable}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: HG_CONTENT_API_TOKEN stored on the server, not in the repository.
