@@ -10,15 +10,10 @@ function hg_content_api_forum_table(mysqli $link): ?string
 {
     require_once __DIR__ . '/../../helpers/schema_introspection.php';
     if (hg_table_exists($link, 'smf_messages')) return 'smf_messages';
-    $stmt = $link->prepare(
-        "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'smf' AND TABLE_NAME = 'smf_messages' LIMIT 1"
-    );
-    if (!$stmt) return null;
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $found = $result && $result->num_rows > 0;
-    $stmt->close();
-    return $found ? 'smf.smf_messages' : null;
+    // The site's existing forum-activity adapter uses this same two-location
+    // fallback. If the SMF schema is unavailable, prepare() is caught by
+    // the caller and the request fails closed as forum_unavailable.
+    return 'smf.smf_messages';
 }
 
 /** The table identifier is selected internally from two fixed names, never from request input. */
