@@ -43,9 +43,9 @@ $aliases=[
 $resource=$aliases[$resource]??$resource;
 $catalog=hg_search_catalog($link);
 $extra=[
- 'maneuvers'=>'fact_maneuvers','actions'=>'fact_actions',
- 'conditions'=>'dim_conditions','rites'=>'fact_rites',
- 'totems'=>'dim_totems','disciplines'=>'fact_disciplines',
+ 'maneuvers'=>'fact_combat_maneuvers','actions'=>'fact_actions',
+ 'conditions'=>'dim_character_conditions','rites'=>'fact_rites',
+ 'totems'=>'dim_totems','disciplines'=>'fact_discipline_powers',
  'archetypes'=>'dim_archetypes'
 ];
 if ($resource==='catalog') {
