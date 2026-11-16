@@ -15,6 +15,8 @@ function hg_mcp_tool_definitions(): array
                 'q' => ['type' => 'string', 'maxLength' => 160, 'description' => 'Optional search text'],
                 'id' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Optional entity ID for detail'],
                 'topic_id' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Forum topic ID; only approved topics can be read'],
+                'organization_id' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Filter character list to active members of an organization'],
+                'group_id' => ['type' => 'integer', 'minimum' => 1, 'description' => 'Filter character list to active members of a manada/group'],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 10000],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 25],
             ],
@@ -63,7 +65,7 @@ function hg_mcp_dispatch(array $message, callable $readContent): ?array
     $args = $params['arguments'] ?? [];
     if (!is_array($args)) return hg_mcp_error($id, -32602, 'Invalid arguments');
     $safe = [];
-    foreach (['resource', 'q', 'id', 'topic_id', 'page', 'limit'] as $key) {
+    foreach (['resource', 'q', 'id', 'topic_id', 'organization_id', 'group_id', 'page', 'limit'] as $key) {
         if (!array_key_exists($key, $args)) continue;
         $value = $args[$key];
         if (in_array($key, ['resource', 'q'], true)) {
