@@ -10,6 +10,7 @@ function hg_dispatch_bare_routes(): array
         'tooltip',
         'mentions',
         'maps_api',
+        'content_api_v1',
         'dice_api',
         'forum_avatar_api',
         'chronicle_image',
