@@ -117,32 +117,3 @@ function hg_mcp_refresh_rotate(string $secret, string $token, int $now): string|
     fclose($handle);
     return $saved ? $replacement : false;
 }
-
-/** Explicit administrative revocation, independent of OAuth access expiry. */
-function hg_mcp_refresh_revoke(string $secret, string $token): bool
-{
-    if (!preg_match('/^r1\.([a-f0-9]{32})\.[A-Za-z0-9_-]{43}$/D', $token, $parts)) return false;
-    $dir = hg_mcp_oauth_code_dir($secret);
-    if (!is_string($dir)) return false;
-    $file = $dir . '/r-' . $parts[1] . '.json';
-    $handle = @fopen($file, 'r+');
-    if ($handle === false) return false;
-    if (!flock($handle, LOCK_EX)) { fclose($handle); return false; }
-    $raw = stream_get_contents($handle, 8192);
-    $record = is_string($raw) ? json_decode($raw, true) : null;
-    $valid = is_array($record)
-        && is_string($record['digest'] ?? null)
-        && hash_equals($record['digest'], hg_mcp_refresh_digest($secret, $parts[1], explode('.', $token)[2]));
-    $written = false;
-    if ($valid) {
-        $record['revoked'] = true;
-        $payload = json_encode($record, JSON_UNESCAPED_SLASHES);
-        $written = is_string($payload) && rewind($handle) !== false
-            && ftruncate($handle, 0)
-            && fwrite($handle, $payload) === strlen($payload)
-            && fflush($handle);
-    }
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    return $written;
-}
