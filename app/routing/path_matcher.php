@@ -86,6 +86,7 @@ function hg_request_path_matcher_match(string $path): array
         '/maps/api' => ['p' => 'maps_api'],
         '/api/dice' => ['p' => 'dice_api'],
         '/api/v1/content' => ['p' => 'content_api_v1'],
+        '/mcp' => ['p' => 'heavens_gate_mcp'],
     ];
 
     if (isset($static[$path])) {
