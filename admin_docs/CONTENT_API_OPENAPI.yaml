@@ -20,13 +20,13 @@ paths:
           schema:
             type: string
             default: catalog
-          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, breeds, auspices, tribes, documents, chronicles and additional catalog sections"
+          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, backgrounds, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, forms, resources, breeds, auspices, tribes, documents, chronicles and additional catalog sections"
         - name: id
           in: query
           schema:
             type: integer
             minimum: 1
-          description: Entity ID (non-forum resources)
+          description: Entity ID (non-forum resources). Returns complete public-detail projection in the item object.
         - name: topic_id
           in: query
           schema:
@@ -65,6 +65,8 @@ paths:
                   items:
                     type: array
                     items: {type: object}
+                  item:
+                    type: object
                   page: {type: integer}
                   limit: {type: integer}
                   has_more: {type: boolean}
