@@ -44,7 +44,7 @@ function hg_mcp_oauth_metadata(string $kind): array
         'authorization_endpoint' => HG_MCP_OAUTH_ISSUER . '/oauth/authorize',
         'token_endpoint' => HG_MCP_OAUTH_ISSUER . '/oauth/token',
         'response_types_supported' => ['code'],
-        'grant_types_supported' => ['authorization_code'],
+        'grant_types_supported' => ['authorization_code', 'refresh_token'],
         'code_challenge_methods_supported' => ['S256'],
         'token_endpoint_auth_methods_supported' => ['none'],
         'client_id_metadata_document_supported' => true,
