@@ -1,6 +1,6 @@
 # API activity administration
 
-Open `/talim?s=admin_api_activity` after signing in, or choose **Sistema → Actividad de la API**. The same authenticated controller serves desktop and mobile compatibility views. The page filters by UTC day, authenticated client class and outcome, displays Madrid timestamps and paginates 50 requests at a time.
+Open `/talim?s=admin_api_activity` after signing in, or choose **Sistema → Actividad de la API**. The same responsive authenticated Admin controller serves desktop and mobile; the existing `/talim` exclusion from the legacy mobile renderer remains intact. The page filters by UTC day, authenticated client class and outcome, displays Madrid timestamps and paginates 50 requests at a time. A link opened before login returns to this registered local section after authentication.
 
 Only `/api/v1/content` and `/mcp` are audited, including rejected methods, invalid credentials, PHP failures and MCP application errors returned with HTTP 200. Counts, elapsed application time and encoded JSON response bytes describe requests reaching these controllers; Apache rejections, OAuth consent/token endpoints and legacy tool APIs are outside this journal. HTTP compression and transport/header bytes are not measured.
 

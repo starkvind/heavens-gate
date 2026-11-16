@@ -154,7 +154,7 @@ if (!function_exists('hg_admin_login_return_path')) {
             'admin_merits_flaws', 'admin_character_conditions', 'admin_character_conditions_bridge',
             'admin_character_misc_bridge',
             'admin_character_affiliations_canonical', 'admin_systems_resources', 'admin_resources',
-            'admin_inspect_db', 'admin_usage',
+            'admin_inspect_db', 'admin_usage', 'admin_api_activity',
             'admin_mentions_help', 'admin_org_chart_schema',
         ];
 
