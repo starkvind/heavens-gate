@@ -20,6 +20,7 @@ function hg_mcp_tool_definitions(): array
             ],
             'additionalProperties' => false,
         ],
+        'securitySchemes' => [['type' => 'oauth2', 'scopes' => ['content:read']]],
         'annotations' => ['readOnlyHint' => true, 'destructiveHint' => false, 'openWorldHint' => false],
     ]];
 }
