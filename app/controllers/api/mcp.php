@@ -4,13 +4,19 @@ require_once __DIR__ . '/../../helpers/tool_api.php';
 require_once __DIR__ . '/../../helpers/content_api_auth.php';
 require_once __DIR__ . '/../../domains/api/mcp_oauth.php';
 require_once __DIR__ . '/../../domains/api/mcp_protocol.php';
+require_once __DIR__ . '/../../domains/api/audit.php';
+$apiAudit = hg_api_audit_begin('mcp', (string)($_SERVER['REQUEST_METHOD'] ?? ''), [],
+    (string)($_SERVER['REMOTE_ADDR'] ?? ''), (string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store, max-age=0');
 header('X-Content-Type-Options: nosniff');
 header('MCP-Protocol-Version: 2025-06-18');
-$send = static function(array $payload, int $status = 200): void {
+$send = static function(array $payload, int $status = 200) use ($apiAudit): void {
     http_response_code($status);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    hg_api_audit_response($apiAudit, (string)$encoded,
+        $status >= 400 || isset($payload['error']) || !empty($payload['result']['isError']));
+    echo $encoded;
 };
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? ''));
 if ($method !== 'POST') {
@@ -26,6 +32,7 @@ $oauthSecret = hg_mcp_oauth_secret();
 $authorized = $oauthSecret !== ''
     ? hg_mcp_oauth_verify_access_token($provided, $oauthSecret, time())
     : hg_content_api_authenticate($provided, hg_tool_api_config('HG_CONTENT_API_TOKEN'), time());
+$apiAudit->row['client'] = !$authorized ? 'unauthenticated' : ($oauthSecret !== '' ? 'chatgpt-oauth' : 'rest-shared');
 if (!$authorized) {
     if ($oauthSecret !== '') {
         header('WWW-Authenticate: Bearer resource_metadata="' . HG_MCP_OAUTH_ISSUER . '/.well-known/oauth-protected-resource", scope="content:read"');
@@ -49,6 +56,7 @@ if (!is_array($message) || array_is_list($message)) {
     $send(hg_mcp_error(null, -32700, 'Parse error'), 400);
     return;
 }
+hg_api_audit_mcp($apiAudit, $message);
 require_once __DIR__ . '/../../helpers/search_catalog.php';
 require_once __DIR__ . '/../../domains/search/queries.php';
 require_once __DIR__ . '/../../domains/api/content_details.php';

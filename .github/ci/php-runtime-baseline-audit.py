@@ -15,7 +15,7 @@ BASELINE = {
     "php_files": 349,
     "active_routes": 98,
     "mobile_routes": 77,  # 2026-11-01: native mobile season_order route (explicitly approved).
-    "admin_controllers": 62,
+    "admin_controllers": 63,  # Read-only API activity panel; no new auth or SQL owner.
     "public_controller_sql_owners": 4,
     "public_controller_sql_calls": 16,
     "schema_probes": 24,  # +4 domain-owned bibliography schema probes
