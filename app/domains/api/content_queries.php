@@ -23,7 +23,7 @@ $extra=[
  'maneuvers'=>'fact_combat_maneuvers','actions'=>'fact_actions',
  'conditions'=>'dim_character_conditions','rites'=>'fact_rites',
  'totems'=>'dim_totems','disciplines'=>'fact_discipline_powers',
- 'archetypes'=>'dim_archetypes'
+ 'archetypes'=>'dim_archetypes','forms'=>'dim_forms','resources'=>'dim_systems_resources'
 ];
 if ($resource==='catalog') {
  $items=[];
@@ -78,11 +78,12 @@ if ($cfg) {
 } else {
  // Extra domains are allowlisted, with public-display fields only.
  $table=$extra[$resource];
- $sql='SELECT id,name FROM '.$table;
+ $titleField=$resource==='forms'?'form':'name';
+ $sql='SELECT id,'.$titleField.' AS name FROM '.$table;
  if ($id) { $where[]='id = ?';$params[]=$id;$types.='i'; }
- elseif ($q!=='') { $where[]='name LIKE ?';$params[]='%'.$q.'%';$types.='s'; }
+ elseif ($q!=='') { $where[]=$titleField.' LIKE ?';$params[]='%'.$q.'%';$types.='s'; }
  if ($where) $sql.=' WHERE '.implode(' AND ',$where);
- $sql.=' ORDER BY name,id DESC LIMIT ? OFFSET ?';
+ $sql.=' ORDER BY '.$titleField.',id DESC LIMIT ? OFFSET ?';
 }
 $params[]=$id?1:$limit;$params[]=$id?0:$offset;$types.='ii';
 $stmt=mysqli_prepare($link,$sql);
