@@ -16,7 +16,9 @@ $aliases=[
  'skills'=>'habilidades','traits'=>'habilidades','merits-flaws'=>'merydef',
  'powers'=>'dones','gifts'=>'dones','breeds'=>'razas','auspices'=>'auspicios',
  'tribes'=>'tribus','documents'=>'escritos','chronicles'=>'cronicas',
- 'misc-systems'=>'misc_sistemas','merits'=>'merydef','flaws'=>'merydef','backgrounds'=>'habilidades'
+ 'misc-systems'=>'misc_sistemas','merits'=>'merydef','flaws'=>'merydef','backgrounds'=>'habilidades',
+ 'clans'=>'organizations','clanes'=>'organizations','organizaciones'=>'organizations',
+ 'packs'=>'groups','manadas'=>'groups'
 ];
 $resource=$aliases[$resource]??$resource;
 $catalog=hg_search_catalog($link);
@@ -30,8 +32,15 @@ if ($resource==='catalog') {
  $items=[];
  foreach ($catalog as $name=>$cfg) if (empty($cfg['virtual'])) $items[]=['resource'=>$name,'label'=>(string)($cfg['label_text']??$name)];
  foreach ($extra as $name=>$table) $items[]=['resource'=>$name,'label'=>$name];
+ $items[]=['resource'=>'organizations','label'=>'Organizaciones y clanes'];
+ $items[]=['resource'=>'groups','label'=>'Manadas y grupos activos'];
  $items[]=['resource'=>'forum','label'=>'Temas publicados del foro'];
  $send(['ok'=>true,'version'=>'1','read_only'=>true,'items'=>$items]); return;
+}
+if (in_array($resource, ['organizations', 'groups'], true)) {
+    require_once __DIR__ . '/content_organizations.php';
+    hg_content_api_structure_handle($link,$resource,$id,$q,$limit,$offset,$page,$send);
+    return;
 }
 if ($id && $resource !== 'forum') {
     $detail=hg_content_api_detail($link,$resource,$id);
