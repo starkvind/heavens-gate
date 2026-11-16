@@ -2,6 +2,7 @@
 // Stateless authenticated MCP over HTTP; all tool calls reuse read-only Content API.
 require_once __DIR__ . '/../../helpers/tool_api.php';
 require_once __DIR__ . '/../../helpers/content_api_auth.php';
+require_once __DIR__ . '/../../domains/api/mcp_oauth.php';
 require_once __DIR__ . '/../../domains/api/mcp_protocol.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store, max-age=0');
@@ -19,9 +20,18 @@ if ($method !== 'POST') {
 }
 $header = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? '');
 $provided = preg_match('/^Bearer\s+(\S+)$/i', $header, $matches) ? $matches[1] : '';
-$configured = hg_tool_api_config('HG_CONTENT_API_TOKEN');
-if (!hg_content_api_authenticate($provided, $configured, time())) {
-    header('WWW-Authenticate: Bearer realm="HeavensGateMCP"');
+$oauthSecret = hg_mcp_oauth_secret();
+// Once OAuth is configured, MCP accepts ONLY audience-bound OAuth credentials.
+// The REST Content API remains independently Bearer-authenticated.
+$authorized = $oauthSecret !== ''
+    ? hg_mcp_oauth_verify_access_token($provided, $oauthSecret, time())
+    : hg_content_api_authenticate($provided, hg_tool_api_config('HG_CONTENT_API_TOKEN'), time());
+if (!$authorized) {
+    if ($oauthSecret !== '') {
+        header('WWW-Authenticate: Bearer resource_metadata="' . HG_MCP_OAUTH_ISSUER . '/.well-known/oauth-protected-resource", scope="content:read"');
+    } else {
+        header('WWW-Authenticate: Bearer realm="HeavensGateMCP"');
+    }
     $send(['error' => 'unauthorized'], 401);
     return;
 }
