@@ -31,6 +31,9 @@ jobs:
           php -l app/domains/api/content_queries.php
           php -l app/domains/api/content_details.php
           php -l app/helpers/content_api_auth.php
+          php -l app/controllers/api/mcp.php
+          php -l app/domains/api/mcp_protocol.php
+          php .github/ci/php-mcp-protocol-regression.php
           php .github/ci/php-content-api-auth-regression.php
 
       - name: Characterize router contract
