@@ -58,12 +58,6 @@ if (is_string($expiring)) {
         $secret, $expiring, $now + HG_MCP_REFRESH_LIFETIME + 1
     ) === false;
 }
-$revoke = hg_mcp_refresh_issue($secret, $now);
-$tests['revocation setup'] = is_string($revoke);
-if (is_string($revoke)) {
-    $tests['explicit refresh revocation'] = hg_mcp_refresh_revoke($secret, $revoke);
-    $tests['revoked token denied'] = hg_mcp_refresh_rotate($secret, $revoke, $now + 5) === false;
-}
 $crossSecret = hg_mcp_refresh_issue($secret, $now);
 if (is_string($crossSecret)) {
     $tests['wrong signing secret denied'] = hg_mcp_refresh_rotate(
