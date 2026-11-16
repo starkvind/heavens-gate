@@ -70,20 +70,18 @@ function hg_content_api_detail(mysqli $link,string $resource,int $id): ?array {
     return hg_content_api_basic_detail($link,$resource,$id);
 }
 function hg_content_api_basic_detail(mysqli $link,string $resource,int $id): ?array {
-    $tables=['objetos'=>'fact_items','merydef'=>'dim_merits_flaws','habilidades'=>'dim_traits','razas'=>'dim_breeds','auspicios'=>'dim_auspices','tribus'=>'dim_tribes','misc_sistemas'=>'fact_misc_systems','escritos'=>'fact_docs','cronicas'=>'dim_chronicles','maneuvers'=>'fact_combat_maneuvers','actions'=>'fact_actions','conditions'=>'dim_character_conditions','archetypes'=>'dim_archetypes'];
-    if (!isset($tables[$resource])) return null;
-    $table=$tables[$resource];
-    $allowed=['id','pretty_id','name','title','description','content','mechanics_text','system_id','type','kind','classification','cost','level','rank','trait_id','item_type_id','effect','requirements','prerequisites','difficulty','image_url','bibliography_id'];
-    $cols=[];
-    $rs=mysqli_query($link,'SHOW COLUMNS FROM '.$table);
-    if (!$rs) return null;
-    while ($row=mysqli_fetch_assoc($rs)) $cols[$row['Field']]=true;
-    mysqli_free_result($rs);
-    $selected=array_values(array_filter($allowed,static fn($col)=>isset($cols[$col])));
-    if (!isset($cols['id']) || count($selected)<2) return null;
-    $sql='SELECT '.implode(',',$selected).' FROM '.$table.' WHERE id = ?';
-    if (isset($cols['is_active'])) $sql.=' AND is_active = 1';
-    $stmt=mysqli_prepare($link,$sql.' LIMIT 1');
+    // Explicit public-content columns only; never expose arbitrary row fields.
+    $queries=[
+        'objetos'=>'SELECT id,pretty_id,name,description FROM fact_items WHERE id = ?',
+        'razas'=>'SELECT id,pretty_id,name,description,system_id FROM dim_breeds WHERE id = ?',
+        'auspicios'=>'SELECT id,pretty_id,name,description,system_id FROM dim_auspices WHERE id = ?',
+        'tribus'=>'SELECT id,pretty_id,name,description,system_id FROM dim_tribes WHERE id = ?',
+        'misc_sistemas'=>'SELECT id,pretty_id,name,description,kind,system_name FROM fact_misc_systems WHERE id = ?',
+        'escritos'=>'SELECT id,pretty_id,title,content FROM fact_docs WHERE id = ?',
+        'cronicas'=>'SELECT id,pretty_id,name,description FROM dim_chronicles WHERE id = ?'
+    ];
+    if (!isset($queries[$resource])) return null;
+    $stmt=mysqli_prepare($link,$queries[$resource].' LIMIT 1');
     if (!$stmt) return null;
     mysqli_stmt_bind_param($stmt,'i',$id);
     if (!mysqli_stmt_execute($stmt)) {mysqli_stmt_close($stmt);return null;}
