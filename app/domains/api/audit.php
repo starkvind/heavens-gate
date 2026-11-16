@@ -26,7 +26,8 @@ function hg_api_audit_query(array $query): array
         'backgrounds', 'maneuvers', 'actions', 'conditions', 'rites', 'totems', 'disciplines',
         'archetypes', 'forms', 'resources', 'forum', 'biografias', 'episodios', 'temporadas',
         'objetos', 'sistemas', 'habilidades', 'merydef', 'dones', 'razas', 'auspicios',
-        'tribus', 'escritos', 'cronicas', 'misc_sistemas', 'organizaciones'];
+        'tribus', 'escritos', 'cronicas', 'misc_sistemas', 'organizaciones',
+        'organizations', 'clans', 'clanes', 'groups', 'packs', 'manadas'];
     $resource = $query['resource'] ?? 'catalog';
     $resource = is_string($resource) ? strtolower(trim($resource)) : '';
     $filters = [];
