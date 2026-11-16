@@ -25,6 +25,14 @@ jobs:
           php-version: '8.2'
           coverage: none
 
+      - name: Lint read-only content API
+        run: |
+          php -l app/controllers/api/content_v1.php
+          php -l app/domains/api/content_queries.php
+          php -l app/domains/api/content_details.php
+          php -l app/helpers/content_api_auth.php
+          php .github/ci/php-content-api-auth-regression.php
+
       - name: Characterize router contract
         run: php .github/ci/php-router-characterization.php
 

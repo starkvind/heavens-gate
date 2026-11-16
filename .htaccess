@@ -8,6 +8,8 @@ Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /
+# Forward Bearer credentials to PHP-FPM for token-authenticated API routes.
+RewriteRule ^api/v1/content$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # ==============================
 # Security
