@@ -37,6 +37,10 @@ roll_check('broken marker cannot authorize',
 roll_check('database pattern for ID 46',
     hg_content_api_roll_reference_pattern(46) === '[[]hg_tirada[]][[:space:]]*46[[:space:]]*[[]/hg_tirada[]]');
 
+[$manyDice, $manySuccesses, $manyBotch] = hg_dice_roll_d10_pool(4, 6, [10, 9, 8, 1]);
+roll_check('multiple successes after a one',
+    $manyDice === [10,9,8,1] && $manySuccesses === 2 && !$manyBotch);
+
 $ref = ['message_id'=>1111,'topic_id'=>77,'poster_name'=>'Denebia','member_id'=>7,'posted_at'=>1795604948];
 [$dice, $successes, $botch] = hg_dice_roll_d10_pool(4, 6, [8, 7, 1, 1]);
 roll_check('existing rules subtract at most one success for any ones', $successes === 1 && !$botch);
