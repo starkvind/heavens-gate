@@ -1,4 +1,4 @@
-# Content API v1 — staging branch
+# Content API v1 — published content (original staging notes retained below)
 
 Read-only, token-protected access to the published website data, reusing the public search catalog, search query builder and forum topic publication gate.
 
@@ -38,3 +38,54 @@ curl -H "Authorization: Bearer <REDACTED>" 'https://naufragio-heavensgate.duckdn
 6. Remove the staging fingerprint in a follow-up change and rotate to a separately configured production token. Do **not** use the temporary token as a permanent connector credential.
 
 Unknown URL paths and a hidden endpoint name are not security controls. Authentication must remain mandatory.
+
+## Published forum dice rolls (2026-11-25 extension)
+
+Authenticated REST detail: `GET /api/v1/content?resource=tiradas&id=46`.
+Aliases: `resource=rolls` or `resource=dice`. The same parameters are
+available on the existing `heavens_gate_content` MCP tool used by ChatGPT:
+`{"resource":"tiradas","id":46}`. No new tool, secret, SQL migration,
+write route, or unbounded roll listing is introduced.
+
+**Visibility contract:** first locate literal `[hg_tirada]ID[/hg_tirada]`
+case-insensitively in an SMF message with `sm.approved = 1` and an
+editorially enabled `fact_tools_topic_viewer.is_active = 1` topic.
+Only then call the existing `hg_dice_fetch_roll()` for that ID.
+The SMF source is resolved through the same `smf_messages` or
+`smf.smf_messages` adapter as the forum endpoint. SQL is parameterized,
+table identifiers are internally allowlisted, and at most 10 matching
+published forum references are returned. No arbitrary ID enumeration,
+forum search, or topic filter for `tiradas` is supported. Missing or
+non-visible rolls return indistinguishable `404 not_found`; malformed
+or absent roll IDs return `400 invalid_roll_request`; unavailable backing
+tables return a sanitized `503`.
+
+**Response:** `{"ok":true,"resource":"tiradas","item":{...}}`, with:
+`id`, `message_id`, `topic_id`, `forum_author`, `forum_member_id`,
+`posted_at` (SMF Unix timestamp), `forum_references` (up to 10),
+`name` (the roller's free-text label), `roll_name`, `rolled_at`
+(stored SQL datetime, timezone unspecified), `dice_pool`, `difficulty`,
+`roll_results` (integer d10 results), `successes` (persisted final count),
+`botch`, `outcome` (`exito`, `fallo`, `pifia`), `ones_rolled`,
+`ones_rule` (`single_penalty_if_any_one`), `willpower_spent`,
+`character_id:null`, `system:null`, `other_modifiers:null`, and
+`special_circumstances:null`. Missing optional values remain null.
+No IP address, request token, private forum message, or admin fields are
+included. `name` is NOT a verified forum username or character identity;
+`forum_author` identifies the author of the visible referencing post.
+There is no stored foreign key linking the roll to that person.
+
+**Dice mechanics:** the existing roller saves individual d10s and its final
+success count. Its current rule subtracts a single success (floor zero)
+when any die is 1, irrespective of the number of ones. Spending
+Willpower adds one success and clears a botch before saving. The read API
+returns the saved `successes` and `botch` directly; it does not apply
+rules again. Other modifiers and the mechanical system are not persisted.
+
+**Acceptance/deployment:** the application branch's PHP regression tests
+are controlled fixtures and SQL-gate assertions. Production verification
+requires deploying the updated website code on Raspberry and checking
+the real roll 46, message 1111, topic 77, and 404 for both unpublished
+and nonexistent rolls using the **connected** Heaven's Gate API access.
+A GitHub merge alone does not deploy the Raspberry and cannot satisfy
+that end-to-end acceptance gate. The API remains read-only.
