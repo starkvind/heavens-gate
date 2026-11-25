@@ -32,6 +32,8 @@ jobs:
           php -l app/domains/api/content_forum.php
           php -l app/domains/api/content_organizations.php
           php .github/ci/php-content-api-forum-regression.php
+          php -l app/domains/api/content_rolls.php
+          php .github/ci/php-content-api-rolls-regression.php
           php -l app/domains/api/content_details.php
           php -l app/helpers/content_api_auth.php
           php -l app/controllers/api/mcp.php

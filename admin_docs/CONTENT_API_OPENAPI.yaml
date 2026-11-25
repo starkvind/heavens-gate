@@ -11,8 +11,14 @@ paths:
   /api/v1/content:
     get:
       operationId: readHeavensGateContent
-      summary: Search published entities, retrieve an entity by ID, or read public forum topics
-      description: Use resource=catalog first to see supported sections. Forum requires topic_id to read its published messages; without it returns the published topic list. Results are paginated and include raw forum BBCode.
+      summary: Search published entities and forum topics, or read an approved forum dice roll by ID
+      description: >-
+        Use resource=catalog first to see supported sections. Forum requires topic_id
+        to read approved messages in an editorially enabled topic; without it returns
+        the published topic list. Resource=tiradas (alias rolls/dice) requires id and
+        returns the stored dice roll ONLY when referenced by BBCode in an approved
+        post in an enabled topic. Roll lists and arbitrary searches are disabled.
+        The read response never contains roller IP or internal admin data.
       parameters:
         - name: resource
           in: query
@@ -20,19 +26,19 @@ paths:
           schema:
             type: string
             default: catalog
-          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, backgrounds, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, forms, resources, breeds, auspices, tribes, documents, chronicles, organizations, groups and additional catalog sections"
+          description: "catalog, characters, episodes, seasons, forum, inventory, powers, systems, attributes, skills, traits, backgrounds, merits-flaws, maneuvers, actions, conditions, rites, totems, disciplines, archetypes, forms, resources, breeds, auspices, tribes, documents, chronicles, organizations, groups, tiradas (alias rolls/dice) and additional catalog sections"
         - name: id
           in: query
           schema:
             type: integer
             minimum: 1
-          description: Entity ID (non-forum resources). Returns complete public-detail projection in the item object.
+          description: Entity ID (including resource=tiradas; required for tiradas). Returns a public-detail projection in item.
         - name: topic_id
           in: query
           schema:
             type: integer
             minimum: 1
-          description: Published forum topic ID
+          description: Published forum topic ID (forum resource only; not accepted for tiradas)
         - name: organization_id
           in: query
           schema:
@@ -79,15 +85,64 @@ paths:
                     items: {type: object}
                   item:
                     type: object
+                    description: >-
+                      When resource=tiradas, this follows PublishedDiceRoll below.
+                      Other resources retain their existing detail projections.
                   page: {type: integer}
                   limit: {type: integer}
                   has_more: {type: boolean}
         '400': {description: Invalid request}
         '401': {description: Missing or invalid bearer token}
-        '404': {description: Unknown or unpublished resource}
+        '404': {description: Unknown resource, missing roll, or roll not referenced in an accessible approved post}
         '405': {description: Read-only API; GET only}
         '503': {description: Service unconfigured or backing resource unavailable}
 components:
+  schemas:
+    PublishedDiceRoll:
+      type: object
+      description: >-
+        Resource tiradas detail. No SQL linkage to a character or authenticated
+        roller is stored; name is a free-text roller label, forum_author is the
+        author of a visible post referencing the roll. A roll can be referenced
+        in multiple posts (at most 10 returned). The persisted successes and
+        botch flags are authoritative, never recalculated by this endpoint.
+      properties:
+        id: {type: integer}
+        message_id: {type: integer}
+        topic_id: {type: integer}
+        forum_author: {type: string}
+        forum_member_id: {type: integer}
+        posted_at: {type: integer, description: SMF poster_time Unix timestamp}
+        forum_references:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            properties:
+              message_id: {type: integer}
+              topic_id: {type: integer}
+              poster_name: {type: string}
+              member_id: {type: integer}
+              posted_at: {type: integer}
+        name: {type: string, nullable: true}
+        roll_name: {type: string, nullable: true}
+        character_id: {type: integer, nullable: true, description: Not persisted by current roller}
+        system: {type: string, nullable: true, description: Not persisted by current roller}
+        rolled_at: {type: string, nullable: true, description: Database datetime without declared timezone}
+        dice_pool: {type: integer, nullable: true}
+        difficulty: {type: integer, nullable: true}
+        roll_results:
+          type: array
+          nullable: true
+          items: {type: integer, minimum: 1, maximum: 10}
+        successes: {type: integer, nullable: true, description: Stored final successes, includes willpower when spent}
+        botch: {type: boolean, nullable: true}
+        outcome: {type: string, nullable: true, enum: [exito, fallo, pifia, null]}
+        ones_rolled: {type: integer, nullable: true}
+        ones_rule: {type: string, enum: [single_penalty_if_any_one]}
+        willpower_spent: {type: boolean, nullable: true}
+        other_modifiers: {type: object, nullable: true, description: Other modifier details are not stored}
+        special_circumstances: {type: object, nullable: true, description: Not separately stored}
   securitySchemes:
     bearerAuth:
       type: http

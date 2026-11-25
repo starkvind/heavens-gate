@@ -29,7 +29,7 @@ $aliases=[
  'tribes'=>'tribus','documents'=>'escritos','chronicles'=>'cronicas',
  'misc-systems'=>'misc_sistemas','merits'=>'merydef','flaws'=>'merydef','backgrounds'=>'habilidades',
  'clans'=>'organizations','clanes'=>'organizations','organizaciones'=>'organizations',
- 'packs'=>'groups','manadas'=>'groups'
+ 'packs'=>'groups','manadas'=>'groups','rolls'=>'tiradas','dice'=>'tiradas'
 ];
 $resource=$aliases[$resource]??$resource;
 $catalog=hg_search_catalog($link);
@@ -46,11 +46,23 @@ if ($resource==='catalog') {
  $items[]=['resource'=>'organizations','label'=>'Organizaciones y clanes'];
  $items[]=['resource'=>'groups','label'=>'Manadas y grupos activos'];
  $items[]=['resource'=>'forum','label'=>'Temas publicados del foro'];
+ $items[]=['resource'=>'tiradas','label'=>'Tiradas publicadas en el foro'];
  $send(['ok'=>true,'version'=>'1','read_only'=>true,'items'=>$items]); return;
 }
 if (in_array($resource, ['organizations', 'groups'], true)) {
     require_once __DIR__ . '/content_organizations.php';
     hg_content_api_structure_handle($link,$resource,$id,$q,$limit,$offset,$page,$send);
+    return;
+}
+if ($resource === 'tiradas') {
+    // No broad roll enumeration: an ID is mandatory, and it is visible only
+    // through an approved SMF post in an enabled topic.
+    if ($id <= 0 || $q !== '' || hg_request_query_value($hgRequest, 'topic_id', '') !== '') {
+        $send(['ok'=>false,'error'=>'invalid_roll_request'],400);
+        return;
+    }
+    require_once __DIR__ . '/content_rolls.php';
+    hg_content_api_roll_handle($link, $id, $send);
     return;
 }
 if ($id && $resource !== 'forum') {

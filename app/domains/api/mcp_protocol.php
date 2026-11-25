@@ -7,7 +7,7 @@ function hg_mcp_tool_definitions(): array
 {
     return [[
         'name' => 'heavens_gate_content',
-        'description' => 'Read Heaven\'s Gate website information: catalog, characters, episodes, seasons, rules, powers, inventory and published forum topics. The website is not the canon authority; consult the continuity repository for authoritative decisions.',
+        'description' => 'Read Heaven\'s Gate website information: catalog, characters, episodes, seasons, rules, powers, inventory, published forum topics, and dice rolls referenced in approved published posts (resource=tiradas, id). The website is not the canon authority; consult the continuity repository for authoritative decisions.',
         'inputSchema' => [
             'type' => 'object',
             'properties' => [
