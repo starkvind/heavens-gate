@@ -24,7 +24,7 @@ function hg_api_audit_query(array $query): array
         'attributes', 'skills', 'traits', 'merits-flaws', 'powers', 'gifts', 'breeds',
         'auspices', 'tribes', 'documents', 'chronicles', 'misc-systems', 'merits', 'flaws',
         'backgrounds', 'maneuvers', 'actions', 'conditions', 'rites', 'totems', 'disciplines',
-        'archetypes', 'forms', 'resources', 'forum', 'biografias', 'episodios', 'temporadas',
+        'archetypes', 'forms', 'resources', 'forum', 'tiradas', 'rolls', 'dice', 'biografias', 'episodios', 'temporadas',
         'objetos', 'sistemas', 'habilidades', 'merydef', 'dones', 'razas', 'auspicios',
         'tribus', 'escritos', 'cronicas', 'misc_sistemas', 'organizaciones',
         'organizations', 'clans', 'clanes', 'groups', 'packs', 'manadas'];
