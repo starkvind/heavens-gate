@@ -19,6 +19,8 @@
 
     let timer = null;
     let currentKey = "";
+    let generation = 0;
+    let activeOwner = null;
     let lastX = 0;
     let lastY = 0;
 
@@ -43,6 +45,10 @@
     }
 
     function hideTip() {
+      generation++;
+      activeOwner = null;
+      if (timer) clearTimeout(timer);
+      timer = null;
       tooltip.style.display = "none";
       tooltip.innerHTML = "";
       currentKey = "";
@@ -92,24 +98,21 @@
       return request;
     }
 
-    async function showTipFor(target) {
-      const type = target.getAttribute("data-tip") || "";
-      const id = target.getAttribute("data-id") || "";
-      if (!type || !id) return;
-
+    async function showTipFor(type, id, token) {
       const key = `${type}:${id}`;
+      if (generation !== token) return;
       currentKey = key;
 
       try {
         const entry = await loadTooltip(type, id);
-        if (currentKey !== key) return;
+        if (generation !== token || currentKey !== key) return;
 
         // The request starts as soon as the pointer enters the target, so the
         // image normally reaches the browser cache before the tooltip appears.
         // Give a still-decoding image a very short grace period to avoid a
         // visible empty frame without making the tooltip feel sluggish.
         await Promise.race([entry.imagesReady, delay(120)]);
-        if (currentKey !== key) return;
+        if (generation !== token || currentKey !== key) return;
 
         tooltip.innerHTML = entry.html;
         tooltip.style.display = "block";
@@ -119,12 +122,32 @@
       }
     }
 
-    function warmTarget(target) {
-      const type = target.getAttribute("data-tip") || "";
-      const id = target.getAttribute("data-id") || "";
+    function scheduleTip(type, id, owner, wait, point) {
+      hideTip();
       if (!type || !id) return;
-      void loadTooltip(type, id);
+      activeOwner = owner;
+      if (point && Number.isFinite(point.clientX) && Number.isFinite(point.clientY)) {
+        lastX = point.clientX;
+        lastY = point.clientY;
+      }
+      const token = generation;
+      void loadTooltip(type, id).catch(() => {});
+      timer = setTimeout(() => {
+        timer = null;
+        void showTipFor(type, id, token);
+      }, wait);
     }
+
+    function hideFor(owner) {
+      if (activeOwner === owner) hideTip();
+    }
+
+    window.HGTooltip = {
+      show(type, id, owner, point) {
+        scheduleTip(String(type || ""), String(id || ""), owner, 550, point);
+      },
+      hide(owner) { hideFor(owner); }
+    };
 
     document.addEventListener("mousemove", (ev) => {
       lastX = ev.clientX;
@@ -137,9 +160,7 @@
       if (!target) return;
       if (getTooltipTarget(ev.relatedTarget) === target) return;
 
-      warmTarget(target);
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => showTipFor(target), 550);
+      scheduleTip(target.getAttribute("data-tip"), target.getAttribute("data-id"), target, 550, ev);
     });
 
     document.addEventListener("mouseout", (ev) => {
@@ -147,25 +168,21 @@
       if (!target) return;
       const related = ev.relatedTarget;
       if (related instanceof Node && target.contains(related)) return;
-      if (timer) clearTimeout(timer);
-      timer = null;
-      hideTip();
+      hideFor(target);
     });
 
     document.addEventListener("focusin", (ev) => {
       const target = getTooltipTarget(ev.target);
       if (!target) return;
-      warmTarget(target);
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => showTipFor(target), 250);
+      const rect = target.getBoundingClientRect();
+      scheduleTip(target.getAttribute("data-tip"), target.getAttribute("data-id"), target, 250,
+        { clientX: rect.left + rect.width / 2, clientY: rect.bottom });
     });
 
     document.addEventListener("focusout", (ev) => {
       const target = getTooltipTarget(ev.target);
       if (!target) return;
-      if (timer) clearTimeout(timer);
-      timer = null;
-      hideTip();
+      hideFor(target);
     });
 
     window.addEventListener("scroll", hideTip, true);
