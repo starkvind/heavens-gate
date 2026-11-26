@@ -146,4 +146,6 @@ if ($mobileDice === false || strpos($mobileDice, "controllers/tool/dice_roller.p
     hg_runtime_regression_fail('Mobile dice roller no longer shares the same cooldown');
 }
 
+require $root . '/tools/test-trait-specializations.php';
+
 fwrite(STDOUT, "Runtime regression characterization: OK\n");

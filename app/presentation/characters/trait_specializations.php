@@ -9,9 +9,10 @@ function hg_trait_specializations_label(string $nameHtml,string $name,array $ite
 }
 function hg_trait_specializations_assets(): void {
     $css='/assets/css/components/trait-specializations.css';
+    $cssVersion=(int)(@filemtime(dirname(__DIR__,3).$css)?:1);
     $js='/assets/js/hg-trait-specializations.js';
     $version=(int)(@filemtime(dirname(__DIR__,3).$js)?:1);
     if (function_exists('hg_page_register_stylesheet')) hg_page_register_stylesheet($css);
-    else echo '<link rel="stylesheet" href="'.$css.'">';
+    else echo '<link rel="stylesheet" href="'.$css.'?v='.$cssVersion.'">';
     echo '<script defer src="'.$js.'?v='.$version.'"></script>';
 }

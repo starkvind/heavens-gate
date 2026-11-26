@@ -355,14 +355,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     }
 
     $specialization_edits = [];
-    if (($action === 'create' || $action === 'update') && isset($_POST['specializations_edits'])) {
+    $specialization_payload = filter_input(INPUT_POST, 'specializations_edits', FILTER_UNSAFE_RAW, FILTER_REQUIRE_SCALAR);
+    if (($action === 'create' || $action === 'update') && $specialization_payload !== null) {
         try {
             if (!hg_admin_csrf_valid(hg_admin_extract_csrf_token($_POST), $ADMIN_CSRF_SESSION_KEY)) throw new InvalidArgumentException('CSRF inválido.');
             if (!hg_trait_specializations_available($link)) throw new InvalidArgumentException('Migración de especializaciones pendiente.');
             $futureValues = $action === 'update' ? hg_characters_fetch_trait_values($link, $id) : [];
             foreach ($traits_delete as $tid) unset($futureValues[$tid]);
             foreach ($traits as $tid => $value) $futureValues[$tid] = $value;
-            $specialization_edits = hg_trait_specializations_validate($_POST['specializations_edits'], $traits_catalog, $futureValues);
+            $specialization_edits = hg_trait_specializations_validate($specialization_payload, $traits_catalog, $futureValues);
         } catch (InvalidArgumentException $e) {
             $flash[] = ['type'=>'error', 'msg'=>$e->getMessage()];
         }

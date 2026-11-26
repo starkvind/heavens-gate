@@ -8,10 +8,12 @@
     popup.hidden=true;
     popup.setAttribute('role','dialog');
     popup.setAttribute('aria-labelledby','hg-trait-specialization-title');
+    popup.setAttribute('aria-describedby','hg-trait-specialization-list');
     const nativePopover=typeof popup.showPopover==='function';
     if(nativePopover) popup.setAttribute('popover','manual');
     const header=document.createElement('header'), title=document.createElement('strong'), close=document.createElement('button'), list=document.createElement('ul');
     title.id='hg-trait-specialization-title';
+    list.id='hg-trait-specialization-list';
     title.textContent='Especializaciones';
     close.type='button'; close.textContent='Cerrar';
     header.append(title,close); popup.append(header,list); document.body.append(popup);
@@ -63,10 +65,11 @@
     document.addEventListener('click',event=>{
         const trigger=find(event.target);
         if(trigger){if(active===trigger&&pinned)hide(true);else show(trigger,true);}
-        else if(active&&!popup.contains(event.target))hide(false);
+        else if(active&&!popup.contains(event.target))hide(pinned && (popup.contains(document.activeElement) || document.activeElement===document.body));
     });
     close.addEventListener('click',()=>hide(true));
     document.addEventListener('keydown',event=>{
+        if(event.key==='Tab' && pinned && popup.contains(document.activeElement)){hide(true);return;}
         if(event.key!=='Escape'||!active)return;
         event.preventDefault();event.stopPropagation();hide(pinned||popup.contains(document.activeElement));
     });

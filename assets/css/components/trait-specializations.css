@@ -4,10 +4,10 @@
 .hg-trait-name-text {min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hg-trait-specialization-trigger {appearance:none;flex:0 0 12px;box-sizing:border-box;width:12px;height:12px;padding:0;border:0;background:transparent;color:inherit;font:12px/12px sans-serif;cursor:pointer;text-align:center}
 .hg-trait-specialization-trigger:focus-visible {outline:1px solid currentColor;outline-offset:-1px}
-.hg-mobile-trait-list .hg-trait-specialized-name {align-items:baseline;vertical-align:baseline}
-.hg-mobile-trait-list .hg-trait-specialization-trigger {flex-basis:22px;width:22px;font-size:15px;color:var(--hg-mobile-link,#8de8ff)}
-#hg-trait-specialization-popup {position:fixed;inset:auto;margin:0;z-index:2147483000;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;padding:10px 12px;color:#f1f5ff;background:#11152c;border:1px solid #6786b5;border-radius:6px;box-shadow:0 4px 16px #0008;font:14px/1.4 system-ui,sans-serif;text-align:left;white-space:normal;overflow-wrap:anywhere}
-#hg-trait-specialization-popup[hidden] {display:none!important}
+.hg-mobile-trait-list .hg-trait-specialized-name {align-items:center;vertical-align:baseline}
+.hg-mobile-trait-list .hg-trait-specialization-trigger {flex-basis:22px;width:22px;height:20px;line-height:20px;font-size:15px;color:var(--hg-mobile-link,#8de8ff)}
+#hg-trait-specialization-popup {position:fixed;inset:auto;margin:0;z-index:2147483000;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 16px));max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow:auto;padding:10px 12px;color:#f1f5ff;background:#11152c;border:1px solid #6786b5;border-radius:6px;box-shadow:0 4px 16px #0008;font:14px/1.4 system-ui,sans-serif;text-align:left;white-space:normal;overflow-wrap:anywhere}
+#hg-trait-specialization-popup[hidden] {display:none}
 #hg-trait-specialization-popup header {display:flex;align-items:center;justify-content:space-between;gap:12px}
 #hg-trait-specialization-popup ul {margin:6px 0 0;padding-left:20px}
 #hg-trait-specialization-popup button {font:inherit;color:inherit;background:transparent;border:1px solid currentColor;border-radius:4px;cursor:pointer;padding:2px 7px}
