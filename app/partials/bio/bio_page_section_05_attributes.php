@@ -24,7 +24,7 @@ for ($row = 0; $row < $maxRows; $row++) {
         $formData = $traitId > 0
             ? " data-bio-form-trait-id='{$traitId}' data-bio-form-base='" . (int)($trait['value'] ?? 0) . "'"
             : '';
-        echo "<div class='bioSheetAttrLeft'>{$nameHtml}:</div>";
+        echo "<div class='bioSheetAttrLeft'>" . hg_trait_specializations_label($nameHtml, (string)($trait['name'] ?? ''), $bioTraitSpecializations[$traitId] ?? [], ':') . "</div>";
         echo "<div class='bioSheetAttrRight'{$formData}>{$image}<span class='bio-form-attribute-value' aria-live='polite'></span></div>";
     }
 }

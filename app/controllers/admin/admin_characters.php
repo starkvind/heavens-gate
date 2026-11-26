@@ -39,6 +39,7 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 include_once(__DIR__ . '/admin_characters_service.php');
 include_once(__DIR__ . '/../../domains/characters/admin_queries.php');
+require_once __DIR__ . '/../../domains/characters/trait_specializations.php';
 include_once(__DIR__ . '/admin_characters_ajax.php');
 
 // Rutas de avatar (usadas por create/update/delete en CRUD).
@@ -353,6 +354,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         }
     }
 
+    $specialization_edits = [];
+    if (($action === 'create' || $action === 'update') && isset($_POST['specializations_edits'])) {
+        try {
+            if (!hg_admin_csrf_valid(hg_admin_extract_csrf_token($_POST), $ADMIN_CSRF_SESSION_KEY)) throw new InvalidArgumentException('CSRF inválido.');
+            if (!hg_trait_specializations_available($link)) throw new InvalidArgumentException('Migración de especializaciones pendiente.');
+            $futureValues = $action === 'update' ? hg_characters_fetch_trait_values($link, $id) : [];
+            foreach ($traits_delete as $tid) unset($futureValues[$tid]);
+            foreach ($traits as $tid => $value) $futureValues[$tid] = $value;
+            $specialization_edits = hg_trait_specializations_validate($_POST['specializations_edits'], $traits_catalog, $futureValues);
+        } catch (InvalidArgumentException $e) {
+            $flash[] = ['type'=>'error', 'msg'=>$e->getMessage()];
+        }
+    }
+
     // RECURSOS (nuevo modelo): arrays paralelos enviados desde chips del modal
     $resources_rows = [];
     $res_ids_raw  = isset($_POST['resource_ids']) ? (array)$_POST['resource_ids'] : [];
@@ -480,6 +495,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
                         }
                     }
 
+                    if ($specialization_edits) {
+                        try { hg_trait_specializations_save($link, (int)$newId, $specialization_edits); }
+                        catch (Throwable $e) { $flash[] = ['type'=>'error','msg'=>'No se pudieron guardar las especializaciones.']; }
+                    }
+
                     // Recursos (estado/permanente)
                     $resultRes = save_character_resources(
                         $link,
@@ -584,6 +604,11 @@ $flash[] = ['type'=>'ok','msg'=>'[OK] Personaje creado correctamente.'];
                       if ($resultTr['updated']>0) {
                           $flash[]=['type'=>'ok','msg'=>'Traits guardados: '.$resultTr['updated']];
                       }
+                  }
+
+                  if ($specialization_edits) {
+                      try { hg_trait_specializations_save($link, (int)$id, $specialization_edits); }
+                      catch (Throwable $e) { $flash[] = ['type'=>'error','msg'=>'No se pudieron guardar las especializaciones.']; }
                   }
 
                   // Recursos (estado/permanente)
@@ -694,6 +719,8 @@ $ids_page = array_map(static fn($row) => (int)($row['id'] ?? 0), $rows);
 
 $preload = hg_characters_admin_preload($link, $ids_page);
 $char_details = $preload['details'];
+$specializations_available = hg_trait_specializations_available($link);
+$char_specializations = $specializations_available ? hg_trait_specializations_fetch($link, $ids_page) : [];
 
 $char_powers = [];
 foreach ($preload['powers'] as $pw) {
@@ -1103,6 +1130,16 @@ $AJAX_BASE = "/talim?s=admin_characters&ajax=1";
             <button class="btn" type="button" id="trait_add">Añadir</button>
           </div>
           <div class="chips" id="traitExtraList"></div>
+          <?php if ($specializations_available): ?>
+            <fieldset>
+              <legend>Especializaciones</legend>
+              <label for="trait_specialization_select">Atributo o Habilidad</label>
+              <select class="select" id="trait_specialization_select"><option value="">— Selecciona un Rasgo —</option></select>
+              <label for="trait_specialization_text">Una especialización por línea</label>
+              <textarea class="ta" id="trait_specialization_text" rows="3" disabled></textarea>
+              <span class="small-note">Hasta 20 por Rasgo, 120 caracteres cada una. Borra una línea para eliminarla. Se guardan con el personaje, sin modificar sus puntos.</span>
+            </fieldset>
+          <?php endif; ?>
           <span class="small-note">Se cargan los traits base del sistema; el resto se añaden manualmente. Se guardan en bridge_characters_traits.</span>
         </div>
 
@@ -1200,6 +1237,7 @@ $jsBoot = [
   'CHAR_RESOURCES' => $char_resources,
   'TRAITS_OPTS' => $traits_catalog,
   'CHAR_TRAITS' => $char_traits,
+  'CHAR_SPECIALIZATIONS' => $char_specializations,
   'TRAIT_KIND_ORDER' => $trait_kind_order,
   'TRAIT_SET_ORDER' => $trait_set_order,
   'TRAIT_AVAILABILITY' => $trait_availability,

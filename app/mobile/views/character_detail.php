@@ -102,7 +102,7 @@
                     <div class="hg-mobile-trait-list">
                         <?php foreach ($traits as $trait): ?>
                             <div>
-                                <span><?= hg_mobile_bio_link(hg_mobile_bio_pretty_href($link, 'dim_traits', '/rules/traits', (int)($trait['id'] ?? 0)), (string)($trait['name'] ?? '')) ?></span>
+                                <span><?= hg_trait_specializations_label(hg_mobile_bio_link(hg_mobile_bio_pretty_href($link, 'dim_traits', '/rules/traits', (int)($trait['id'] ?? 0)), (string)($trait['name'] ?? '')), (string)($trait['name'] ?? ''), $mobileTraitSpecializations[(int)($trait['id'] ?? 0)] ?? []) ?></span>
                                 <strong data-hg-mobile-form-trait="<?= (int)($trait['id'] ?? 0) ?>" data-hg-mobile-form-base="<?= (int)($trait['value'] ?? 0) ?>"><span data-hg-mobile-form-value><?= (int)($trait['value'] ?? 0) ?></span> <span data-hg-mobile-form-dots><?= hg_mobile_bio_trait_dots((int)($trait['value'] ?? 0)) ?></span></strong>
                             </div>
                         <?php endforeach; ?>

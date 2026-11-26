@@ -29,6 +29,10 @@ if (!empty($mobileForms)) {
     unset($mobileForm);
 }
 
+require_once __DIR__ . '/../../presentation/characters/trait_specializations.php';
+$mobileTraitSpecializations = $hasCharacterSheet ? (hg_trait_specializations_fetch($link, [$cid])[$cid] ?? []) : [];
+if ($mobileTraitSpecializations) hg_trait_specializations_assets();
+
 include __DIR__ . '/../views/character_detail.php';
 
 $mobileFormPositionHref = '/assets/js/hg-mobile-form-position.js';

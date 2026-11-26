@@ -29,6 +29,10 @@ $bioIsAdminFlag = bio_page_is_admin_flag_enabled();
 
 include __DIR__ . '/bio_page_prepare.php';
 
+require_once __DIR__ . '/../../presentation/characters/trait_specializations.php';
+$bioTraitSpecializations = $hasSheet ? (hg_trait_specializations_fetch($link, [$characterId])[$characterId] ?? []) : [];
+if ($bioTraitSpecializations) hg_trait_specializations_assets();
+
 if (!empty($bioForms)) {
     $bioFormIds = array_column($bioForms, 'id');
     $formPresentationById = hg_characters_fetch_form_presentation_by_ids($link, $bioFormIds, (int)$bioRace);
