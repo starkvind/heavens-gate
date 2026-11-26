@@ -1,4 +1,5 @@
 <?php
+if ($mobileTraitSpecializations) hg_trait_specializations_assets();
 ?>
 
 <article class="hg-mobile-bio">
