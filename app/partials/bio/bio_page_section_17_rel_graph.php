@@ -29,7 +29,7 @@ foreach ($relaciones as $r) {
     if (!isset($nodes[$relatedId])) {
         $nodes[$relatedId] = [
             'id' => $relatedId,
-            'label' => (string)($r['nombre'] ?? ''),
+            'label' => (string)($r['other_name'] ?? $r['name'] ?? ''),
             'image' => (string)($r['image_url'] ?? ($r['img'] ?? '/img/ui/icons/default.webp')),
             'url' => pretty_url($link, 'fact_characters', '/characters', $relatedId),
             'size' => 20,
@@ -71,7 +71,7 @@ foreach ($relaciones as $r) {
         <?php foreach ($nodes as $n): ?>
         {
             id: <?= json_encode((int)$n['id']) ?>,
-            label: <?= json_encode((string)$n['label']) ?>,
+            label: <?= json_encode((int)$n['id'] === (int)$characterId ? (string)$n['label'] : '', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             shape: 'circularImage',
             image: <?= json_encode((string)$n['image']) ?>,
             url: <?= json_encode((string)$n['url']) ?>,
@@ -163,7 +163,41 @@ foreach ($relaciones as $r) {
 
     setTimeout(refreshRelGraph, 80);
 
+    var hoveredNode = null;
+    var tooltipOwner = {};
+    var dragging = false;
+    var lastPointer = null;
+    container.addEventListener('mousemove', function(event) {
+        lastPointer = { clientX: event.clientX, clientY: event.clientY };
+    }, true);
+
+    function hideNodeTooltip() {
+        hoveredNode = null;
+        if (window.HGTooltip) window.HGTooltip.hide(tooltipOwner);
+    }
+
+    network.on('hoverNode', function(params) {
+        if (dragging || String(params.node) === <?= json_encode((string)$characterId) ?>) {
+            hideNodeTooltip();
+            return;
+        }
+        if (hoveredNode === params.node) return;
+        hoveredNode = params.node;
+        if (window.HGTooltip) window.HGTooltip.show('character', params.node, tooltipOwner, lastPointer);
+    });
+    network.on('blurNode', function(params) {
+        if (hoveredNode === params.node) hideNodeTooltip();
+    });
+    network.on('dragStart', function() { dragging = true; hideNodeTooltip(); });
+    network.on('dragEnd', function() { dragging = false; });
+    network.on('zoom', hideNodeTooltip);
+    container.addEventListener('mouseleave', hideNodeTooltip);
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('#toggleRelaciones, .hgTabBtn, .bioTabBtn, .bioSideNav a[data-tab]')) hideNodeTooltip();
+    });
+
     network.on('doubleClick', function(params){
+        hideNodeTooltip();
         if (params.nodes.length === 1) {
             var nodeId = String(params.nodes[0]);
             if (nodeId !== <?= json_encode((string)$characterId) ?>) {
