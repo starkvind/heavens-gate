@@ -133,7 +133,7 @@ for ($i = 0; $i < $maxRows; $i++) {
             } else {
                 $nameHtml = $name;
             }
-            echo "<div class='bioSheetAttrLeft bioSkillNameCell'>{$nameHtml}:</div>";
+            echo "<div class='bioSheetAttrLeft bioSkillNameCell'>" . hg_trait_specializations_label($nameHtml, $rawName, $bioTraitSpecializations[$tid] ?? [], ':') . "</div>";
             echo "<div class='bioSheetAttrRight'>{$img}</div>";
         } else {
             echo "<div class='bioSheetAttrLeft bioSkillNameCell'>&nbsp;</div>";
@@ -172,7 +172,7 @@ if ($maxSecRows > 0) {
                 } else {
                     $nameHtml = $name;
                 }
-                echo "<div class='bioSheetAttrLeft bioSkillNameCell'>{$nameHtml}:</div>";
+                echo "<div class='bioSheetAttrLeft bioSkillNameCell'>" . hg_trait_specializations_label($nameHtml, $rawName, $bioTraitSpecializations[$tid] ?? [], ':') . "</div>";
                 echo "<div class='bioSheetAttrRight'>{$img}</div>";
             } else {
                 echo "<div class='bioSheetAttrLeft bioSkillNameCell'>&nbsp;</div>";

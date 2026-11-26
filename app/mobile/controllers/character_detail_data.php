@@ -6,6 +6,7 @@ include_once __DIR__ . '/../../helpers/public_response.php';
 include_once __DIR__ . '/../../helpers/character_avatar.php';
 require_once __DIR__ . '/../../domains/characters/detail_queries.php';
 require_once __DIR__ . '/../../domains/characters/sheet_queries.php';
+require_once __DIR__ . '/../../presentation/characters/trait_specializations.php';
 
 if (!function_exists('hg_mobile_bio_h')) {
     function hg_mobile_bio_h($value): string
@@ -204,6 +205,7 @@ if (!empty($organizations)) {
     $detailLinks[$detailLabel('label_clan', 'Clan')] = implode(', ', array_filter($links));
 }
 
+$mobileTraitSpecializations = $hasCharacterSheet ? (hg_trait_specializations_fetch($link, [$cid])[$cid] ?? []) : [];
 $traitsByKind = [];
 if ($hasCharacterSheet) {
     foreach (['Atributos', 'Talentos', 'Técnicas', 'Conocimientos', 'Trasfondos'] as $kindName) {

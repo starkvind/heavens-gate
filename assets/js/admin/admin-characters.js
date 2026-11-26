@@ -98,6 +98,7 @@ var CHAR_RESOURCES       = BOOT.CHAR_RESOURCES || {};
 // TRAITS
 var TRAITS_OPTS      = Array.isArray(BOOT.TRAITS_OPTS) ? BOOT.TRAITS_OPTS : [];
 var CHAR_TRAITS      = BOOT.CHAR_TRAITS || {};
+var CHAR_SPECIALIZATIONS = BOOT.CHAR_SPECIALIZATIONS || {};
 var TRAIT_KIND_ORDER = Array.isArray(BOOT.TRAIT_KIND_ORDER) ? BOOT.TRAIT_KIND_ORDER : [];
 var TRAIT_SET_ORDER  = BOOT.TRAIT_SET_ORDER || {};
 var TRAIT_AVAILABILITY = BOOT.TRAIT_AVAILABILITY || {};
@@ -174,6 +175,51 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
   var traitTouchedIds = {};
   var traitRemovedIds = {};
 
+  var specializationSelect = document.getElementById('trait_specialization_select');
+  var specializationText = document.getElementById('trait_specialization_text');
+  var specializationBaseline = {}, specializationEdits = {};
+  function specializationKind(meta) {
+    return meta && ['atributos','talentos','tecnicas','conocimientos','habilidades'].indexOf(normalizeText(meta.kind || '')) !== -1;
+  }
+  function specializationValue(id) {
+    if (Object.prototype.hasOwnProperty.call(specializationEdits,id)) return specializationEdits[id];
+    return (specializationBaseline[id] || []).join('\n');
+  }
+  function showSpecializationText() {
+    if (!specializationSelect || !specializationText) return;
+    var id = specializationSelect.value;
+    specializationText.disabled = !id;
+    specializationText.value = id ? specializationValue(id) : '';
+  }
+  function refreshSpecializationSelect() {
+    if (!specializationSelect) return;
+    var previous=specializationSelect.value, values=collectTraitValues();
+    specializationSelect.replaceChildren(new Option('— Selecciona un Rasgo —',''));
+    Object.keys(values).filter(function(id){return values[id]>0 && specializationKind(getTraitMeta(id));}).sort(function(a,b){return getTraitMeta(a).name.localeCompare(getTraitMeta(b).name,'es');}).forEach(function(id){
+      specializationSelect.add(new Option(getTraitMeta(id).name + (specializationValue(id).trim()?' ⓘ':''),id));
+    });
+    specializationSelect.value=previous;
+    if(!specializationSelect.value)specializationSelect.value='';
+    showSpecializationText();
+  }
+  function resetSpecializations(cid) {
+    specializationBaseline=CHAR_SPECIALIZATIONS[cid] || {};
+    specializationEdits={};
+    if(specializationSelect)specializationSelect.value='';
+    refreshSpecializationSelect();
+  }
+  if(specializationSelect && specializationText){
+    specializationSelect.addEventListener('change',showSpecializationText);
+    specializationText.addEventListener('input',function(){
+      var id=specializationSelect.value;
+      if(!id)return;
+      var value=specializationText.value;
+      if(value===(specializationBaseline[id]||[]).join('\n'))delete specializationEdits[id];
+      else specializationEdits[id]=value;
+    });
+  }
+
+
   function rebuildTraitMetaIndex(){
     traitMetaById = {};
     (TRAITS_OPTS || []).forEach(function(trait){
@@ -212,6 +258,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     CHAR_RESOURCES = nextBoot.CHAR_RESOURCES || CHAR_RESOURCES;
     TRAITS_OPTS = Array.isArray(nextBoot.TRAITS_OPTS) ? nextBoot.TRAITS_OPTS : TRAITS_OPTS;
     CHAR_TRAITS = nextBoot.CHAR_TRAITS || CHAR_TRAITS;
+    CHAR_SPECIALIZATIONS = nextBoot.CHAR_SPECIALIZATIONS || {};
     TRAIT_KIND_ORDER = Array.isArray(nextBoot.TRAIT_KIND_ORDER) ? nextBoot.TRAIT_KIND_ORDER : TRAIT_KIND_ORDER;
     TRAIT_SET_ORDER = nextBoot.TRAIT_SET_ORDER || TRAIT_SET_ORDER;
     TRAIT_AVAILABILITY = nextBoot.TRAIT_AVAILABILITY || TRAIT_AVAILABILITY;
@@ -472,6 +519,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     var traitId = parseInt(target && target.getAttribute('data-trait-id'), 10) || 0;
     if (!traitId) return;
     markTraitTouched(traitId);
+    refreshSpecializationSelect();
   }
 
   function buildTraitDelta(){
@@ -676,6 +724,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       markTraitRemoved(traitId);
       chip.remove();
       refreshTraitSelect();
+      refreshSpecializationSelect();
     });
     chip.appendChild(btnDel);
 
@@ -728,6 +777,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     renderDefaultTraits(systemId, traitValues);
     renderExtraTraits(systemId, traitValues, manualIds);
     refreshTraitSelect();
+    refreshSpecializationSelect();
   }
 
   function applyMonsterTraitFilter(_kind, trackTraitChanges){
@@ -1106,6 +1156,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
 
     resetTraits();
     setTraitBaseline({});
+    resetSpecializations(0);
     applyKindVisibility(selKind ? selKind.value : 'pnj', false);
   }
 
@@ -1206,6 +1257,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
     // Traits: cargar
     fillTraits(CHAR_TRAITS[cid] || {});
     setTraitBaseline(CHAR_TRAITS[cid] || {});
+    resetSpecializations(cid);
     applyKindVisibility(selKind ? selKind.value : 'pnj', false);
 
     fInfo.value   = '';
@@ -1485,6 +1537,9 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       }
     }
     formData.set('traits_dirty', traitsDirty ? '1' : '0');
+    var specializationDelta = {}, currentTraits = collectTraitValues();
+    Object.keys(specializationEdits).forEach(function(id){if(currentTraits[id]>0)specializationDelta[id]=specializationEdits[id];});
+    if(Object.keys(specializationDelta).length)formData.set('specializations_edits',JSON.stringify(specializationDelta));
     formCrud.dataset.saving = '1';
     var req = null;
     if (window.HGAdminHttp && typeof window.HGAdminHttp.request === 'function') {
@@ -1561,6 +1616,7 @@ var DEFAULT_STATUS_ID = parseInt(BOOT.DEFAULT_STATUS_ID || 0, 10) || 0;
       if (!traitId) { alert('Elige un trait.'); return; }
       addTraitChip(traitId, 0);
       refreshTraitSelect();
+      refreshSpecializationSelect();
     });
   }
 
