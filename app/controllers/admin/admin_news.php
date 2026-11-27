@@ -79,10 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 		$titulo = trim((string)($_POST['titulo'] ?? ''));
 		$mensaje = null;
 		try {
-			if (!is_string($_POST['message'] ?? null)) {
+			$rawMessage = $_POST['message'] ?? null;
+			if (!is_string($rawMessage)) {
 				throw new InvalidArgumentException('Invalid news content');
 			}
-			$mensaje = hg_prepare_rich_html($_POST['message'],
+			$mensaje = hg_prepare_rich_html($rawMessage,
 				static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
 		} catch (Throwable $e) {
 			hg_runtime_log_error('admin.news.sanitize', get_class($e));

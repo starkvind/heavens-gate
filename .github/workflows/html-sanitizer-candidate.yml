@@ -4,6 +4,7 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'tools/audit_rich_html.php'
       - 'app/mobile/controllers/news.php'
       - 'app/controllers/main/main_news.php'
       - 'app/domains/news/admin.php'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'tools/audit_rich_html.php'
       - 'app/mobile/controllers/news.php'
       - 'app/controllers/main/main_news.php'
       - 'app/domains/news/admin.php'
@@ -52,4 +54,6 @@ jobs:
       - name: Run candidate regression
         run: |
           php -l app/helpers/html_sanitizer.php
+          php -l tools/audit_rich_html.php
+          php tools/audit_rich_html.php --self-test
           php .github/ci/php-html-sanitizer-regression.php

@@ -13,3 +13,12 @@ Piloto en documentos: guardado administrativo, apertura individual del editor y 
 - No cambia Quill, base de datos ni producción. No fusionar hasta validar CI, corpus y despliegue de la dependencia. El listado ya no transfiere cuerpos completos; el editor solicita un documento saneado. La conversión regex de menciones sigue pendiente de refactor; también la comprobación de ida y vuelta de tablas en Quill. El límite y la política de formatos no están aprobados para producción.
 
 - Piloto ampliado a Noticias: escritura saneada, lectura individual autenticada y salida pública. Los listados no transportan cuerpos. En Documentos y Noticias las nuevas menciones se convierten únicamente en nodos de texto mediante DOM (requiere php-xml); no en enlaces existentes, atributos ni bloques de código. Las demás rutas conservan temporalmente el conversor antiguo.
+
+## Inventario histórico sin escritura
+
+Ejecutar únicamente sobre una copia aislada de MariaDB, con cuenta SELECT y fichero de credenciales privado independiente. Instalar primero la dependencia fijada. El script no reutiliza config.env automáticamente, abre una transacción READ ONLY y termina con rollback. No realiza cambios ni genera copias de texto en el informe.
+
+    umask 077
+    php tools/audit_rich_html.php --config=/ruta/privada/copia-readonly.env --only=fact_docs.content > /ruta/privada/html-audit.jsonl
+
+Omitir --only para recorrer el inventario provisional de campos; --batch admite 1–25 (por defecto 10). El informe registra IDs, diferencias de bytes/texto/estructura, errores, campos ausentes, tiempos y memoria pico; no contiene el HTML ni credenciales. Las métricas son señales de revisión, no prueba de equivalencia visual ni autorización de migración. Salidas: 0 recorrido sin errores ni columnas ausentes, 1 error global, 2 opciones/config inválidas, 3 filas no evaluadas, 4 columnas ausentes. Revisar columnas opcionales o versiones de esquema antes de considerar completa la auditoría. No publicar resultados ni datos históricos en el repositorio de aplicación.
