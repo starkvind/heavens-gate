@@ -97,7 +97,7 @@ if ($isSeasonCrudPost && (!is_string($submittedSeasonCsrf) || !hg_admin_csrf_val
     if (!headers_sent()) { http_response_code(403); }
     $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
 } elseif ($isSeasonCrudPost) {
-    $action = (string)($_POST['crud_action'] ?? '');
+    $action = hg_request_body_value($hgRequest, 'crud_action');
     $id = (int)($_POST['id'] ?? 0);
     $currentImage = ($hasImageUrl && $id > 0) ? hg_seasons_admin_current_image($link, $id) : '';
 
