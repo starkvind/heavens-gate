@@ -3,6 +3,7 @@ include_once(__DIR__ . '/../../helpers/runtime_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/content_image.php');
 require_once(__DIR__ . '/../../domains/chapters/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 if (!hg_runtime_require_db($link, 'chapter_page', 'public', [
     'title' => 'Capítulo no disponible',
@@ -26,7 +27,7 @@ if (!$ResultQuery) {
 }
 
 $nameCapi = (string)($ResultQuery['name'] ?? '');
-$sinoCapi = (string)($ResultQuery['synopsis'] ?? '');
+$sinoCapi = hg_render_rich_html((string)($ResultQuery['synopsis'] ?? ''));
 $chapterImage = hg_content_image_url($ResultQuery['image_url'] ?? '');
 $noSinoCapi = "Este capitulo no dispone de informacion, disculpa las molestias.";
 $tempSeasonId = (int)($ResultQuery['season_id'] ?? 0);

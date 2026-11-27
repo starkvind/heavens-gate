@@ -4,6 +4,10 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/mobile/controllers/chapter_detail.php'
+      - 'app/controllers/chapters/chapter_page.php'
+      - 'app/domains/chapters/admin.php'
+      - 'app/controllers/admin/admin_chapters.php'
       - 'tools/audit_rich_html.php'
       - 'app/mobile/controllers/news.php'
       - 'app/controllers/main/main_news.php'
@@ -20,6 +24,10 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/mobile/controllers/chapter_detail.php'
+      - 'app/controllers/chapters/chapter_page.php'
+      - 'app/domains/chapters/admin.php'
+      - 'app/controllers/admin/admin_chapters.php'
       - 'tools/audit_rich_html.php'
       - 'app/mobile/controllers/news.php'
       - 'app/controllers/main/main_news.php'

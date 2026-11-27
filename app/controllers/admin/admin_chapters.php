@@ -9,6 +9,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
 include_once(__DIR__ . '/../../domains/chapters/admin.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
@@ -107,6 +108,24 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
     $action = (string)($_POST['action'] ?? '');
 
+    if ($action === 'get_content') {
+        $chapterId = filter_var(hg_request_body_value($hgRequest, 'chapter_id'), FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]);
+        if ($chapterId === false) {
+            hg_admin_json_error('ID inválido', 400);
+        }
+        try {
+            $row = hg_chapters_admin_fetch_row($link, $chapterId, $hasChapterImageUrl);
+            if ($row === null) {
+                hg_admin_json_error('Capítulo no encontrado', 404);
+            }
+            hg_admin_json_success(['content' => hg_sanitize_rich_html((string)($row['synopsis'] ?? ''))]);
+        } catch (Throwable $e) {
+            hg_runtime_log_error('admin.chapters.read', get_class($e));
+            hg_admin_json_error('No se pudo abrir el capítulo de forma segura.', 503);
+        }
+    }
+
     if ($action === 'get_relations') {
         $chapterId = (int)($_POST['chapter_id'] ?? 0);
         $rows = hg_chapters_admin_get_relations($link, $chapterId, $hasChapterBridgeId, $hasChapterParticipationRole);
@@ -171,7 +190,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $chapterNumber = (int)($_POST['chapter_number'] ?? 0);
         $seasonId = (int)($_POST['season_id'] ?? 0);
         $playedDate = norm_date($_POST['played_date'] ?? '');
-        $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
+        try {
+            $rawSynopsis = $_POST['synopsis'] ?? '';
+            if (!is_string($rawSynopsis)) {
+                throw new InvalidArgumentException('Invalid chapter synopsis');
+            }
+            $synopsis = hg_prepare_rich_html(trim($rawSynopsis),
+                static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+        } catch (Throwable $e) {
+            hg_runtime_log_error('admin.chapters.sanitize', get_class($e));
+            hg_admin_json_error('No se ha guardado: no se pudo validar el HTML.', 400);
+        }
         $imageUrl = $hasChapterImageUrl ? trim((string)($_POST['image_url'] ?? '')) : '';
         $removeImage = $hasChapterImageUrl && ((int)($_POST['image_remove'] ?? 0) === 1);
         $hasImageUpload = $hasChapterImageUrl && !empty($_FILES['image_upload']) && ((int)($_FILES['image_upload']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE);
@@ -225,6 +254,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         }
 
         $chapterRow = hg_chapters_admin_fetch_row($link, $savedId, $hasChapterImageUrl);
+        if (is_array($chapterRow)) {
+            unset($chapterRow['synopsis']);
+        }
 
         echo json_encode([
             'ok' => true,
@@ -253,7 +285,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
     $chapterNumber = (int)($_POST['chapter_number'] ?? 0);
     $seasonId = (int)($_POST['season_id'] ?? 0);
     $playedDate = norm_date($_POST['played_date'] ?? '');
-    $synopsis = hg_mentions_convert($link, trim((string)($_POST['synopsis'] ?? '')));
+    $synopsis = null;
+    try {
+        $rawSynopsis = $_POST['synopsis'] ?? '';
+        if (!is_string($rawSynopsis)) {
+            throw new InvalidArgumentException('Invalid chapter synopsis');
+        }
+        $synopsis = hg_prepare_rich_html(trim($rawSynopsis),
+            static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.chapters.sanitize', get_class($e));
+        $flash[] = ['type' => 'err', 'msg' => 'No se ha guardado: no se pudo validar el HTML.'];
+    }
     $pendingRelations = parse_pending_relations($_POST['pending_relations_json'] ?? '');
     if (empty($pendingRelations)) {
         $pendingCharacterIds = parse_int_list($_POST['pending_character_ids'] ?? '');
@@ -266,7 +309,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_chapter'])) {
     }
     $seasonRow = ac_fetch_season($link, $seasonId);
 
-    if ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
+    if ($synopsis === null) {
+        // Fail closed; no database or relation updates.
+    } elseif ($name === '' || $chapterNumber <= 0 || $seasonId <= 0 || !$seasonRow) {
         $flash[] = ['type' => 'err', 'msg' => 'Nombre, capitulo y temporada son obligatorios.'];
     } else {
         $saveResult = hg_chapters_admin_save($link, $id, $name, $chapterNumber, $seasonId, $playedDate, $synopsis, '', false);
@@ -410,8 +455,8 @@ $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time()
 <script src="<?= h($adminHttpJs) ?>?v=<?= (int)$adminHttpJsVer ?>"></script>
 <script>
 window.ADMIN_CSRF_TOKEN = <?= json_encode($CSRF, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP|JSON_UNESCAPED_UNICODE); ?>;
-const chapters = <?= json_encode($chapters, JSON_UNESCAPED_UNICODE); ?>;
-const charactersCatalog = <?= json_encode($personajes, JSON_UNESCAPED_UNICODE); ?>;
+const chapters = <?= json_encode($chapters, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+const charactersCatalog = <?= json_encode($personajes, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 const hasChapterImageUrl = <?= $hasChapterImageUrl ? 'true' : 'false' ?>;
 const hasChapterParticipationRole = <?= $hasChapterParticipationRole ? 'true' : 'false' ?>;
 const CHAPTER_MENTION_TYPES = ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'];
@@ -561,12 +606,28 @@ function renderPendingRelations(){
     box.innerHTML = html;
 }
 
-function openChapterModal(id){
+let chapterEditGeneration = 0;
+async function openChapterModal(id){
+    const generation = ++chapterEditGeneration;
+    const requestedId = Number(id || 0);
+    const c = chapterById(requestedId);
+    let synopsisHtml = '';
+    if (requestedId) {
+        if (!c) return;
+        try {
+            const payload = await postAjax({action: 'get_content', chapter_id: requestedId});
+            if (!payload.data || typeof payload.data.content !== 'string') throw new Error('Contenido no disponible');
+            if (generation !== chapterEditGeneration) return;
+            synopsisHtml = payload.data.content;
+        } catch (err) {
+            if (generation === chapterEditGeneration) alert(err.message || 'Error al abrir capítulo');
+            return;
+        }
+    }
     ensureChapterSynopsisEditor();
-    currentId = Number(id || 0);
+    currentId = requestedId;
     pendingRelations = [];
     syncPendingField();
-    const c = chapterById(currentId);
 
     document.getElementById('f_id').value = c ? c.id : 0;
     document.getElementById('f_name').value = c ? (c.name || '') : '';
@@ -580,7 +641,6 @@ function openChapterModal(id){
     const imageRemove = document.getElementById('f_image_remove');
     if (imageRemove) imageRemove.checked = false;
     document.getElementById('relationRoleSelect').value = 'npc';
-    const synopsisHtml = c ? (c.synopsis || '') : '';
     document.getElementById('f_synopsis').value = synopsisHtml;
     if (chapterSynopsisEditor) chapterSynopsisEditor.root.innerHTML = synopsisHtml;
     document.getElementById('chapterModalTitle').textContent = c ? 'Editar capitulo' : 'Nuevo capitulo';
@@ -590,6 +650,7 @@ function openChapterModal(id){
 }
 
 function closeChapterModal(){
+    chapterEditGeneration++;
     document.getElementById('chapterModalBack').style.display = 'none';
 }
 

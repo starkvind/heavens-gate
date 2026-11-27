@@ -3,6 +3,7 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chapters/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 require_once(__DIR__ . '/../../domains/soundtracks/queries.php');
 
 $metaTitle = "Capitulo | Heaven's Gate";
@@ -74,7 +75,8 @@ $seasonNumber = (int)($chapter['season_number'] ?? 0);
 $chapterNumber = (int)($chapter['chapter_number'] ?? 0);
 $code = $kind === 'temporada' ? sprintf('%dx%02d', $seasonNumber, $chapterNumber) : sprintf('%02d', $chapterNumber);
 $metaTitle = $name . " | Capítulos | Heaven's Gate";
-$metaDescription = trim(strip_tags((string)($chapter['synopsis'] ?? '')));
+$safeSynopsis = hg_render_rich_html((string)($chapter['synopsis'] ?? ''));
+$metaDescription = trim(strip_tags($safeSynopsis));
 
 $excludedChronicles = function_exists('hg_chronicle_scope_excluded_csv')
     ? hg_chronicle_scope_excluded_csv()
@@ -183,10 +185,10 @@ if ($events === null) {
         </div>
     </section>
 
-    <?php if (trim(strip_tags((string)($chapter['synopsis'] ?? ''))) !== ''): ?>
+    <?php if (trim(strip_tags($safeSynopsis)) !== ''): ?>
         <section class="hg-mobile-section hg-mobile-prose">
             <h2>Sinopsis</h2>
-            <?= (string)$chapter['synopsis'] ?>
+            <?= $safeSynopsis ?>
         </section>
     <?php endif; ?>
 
