@@ -484,8 +484,10 @@ if ($ajaxMode === 'content') {
         $selectedMeta = meta_for($selectedTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         $fields = hg_powers_admin_rich_content($link, $selectedMeta, $id);
         if ($fields === null) hg_admin_json_error('Poder no encontrado', 404);
-        foreach ($fields as $key => $value) $fields[$key] = hg_sanitize_rich_html((string)$value);
+        foreach ($fields as $key => $value) $fields[$key] = hg_quill_editor_html((string)$value);
         hg_admin_json_success(['fields'=>$fields]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
         hg_runtime_log_error('admin.powers.read', get_class($e));
         hg_admin_json_error('No se pudo abrir el poder de forma segura.', 503);
@@ -1043,7 +1045,7 @@ function syncEditorsToTextarea(){
     try {
       var response = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
       var payload = await response.json();
-      if (!response.ok || !payload.ok || !payload.data || !payload.data.fields) throw new Error('Contenido no disponible');
+      if (!response.ok || !payload.ok || !payload.data || !payload.data.fields) throw new Error((payload && (payload.message || payload.error)) || 'Contenido no disponible');
       if (generation !== powerEditGeneration) return;
       row = Object.assign({}, original, payload.data.fields);
     } catch (err) {

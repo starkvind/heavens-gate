@@ -465,8 +465,10 @@ if (hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
         $selectedMeta = meta_for($link, $selectedTab, $opts_origins, $opts_systems, $energyBridgeSupport);
         $fields = hg_system_details_admin_rich_content($link, $selectedMeta, $id);
         if ($fields === null) hg_admin_json_error('Registro no encontrado', 404);
-        foreach ($fields as $key => $value) $fields[$key] = hg_sanitize_rich_html((string)$value);
+        foreach ($fields as $key => $value) $fields[$key] = hg_quill_editor_html((string)$value);
         hg_admin_json_success(['fields'=>$fields]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
         hg_runtime_log_error('admin.system_details.read', get_class($e));
         hg_admin_json_error('No se pudo abrir el registro de forma segura.', 503);
@@ -1124,7 +1126,7 @@ function syncEditorsToTextarea(){
       url.searchParams.set('id', String(id));
       try {
         var payload = await request(url.toString(), {method:'GET'});
-        if (!payload || !payload.ok || !payload.data || !payload.data.fields) throw new Error('Contenido no disponible');
+        if (!payload || !payload.ok || !payload.data || !payload.data.fields) throw new Error((payload && (payload.message || payload.error)) || 'Contenido no disponible');
         if (generation !== detailEditGeneration) return;
         activeRow = Object.assign({}, original, payload.data.fields);
       } catch (err) {

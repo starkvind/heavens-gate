@@ -77,9 +77,11 @@ if (hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
             hg_admin_json_error('Temporada no encontrada', 404);
         }
         foreach ($row as $key => $value) {
-            $row[$key] = hg_sanitize_rich_html((string)$value);
+            $row[$key] = hg_quill_editor_html((string)$value);
         }
         hg_admin_json_success(['fields'=>$row]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
         hg_runtime_log_error('admin.seasons.read', get_class($e));
         hg_admin_json_error('No se pudo abrir la temporada de forma segura.', 503);
@@ -463,7 +465,7 @@ async function openSeasonModal(id = null){
         try {
             const response = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
             const payload = await response.json();
-            if (!response.ok || !payload.ok || !payload.data || !payload.data.fields) throw new Error('Contenido no disponible');
+            if (!response.ok || !payload.ok || !payload.data || !payload.data.fields) throw new Error((payload && (payload.message || payload.error)) || 'Contenido no disponible');
             if (generation !== seasonEditGeneration) return;
             fields = payload.data.fields;
         } catch (err) {

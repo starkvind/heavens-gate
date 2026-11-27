@@ -119,7 +119,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             if ($row === null) {
                 hg_admin_json_error('Capítulo no encontrado', 404);
             }
-            hg_admin_json_success(['content' => hg_sanitize_rich_html((string)($row['synopsis'] ?? ''))]);
+            hg_admin_json_success(['content' => hg_quill_editor_html((string)($row['synopsis'] ?? ''))]);
+        } catch (DomainException $e) {
+            hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
         } catch (Throwable $e) {
             hg_runtime_log_error('admin.chapters.read', get_class($e));
             hg_admin_json_error('No se pudo abrir el capítulo de forma segura.', 503);

@@ -285,8 +285,10 @@ if ($ajaxMode === 'content') {
         if ($raw === null) {
             hg_admin_json_error('Documento no encontrado', 404);
         }
-        $clean = hg_sanitize_rich_html($raw);
+        $clean = hg_quill_editor_html($raw);
         hg_admin_json_success(['content' => $clean]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
         hg_runtime_log_error('admin.docs.read', get_class($e));
         hg_admin_json_error('No se pudo abrir el documento de forma segura.', 503);

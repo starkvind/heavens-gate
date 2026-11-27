@@ -175,3 +175,17 @@ function hg_prepare_rich_html(string $html, callable $lookup): string
     }
     return hg_sanitize_rich_html($result);
 }
+
+/** Temporary loss-prevention gate for Quill 1.3.7; not a security filter. */
+function hg_quill_editor_html(string $html): string
+{
+    $clean = hg_sanitize_rich_html($html);
+    // Deliberately conservative: block even an unsupported historical table
+    // that the sanitizer may have removed. Never silently open a partial copy.
+    foreach ([$html, $clean] as $candidate) {
+        if (preg_match('/<\s*table\b/i', $candidate) === 1) {
+            throw new DomainException('Quill table round-trip is not supported');
+        }
+    }
+    return $clean;
+}

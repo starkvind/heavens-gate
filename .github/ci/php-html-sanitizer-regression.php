@@ -68,11 +68,11 @@ check_rich_html(str_contains($news, 'hg_prepare_rich_html('), 'Missing news writ
 check_rich_html(str_contains($news, 'hg_news_admin_content('), 'Missing news read guard');
 $chapters = file_get_contents($root . '/app/controllers/admin/admin_chapters.php');
 check_rich_html(substr_count($chapters, 'hg_prepare_rich_html(') === 2, 'Missing chapter write guard');
-check_rich_html(str_contains($chapters, 'hg_sanitize_rich_html((string)($row[' . "'synopsis'" . ']'), 'Missing chapter editor guard');
+check_rich_html(str_contains($chapters, 'hg_quill_editor_html((string)($row[' . "'synopsis'" . ']'), 'Missing chapter editor guard');
 foreach (['items', 'systems', 'forms'] as $section) {
     $source = file_get_contents($root . '/app/controllers/admin/admin_' . $section . '.php');
     check_rich_html(str_contains($source, 'hg_prepare_rich_html('), 'Missing rich write guard: ' . $section);
-    check_rich_html(str_contains($source, 'hg_sanitize_rich_html($raw)'), 'Missing rich editor guard: ' . $section);
+    check_rich_html(str_contains($source, 'hg_quill_editor_html($raw)'), 'Missing rich editor guard: ' . $section);
     check_rich_html(str_contains($source, "searchParams.set('id', String(id))"), 'Missing selected record request: ' . $section);
 }
 foreach (['app/controllers/docs/item_page.php', 'app/mobile/controllers/inventory.php',
@@ -83,7 +83,7 @@ foreach (['app/controllers/docs/item_page.php', 'app/mobile/controllers/inventor
 foreach (['seasons','powers','system_details'] as $section) {
     $source = file_get_contents($root . '/app/controllers/admin/admin_' . $section . '.php');
     check_rich_html(str_contains($source, 'hg_prepare_rich_html('), 'Missing write guard: ' . $section);
-    check_rich_html(str_contains($source, 'hg_sanitize_rich_html('), 'Missing editor guard: ' . $section);
+    check_rich_html(str_contains($source, 'hg_quill_editor_html('), 'Missing editor guard: ' . $section);
     check_rich_html(str_contains($source, "searchParams.set('id', String(id))"), 'Missing selected record request: ' . $section);
 }
 foreach (['app/controllers/chapters/season_archive.php','app/mobile/controllers/season_detail.php',
@@ -107,5 +107,19 @@ check_rich_html(!str_contains($mentions, 'function hg_mentions_convert('), 'Lega
 $board = file_get_contents($root . '/app/controllers/tool/csp_board.php');
 foreach (['author','title','posted_at','message'] as $field) {
     check_rich_html(str_contains($board, 'htmlspecialchars((string)($ResultQuery["' . $field . '"]'), 'Missing board text escape: ' . $field);
+}
+check_rich_html(hg_quill_editor_html('<p>Texto</p>') === '<p>Texto</p>', 'Basic editor content blocked');
+foreach (['<table><tr><td>A</td></tr></table>', '<TABLE><tr><td>A</td></tr></TABLE>'] as $tableHtml) {
+    try {
+        hg_quill_editor_html($tableHtml);
+        check_rich_html(false, 'Editor accepted a table it cannot preserve');
+    } catch (DomainException $expected) {
+        // Intentionally reject editor load, not the stored content.
+    }
+}
+foreach (['docs','news','chapters','items','systems','forms','seasons','powers','system_details'] as $section) {
+    $source = file_get_contents($root . '/app/controllers/admin/admin_' . $section . '.php');
+    check_rich_html(str_contains($source, 'hg_quill_editor_html('), 'Missing table loss gate: ' . $section);
+    check_rich_html(str_contains($source, 'catch (DomainException $e)'), 'Missing compatibility response: ' . $section);
 }
 echo "HTML sanitizer candidate regression: OK\n";
