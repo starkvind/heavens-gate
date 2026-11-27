@@ -1,0 +1,36 @@
+name: HTML Sanitizer Candidate
+on:
+  push:
+    paths:
+      - 'app/security/**'
+      - 'app/helpers/html_sanitizer.php'
+      - '.github/ci/php-html-sanitizer-regression.php'
+      - '.github/workflows/html-sanitizer-candidate.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'app/security/**'
+      - 'app/helpers/html_sanitizer.php'
+      - '.github/ci/php-html-sanitizer-regression.php'
+      - '.github/workflows/html-sanitizer-candidate.yml'
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+      - name: Resolve pinned candidate and check advisories
+        working-directory: app/security
+        run: |
+          composer update --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+          composer audit --no-dev
+      - name: Run candidate regression
+        run: |
+          php -l app/helpers/html_sanitizer.php
+          php .github/ci/php-html-sanitizer-regression.php

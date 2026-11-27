@@ -1,0 +1,16 @@
+{
+    "name": "heavens-gate/html-security",
+    "description": "Isolated HTML sanitization dependency",
+    "type": "project",
+    "require": {
+        "php": "~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
+        "ezyang/htmlpurifier": "4.19.1"
+    },
+    "config": {
+        "allow-plugins": false,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2.0"
+        }
+    }
+}
