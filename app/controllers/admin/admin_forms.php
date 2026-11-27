@@ -9,6 +9,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('forms', 'csrf_admin_forms', $hgRequest);
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/systems/admin.php');
@@ -240,7 +242,7 @@ if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'conte
         if ($raw === null) {
             hg_admin_json_error('Registro no encontrado', 404);
         }
-        hg_admin_json_success(['content' => hg_quill_editor_html($raw)]);
+        hg_admin_json_success(['content' => ($joditConfig['enabled'] ? hg_admin_jodit_editor_html($raw, $joditConfig) : hg_quill_editor_html($raw))]);
     } catch (DomainException $e) {
         hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
@@ -438,8 +440,7 @@ if ($ajaxSaveDelete) {
     </tbody>
 </table>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -497,6 +498,10 @@ function esc(s){
 }
 
 function ensureFormEditor(){
+    if (window.HGJoditConfig.enabled) {
+        if (!formEditor) formEditor = window.HGJodit.createForField('form_desc', 'form_editor', 'form_toolbar');
+        return formEditor;
+    }
     if (!formEditor && window.Quill) {
         formEditor = new Quill('#form_editor', { theme:'snow', modules:{ toolbar:'#form_toolbar' } });
         if (window.hgMentions) { window.hgMentions.attachQuill(formEditor, { types: ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'] }); }
@@ -555,7 +560,7 @@ async function openFormModal(id = null){
             return;
         }
     }
-    ensureFormEditor();
+    try { ensureFormEditor(); } catch (err) { alert(err.message || 'Editor no disponible'); return; }
     const modal = document.getElementById('formModal');
     document.getElementById('form_id').value = '';
     const initialSystemId = (parseInt(currentSys || '0', 10) || 0) > 0 ? String(parseInt(currentSys || '0', 10)) : '0';
@@ -571,7 +576,7 @@ async function openFormModal(id = null){
     document.getElementById('form_bonres').value = '';
     document.getElementById('form_hpregen').value = '0';
     document.getElementById('form_bibliography_id').value = '0';
-    if (formEditor) formEditor.root.innerHTML = '';
+    if (formEditor) { if (window.HGJoditConfig.enabled) formEditor.setHtml(''); else formEditor.root.innerHTML = ''; }
     if (id) {
         if (row) {
             document.getElementById('formModalTitle').textContent = 'Editar forma';
@@ -589,14 +594,16 @@ async function openFormModal(id = null){
             document.getElementById('form_hpregen').value = row.hpregen || 0;
             document.getElementById('form_bibliography_id').value = row.bibliography_id || 0;
             document.getElementById('form_desc').value = desc;
-            if (formEditor) formEditor.root.innerHTML = desc;
+            if (formEditor) { if (window.HGJoditConfig.enabled) formEditor.setHtml(desc); else formEditor.root.innerHTML = desc; }
         }
     } else {
         document.getElementById('formModalTitle').textContent = 'Nueva forma';
     }
     modal.style.display = 'flex';
 }
-function closeFormModal(){ formsEditGeneration++; document.getElementById('formModal').style.display = 'none'; }
+function closeFormModal(){
+    if (window.HGJoditConfig.enabled && formEditor) { formEditor.destroy(); formEditor = null; }
+     formsEditGeneration++; document.getElementById('formModal').style.display = 'none'; }
 
 function bindRows(){
     document.querySelectorAll('#formsTbody [data-edit]').forEach(function(btn){
@@ -684,7 +691,12 @@ function reloadBySystem(sys){
 
 document.getElementById('formForm').addEventListener('submit', function(ev){
     ev.preventDefault();
-    if (formEditor) {
+    if (window.HGJoditConfig.enabled) {
+        try {
+            if (!formEditor) throw new Error('Editor no disponible; no se ha guardado.');
+            formEditor.sync();
+        } catch (err) { alert(err.message); return; }
+    } else if (formEditor) {
         const html = formEditor.root.innerHTML || '';
         const plain = (formEditor.getText() || '').replace(/\s+/g,' ').trim();
         document.getElementById('form_desc').value = plain ? html : '';

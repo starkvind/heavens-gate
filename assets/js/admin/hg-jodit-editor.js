@@ -57,6 +57,11 @@
     window.addEventListener('drop',drop,true);
     window.addEventListener('beforeinput',beforeInput,true);
     return {
+      setHtml(html){
+        if(destroyed || pending) throw new Error('Editor ocupado.');
+        editor.value=String(html || '');
+        textarea.value=editor.value;
+      },
       sync(){
         if(destroyed || pending) throw new Error('Espera a que termine el pegado antes de guardar.');
         textarea.value=editor.value;
@@ -71,5 +76,23 @@
       }
     };
   }
-  window.HGJodit={create};
+  function createForField(textareaId, editorId, toolbarId, types){
+    const config=window.HGJoditConfig;
+    if(!config || !config.ready) throw new Error('Jodit no disponible; edición bloqueada.');
+    const textarea=document.getElementById(textareaId);
+    if(!textarea || !textarea.form) throw new Error('Campo de edición no disponible');
+    const csrf=textarea.form.elements.namedItem('csrf');
+    if(!csrf || !csrf.value) throw new Error('CSRF no disponible');
+    const url=new URL(window.location.href);
+    url.searchParams.set('s',config.section);
+    url.searchParams.set('ajax','1');
+    url.searchParams.set('ajax_mode','sanitize_paste');
+    const oldEditor=editorId && document.getElementById(editorId);
+    const oldToolbar=toolbarId && document.getElementById(toolbarId);
+    const handle=create(textarea,{csrf:csrf.value,pasteUrl:url.toString(),types:types || ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc','system','breed','auspice','tribe']});
+    if(oldEditor) oldEditor.style.display='none';
+    if(oldToolbar) oldToolbar.style.display='none';
+    return handle;
+  }
+  window.HGJodit={create,createForField};
 })();
