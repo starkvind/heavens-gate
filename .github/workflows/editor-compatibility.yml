@@ -3,10 +3,12 @@ on:
   push:
     paths:
       - '.github/ci/editor-candidate-browser.php'
+      - '.github/ci/editor-lab/**'
       - '.github/workflows/editor-compatibility.yml'
   pull_request:
     paths:
       - '.github/ci/editor-candidate-browser.php'
+      - '.github/ci/editor-lab/**'
       - '.github/workflows/editor-compatibility.yml'
 permissions:
   contents: read
@@ -38,15 +40,14 @@ jobs:
       - name: Install isolated editor candidate and record audit
         env:
           PACKAGE: ${{ matrix.package }}
+          CANDIDATE: ${{ matrix.candidate }}
         run: |
           mkdir -p editor-lab
-          npm --prefix editor-lab init -y
-          npm --prefix editor-lab install --save-exact --ignore-scripts --no-fund "$PACKAGE"
+          cp ".github/ci/editor-lab/$CANDIDATE/"package*.json editor-lab/
+          npm --prefix editor-lab ci --ignore-scripts --no-fund
+          cmp editor-lab/package-lock.json ".github/ci/editor-lab/$CANDIDATE/package-lock.json"
           npm --prefix editor-lab audit --json > editor-audit.json || true
           node -e 'const a=require("./editor-audit.json"); if(!a.metadata || !a.metadata.vulnerabilities) throw Error("Missing audit result"); console.log("HG_EDITOR_AUDIT "+JSON.stringify(a.metadata))'
-          echo HG_EDITOR_LOCK_BEGIN
-          cat editor-lab/package-lock.json
-          echo HG_EDITOR_LOCK_END
           du -sk editor-lab/node_modules
           ln -s node_modules/quill editor-lab/quill
           ln -s node_modules/jodit editor-lab/jodit

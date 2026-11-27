@@ -8,10 +8,14 @@ Quill 2.0.3 tiene una advertencia de seguridad conocida (CVE-2025-15056); no se 
 
 Referencias: https://quilljs.com/docs/modules ; https://github.com/xdan/jodit/security/advisories ; https://www.npmjs.com/package/jodit ; https://ckeditor.com/docs/ckeditor5/latest/getting-started/licensing/license-and-legal.html .
 
-No se considera candidato apto sin preservación de contenido, revisión de advisories, prueba de pegado, integración de menciones, validación del corpus real y pruebas de despliegue. El laboratorio instala versiones directas exactas pero todavía no tiene lock npm versionado; no es una instalación de producción.
+No se considera candidato apto sin preservación de contenido, revisión de advisories, prueba de pegado, integración de menciones, validación del corpus real y pruebas de despliegue. El laboratorio instala versiones directas y transitivas mediante los lock npm generados por CI; no es una instalación de producción.
 
 ## Resultado inicial — ejecución 46063163243
 
 Quill 2.0.3: formato básico y texto conservados, pero la URL relativa exacta del fixture no se conserva en la exportación, se pierden los atributos de mención y colspan/rowspan. Conserva cuatro celdas. npm audit: 1 alerta leve. No apto tal cual.
 
 Jodit 4.21.0: conserva todas las estructuras y texto de ambos fixtures tras abrir y editar. npm audit: 0 alertas en esta ejecución. Es el candidato preferente para nuevas pruebas, no una decisión definitiva de sustitución. Los tamaños de node_modules son 7396 KiB y 34860 KiB, respectivamente; incluyen archivos ajenos al despliegue y no miden transferencia ni RAM. La segunda prueba registra los bytes de los assets minificados, la edición dentro de una celda combinada y el saneamiento de la exportación en PHP. El contexto file:// del primer laboratorio no reproduce la resolución de enlaces bajo HTTPS; el resultado sobre URL es de igualdad exacta, no prueba de desaparición del enlace.
+
+## Segunda prueba — ejecución 46063310615
+
+Jodit supera también la edición dentro de la celda combinada y el saneamiento posterior de la exportación en PHP. JS: 868989 bytes (259318 con gzip); CSS: 169503 bytes. Quill 2: JS 209274 bytes (59229 con gzip); CSS 24606 bytes. Son tamaños de los archivos de entrada del laboratorio; no incluyen otras solicitudes ni equivalen a RAM. Jodit se cargaría exclusivamente en administración, con caché y sin Node.js en la Raspberry. Los locks provienen de los jobs 140722528176 y 140722528506; se instala con npm ci --ignore-scripts. Pendiente probar seguridad del portapapeles, menciones interactivas, corpus real y un piloto de Documentos.

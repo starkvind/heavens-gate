@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "jodit": "4.21.0"
+  }
+}
