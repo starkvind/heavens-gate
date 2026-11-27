@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/rules/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 include_once __DIR__ . '/../../helpers/public_response.php';
 include_once __DIR__ . '/../../helpers/character_avatar.php';
 
@@ -235,6 +236,6 @@ $pageTitle2 = $name;
         <?php if ($image !== ''): ?><img class="hg-mobile-power-image" src="<?= hg_mobile_rules_h($image) ?>" alt=""><?php endif; ?>
         <div class="hg-mobile-fact-grid"><?php foreach ($facts as [$label,$value]): if (trim((string)$value)==='') continue; ?><div><span><?= hg_mobile_rules_h($label) ?></span><strong><?= hg_mobile_rules_h($value) ?></strong></div><?php endforeach; ?></div>
     </section>
-    <?php foreach ($sections as [$label,$html]): if (trim(strip_tags((string)$html))==='') continue; ?><section class="hg-mobile-section hg-mobile-prose hg-mobile-rich-body"><h2><?= hg_mobile_rules_h($label) ?></h2><?= $html ?></section><?php endforeach; ?>
+    <?php foreach ($sections as [$label,$html]): if (trim(strip_tags((string)$html))==='') continue; ?><section class="hg-mobile-section hg-mobile-prose hg-mobile-rich-body"><h2><?= hg_mobile_rules_h($label) ?></h2><?= hg_render_rich_html((string)$html) ?></section><?php endforeach; ?>
     <?php if ($owners): ?><section class="hg-mobile-section"><h2>Personajes relacionados</h2><div class="hg-mobile-character-list" data-mobile-paginated data-mobile-search="1" data-page-size="20" data-search-placeholder="Buscar personajes"><?php foreach ($owners as $owner) hg_mobile_rules_character_card($link, $owner); ?></div></section><?php endif; ?>
 </article>

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 
 // ================================================================== //
 		// Datos básicos del personaje
@@ -14,7 +15,7 @@
 			$bioConcept	 = $dataResult["concept"]; 		// Concepto del personaje.
 			$bioNature	 = $dataResult["nature_id"]; 	// Naturaleza del personaje.
 			$bioBehavior = $dataResult["demeanor_id"]; 	// Conducta del personaje.
-			$bioText	 = $dataResult["info_text"]; 	// Texto escrito que habla sobre el personaje.
+			$bioText	 = hg_render_rich_html((string)($dataResult["info_text"] ?? "")); 	// Texto escrito que habla sobre el personaje.
 			$bioNotes	 = (string)($dataResult["notes"] ?? ''); // Notas internas (solo admin flag).
 		// ================================================================== //
 			$pageSect 	 = "Biograf&iacute;a";						// Para cambiar el titulo a la pagina.

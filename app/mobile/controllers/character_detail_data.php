@@ -5,6 +5,7 @@ $mobileCharacterDetailReady = false;
 include_once __DIR__ . '/../../helpers/public_response.php';
 include_once __DIR__ . '/../../helpers/character_avatar.php';
 require_once __DIR__ . '/../../domains/characters/detail_queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/characters/sheet_queries.php';
 
 if (!function_exists('hg_mobile_bio_h')) {
@@ -102,7 +103,7 @@ if (function_exists('mb_substr')) {
 }
 
 $avatar = hg_character_avatar_url((string)($character['image_url'] ?? ''), (string)($character['gender'] ?? ''));
-$infoHtml = (string)($character['info_text'] ?? '');
+$infoHtml = hg_render_rich_html((string)($character['info_text'] ?? ''));
 $status = trim((string)($character['status_label'] ?? ''));
 $deathDescription = trim((string)($character['death_description'] ?? ''));
 $hasCharacterSheet = strtolower(trim((string)($character['character_kind'] ?? ''))) === 'pj';

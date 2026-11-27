@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Candidate policy v1. Pilot integration in documents; not for deployment
+ * Candidate policy v1. Integrated in administrative rich HTML; not for deployment
  * until corpus regression and dependency deployment have been validated.
  *
  * Fail closed: callers must reject a write on exception, never persist raw input.

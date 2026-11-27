@@ -7,6 +7,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/rules/admin.php');
 
@@ -64,16 +65,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $name = trim((string)($_POST['name'] ?? ''));
         $kind = trim((string)($_POST['kind'] ?? ''));
         $classification = trim((string)($_POST['classification'] ?? ''));
-        $description = (string)($_POST['description'] ?? '');
-        $levels = (string)($_POST['levels'] ?? '');
-        $posse = (string)($_POST['posse'] ?? '');
-        $special = (string)($_POST['special'] ?? '');
+        $description = $_POST['description'] ?? '';
+        $levels = $_POST['levels'] ?? '';
+        $posse = $_POST['posse'] ?? '';
+        $special = $_POST['special'] ?? '';
         $bibliography_id = (int)($_POST['bibliography_id'] ?? 0);
 
-        $description = hg_mentions_convert($link, $description);
-        $levels = hg_mentions_convert($link, $levels);
-        $posse = hg_mentions_convert($link, $posse);
-        $special = hg_mentions_convert($link, $special);
+        if ($action !== 'delete') {
+            try {
+                $lookup = static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value);
+                if (!is_string($description)) throw new InvalidArgumentException('Invalid HTML');
+                $description = hg_prepare_rich_html($description, $lookup);
+                if (!is_string($levels)) throw new InvalidArgumentException('Invalid HTML');
+                $levels = hg_prepare_rich_html($levels, $lookup);
+                if (!is_string($posse)) throw new InvalidArgumentException('Invalid HTML');
+                $posse = hg_prepare_rich_html($posse, $lookup);
+                if (!is_string($special)) throw new InvalidArgumentException('Invalid HTML');
+                $special = hg_prepare_rich_html($special, $lookup);
+            } catch (Throwable $e) {
+                hg_runtime_log_error('admin.traits.sanitize', get_class($e));
+                $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+                $description = '';
+                $levels = '';
+                $posse = '';
+                $special = '';
+            }
+        }
 
         if ($action !== 'delete') {
             if ($name === '') $flash[] = ['type'=>'error','msg'=>'Nombre obligatorio.'];
