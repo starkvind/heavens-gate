@@ -33,17 +33,13 @@ jobs:
           php-version: '8.2'
           tools: composer:v2
           coverage: none
-      - name: Resolve pinned candidate and check advisories
+      - name: Install locked candidate and check advisories
         working-directory: app/security
         run: |
-          composer update --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
-          composer audit --no-dev
-      - name: Record generated lock for review
-        working-directory: app/security
-        run: |
-          echo 'HG_LOCK_BEGIN'
-          cat composer.lock
-          echo 'HG_LOCK_END'
+          composer validate --no-check-publish
+          composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+          composer audit --locked --no-dev
+          git diff --exit-code -- composer.lock
       - name: Run candidate regression
         run: |
           php -l app/helpers/html_sanitizer.php

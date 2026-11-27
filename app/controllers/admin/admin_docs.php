@@ -276,7 +276,7 @@ if ($ajaxMode === 'content') {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         hg_admin_json_error('Método no permitido', 405);
     }
-    $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($id === false) {
         hg_admin_json_error('ID inválido', 400);
     }
