@@ -116,6 +116,9 @@ jobs:
               raise SystemExit("\n".join(failures))
           PY
 
+      - name: Guard opt-in CSP observation policy
+        run: python3 .github/ci/csp-observation-guard.py
+
       - name: Guard private repository trees
         shell: bash
         run: |
