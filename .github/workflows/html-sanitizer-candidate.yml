@@ -46,6 +46,7 @@ on:
       - 'app/domains/chapters/admin.php'
       - 'app/controllers/admin/admin_chapters.php'
       - 'tools/audit_rich_html.php'
+      - '.github/ci/php-historic-html-inventory.php'
       - 'app/mobile/controllers/news.php'
       - 'app/controllers/main/main_news.php'
       - 'app/domains/news/admin.php'
@@ -103,6 +104,7 @@ on:
       - 'app/domains/chapters/admin.php'
       - 'app/controllers/admin/admin_chapters.php'
       - 'tools/audit_rich_html.php'
+      - '.github/ci/php-historic-html-inventory.php'
       - 'app/mobile/controllers/news.php'
       - 'app/controllers/main/main_news.php'
       - 'app/domains/news/admin.php'
@@ -160,3 +162,33 @@ jobs:
           if not data.get("rich_ok"):
               print("::warning::Quill rich round-trip loses structure or mention metadata. Deployment remains blocked by compatibility review.")
           PY
+  inventory-db:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: hg-ci-only
+          MARIADB_DATABASE: hg_fixture
+          MARIADB_USER: hg_fixture_writer
+          MARIADB_PASSWORD: hg-ci-writer
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, mysqli
+          tools: composer:v2
+          coverage: none
+      - name: Install locked sanitizer
+        working-directory: app/security
+        run: composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+      - name: Verify historical inventory on disposable MariaDB
+        run: php .github/ci/php-historic-html-inventory.php

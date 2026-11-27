@@ -39,7 +39,12 @@ function hg_audit_html_metrics(string $html): array
     preg_match_all('/<(table|tr|td|th|a|img|ul|ol|li|pre|code|h[1-6])\b/i', $html, $tags);
     $counts = array_count_values(array_map('strtolower', $tags[1]));
     ksort($counts);
-    return ['text' => trim($text), 'structures' => $counts];
+    preg_match_all('/\\b(?:rowspan|colspan)\\s*=\\s*["\']?([1-9][0-9]*)/i', $html, $spans);
+    preg_match_all('/\\bclass\\s*=\\s*["\'][^"\']*\\bhg-mention\\b[^"\']*["\']/i', $html, $mentions);
+    return ['text' => trim($text), 'structures' => $counts,
+        'tables' => (int)($counts['table'] ?? 0),
+        'merged_cells' => count(array_filter($spans[1], static fn($value) => (int)$value > 1)),
+        'mentions' => count($mentions[0])];
 }
 
 function hg_audit_html_compare(string $html): array
@@ -50,7 +55,15 @@ function hg_audit_html_compare(string $html): array
     return [
         'changed' => $html !== $clean,
         'text_changed' => $before['text'] !== $after['text'],
-        'structure_changed' => $before['structures'] !== $after['structures'],
+        'structure_changed' => $before['structures'] !== $after['structures']
+            || $before['merged_cells'] !== $after['merged_cells']
+            || $before['mentions'] !== $after['mentions'],
+        'tables_before' => $before['tables'],
+        'tables_after' => $after['tables'],
+        'merged_cells_before' => $before['merged_cells'],
+        'merged_cells_after' => $after['merged_cells'],
+        'mentions_before' => $before['mentions'],
+        'mentions_after' => $after['mentions'],
         'before_bytes' => strlen($html),
         'after_bytes' => strlen($clean),
     ];
@@ -66,6 +79,12 @@ if ($argc === 2 && $argv[1] === '--self-test') {
     $unsafe = hg_audit_html_compare('<p onclick="void(0)">Texto</p>');
     if ($safe['text_changed'] || !$unsafe['changed'] || $unsafe['text_changed']) {
         fwrite(STDERR, "HTML audit self-test failed\n");
+        exit(1);
+    }
+    $table = hg_audit_html_compare('<table><tbody><tr><td colspan="2">A</td></tr></tbody></table>');
+    if ($table['tables_before'] !== 1 || $table['tables_after'] !== 1
+        || $table['merged_cells_before'] !== 1 || $table['merged_cells_after'] !== 1) {
+        fwrite(STDERR, "Table inventory self-test failed\n");
         exit(1);
     }
     echo "HTML audit self-test OK\n";
@@ -131,7 +150,10 @@ try {
             continue;
         }
         $stats = ['scanned'=>0, 'changed'=>0, 'text_changed'=>0, 'structure_changed'=>0,
-            'oversized'=>0, 'errors'=>0, 'max_bytes'=>0, 'elapsed_ms'=>0];
+            'oversized'=>0, 'errors'=>0, 'max_bytes'=>0, 'elapsed_ms'=>0,
+            'rows_with_tables'=>0, 'tables_before'=>0, 'tables_after'=>0,
+            'merged_cells_before'=>0, 'merged_cells_after'=>0,
+            'mentions_before'=>0, 'mentions_after'=>0];
         $start = hrtime(true);
         $last = 0;
         $sql = "SELECT id, OCTET_LENGTH(`$column`) AS bytes, "
@@ -160,7 +182,12 @@ try {
                     foreach (['changed', 'text_changed', 'structure_changed'] as $key) {
                         $stats[$key] += (int)$comparison[$key];
                     }
-                    if ($comparison['changed']) {
+                    $stats['rows_with_tables'] += (int)($comparison['tables_before'] > 0);
+                    foreach (['tables_before','tables_after','merged_cells_before','merged_cells_after',
+                        'mentions_before','mentions_after'] as $key) {
+                        $stats[$key] += $comparison[$key];
+                    }
+                    if ($comparison['changed'] || $comparison['tables_before'] > 0) {
                         hg_audit_html_emit(['field'=>"$table.$column", 'id'=>$last] + $comparison);
                     }
                 } catch (Throwable $e) {
