@@ -76,6 +76,21 @@ $fixtures = array_map('hg_sanitize_rich_html', $fixtures);
             const editedOk = structureKeys.every(k => expected[k] === edited[k]) && edited.text === 'X' + expected.text;
             report[name] = {expected, loaded, edited, loaded_ok:loadedOk, edited_ok:editedOk};
             report[name + '_ok'] = loadedOk && editedOk;
+            if (candidate === 'jodit' && name === 'rich') {
+                const cell = editor.editor.querySelector('td[rowspan="2"]');
+                if (!cell) throw new Error('Merged cell missing');
+                editor.s.setCursorIn(cell, true);
+                editor.s.insertHTML('Y');
+                await delay();
+                const output = document.createElement('div');
+                output.innerHTML = editor.value;
+                const cellEdited = markers(output);
+                report.cell_edit_ok = structureKeys.every(k => expected[k] === cellEdited[k])
+                    && output.querySelector('td[rowspan="2"]').textContent === 'YA'
+                    && cellEdited.text === 'X' + expected.text.replace('TítuloABC','TítuloYABC');
+                // Export to the isolated CI process for server-side re-sanitization.
+                report.export_html = editor.value;
+            }
         }
     } catch (error) {
         report.error = String(error);

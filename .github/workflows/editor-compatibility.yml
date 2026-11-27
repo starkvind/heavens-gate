@@ -43,10 +43,20 @@ jobs:
           npm --prefix editor-lab init -y
           npm --prefix editor-lab install --save-exact --ignore-scripts --no-fund "$PACKAGE"
           npm --prefix editor-lab audit --json > editor-audit.json || true
-          node -e 'const a=require("./editor-audit.json"); console.log("HG_EDITOR_AUDIT "+JSON.stringify(a.metadata||a.error||{}))'
+          node -e 'const a=require("./editor-audit.json"); if(!a.metadata || !a.metadata.vulnerabilities) throw Error("Missing audit result"); console.log("HG_EDITOR_AUDIT "+JSON.stringify(a.metadata))'
+          echo HG_EDITOR_LOCK_BEGIN
+          cat editor-lab/package-lock.json
+          echo HG_EDITOR_LOCK_END
           du -sk editor-lab/node_modules
           ln -s node_modules/quill editor-lab/quill
           ln -s node_modules/jodit editor-lab/jodit
+          if [ "$PACKAGE" = "jodit@4.21.0" ]; then
+            wc -c editor-lab/jodit/es2021/jodit.min.{js,css}
+            gzip -c editor-lab/jodit/es2021/jodit.min.js | wc -c
+          else
+            wc -c editor-lab/quill/dist/quill.js editor-lab/quill/dist/quill.snow.css
+            gzip -c editor-lab/quill/dist/quill.js | wc -c
+          fi
       - name: Compare load and export after editing
         env:
           CANDIDATE: ${{ matrix.candidate }}
@@ -59,8 +69,16 @@ jobs:
           match = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', Path("editor-lab-output.html").read_text(), re.S)
           if not match: raise SystemExit("Missing browser report")
           data = json.loads(html.unescape(match.group(1)))
+          exported = data.pop("export_html", None)
+          if exported is not None:
+              Path("editor-export.html").write_text(exported)
           print("HG_EDITOR_REPORT " + json.dumps(data, ensure_ascii=False))
           if data.get("error"): raise SystemExit("Candidate runtime error")
           if not data.get("baseline_ok") or not data.get("rich_ok"):
               print("::warning::Candidate loses rich content; not eligible for integration")
+          if data.get("candidate") == "jodit" and not data.get("cell_edit_ok"):
+              raise SystemExit("Jodit merged-cell editing failed")
           PY
+          if [ "$CANDIDATE" = "jodit" ]; then
+            php -r 'require "app/helpers/html_sanitizer.php"; $clean=hg_sanitize_rich_html(file_get_contents("editor-export.html")); $dom=new DOMDocument(); @$dom->loadHTML("<?xml encoding=\"UTF-8\"?>".$clean, LIBXML_NONET); $x=new DOMXPath($dom); if ($x->query("//table")->length!==1 || $x->query("//td|//th")->length!==4 || $x->query("//th[@colspan=2]")->length!==1 || $x->query("//td[@rowspan=2 and text()=\"YA\"]")->length!==1 || $x->query("//a[@class=\"hg-mention\" and @data-id=42 and @data-type=\"character\"]")->length!==1) exit(1); echo "Server round-trip: OK\n";'
+          fi
