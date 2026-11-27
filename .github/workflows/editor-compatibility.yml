@@ -4,11 +4,19 @@ on:
     paths:
       - '.github/ci/editor-candidate-browser.php'
       - '.github/ci/editor-lab/**'
+      - '.github/ci/jodit-pilot-browser.php'
+      - 'assets/js/admin/hg-jodit-editor.js'
+      - 'assets/js/hg_mentions.js'
+      - 'app/controllers/admin/admin_docs.php'
       - '.github/workflows/editor-compatibility.yml'
   pull_request:
     paths:
       - '.github/ci/editor-candidate-browser.php'
       - '.github/ci/editor-lab/**'
+      - '.github/ci/jodit-pilot-browser.php'
+      - 'assets/js/admin/hg-jodit-editor.js'
+      - 'assets/js/hg_mentions.js'
+      - 'app/controllers/admin/admin_docs.php'
       - '.github/workflows/editor-compatibility.yml'
 permissions:
   contents: read
@@ -83,3 +91,34 @@ jobs:
           if [ "$CANDIDATE" = "jodit" ]; then
             php -r 'require "app/helpers/html_sanitizer.php"; $clean=hg_sanitize_rich_html(file_get_contents("editor-export.html")); $dom=new DOMDocument(); @$dom->loadHTML("<?xml encoding=\"UTF-8\"?>".$clean, LIBXML_NONET); $x=new DOMXPath($dom); if ($x->query("//table")->length!==1 || $x->query("//td|//th")->length!==4 || $x->query("//th[@colspan=2]")->length!==1 || $x->query("//td[@rowspan=2 and text()=\"YA\"]")->length!==1 || $x->query("//a[@class=\"hg-mention\" and @data-id=42 and @data-type=\"character\"]")->length!==1) exit(1); echo "Server round-trip: OK\n";'
           fi
+      - name: Test actual pilot adapter with Chromium
+        if: matrix.candidate == 'jodit'
+        run: |
+          node --check assets/js/admin/hg-jodit-editor.js
+          node --check assets/js/hg_mentions.js
+          php .github/ci/jodit-pilot-browser.php > jodit-pilot-fixture.html
+          google-chrome --headless --no-sandbox --disable-gpu --disable-background-networking --no-first-run --virtual-time-budget=5000 --dump-dom "file://${GITHUB_WORKSPACE}/jodit-pilot-fixture.html" > jodit-pilot-output.html
+          python3 - <<'PY'
+          import html, json, re
+          from pathlib import Path
+          m = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', Path("jodit-pilot-output.html").read_text(), re.S)
+          if not m: raise SystemExit("Missing pilot report")
+          data = json.loads(html.unescape(m.group(1)))
+          print("HG_PILOT_REPORT " + json.dumps(data, ensure_ascii=False))
+          if not data.get("ok"): raise SystemExit("Pilot regression failed")
+          PY
+      - name: Package local community assets
+        if: matrix.candidate == 'jodit'
+        run: |
+          node -e 'const a=require("./editor-audit.json");if(a.metadata.vulnerabilities.total!==0)process.exit(1)'
+          mkdir -p jodit-release/assets/vendor/jodit/4.21.0
+          cp editor-lab/jodit/es2021/jodit.min.{js,css} jodit-release/assets/vendor/jodit/4.21.0/
+          find editor-lab/node_modules/jodit -maxdepth 1 -iname 'license*' -type f -exec cp {} jodit-release/assets/vendor/jodit/4.21.0/LICENSE \;
+          test -s jodit-release/assets/vendor/jodit/4.21.0/LICENSE
+          (cd jodit-release && sha256sum assets/vendor/jodit/4.21.0/* > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        if: matrix.candidate == 'jodit'
+        with:
+          name: jodit-4.21.0-local-assets
+          path: jodit-release/
+          if-no-files-found: error
