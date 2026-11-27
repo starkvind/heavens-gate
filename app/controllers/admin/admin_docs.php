@@ -129,6 +129,23 @@ $isAjaxCrudRequest = (
 );
 
 $quillToolbarInner = admin_quill_toolbar_inner();
+$joditPilot = getenv('HG_DOCS_JODIT_PILOT') === '1';
+$joditRoot = dirname(__DIR__, 3) . '/assets/vendor/jodit/4.21.0';
+$joditReady = $joditPilot && is_file($joditRoot . '/jodit.min.js') && is_file($joditRoot . '/jodit.min.css');
+if (hg_request_query_param($hgRequest, 'ajax_mode') === 'sanitize_paste') {
+    hg_admin_require_session(true);
+    if (!$joditReady) hg_admin_json_error('Piloto Jodit no disponible', 503);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') hg_admin_json_error('Método no permitido', 405);
+    if (!hg_admin_csrf_valid(hg_admin_extract_csrf_token([]), $ADMIN_CSRF_SESSION_KEY)) hg_admin_json_error('CSRF inválido', 403);
+    try {
+        $body = hg_admin_read_json_payload();
+        if (!is_string($body['html'] ?? null)) throw new InvalidArgumentException('Invalid clipboard HTML');
+        hg_admin_json_success(['content'=>hg_sanitize_rich_html($body['html'])]);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.docs.paste', get_class($e));
+        hg_admin_json_error('No se pudo validar el contenido del portapapeles.', 400);
+    }
+}
 
 /* -----------------------------
    Guardado (POST)
@@ -285,7 +302,8 @@ if ($ajaxMode === 'content') {
         if ($raw === null) {
             hg_admin_json_error('Documento no encontrado', 404);
         }
-        $clean = hg_quill_editor_html($raw);
+        if ($joditPilot && !$joditReady) hg_admin_json_error('Faltan los archivos locales de Jodit.', 503);
+        $clean = $joditReady ? hg_sanitize_rich_html($raw) : hg_quill_editor_html($raw);
         hg_admin_json_success(['content' => $clean]);
     } catch (DomainException $e) {
         hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
@@ -522,9 +540,14 @@ function ui_short(string $s, int $n=120): string {
   </div>
 </div>
 
-<!-- Quill (CDN, sin API key, sin carpetas) -->
+<?php if ($joditReady && $tab === 'docs'): ?>
+<link href="/assets/vendor/jodit/4.21.0/jodit.min.css" rel="stylesheet">
+<script src="/assets/vendor/jodit/4.21.0/jodit.min.js"></script>
+<script src="/assets/js/admin/hg-jodit-editor.js"></script>
+<?php elseif (!$joditPilot && $tab === 'docs'): ?>
 <link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php endif; ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -552,13 +575,33 @@ function pickOptsForField(fieldKey){
 
 // ---- Quill helpers ----
 var QUILL_MAP = {}; // textareaId -> quill instance
+var JODIT_MAP = {};
+var JODIT_PILOT = <?= json_encode($joditPilot && $tab === 'docs') ?>;
+var JODIT_READY = <?= json_encode($joditReady && $tab === 'docs') ?>;
 
 function destroyEditors(){
-  // Quill no necesita destroy formal; basta con limpiar mapa y DOM
+  Object.values(JODIT_MAP).forEach(function(editor){ editor.destroy(); });
+  JODIT_MAP = {};
   QUILL_MAP = {};
 }
 
 function initEditors(){
+  if (JODIT_PILOT) {
+    if (!JODIT_READY || !window.HGJodit || !window.Jodit) throw new Error('Jodit no disponible; edición bloqueada.');
+    document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
+      var id = wrap.getAttribute('data-ta');
+      var textarea = document.getElementById(id);
+      if (!textarea || JODIT_MAP[id]) return;
+      var url = new URL(window.location.href);
+      url.searchParams.set('s','admin_docs');
+      url.searchParams.set('ajax','1');
+      url.searchParams.set('ajax_mode','sanitize_paste');
+      JODIT_MAP[id] = window.HGJodit.create(textarea, {
+        types: HG_MENTION_TYPES, csrf: window.ADMIN_CSRF_TOKEN, pasteUrl: url.toString()
+      });
+    });
+    return;
+  }
   if (typeof Quill === 'undefined') return;
 
   document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
@@ -594,6 +637,15 @@ function initEditors(){
 }
 
 function syncEditorsToTextarea(){
+  if (JODIT_PILOT) {
+    var fields = document.querySelectorAll('[data-wys="1"]');
+    for (var wrap of fields) {
+      var id = wrap.getAttribute('data-ta');
+      if (!JODIT_MAP[id]) throw new Error('El editor no está disponible; no se ha guardado.');
+      JODIT_MAP[id].sync();
+    }
+    return;
+  }
   Object.keys(QUILL_MAP).forEach(function(taId){
     var q = QUILL_MAP[taId];
     var textarea = document.getElementById(taId);
@@ -742,6 +794,13 @@ function syncEditorsToTextarea(){
       var editorId  = 'qe_'+k;
 
       input = el('textarea', {name:k, id:taId, class:'inp', style:'display:none;'});
+      if (JODIT_PILOT) {
+        var jWrap = el('div', {'data-wys':'1','data-ta':taId});
+        jWrap.appendChild(input);
+        label.appendChild(jWrap);
+        wrap.appendChild(label);
+        return wrap;
+      }
 
       var wysWrap = el('div', {
         'data-wys':'1',
@@ -817,7 +876,7 @@ function syncEditorsToTextarea(){
 
     mb.style.display = 'flex';
     setTimeout(function(){
-      initEditors();
+      try { initEditors(); } catch (err) { handleError(err, 'Editor no disponible'); closeModal(); return; }
       var first = grid.querySelector('input,textarea,select');
       if (first) first.focus();
     }, 0);
@@ -863,7 +922,7 @@ function syncEditorsToTextarea(){
 
     mb.style.display = 'flex';
     setTimeout(function(){
-      initEditors();
+      try { initEditors(); } catch (err) { handleError(err, 'Editor no disponible'); closeModal(); return; }
       var first = grid.querySelector('input,textarea,select');
       if (first) first.focus();
     }, 0);
@@ -1033,7 +1092,9 @@ function syncEditorsToTextarea(){
   if (formCrud) {
     formCrud.addEventListener('submit', function(ev){
       ev.preventDefault();
-      var errs = currentValidationErrors();
+      var errs;
+      try { errs = currentValidationErrors(); }
+      catch (err) { handleError(err, 'No se ha guardado'); return; }
       if (errs.length) {
         alert(errs.join('\n'));
         return;

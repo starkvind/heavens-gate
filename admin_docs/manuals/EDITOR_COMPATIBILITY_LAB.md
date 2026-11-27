@@ -19,3 +19,7 @@ Jodit 4.21.0: conserva todas las estructuras y texto de ambos fixtures tras abri
 ## Segunda prueba — ejecución 46063310615
 
 Jodit supera también la edición dentro de la celda combinada y el saneamiento posterior de la exportación en PHP. JS: 868989 bytes (259318 con gzip); CSS: 169503 bytes. Quill 2: JS 209274 bytes (59229 con gzip); CSS 24606 bytes. Son tamaños de los archivos de entrada del laboratorio; no incluyen otras solicitudes ni equivalen a RAM. Jodit se cargaría exclusivamente en administración, con caché y sin Node.js en la Raspberry. Los locks provienen de los jobs 140722528176 y 140722528506; se instala con npm ci --ignore-scripts. Pendiente probar seguridad del portapapeles, menciones interactivas, corpus real y un piloto de Documentos.
+
+## Piloto de Documentos
+
+Autorizada la migración a Jodit 4.21.0 MIT. Piloto opt-in con HG_DOCS_JODIT_PILOT=1 en PHP-FPM de preproducción. Carga exclusivamente local y sólo en Documentos. La API de pegado exige sesión y CSRF, sanea antes de insertar y cancela si cambia el contenido o el cursor. Se bloquea arrastrar/soltar, editor de fuente y subida de archivos. La selección de menciones inserta tokens inertes que el servidor resuelve en enlaces canónicos al guardar. Se conserva Quill en el resto de módulos y con el piloto desactivado. No publicar ni activar el piloto sin assets verificados y regresiones funcionales. El paquete de assets se genera por CI a partir del lock; Node sólo se usa para construirlo.
