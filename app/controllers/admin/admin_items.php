@@ -9,6 +9,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('items', 'csrf_admin_items', $hgRequest);
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/inventory/admin.php');
@@ -244,7 +246,7 @@ if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'conte
         if ($raw === null) {
             hg_admin_json_error('Registro no encontrado', 404);
         }
-        hg_admin_json_success(['content' => hg_quill_editor_html($raw)]);
+        hg_admin_json_success(['content' => ($joditConfig['enabled'] ? hg_admin_jodit_editor_html($raw, $joditConfig) : hg_quill_editor_html($raw))]);
     } catch (DomainException $e) {
         hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
@@ -473,8 +475,7 @@ if ($ajaxSaveDelete) {
 	</tbody>
 </table></div>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -540,6 +541,10 @@ function nameById(list, id){
 }
 
 function ensureItemEditor(){
+    if (window.HGJoditConfig.enabled) {
+        if (!itemEditor) itemEditor = window.HGJodit.createForField('item_description', 'item_editor', 'item_toolbar');
+        return itemEditor;
+    }
 	if (!itemEditor && window.Quill) {
 		itemEditor = new Quill('#item_editor', {
 			theme: 'snow',
@@ -569,7 +574,7 @@ async function openItemModal(id = null){
             return;
         }
     }
-	ensureItemEditor();
+	try { ensureItemEditor(); } catch (err) { alert(err.message || 'Editor no disponible'); return; }
 	const modal = document.getElementById('itemModal');
 	document.getElementById('item_id').value = '';
 	document.getElementById('item_name').value = '';
@@ -588,7 +593,7 @@ async function openItemModal(id = null){
 	document.getElementById('item_current_img').value = '';
 	document.getElementById('item_img_file').value = '';
 	document.getElementById('item_img_preview').src = '';
-	if (itemEditor) itemEditor.root.innerHTML = '';
+	if (itemEditor) { if (window.HGJoditConfig.enabled) itemEditor.setHtml(''); else itemEditor.root.innerHTML = ''; }
 	document.getElementById('item_description').value = '';
 
 	if (id) {
@@ -611,7 +616,7 @@ async function openItemModal(id = null){
 			document.getElementById('item_current_img').value = row.image_url || '';
 			if (row.image_url) document.getElementById('item_img_preview').src = row.image_url;
 			document.getElementById('item_description').value = descri;
-			if (itemEditor) itemEditor.root.innerHTML = descri;
+			if (itemEditor) { if (window.HGJoditConfig.enabled) itemEditor.setHtml(descri); else itemEditor.root.innerHTML = descri; }
 		}
 	} else {
 		document.getElementById('itemModalTitle').textContent = 'Nuevo objeto';
@@ -619,7 +624,9 @@ async function openItemModal(id = null){
 	modal.style.display = 'flex';
 }
 
-function closeItemModal(){ itemsEditGeneration++;
+function closeItemModal(){
+    if (window.HGJoditConfig.enabled && itemEditor) { itemEditor.destroy(); itemEditor = null; }
+     itemsEditGeneration++;
 	document.getElementById('itemModal').style.display = 'none';
 }
 
@@ -701,7 +708,12 @@ document.getElementById('item_img_file').addEventListener('change', function(){
 
 document.getElementById('itemForm').addEventListener('submit', function(ev){
 	ev.preventDefault();
-	if (itemEditor) {
+	if (window.HGJoditConfig.enabled) {
+        try {
+            if (!itemEditor) throw new Error('Editor no disponible; no se ha guardado.');
+            itemEditor.sync();
+        } catch (err) { alert(err.message); return; }
+    } else if (itemEditor) {
 		const html = itemEditor.root.innerHTML || '';
 		const plain = (itemEditor.getText() || '').replace(/\s+/g,' ').trim();
 		document.getElementById('item_description').value = plain ? html : '';

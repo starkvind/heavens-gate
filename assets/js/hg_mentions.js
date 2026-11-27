@@ -210,6 +210,80 @@
     textarea.addEventListener('blur', function(){ setTimeout(closeBox, 200); });
   }
 
+
+  function attachJodit(editor, opts) {
+    var root = editor.editor;
+    var types = opts.types || [];
+    var box = createDropdown();
+    var serial = 0, timer = null, keyboard = null, active = false;
+    function close() {
+      serial++;
+      clearTimeout(timer);
+      box.style.display = 'none';
+      if (keyboard) root.removeEventListener('keydown', keyboard, true);
+      keyboard = null;
+      active = false;
+    }
+    function token() {
+      var sel = window.getSelection();
+      if (!sel || !sel.isCollapsed || !sel.rangeCount) return null;
+      var node = sel.anchorNode;
+      if (!node || node.nodeType !== 3 || !root.contains(node) ||
+          node.parentElement.closest('a,pre,code')) return null;
+      var end = sel.anchorOffset;
+      var match = node.data.slice(0,end).match(/@([a-z_]+)(?:\s+([^@\n]*))?$/i);
+      if (!match || !types.includes(match[1].toLowerCase())) return null;
+      return {node:node,end:end,start:end-match[0].length,raw:match[0],
+        type:match[1].toLowerCase(),query:(match[2]||'').trim()};
+    }
+    function same(a,b) {
+      return a && b && a.node===b.node && a.end===b.end && a.raw===b.raw;
+    }
+    function pick(item, original) {
+      var now = token();
+      if (!same(now, original)) return close();
+      if (!types.includes(item.type) || !/^[1-9]\d*$/.test(String(item.id))) return close();
+      var range = document.createRange();
+      range.setStart(now.node,now.start);
+      range.setEnd(now.node,now.end);
+      var sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      // Server resolves this inert token into a canonical link on save.
+      editor.s.insertHTML('[@' + item.type + ':' + item.id + '] ');
+      close();
+    }
+    function changed() {
+      close();
+      var original = token();
+      if (!original) return;
+      var version = serial;
+      timer = setTimeout(function(){
+        fetchMentions(original.type,original.query).then(function(items){
+          if (version!==serial || !same(token(),original)) return;
+          renderList(box,items,function(it){pick(it,original);});
+          positionDropdown(box,root);
+          box.style.display='block';
+          active=true;
+          keyboard=setupKeyboard(box,items,function(it){pick(it,original);});
+          root.addEventListener('keydown',keyboard,true);
+        });
+      },120);
+    }
+    function mouseDown(e){e.preventDefault();}
+    function keyup(e){if (!active || !['ArrowDown','ArrowUp','Enter','Escape'].includes(e.key)) changed();}
+    root.addEventListener('input',changed);
+    root.addEventListener('keyup',keyup);
+    root.addEventListener('blur',close);
+    box.addEventListener('mousedown',mouseDown);
+    return function(){
+      close();
+      root.removeEventListener('input',changed);
+      root.removeEventListener('keyup',keyup);
+      root.removeEventListener('blur',close);
+      box.remove();
+    };
+  }
+
   function attachAuto() {
     if (!document.querySelectorAll) return;
     document.querySelectorAll('[data-hg-mentions-quill]').forEach(function(el){
@@ -225,6 +299,7 @@
 
   window.hgMentions = {
     attachQuill: attachQuill,
+    attachJodit: attachJodit,
     attachTextarea: attachTextarea,
     attachAuto: attachAuto
   };

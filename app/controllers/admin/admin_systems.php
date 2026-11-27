@@ -9,6 +9,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('systems', 'csrf_admin_systems', $hgRequest);
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../domains/systems/admin.php');
@@ -161,7 +163,7 @@ if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'conte
         if ($raw === null) {
             hg_admin_json_error('Registro no encontrado', 404);
         }
-        hg_admin_json_success(['content' => hg_quill_editor_html($raw)]);
+        hg_admin_json_success(['content' => ($joditConfig['enabled'] ? hg_admin_jodit_editor_html($raw, $joditConfig) : hg_quill_editor_html($raw))]);
     } catch (DomainException $e) {
         hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
     } catch (Throwable $e) {
@@ -332,8 +334,7 @@ if ($ajaxSaveDelete) {
     </tbody>
 </table>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -391,6 +392,10 @@ function esc(s){
 }
 
 function ensureSysEditor(){
+    if (window.HGJoditConfig.enabled) {
+        if (!sysEditor) sysEditor = window.HGJodit.createForField('system_desc', 'system_editor', 'system_toolbar');
+        return sysEditor;
+    }
     if (!sysEditor && window.Quill) {
         sysEditor = new Quill('#system_editor', { theme:'snow', modules:{ toolbar:'#system_toolbar' } });
         if (window.hgMentions) { window.hgMentions.attachQuill(sysEditor, { types: ['character','season','episode','organization','group','gift','rite','totem','discipline','item','trait','background','merit','flaw','merydef','doc'] }); }
@@ -417,7 +422,7 @@ async function openSystemModal(id = null){
             return;
         }
     }
-    ensureSysEditor();
+    try { ensureSysEditor(); } catch (err) { alert(err.message || 'Editor no disponible'); return; }
     const modal = document.getElementById('systemModal');
     document.getElementById('system_id').value = '';
     document.getElementById('system_orden').value = '';
@@ -426,7 +431,7 @@ async function openSystemModal(id = null){
     document.getElementById('system_formas').value = '0';
     document.getElementById('system_bibliography_id').value = '0';
     document.getElementById('system_desc').value = '';
-    if (sysEditor) sysEditor.root.innerHTML = '';
+    if (sysEditor) { if (window.HGJoditConfig.enabled) sysEditor.setHtml(''); else sysEditor.root.innerHTML = ''; }
 
     if (id) {
         if (row) {
@@ -438,7 +443,7 @@ async function openSystemModal(id = null){
             document.getElementById('system_formas').value = row.formas || 0;
             document.getElementById('system_bibliography_id').value = row.bibliography_id || 0;
             document.getElementById('system_desc').value = desc;
-            if (sysEditor) sysEditor.root.innerHTML = desc;
+            if (sysEditor) { if (window.HGJoditConfig.enabled) sysEditor.setHtml(desc); else sysEditor.root.innerHTML = desc; }
         }
     } else {
         document.getElementById('systemModalTitle').textContent = 'Nuevo sistema';
@@ -446,7 +451,9 @@ async function openSystemModal(id = null){
     modal.style.display = 'flex';
 }
 
-function closeSystemModal(){ systemsEditGeneration++;
+function closeSystemModal(){
+    if (window.HGJoditConfig.enabled && sysEditor) { sysEditor.destroy(); sysEditor = null; }
+     systemsEditGeneration++;
     document.getElementById('systemModal').style.display = 'none';
 }
 
@@ -522,7 +529,12 @@ function applyQuickFilter(){
 
 document.getElementById('systemForm').addEventListener('submit', function(ev){
     ev.preventDefault();
-    if (sysEditor) {
+    if (window.HGJoditConfig.enabled) {
+        try {
+            if (!sysEditor) throw new Error('Editor no disponible; no se ha guardado.');
+            sysEditor.sync();
+        } catch (err) { alert(err.message); return; }
+    } else if (sysEditor) {
         const html = sysEditor.root.innerHTML || '';
         const plain = (sysEditor.getText() || '').replace(/\s+/g,' ').trim();
         document.getElementById('system_desc').value = plain ? html : '';

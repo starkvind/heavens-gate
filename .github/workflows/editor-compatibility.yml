@@ -1,0 +1,157 @@
+name: Editor compatibility laboratory
+on:
+  push:
+    paths:
+      - '.github/ci/editor-candidate-browser.php'
+      - '.github/ci/editor-lab/**'
+      - '.github/ci/jodit-pilot-browser.php'
+      - 'assets/js/admin/hg-jodit-editor.js'
+      - 'app/controllers/admin/admin_system_details.php'
+      - 'app/controllers/admin/admin_powers.php'
+      - 'app/controllers/admin/admin_seasons.php'
+      - 'app/controllers/admin/admin_forms.php'
+      - 'app/controllers/admin/admin_systems.php'
+      - 'app/controllers/admin/admin_items.php'
+      - 'app/controllers/admin/admin_chapters.php'
+      - 'app/controllers/admin/admin_news.php'
+      - '.github/ci/jodit-paste-http-regression.py'
+      - '.github/ci/jodit-paste-http-router.php'
+      - 'app/partials/admin/jodit_assets.php'
+      - 'app/helpers/admin_jodit.php'
+      - 'assets/js/hg_mentions.js'
+      - 'app/controllers/admin/admin_docs.php'
+      - '.github/workflows/editor-compatibility.yml'
+  pull_request:
+    paths:
+      - '.github/ci/editor-candidate-browser.php'
+      - '.github/ci/editor-lab/**'
+      - '.github/ci/jodit-pilot-browser.php'
+      - 'assets/js/admin/hg-jodit-editor.js'
+      - 'app/controllers/admin/admin_system_details.php'
+      - 'app/controllers/admin/admin_powers.php'
+      - 'app/controllers/admin/admin_seasons.php'
+      - 'app/controllers/admin/admin_forms.php'
+      - 'app/controllers/admin/admin_systems.php'
+      - 'app/controllers/admin/admin_items.php'
+      - 'app/controllers/admin/admin_chapters.php'
+      - 'app/controllers/admin/admin_news.php'
+      - '.github/ci/jodit-paste-http-regression.py'
+      - '.github/ci/jodit-paste-http-router.php'
+      - 'app/partials/admin/jodit_assets.php'
+      - 'app/helpers/admin_jodit.php'
+      - 'assets/js/hg_mentions.js'
+      - 'app/controllers/admin/admin_docs.php'
+      - '.github/workflows/editor-compatibility.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - candidate: quill2
+            package: quill@2.0.3
+          - candidate: jodit
+            package: jodit@4.21.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install sanitizer
+        working-directory: app/security
+        run: composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+      - name: Install isolated editor candidate and record audit
+        env:
+          PACKAGE: ${{ matrix.package }}
+          CANDIDATE: ${{ matrix.candidate }}
+        run: |
+          mkdir -p editor-lab
+          cp ".github/ci/editor-lab/$CANDIDATE/"package*.json editor-lab/
+          npm --prefix editor-lab ci --ignore-scripts --no-fund
+          cmp editor-lab/package-lock.json ".github/ci/editor-lab/$CANDIDATE/package-lock.json"
+          npm --prefix editor-lab audit --json > editor-audit.json || true
+          node -e 'const a=require("./editor-audit.json"); if(!a.metadata || !a.metadata.vulnerabilities) throw Error("Missing audit result"); console.log("HG_EDITOR_AUDIT "+JSON.stringify(a.metadata))'
+          du -sk editor-lab/node_modules
+          ln -s node_modules/quill editor-lab/quill
+          ln -s node_modules/jodit editor-lab/jodit
+          if [ "$PACKAGE" = "jodit@4.21.0" ]; then
+            wc -c editor-lab/jodit/es2021/jodit.min.{js,css}
+            gzip -c editor-lab/jodit/es2021/jodit.min.js | wc -c
+          else
+            wc -c editor-lab/quill/dist/quill.js editor-lab/quill/dist/quill.snow.css
+            gzip -c editor-lab/quill/dist/quill.js | wc -c
+          fi
+      - name: Compare load and export after editing
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+        run: |
+          php .github/ci/editor-candidate-browser.php "$CANDIDATE" > editor-lab-fixture.html
+          google-chrome --headless --no-sandbox --disable-gpu --disable-background-networking --no-first-run --virtual-time-budget=3000 --dump-dom "file://${GITHUB_WORKSPACE}/editor-lab-fixture.html" > editor-lab-output.html
+          python3 - <<'PY'
+          import html, json, re
+          from pathlib import Path
+          match = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', Path("editor-lab-output.html").read_text(), re.S)
+          if not match: raise SystemExit("Missing browser report")
+          data = json.loads(html.unescape(match.group(1)))
+          exported = data.pop("export_html", None)
+          if exported is not None:
+              Path("editor-export.html").write_text(exported)
+          print("HG_EDITOR_REPORT " + json.dumps(data, ensure_ascii=False))
+          if data.get("error"): raise SystemExit("Candidate runtime error")
+          if not data.get("baseline_ok") or not data.get("rich_ok"):
+              print("::warning::Candidate loses rich content; not eligible for integration")
+          if data.get("candidate") == "jodit" and not data.get("cell_edit_ok"):
+              raise SystemExit("Jodit merged-cell editing failed")
+          PY
+          if [ "$CANDIDATE" = "jodit" ]; then
+            php -r 'require "app/helpers/html_sanitizer.php"; $clean=hg_sanitize_rich_html(file_get_contents("editor-export.html")); $dom=new DOMDocument(); @$dom->loadHTML("<?xml encoding=\"UTF-8\"?>".$clean, LIBXML_NONET); $x=new DOMXPath($dom); if ($x->query("//table")->length!==1 || $x->query("//td|//th")->length!==4 || $x->query("//th[@colspan=2]")->length!==1 || $x->query("//td[@rowspan=2 and text()=\"YA\"]")->length!==1 || $x->query("//a[@class=\"hg-mention\" and @data-id=42 and @data-type=\"character\"]")->length!==1) exit(1); echo "Server round-trip: OK\n";'
+          fi
+      - name: Test actual pilot adapter with Chromium
+        if: matrix.candidate == 'jodit'
+        run: |
+          node --check assets/js/admin/hg-jodit-editor.js
+          node --check assets/js/hg_mentions.js
+          php .github/ci/jodit-pilot-browser.php > jodit-pilot-fixture.html
+          google-chrome --headless --no-sandbox --disable-gpu --disable-background-networking --no-first-run --virtual-time-budget=5000 --dump-dom "file://${GITHUB_WORKSPACE}/jodit-pilot-fixture.html" > jodit-pilot-output.html
+          python3 - <<'PY'
+          import html, json, re
+          from pathlib import Path
+          m = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', Path("jodit-pilot-output.html").read_text(), re.S)
+          if not m: raise SystemExit("Missing pilot report")
+          data = json.loads(html.unescape(m.group(1)))
+          print("HG_PILOT_REPORT " + json.dumps(data, ensure_ascii=False))
+          if not data.get("ok"): raise SystemExit("Pilot regression failed")
+          PY
+      - name: Test authenticated paste endpoint over isolated HTTP
+        if: matrix.candidate == 'jodit'
+        run: |
+          mkdir -p assets/vendor/jodit/4.21.0
+          cp editor-lab/jodit/es2021/jodit.min.{js,css} assets/vendor/jodit/4.21.0/
+          HG_JODIT_PILOT_MODULES=docs,news,chapters,items,systems,forms,seasons,powers,system_details php -S 127.0.0.1:9876 .github/ci/jodit-paste-http-router.php > /tmp/hg-jodit-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -rf assets/vendor/jodit/4.21.0' EXIT
+          python3 .github/ci/jodit-paste-http-regression.py
+      - name: Package local community assets
+        if: matrix.candidate == 'jodit'
+        run: |
+          node -e 'const a=require("./editor-audit.json");if(a.metadata.vulnerabilities.total!==0)process.exit(1)'
+          mkdir -p jodit-release/assets/vendor/jodit/4.21.0
+          cp editor-lab/jodit/es2021/jodit.min.{js,css} jodit-release/assets/vendor/jodit/4.21.0/
+          find editor-lab/node_modules/jodit -maxdepth 1 -iname 'license*' -type f -exec cp {} jodit-release/assets/vendor/jodit/4.21.0/LICENSE \;
+          test -s jodit-release/assets/vendor/jodit/4.21.0/LICENSE
+          (cd jodit-release && sha256sum assets/vendor/jodit/4.21.0/* > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        if: matrix.candidate == 'jodit'
+        with:
+          name: jodit-4.21.0-local-assets
+          path: jodit-release/
+          if-no-files-found: error

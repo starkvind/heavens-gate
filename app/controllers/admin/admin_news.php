@@ -9,6 +9,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('news', 'csrf_admin_news', $hgRequest);
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/news/admin.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -121,7 +123,7 @@ if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'conte
 		if ($raw === null) {
 			hg_admin_json_error('Noticia no encontrada', 404);
 		}
-		hg_admin_json_success(['content'=>hg_quill_editor_html($raw)]);
+		hg_admin_json_success(['content'=>($joditConfig['enabled'] ? hg_admin_jodit_editor_html($raw, $joditConfig) : hg_quill_editor_html($raw))]);
 	} catch (DomainException $e) {
 		hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
 	} catch (Throwable $e) {
@@ -271,8 +273,7 @@ if ($ajaxSaveDelete) {
 	</tbody>
 </table>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -330,6 +331,10 @@ function esc(s){
 }
 
 function ensureEditor(){
+    if (window.HGJoditConfig.enabled) {
+        if (!newsEditor) newsEditor = window.HGJodit.createForField('news_mensaje', 'news_editor', 'news_toolbar');
+        return newsEditor;
+    }
 	if (!newsEditor && window.Quill) {
 		newsEditor = new Quill('#news_editor', {
 			theme: 'snow',
@@ -360,13 +365,13 @@ async function openNewsModal(id = null){
 			return;
 		}
 	}
-	ensureEditor();
+	try { ensureEditor(); } catch (err) { alert(err.message || 'Editor no disponible'); return; }
 	const modal = document.getElementById('newsModal');
 	document.getElementById('news_id').value = '';
 	document.getElementById('news_autor').value = '';
 	document.getElementById('news_titulo').value = '';
 	document.getElementById('news_mensaje').value = '';
-	if (newsEditor) newsEditor.root.innerHTML = '';
+	if (newsEditor) { if (window.HGJoditConfig.enabled) newsEditor.setHtml(''); else newsEditor.root.innerHTML = ''; }
 
 	if (id) {
 		if (row) {
@@ -375,7 +380,7 @@ async function openNewsModal(id = null){
 			document.getElementById('news_autor').value = row.author || '';
 			document.getElementById('news_titulo').value = row.title || '';
 			document.getElementById('news_mensaje').value = msg;
-			if (newsEditor) newsEditor.root.innerHTML = msg;
+			if (newsEditor) { if (window.HGJoditConfig.enabled) newsEditor.setHtml(msg); else newsEditor.root.innerHTML = msg; }
 		}
 	} else {
 		document.getElementById('newsModalTitle').textContent = 'Nueva noticia';
@@ -384,6 +389,8 @@ async function openNewsModal(id = null){
 }
 
 function closeNewsModal(){
+    if (window.HGJoditConfig.enabled && newsEditor) { newsEditor.destroy(); newsEditor = null; }
+    
 	newsEditGeneration++;
 	document.getElementById('newsModal').style.display = 'none';
 }
@@ -458,7 +465,12 @@ function applyQuickFilter(){
 
 document.getElementById('newsForm').addEventListener('submit', function(ev){
 	ev.preventDefault();
-	if (newsEditor) {
+	if (window.HGJoditConfig.enabled) {
+        try {
+            if (!newsEditor) throw new Error('Editor no disponible; no se ha guardado.');
+            newsEditor.sync();
+        } catch (err) { alert(err.message); return; }
+    } else if (newsEditor) {
 		const html = newsEditor.root.innerHTML || '';
 		const plain = (newsEditor.getText() || '').replace(/\s+/g,' ').trim();
 		document.getElementById('news_mensaje').value = plain ? html : '';

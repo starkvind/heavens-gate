@@ -10,6 +10,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('system_details', 'csrf_admin_system_details', $hgRequest);
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
 include_once(__DIR__ . '/../../domains/systems/admin_details.php');
@@ -465,7 +467,7 @@ if (hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
         $selectedMeta = meta_for($link, $selectedTab, $opts_origins, $opts_systems, $energyBridgeSupport);
         $fields = hg_system_details_admin_rich_content($link, $selectedMeta, $id);
         if ($fields === null) hg_admin_json_error('Registro no encontrado', 404);
-        foreach ($fields as $key => $value) $fields[$key] = hg_quill_editor_html((string)$value);
+        foreach ($fields as $key => $value) $fields[$key] = ($joditConfig['enabled'] ? hg_admin_jodit_editor_html((string)$value, $joditConfig) : hg_quill_editor_html((string)$value));
         hg_admin_json_success(['fields'=>$fields]);
     } catch (DomainException $e) {
         hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
@@ -695,8 +697,7 @@ admin_panel_open('Detalles de sistemas', $actions);
   </div>
 </div>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -757,10 +758,18 @@ function pickOptsForField(fieldKey){
 var QUILL_MAP = {};
 
 function resetEditors(){
+  if (window.HGJoditConfig.enabled) Object.values(QUILL_MAP).forEach(function(editor){editor.destroy();});
   QUILL_MAP = {};
 }
 
 function initEditors(){
+  if (window.HGJoditConfig.enabled) {
+    document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
+      var id=wrap.getAttribute('data-ta');
+      if (!QUILL_MAP[id]) QUILL_MAP[id]=window.HGJodit.createForField(id,wrap.getAttribute('data-editor'),wrap.getAttribute('data-toolbar'),HG_MENTION_TYPES);
+    });
+    return;
+  }
   if (typeof Quill === 'undefined') return;
   document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
     var taId = wrap.getAttribute('data-ta');
@@ -782,6 +791,14 @@ function initEditors(){
 }
 
 function syncEditorsToTextarea(){
+  if (window.HGJoditConfig.enabled) {
+    document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
+      var id=wrap.getAttribute('data-ta');
+      if (!QUILL_MAP[id]) throw new Error('Editor no disponible; no se ha guardado.');
+      QUILL_MAP[id].sync();
+    });
+    return;
+  }
   Object.keys(QUILL_MAP).forEach(function(taId){
     var q = QUILL_MAP[taId];
     var textarea = document.getElementById(taId);
@@ -1182,7 +1199,7 @@ function syncEditorsToTextarea(){
     });
 
     bindEnergyBridgeEditor(activeRow);
-    initEditors();
+    try { initEditors(); } catch (err) { resetEditors(); mb.style.display='none'; alert(err.message); return; }
     document.getElementById('modalTitle').textContent = (action==='create'?'Nuevo - ':'Editar - ') + (META.title||'');
     mb.style.display = 'flex';
   }
@@ -1227,9 +1244,7 @@ function syncEditorsToTextarea(){
   window.closeSystemDetailsModal = closeModal;
   window.closeSystemDetailsDelete = closeDelete;
 
-  document.getElementById('formCrud').addEventListener('submit', function(ev){
-    syncEditorsToTextarea();
-  });
+  // Synchronization is performed by the AJAX submit handler below.
 
   function normalizeImgPath(p){
     var v = String(p || '');
@@ -1417,6 +1432,7 @@ function syncEditorsToTextarea(){
   if (formCrud) {
     formCrud.addEventListener('submit', function(ev){
       ev.preventDefault();
+      try { syncEditorsToTextarea(); } catch (err) { alert(err.message); return; }
       var fd = new FormData(formCrud);
       fd.set('ajax', '1');
       request(currentActionUrl().toString(), {

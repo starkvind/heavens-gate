@@ -8,6 +8,8 @@ include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('seasons', 'csrf_admin_seasons', $hgRequest);
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
 include_once(__DIR__ . '/../../domains/chapters/admin_seasons.php');
@@ -77,7 +79,7 @@ if (hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
             hg_admin_json_error('Temporada no encontrada', 404);
         }
         foreach ($row as $key => $value) {
-            $row[$key] = hg_quill_editor_html((string)$value);
+            $row[$key] = ($joditConfig['enabled'] ? hg_admin_jodit_editor_html((string)$value, $joditConfig) : hg_quill_editor_html((string)$value));
         }
         hg_admin_json_success(['fields'=>$row]);
     } catch (DomainException $e) {
@@ -405,8 +407,7 @@ unset($row);
     </tbody>
 </table>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <script>
 const seasonsData = <?= json_encode($rowsFull, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -414,6 +415,11 @@ const SEASON_MENTION_TYPES = ['character','season','episode','organization','gro
 const seasonEditors = {};
 
 function ensureSeasonEditor(key){
+    if (window.HGJoditConfig.enabled) {
+        if (!document.getElementById('season_'+key)) return null;
+        if (!seasonEditors[key]) seasonEditors[key] = window.HGJodit.createForField('season_'+key,'season_'+key+'_editor','season_'+key+'_toolbar',SEASON_MENTION_TYPES);
+        return seasonEditors[key];
+    }
     if (seasonEditors[key] || !window.Quill) return seasonEditors[key] || null;
     const editorSel = `#season_${key}_editor`;
     const toolbarSel = `#season_${key}_toolbar`;
@@ -436,13 +442,21 @@ function setSeasonEditorHtml(key, html){
     const ta = document.getElementById(`season_${key}`);
     if (ta) ta.value = html || '';
     const q = ensureSeasonEditor(key);
-    if (q) q.root.innerHTML = html || '';
+    if (q) {
+        if (window.HGJoditConfig.enabled) q.setHtml(html || '');
+        else q.root.innerHTML = html || '';
+    }
 }
 
 function syncSeasonEditorToTextarea(key){
     const ta = document.getElementById(`season_${key}`);
     if (!ta) return;
     const q = seasonEditors[key];
+    if (window.HGJoditConfig.enabled) {
+        if (!q) throw new Error('Editor no disponible; no se ha guardado.');
+        q.sync();
+        return;
+    }
     if (!q) return;
     const html = q.root.innerHTML || '';
     const plain = (q.getText() || '').replace(/\s+/g, ' ').trim();
@@ -473,7 +487,7 @@ async function openSeasonModal(id = null){
             return;
         }
     }
-    ensureSeasonEditors();
+    try { ensureSeasonEditors(); } catch (err) { closeSeasonModal(); alert(err.message); return; }
     const modal = document.getElementById('seasonModal');
     document.getElementById('season_action').value = 'create';
     document.getElementById('season_id').value = '0';
@@ -514,6 +528,7 @@ async function openSeasonModal(id = null){
 }
 
 function closeSeasonModal(){
+    if (window.HGJoditConfig.enabled) Object.keys(seasonEditors).forEach(function(key){seasonEditors[key].destroy();delete seasonEditors[key];});
     seasonEditGeneration++;
     document.getElementById('seasonModal').style.display = 'none';
 }
@@ -534,10 +549,12 @@ document.addEventListener('keydown', function(e){
     }
 });
 
-document.getElementById('seasonForm').addEventListener('submit', function(){
-    syncSeasonEditorToTextarea('description');
-    syncSeasonEditorToTextarea('opening');
-    syncSeasonEditorToTextarea('main_cast');
+document.getElementById('seasonForm').addEventListener('submit', function(ev){
+    try {
+        syncSeasonEditorToTextarea('description');
+        syncSeasonEditorToTextarea('opening');
+        syncSeasonEditorToTextarea('main_cast');
+    } catch (err) { ev.preventDefault(); alert(err.message); }
 });
 </script>
 

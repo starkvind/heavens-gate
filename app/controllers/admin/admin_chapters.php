@@ -10,6 +10,8 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('chapters', 'csrf_admin_chapters', $hgRequest);
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
 include_once(__DIR__ . '/../../domains/chapters/admin.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
@@ -119,7 +121,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             if ($row === null) {
                 hg_admin_json_error('Capítulo no encontrado', 404);
             }
-            hg_admin_json_success(['content' => hg_quill_editor_html((string)($row['synopsis'] ?? ''))]);
+            hg_admin_json_success(['content' => ($joditConfig['enabled'] ? hg_admin_jodit_editor_html((string)($row['synopsis'] ?? ''), $joditConfig) : hg_quill_editor_html((string)($row['synopsis'] ?? '')))]);
         } catch (DomainException $e) {
             hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
         } catch (Throwable $e) {
@@ -448,8 +450,7 @@ admin_panel_open('Capítulos', $actions);
     </div>
 </div>
 
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
 $adminHttpJsVer = @filemtime($_SERVER['DOCUMENT_ROOT'] . $adminHttpJs) ?: time();
@@ -555,6 +556,10 @@ function upsertChapter(row){
 }
 
 function ensureChapterSynopsisEditor(){
+    if (window.HGJoditConfig.enabled) {
+        if (!chapterSynopsisEditor) chapterSynopsisEditor = window.HGJodit.createForField('f_synopsis', 'chapter_synopsis_editor', 'chapter_synopsis_toolbar');
+        return chapterSynopsisEditor;
+    }
     if (chapterSynopsisEditor || !window.Quill) return chapterSynopsisEditor;
     const editor = document.getElementById('chapter_synopsis_editor');
     const toolbar = document.getElementById('chapter_synopsis_toolbar');
@@ -626,7 +631,7 @@ async function openChapterModal(id){
             return;
         }
     }
-    ensureChapterSynopsisEditor();
+    try { ensureChapterSynopsisEditor(); } catch (err) { alert(err.message || 'Editor no disponible'); return; }
     currentId = requestedId;
     pendingRelations = [];
     syncPendingField();
@@ -644,7 +649,7 @@ async function openChapterModal(id){
     if (imageRemove) imageRemove.checked = false;
     document.getElementById('relationRoleSelect').value = 'npc';
     document.getElementById('f_synopsis').value = synopsisHtml;
-    if (chapterSynopsisEditor) chapterSynopsisEditor.root.innerHTML = synopsisHtml;
+    if (chapterSynopsisEditor) { if (window.HGJoditConfig.enabled) chapterSynopsisEditor.setHtml(synopsisHtml); else chapterSynopsisEditor.root.innerHTML = synopsisHtml; }
     document.getElementById('chapterModalTitle').textContent = c ? 'Editar capitulo' : 'Nuevo capitulo';
 
     document.getElementById('chapterModalBack').style.display = 'flex';
@@ -652,6 +657,8 @@ async function openChapterModal(id){
 }
 
 function closeChapterModal(){
+    if (window.HGJoditConfig.enabled && chapterSynopsisEditor) { chapterSynopsisEditor.destroy(); chapterSynopsisEditor = null; }
+    
     chapterEditGeneration++;
     document.getElementById('chapterModalBack').style.display = 'none';
 }
@@ -790,7 +797,12 @@ document.getElementById('seasonFilter').addEventListener('change', () => { page 
 document.getElementById('btnAddRel').addEventListener('click', addRelation);
 document.getElementById('chapterForm').addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    if (chapterSynopsisEditor) {
+    if (window.HGJoditConfig.enabled) {
+        try {
+            if (!chapterSynopsisEditor) throw new Error('Editor no disponible; no se ha guardado.');
+            chapterSynopsisEditor.sync();
+        } catch (err) { alert(err.message); return; }
+    } else if (chapterSynopsisEditor) {
         const html = chapterSynopsisEditor.root.innerHTML || '';
         const plain = (chapterSynopsisEditor.getText() || '').replace(/\s+/g, ' ').trim();
         document.getElementById('f_synopsis').value = plain ? html : '';

@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "quill": "2.0.3"
+  }
+}
