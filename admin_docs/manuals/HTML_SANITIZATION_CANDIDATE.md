@@ -27,4 +27,4 @@ Omitir --only para recorrer el inventario provisional de campos; --batch admite 
 
 - Inventario, Sistemas y Formas: entradas enriquecidas, carga del editor bajo demanda y salidas públicas saneadas. Los listados ya no incluyen los cuerpos HTML. En Inventario, si falla la sanitización no se inicia la subida ni el borrado de imágenes. Las descripciones de recursos también se filtran al mostrarse, pero su escritura sigue pendiente.
 
-- Temporadas, Poderes y Detalles de sistemas: guardado y carga individual de campos enriquecidos, y protección de salidas públicas identificadas. Temporadas conserva una descripción para el filtro del listado en servidor, pero no envía cuerpos a JavaScript. La integración requiere también el PR #91 (CSRF de temporadas); no desplegar este PR por separado sin dicha protección.
+- Temporadas, Poderes y Detalles de sistemas: guardado y carga individual de campos enriquecidos, y protección de salidas públicas identificadas. Temporadas conserva una descripción para el filtro del listado en servidor, pero no envía cuerpos a JavaScript. La rama incorpora el commit del PR #91 (CSRF de temporadas) y su regresión, sin fusionar en master.
