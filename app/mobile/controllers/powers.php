@@ -3,6 +3,7 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/powers/gift_relationships.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
@@ -359,7 +360,7 @@ function hg_mpw_render_detail(mysqli $db, string $kind, array $data): void
         </section>
 
         <?php foreach (($data['sections'] ?? []) as $section): ?>
-            <?php $html = (string)($section[1] ?? ''); if (trim(strip_tags($html)) === '') continue; ?>
+            <?php $html = hg_render_rich_html((string)($section[1] ?? '')); if (trim(strip_tags($html)) === '') continue; ?>
             <section class="hg-mobile-section hg-mobile-prose hg-mobile-rich-body"><h2><?= hg_mpw_h($section[0] ?? '') ?></h2><?= $html ?></section>
         <?php endforeach; ?>
 

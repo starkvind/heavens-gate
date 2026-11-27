@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 
 $ritePageID = (int)hg_request_param($hgRequest, 'rite');
 $resultQueryRite = hg_powers_fetch_rite($link, $ritePageID);
@@ -10,11 +11,12 @@ if ($resultQueryRite) {
     $riteType   = htmlspecialchars($resultQueryRite["kind"]);
     $riteLevel  = htmlspecialchars($resultQueryRite["level"]);
     $riteBreed  = htmlspecialchars($resultQueryRite["race"]);
-    $riteDesc   = $resultQueryRite["description"] ?? '';
+    $riteDesc   = hg_render_rich_html((string)($resultQueryRite["description"] ?? ''));
     $riteSystemRules = $resultQueryRite["system_text"];
     $riteSystemName  = htmlspecialchars($resultQueryRite["resolved_system_name"] ?? "");
     $riteSistemaLegacy = trim((string)($resultQueryRite["system_name"] ?? ""));
     if (trim((string)$riteSystemRules) === '' && $riteSistemaLegacy !== '') { $riteSystemRules = $riteSistemaLegacy; }
+    $riteSystemRules = hg_render_rich_html((string)$riteSystemRules);
     $riteOrigin = htmlspecialchars($resultQueryRite["bibliography_id"]);
     $riteImgRaw = trim((string)($resultQueryRite["image_url"] ?? ""));
     $riteOriginName = htmlspecialchars((string)($resultQueryRite['origin_name'] ?? '-'));
