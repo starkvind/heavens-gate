@@ -1,0 +1,66 @@
+name: Editor compatibility laboratory
+on:
+  push:
+    paths:
+      - '.github/ci/editor-candidate-browser.php'
+      - '.github/workflows/editor-compatibility.yml'
+  pull_request:
+    paths:
+      - '.github/ci/editor-candidate-browser.php'
+      - '.github/workflows/editor-compatibility.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - candidate: quill2
+            package: quill@2.0.3
+          - candidate: jodit
+            package: jodit@4.21.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install sanitizer
+        working-directory: app/security
+        run: composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+      - name: Install isolated editor candidate and record audit
+        env:
+          PACKAGE: ${{ matrix.package }}
+        run: |
+          mkdir -p editor-lab
+          npm --prefix editor-lab init -y
+          npm --prefix editor-lab install --save-exact --ignore-scripts --no-fund "$PACKAGE"
+          npm --prefix editor-lab audit --json > editor-audit.json || true
+          node -e 'const a=require("./editor-audit.json"); console.log("HG_EDITOR_AUDIT "+JSON.stringify(a.metadata||a.error||{}))'
+          du -sk editor-lab/node_modules
+          ln -s node_modules/quill editor-lab/quill
+          ln -s node_modules/jodit editor-lab/jodit
+      - name: Compare load and export after editing
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+        run: |
+          php .github/ci/editor-candidate-browser.php "$CANDIDATE" > editor-lab-fixture.html
+          google-chrome --headless --no-sandbox --disable-gpu --disable-background-networking --no-first-run --virtual-time-budget=3000 --dump-dom "file://${GITHUB_WORKSPACE}/editor-lab-fixture.html" > editor-lab-output.html
+          python3 - <<'PY'
+          import html, json, re
+          from pathlib import Path
+          match = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', Path("editor-lab-output.html").read_text(), re.S)
+          if not match: raise SystemExit("Missing browser report")
+          data = json.loads(html.unescape(match.group(1)))
+          print("HG_EDITOR_REPORT " + json.dumps(data, ensure_ascii=False))
+          if data.get("error"): raise SystemExit("Candidate runtime error")
+          if not data.get("baseline_ok") or not data.get("rich_ok"):
+              print("::warning::Candidate loses rich content; not eligible for integration")
+          PY
