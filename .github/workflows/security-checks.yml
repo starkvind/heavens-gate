@@ -45,6 +45,9 @@ jobs:
       - name: Characterize Camazotz publication context
         run: php .github/ci/php-camazotz-publication-characterization.php
 
+      - name: Validate season admin CSRF regression
+        run: php .github/ci/php-admin-seasons-csrf-regression.php
+
       - name: Validate production smoke runner
         shell: bash
         run: |
