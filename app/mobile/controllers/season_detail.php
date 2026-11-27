@@ -3,6 +3,7 @@
 include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chapters/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 require_once(__DIR__ . '/../../domains/soundtracks/queries.php');
 
 $metaTitle = "Temporada | Heaven's Gate";
@@ -153,15 +154,15 @@ if ($kind === 'temporada' && $number > 0) {
     </section>
 
     <?php if (trim(strip_tags((string)($season['opening'] ?? ''))) !== ''): ?>
-        <section class="hg-mobile-section hg-mobile-prose"><h2>Opening</h2><?= (string)$season['opening'] ?></section>
+        <section class="hg-mobile-section hg-mobile-prose"><h2>Opening</h2><?= hg_render_rich_html((string)$season['opening']) ?></section>
     <?php endif; ?>
 
     <?php if (trim(strip_tags((string)($season['description'] ?? ''))) !== ''): ?>
-        <section class="hg-mobile-section hg-mobile-prose"><h2>Sinopsis</h2><?= (string)$season['description'] ?></section>
+        <section class="hg-mobile-section hg-mobile-prose"><h2>Sinopsis</h2><?= hg_render_rich_html((string)$season['description']) ?></section>
     <?php endif; ?>
 
     <?php if (trim(strip_tags((string)($season['main_cast'] ?? ''))) !== ''): ?>
-        <section class="hg-mobile-section hg-mobile-prose"><h2>Reparto principal</h2><?= (string)$season['main_cast'] ?></section>
+        <section class="hg-mobile-section hg-mobile-prose"><h2>Reparto principal</h2><?= hg_render_rich_html((string)$season['main_cast']) ?></section>
     <?php endif; ?>
 
     <?php if (!empty($seasonCharacters)): ?>
