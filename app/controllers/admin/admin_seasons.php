@@ -63,8 +63,15 @@ $actions = '<span class="adm-flex-right-8">'
 admin_panel_open('Temporadas', $actions);
 
 $flash = [];
+$seasonCsrfKey = 'csrf_admin_seasons';
+$seasonCsrf = hg_admin_ensure_csrf_token($seasonCsrfKey);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
+$isSeasonCrudPost = $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']);
+$submittedSeasonCsrf = $_POST['csrf'] ?? '';
+if ($isSeasonCrudPost && (!is_string($submittedSeasonCsrf) || !hg_admin_csrf_valid($submittedSeasonCsrf, $seasonCsrfKey))) {
+    if (!headers_sent()) { http_response_code(403); }
+    $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
+} elseif ($isSeasonCrudPost) {
     $action = (string)($_POST['crud_action'] ?? '');
     $id = (int)($_POST['id'] ?? 0);
     $currentImage = ($hasImageUrl && $id > 0) ? hg_seasons_admin_current_image($link, $id) : '';
@@ -194,6 +201,7 @@ $rowsFull = $rows;
     <div class="modal">
         <h3 id="seasonModalTitle">Nueva temporada</h3>
         <form method="post" id="seasonForm" enctype="multipart/form-data">
+            <input type="hidden" name="csrf" value="<?= h($seasonCsrf) ?>">
             <input type="hidden" name="crud_action" id="season_action" value="create">
             <input type="hidden" name="id" id="season_id" value="0">
             <div class="modal-body">
@@ -296,6 +304,7 @@ $rowsFull = $rows;
             Se eliminará la temporada y puede afectar al archivo de capítulos.
         </div>
         <form method="post" id="seasonDeleteForm" class="adm-m-0">
+            <input type="hidden" name="csrf" value="<?= h($seasonCsrf) ?>">
             <input type="hidden" name="crud_action" value="delete">
             <input type="hidden" name="id" id="season_delete_id" value="0">
             <div class="modal-actions">
