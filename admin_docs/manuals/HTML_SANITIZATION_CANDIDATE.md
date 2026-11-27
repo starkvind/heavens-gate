@@ -26,3 +26,5 @@ Omitir --only para recorrer el inventario provisional de campos; --batch admite 
 - Capítulos: dos rutas de escritura saneadas; el editor pide el contenido de un único capítulo por AJAX autenticado y con CSRF, en lugar de transportar todas las sinopsis. Salidas públicas de escritorio y móvil saneadas y JSON inicial protegido con flags HEX. Las relaciones e imágenes mantienen sus rutas existentes.
 
 - Inventario, Sistemas y Formas: entradas enriquecidas, carga del editor bajo demanda y salidas públicas saneadas. Los listados ya no incluyen los cuerpos HTML. En Inventario, si falla la sanitización no se inicia la subida ni el borrado de imágenes. Las descripciones de recursos también se filtran al mostrarse, pero su escritura sigue pendiente.
+
+- Temporadas, Poderes y Detalles de sistemas: guardado y carga individual de campos enriquecidos, y protección de salidas públicas identificadas. Temporadas conserva una descripción para el filtro del listado en servidor, pero no envía cuerpos a JavaScript. La integración requiere también el PR #91 (CSRF de temporadas); no desplegar este PR por separado sin dicha protección.

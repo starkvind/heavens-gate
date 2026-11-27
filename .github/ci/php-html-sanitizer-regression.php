@@ -80,4 +80,16 @@ foreach (['app/controllers/docs/item_page.php', 'app/mobile/controllers/inventor
     'app/mobile/controllers/systems.php'] as $path) {
     check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing rich render guard: ' . $path);
 }
+foreach (['seasons','powers','system_details'] as $section) {
+    $source = file_get_contents($root . '/app/controllers/admin/admin_' . $section . '.php');
+    check_rich_html(str_contains($source, 'hg_prepare_rich_html('), 'Missing write guard: ' . $section);
+    check_rich_html(str_contains($source, 'hg_sanitize_rich_html('), 'Missing editor guard: ' . $section);
+    check_rich_html(str_contains($source, "searchParams.set('id', String(id))"), 'Missing selected record request: ' . $section);
+}
+foreach (['app/controllers/chapters/season_archive.php','app/mobile/controllers/season_detail.php',
+    'app/controllers/pwrs/don_page.php','app/controllers/pwrs/rite_page.php','app/controllers/pwrs/totm_page.php',
+    'app/controllers/pwrs/disc_page.php','app/mobile/controllers/powers.php',
+    'app/controllers/systems/system_detail_page.php'] as $path) {
+    check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing render guard: ' . $path);
+}
 echo "HTML sanitizer candidate regression: OK\n";

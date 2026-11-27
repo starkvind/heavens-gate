@@ -259,7 +259,7 @@ if ($route === 'versistdetalle') {
     $systemId = (int)($detail['system_id'] ?? 0);
     $detailPublication = hg_camazotz_publication_for($link, $table, $detailId,
         hg_camazotz_publication_eligible($systemId, hg_camazotz_publication_requested($hgRequest)));
-    $description = (string)($detail['description'] ?? '');
+    $description = hg_render_rich_html((string)($detail['description'] ?? ''));
     $image = hg_mobile_sys_image($detail['image_url'] ?? '');
     $metaTitle = $name . " | Sistemas | Heaven's Gate";
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
