@@ -12,7 +12,7 @@ Piloto en documentos: guardado administrativo, apertura individual del editor y 
 - Caché opcional: directorio privado y escribible por PHP-FPM, nunca bajo una ruta pública. Medir uso en Raspberry antes de activarla.
 - No cambia Quill, base de datos ni producción. No fusionar hasta validar CI, corpus y despliegue de la dependencia. El listado ya no transfiere cuerpos completos; el editor solicita un documento saneado. La conversión regex de menciones sigue pendiente de refactor; también la comprobación de ida y vuelta de tablas en Quill. El límite y la política de formatos no están aprobados para producción.
 
-- Piloto ampliado a Noticias: escritura saneada, lectura individual autenticada y salida pública. Los listados no transportan cuerpos. En Documentos y Noticias las nuevas menciones se convierten únicamente en nodos de texto mediante DOM (requiere php-xml); no en enlaces existentes, atributos ni bloques de código. Las demás rutas conservan temporalmente el conversor antiguo.
+- Piloto ampliado a Noticias: escritura saneada, lectura individual autenticada y salida pública. Los listados no transportan cuerpos. En Documentos y Noticias las nuevas menciones se convierten únicamente en nodos de texto mediante DOM (requiere php-xml); no en enlaces existentes, atributos ni bloques de código. La integración se ha ampliado a los demás módulos identificados.
 
 ## Inventario histórico sin escritura
 
@@ -25,6 +25,8 @@ Omitir --only para recorrer el inventario provisional de campos; --batch admite 
 
 - Capítulos: dos rutas de escritura saneadas; el editor pide el contenido de un único capítulo por AJAX autenticado y con CSRF, en lugar de transportar todas las sinopsis. Salidas públicas de escritorio y móvil saneadas y JSON inicial protegido con flags HEX. Las relaciones e imágenes mantienen sus rutas existentes.
 
-- Inventario, Sistemas y Formas: entradas enriquecidas, carga del editor bajo demanda y salidas públicas saneadas. Los listados ya no incluyen los cuerpos HTML. En Inventario, si falla la sanitización no se inicia la subida ni el borrado de imágenes. Las descripciones de recursos también se filtran al mostrarse, pero su escritura sigue pendiente.
+- Inventario, Sistemas y Formas: entradas enriquecidas, carga del editor bajo demanda y salidas públicas saneadas. Los listados ya no incluyen los cuerpos HTML. En Inventario, si falla la sanitización no se inicia la subida ni el borrado de imágenes. Las descripciones de recursos se filtran al mostrarse y al guardar.
 
 - Temporadas, Poderes y Detalles de sistemas: guardado y carga individual de campos enriquecidos, y protección de salidas públicas identificadas. Temporadas conserva una descripción para el filtro del listado en servidor, pero no envía cuerpos a JavaScript. La rama incorpora el commit del PR #91 (CSRF de temporadas) y su regresión, sin fusionar en master.
+
+- Biografías, rasgos, méritos/defectos y recursos: saneamiento de escrituras y de salidas públicas identificadas. No se modifica el tipo de editor textarea; el HTML no se inserta como DOM al cargar dichos formularios. Los niveles de rasgos se sanean antes de su transformación visual en gemas. Pendiente revisar otros consumidores, el corpus real y la preservación de formatos.

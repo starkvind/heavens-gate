@@ -92,4 +92,14 @@ foreach (['app/controllers/chapters/season_archive.php','app/mobile/controllers/
     'app/controllers/systems/system_detail_page.php'] as $path) {
     check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing render guard: ' . $path);
 }
+foreach (['characters','traits','merits_flaws','resources'] as $section) {
+    $source = file_get_contents($root . '/app/controllers/admin/admin_' . $section . '.php');
+    check_rich_html(str_contains($source, 'hg_prepare_rich_html('), 'Missing rich write guard: ' . $section);
+    check_rich_html(!str_contains($source, 'hg_mentions_convert('), 'Legacy regex still used: ' . $section);
+}
+foreach (['app/controllers/bio/bio_page_prepare.php','app/mobile/controllers/character_detail_data.php',
+    'app/controllers/docs/traits_page.php','app/controllers/docs/merfla_page.php',
+    'app/mobile/controllers/rules.php'] as $path) {
+    check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing render guard: ' . $path);
+}
 echo "HTML sanitizer candidate regression: OK\n";
