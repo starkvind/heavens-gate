@@ -1,0 +1,6 @@
+# Sample for an isolated staging HTTPS VirtualHost only.
+# Copy to the staging configuration explicitly; do not enable in production.
+# No collector: inspect browser console locally; no remote reports or private data.
+<IfModule mod_headers.c>
+    Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' https: blob:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+</IfModule>
