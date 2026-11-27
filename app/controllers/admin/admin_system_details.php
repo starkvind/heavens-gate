@@ -9,6 +9,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/system_energy_resource.php');
 include_once(__DIR__ . '/../../domains/systems/admin_details.php');
@@ -285,8 +286,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         foreach ($M['fields'] as $f) {
             $k = $f['k'];
             $ui = $f['ui'] ?? '';
-            if (($ui === 'wysiwyg' || $ui === 'textarea') && isset($vals[$k])) {
-                $vals[$k] = hg_mentions_convert($link, $vals[$k]);
+            if ($action !== 'delete' && ($ui === 'wysiwyg' || $ui === 'textarea') && isset($vals[$k])) {
+                try {
+                    $vals[$k] = hg_prepare_rich_html($vals[$k],
+                        static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+                } catch (Throwable $e) {
+                    hg_runtime_log_error('admin.system_details.sanitize', get_class($e));
+                    $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+                }
             }
         }
 
@@ -448,6 +455,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
     }
 }
 
+if (hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') hg_admin_json_error('Método no permitido', 405);
+    $selectedTab = hg_request_query_param($hgRequest, 'tab');
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+    if (!in_array($selectedTab, $tabsAllowed, true) || $id === false) hg_admin_json_error('Registro inválido', 400);
+    try {
+        $selectedMeta = meta_for($link, $selectedTab, $opts_origins, $opts_systems, $energyBridgeSupport);
+        $fields = hg_system_details_admin_rich_content($link, $selectedMeta, $id);
+        if ($fields === null) hg_admin_json_error('Registro no encontrado', 404);
+        foreach ($fields as $key => $value) $fields[$key] = hg_quill_editor_html((string)$value);
+        hg_admin_json_success(['fields'=>$fields]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.system_details.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir el registro de forma segura.', 503);
+    }
+}
 if (($_GET['ajax'] ?? '') === 'list') {
     if (function_exists('hg_admin_require_session')) {
         hg_admin_require_session(true);
@@ -1087,13 +1113,32 @@ function syncEditorsToTextarea(){
     return wrap;
   }
 
-  function openModal(action, id){
+  var detailEditGeneration = 0;
+  async function openModal(action, id){
+    var generation = ++detailEditGeneration;
+    var activeRow = null;
+    if (action === 'update') {
+      var original = ROWMAP[String(id)];
+      if (!original) return;
+      var url = currentActionUrl();
+      url.searchParams.set('ajax', '1');
+      url.searchParams.set('ajax_mode', 'content');
+      url.searchParams.set('id', String(id));
+      try {
+        var payload = await request(url.toString(), {method:'GET'});
+        if (!payload || !payload.ok || !payload.data || !payload.data.fields) throw new Error((payload && (payload.message || payload.error)) || 'Contenido no disponible');
+        if (generation !== detailEditGeneration) return;
+        activeRow = Object.assign({}, original, payload.data.fields);
+      } catch (err) {
+        if (generation === detailEditGeneration) alert(err.message || 'Error al abrir registro');
+        return;
+      }
+    }
     resetEditors();
     grid.innerHTML = '';
     document.getElementById('crud_action').value = action;
     document.getElementById('crud_tab').value = TAB;
     document.getElementById('f_id').value = id || 0;
-    var activeRow = (action === 'update' && id && ROWMAP[String(id)]) ? ROWMAP[String(id)] : null;
 
     (META.fields||[]).forEach(function(f){
       var field = buildField(f);
@@ -1143,6 +1188,7 @@ function syncEditorsToTextarea(){
   }
 
   function closeModal(){
+    detailEditGeneration++;
     resetEditors();
     mb.style.display = 'none';
     grid.innerHTML='';

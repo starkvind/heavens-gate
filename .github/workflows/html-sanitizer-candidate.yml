@@ -1,0 +1,194 @@
+name: HTML Sanitizer Candidate
+on:
+  push:
+    paths:
+      - 'app/security/**'
+      - 'app/helpers/html_sanitizer.php'
+      - 'assets/vendor/quill/**'
+      - '.github/ci/quill-roundtrip-browser.php'
+      - 'app/controllers/tool/csp_board.php'
+      - 'app/helpers/mentions.php'
+      - 'app/mobile/controllers/rules.php'
+      - 'app/controllers/docs/merfla_page.php'
+      - 'app/controllers/docs/traits_page.php'
+      - 'app/mobile/controllers/character_detail_data.php'
+      - 'app/controllers/bio/bio_page_prepare.php'
+      - 'app/controllers/admin/admin_resources.php'
+      - 'app/controllers/admin/admin_merits_flaws.php'
+      - 'app/controllers/admin/admin_traits.php'
+      - 'app/controllers/admin/admin_characters.php'
+      - 'app/mobile/controllers/powers.php'
+      - 'app/controllers/pwrs/disc_page.php'
+      - 'app/controllers/pwrs/totm_page.php'
+      - 'app/controllers/pwrs/rite_page.php'
+      - 'app/controllers/pwrs/don_page.php'
+      - 'app/domains/powers/admin.php'
+      - 'app/controllers/admin/admin_powers.php'
+      - 'app/mobile/controllers/season_detail.php'
+      - 'app/controllers/chapters/season_archive.php'
+      - 'app/domains/chapters/admin_seasons.php'
+      - 'app/controllers/admin/admin_seasons.php'
+      - 'app/controllers/systems/system_detail_page.php'
+      - 'app/domains/systems/admin_details.php'
+      - 'app/controllers/admin/admin_system_details.php'
+      - 'app/mobile/controllers/systems.php'
+      - 'app/controllers/systems/system_form_page.php'
+      - 'app/controllers/systems/system_overview_page.php'
+      - 'app/mobile/controllers/inventory.php'
+      - 'app/controllers/docs/item_page.php'
+      - 'app/domains/systems/admin.php'
+      - 'app/domains/inventory/admin.php'
+      - 'app/controllers/admin/admin_forms.php'
+      - 'app/controllers/admin/admin_systems.php'
+      - 'app/controllers/admin/admin_items.php'
+      - 'app/mobile/controllers/chapter_detail.php'
+      - 'app/controllers/chapters/chapter_page.php'
+      - 'app/domains/chapters/admin.php'
+      - 'app/controllers/admin/admin_chapters.php'
+      - 'tools/audit_rich_html.php'
+      - '.github/ci/php-historic-html-inventory.php'
+      - 'app/mobile/controllers/news.php'
+      - 'app/controllers/main/main_news.php'
+      - 'app/domains/news/admin.php'
+      - 'app/controllers/admin/admin_news.php'
+      - 'app/mobile/controllers/documents.php'
+      - 'app/controllers/docs/docs_page.php'
+      - 'app/domains/documents/admin_docs.php'
+      - 'app/controllers/admin/admin_docs.php'
+      - '.github/ci/php-html-sanitizer-regression.php'
+      - '.github/workflows/html-sanitizer-candidate.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'app/security/**'
+      - 'app/helpers/html_sanitizer.php'
+      - 'assets/vendor/quill/**'
+      - '.github/ci/quill-roundtrip-browser.php'
+      - 'app/controllers/tool/csp_board.php'
+      - 'app/helpers/mentions.php'
+      - 'app/mobile/controllers/rules.php'
+      - 'app/controllers/docs/merfla_page.php'
+      - 'app/controllers/docs/traits_page.php'
+      - 'app/mobile/controllers/character_detail_data.php'
+      - 'app/controllers/bio/bio_page_prepare.php'
+      - 'app/controllers/admin/admin_resources.php'
+      - 'app/controllers/admin/admin_merits_flaws.php'
+      - 'app/controllers/admin/admin_traits.php'
+      - 'app/controllers/admin/admin_characters.php'
+      - 'app/mobile/controllers/powers.php'
+      - 'app/controllers/pwrs/disc_page.php'
+      - 'app/controllers/pwrs/totm_page.php'
+      - 'app/controllers/pwrs/rite_page.php'
+      - 'app/controllers/pwrs/don_page.php'
+      - 'app/domains/powers/admin.php'
+      - 'app/controllers/admin/admin_powers.php'
+      - 'app/mobile/controllers/season_detail.php'
+      - 'app/controllers/chapters/season_archive.php'
+      - 'app/domains/chapters/admin_seasons.php'
+      - 'app/controllers/admin/admin_seasons.php'
+      - 'app/controllers/systems/system_detail_page.php'
+      - 'app/domains/systems/admin_details.php'
+      - 'app/controllers/admin/admin_system_details.php'
+      - 'app/mobile/controllers/systems.php'
+      - 'app/controllers/systems/system_form_page.php'
+      - 'app/controllers/systems/system_overview_page.php'
+      - 'app/mobile/controllers/inventory.php'
+      - 'app/controllers/docs/item_page.php'
+      - 'app/domains/systems/admin.php'
+      - 'app/domains/inventory/admin.php'
+      - 'app/controllers/admin/admin_forms.php'
+      - 'app/controllers/admin/admin_systems.php'
+      - 'app/controllers/admin/admin_items.php'
+      - 'app/mobile/controllers/chapter_detail.php'
+      - 'app/controllers/chapters/chapter_page.php'
+      - 'app/domains/chapters/admin.php'
+      - 'app/controllers/admin/admin_chapters.php'
+      - 'tools/audit_rich_html.php'
+      - '.github/ci/php-historic-html-inventory.php'
+      - 'app/mobile/controllers/news.php'
+      - 'app/controllers/main/main_news.php'
+      - 'app/domains/news/admin.php'
+      - 'app/controllers/admin/admin_news.php'
+      - 'app/mobile/controllers/documents.php'
+      - 'app/controllers/docs/docs_page.php'
+      - 'app/domains/documents/admin_docs.php'
+      - 'app/controllers/admin/admin_docs.php'
+      - '.github/ci/php-html-sanitizer-regression.php'
+      - '.github/workflows/html-sanitizer-candidate.yml'
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom
+          tools: composer:v2
+          coverage: none
+      - name: Install locked candidate and check advisories
+        working-directory: app/security
+        run: |
+          composer validate --no-check-publish
+          composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+          composer audit --locked --no-dev
+          git diff --exit-code -- composer.lock
+      - name: Run candidate regression
+        run: |
+          php -l app/helpers/html_sanitizer.php
+          php -l tools/audit_rich_html.php
+          php tools/audit_rich_html.php --self-test
+          php .github/ci/php-html-sanitizer-regression.php
+      - name: Measure current Quill round-trip in Chromium
+        run: |
+          php .github/ci/quill-roundtrip-browser.php > quill-roundtrip-fixture.html
+          trap 'rm -f quill-roundtrip-fixture.html quill-roundtrip-output.html' EXIT
+          google-chrome --headless --no-sandbox --disable-gpu --disable-background-networking --no-first-run --virtual-time-budget=2000 --dump-dom "file://${GITHUB_WORKSPACE}/quill-roundtrip-fixture.html" > quill-roundtrip-output.html
+          python3 - <<'PY'
+          import html
+          import json
+          import re
+          from pathlib import Path
+          page = Path("quill-roundtrip-output.html").read_text()
+          match = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', page, re.S)
+          if not match:
+              raise SystemExit("No browser report")
+          data = json.loads(html.unescape(match.group(1)))
+          print("HG_QUILL_REPORT " + json.dumps(data, ensure_ascii=False))
+          if data.get("error") or not data.get("baseline_ok"):
+              raise SystemExit("Quill baseline failed")
+          if not data.get("rich_ok"):
+              print("::warning::Quill rich round-trip loses structure or mention metadata. Deployment remains blocked by compatibility review.")
+          PY
+  inventory-db:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: hg-ci-only
+          MARIADB_DATABASE: hg_fixture
+          MARIADB_USER: hg_fixture_writer
+          MARIADB_PASSWORD: hg-ci-writer
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, mysqli
+          tools: composer:v2
+          coverage: none
+      - name: Install locked sanitizer
+        working-directory: app/security
+        run: composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+      - name: Verify historical inventory on disposable MariaDB
+        run: php .github/ci/php-historic-html-inventory.php

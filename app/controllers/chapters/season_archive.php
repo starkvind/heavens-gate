@@ -2,7 +2,7 @@
 <?php include_once(__DIR__ . '/../../helpers/character_avatar.php'); ?>
 <?php include_once(__DIR__ . '/../../helpers/content_image.php'); ?>
 <?php include_once(__DIR__ . '/../../helpers/runtime_response.php'); ?>
-<?php require_once(__DIR__ . '/../../domains/chapters/queries.php'); ?>
+<?php require_once(__DIR__ . '/../../domains/chapters/queries.php'); require_once(__DIR__ . '/../../helpers/html_sanitizer.php'); ?>
 <?php if (function_exists('hg_page_register_stylesheet')) { hg_page_register_stylesheet('/assets/css/hg-chapters.css'); } else { ?><link rel="stylesheet" href="/assets/css/hg-chapters.css"><?php } ?>
 
 <?php
@@ -34,7 +34,7 @@ if (!$ResultQuery) {
 
 $nameTemp = (string)($ResultQuery['name'] ?? '');
 $numberTemp = (int)($ResultQuery['season_number'] ?? 0);
-$sinopsis = (string)($ResultQuery['description'] ?? '');
+$sinopsis = hg_render_rich_html((string)($ResultQuery['description'] ?? ''));
 $seasonImage = hg_content_image_url($ResultQuery['image_url'] ?? '');
 $seasonFinished = (int)($ResultQuery['finished'] ?? 0);
 $seasonChronicleId = (int)($ResultQuery['chronicle_id'] ?? 0);

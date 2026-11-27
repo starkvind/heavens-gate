@@ -1,5 +1,5 @@
 <?php setMetaFromPage("Noticias | Heaven's Gate", "Últimas novedades de la campaña Heaven's Gate.", null, 'website'); ?>
-<?php require_once(__DIR__ . '/../../domains/news/queries.php'); ?>
+<?php require_once(__DIR__ . '/../../domains/news/queries.php'); require_once(__DIR__ . '/../../helpers/html_sanitizer.php'); ?>
 <?php include("app/partials/main_nav_bar.php"); // Barra Navegacion ?>
 <?php
 if (function_exists('hg_page_register_stylesheet')) {
@@ -31,7 +31,7 @@ if (function_exists('hg_page_register_stylesheet')) {
 
 		$posts = hg_news_fetch_posts($link, $inicio, $tamano_pagina) ?? [];
 		foreach ($posts as $post) {
-			echo "<tr><td><fieldset class='hg-news-entry'><legend>" . htmlspecialchars($post["title"]) . "</legend><p>" . (($post["message"])) . "</p>\n</fieldset></td></tr>";
+			echo "<tr><td><fieldset class='hg-news-entry'><legend>" . htmlspecialchars($post["title"]) . "</legend><p>" . hg_render_rich_html((string)($post["message"] ?? "")) . "</p>\n</fieldset></td></tr>";
 			echo "<tr><td align='right'>por <b>" . htmlspecialchars($post["author"]) . "</b> el " . htmlspecialchars($post["posted_at"]) . "</td></tr>";
 		}
 	?>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
 $totemPageID = (int)hg_request_param($hgRequest, 'totem');
@@ -12,9 +13,9 @@ if ($resultQueryTotem) {
     $totemPrettyRaw = (string)($resultQueryTotem["pretty_id"] ?? "");
     $totemType  = htmlspecialchars($resultQueryTotem["totem_type_id"] ?? $resultQueryTotem["tipo"] ?? '');
     $totemCost  = htmlspecialchars($resultQueryTotem["cost"]);
-    $totemDesc  = $resultQueryTotem["description"] ?? '';
-    $totemAttr  = $resultQueryTotem["traits"];
-    $totemBan   = $resultQueryTotem["prohibited"];
+    $totemDesc  = hg_render_rich_html((string)($resultQueryTotem["description"] ?? ''));
+    $totemAttr  = hg_render_rich_html((string)($resultQueryTotem["traits"]));
+    $totemBan   = hg_render_rich_html((string)($resultQueryTotem["prohibited"]));
     $totemOrigin = htmlspecialchars($resultQueryTotem["bibliography_id"]);
     $totemImgRaw = trim((string)($resultQueryTotem["image_url"] ?? ""));
     $totemPublication = hg_camazotz_publication_for(

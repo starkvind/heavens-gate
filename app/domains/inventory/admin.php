@@ -91,5 +91,5 @@ function hg_inventory_admin_item_rows(mysqli $link): array {
 }
 
 function hg_inventory_admin_item_rows_full(mysqli $link): array {
-    return hg_inventory_admin_fetch_all($link, 'SELECT * FROM fact_items ORDER BY name ASC');
+    return hg_inventory_admin_fetch_all($link, 'SELECT id, name, item_type_id, bibliography_id, skill_name, level, gnosis, rating, bonus, damage_type, metal, strength_req, dexterity_req, image_url FROM fact_items ORDER BY name ASC');
 }

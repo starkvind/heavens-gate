@@ -227,7 +227,8 @@ if (!function_exists('hg_powers_admin_fetch_rows')) {
             $params[] = '%' . $q . '%';
         }
 
-        $cols = array_map(static fn($field) => "`" . $field['k'] . "`", $meta['fields']);
+        $cols = array_map(static fn($field) => "`" . $field['k'] . "`",
+            array_filter($meta['fields'], static fn($field) => ($field['ui'] ?? '') !== 'textarea'));
         $cols[] = "`{$pk}`";
         $cols = array_values(array_unique($cols));
 
@@ -257,5 +258,37 @@ if (!function_exists('hg_powers_admin_fetch_rows')) {
         while ($row = $result->fetch_assoc()) $rows[] = $row;
         $stmt->close();
         return ['ok' => true, 'rows' => $rows];
+    }
+}
+
+/** Metadata comes exclusively from the controller's fixed tab registry. */
+function hg_powers_admin_rich_content(mysqli $link, array $meta, int $id): ?array
+{
+    $allowed = [
+        'fact_gifts'=>['description','mechanics_text','system_name'],
+        'fact_rites'=>['description','system_text'],
+        'dim_totems'=>['description','traits','prohibited'],
+        'fact_discipline_powers'=>['description','system_name'],
+    ];
+    $table = $meta['table'] ?? '';
+    if (!isset($allowed[$table])) throw new InvalidArgumentException('Unknown power table');
+    $columns = [];
+    foreach ($meta['fields'] as $field) {
+        if (($field['ui'] ?? '') !== 'textarea') continue;
+        $key = $field['k'];
+        if (!in_array($key, $allowed[$table], true)) throw new InvalidArgumentException('Unknown rich field');
+        $columns[] = "`$key`";
+    }
+    if (!$columns) throw new RuntimeException('No rich fields');
+    $st = $link->prepare('SELECT ' . implode(',', $columns) . " FROM `$table` WHERE id = ?");
+    if (!$st) throw new RuntimeException('Power query unavailable');
+    try {
+        $st->bind_param('i', $id);
+        if (!$st->execute()) throw new RuntimeException('Power query failed');
+        $rs = $st->get_result();
+        if (!$rs) throw new RuntimeException('Power result unavailable');
+        return $rs->fetch_assoc();
+    } finally {
+        $st->close();
     }
 }

@@ -59,7 +59,7 @@ function hg_systems_admin_system_save(mysqli $link, int $id, array $d): array {
 }
 
 function hg_systems_admin_system_rows(mysqli $link): array {
-    return hg_systems_admin_fetch_all($link, "SELECT s.id, s.sort_order AS orden, s.name, s.image_url, s.forms AS formas, s.description AS descripcion, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.sort_order, s.name");
+    return hg_systems_admin_fetch_all($link, "SELECT s.id, s.sort_order AS orden, s.name, s.image_url, s.forms AS formas, s.bibliography_id, COALESCE(b.name,'') AS origen_name FROM dim_systems s LEFT JOIN dim_bibliographies b ON s.bibliography_id=b.id ORDER BY s.sort_order, s.name");
 }
 
 function hg_systems_admin_forms_options(mysqli $link): array {
@@ -203,7 +203,7 @@ function hg_systems_admin_form_save(mysqli $link, int $id, array $d): array {
 }
 
 function hg_systems_admin_form_rows(mysqli $link, int $systemId): array {
-    $sql = "SELECT f.id, f.pretty_id, f.description, f.system_id,
+    $sql = "SELECT f.id, f.pretty_id, f.system_id,
                    COALESCE(ds.name,'') AS system_name, f.form AS forma, f.image_url AS imagen,
                    f.weapons AS armas, f.firearms AS armasfuego,
                    COALESCE(str.modifier, 0) AS bonfue,
@@ -677,5 +677,33 @@ function asr_save(mysqli $link, int $systemId, array $rows, array $selected, str
     } catch (Throwable $e) {
         $link->rollback();
         return ['ok' => false, 'message' => 'Error al guardar: ' . $e->getMessage()];
+    }
+}
+
+/** Fetch one rich field; no request-controlled SQL identifiers. */
+function hg_systems_admin_rich_content(mysqli $link, string $kind, int $id): ?string
+{
+    $sql = match ($kind) {
+        'system' => 'SELECT description FROM dim_systems WHERE id = ?',
+        'form' => 'SELECT description FROM dim_forms WHERE id = ?',
+        default => throw new InvalidArgumentException('Unknown content kind'),
+    };
+    $st = $link->prepare($sql);
+    if (!$st) {
+        throw new RuntimeException('Rich content query unavailable');
+    }
+    try {
+        $st->bind_param('i', $id);
+        if (!$st->execute()) {
+            throw new RuntimeException('Rich content query failed');
+        }
+        $rs = $st->get_result();
+        if (!$rs) {
+            throw new RuntimeException('Rich content result unavailable');
+        }
+        $row = $rs->fetch_assoc();
+        return $row === null ? null : (string)($row['description'] ?? '');
+    } finally {
+        $st->close();
     }
 }

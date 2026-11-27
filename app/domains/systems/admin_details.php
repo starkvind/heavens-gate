@@ -242,7 +242,8 @@ if (!function_exists('hg_system_details_admin_fetch_rows')) {
         $sqlFields = hg_system_details_admin_persisted_fields($link, $table, $meta['fields'] ?? []);
         $energySql = hg_ser_energy_sql_parts($link, $table, 't', 'er_admin');
         $from = "`{$table}` t LEFT JOIN dim_systems s ON s.id = t.system_id{$energySql['join']}";
-        $cols = array_map(static fn($f) => "t.`" . $f['k'] . "`", $sqlFields);
+        $cols = array_map(static fn($f) => "t.`" . $f['k'] . "`",
+            array_filter($sqlFields, static fn($f) => !in_array($f['ui'] ?? '', ['textarea','wysiwyg'], true)));
         $cols[] = "t.`{$pk}`";
         $cols[] = "s.name AS system_name";
         if ($energySql['select'] !== '') {
@@ -274,5 +275,36 @@ if (!function_exists('hg_system_details_admin_fetch_rows')) {
 
         $rows = hg_ser_attach_energy_summary($link, $table, $rows);
         return ['ok' => true, 'rows' => $rows];
+    }
+}
+
+function hg_system_details_admin_rich_content(mysqli $link, array $meta, int $id): ?array
+{
+    $allowed = [
+        'dim_breeds'=>['description'],
+        'dim_auspices'=>['description'],
+        'dim_tribes'=>['description','powers'],
+        'fact_misc_systems'=>['description','extra_info'],
+    ];
+    $table = $meta['table'] ?? '';
+    if (!isset($allowed[$table])) throw new InvalidArgumentException('Unknown details table');
+    $columns = [];
+    foreach (hg_system_details_admin_persisted_fields($link, $table, $meta['fields']) as $field) {
+        if (!in_array($field['ui'] ?? '', ['textarea','wysiwyg'], true)) continue;
+        $key = $field['k'];
+        if (!in_array($key, $allowed[$table], true)) throw new InvalidArgumentException('Unknown rich field');
+        $columns[] = "`$key`";
+    }
+    if (!$columns) throw new RuntimeException('No rich fields');
+    $st = $link->prepare('SELECT ' . implode(',', $columns) . " FROM `$table` WHERE id = ?");
+    if (!$st) throw new RuntimeException('Detail query unavailable');
+    try {
+        $st->bind_param('i', $id);
+        if (!$st->execute()) throw new RuntimeException('Detail query failed');
+        $rs = $st->get_result();
+        if (!$rs) throw new RuntimeException('Detail result unavailable');
+        return $rs->fetch_assoc();
+    } finally {
+        $st->close();
     }
 }

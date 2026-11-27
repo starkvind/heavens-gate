@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/rules/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 
@@ -52,10 +53,10 @@ $nameSkill = $traitName;
 $traitKind = htmlspecialchars((string)($trait['rule_kind'] ?? ''));
 $traitClassRaw = (string)($trait['classification'] ?? '');
 $traitClass = htmlspecialchars(strlen($traitClassRaw) >= 5 ? substr($traitClassRaw, 4) : $traitClassRaw);
-$traitDescription = (string)($trait['description'] ?? '');
-$traitLevels = (string)($trait['levels'] ?? '');
-$traitPosse = (string)($trait['posse'] ?? '');
-$traitSpecial = (string)($trait['special'] ?? '');
+$traitDescription = hg_render_rich_html((string)($trait['description'] ?? ''));
+$traitLevels = hg_render_rich_html((string)($trait['levels'] ?? ''));
+$traitPosse = hg_render_rich_html((string)($trait['posse'] ?? ''));
+$traitSpecial = hg_render_rich_html((string)($trait['special'] ?? ''));
 $traitPublication = hg_camazotz_publication_for(
     $link, 'dim_traits', $traitPageID, hg_camazotz_publication_requested($hgRequest)
 );

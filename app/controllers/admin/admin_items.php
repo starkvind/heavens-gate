@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/inventory/admin.php');
@@ -159,12 +160,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 		$fuerza    = (int)($_POST['strength_req'] ?? 0);
 		$destreza  = (int)($_POST['dexterity_req'] ?? 0);
 		$img       = trim((string)($_POST['image_url'] ?? ''));
-		$description = sanitize_utf8_text((string)($_POST['description'] ?? ($_POST['descri'] ?? '')));
-		$description = hg_mentions_convert($link, $description);
+		$description = null;
+		try {
+		    $rawHtml = $_POST['description'] ?? ($_POST['descri'] ?? '');
+		    if (!is_string($rawHtml)) { throw new InvalidArgumentException('Invalid HTML'); }
+		    $description = hg_prepare_rich_html(sanitize_utf8_text($rawHtml),
+		        static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+		} catch (Throwable $e) {
+		    hg_runtime_log_error('admin.items.sanitize', get_class($e));
+		    $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+		}
 		$bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 		$currentImg = trim((string)($_POST['current_img'] ?? ''));
 
-		// Subida opcional
+		// Subida opcional, solo tras validar el HTML.
+		if ($description !== null) {
 		$upload = save_item_image($_FILES['img_file'] ?? [], $IMG_UPLOAD_DIR, $IMG_URL_BASE);
 		if (($upload['ok'] ?? false) === true) {
 			if ($currentImg !== '') safe_unlink_item_image($currentImg, $IMG_UPLOAD_DIR);
@@ -176,7 +186,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 			}
 		}
 
-		if ($name === '') {
+		}
+		if ($description === null) {
+			// No persistir ni tocar imágenes cuando falla la validación HTML.
+		} elseif ($name === '') {
 			$flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
 		} elseif (!isset($itemTypeIds[$itemTypeId])) {
 			$flash[] = ['type'=>'error','msg'=>'Selecciona un tipo de objeto válido.'];
@@ -213,6 +226,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_item'])) {
 			}
 		}
 	}
+}
+
+if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        hg_admin_json_error('Método no permitido', 405);
+    }
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]);
+    if ($id === false) {
+        hg_admin_json_error('ID inválido', 400);
+    }
+    try {
+        $row = hg_inventory_admin_item_fetch($link, $id);
+        $raw = $row === null ? null : (string)($row['description'] ?? '');
+        if ($raw === null) {
+            hg_admin_json_error('Registro no encontrado', 404);
+        }
+        hg_admin_json_success(['content' => hg_quill_editor_html($raw)]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.items.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir el contenido de forma segura.', 503);
+    }
 }
 
 // Prefill edición
@@ -511,7 +549,26 @@ function ensureItemEditor(){
 	}
 }
 
-function openItemModal(id = null){
+let itemsEditGeneration = 0;
+async function openItemModal(id = null){
+    const generation = ++itemsEditGeneration;
+    let row = null;
+    let descri = '';
+    if (id) {
+        row = itemsData.find(r => parseInt(r.id,10) === parseInt(id,10));
+        if (!row) return;
+        const url = new URL(endpointUrl('content'));
+        url.searchParams.set('id', String(id));
+        try {
+            const payload = await request(url.toString(), {method:'GET', cache:'no-store'});
+            if (!payload.data || typeof payload.data.content !== 'string') throw new Error('Contenido no disponible');
+            if (generation !== itemsEditGeneration) return;
+            descri = payload.data.content;
+        } catch (err) {
+            if (generation === itemsEditGeneration) alert(err.message || 'Error al abrir contenido');
+            return;
+        }
+    }
 	ensureItemEditor();
 	const modal = document.getElementById('itemModal');
 	document.getElementById('item_id').value = '';
@@ -535,7 +592,6 @@ function openItemModal(id = null){
 	document.getElementById('item_description').value = '';
 
 	if (id) {
-		const row = itemsData.find(r => parseInt(r.id,10) === parseInt(id,10));
 		if (row) {
 			document.getElementById('itemModalTitle').textContent = 'Editar objeto';
 			document.getElementById('item_id').value = row.id;
@@ -554,7 +610,6 @@ function openItemModal(id = null){
 			document.getElementById('item_img').value = row.image_url || '';
 			document.getElementById('item_current_img').value = row.image_url || '';
 			if (row.image_url) document.getElementById('item_img_preview').src = row.image_url;
-			const descri = row.description || '';
 			document.getElementById('item_description').value = descri;
 			if (itemEditor) itemEditor.root.innerHTML = descri;
 		}
@@ -564,7 +619,7 @@ function openItemModal(id = null){
 	modal.style.display = 'flex';
 }
 
-function closeItemModal(){
+function closeItemModal(){ itemsEditGeneration++;
 	document.getElementById('itemModal').style.display = 'none';
 }
 

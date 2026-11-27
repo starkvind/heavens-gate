@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../domains/systems/admin_resources.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 $isAjaxRequest = (
@@ -70,11 +71,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             $name = trim((string)($_POST['name'] ?? ''));
             $kind = trim((string)($_POST['kind'] ?? ''));
             $sortOrder = (int)($_POST['sort_order'] ?? 0);
-            $description = (string)($_POST['description'] ?? '');
-            $description = hg_mentions_convert($link, $description);
+            $description = null;
+            try {
+                $rawDescription = $_POST['description'] ?? '';
+                if (!is_string($rawDescription)) throw new InvalidArgumentException('Invalid resource HTML');
+                $description = hg_prepare_rich_html($rawDescription,
+                    static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+            } catch (Throwable $e) {
+                hg_runtime_log_error('admin.resources.sanitize', get_class($e));
+                $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+            }
             $kindAllowed = ['renombre', 'estado'];
 
-            if ($name === '' || $kind === '') {
+            if ($description === null) {
+                // Fail closed.
+            } elseif ($name === '' || $kind === '') {
                 $flash[] = ['type'=>'error','msg'=>'Nombre y tipo son obligatorios.'];
             } elseif (mb_strlen($kind) > 30) {
                 $flash[] = ['type'=>'error','msg'=>'Tipo demasiado largo (max 30).'];

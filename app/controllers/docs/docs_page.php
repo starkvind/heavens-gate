@@ -2,6 +2,7 @@
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 include_once(__DIR__ . '/../../helpers/public_response.php');
 require_once(__DIR__ . '/../../domains/documents/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 if (!function_exists('h')) {
   function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -34,7 +35,7 @@ if (!$ResultQuery) {
 }
 
 $titleDoc = (string)$ResultQuery["title"];
-$texto    = (string)$ResultQuery["content"];
+$texto    = hg_render_rich_html((string)$ResultQuery["content"]);
 $source   = (string)($ResultQuery["source"] ?? '');
 $secciDoc = (string)($ResultQuery["section_id"] ?? 'Documento');
 $docCharacters = hg_documents_fetch_characters($link, $docId);

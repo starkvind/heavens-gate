@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../domains/systems/admin.php');
@@ -102,11 +103,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
     $name = trim((string)($_POST['name'] ?? ''));
     $img = trim((string)($_POST['image_url'] ?? ''));
     $formas = (int)($_POST['formas'] ?? 0);
-    $desc = sanitize_utf8_text((string)($_POST['descripcion'] ?? ''));
-    $desc = hg_mentions_convert($link, $desc);
+    $desc = null;
+    try {
+        $rawHtml = $_POST['descripcion'] ?? '';
+        if (!is_string($rawHtml)) { throw new InvalidArgumentException('Invalid HTML'); }
+        $desc = hg_prepare_rich_html(sanitize_utf8_text($rawHtml),
+            static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.systems.sanitize', get_class($e));
+        $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+    }
     $bibliographyId = (int)($_POST['bibliography_id'] ?? 0);
 
-    if ($name === '') {
+    if ($desc === null) {
+        // Fail closed.
+    } elseif ($name === '') {
         $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
     } elseif ($bibliographyId > 0 && !isset($originIds[$bibliographyId])) {
         $flash[] = ['type'=>'error','msg'=>'El origen seleccionado no es válido.'];
@@ -132,6 +143,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_system'])) {
             $flash[] = ['type'=>'error','msg'=>($id > 0 ? 'Error al actualizar: ' : 'Error al crear: ') . (string)($result['error'] ?? '')];
         }
     }
+    }
+}
+
+if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        hg_admin_json_error('Método no permitido', 405);
+    }
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]);
+    if ($id === false) {
+        hg_admin_json_error('ID inválido', 400);
+    }
+    try {
+        $raw = hg_systems_admin_rich_content($link, 'system', $id);
+        if ($raw === null) {
+            hg_admin_json_error('Registro no encontrado', 404);
+        }
+        hg_admin_json_success(['content' => hg_quill_editor_html($raw)]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.systems.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir el contenido de forma segura.', 503);
     }
 }
 
@@ -362,7 +397,26 @@ function ensureSysEditor(){
     }
 }
 
-function openSystemModal(id = null){
+let systemsEditGeneration = 0;
+async function openSystemModal(id = null){
+    const generation = ++systemsEditGeneration;
+    let row = null;
+    let desc = '';
+    if (id) {
+        row = systemsData.find(r => parseInt(r.id,10) === parseInt(id,10));
+        if (!row) return;
+        const url = new URL(endpointUrl('content'));
+        url.searchParams.set('id', String(id));
+        try {
+            const payload = await request(url.toString(), {method:'GET', cache:'no-store'});
+            if (!payload.data || typeof payload.data.content !== 'string') throw new Error('Contenido no disponible');
+            if (generation !== systemsEditGeneration) return;
+            desc = payload.data.content;
+        } catch (err) {
+            if (generation === systemsEditGeneration) alert(err.message || 'Error al abrir contenido');
+            return;
+        }
+    }
     ensureSysEditor();
     const modal = document.getElementById('systemModal');
     document.getElementById('system_id').value = '';
@@ -375,7 +429,6 @@ function openSystemModal(id = null){
     if (sysEditor) sysEditor.root.innerHTML = '';
 
     if (id) {
-        const row = systemsData.find(r => parseInt(r.id,10) === parseInt(id,10));
         if (row) {
             document.getElementById('systemModalTitle').textContent = 'Editar sistema';
             document.getElementById('system_id').value = row.id;
@@ -384,7 +437,6 @@ function openSystemModal(id = null){
             document.getElementById('system_img').value = row.image_url || '';
             document.getElementById('system_formas').value = row.formas || 0;
             document.getElementById('system_bibliography_id').value = row.bibliography_id || 0;
-            const desc = row.descripcion || '';
             document.getElementById('system_desc').value = desc;
             if (sysEditor) sysEditor.root.innerHTML = desc;
         }
@@ -394,7 +446,7 @@ function openSystemModal(id = null){
     modal.style.display = 'flex';
 }
 
-function closeSystemModal(){
+function closeSystemModal(){ systemsEditGeneration++;
     document.getElementById('systemModal').style.display = 'none';
 }
 

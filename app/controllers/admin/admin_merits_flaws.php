@@ -7,6 +7,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/rules/admin.php');
 
@@ -66,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         $kind = trim((string)($_POST['kind'] ?? ''));
         $affiliation = trim((string)($_POST['affiliation'] ?? ''));
         $cost = trim((string)($_POST['cost'] ?? ''));
-        $description = (string)($_POST['description'] ?? '');
+        $description = $_POST['description'] ?? '';
         $system_name = trim((string)($_POST['system_name'] ?? ''));
         $system_id = (int)($_POST['system_id'] ?? 0);
         $bibliography_id = (int)($_POST['bibliography_id'] ?? 0);
@@ -74,7 +75,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if ($system_id < 0) $system_id = 0;
         if ($bibliography_id < 0) $bibliography_id = 0;
 
-        $description = hg_mentions_convert($link, $description);
+        if ($action !== 'delete') {
+            try {
+                $lookup = static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value);
+                if (!is_string($description)) throw new InvalidArgumentException('Invalid HTML');
+                $description = hg_prepare_rich_html($description, $lookup);
+            } catch (Throwable $e) {
+                hg_runtime_log_error('admin.merits.sanitize', get_class($e));
+                $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+                $description = '';
+            }
+        }
         if ($system_id > 0 && $system_name === '' && isset($opts_systems[$system_id])) {
             $system_name = (string)$opts_systems[$system_id];
         }

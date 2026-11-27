@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/powers/gift_relationships.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
@@ -16,8 +17,8 @@ if ($resultQueryDon) {
     $donRank   = htmlspecialchars($resultQueryDon["rank"]);
     $donAttr   = htmlspecialchars($resultQueryDon["attribute_resolved"] ?? $resultQueryDon["attribute_name"] ?? "");
     $donSkill  = htmlspecialchars($resultQueryDon["ability_resolved"] ?? $resultQueryDon["ability_name"] ?? "");
-    $donDesc   = $resultQueryDon["description"];
-    $donRules  = $resultQueryDon["mechanics_resolved"];
+    $donDesc   = hg_render_rich_html((string)($resultQueryDon["description"]));
+    $donRules  = hg_render_rich_html((string)($resultQueryDon["mechanics_resolved"]));
     $donSystemName = htmlspecialchars($resultQueryDon["resolved_system_name"] ?? "");
     $donBreedLegacy  = trim((string)($resultQueryDon["legacy_system_name"] ?? ""));
     $donSystemLabel = $donSystemName;

@@ -33,6 +33,7 @@ if (method_exists($link, 'set_charset')) {
 }
 
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 include_once(__DIR__ . '/../../helpers/pretty.php');
 
@@ -240,8 +241,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
     // Campos complejos
     $status_id   = max(0, (int)($_POST['status_id'] ?? 0));
     $rango       = trim($_POST['rango'] ?? '');
-    $infotext    = trim($_POST['infotext'] ?? '');
-    $infotext    = hg_mentions_convert($link, $infotext);
+    $infotext = '';
+    if ($action === 'create' || $action === 'update') {
+        try {
+            $rawInfo = $_POST['infotext'] ?? '';
+            if (!is_string($rawInfo)) throw new InvalidArgumentException('Invalid biography HTML');
+            $infotext = hg_prepare_rich_html(trim($rawInfo),
+                static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+        } catch (Throwable $e) {
+            hg_runtime_log_error('admin.characters.sanitize', get_class($e));
+            $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar la biografía.'];
+        }
+    }
     $notas       = trim($_POST['notes'] ?? '');
 
     // PODERES

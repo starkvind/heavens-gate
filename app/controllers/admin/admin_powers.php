@@ -27,6 +27,8 @@ if ($link) { mysqli_set_charset($link, "utf8mb4"); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../domains/powers/admin.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/mentions.php');
 $quillToolbarInner = admin_quill_toolbar_inner();
 // Subidas de imagen (Dones)
 $DOCROOT = rtrim($_SERVER['DOCUMENT_ROOT'] ?? __DIR__, '/');
@@ -293,8 +295,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
             }
         }
 
+        $htmlValid = true;
+        if (!$isDeleteAction) {
+            try {
+                foreach ($M['fields'] as $field) {
+                    if (($field['ui'] ?? '') !== 'textarea') continue;
+                    $key = $field['k'];
+                    $vals[$key] = hg_prepare_rich_html($vals[$key],
+                        static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+                }
+            } catch (Throwable $e) {
+                $htmlValid = false;
+                hg_runtime_log_error('admin.powers.sanitize', get_class($e));
+                $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+            }
+        }
         // Subida de imagen (Dones y Totems)
-        if (!$isDeleteAction && ($postTab === 'dones' || $postTab === 'totems')) {
+        if ($htmlValid && !$isDeleteAction && ($postTab === 'dones' || $postTab === 'totems')) {
             $currentImg = trim((string)($_POST['current_img'] ?? ''));
             $uploadDir = ($postTab === 'dones') ? $DON_IMG_UPLOAD_DIR : $TOTEM_IMG_UPLOAD_DIR;
             $urlBase   = ($postTab === 'dones') ? $DON_IMG_URL_BASE   : $TOTEM_IMG_URL_BASE;
@@ -457,6 +474,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
    Listado + paginación
 ------------------------------ */
 $ajaxMode = (string)($_GET['ajax_mode'] ?? ($_GET['ajax'] ?? ''));
+if ($ajaxMode === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') hg_admin_json_error('Método no permitido', 405);
+    $selectedTab = hg_request_query_param($hgRequest, 'tab');
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+    if (!in_array($selectedTab, $tabsAllowed, true) || $id === false) hg_admin_json_error('Registro inválido', 400);
+    try {
+        $selectedMeta = meta_for($selectedTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
+        $fields = hg_powers_admin_rich_content($link, $selectedMeta, $id);
+        if ($fields === null) hg_admin_json_error('Poder no encontrado', 404);
+        foreach ($fields as $key => $value) $fields[$key] = hg_quill_editor_html((string)$value);
+        hg_admin_json_success(['fields'=>$fields]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.powers.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir el poder de forma segura.', 503);
+    }
+}
 if ($ajaxMode === 'search') {
     $tabAjax = (string)($_GET['tab'] ?? $tab);
     $tabAjax = in_array($tabAjax, $tabsAllowed, true) ? $tabAjax : 'dones';
@@ -947,7 +983,9 @@ function syncEditorsToTextarea(){
     });
   }
 
+  var powerEditGeneration = 0;
   function openCreate(){
+    powerEditGeneration++;
     document.getElementById('modalTitle').textContent = 'Nuevo — '+(META.title||'');
     document.getElementById('crud_action').value = 'create';
     document.getElementById('f_id').value = '0';
@@ -993,9 +1031,27 @@ function syncEditorsToTextarea(){
     }, 0);
   }
 
-  function openEdit(id){
-    var row = ROWMAP[String(id)];
-    if (!row) return;
+  async function openEdit(id){
+    var original = ROWMAP[String(id)];
+    if (!original) return;
+    var generation = ++powerEditGeneration;
+    var row;
+    var url = new URL(window.location.href);
+    url.searchParams.set('s', 'admin_powers');
+    url.searchParams.set('ajax', '1');
+    url.searchParams.set('ajax_mode', 'content');
+    url.searchParams.set('tab', TAB);
+    url.searchParams.set('id', String(id));
+    try {
+      var response = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
+      var payload = await response.json();
+      if (!response.ok || !payload.ok || !payload.data || !payload.data.fields) throw new Error((payload && (payload.message || payload.error)) || 'Contenido no disponible');
+      if (generation !== powerEditGeneration) return;
+      row = Object.assign({}, original, payload.data.fields);
+    } catch (err) {
+      if (generation === powerEditGeneration) alert(err.message || 'Error al abrir poder');
+      return;
+    }
     currentEditRow = row;
 
     document.getElementById('modalTitle').textContent = 'Editar — '+(META.title||'');
@@ -1043,8 +1099,8 @@ function syncEditorsToTextarea(){
   }
 
   btnNew.addEventListener('click', openCreate);
-  btnCancel.addEventListener('click', function(){ mb.style.display='none'; });
-  mb.addEventListener('click', function(e){ if (e.target === mb) mb.style.display='none'; });
+  btnCancel.addEventListener('click', function(){ powerEditGeneration++; mb.style.display='none'; });
+  mb.addEventListener('click', function(e){ if (e.target === mb) { powerEditGeneration++; mb.style.display='none'; } });
 
   function runDeleteCurrent(){
     if (!currentEditRow) {

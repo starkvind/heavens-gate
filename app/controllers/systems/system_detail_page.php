@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 
 $systemIdDocument = hg_request_param($hgRequest, 'system_detail');
@@ -48,7 +49,7 @@ if ($table !== '') {
     $typeOfSystem = $returnType;
     $nameSystRaw = (string)($ResultQuery["name"] ?? '');
     $nameSyst = htmlspecialchars($nameSystRaw);
-    $infoDesc = ($ResultQuery["description"] ?? "");
+    $infoDesc = hg_render_rich_html((string)($ResultQuery["description"] ?? ""));
     $systemId = (int)($ResultQuery["system_id"] ?? 0);
     $publication = hg_camazotz_publication_for(
         $link, $table, $resolvedId,
@@ -94,7 +95,7 @@ if ($table !== '') {
     $metaHtml = '';
     $metaItems = [];
     if ($systemTypeDocument == 4) {
-        $miscInfoData = ($ResultQuery["extra_info"] ?? '');
+        $miscInfoData = hg_render_rich_html((string)($ResultQuery["extra_info"] ?? ''));
         if ($miscInfoData != "") {
             $metaHtml .= "<p>$miscInfoData</p>";
             $infoDataCheck++;

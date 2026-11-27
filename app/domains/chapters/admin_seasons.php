@@ -98,8 +98,7 @@ function hg_seasons_admin_rows(mysqli $link,array $schema): array {
     $cols[]=!empty($schema['season_kind'])?'s.season_kind':"'temporada' AS season_kind";
     if(!empty($schema['chronicle_id'])){$cols[]='s.chronicle_id';$cols[]="COALESCE(ch.name, '') AS chronicle_name";}
     $cols[]='s.description';
-    if(!empty($schema['opening']))$cols[]='s.opening';
-    if(!empty($schema['main_cast']))$cols[]='s.main_cast';
+
     if(!empty($schema['sort_order']))$cols[]='s.sort_order';
     if(!empty($schema['finished']))$cols[]='s.finished';
     if(!empty($schema['pretty_id']))$cols[]='s.pretty_id';
@@ -109,4 +108,22 @@ function hg_seasons_admin_rows(mysqli $link,array $schema): array {
     $rows=[];$rs=$link->query('SELECT '.implode(',',$cols).$from.' ORDER BY '.$orderBy);
     if($rs){while($r=$rs->fetch_assoc())$rows[]=$r;$rs->close();}
     return $rows;
+}
+
+function hg_seasons_admin_rich_content(mysqli $link, int $id, bool $hasOpening, bool $hasMainCast): ?array
+{
+    $columns = ['description'];
+    if ($hasOpening) $columns[] = 'opening';
+    if ($hasMainCast) $columns[] = 'main_cast';
+    $stmt = $link->prepare('SELECT ' . implode(',', $columns) . ' FROM dim_seasons WHERE id = ?');
+    if (!$stmt) throw new RuntimeException('Season query unavailable');
+    try {
+        $stmt->bind_param('i', $id);
+        if (!$stmt->execute()) throw new RuntimeException('Season query failed');
+        $rs = $stmt->get_result();
+        if (!$rs) throw new RuntimeException('Season result unavailable');
+        return $rs->fetch_assoc();
+    } finally {
+        $stmt->close();
+    }
 }

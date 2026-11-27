@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../domains/powers/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 
 $donPageID = (int)hg_request_param($hgRequest, 'discipline_power');
 $resultQueryDon = hg_powers_fetch_discipline($link, $donPageID);
@@ -13,8 +14,8 @@ if ($resultQueryDon) {
     $donSkillRaw = (string)($resultQueryDon["skill"] ?? '');
     $donAttr    = htmlspecialchars($donAttrRaw);
     $donSkill   = htmlspecialchars($donSkillRaw);
-    $donDesc    = $resultQueryDon["description"];
-    $donSystem  = $resultQueryDon["system_name"];
+    $donDesc    = hg_render_rich_html((string)($resultQueryDon["description"]));
+    $donSystem  = hg_render_rich_html((string)($resultQueryDon["system_name"]));
     $donOrigin  = htmlspecialchars($resultQueryDon["bibliography_id"]);
 
     $donImgRaw = trim((string)($resultQueryDon["image_url"] ?? ""));

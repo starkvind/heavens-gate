@@ -7,6 +7,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/admin_uploads.php');
 include_once(__DIR__ . '/../../domains/chapters/admin_seasons.php');
@@ -60,12 +61,45 @@ $actions = '<span class="adm-flex-right-8">'
     . '<label class="adm-text-left">Filtro rápido '
     . '<input class="inp" type="text" id="quickFilterSeasons" placeholder="En esta pagina..."></label>'
     . '</span>';
+if (hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        hg_admin_json_error('Método no permitido', 405);
+    }
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT,
+        ['options'=>['min_range'=>1]]);
+    if ($id === false) {
+        hg_admin_json_error('ID inválido', 400);
+    }
+    try {
+        $row = hg_seasons_admin_rich_content($link, $id, $hasOpening, $hasMainCast);
+        if ($row === null) {
+            hg_admin_json_error('Temporada no encontrada', 404);
+        }
+        foreach ($row as $key => $value) {
+            $row[$key] = hg_quill_editor_html((string)$value);
+        }
+        hg_admin_json_success(['fields'=>$row]);
+    } catch (DomainException $e) {
+        hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.seasons.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir la temporada de forma segura.', 503);
+    }
+}
 admin_panel_open('Temporadas', $actions);
 
 $flash = [];
+$seasonCsrfKey = 'csrf_admin_seasons';
+$seasonCsrf = hg_admin_ensure_csrf_token($seasonCsrfKey);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
-    $action = (string)($_POST['crud_action'] ?? '');
+$isSeasonCrudPost = $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']);
+$submittedSeasonCsrf = $_POST['csrf'] ?? '';
+if ($isSeasonCrudPost && (!is_string($submittedSeasonCsrf) || !hg_admin_csrf_valid($submittedSeasonCsrf, $seasonCsrfKey))) {
+    if (!headers_sent()) { http_response_code(403); }
+    $flash[] = ['type'=>'error','msg'=>'CSRF inválido. Recarga la página.'];
+} elseif ($isSeasonCrudPost) {
+    $action = hg_request_body_value($hgRequest, 'crud_action');
     $id = (int)($_POST['id'] ?? 0);
     $currentImage = ($hasImageUrl && $id > 0) ? hg_seasons_admin_current_image($link, $id) : '';
 
@@ -88,9 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
         if (!in_array($seasonKind, $seasonKindAllowed, true)) {
             $seasonKind = 'temporada';
         }
-        $description = (string)($_POST['description'] ?? '');
-        $opening = (string)($_POST['opening'] ?? '');
-        $mainCast = (string)($_POST['main_cast'] ?? '');
+        $description = $_POST['description'] ?? '';
+        $opening = $_POST['opening'] ?? '';
+        $mainCast = $_POST['main_cast'] ?? '';
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $finished = isset($_POST['finished']) ? 1 : 0;
         $imageUrl = $hasImageUrl ? trim((string)($_POST['image_url'] ?? '')) : '';
@@ -104,14 +138,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action'])) {
             $chronicleId = 0;
         }
 
-        if ($name === '') {
+        $htmlValid = true;
+        try {
+            $lookup = static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value);
+            foreach (['description', 'opening', 'mainCast'] as $field) {
+                if (!is_string($$field)) {
+                    throw new InvalidArgumentException('Invalid season HTML');
+                }
+                $$field = hg_prepare_rich_html($$field, $lookup);
+            }
+        } catch (Throwable $e) {
+            $htmlValid = false;
+            hg_runtime_log_error('admin.seasons.sanitize', get_class($e));
+            $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+        }
+        if (!$htmlValid) {
+            // Fail closed, before any mutation.
+        } elseif ($name === '') {
             $flash[] = ['type'=>'error','msg'=>'El nombre es obligatorio.'];
         } elseif ($seasonNumber <= 0) {
             $flash[] = ['type'=>'error','msg'=>'El numero de temporada debe ser mayor que 0.'];
         } else {
-            $description = hg_mentions_convert($link, $description);
-            $opening = hg_mentions_convert($link, $opening);
-            $mainCast = hg_mentions_convert($link, $mainCast);
 
             $schema = [
                 'season_kind'=>$hasSeasonKind,
@@ -177,6 +224,10 @@ $schema = [
 ];
 $rows = hg_seasons_admin_rows($link, $schema);
 $rowsFull = $rows;
+foreach ($rowsFull as &$row) {
+    unset($row['description'], $row['opening'], $row['main_cast']);
+}
+unset($row);
 ?>
 
 <?php if (!empty($flash)): ?>
@@ -194,6 +245,7 @@ $rowsFull = $rows;
     <div class="modal">
         <h3 id="seasonModalTitle">Nueva temporada</h3>
         <form method="post" id="seasonForm" enctype="multipart/form-data">
+            <input type="hidden" name="csrf" value="<?= h($seasonCsrf) ?>">
             <input type="hidden" name="crud_action" id="season_action" value="create">
             <input type="hidden" name="id" id="season_id" value="0">
             <div class="modal-body">
@@ -296,6 +348,7 @@ $rowsFull = $rows;
             Se eliminará la temporada y puede afectar al archivo de capítulos.
         </div>
         <form method="post" id="seasonDeleteForm" class="adm-m-0">
+            <input type="hidden" name="csrf" value="<?= h($seasonCsrf) ?>">
             <input type="hidden" name="crud_action" value="delete">
             <input type="hidden" name="id" id="season_delete_id" value="0">
             <div class="modal-actions">
@@ -396,7 +449,30 @@ function syncSeasonEditorToTextarea(key){
     ta.value = plain ? html : '';
 }
 
-function openSeasonModal(id = null){
+let seasonEditGeneration = 0;
+async function openSeasonModal(id = null){
+    const generation = ++seasonEditGeneration;
+    let row = null;
+    let fields = {};
+    if (id) {
+        row = seasonsData.find(r => parseInt(r.id, 10) === parseInt(id, 10));
+        if (!row) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('s', 'admin_seasons');
+        url.searchParams.set('ajax', '1');
+        url.searchParams.set('ajax_mode', 'content');
+        url.searchParams.set('id', String(id));
+        try {
+            const response = await fetch(url.toString(), {credentials:'same-origin', cache:'no-store'});
+            const payload = await response.json();
+            if (!response.ok || !payload.ok || !payload.data || !payload.data.fields) throw new Error((payload && (payload.message || payload.error)) || 'Contenido no disponible');
+            if (generation !== seasonEditGeneration) return;
+            fields = payload.data.fields;
+        } catch (err) {
+            if (generation === seasonEditGeneration) alert(err.message || 'Error al abrir temporada');
+            return;
+        }
+    }
     ensureSeasonEditors();
     const modal = document.getElementById('seasonModal');
     document.getElementById('season_action').value = 'create';
@@ -415,7 +491,6 @@ function openSeasonModal(id = null){
     setSeasonEditorHtml('main_cast', '');
 
     if (id) {
-        const row = seasonsData.find(r => parseInt(r.id, 10) === parseInt(id, 10));
         if (row) {
             document.getElementById('seasonModalTitle').textContent = 'Editar temporada';
             document.getElementById('season_action').value = 'update';
@@ -427,9 +502,9 @@ function openSeasonModal(id = null){
             if (eChron) eChron.value = String(parseInt(row.chronicle_id || 0, 10) || 0);
             if (eFin) eFin.checked = parseInt(row.finished || 0, 10) === 1;
             if (eImage) eImage.value = row.image_url || '';
-            setSeasonEditorHtml('description', row.description || '');
-            setSeasonEditorHtml('opening', row.opening || '');
-            setSeasonEditorHtml('main_cast', row.main_cast || '');
+            setSeasonEditorHtml('description', fields.description || '');
+            setSeasonEditorHtml('opening', fields.opening || '');
+            setSeasonEditorHtml('main_cast', fields.main_cast || '');
         }
     } else {
         document.getElementById('seasonModalTitle').textContent = 'Nueva temporada';
@@ -439,6 +514,7 @@ function openSeasonModal(id = null){
 }
 
 function closeSeasonModal(){
+    seasonEditGeneration++;
     document.getElementById('seasonModal').style.display = 'none';
 }
 

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
@@ -43,7 +44,7 @@ if ($systemNameRaw === "Bastet" && $breedNameRaw !== '') {
     $formDisplayRaw = $formNameRaw . " (" . $breedNameRaw . ")";
 }
 $nameWereForm = sf_h($formDisplayRaw);
-$infoDesc = (string)($row['description'] ?? '');
+$infoDesc = hg_render_rich_html((string)($row['description'] ?? ''));
 $imageWereForm = trim((string)($row['image_url'] ?? ''));
 $formPublication = hg_camazotz_publication_for(
     $link, 'dim_forms', $formId,

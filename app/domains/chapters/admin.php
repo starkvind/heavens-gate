@@ -189,6 +189,6 @@ function hg_chapters_admin_seasons(mysqli $link): array {
 }
 function hg_chapters_admin_rows(mysqli $link,bool $hasImage): array {
     $rows=[];$image=$hasImage?'c.image_url,':"'' AS image_url,";
-    $rs=$link->query("SELECT c.id,c.name,c.chapter_number,{$image} s.season_number AS season_number,c.season_id AS season_id,c.played_date,c.synopsis,s.name AS season_name,s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id=c.season_id ORDER BY COALESCE(s.sort_order,9999) ASC,c.chapter_number ASC,c.id ASC");
+    $rs=$link->query("SELECT c.id,c.name,c.chapter_number,{$image} s.season_number AS season_number,c.season_id AS season_id,c.played_date,s.name AS season_name,s.sort_order AS season_sort FROM dim_chapters c LEFT JOIN dim_seasons s ON s.id=c.season_id ORDER BY COALESCE(s.sort_order,9999) ASC,c.chapter_number ASC,c.id ASC");
     if($rs){while($r=$rs->fetch_assoc())$rows[]=$r;$rs->close();}return $rows;
 }

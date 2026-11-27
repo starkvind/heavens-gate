@@ -90,7 +90,7 @@ if (!function_exists('hg_news_admin_fetch_rows_full')) {
     function hg_news_admin_fetch_rows_full(mysqli $link): ?array
     {
         $result = $link->query(
-            "SELECT id, author, title, message FROM fact_admin_posts ORDER BY id DESC"
+            "SELECT id, author, title FROM fact_admin_posts ORDER BY id DESC"
         );
         if (!$result) {
             return null;
@@ -103,5 +103,27 @@ if (!function_exists('hg_news_admin_fetch_rows_full')) {
         $result->close();
 
         return $rows;
+    }
+}
+
+function hg_news_admin_content(mysqli $link, int $id): ?string
+{
+    $stmt = $link->prepare('SELECT message FROM fact_admin_posts WHERE id = ?');
+    if (!$stmt) {
+        throw new RuntimeException('News query unavailable');
+    }
+    try {
+        $stmt->bind_param('i', $id);
+        if (!$stmt->execute()) {
+            throw new RuntimeException('News query failed');
+        }
+        $rs = $stmt->get_result();
+        if (!$rs) {
+            throw new RuntimeException('News result unavailable');
+        }
+        $row = $rs->fetch_assoc();
+        return $row === null ? null : (string)($row['message'] ?? '');
+    } finally {
+        $stmt->close();
     }
 }
