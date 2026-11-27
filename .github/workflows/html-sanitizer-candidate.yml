@@ -4,6 +4,8 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/controllers/tool/csp_board.php'
+      - 'app/helpers/mentions.php'
       - 'app/mobile/controllers/rules.php'
       - 'app/controllers/docs/merfla_page.php'
       - 'app/controllers/docs/traits_page.php'
@@ -57,6 +59,8 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/controllers/tool/csp_board.php'
+      - 'app/helpers/mentions.php'
       - 'app/mobile/controllers/rules.php'
       - 'app/controllers/docs/merfla_page.php'
       - 'app/controllers/docs/traits_page.php'

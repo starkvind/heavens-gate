@@ -24,17 +24,17 @@ if (!defined("HG_MOBILE_DESKTOP_EMBED") || !HG_MOBILE_DESKTOP_EMBED) include("ap
             foreach ($posts as $ResultQuery) {
                 print("
                 <tr>
-                <td class='klax1'>Autor:</td><td class='klax2'>".$ResultQuery["author"]."</td>
-                <td class='klax1'>Fecha:</td><td class='klax2'>".$ResultQuery["posted_at"]."</td>
+                <td class='klax1'>Autor:</td><td class='klax2'>".htmlspecialchars((string)($ResultQuery["author"] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')."</td>
+                <td class='klax1'>Fecha:</td><td class='klax2'>".htmlspecialchars((string)($ResultQuery["posted_at"] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')."</td>
                 </tr><tr><td class='klax1'>T&iacute;tulo:</td>
-                <td colspan='3' class='klax2'>".$ResultQuery["title"]."</td>
+                <td colspan='3' class='klax2'>".htmlspecialchars((string)($ResultQuery["title"] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')."</td>
                 </tr>
                 ");
 
                 print("
                 <tr>
                 <td colspan='6' class='klax2'>
-                <p>".nl2br($ResultQuery["message"])."</p>\n
+                <p>".nl2br(htmlspecialchars((string)($ResultQuery["message"] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), false)."</p>\n
                 </td>
                 </tr>
                 ");

@@ -102,4 +102,10 @@ foreach (['app/controllers/bio/bio_page_prepare.php','app/mobile/controllers/cha
     'app/mobile/controllers/rules.php'] as $path) {
     check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing render guard: ' . $path);
 }
+$mentions = file_get_contents($root . '/app/helpers/mentions.php');
+check_rich_html(!str_contains($mentions, 'function hg_mentions_convert('), 'Legacy converter remains');
+$board = file_get_contents($root . '/app/controllers/tool/csp_board.php');
+foreach (['author','title','posted_at','message'] as $field) {
+    check_rich_html(str_contains($board, 'htmlspecialchars((string)($ResultQuery["' . $field . '"]'), 'Missing board text escape: ' . $field);
+}
 echo "HTML sanitizer candidate regression: OK\n";

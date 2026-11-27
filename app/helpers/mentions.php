@@ -1,5 +1,5 @@
 <?php
-// Mention helpers: autocomplete + token conversion
+// Mention helpers: autocomplete and lookup
 
 require_once(__DIR__ . '/pretty.php');
 
@@ -308,19 +308,4 @@ function hg_mentions_lookup(mysqli $link, string $type, string $value): ?array {
     }
 
     return null;
-}
-
-function hg_mentions_convert(mysqli $link, string $html): string {
-    if ($html === '' || strpos($html, '[@') === false) return $html;
-
-    return preg_replace_callback('/\\[@([a-z_]+):([^\\]\\s]+)\\]/i', function($m) use ($link) {
-        $type = strtolower($m[1]);
-        $value = $m[2];
-        $info = hg_mentions_lookup($link, $type, $value);
-        if (!$info) return $m[0];
-        $href = htmlspecialchars($info['href'], ENT_QUOTES, 'UTF-8');
-        $label = htmlspecialchars($info['label'], ENT_QUOTES, 'UTF-8');
-        $dataType = htmlspecialchars((string)($info['type'] ?? $type), ENT_QUOTES, 'UTF-8');
-        return "<a href=\"{$href}\" class=\"hg-mention\" data-type=\"{$dataType}\" data-id=\"{$info['id']}\" target=\"_blank\">{$label}</a>";
-    }, $html);
 }
