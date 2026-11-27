@@ -7,7 +7,13 @@ $clean = hg_sanitize_rich_html($clipboard);
 ?>
 <!doctype html><html><head><meta charset="UTF-8">
 <link rel="stylesheet" href="editor-lab/jodit/es2021/jodit.min.css"></head><body>
-<textarea id="source"></textarea><pre id="result">{"ok":false,"error":"not executed"}</pre>
+<textarea id="source"></textarea>
+<form id="multi" style="display:none">
+<input type="hidden" name="csrf" value="fixture-csrf">
+<div id="oldToolbarA"></div><div id="oldEditorA"></div><textarea id="fieldA" name="description" class="adm-hidden"></textarea>
+<div id="oldToolbarB"></div><div id="oldEditorB"></div><textarea id="fieldB" name="opening" class="adm-hidden"></textarea>
+</form>
+<pre id="result">{"ok":false,"error":"not executed"}</pre>
 <script src="editor-lab/jodit/es2021/jodit.min.js"></script>
 <script src="assets/js/hg_mentions.js"></script>
 <script src="assets/js/admin/hg-jodit-editor.js"></script>
@@ -63,6 +69,20 @@ $clean = hg_sanitize_rich_html($clipboard);
     result.mentions_removed_after_destroy=false;
     handle.destroy();handle=null;
     result.mentions_removed_after_destroy=!document.querySelector('.hg-mention-box');
+    window.HGJoditConfig={enabled:true,ready:true,section:'admin_seasons'};
+    const multi=document.getElementById('multi');
+    const a=HGJodit.createForField('fieldA','oldEditorA','oldToolbarA');
+    const b=HGJodit.createForField('fieldB','oldEditorB','oldToolbarB');
+    try {
+      multi.style.display='block';
+      a.setHtml(initial); b.setHtml('<p>Otro campo</p>');
+      await delay();
+      a.sync(); b.sync();
+      const fd=new FormData(multi);
+      result.multi_field=fd.get('description').includes('colspan="2"') && fd.get('opening').includes('Otro campo');
+      result.old_editor_hidden=document.getElementById('oldEditorA').style.display==='none' && document.getElementById('oldToolbarB').style.display==='none';
+    } finally {a.destroy();b.destroy();}
+    result.multi_destroy=!document.querySelector('.hg-mention-box');
     result.no_alerts=alerts.length===0;
     result.ok=Object.entries(result).filter(([k])=>k!=='ok').every(([,v])=>v===true);
   } catch(e){result.error=String(e);result.alerts=alerts;}

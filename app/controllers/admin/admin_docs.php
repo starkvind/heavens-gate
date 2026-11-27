@@ -129,23 +129,10 @@ $isAjaxCrudRequest = (
 );
 
 $quillToolbarInner = admin_quill_toolbar_inner();
-$joditPilot = getenv('HG_DOCS_JODIT_PILOT') === '1';
-$joditRoot = dirname(__DIR__, 3) . '/assets/vendor/jodit/4.21.0';
-$joditReady = $joditPilot && is_file($joditRoot . '/jodit.min.js') && is_file($joditRoot . '/jodit.min.css');
-if (hg_request_query_param($hgRequest, 'ajax_mode') === 'sanitize_paste') {
-    hg_admin_require_session(true);
-    if (!$joditReady) hg_admin_json_error('Piloto Jodit no disponible', 503);
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') hg_admin_json_error('Método no permitido', 405);
-    if (!hg_admin_csrf_valid(hg_admin_extract_csrf_token([]), $ADMIN_CSRF_SESSION_KEY)) hg_admin_json_error('CSRF inválido', 403);
-    try {
-        $body = hg_admin_read_json_payload();
-        if (!is_string($body['html'] ?? null)) throw new InvalidArgumentException('Invalid clipboard HTML');
-        hg_admin_json_success(['content'=>hg_sanitize_rich_html($body['html'])]);
-    } catch (Throwable $e) {
-        hg_runtime_log_error('admin.docs.paste', get_class($e));
-        hg_admin_json_error('No se pudo validar el contenido del portapapeles.', 400);
-    }
-}
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('docs', 'csrf_admin_docs', $hgRequest);
+$joditPilot = $joditConfig['enabled'];
+$joditReady = $joditConfig['ready'];
 
 /* -----------------------------
    Guardado (POST)

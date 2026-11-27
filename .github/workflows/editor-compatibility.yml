@@ -6,6 +6,18 @@ on:
       - '.github/ci/editor-lab/**'
       - '.github/ci/jodit-pilot-browser.php'
       - 'assets/js/admin/hg-jodit-editor.js'
+      - 'app/controllers/admin/admin_system_details.php'
+      - 'app/controllers/admin/admin_powers.php'
+      - 'app/controllers/admin/admin_seasons.php'
+      - 'app/controllers/admin/admin_forms.php'
+      - 'app/controllers/admin/admin_systems.php'
+      - 'app/controllers/admin/admin_items.php'
+      - 'app/controllers/admin/admin_chapters.php'
+      - 'app/controllers/admin/admin_news.php'
+      - '.github/ci/jodit-paste-http-regression.py'
+      - '.github/ci/jodit-paste-http-router.php'
+      - 'app/partials/admin/jodit_assets.php'
+      - 'app/helpers/admin_jodit.php'
       - 'assets/js/hg_mentions.js'
       - 'app/controllers/admin/admin_docs.php'
       - '.github/workflows/editor-compatibility.yml'
@@ -15,6 +27,18 @@ on:
       - '.github/ci/editor-lab/**'
       - '.github/ci/jodit-pilot-browser.php'
       - 'assets/js/admin/hg-jodit-editor.js'
+      - 'app/controllers/admin/admin_system_details.php'
+      - 'app/controllers/admin/admin_powers.php'
+      - 'app/controllers/admin/admin_seasons.php'
+      - 'app/controllers/admin/admin_forms.php'
+      - 'app/controllers/admin/admin_systems.php'
+      - 'app/controllers/admin/admin_items.php'
+      - 'app/controllers/admin/admin_chapters.php'
+      - 'app/controllers/admin/admin_news.php'
+      - '.github/ci/jodit-paste-http-regression.py'
+      - '.github/ci/jodit-paste-http-router.php'
+      - 'app/partials/admin/jodit_assets.php'
+      - 'app/helpers/admin_jodit.php'
       - 'assets/js/hg_mentions.js'
       - 'app/controllers/admin/admin_docs.php'
       - '.github/workflows/editor-compatibility.yml'
@@ -107,6 +131,15 @@ jobs:
           print("HG_PILOT_REPORT " + json.dumps(data, ensure_ascii=False))
           if not data.get("ok"): raise SystemExit("Pilot regression failed")
           PY
+      - name: Test authenticated paste endpoint over isolated HTTP
+        if: matrix.candidate == 'jodit'
+        run: |
+          mkdir -p assets/vendor/jodit/4.21.0
+          cp editor-lab/jodit/es2021/jodit.min.{js,css} assets/vendor/jodit/4.21.0/
+          HG_JODIT_PILOT_MODULES=docs,news,chapters,items,systems,forms,seasons,powers,system_details php -S 127.0.0.1:9876 .github/ci/jodit-paste-http-router.php > /tmp/hg-jodit-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -rf assets/vendor/jodit/4.21.0' EXIT
+          python3 .github/ci/jodit-paste-http-regression.py
       - name: Package local community assets
         if: matrix.candidate == 'jodit'
         run: |
