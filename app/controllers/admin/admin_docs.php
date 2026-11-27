@@ -174,8 +174,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
                 if (!is_string($_POST['content'] ?? null)) {
                     throw new InvalidArgumentException('Invalid document content');
                 }
-                $clean = hg_sanitize_rich_html($vals['content']);
-                $vals['content'] = hg_sanitize_rich_html(hg_mentions_convert($link, $clean));
+                $vals['content'] = hg_prepare_rich_html($vals['content'],
+                    static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
             } catch (Throwable $e) {
                 hg_runtime_log_error('admin.docs.sanitize', get_class($e));
                 $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML. Conserva el texto y revisa el sanitizador.'];

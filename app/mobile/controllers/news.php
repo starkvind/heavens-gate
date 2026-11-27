@@ -1,6 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/../../domains/news/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 $metaTitle = "Noticias | Heaven's Gate";
 $metaDescription = "Ultimas novedades de Heaven's Gate.";
@@ -43,7 +44,7 @@ if (isset($link) && ($link instanceof mysqli)) {
                 <article class="hg-mobile-news-card">
                     <h2><?= hg_mobile_news_h($post['title'] ?? '') ?></h2>
                     <div class="hg-mobile-news-body">
-                        <?= (string)($post['message'] ?? '') ?>
+                        <?= hg_render_rich_html((string)($post['message'] ?? '')) ?>
                     </div>
                     <footer>
                         por <strong><?= hg_mobile_news_h($post['author'] ?? '') ?></strong>

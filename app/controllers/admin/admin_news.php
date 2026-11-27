@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/news/admin.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
@@ -76,9 +77,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 		$id = (int)($_POST['id'] ?? 0);
 		$autor = trim((string)($_POST['author'] ?? ''));
 		$titulo = trim((string)($_POST['titulo'] ?? ''));
-		$mensaje = hg_mentions_convert($link, (string)($_POST['message'] ?? ''));
+		$mensaje = null;
+		try {
+			if (!is_string($_POST['message'] ?? null)) {
+				throw new InvalidArgumentException('Invalid news content');
+			}
+			$mensaje = hg_prepare_rich_html($_POST['message'],
+				static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+		} catch (Throwable $e) {
+			hg_runtime_log_error('admin.news.sanitize', get_class($e));
+			$flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+		}
 
-		if ($autor === '' || $titulo === '' || $mensaje === '') {
+		if ($mensaje === null) {
+			// Fail closed; the error above is returned to the form.
+		} elseif ($autor === '' || $titulo === '' || $mensaje === '') {
 			$flash[] = ['type'=>'error','msg'=>'Autor, título y mensaje son obligatorios.'];
 		} else {
 			$result = hg_news_admin_save($link, $id, $autor, $titulo, $mensaje);
@@ -92,7 +105,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_news'])) {
 	}
 }
 
-// Listado + datos completos para edición en modal.
+// Fetch only the selected news body after authentication.
+if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
+	hg_admin_require_session(true);
+	if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+		hg_admin_json_error('Método no permitido', 405);
+	}
+	$id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+	if ($id === false) {
+		hg_admin_json_error('ID inválido', 400);
+	}
+	try {
+		$raw = hg_news_admin_content($link, $id);
+		if ($raw === null) {
+			hg_admin_json_error('Noticia no encontrada', 404);
+		}
+		hg_admin_json_success(['content'=>hg_sanitize_rich_html($raw)]);
+	} catch (Throwable $e) {
+		hg_runtime_log_error('admin.news.read', get_class($e));
+		hg_admin_json_error('No se pudo abrir la noticia de forma segura.', 503);
+	}
+}
+
+// Listado + metadatos para edición en modal.
 $rows = hg_news_admin_fetch_rows($link) ?? [];
 $rowsFull = hg_news_admin_fetch_rows_full($link) ?? [];
 
@@ -301,7 +336,27 @@ function ensureEditor(){
 	}
 }
 
-function openNewsModal(id = null){
+let newsEditGeneration = 0;
+async function openNewsModal(id = null){
+	const generation = ++newsEditGeneration;
+	let row = null;
+	let msg = '';
+	if (id) {
+		row = newsData.find(r => parseInt(r.id,10) === parseInt(id,10));
+		if (!row) return;
+		const url = new URL(endpointUrl('content'));
+		url.searchParams.set('id', String(id));
+		try {
+			const payload = await request(url.toString(), {method:'GET', cache:'no-store'});
+			const data = payload && payload.data;
+			if (!data || typeof data.content !== 'string') throw new Error('Contenido no disponible');
+			if (generation !== newsEditGeneration) return;
+			msg = data.content;
+		} catch (err) {
+			if (generation === newsEditGeneration) alert(err.message || 'Error al abrir noticia');
+			return;
+		}
+	}
 	ensureEditor();
 	const modal = document.getElementById('newsModal');
 	document.getElementById('news_id').value = '';
@@ -311,13 +366,11 @@ function openNewsModal(id = null){
 	if (newsEditor) newsEditor.root.innerHTML = '';
 
 	if (id) {
-		const row = newsData.find(r => parseInt(r.id,10) === parseInt(id,10));
 		if (row) {
 			document.getElementById('newsModalTitle').textContent = 'Editar noticia';
 			document.getElementById('news_id').value = row.id;
 			document.getElementById('news_autor').value = row.author || '';
 			document.getElementById('news_titulo').value = row.title || '';
-			const msg = row.message || '';
 			document.getElementById('news_mensaje').value = msg;
 			if (newsEditor) newsEditor.root.innerHTML = msg;
 		}
@@ -328,6 +381,7 @@ function openNewsModal(id = null){
 }
 
 function closeNewsModal(){
+	newsEditGeneration++;
 	document.getElementById('newsModal').style.display = 'none';
 }
 

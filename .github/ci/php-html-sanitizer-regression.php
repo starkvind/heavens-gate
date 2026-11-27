@@ -45,11 +45,25 @@ check_rich_html(hg_render_rich_html($rich) === $clean, 'Public render diverged')
 check_rich_html(hg_render_rich_html(str_repeat('x', 2 * 1024 * 1024 + 1)) ===
     '<p>Contenido temporalmente no disponible.</p>', 'Render failure did not close safely');
 $root = dirname(__DIR__, 2);
-foreach (['app/controllers/docs/docs_page.php', 'app/mobile/controllers/documents.php'] as $path) {
+foreach (['app/controllers/docs/docs_page.php', 'app/mobile/controllers/documents.php', 'app/controllers/main/main_news.php', 'app/mobile/controllers/news.php'] as $path) {
     check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing public guard: ' . $path);
 }
 $admin = file_get_contents($root . '/app/controllers/admin/admin_docs.php');
-check_rich_html(str_contains($admin, 'hg_sanitize_rich_html(hg_mentions_convert($link, $clean))'), 'Missing final write guard');
+check_rich_html(str_contains($admin, 'hg_prepare_rich_html($vals[\'content\'],'), 'Missing final write guard');
 check_rich_html(str_contains($admin, "if (\$ajaxMode === 'content')"), 'Missing per-document read');
 check_rich_html(str_contains($admin, 'row.content = data.content;'), 'Missing safe editor source');
+$lookup = static fn(string $type, string $value) => $value === '123'
+    ? ['id'=>123, 'type'=>$type, 'href'=>'/characters/example', 'label'=>'Á & <B>'] : null;
+$mentionInput = '<p>Antes [@character:123] y [@character:999].</p>'
+    . '<a href="/test" title="[@character:123]">[@character:123]</a>'
+    . '<pre>[@character:123]</pre><code>[@character:123]</code>';
+$mentionOutput = hg_prepare_rich_html($mentionInput, $lookup);
+check_rich_html(substr_count($mentionOutput, 'class="hg-mention"') === 1, 'Converted outside text context');
+check_rich_html(str_contains($mentionOutput, 'Á &amp; &lt;B&gt;'), 'Unsafe or lost label');
+check_rich_html(str_contains($mentionOutput, '[@character:999]'), 'Unknown token lost');
+check_rich_html(str_contains($mentionOutput, 'title="[@character:123]"'), 'Attribute token changed');
+check_rich_html(hg_prepare_rich_html($mentionOutput, $lookup) === $mentionOutput, 'Mention conversion not idempotent');
+$news = file_get_contents($root . '/app/controllers/admin/admin_news.php');
+check_rich_html(str_contains($news, 'hg_prepare_rich_html('), 'Missing news write guard');
+check_rich_html(str_contains($news, 'hg_news_admin_content('), 'Missing news read guard');
 echo "HTML sanitizer candidate regression: OK\n";

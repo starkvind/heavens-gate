@@ -4,6 +4,10 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/mobile/controllers/news.php'
+      - 'app/controllers/main/main_news.php'
+      - 'app/domains/news/admin.php'
+      - 'app/controllers/admin/admin_news.php'
       - 'app/mobile/controllers/documents.php'
       - 'app/controllers/docs/docs_page.php'
       - 'app/domains/documents/admin_docs.php'
@@ -15,6 +19,10 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/mobile/controllers/news.php'
+      - 'app/controllers/main/main_news.php'
+      - 'app/domains/news/admin.php'
+      - 'app/controllers/admin/admin_news.php'
       - 'app/mobile/controllers/documents.php'
       - 'app/controllers/docs/docs_page.php'
       - 'app/domains/documents/admin_docs.php'
@@ -31,6 +39,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: dom
           tools: composer:v2
           coverage: none
       - name: Install locked candidate and check advisories

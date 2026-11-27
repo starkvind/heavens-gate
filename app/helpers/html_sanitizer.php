@@ -96,3 +96,82 @@ function hg_render_rich_html(string $html): string
         return '<p>Contenido temporalmente no disponible.</p>';
     }
 }
+
+/** Resolve mention tokens only in text nodes of already-sanitized HTML. */
+function hg_prepare_rich_html(string $html, callable $lookup): string
+{
+    $clean = hg_sanitize_rich_html($html);
+    if (!str_contains($clean, '[@')) {
+        return $clean;
+    }
+    if (!class_exists(DOMDocument::class)) {
+        throw new RuntimeException('DOM extension unavailable');
+    }
+    $dom = new DOMDocument('1.0', 'UTF-8');
+    $previous = libxml_use_internal_errors(true);
+    try {
+        if (!$dom->loadHTML('<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'
+            . $clean . '</body></html>', LIBXML_NONET)) {
+            throw new RuntimeException('Could not parse rich HTML');
+        }
+    } finally {
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+    }
+    $body = $dom->getElementsByTagName('body')->item(0);
+    if (!$body instanceof DOMElement) {
+        throw new RuntimeException('Missing rich HTML body');
+    }
+    $xpath = new DOMXPath($dom);
+    $nodes = $xpath->query('.//text()[not(ancestor::a or ancestor::code or ancestor::pre)]', $body);
+    if ($nodes === false) {
+        throw new RuntimeException('Could not locate text nodes');
+    }
+    $changed = false;
+    foreach (iterator_to_array($nodes) as $node) {
+        $text = $node->nodeValue;
+        if (!preg_match_all('/\[@([a-z_]+):([^\]\s]+)\]/i', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            continue;
+        }
+        $fragment = $dom->createDocumentFragment();
+        $cursor = 0;
+        $resolved = false;
+        foreach ($matches as $match) {
+            [$token, $offset] = $match[0];
+            $type = strtolower($match[1][0]);
+            $info = $lookup($type, $match[2][0]);
+            if (!$info || (int)($info['id'] ?? 0) <= 0) {
+                continue;
+            }
+            $fragment->appendChild($dom->createTextNode(substr($text, $cursor, $offset - $cursor)));
+            $a = $dom->createElement('a');
+            $a->setAttribute('href', (string)$info['href']);
+            $a->setAttribute('class', 'hg-mention');
+            $a->setAttribute('data-type', (string)($info['type'] ?? $type));
+            $a->setAttribute('data-id', (string)(int)$info['id']);
+            $a->setAttribute('target', '_blank');
+            $a->setAttribute('rel', 'noopener noreferrer');
+            $a->appendChild($dom->createTextNode((string)$info['label']));
+            $fragment->appendChild($a);
+            $cursor = $offset + strlen($token);
+            $resolved = true;
+        }
+        if ($resolved) {
+            $fragment->appendChild($dom->createTextNode(substr($text, $cursor)));
+            $node->parentNode->replaceChild($fragment, $node);
+            $changed = true;
+        }
+    }
+    if (!$changed) {
+        return $clean;
+    }
+    $result = '';
+    foreach ($body->childNodes as $child) {
+        $part = $dom->saveHTML($child);
+        if ($part === false) {
+            throw new RuntimeException('Could not serialize rich HTML');
+        }
+        $result .= $part;
+    }
+    return hg_sanitize_rich_html($result);
+}
