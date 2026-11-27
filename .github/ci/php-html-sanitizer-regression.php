@@ -41,4 +41,15 @@ try {
 } catch (LengthException $expected) {
     // Intentional fail-closed size guard.
 }
+check_rich_html(hg_render_rich_html($rich) === $clean, 'Public render diverged');
+check_rich_html(hg_render_rich_html(str_repeat('x', 2 * 1024 * 1024 + 1)) ===
+    '<p>Contenido temporalmente no disponible.</p>', 'Render failure did not close safely');
+$root = dirname(__DIR__, 2);
+foreach (['app/controllers/docs/docs_page.php', 'app/mobile/controllers/documents.php'] as $path) {
+    check_rich_html(str_contains(file_get_contents($root . '/' . $path), 'hg_render_rich_html('), 'Missing public guard: ' . $path);
+}
+$admin = file_get_contents($root . '/app/controllers/admin/admin_docs.php');
+check_rich_html(str_contains($admin, 'hg_sanitize_rich_html(hg_mentions_convert($link, $clean))'), 'Missing final write guard');
+check_rich_html(str_contains($admin, "if (\$ajaxMode === 'content')"), 'Missing per-document read');
+check_rich_html(str_contains($admin, 'row.content = data.content;'), 'Missing safe editor source');
 echo "HTML sanitizer candidate regression: OK\n";

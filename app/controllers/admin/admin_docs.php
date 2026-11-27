@@ -20,6 +20,7 @@ if (session_status() === PHP_SESSION_NONE) { @session_start(); }
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/documents/admin_docs.php');
 
@@ -168,8 +169,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crud_action']) && iss
         // bibliography_id ya viene del formulario
 
         // normalizaciones
-        if ($postTab === 'docs' && isset($vals['content'])) {
-            $vals['content'] = hg_mentions_convert($link, $vals['content']);
+        if ($postTab === 'docs' && in_array($action, ['create', 'update'], true)) {
+            try {
+                if (!is_string($_POST['content'] ?? null)) {
+                    throw new InvalidArgumentException('Invalid document content');
+                }
+                $clean = hg_sanitize_rich_html($vals['content']);
+                $vals['content'] = hg_sanitize_rich_html(hg_mentions_convert($link, $clean));
+            } catch (Throwable $e) {
+                hg_runtime_log_error('admin.docs.sanitize', get_class($e));
+                $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML. Conserva el texto y revisa el sanitizador.'];
+            }
         }
 
         foreach ($M['fields'] as $f) {
@@ -261,6 +271,27 @@ if ($isAjaxCrudRequest) {
 }
 
 $ajaxMode = (string)($_GET['ajax_mode'] ?? ($_GET['ajax'] ?? ''));
+if ($ajaxMode === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        hg_admin_json_error('Método no permitido', 405);
+    }
+    $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($id === false) {
+        hg_admin_json_error('ID inválido', 400);
+    }
+    try {
+        $raw = hg_docs_admin_content($link, $id);
+        if ($raw === null) {
+            hg_admin_json_error('Documento no encontrado', 404);
+        }
+        $clean = hg_sanitize_rich_html($raw);
+        hg_admin_json_success(['content' => $clean]);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.docs.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir el documento de forma segura.', 503);
+    }
+}
 if ($ajaxMode === 'list') {
     if (function_exists('hg_admin_require_session')) {
         hg_admin_require_session(true);
@@ -761,7 +792,9 @@ function syncEditorsToTextarea(){
     (META.fields||[]).forEach(function(f){ grid.appendChild(buildField(f)); });
   }
 
+  var editGeneration = 0;
   function openCreate(){
+    editGeneration++;
     document.getElementById('modalTitle').textContent = 'Nuevo - ' + (META.title || '');
     document.getElementById('crud_action').value = 'create';
     document.getElementById('crud_tab').value = TAB;
@@ -788,9 +821,26 @@ function syncEditorsToTextarea(){
     }, 0);
   }
 
-  function openEdit(id){
-    var row = ROWMAP[String(id)];
-    if (!row) return;
+  async function openEdit(id){
+    var original = ROWMAP[String(id)];
+    if (!original) return;
+    var row = Object.assign({}, original);
+    var generation = ++editGeneration;
+    if (TAB === 'docs') {
+      var url = adminUrl();
+      url.searchParams.set('ajax_mode', 'content');
+      url.searchParams.set('id', String(id));
+      try {
+        var payload = await request(url.toString(), {method: 'GET'});
+        var data = payload && payload.data;
+        if (!data || typeof data.content !== 'string') throw new Error('Contenido no disponible');
+        if (generation !== editGeneration) return;
+        row.content = data.content;
+      } catch (err) {
+        if (generation === editGeneration) handleError(err, 'Error al abrir documento');
+        return;
+      }
+    }
 
     document.getElementById('modalTitle').textContent = 'Editar - ' + (META.title || '');
     document.getElementById('crud_action').value = 'update';
@@ -818,6 +868,7 @@ function syncEditorsToTextarea(){
   }
 
   function closeModal(){
+    editGeneration++;
     mb.style.display='none';
     destroyEditors();
   }

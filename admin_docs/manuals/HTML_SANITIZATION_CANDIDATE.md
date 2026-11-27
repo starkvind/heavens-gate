@@ -1,6 +1,6 @@
 # Política candidata de sanitización HTML
 
-Fase de preparación aislada. No hay integración con controladores ni migración de datos en este cambio.
+Piloto en documentos: guardado administrativo, apertura individual del editor y renderizado público escritorio/móvil. No hay migración de datos ni despliegue.
 
 - Dependencia PHP: ezyang/htmlpurifier 4.19.1, fijada en app/security/composer.json, dentro del árbol app protegido por Apache.
 - Generar y revisar composer.lock antes de integrar; ejecutar composer audit y conservar el lock. La CI de candidato resuelve la versión fijada para probarla.
@@ -10,4 +10,4 @@ Fase de preparación aislada. No hay integración con controladores ni migració
 - No autorizar atributos de eventos, contenido activo ni clases adicionales sin revisión. Revisar recursos externos, formatos históricos, enlaces y tablas.
 - Integración posterior: sanitizar entradas y resultado de la conversión de menciones; tratar contenido histórico antes de mostrarlo o abrirlo en editores; validar todas las rutas de escritura.
 - Caché opcional: directorio privado y escribible por PHP-FPM, nunca bajo una ruta pública. Medir uso en Raspberry antes de activarla.
-- No cambia Quill, base de datos ni producción. No fusionar hasta validar CI, lock y corpus.
+- No cambia Quill, base de datos ni producción. No fusionar hasta validar CI, lock y corpus. El listado ya no transfiere cuerpos completos; el editor solicita un documento saneado. La conversión regex de menciones sigue pendiente de refactor; también la comprobación de ida y vuelta de tablas en Quill. El límite y la política de formatos no están aprobados para producción.

@@ -87,7 +87,7 @@ function hg_docs_admin_rows(mysqli $link,array $meta,string $q,?int $offset=null
     $table=preg_replace('/[^a-zA-Z0-9_]/','',(string)$meta['table']);
     $pk=preg_replace('/[^a-zA-Z0-9_]/','',(string)$meta['pk']);
     $nameCol=preg_replace('/[^a-zA-Z0-9_]/','',(string)$meta['name_col']);
-    $cols=[];foreach($meta['fields'] as $f)$cols[]='`'.preg_replace('/[^a-zA-Z0-9_]/','',(string)$f['k']).'`';$cols[]="`{$pk}`";$cols=array_values(array_unique($cols));
+    $cols=[];foreach($meta['fields'] as $f){if(($f['ui']??'')==='wysiwyg')continue;$cols[]='`'.preg_replace('/[^a-zA-Z0-9_]/','',(string)$f['k']).'`';}$cols[]="`{$pk}`";$cols=array_values(array_unique($cols));
     $sql="SELECT ".implode(',',$cols)." FROM `{$table}` WHERE 1=1";$types='';$params=[];
     if($q!==''){$sql.=" AND `{$nameCol}` LIKE ?";$types.='s';$params[]='%'.$q.'%';}
     $sql.=" ORDER BY ".$meta['order_by'];
@@ -96,4 +96,20 @@ function hg_docs_admin_rows(mysqli $link,array $meta,string $q,?int $offset=null
     if($types!=='')$st->bind_param($types,...$params);
     if(!$st->execute()){$err=$st->error;$st->close();return ['ok'=>false,'rows'=>[],'error'=>$err];}
     $rs=$st->get_result();$rows=[];while($rs&&($r=$rs->fetch_assoc()))$rows[]=$r;$st->close();return ['ok'=>true,'rows'=>$rows,'error'=>''];
+}
+
+/** Fetch only the selected document body, not every body in the list. */
+function hg_docs_admin_content(mysqli $link, int $id): ?string {
+    $st = $link->prepare('SELECT content FROM fact_docs WHERE id = ?');
+    if (!$st) { throw new RuntimeException('Document query unavailable'); }
+    try {
+        $st->bind_param('i', $id);
+        if (!$st->execute()) { throw new RuntimeException('Document query failed'); }
+        $rs = $st->get_result();
+        if (!$rs) { throw new RuntimeException('Document result unavailable'); }
+        $row = $rs->fetch_assoc();
+        return $row === null ? null : (string)($row['content'] ?? '');
+    } finally {
+        $st->close();
+    }
 }

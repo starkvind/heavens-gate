@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 require_once(__DIR__ . '/../../domains/documents/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 $metaTitle = "Documentos | Heaven's Gate";
 $metaDescription = 'Archivo móvil de documentos.';
@@ -93,7 +94,7 @@ if (!$doc) {
 }
 
 $title = (string)($doc['title'] ?? 'Documento');
-$content = (string)($doc['content'] ?? '');
+$content = hg_render_rich_html((string)($doc['content'] ?? ''));
 $source = (string)($doc['source'] ?? '');
 $category = trim((string)($doc['category'] ?? '')) ?: 'Documento';
 $origin = trim((string)($doc['origin'] ?? ''));

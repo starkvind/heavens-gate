@@ -4,6 +4,10 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/mobile/controllers/documents.php'
+      - 'app/controllers/docs/docs_page.php'
+      - 'app/domains/documents/admin_docs.php'
+      - 'app/controllers/admin/admin_docs.php'
       - '.github/ci/php-html-sanitizer-regression.php'
       - '.github/workflows/html-sanitizer-candidate.yml'
   pull_request:
@@ -11,6 +15,10 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'app/mobile/controllers/documents.php'
+      - 'app/controllers/docs/docs_page.php'
+      - 'app/domains/documents/admin_docs.php'
+      - 'app/controllers/admin/admin_docs.php'
       - '.github/ci/php-html-sanitizer-regression.php'
       - '.github/workflows/html-sanitizer-candidate.yml'
 permissions:
@@ -30,6 +38,12 @@ jobs:
         run: |
           composer update --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
           composer audit --no-dev
+      - name: Record generated lock for review
+        working-directory: app/security
+        run: |
+          echo 'HG_LOCK_BEGIN'
+          cat composer.lock
+          echo 'HG_LOCK_END'
       - name: Run candidate regression
         run: |
           php -l app/helpers/html_sanitizer.php

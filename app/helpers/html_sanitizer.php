@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * Candidate policy v1. Not wired into production controllers until corpus
- * regression and dependency deployment have been validated.
+ * Candidate policy v1. Pilot integration in documents; not for deployment
+ * until corpus regression and dependency deployment have been validated.
  *
  * Fail closed: callers must reject a write on exception, never persist raw input.
  * A private writable cache directory may be supplied by deployment configuration.
@@ -84,4 +84,15 @@ function hg_sanitize_rich_html(string $html, ?string $cacheDirectory = null): st
         $configuredCache = $cacheDirectory;
     }
     return $purifier->purify($html);
+}
+
+/** Legacy display: never return unvalidated HTML on failure. */
+function hg_render_rich_html(string $html): string
+{
+    try {
+        return hg_sanitize_rich_html($html);
+    } catch (Throwable $e) {
+        error_log('HG rich HTML unavailable: ' . get_class($e));
+        return '<p>Contenido temporalmente no disponible.</p>';
+    }
 }
