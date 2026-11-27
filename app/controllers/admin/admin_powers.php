@@ -28,6 +28,8 @@ include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../domains/powers/admin.php');
 require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
+require_once(__DIR__ . '/../../helpers/admin_jodit.php');
+$joditConfig = hg_admin_jodit_settings('powers', 'csrf_admin_poderes', $hgRequest);
 require_once(__DIR__ . '/../../helpers/mentions.php');
 $quillToolbarInner = admin_quill_toolbar_inner();
 // Subidas de imagen (Dones)
@@ -484,7 +486,7 @@ if ($ajaxMode === 'content') {
         $selectedMeta = meta_for($selectedTab, $opts_origen, $opts_systems, $opts_tipo_dones, $opts_tipo_rit, $opts_tipo_tot, $opts_tipo_disc, $giftMechanicsCol, $giftSystemLabelCol);
         $fields = hg_powers_admin_rich_content($link, $selectedMeta, $id);
         if ($fields === null) hg_admin_json_error('Poder no encontrado', 404);
-        foreach ($fields as $key => $value) $fields[$key] = hg_quill_editor_html((string)$value);
+        foreach ($fields as $key => $value) $fields[$key] = ($joditConfig['enabled'] ? hg_admin_jodit_editor_html((string)$value, $joditConfig) : hg_quill_editor_html((string)$value));
         hg_admin_json_success(['fields'=>$fields]);
     } catch (DomainException $e) {
         hg_admin_json_error('Edición bloqueada: este contenido contiene tablas que Quill no puede conservar.', 409);
@@ -736,8 +738,7 @@ function ui_short(string $s, int $n=120): string {
 </div>
 
 <!-- Quill (CDN, sin API key, sin carpetas) -->
-<link href="/assets/vendor/quill/1.3.7/quill.snow.css" rel="stylesheet">
-<script src="/assets/vendor/quill/1.3.7/quill.min.js"></script>
+<?php include(__DIR__ . '/../../partials/admin/jodit_assets.php'); ?>
 <?php include_once(__DIR__ . '/../../partials/admin/mentions_includes.php'); ?>
 <?php
 $adminHttpJs = '/assets/js/admin/admin-http.js';
@@ -777,10 +778,18 @@ function pickOptsForField(fieldKey){
 var QUILL_MAP = {}; // textareaId -> quill instance
 
 function destroyEditors(){
+  if (window.HGJoditConfig.enabled) Object.values(QUILL_MAP).forEach(function(editor){editor.destroy();});
   QUILL_MAP = {};
 }
 
 function initEditors(){
+  if (window.HGJoditConfig.enabled) {
+    document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
+      var id=wrap.getAttribute('data-ta');
+      if (!QUILL_MAP[id]) QUILL_MAP[id]=window.HGJodit.createForField(id,wrap.getAttribute('data-editor'),wrap.getAttribute('data-toolbar'),HG_MENTION_TYPES);
+    });
+    return;
+  }
   if (typeof Quill === 'undefined') return;
   document.querySelectorAll('[data-wys=\"1\"]').forEach(function(wrap){
     var taId = wrap.getAttribute('data-ta');
@@ -812,6 +821,14 @@ function initEditors(){
 }
 
 function syncEditorsToTextarea(){
+  if (window.HGJoditConfig.enabled) {
+    document.querySelectorAll('[data-wys="1"]').forEach(function(wrap){
+      var id=wrap.getAttribute('data-ta');
+      if (!QUILL_MAP[id]) throw new Error('Editor no disponible; no se ha guardado.');
+      QUILL_MAP[id].sync();
+    });
+    return;
+  }
   Object.keys(QUILL_MAP).forEach(function(taId){
     var q = QUILL_MAP[taId];
     var textarea = document.getElementById(taId);
@@ -1023,7 +1040,7 @@ function syncEditorsToTextarea(){
       }
     });
 
-    initEditors();
+    try { initEditors(); } catch (err) { destroyEditors(); mb.style.display='none'; if (window.HGJoditConfig.enabled) destroyEditors(); alert(err.message); return; }
     mb.style.display = 'flex';
     setTimeout(function(){
       var first = grid.querySelector('input,textarea,select');
@@ -1090,7 +1107,7 @@ function syncEditorsToTextarea(){
       }
     });
 
-    initEditors();
+    try { initEditors(); } catch (err) { destroyEditors(); mb.style.display='none'; if (window.HGJoditConfig.enabled) destroyEditors(); alert(err.message); return; }
     mb.style.display = 'flex';
     setTimeout(function(){
       var first = grid.querySelector('input,textarea,select');
@@ -1099,8 +1116,8 @@ function syncEditorsToTextarea(){
   }
 
   btnNew.addEventListener('click', openCreate);
-  btnCancel.addEventListener('click', function(){ powerEditGeneration++; mb.style.display='none'; });
-  mb.addEventListener('click', function(e){ if (e.target === mb) { powerEditGeneration++; mb.style.display='none'; } });
+  btnCancel.addEventListener('click', function(){ powerEditGeneration++; mb.style.display='none'; if (window.HGJoditConfig.enabled) destroyEditors(); });
+  mb.addEventListener('click', function(e){ if (e.target === mb) { powerEditGeneration++; mb.style.display='none'; if (window.HGJoditConfig.enabled) destroyEditors(); } });
 
   function runDeleteCurrent(){
     if (!currentEditRow) {
@@ -1143,7 +1160,7 @@ function syncEditorsToTextarea(){
         alert(msg);
         return;
       }
-      mb.style.display='none';
+      mb.style.display='none'; if (window.HGJoditConfig.enabled) destroyEditors();
       if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
         window.HGAdminHttp.notify(json.message || 'Eliminado', 'ok');
       }
@@ -1187,7 +1204,7 @@ function syncEditorsToTextarea(){
 
   formCrud.addEventListener('submit', function(ev){
     ev.preventDefault();
-    syncEditorsToTextarea();
+    try { syncEditorsToTextarea(); } catch (err) { alert(err.message); return; }
     var errs = [];
     (META.fields||[]).forEach(function(f){
       if (!f.req) return;
@@ -1219,7 +1236,7 @@ function syncEditorsToTextarea(){
         alert(msg);
         return;
       }
-      mb.style.display='none';
+      mb.style.display='none'; if (window.HGJoditConfig.enabled) destroyEditors();
       if (window.HGAdminHttp && typeof window.HGAdminHttp.notify === 'function') {
         window.HGAdminHttp.notify(json.message || 'Guardado', 'ok');
       }
