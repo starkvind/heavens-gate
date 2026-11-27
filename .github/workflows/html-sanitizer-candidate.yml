@@ -4,6 +4,8 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'assets/vendor/quill/**'
+      - '.github/ci/quill-roundtrip-browser.php'
       - 'app/controllers/tool/csp_board.php'
       - 'app/helpers/mentions.php'
       - 'app/mobile/controllers/rules.php'
@@ -59,6 +61,8 @@ on:
     paths:
       - 'app/security/**'
       - 'app/helpers/html_sanitizer.php'
+      - 'assets/vendor/quill/**'
+      - '.github/ci/quill-roundtrip-browser.php'
       - 'app/controllers/tool/csp_board.php'
       - 'app/helpers/mentions.php'
       - 'app/mobile/controllers/rules.php'
@@ -135,3 +139,24 @@ jobs:
           php -l tools/audit_rich_html.php
           php tools/audit_rich_html.php --self-test
           php .github/ci/php-html-sanitizer-regression.php
+      - name: Measure current Quill round-trip in Chromium
+        run: |
+          php .github/ci/quill-roundtrip-browser.php > quill-roundtrip-fixture.html
+          trap 'rm -f quill-roundtrip-fixture.html quill-roundtrip-output.html' EXIT
+          google-chrome --headless --no-sandbox --disable-gpu --disable-background-networking --no-first-run --virtual-time-budget=2000 --dump-dom "file://${GITHUB_WORKSPACE}/quill-roundtrip-fixture.html" > quill-roundtrip-output.html
+          python3 - <<'PY'
+          import html
+          import json
+          import re
+          from pathlib import Path
+          page = Path("quill-roundtrip-output.html").read_text()
+          match = re.search(r'<pre id="result"[^>]*>(.*?)</pre>', page, re.S)
+          if not match:
+              raise SystemExit("No browser report")
+          data = json.loads(html.unescape(match.group(1)))
+          print("HG_QUILL_REPORT " + json.dumps(data, ensure_ascii=False))
+          if data.get("error") or not data.get("baseline_ok"):
+              raise SystemExit("Quill baseline failed")
+          if not data.get("rich_ok"):
+              print("::warning::Quill rich round-trip loses structure or mention metadata. Deployment remains blocked by compatibility review.")
+          PY

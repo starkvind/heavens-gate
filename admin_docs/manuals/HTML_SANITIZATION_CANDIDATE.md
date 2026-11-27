@@ -32,3 +32,7 @@ Omitir --only para recorrer el inventario provisional de campos; --batch admite 
 - Biografías, rasgos, méritos/defectos y recursos: saneamiento de escrituras y de salidas públicas identificadas. No se modifica el tipo de editor textarea; el HTML no se inserta como DOM al cargar dichos formularios. Los niveles de rasgos se sanean antes de su transformación visual en gemas. Pendiente revisar otros consumidores, el corpus real y la preservación de formatos.
 
 - Retirado el conversor regex sin consumidores; se conserva el lookup de menciones. Tablón de mensajes de escritorio: autor, título, fecha y cuerpo escapados como texto, igual que en móvil; los saltos de línea se conservan. Si el corpus contiene HTML deliberado en ese tablón, revisar compatibilidad antes de desplegar. No se han encontrado escritores de fact_csp_posts en la búsqueda de código.
+
+## Compatibilidad real del editor
+
+La CI abre la versión local de Quill 1.3.7 en Chrome headless con HTML sintético saneado, reproduce la asignación a root.innerHTML y una edición de texto, y registra preservación de tablas, celdas, atributos de menciones y formatos básicos. El caso básico debe pasar; si el caso enriquecido falla, la CI emite un aviso explícito y el despliegue continúa bloqueado por revisión de compatibilidad. El aviso no equivale a una prueba aprobada de tablas. No se usa contenido real ni se contacta con producción. No se cambia Quill en esta fase.
