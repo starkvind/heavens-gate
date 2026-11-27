@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
@@ -25,7 +26,7 @@ if (!$ordenQueryResult) {
     $systemNameRaw = (string)($ordenQueryResult["name"] ?? '');
     $systemName = htmlspecialchars($systemNameRaw);
     $systemImg = htmlspecialchars((string)($ordenQueryResult["image_url"] ?? ''));
-    $systemDesc = (string)($ordenQueryResult["description"] ?? '');
+    $systemDesc = hg_render_rich_html((string)($ordenQueryResult["description"] ?? ''));
     $systemForm = (int)($ordenQueryResult["forms"] ?? 0);
     $systemNameAlt = $systemNameRaw;
     $systemDetailLabels = hg_systems_fetch_detail_labels($link, $systemCategoryId);
@@ -196,7 +197,7 @@ if (!$ordenQueryResult) {
             echo "<div class='syst-subhead'>Renombre</div>";
             echo "<div class='syst-resource-list'>";
             foreach ($resByKind['renombre'] as $resItem) {
-                $descHtml = html_entity_decode((string)($resItem['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $descHtml = hg_render_rich_html(html_entity_decode((string)($resItem['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                 $hasDesc = (trim((string)$descHtml) !== '');
                 echo "<div class='syst-pill" . ($hasDesc ? " collapsed-desc-item" : "") . "'>";
                 echo "<div class='syst-pill-head'>";
@@ -212,7 +213,7 @@ if (!$ordenQueryResult) {
             echo "<div class='syst-subhead'>Estado</div>";
             echo "<div class='syst-resource-list'>";
             foreach ($resByKind['estado'] as $resItem) {
-                $descHtml = html_entity_decode((string)($resItem['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $descHtml = hg_render_rich_html(html_entity_decode((string)($resItem['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                 $hasDesc = (trim((string)$descHtml) !== '');
                 echo "<div class='syst-pill" . ($hasDesc ? " collapsed-desc-item" : "") . "'>";
                 echo "<div class='syst-pill-head'>";

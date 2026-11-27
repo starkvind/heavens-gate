@@ -5,6 +5,7 @@ include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 require_once(__DIR__ . '/../../domains/inventory/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 $metaTitle = "Inventario | Heaven's Gate";
 $metaDescription = 'Inventario móvil de objetos y artefactos.';
@@ -142,7 +143,7 @@ if ($isItem) {
     $typeName = trim((string)($item['type_name'] ?? 'Objeto'));
     $typePretty = trim((string)($item['type_pretty'] ?? ''));
     $typeHref = '/inventory/type/' . rawurlencode($typePretty !== '' ? $typePretty : (string)($item['item_type_id'] ?? ''));
-    $description = (string)($item['description'] ?? '');
+    $description = hg_render_rich_html((string)($item['description'] ?? ''));
     $metaTitle = $name . " | Inventario | Heaven's Gate";
     $metaDescription = hg_mobile_inv_excerpt($description, 160);
     $pageTitle2 = $name;

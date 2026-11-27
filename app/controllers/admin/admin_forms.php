@@ -8,6 +8,7 @@ if (method_exists($link, 'set_charset')) { $link->set_charset('utf8mb4'); } else
 include(__DIR__ . '/../../partials/admin/admin_styles.php');
 include_once(__DIR__ . '/../../partials/admin/quill_toolbar_inner.php');
 include_once(__DIR__ . '/../../helpers/mentions.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 include_once(__DIR__ . '/../../helpers/admin_ajax.php');
 include_once(__DIR__ . '/../../helpers/pretty.php');
 include_once(__DIR__ . '/../../domains/systems/admin.php');
@@ -162,8 +163,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
         $id = (int)($_POST['id'] ?? 0);
         $systemId = (int)($_POST['system_id'] ?? 0);
         $forma = trim((string)($_POST['forma'] ?? ''));
-        $desc = sanitize_utf8_text((string)($_POST['description'] ?? ''));
-        $desc = hg_mentions_convert($link, $desc);
+        $desc = null;
+        try {
+            $rawHtml = $_POST['description'] ?? '';
+            if (!is_string($rawHtml)) { throw new InvalidArgumentException('Invalid HTML'); }
+            $desc = hg_prepare_rich_html(sanitize_utf8_text($rawHtml),
+                static fn(string $type, string $value) => hg_mentions_lookup($link, $type, $value));
+        } catch (Throwable $e) {
+            hg_runtime_log_error('admin.forms.sanitize', get_class($e));
+            $flash[] = ['type'=>'error','msg'=>'No se ha guardado: no se pudo validar el HTML.'];
+        }
         $imagen = trim((string)($_POST['imagen'] ?? ''));
         $armas = (int)($_POST['armas'] ?? 0);
         $armasfuego = (int)($_POST['armasfuego'] ?? 0);
@@ -179,7 +188,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
             $tribesBySystem
         );
 
-        if ($systemId <= 0 || $forma === '') {
+        if ($desc === null) {
+            // Fail closed.
+        } elseif ($systemId <= 0 || $forma === '') {
             $flash[] = ['type'=>'error','msg'=>'Sistema y forma son obligatorios.'];
         } elseif (empty($applicability['ok'])) {
             $flash[] = ['type'=>'error','msg'=>'La aplicabilidad seleccionada no pertenece al sistema de Formas.'];
@@ -211,6 +222,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
                 $flash[] = ['type'=>'error','msg'=>($id > 0 ? 'Error al actualizar: ' : 'Error al crear: ').(string)($result['error'] ?? '')];
             }
         }
+    }
+}
+
+if ($isAjaxRequest && hg_request_query_param($hgRequest, 'ajax_mode') === 'content') {
+    hg_admin_require_session(true);
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        hg_admin_json_error('Método no permitido', 405);
+    }
+    $id = filter_var(hg_request_query_param($hgRequest, 'id'), FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]);
+    if ($id === false) {
+        hg_admin_json_error('ID inválido', 400);
+    }
+    try {
+        $raw = hg_systems_admin_rich_content($link, 'form', $id);
+        if ($raw === null) {
+            hg_admin_json_error('Registro no encontrado', 404);
+        }
+        hg_admin_json_success(['content' => hg_sanitize_rich_html($raw)]);
+    } catch (Throwable $e) {
+        hg_runtime_log_error('admin.forms.read', get_class($e));
+        hg_admin_json_error('No se pudo abrir el contenido de forma segura.', 503);
     }
 }
 
@@ -500,7 +533,26 @@ function buildApplicabilityOptionsForSystem(systemId, selectedType, selectedId){
     if (sel.value !== selected) sel.value = '';
 }
 
-function openFormModal(id = null){
+let formsEditGeneration = 0;
+async function openFormModal(id = null){
+    const generation = ++formsEditGeneration;
+    let row = null;
+    let desc = '';
+    if (id) {
+        row = formsData.find(function(r){ return (parseInt(r.id,10) || 0) === (parseInt(id,10) || 0); });
+        if (!row) return;
+        const url = new URL(endpointUrl('content'));
+        url.searchParams.set('id', String(id));
+        try {
+            const payload = await request(url.toString(), {method:'GET', cache:'no-store'});
+            if (!payload.data || typeof payload.data.content !== 'string') throw new Error('Contenido no disponible');
+            if (generation !== formsEditGeneration) return;
+            desc = payload.data.content;
+        } catch (err) {
+            if (generation === formsEditGeneration) alert(err.message || 'Error al abrir contenido');
+            return;
+        }
+    }
     ensureFormEditor();
     const modal = document.getElementById('formModal');
     document.getElementById('form_id').value = '';
@@ -519,7 +571,6 @@ function openFormModal(id = null){
     document.getElementById('form_bibliography_id').value = '0';
     if (formEditor) formEditor.root.innerHTML = '';
     if (id) {
-        const row = formsData.find(function(r){ return (parseInt(r.id,10) || 0) === (parseInt(id,10) || 0); });
         if (row) {
             document.getElementById('formModalTitle').textContent = 'Editar forma';
             document.getElementById('form_id').value = row.id;
@@ -535,7 +586,6 @@ function openFormModal(id = null){
             document.getElementById('form_bonres').value = row.bonres || '';
             document.getElementById('form_hpregen').value = row.hpregen || 0;
             document.getElementById('form_bibliography_id').value = row.bibliography_id || 0;
-            const desc = row.description || '';
             document.getElementById('form_desc').value = desc;
             if (formEditor) formEditor.root.innerHTML = desc;
         }
@@ -544,7 +594,7 @@ function openFormModal(id = null){
     }
     modal.style.display = 'flex';
 }
-function closeFormModal(){ document.getElementById('formModal').style.display = 'none'; }
+function closeFormModal(){ formsEditGeneration++; document.getElementById('formModal').style.display = 'none'; }
 
 function bindRows(){
     document.querySelectorAll('#formsTbody [data-edit]').forEach(function(btn){

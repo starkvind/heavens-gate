@@ -1,6 +1,7 @@
 <?php
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/inventory/queries.php');
+require_once(__DIR__ . '/../../helpers/html_sanitizer.php');
 
 $itemPageID = hg_request_param($hgRequest, 'item');
 $itemId = (int)$itemPageID;
@@ -24,7 +25,7 @@ if ($resultQueryItem) { // Si encontramos el Objeto en la BDD...
     $itemSTR    = (int)$resultQueryItem["strength_req"];
     $itemDEX    = (int)$resultQueryItem["dexterity_req"];
     $itemImg    = htmlspecialchars($resultQueryItem["image_url"]);
-    $itemInfo   = ($resultQueryItem["description"]);
+    $itemInfo   = hg_render_rich_html((string)($resultQueryItem["description"] ?? ""));
     $itemOrig   = (int)$resultQueryItem["bibliography_id"];
     $itemOriginName = htmlspecialchars((string)($resultQueryItem['bibliography_name'] ?? '-'));
     if ($itemOriginName === '') $itemOriginName = '-';

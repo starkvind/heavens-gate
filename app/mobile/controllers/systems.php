@@ -4,6 +4,7 @@ include_once(__DIR__ . '/../../helpers/public_response.php');
 include_once(__DIR__ . '/../../helpers/character_avatar.php');
 require_once(__DIR__ . '/../../domains/chronicles/scope.php');
 require_once __DIR__ . '/../../domains/systems/queries.php';
+require_once __DIR__ . '/../../helpers/html_sanitizer.php';
 require_once __DIR__ . '/../../domains/bibliography/publication_context.php';
 require_once __DIR__ . '/../../domains/systems/maneuver_availability.php';
 
@@ -139,7 +140,7 @@ if ($route === 'sistemas') {
     }
 
     $name = trim((string)($system['name'] ?? ''));
-    $description = (string)($system['description'] ?? '');
+    $description = hg_render_rich_html((string)($system['description'] ?? ''));
     $metaTitle = $name . " | Sistemas | Heaven's Gate";
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
     $pageTitle2 = $name;
@@ -212,7 +213,7 @@ if ($route === 'sistemas') {
                     <article class="hg-mobile-card hg-mobile-sys-resource" data-mobile-item data-mobile-search="<?= hg_mobile_sys_h(($resource['name'] ?? '') . ' ' . ($resource['kind'] ?? '')) ?>">
                         <strong><?= hg_mobile_sys_h($resource['name'] ?? '') ?></strong>
                         <span><?= hg_mobile_sys_h($resource['kind'] ?? '') ?></span>
-                        <?php if (trim(strip_tags((string)($resource['description'] ?? ''))) !== ''): ?><div class="hg-mobile-rich-body"><?= $resource['description'] ?></div><?php endif; ?>
+                        <?php if (trim(strip_tags((string)($resource['description'] ?? ''))) !== ''): ?><div class="hg-mobile-rich-body"><?= hg_render_rich_html((string)($resource['description'] ?? '')) ?></div><?php endif; ?>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -383,7 +384,7 @@ if ($route === 'verforma') {
     $systemName = trim((string)($form['system_name_resolved'] ?? ''));
     $breedName = trim((string)($form['breed_name_resolved'] ?? ''));
     $display = ($systemName === 'Bastet' && $breedName !== '') ? ($name . ' (' . $breedName . ')') : $name;
-    $description = (string)($form['description'] ?? '');
+    $description = hg_render_rich_html((string)($form['description'] ?? ''));
     $metaTitle = $display . " | Formas | Heaven's Gate";
     $metaDescription = hg_mobile_sys_excerpt($description, 160);
     $systemId = (int)($form['system_id'] ?? 0);
