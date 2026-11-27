@@ -51,7 +51,7 @@ $clean = hg_sanitize_rich_html($clipboard);
     const drop=new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:data});root.dispatchEvent(drop);
     result.drop_blocked=drop.defaultPrevented;
     const p=document.createElement('p');p.textContent='@character Pers';root.appendChild(p);
-    selectEnd(p);
+    selectEnd(p.firstChild);
     root.dispatchEvent(new Event('input',{bubbles:true}));
     await delay(350);
     const choice=document.querySelector('.hg-mention-item');
